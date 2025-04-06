@@ -18,20 +18,30 @@ var config = map[string]*cfgEntry{
 		productName:      "allDom",
 		columnsToDisplay: []string{"name", "type", "offer"},
 	},
-	// "/cdn/dedicated"
+	"/cdn/dedicated": {
+		productName:      "cdnDedicated",
+		columnsToDisplay: []string{"service", "offer", "anycast"},
+	},
 	"/cloud/project": {
 		productName:      "cloudProject",
 		columnsToDisplay: []string{"project_id", "projectName", "status", "description"},
 	},
-	// "/connectivity"
 	"/dbaas/logs": {
 		productName:      "ldp",
 		columnsToDisplay: []string{"serviceName", "displayName", "isClusterOwner", "state", "username"},
 	},
-	// "/dedicated/ceph"
-	// "/dedicated/cluster"
-	// "/dedicated/nasha"
-	// "/dedicated/nvmeof"
+	"/dedicated/ceph": {
+		productName:      "dedicatedCeph",
+		columnsToDisplay: []string{"serviceName", "region", "state", "status"},
+	},
+	"/dedicated/cluster": {
+		productName:      "dedicatedCluster",
+		columnsToDisplay: []string{"id", "region", "model", "status"},
+	},
+	"/dedicated/nasha": {
+		productName:      "dedicatedNasHA",
+		columnsToDisplay: []string{"serviceName", "customName", "datacenter"},
+	},
 	"/dedicated/server": {
 		productName:      "baremetal",
 		columnsToDisplay: []string{"serverId", "name", "region", "os"},
@@ -103,8 +113,10 @@ var config = map[string]*cfgEntry{
 		productName:      "ovhCloudConnect",
 		columnsToDisplay: []string{"uuid", "provider", "status", "description"},
 	},
-	// "/pack/siptrunk"
-	// "/pack/xdsl"
+	"/pack/xdsl": {
+		productName:      "packXDSL",
+		columnsToDisplay: []string{"packName", "description"},
+	},
 	// "/products"
 	// "/saas/csp2"
 	// "/service"
@@ -121,7 +133,6 @@ var config = map[string]*cfgEntry{
 		productName:      "sslGateway",
 		columnsToDisplay: []string{"serviceName", "displayName", "state", "zones"},
 	},
-	// "/stack/mis"
 	"/storage/netapp": {
 		productName:      "storageNetApp",
 		columnsToDisplay: []string{"id", "name", "region", "status"},
