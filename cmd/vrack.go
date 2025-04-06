@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -17,35 +18,31 @@ var (
 func listVrack(_ *cobra.Command, _ []string) {
 	req, err := client.NewRequest(http.MethodGet, "/vrack", nil, true)
 	if err != nil {
-		fmt.Printf("error crafting request: %s\n", err)
-		return
+		log.Fatalf("error crafting request: %s\n", err)
 	}
 
 	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("error fetching /vrack: %s\n", err)
-		return
+		log.Fatalf("error fetching /vrack: %s\n", err)
 	}
 
 	var unmarshalled []map[string]any
 	if err := client.UnmarshalResponse(resp, &unmarshalled); err != nil {
-		fmt.Printf("error unmarshalling response: %s\n", err)
-		return
+		log.Fatalf("error unmarshalling response: %s\n", err)
 	}
 
-	internal.RenderTable(unmarshalled, vrackColumnsToDisplay)
+	internal.OutputTable(unmarshalled, vrackColumnsToDisplay, jsonOutput, yamlOutput)
 }
 
 func getVrack(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := client.Get(fmt.Sprintf("/vrack/%s", url.PathEscape(args[0])), &object); err != nil {
-		fmt.Printf("error fetching Vrack: %s\n", err)
-		return
+		log.Fatalf("error fetching Vrack: %s\n", err)
 	}
 
-	internal.RenderObject(object, vrackColumnsToDisplay[0])
+	internal.OutputObject(object, vrackColumnsToDisplay[0], jsonOutput, yamlOutput)
 }
 
 func init() {

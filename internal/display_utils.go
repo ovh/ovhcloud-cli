@@ -1,14 +1,17 @@
 package internal
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/charmbracelet/lipgloss/tree"
+	"github.com/ghodss/yaml"
 )
 
-func RenderObject(values map[string]any, titleKey string) {
+func renderObject(values map[string]any, titleKey string) {
 	enumeratorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63")).MarginRight(1)
 	rootStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("35")).Bold(true).Underline(true).MarginBottom(1)
 	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("140"))
@@ -100,7 +103,7 @@ func generateChild(value any) *tree.Tree {
 	return child
 }
 
-func RenderTable(values []map[string]any, columnsToDisplay []string) {
+func renderTable(values []map[string]any, columnsToDisplay []string) {
 	var rows [][]string
 
 	for _, val := range values {
@@ -137,4 +140,56 @@ func RenderTable(values []map[string]any, columnsToDisplay []string) {
 		Rows(rows...)
 
 	fmt.Println(t)
+}
+
+func PrettyPrintJSON(value any) error {
+	bytesOut, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(bytesOut))
+
+	return nil
+}
+
+func PrettyPrintYAML(value any) error {
+	bytesOut, err := yaml.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(bytesOut))
+
+	return nil
+}
+
+func OutputTable(value []map[string]any, columns []string, jsonOutput, yamlOutput bool) {
+	switch {
+	case yamlOutput:
+		if err := PrettyPrintYAML(value); err != nil {
+			log.Fatalf("error displaying YAML results: %s", err)
+		}
+	case jsonOutput:
+		if err := PrettyPrintJSON(value); err != nil {
+			log.Fatalf("error displaying JSON results: %s", err)
+		}
+	default:
+		renderTable(value, columns)
+	}
+}
+
+func OutputObject(value map[string]any, idKey string, jsonOutput, yamlOutput bool) {
+	switch {
+	case yamlOutput:
+		if err := PrettyPrintYAML(value); err != nil {
+			log.Fatalf("error displaying YAML results: %s", err)
+		}
+	case jsonOutput:
+		if err := PrettyPrintJSON(value); err != nil {
+			log.Fatalf("error displaying JSON results: %s", err)
+		}
+	default:
+		renderObject(value, idKey)
+	}
 }

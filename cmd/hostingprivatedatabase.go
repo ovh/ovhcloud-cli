@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -17,35 +18,31 @@ var (
 func listHostingPrivateDatabase(_ *cobra.Command, _ []string) {
 	req, err := client.NewRequest(http.MethodGet, "/hosting/privateDatabase", nil, true)
 	if err != nil {
-		fmt.Printf("error crafting request: %s\n", err)
-		return
+		log.Fatalf("error crafting request: %s\n", err)
 	}
 
 	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("error fetching /hosting/privateDatabase: %s\n", err)
-		return
+		log.Fatalf("error fetching /hosting/privateDatabase: %s\n", err)
 	}
 
 	var unmarshalled []map[string]any
 	if err := client.UnmarshalResponse(resp, &unmarshalled); err != nil {
-		fmt.Printf("error unmarshalling response: %s\n", err)
-		return
+		log.Fatalf("error unmarshalling response: %s\n", err)
 	}
 
-	internal.RenderTable(unmarshalled, hostingprivatedatabaseColumnsToDisplay)
+	internal.OutputTable(unmarshalled, hostingprivatedatabaseColumnsToDisplay, jsonOutput, yamlOutput)
 }
 
 func getHostingPrivateDatabase(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := client.Get(fmt.Sprintf("/hosting/privateDatabase/%s", url.PathEscape(args[0])), &object); err != nil {
-		fmt.Printf("error fetching HostingPrivateDatabase: %s\n", err)
-		return
+		log.Fatalf("error fetching HostingPrivateDatabase: %s\n", err)
 	}
 
-	internal.RenderObject(object, hostingprivatedatabaseColumnsToDisplay[0])
+	internal.OutputObject(object, hostingprivatedatabaseColumnsToDisplay[0], jsonOutput, yamlOutput)
 }
 
 func init() {

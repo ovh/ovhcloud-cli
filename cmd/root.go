@@ -11,19 +11,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "ovh-cli",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-}
-
-var client *ovh.Client
+var (
+	// rootCmd represents the base command when called without any subcommands
+	rootCmd = &cobra.Command{
+		Use:   "ovh-cli",
+		Short: "CLI to manage your OVHcloud services",
+	}
+	// OVH API client
+	client *ovh.Client
+	// Common flags used by all subcommands to control output format (json, yaml)
+	jsonOutput, yamlOutput bool
+)
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -41,4 +39,8 @@ func init() {
 		fmt.Printf("error initializing client: %s\n", err)
 		os.Exit(1)
 	}
+
+	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output in JSON")
+	rootCmd.PersistentFlags().BoolVar(&yamlOutput, "yaml", false, "Output in YAML")
+	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 }

@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -17,35 +18,31 @@ var (
 func listBaremetal(_ *cobra.Command, _ []string) {
 	req, err := client.NewRequest(http.MethodGet, "/dedicated/server", nil, true)
 	if err != nil {
-		fmt.Printf("error crafting request: %s\n", err)
-		return
+		log.Fatalf("error crafting request: %s\n", err)
 	}
 
 	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("error fetching /dedicated/server: %s\n", err)
-		return
+		log.Fatalf("error fetching /dedicated/server: %s\n", err)
 	}
 
 	var unmarshalled []map[string]any
 	if err := client.UnmarshalResponse(resp, &unmarshalled); err != nil {
-		fmt.Printf("error unmarshalling response: %s\n", err)
-		return
+		log.Fatalf("error unmarshalling response: %s\n", err)
 	}
 
-	internal.RenderTable(unmarshalled, baremetalColumnsToDisplay)
+	internal.OutputTable(unmarshalled, baremetalColumnsToDisplay, jsonOutput, yamlOutput)
 }
 
 func getBaremetal(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := client.Get(fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0])), &object); err != nil {
-		fmt.Printf("error fetching Baremetal: %s\n", err)
-		return
+		log.Fatalf("error fetching Baremetal: %s\n", err)
 	}
 
-	internal.RenderObject(object, baremetalColumnsToDisplay[0])
+	internal.OutputObject(object, baremetalColumnsToDisplay[0], jsonOutput, yamlOutput)
 }
 
 func init() {

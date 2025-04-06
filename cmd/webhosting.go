@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -17,35 +18,31 @@ var (
 func listWebHosting(_ *cobra.Command, _ []string) {
 	req, err := client.NewRequest(http.MethodGet, "/hosting/web", nil, true)
 	if err != nil {
-		fmt.Printf("error crafting request: %s\n", err)
-		return
+		log.Fatalf("error crafting request: %s\n", err)
 	}
 
 	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("error fetching /hosting/web: %s\n", err)
-		return
+		log.Fatalf("error fetching /hosting/web: %s\n", err)
 	}
 
 	var unmarshalled []map[string]any
 	if err := client.UnmarshalResponse(resp, &unmarshalled); err != nil {
-		fmt.Printf("error unmarshalling response: %s\n", err)
-		return
+		log.Fatalf("error unmarshalling response: %s\n", err)
 	}
 
-	internal.RenderTable(unmarshalled, webhostingColumnsToDisplay)
+	internal.OutputTable(unmarshalled, webhostingColumnsToDisplay, jsonOutput, yamlOutput)
 }
 
 func getWebHosting(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := client.Get(fmt.Sprintf("/hosting/web/%s", url.PathEscape(args[0])), &object); err != nil {
-		fmt.Printf("error fetching WebHosting: %s\n", err)
-		return
+		log.Fatalf("error fetching WebHosting: %s\n", err)
 	}
 
-	internal.RenderObject(object, webhostingColumnsToDisplay[0])
+	internal.OutputObject(object, webhostingColumnsToDisplay[0], jsonOutput, yamlOutput)
 }
 
 func init() {

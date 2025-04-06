@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -17,35 +18,31 @@ var (
 func listNutanix(_ *cobra.Command, _ []string) {
 	req, err := client.NewRequest(http.MethodGet, "/nutanix", nil, true)
 	if err != nil {
-		fmt.Printf("error crafting request: %s\n", err)
-		return
+		log.Fatalf("error crafting request: %s\n", err)
 	}
 
 	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("error fetching /nutanix: %s\n", err)
-		return
+		log.Fatalf("error fetching /nutanix: %s\n", err)
 	}
 
 	var unmarshalled []map[string]any
 	if err := client.UnmarshalResponse(resp, &unmarshalled); err != nil {
-		fmt.Printf("error unmarshalling response: %s\n", err)
-		return
+		log.Fatalf("error unmarshalling response: %s\n", err)
 	}
 
-	internal.RenderTable(unmarshalled, nutanixColumnsToDisplay)
+	internal.OutputTable(unmarshalled, nutanixColumnsToDisplay, jsonOutput, yamlOutput)
 }
 
 func getNutanix(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := client.Get(fmt.Sprintf("/nutanix/%s", url.PathEscape(args[0])), &object); err != nil {
-		fmt.Printf("error fetching Nutanix: %s\n", err)
-		return
+		log.Fatalf("error fetching Nutanix: %s\n", err)
 	}
 
-	internal.RenderObject(object, nutanixColumnsToDisplay[0])
+	internal.OutputObject(object, nutanixColumnsToDisplay[0], jsonOutput, yamlOutput)
 }
 
 func init() {

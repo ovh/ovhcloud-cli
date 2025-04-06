@@ -15,6 +15,7 @@ require (
 	github.com/charmbracelet/x/ansi v0.8.0 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13-0.20250311204145-2c3ea96c31dd // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
+	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
@@ -30,4 +31,5 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

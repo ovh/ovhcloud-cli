@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -17,35 +18,31 @@ var (
 func listDedicatedCloud(_ *cobra.Command, _ []string) {
 	req, err := client.NewRequest(http.MethodGet, "/dedicatedCloud", nil, true)
 	if err != nil {
-		fmt.Printf("error crafting request: %s\n", err)
-		return
+		log.Fatalf("error crafting request: %s\n", err)
 	}
 
 	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("error fetching /dedicatedCloud: %s\n", err)
-		return
+		log.Fatalf("error fetching /dedicatedCloud: %s\n", err)
 	}
 
 	var unmarshalled []map[string]any
 	if err := client.UnmarshalResponse(resp, &unmarshalled); err != nil {
-		fmt.Printf("error unmarshalling response: %s\n", err)
-		return
+		log.Fatalf("error unmarshalling response: %s\n", err)
 	}
 
-	internal.RenderTable(unmarshalled, dedicatedcloudColumnsToDisplay)
+	internal.OutputTable(unmarshalled, dedicatedcloudColumnsToDisplay, jsonOutput, yamlOutput)
 }
 
 func getDedicatedCloud(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := client.Get(fmt.Sprintf("/dedicatedCloud/%s", url.PathEscape(args[0])), &object); err != nil {
-		fmt.Printf("error fetching DedicatedCloud: %s\n", err)
-		return
+		log.Fatalf("error fetching DedicatedCloud: %s\n", err)
 	}
 
-	internal.RenderObject(object, dedicatedcloudColumnsToDisplay[0])
+	internal.OutputObject(object, dedicatedcloudColumnsToDisplay[0], jsonOutput, yamlOutput)
 }
 
 func init() {
