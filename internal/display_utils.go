@@ -42,6 +42,12 @@ func RenderObject(values map[string]any, titleKey string) {
 					t.Child(generateChild(val))
 				}
 			}
+		case string:
+			if len(v) > 80 {
+				t.Child(tree.New().Child(v[:50] + "..."))
+			} else {
+				t.Child(tree.New().Child(v))
+			}
 		default:
 			if value == nil {
 				t.Child(tree.New().Child("null"))
@@ -74,6 +80,12 @@ func generateChild(value any) *tree.Tree {
 			for _, val := range v {
 				child.Child(generateChild(val))
 			}
+		}
+	case string:
+		if len(v) > 80 {
+			child.Child(v[:50] + "...")
+		} else {
+			child.Child(v)
 		}
 	default:
 		if value == nil {
