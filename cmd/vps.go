@@ -1,3 +1,4 @@
+
 package cmd
 
 import (
@@ -11,10 +12,10 @@ import (
 )
 
 var (
-	vpsColumnsToDisplay = []string{"name", "displayName", "state", "zone"}
+	vpsColumnsToDisplay = []string{ "name","displayName","state","zone" }
 )
 
-func listVPS(_ *cobra.Command, _ []string) {
+func listVps(_ *cobra.Command, _ []string) {
 	req, err := client.NewRequest(http.MethodGet, "/vps", nil, true)
 	if err != nil {
 		log.Fatalf("error crafting request: %s\n", err)
@@ -35,10 +36,10 @@ func listVPS(_ *cobra.Command, _ []string) {
 	internal.OutputTable(unmarshalled, vpsColumnsToDisplay, jsonOutput, yamlOutput)
 }
 
-func getVPS(_ *cobra.Command, args []string) {
+func getVps(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := client.Get(fmt.Sprintf("/vps/%s", url.PathEscape(args[0])), &object); err != nil {
-		log.Fatalf("error fetching vps: %s\n", err)
+		log.Fatalf("error fetching Vps: %s\n", err)
 	}
 
 	internal.OutputObject(object, vpsColumnsToDisplay[0], jsonOutput, yamlOutput)
@@ -47,23 +48,23 @@ func getVPS(_ *cobra.Command, args []string) {
 func init() {
 	vpsCmd := &cobra.Command{
 		Use:   "vps",
-		Short: "Retrieve information and manage your VPS services",
+		Short: "Retrieve information and manage your Vps services",
 	}
 
-	// Command to list VPS services
+	// Command to list Vps services
 	vpsCmd.AddCommand(&cobra.Command{
 		Use:   "list",
-		Short: "List your VPS services",
-		Run:   listVPS,
+		Short: "List your Vps services",
+		Run:   listVps,
 	})
 
-	// Command to get a single VPS
+	// Command to get a single Vps
 	vpsCmd.AddCommand(&cobra.Command{
 		Use:        "get",
-		Short:      "Retrieve information of a specific VPS",
+		Short:      "Retrieve information of a specific Vps",
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"service_name"},
-		Run:        getVPS,
+		Run:        getVps,
 	})
 
 	rootCmd.AddCommand(vpsCmd)

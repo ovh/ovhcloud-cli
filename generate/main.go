@@ -142,10 +142,10 @@ var config = map[string]*cfgEntry{
 		productName:      "veeamCloudConnect",
 		columnsToDisplay: []string{"serviceName", "productOffer", "location", "vmCount"},
 	},
-	// "/vps": {
-	// 	productName:      "vps",
-	// 	columnsToDisplay: []string{"name", "displayName", "state", "zone"},
-	// },
+	"/vps": {
+		productName:      "vps",
+		columnsToDisplay: []string{"name", "displayName", "state", "zone"},
+	},
 	"/vrack": {
 		productName: "vrack",
 		// TODO: service name not returned in response body, to fix
