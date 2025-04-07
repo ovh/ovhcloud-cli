@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -28,12 +29,13 @@ func listDedicatedCluster(_ *cobra.Command, _ []string) {
 		log.Fatalf("error fetching /dedicated/cluster: %s\n", err)
 	}
 
-	var unmarshalled []map[string]any
-	if err := client.UnmarshalResponse(resp, &unmarshalled); err != nil {
-		log.Fatalf("error unmarshalling response: %s\n", err)
+	defer resp.Body.Close()
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("error reading response body: %s", err)
 	}
 
-	internal.OutputTable(unmarshalled, dedicatedclusterColumnsToDisplay, jsonOutput, yamlOutput)
+	internal.OutputTable(bodyBytes, dedicatedclusterColumnsToDisplay, jsonOutput, yamlOutput)
 }
 
 func getDedicatedCluster(_ *cobra.Command, args []string) {

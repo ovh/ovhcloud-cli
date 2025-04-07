@@ -166,6 +166,32 @@ var config = map[string]*cfgEntry{
 		productName:      "xdsl",
 		columnsToDisplay: []string{"accessName", "accessType", "provider", "role", "status"},
 	},
+	// "/v2/domain/name"
+	// "/v2/iam"
+	"/v2/location": {
+		productName:      "location",
+		columnsToDisplay: []string{"name", "type", "specificType", "location"},
+	},
+	// "/v2/networkDefense"
+	"/v2/okms/resource": {
+		productName:      "okms",
+		columnsToDisplay: []string{"id", "region"},
+	},
+	// "/v2/publicCloud"
+	"/v2/vmwareCloudDirector/organization": {
+		productName:      "vmwareCloudDirectorOrganization",
+		columnsToDisplay: []string{"id", "currentState.fullName", "currentState.region", "resourceStatus"},
+	},
+	"/v2/vmwareCloudDirector/backup": {
+		productName:      "vmwareCloudDirectorBackup",
+		columnsToDisplay: []string{"id", "iam.displayName", "currentState.azName", "resourceStatus"},
+	},
+	"/v2/vrackServices/resource": {
+		productName:      "vrackServices",
+		columnsToDisplay: []string{"id", "currentState.region", "currentState. productStatus", "resourceStatus"},
+	},
+	// "/v2/webhosting"
+	// "/v2/zimbra"
 }
 
 var templ = `
@@ -173,6 +199,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -198,12 +225,13 @@ func list{{.ProductName}}(_ *cobra.Command, _ []string) {
 		log.Fatalf("error fetching {{.Path}}: %s\n", err)
 	}
 
-	var unmarshalled []map[string]any
-	if err := client.UnmarshalResponse(resp, &unmarshalled); err != nil {
-		log.Fatalf("error unmarshalling response: %s\n", err)
+	defer resp.Body.Close()
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("error reading response body: %s", err)
 	}
 
-	internal.OutputTable(unmarshalled, {{.ProductNameLower}}ColumnsToDisplay, jsonOutput, yamlOutput)
+	internal.OutputTable(bodyBytes, {{.ProductNameLower}}ColumnsToDisplay, jsonOutput, yamlOutput)
 }
 
 func get{{.ProductName}}(_ *cobra.Command, args []string) {

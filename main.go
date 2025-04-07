@@ -10,6 +10,3 @@ import (
 func main() {
 	cmd.Execute()
 }
-
-// TODO: option -o json et -o yaml
-// TODO: config loading

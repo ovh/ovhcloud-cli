@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/charmbracelet/lipgloss/tree"
 	"github.com/ghodss/yaml"
+	"github.com/tidwall/gjson"
 )
 
 func renderObject(values map[string]any, titleKey string) {
@@ -103,14 +104,16 @@ func generateChild(value any) *tree.Tree {
 	return child
 }
 
-func renderTable(values []map[string]any, columnsToDisplay []string) {
+func renderTable(values []byte, columnsToDisplay []string) {
 	var rows [][]string
 
-	for _, val := range values {
+	lines := gjson.ParseBytes(values)
+	for _, line := range lines.Array() {
 		var row []string
 
 		for _, col := range columnsToDisplay {
-			row = append(row, fmt.Sprint(val[col]))
+			v := line.Get(col)
+			row = append(row, fmt.Sprint(v.Value()))
 		}
 
 		rows = append(rows, row)
@@ -164,7 +167,7 @@ func PrettyPrintYAML(value any) error {
 	return nil
 }
 
-func OutputTable(value []map[string]any, columns []string, jsonOutput, yamlOutput bool) {
+func OutputTable(value []byte, columns []string, jsonOutput, yamlOutput bool) {
 	switch {
 	case yamlOutput:
 		if err := PrettyPrintYAML(value); err != nil {

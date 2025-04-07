@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -28,12 +29,13 @@ func listSms(_ *cobra.Command, _ []string) {
 		log.Fatalf("error fetching /sms: %s\n", err)
 	}
 
-	var unmarshalled []map[string]any
-	if err := client.UnmarshalResponse(resp, &unmarshalled); err != nil {
-		log.Fatalf("error unmarshalling response: %s\n", err)
+	defer resp.Body.Close()
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("error reading response body: %s", err)
 	}
 
-	internal.OutputTable(unmarshalled, smsColumnsToDisplay, jsonOutput, yamlOutput)
+	internal.OutputTable(bodyBytes, smsColumnsToDisplay, jsonOutput, yamlOutput)
 }
 
 func getSms(_ *cobra.Command, args []string) {
