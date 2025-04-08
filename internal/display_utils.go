@@ -104,7 +104,7 @@ func generateChild(value any) *tree.Tree {
 	return child
 }
 
-func renderTable(values []byte, columnsToDisplay []string) {
+func RenderTable(values []byte, columnsToDisplay []string) {
 	var rows [][]string
 
 	lines := gjson.ParseBytes(values)
@@ -167,7 +167,7 @@ func PrettyPrintYAML(value any) error {
 	return nil
 }
 
-func OutputTable(value []byte, columns []string, jsonOutput, yamlOutput bool) {
+func RenderTableRaw(value any, jsonOutput, yamlOutput bool) {
 	switch {
 	case yamlOutput:
 		if err := PrettyPrintYAML(value); err != nil {
@@ -177,8 +177,6 @@ func OutputTable(value []byte, columns []string, jsonOutput, yamlOutput bool) {
 		if err := PrettyPrintJSON(value); err != nil {
 			log.Fatalf("error displaying JSON results: %s", err)
 		}
-	default:
-		renderTable(value, columns)
 	}
 }
 

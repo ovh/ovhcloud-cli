@@ -2,14 +2,7 @@
 package cmd
 
 import (
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"net/url"
-
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal"
 )
 
 var (
@@ -17,34 +10,11 @@ var (
 )
 
 func listTelephony(_ *cobra.Command, _ []string) {
-	req, err := client.NewRequest(http.MethodGet, "/telephony", nil, true)
-	if err != nil {
-		log.Fatalf("error crafting request: %s\n", err)
-	}
-
-	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalf("error fetching /telephony: %s\n", err)
-	}
-
-	defer resp.Body.Close()
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("error reading response body: %s", err)
-	}
-
-	internal.OutputTable(bodyBytes, telephonyColumnsToDisplay, jsonOutput, yamlOutput)
+	manageListRequest("/telephony", telephonyColumnsToDisplay)
 }
 
 func getTelephony(_ *cobra.Command, args []string) {
-	var object map[string]any
-	if err := client.Get(fmt.Sprintf("/telephony/%s", url.PathEscape(args[0])), &object); err != nil {
-		log.Fatalf("error fetching Telephony: %s\n", err)
-	}
-
-	internal.OutputObject(object, telephonyColumnsToDisplay[0], jsonOutput, yamlOutput)
+	manageObjectRequest("/telephony", args[0], telephonyColumnsToDisplay[0])
 }
 
 func init() {

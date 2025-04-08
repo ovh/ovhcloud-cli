@@ -2,14 +2,7 @@
 package cmd
 
 import (
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"net/url"
-
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal"
 )
 
 var (
@@ -17,34 +10,11 @@ var (
 )
 
 func listDomainName(_ *cobra.Command, _ []string) {
-	req, err := client.NewRequest(http.MethodGet, "/domain", nil, true)
-	if err != nil {
-		log.Fatalf("error crafting request: %s\n", err)
-	}
-
-	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalf("error fetching /domain: %s\n", err)
-	}
-
-	defer resp.Body.Close()
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("error reading response body: %s", err)
-	}
-
-	internal.OutputTable(bodyBytes, domainnameColumnsToDisplay, jsonOutput, yamlOutput)
+	manageListRequest("/domain", domainnameColumnsToDisplay)
 }
 
 func getDomainName(_ *cobra.Command, args []string) {
-	var object map[string]any
-	if err := client.Get(fmt.Sprintf("/domain/%s", url.PathEscape(args[0])), &object); err != nil {
-		log.Fatalf("error fetching DomainName: %s\n", err)
-	}
-
-	internal.OutputObject(object, domainnameColumnsToDisplay[0], jsonOutput, yamlOutput)
+	manageObjectRequest("/domain", args[0], domainnameColumnsToDisplay[0])
 }
 
 func init() {

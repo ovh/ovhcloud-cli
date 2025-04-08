@@ -2,14 +2,7 @@
 package cmd
 
 import (
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"net/url"
-
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal"
 )
 
 var (
@@ -17,34 +10,11 @@ var (
 )
 
 func listVmwareCloudDirectorOrganization(_ *cobra.Command, _ []string) {
-	req, err := client.NewRequest(http.MethodGet, "/v2/vmwareCloudDirector/organization", nil, true)
-	if err != nil {
-		log.Fatalf("error crafting request: %s\n", err)
-	}
-
-	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalf("error fetching /v2/vmwareCloudDirector/organization: %s\n", err)
-	}
-
-	defer resp.Body.Close()
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("error reading response body: %s", err)
-	}
-
-	internal.OutputTable(bodyBytes, vmwareclouddirectororganizationColumnsToDisplay, jsonOutput, yamlOutput)
+	manageListRequest("/v2/vmwareCloudDirector/organization", vmwareclouddirectororganizationColumnsToDisplay)
 }
 
 func getVmwareCloudDirectorOrganization(_ *cobra.Command, args []string) {
-	var object map[string]any
-	if err := client.Get(fmt.Sprintf("/v2/vmwareCloudDirector/organization/%s", url.PathEscape(args[0])), &object); err != nil {
-		log.Fatalf("error fetching VmwareCloudDirectorOrganization: %s\n", err)
-	}
-
-	internal.OutputObject(object, vmwareclouddirectororganizationColumnsToDisplay[0], jsonOutput, yamlOutput)
+	manageObjectRequest("/v2/vmwareCloudDirector/organization", args[0], vmwareclouddirectororganizationColumnsToDisplay[0])
 }
 
 func init() {
