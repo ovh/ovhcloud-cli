@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -6,7 +5,7 @@ import (
 )
 
 var (
-	cloudprojectColumnsToDisplay = []string{ "project_id","projectName","status","description" }
+	cloudprojectColumnsToDisplay = []string{"project_id", "projectName", "status", "description"}
 )
 
 func listCloudProject(_ *cobra.Command, _ []string) {
@@ -38,6 +37,8 @@ func init() {
 		ArgAliases: []string{"service_name"},
 		Run:        getCloudProject,
 	})
+
+	initKubeCommand(cloudprojectCmd)
 
 	rootCmd.AddCommand(cloudprojectCmd)
 }

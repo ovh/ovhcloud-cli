@@ -4,11 +4,14 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/ovh/go-ovh/ovh"
 	"github.com/spf13/cobra"
+	"gopkg.in/ini.v1"
+
+	"stash.ovh.net/api/ovh-cli/internal/config"
 )
 
 var (
@@ -19,6 +22,11 @@ var (
 	}
 	// OVH API client
 	client *ovh.Client
+
+	// INI configuration file and its path
+	cliConfig     *ini.File
+	cliConfigPath string
+
 	// Common flags used by all subcommands to control output format (json, yaml)
 	jsonOutput, yamlOutput bool
 )
@@ -34,10 +42,18 @@ func Execute() {
 
 func init() {
 	var err error
+
+	// Init API client
 	client, err = ovh.NewDefaultClient()
 	if err != nil {
-		fmt.Printf("error initializing client: %s\n", err)
-		os.Exit(1)
+		log.Print(`OVHcloud API client not initialized, please run "ovh-cli login" to authenticate`)
+	}
+
+	// Load configuration files by order of increasing priority. All configuration
+	// files are optional. Only load file from user home if home could be resolve
+	cliConfig, cliConfigPath = config.LoadINI()
+	if err != nil {
+		log.Printf("cannot load configuration: %s", err)
 	}
 
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output in JSON")

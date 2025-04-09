@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"stash.ovh.net/api/ovh-cli/internal"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 func manageListRequest(path string, columnsToDisplay []string) {
@@ -28,14 +28,14 @@ func manageListRequest(path string, columnsToDisplay []string) {
 		if err := client.UnmarshalResponse(resp, &body); err != nil {
 			log.Fatalf("error unmarshalling response: %s\n", err)
 		}
-		internal.RenderTableRaw(body, jsonOutput, yamlOutput)
+		display.RenderTableRaw(body, jsonOutput, yamlOutput)
 	} else {
 		defer resp.Body.Close()
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Fatalf("error reading response body: %s", err)
 		}
-		internal.RenderTable(bodyBytes, columnsToDisplay)
+		display.RenderTable(bodyBytes, columnsToDisplay)
 	}
 }
 
@@ -47,5 +47,5 @@ func manageObjectRequest(path, objectID, idKey string) {
 		log.Fatalf("error fetching %s: %s\n", url, err)
 	}
 
-	internal.OutputObject(object, idKey, jsonOutput, yamlOutput)
+	display.OutputObject(object, idKey, jsonOutput, yamlOutput)
 }

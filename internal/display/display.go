@@ -1,4 +1,4 @@
-package internal
+package display
 
 import (
 	"encoding/json"
@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss/tree"
 	"github.com/ghodss/yaml"
 	"github.com/tidwall/gjson"
+	"gopkg.in/ini.v1"
 )
 
 func renderObject(values map[string]any, titleKey string) {
@@ -140,6 +141,53 @@ func RenderTable(values []byte, columnsToDisplay []string) {
 			}
 		}).
 		Headers(columnsToDisplay...).
+		Rows(rows...)
+
+	fmt.Println(t)
+}
+
+func RenderConfigTable(cfg *ini.File) {
+	var (
+		rows    [][]string
+		columns = []string{"section", "key", "value"}
+	)
+
+	for _, section := range cfg.Sections() {
+		if section.Name() == "DEFAULT" {
+			continue
+		}
+
+		rows = append(rows, []string{section.Name()})
+		for _, key := range section.Keys() {
+			rows = append(rows, []string{"", key.Name(), key.Value()})
+		}
+	}
+
+	var (
+		purple    = lipgloss.Color("99")
+		gray      = lipgloss.Color("245")
+		lightGray = lipgloss.Color("241")
+
+		headerStyle  = lipgloss.NewStyle().Foreground(purple).Bold(true).Align(lipgloss.Center)
+		cellStyle    = lipgloss.NewStyle().Padding(0, 1)
+		oddRowStyle  = cellStyle.Foreground(gray)
+		evenRowStyle = cellStyle.Foreground(lightGray)
+	)
+
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(purple)).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			switch {
+			case row == table.HeaderRow:
+				return headerStyle
+			case len(rows[row]) == 1:
+				return evenRowStyle
+			default:
+				return oddRowStyle
+			}
+		}).
+		Headers(columns...).
 		Rows(rows...)
 
 	fmt.Println(t)
