@@ -44,7 +44,7 @@ func getKube(_ *cobra.Command, args []string) {
 	manageObjectRequest(fmt.Sprintf("/cloud/project/%s/kube", url.PathEscape(cloudProject)), args[0], cloudprojectKubeColumnsToDisplay[0])
 }
 
-func initKubeCommand(cloudprojectCmd *cobra.Command) {
+func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd := &cobra.Command{
 		Use:   "kube",
 		Short: "List Kubernetes clusters in the given cloud project",
@@ -67,5 +67,5 @@ func initKubeCommand(cloudprojectCmd *cobra.Command) {
 		ArgAliases: []string{"cluster_id"},
 	})
 
-	cloudprojectCmd.AddCommand(kubeCmd)
+	cloudCmd.AddCommand(kubeCmd)
 }

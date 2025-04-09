@@ -22,10 +22,10 @@ var config = map[string]*cfgEntry{
 		productName:      "cdnDedicated",
 		columnsToDisplay: []string{"service", "offer", "anycast"},
 	},
-	"/cloud/project": {
-		productName:      "cloudProject",
-		columnsToDisplay: []string{"project_id", "projectName", "status", "description"},
-	},
+	// "/cloud/project": {
+	// 	productName:      "cloudProject",
+	// 	columnsToDisplay: []string{"project_id", "projectName", "status", "description"},
+	// },
 	"/dbaas/logs": {
 		productName:      "ldp",
 		columnsToDisplay: []string{"serviceName", "displayName", "isClusterOwner", "state", "username"},
