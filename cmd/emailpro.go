@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listEmailPro(_ *cobra.Command, _ []string) {
-	manageListRequest("/email/pro", emailproColumnsToDisplay)
+	manageListRequest("/email/pro", emailproColumnsToDisplay, genericFilters)
 }
 
 func getEmailPro(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list EmailPro services
-	emailproCmd.AddCommand(&cobra.Command{
+	emailproListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your EmailPro services",
 		Run:   listEmailPro,
-	})
+	}
+	emailproListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	emailproCmd.AddCommand(emailproListCmd)
 
 	// Command to get a single EmailPro
 	emailproCmd.AddCommand(&cobra.Command{

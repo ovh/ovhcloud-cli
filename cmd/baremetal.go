@@ -5,11 +5,11 @@ import (
 )
 
 var (
-	baremetalColumnsToDisplay = []string{"name", "region", "os", "powerState", "state"}
+	baremetalColumnsToDisplay = []string{ "name","region","os","powerState","state" }
 )
 
 func listBaremetal(_ *cobra.Command, _ []string) {
-	manageListRequestWithFilters("/dedicated/server", baremetalColumnsToDisplay, genericFilters)
+	manageListRequest("/dedicated/server", baremetalColumnsToDisplay, genericFilters)
 }
 
 func getBaremetal(_ *cobra.Command, args []string) {
@@ -32,7 +32,7 @@ func init() {
 		&genericFilters,
 		"filter",
 		nil,
-		`Filter results by any property, for example --filter 'iam.displayName==something'`,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
 	)
 	baremetalCmd.AddCommand(baremetalListCmd)
 

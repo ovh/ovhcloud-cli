@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listVrack(_ *cobra.Command, _ []string) {
-	manageListRequest("/vrack", vrackColumnsToDisplay)
+	manageListRequest("/vrack", vrackColumnsToDisplay, genericFilters)
 }
 
 func getVrack(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Vrack services
-	vrackCmd.AddCommand(&cobra.Command{
+	vrackListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Vrack services",
 		Run:   listVrack,
-	})
+	}
+	vrackListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	vrackCmd.AddCommand(vrackListCmd)
 
 	// Command to get a single Vrack
 	vrackCmd.AddCommand(&cobra.Command{

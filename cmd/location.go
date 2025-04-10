@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listLocation(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/location", locationColumnsToDisplay)
+	manageListRequest("/v2/location", locationColumnsToDisplay, genericFilters)
 }
 
 func getLocation(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Location services
-	locationCmd.AddCommand(&cobra.Command{
+	locationListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Location services",
 		Run:   listLocation,
-	})
+	}
+	locationListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	locationCmd.AddCommand(locationListCmd)
 
 	// Command to get a single Location
 	locationCmd.AddCommand(&cobra.Command{

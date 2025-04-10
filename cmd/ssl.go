@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listSsl(_ *cobra.Command, _ []string) {
-	manageListRequest("/ssl", sslColumnsToDisplay)
+	manageListRequest("/ssl", sslColumnsToDisplay, genericFilters)
 }
 
 func getSsl(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Ssl services
-	sslCmd.AddCommand(&cobra.Command{
+	sslListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Ssl services",
 		Run:   listSsl,
-	})
+	}
+	sslListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	sslCmd.AddCommand(sslListCmd)
 
 	// Command to get a single Ssl
 	sslCmd.AddCommand(&cobra.Command{

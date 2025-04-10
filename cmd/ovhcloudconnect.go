@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listOvhCloudConnect(_ *cobra.Command, _ []string) {
-	manageListRequest("/ovhCloudConnect", ovhcloudconnectColumnsToDisplay)
+	manageListRequest("/ovhCloudConnect", ovhcloudconnectColumnsToDisplay, genericFilters)
 }
 
 func getOvhCloudConnect(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list OvhCloudConnect services
-	ovhcloudconnectCmd.AddCommand(&cobra.Command{
+	ovhcloudconnectListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your OvhCloudConnect services",
 		Run:   listOvhCloudConnect,
-	})
+	}
+	ovhcloudconnectListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	ovhcloudconnectCmd.AddCommand(ovhcloudconnectListCmd)
 
 	// Command to get a single OvhCloudConnect
 	ovhcloudconnectCmd.AddCommand(&cobra.Command{

@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listCdnDedicated(_ *cobra.Command, _ []string) {
-	manageListRequest("/cdn/dedicated", cdndedicatedColumnsToDisplay)
+	manageListRequest("/cdn/dedicated", cdndedicatedColumnsToDisplay, genericFilters)
 }
 
 func getCdnDedicated(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list CdnDedicated services
-	cdndedicatedCmd.AddCommand(&cobra.Command{
+	cdndedicatedListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your CdnDedicated services",
 		Run:   listCdnDedicated,
-	})
+	}
+	cdndedicatedListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	cdndedicatedCmd.AddCommand(cdndedicatedListCmd)
 
 	// Command to get a single CdnDedicated
 	cdndedicatedCmd.AddCommand(&cobra.Command{

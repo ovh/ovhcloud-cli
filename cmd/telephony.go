@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listTelephony(_ *cobra.Command, _ []string) {
-	manageListRequest("/telephony", telephonyColumnsToDisplay)
+	manageListRequest("/telephony", telephonyColumnsToDisplay, genericFilters)
 }
 
 func getTelephony(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Telephony services
-	telephonyCmd.AddCommand(&cobra.Command{
+	telephonyListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Telephony services",
 		Run:   listTelephony,
-	})
+	}
+	telephonyListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	telephonyCmd.AddCommand(telephonyListCmd)
 
 	// Command to get a single Telephony
 	telephonyCmd.AddCommand(&cobra.Command{

@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listDomainZone(_ *cobra.Command, _ []string) {
-	manageListRequest("/domain/zone", domainzoneColumnsToDisplay)
+	manageListRequest("/domain/zone", domainzoneColumnsToDisplay, genericFilters)
 }
 
 func getDomainZone(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list DomainZone services
-	domainzoneCmd.AddCommand(&cobra.Command{
+	domainzoneListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your DomainZone services",
 		Run:   listDomainZone,
-	})
+	}
+	domainzoneListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	domainzoneCmd.AddCommand(domainzoneListCmd)
 
 	// Command to get a single DomainZone
 	domainzoneCmd.AddCommand(&cobra.Command{

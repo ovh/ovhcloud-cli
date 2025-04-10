@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listDedicatedCeph(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/ceph", dedicatedcephColumnsToDisplay)
+	manageListRequest("/dedicated/ceph", dedicatedcephColumnsToDisplay, genericFilters)
 }
 
 func getDedicatedCeph(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list DedicatedCeph services
-	dedicatedcephCmd.AddCommand(&cobra.Command{
+	dedicatedcephListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your DedicatedCeph services",
 		Run:   listDedicatedCeph,
-	})
+	}
+	dedicatedcephListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	dedicatedcephCmd.AddCommand(dedicatedcephListCmd)
 
 	// Command to get a single DedicatedCeph
 	dedicatedcephCmd.AddCommand(&cobra.Command{

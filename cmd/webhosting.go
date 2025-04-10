@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listWebHosting(_ *cobra.Command, _ []string) {
-	manageListRequest("/hosting/web", webhostingColumnsToDisplay)
+	manageListRequest("/hosting/web", webhostingColumnsToDisplay, genericFilters)
 }
 
 func getWebHosting(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list WebHosting services
-	webhostingCmd.AddCommand(&cobra.Command{
+	webhostingListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your WebHosting services",
 		Run:   listWebHosting,
-	})
+	}
+	webhostingListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	webhostingCmd.AddCommand(webhostingListCmd)
 
 	// Command to get a single WebHosting
 	webhostingCmd.AddCommand(&cobra.Command{

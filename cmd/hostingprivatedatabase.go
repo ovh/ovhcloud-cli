@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listHostingPrivateDatabase(_ *cobra.Command, _ []string) {
-	manageListRequest("/hosting/privateDatabase", hostingprivatedatabaseColumnsToDisplay)
+	manageListRequest("/hosting/privateDatabase", hostingprivatedatabaseColumnsToDisplay, genericFilters)
 }
 
 func getHostingPrivateDatabase(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list HostingPrivateDatabase services
-	hostingprivatedatabaseCmd.AddCommand(&cobra.Command{
+	hostingprivatedatabaseListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your HostingPrivateDatabase services",
 		Run:   listHostingPrivateDatabase,
-	})
+	}
+	hostingprivatedatabaseListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	hostingprivatedatabaseCmd.AddCommand(hostingprivatedatabaseListCmd)
 
 	// Command to get a single HostingPrivateDatabase
 	hostingprivatedatabaseCmd.AddCommand(&cobra.Command{

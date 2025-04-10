@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listAllDom(_ *cobra.Command, _ []string) {
-	manageListRequest("/allDom", alldomColumnsToDisplay)
+	manageListRequest("/allDom", alldomColumnsToDisplay, genericFilters)
 }
 
 func getAllDom(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list AllDom services
-	alldomCmd.AddCommand(&cobra.Command{
+	alldomListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your AllDom services",
 		Run:   listAllDom,
-	})
+	}
+	alldomListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	alldomCmd.AddCommand(alldomListCmd)
 
 	// Command to get a single AllDom
 	alldomCmd.AddCommand(&cobra.Command{

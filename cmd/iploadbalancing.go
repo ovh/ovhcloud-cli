@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listIpLoadbalancing(_ *cobra.Command, _ []string) {
-	manageListRequest("/ipLoadbalancing", iploadbalancingColumnsToDisplay)
+	manageListRequest("/ipLoadbalancing", iploadbalancingColumnsToDisplay, genericFilters)
 }
 
 func getIpLoadbalancing(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list IpLoadbalancing services
-	iploadbalancingCmd.AddCommand(&cobra.Command{
+	iploadbalancingListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your IpLoadbalancing services",
 		Run:   listIpLoadbalancing,
-	})
+	}
+	iploadbalancingListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	iploadbalancingCmd.AddCommand(iploadbalancingListCmd)
 
 	// Command to get a single IpLoadbalancing
 	iploadbalancingCmd.AddCommand(&cobra.Command{

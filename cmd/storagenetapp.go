@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listStorageNetApp(_ *cobra.Command, _ []string) {
-	manageListRequest("/storage/netapp", storagenetappColumnsToDisplay)
+	manageListRequest("/storage/netapp", storagenetappColumnsToDisplay, genericFilters)
 }
 
 func getStorageNetApp(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list StorageNetApp services
-	storagenetappCmd.AddCommand(&cobra.Command{
+	storagenetappListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your StorageNetApp services",
 		Run:   listStorageNetApp,
-	})
+	}
+	storagenetappListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	storagenetappCmd.AddCommand(storagenetappListCmd)
 
 	// Command to get a single StorageNetApp
 	storagenetappCmd.AddCommand(&cobra.Command{

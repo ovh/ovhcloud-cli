@@ -26,7 +26,7 @@ func listKubes(_ *cobra.Command, _ []string) {
 		cloudProject = projectID
 	}
 
-	manageListRequest(fmt.Sprintf("/cloud/project/%s/kube", cloudProject), cloudprojectKubeColumnsToDisplay)
+	manageListRequest(fmt.Sprintf("/cloud/project/%s/kube", cloudProject), cloudprojectKubeColumnsToDisplay, genericFilters)
 }
 
 func getKube(_ *cobra.Command, args []string) {

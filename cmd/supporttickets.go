@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listSupportTickets(_ *cobra.Command, _ []string) {
-	manageListRequest("/support/tickets", supportticketsColumnsToDisplay)
+	manageListRequest("/support/tickets", supportticketsColumnsToDisplay, genericFilters)
 }
 
 func getSupportTickets(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list SupportTickets services
-	supportticketsCmd.AddCommand(&cobra.Command{
+	supportticketsListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your SupportTickets services",
 		Run:   listSupportTickets,
-	})
+	}
+	supportticketsListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	supportticketsCmd.AddCommand(supportticketsListCmd)
 
 	// Command to get a single SupportTickets
 	supportticketsCmd.AddCommand(&cobra.Command{

@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listSms(_ *cobra.Command, _ []string) {
-	manageListRequest("/sms", smsColumnsToDisplay)
+	manageListRequest("/sms", smsColumnsToDisplay, genericFilters)
 }
 
 func getSms(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Sms services
-	smsCmd.AddCommand(&cobra.Command{
+	smsListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Sms services",
 		Run:   listSms,
-	})
+	}
+	smsListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	smsCmd.AddCommand(smsListCmd)
 
 	// Command to get a single Sms
 	smsCmd.AddCommand(&cobra.Command{

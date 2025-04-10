@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listDedicatedNasHA(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/nasha", dedicatednashaColumnsToDisplay)
+	manageListRequest("/dedicated/nasha", dedicatednashaColumnsToDisplay, genericFilters)
 }
 
 func getDedicatedNasHA(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list DedicatedNasHA services
-	dedicatednashaCmd.AddCommand(&cobra.Command{
+	dedicatednashaListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your DedicatedNasHA services",
 		Run:   listDedicatedNasHA,
-	})
+	}
+	dedicatednashaListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	dedicatednashaCmd.AddCommand(dedicatednashaListCmd)
 
 	// Command to get a single DedicatedNasHA
 	dedicatednashaCmd.AddCommand(&cobra.Command{

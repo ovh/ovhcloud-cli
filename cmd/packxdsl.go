@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listPackXDSL(_ *cobra.Command, _ []string) {
-	manageListRequest("/pack/xdsl", packxdslColumnsToDisplay)
+	manageListRequest("/pack/xdsl", packxdslColumnsToDisplay, genericFilters)
 }
 
 func getPackXDSL(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list PackXDSL services
-	packxdslCmd.AddCommand(&cobra.Command{
+	packxdslListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your PackXDSL services",
 		Run:   listPackXDSL,
-	})
+	}
+	packxdslListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	packxdslCmd.AddCommand(packxdslListCmd)
 
 	// Command to get a single PackXDSL
 	packxdslCmd.AddCommand(&cobra.Command{

@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listNutanix(_ *cobra.Command, _ []string) {
-	manageListRequest("/nutanix", nutanixColumnsToDisplay)
+	manageListRequest("/nutanix", nutanixColumnsToDisplay, genericFilters)
 }
 
 func getNutanix(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Nutanix services
-	nutanixCmd.AddCommand(&cobra.Command{
+	nutanixListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Nutanix services",
 		Run:   listNutanix,
-	})
+	}
+	nutanixListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	nutanixCmd.AddCommand(nutanixListCmd)
 
 	// Command to get a single Nutanix
 	nutanixCmd.AddCommand(&cobra.Command{

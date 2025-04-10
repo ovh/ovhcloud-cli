@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listOverTheBox(_ *cobra.Command, _ []string) {
-	manageListRequest("/overTheBox", overtheboxColumnsToDisplay)
+	manageListRequest("/overTheBox", overtheboxColumnsToDisplay, genericFilters)
 }
 
 func getOverTheBox(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list OverTheBox services
-	overtheboxCmd.AddCommand(&cobra.Command{
+	overtheboxListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your OverTheBox services",
 		Run:   listOverTheBox,
-	})
+	}
+	overtheboxListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	overtheboxCmd.AddCommand(overtheboxListCmd)
 
 	// Command to get a single OverTheBox
 	overtheboxCmd.AddCommand(&cobra.Command{

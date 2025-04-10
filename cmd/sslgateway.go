@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listSslGateway(_ *cobra.Command, _ []string) {
-	manageListRequest("/sslGateway", sslgatewayColumnsToDisplay)
+	manageListRequest("/sslGateway", sslgatewayColumnsToDisplay, genericFilters)
 }
 
 func getSslGateway(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list SslGateway services
-	sslgatewayCmd.AddCommand(&cobra.Command{
+	sslgatewayListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your SslGateway services",
 		Run:   listSslGateway,
-	})
+	}
+	sslgatewayListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	sslgatewayCmd.AddCommand(sslgatewayListCmd)
 
 	// Command to get a single SslGateway
 	sslgatewayCmd.AddCommand(&cobra.Command{

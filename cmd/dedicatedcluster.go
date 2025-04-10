@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listDedicatedCluster(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/cluster", dedicatedclusterColumnsToDisplay)
+	manageListRequest("/dedicated/cluster", dedicatedclusterColumnsToDisplay, genericFilters)
 }
 
 func getDedicatedCluster(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list DedicatedCluster services
-	dedicatedclusterCmd.AddCommand(&cobra.Command{
+	dedicatedclusterListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your DedicatedCluster services",
 		Run:   listDedicatedCluster,
-	})
+	}
+	dedicatedclusterListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	dedicatedclusterCmd.AddCommand(dedicatedclusterListCmd)
 
 	// Command to get a single DedicatedCluster
 	dedicatedclusterCmd.AddCommand(&cobra.Command{

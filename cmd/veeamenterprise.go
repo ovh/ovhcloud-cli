@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listVeeamEnterprise(_ *cobra.Command, _ []string) {
-	manageListRequest("/veeam/veeamEnterprise", veeamenterpriseColumnsToDisplay)
+	manageListRequest("/veeam/veeamEnterprise", veeamenterpriseColumnsToDisplay, genericFilters)
 }
 
 func getVeeamEnterprise(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list VeeamEnterprise services
-	veeamenterpriseCmd.AddCommand(&cobra.Command{
+	veeamenterpriseListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VeeamEnterprise services",
 		Run:   listVeeamEnterprise,
-	})
+	}
+	veeamenterpriseListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	veeamenterpriseCmd.AddCommand(veeamenterpriseListCmd)
 
 	// Command to get a single VeeamEnterprise
 	veeamenterpriseCmd.AddCommand(&cobra.Command{

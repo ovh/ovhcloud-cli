@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listVeeamCloudConnect(_ *cobra.Command, _ []string) {
-	manageListRequest("/veeamCloudConnect", veeamcloudconnectColumnsToDisplay)
+	manageListRequest("/veeamCloudConnect", veeamcloudconnectColumnsToDisplay, genericFilters)
 }
 
 func getVeeamCloudConnect(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list VeeamCloudConnect services
-	veeamcloudconnectCmd.AddCommand(&cobra.Command{
+	veeamcloudconnectListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VeeamCloudConnect services",
 		Run:   listVeeamCloudConnect,
-	})
+	}
+	veeamcloudconnectListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	veeamcloudconnectCmd.AddCommand(veeamcloudconnectListCmd)
 
 	// Command to get a single VeeamCloudConnect
 	veeamcloudconnectCmd.AddCommand(&cobra.Command{

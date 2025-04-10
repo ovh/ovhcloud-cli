@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listVmwareCloudDirectorBackup(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/vmwareCloudDirector/backup", vmwareclouddirectorbackupColumnsToDisplay)
+	manageListRequest("/v2/vmwareCloudDirector/backup", vmwareclouddirectorbackupColumnsToDisplay, genericFilters)
 }
 
 func getVmwareCloudDirectorBackup(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list VmwareCloudDirectorBackup services
-	vmwareclouddirectorbackupCmd.AddCommand(&cobra.Command{
+	vmwareclouddirectorbackupListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VmwareCloudDirectorBackup services",
 		Run:   listVmwareCloudDirectorBackup,
-	})
+	}
+	vmwareclouddirectorbackupListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	vmwareclouddirectorbackupCmd.AddCommand(vmwareclouddirectorbackupListCmd)
 
 	// Command to get a single VmwareCloudDirectorBackup
 	vmwareclouddirectorbackupCmd.AddCommand(&cobra.Command{

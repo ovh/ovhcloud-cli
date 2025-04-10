@@ -194,8 +194,7 @@ var config = map[string]*cfgEntry{
 	// "/v2/zimbra"
 }
 
-var templ = `
-package cmd
+var templ = `package cmd
 
 import (
 	"github.com/spf13/cobra"
@@ -206,7 +205,7 @@ var (
 )
 
 func list{{.ProductName}}(_ *cobra.Command, _ []string) {
-	manageListRequest("{{.Path}}", {{.ProductNameLower}}ColumnsToDisplay)
+	manageListRequest("{{.Path}}", {{.ProductNameLower}}ColumnsToDisplay, genericFilters)
 }
 
 func get{{.ProductName}}(_ *cobra.Command, args []string) {
@@ -220,11 +219,18 @@ func init() {
 	}
 
 	// Command to list {{.ProductName}} services
-	{{.ProductNameLower}}Cmd.AddCommand(&cobra.Command{
+	{{.ProductNameLower}}ListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your {{.ProductName}} services",
 		Run:   list{{.ProductName}},
-	})
+	}
+	{{.ProductNameLower}}ListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	{{.ProductNameLower}}Cmd.AddCommand({{.ProductNameLower}}ListCmd)
 
 	// Command to get a single {{.ProductName}}
 	{{.ProductNameLower}}Cmd.AddCommand(&cobra.Command{

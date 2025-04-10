@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listLdp(_ *cobra.Command, _ []string) {
-	manageListRequest("/dbaas/logs", ldpColumnsToDisplay)
+	manageListRequest("/dbaas/logs", ldpColumnsToDisplay, genericFilters)
 }
 
 func getLdp(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Ldp services
-	ldpCmd.AddCommand(&cobra.Command{
+	ldpListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Ldp services",
 		Run:   listLdp,
-	})
+	}
+	ldpListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	ldpCmd.AddCommand(ldpListCmd)
 
 	// Command to get a single Ldp
 	ldpCmd.AddCommand(&cobra.Command{

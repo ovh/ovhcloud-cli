@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listVps(_ *cobra.Command, _ []string) {
-	manageListRequest("/vps", vpsColumnsToDisplay)
+	manageListRequest("/vps", vpsColumnsToDisplay, genericFilters)
 }
 
 func getVps(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Vps services
-	vpsCmd.AddCommand(&cobra.Command{
+	vpsListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Vps services",
 		Run:   listVps,
-	})
+	}
+	vpsListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	vpsCmd.AddCommand(vpsListCmd)
 
 	// Command to get a single Vps
 	vpsCmd.AddCommand(&cobra.Command{

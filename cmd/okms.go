@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listOkms(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/okms/resource", okmsColumnsToDisplay)
+	manageListRequest("/v2/okms/resource", okmsColumnsToDisplay, genericFilters)
 }
 
 func getOkms(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Okms services
-	okmsCmd.AddCommand(&cobra.Command{
+	okmsListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Okms services",
 		Run:   listOkms,
-	})
+	}
+	okmsListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	okmsCmd.AddCommand(okmsListCmd)
 
 	// Command to get a single Okms
 	okmsCmd.AddCommand(&cobra.Command{

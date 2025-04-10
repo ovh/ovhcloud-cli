@@ -5,11 +5,11 @@ import (
 )
 
 var (
-	vrackservicesColumnsToDisplay = []string{"id", "currentState.region", "currentState.productStatus", "resourceStatus"}
+	vrackservicesColumnsToDisplay = []string{ "id","currentState.region","currentState. productStatus","resourceStatus" }
 )
 
 func listVrackServices(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/vrackServices/resource", vrackservicesColumnsToDisplay)
+	manageListRequest("/v2/vrackServices/resource", vrackservicesColumnsToDisplay, genericFilters)
 }
 
 func getVrackServices(_ *cobra.Command, args []string) {
@@ -23,11 +23,18 @@ func init() {
 	}
 
 	// Command to list VrackServices services
-	vrackservicesCmd.AddCommand(&cobra.Command{
+	vrackservicesListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VrackServices services",
 		Run:   listVrackServices,
-	})
+	}
+	vrackservicesListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	vrackservicesCmd.AddCommand(vrackservicesListCmd)
 
 	// Command to get a single VrackServices
 	vrackservicesCmd.AddCommand(&cobra.Command{

@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listDedicatedCloud(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicatedCloud", dedicatedcloudColumnsToDisplay)
+	manageListRequest("/dedicatedCloud", dedicatedcloudColumnsToDisplay, genericFilters)
 }
 
 func getDedicatedCloud(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list DedicatedCloud services
-	dedicatedcloudCmd.AddCommand(&cobra.Command{
+	dedicatedcloudListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your DedicatedCloud services",
 		Run:   listDedicatedCloud,
-	})
+	}
+	dedicatedcloudListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	dedicatedcloudCmd.AddCommand(dedicatedcloudListCmd)
 
 	// Command to get a single DedicatedCloud
 	dedicatedcloudCmd.AddCommand(&cobra.Command{

@@ -9,7 +9,7 @@ var (
 )
 
 func listCloudProject(_ *cobra.Command, _ []string) {
-	manageListRequest("/cloud/project", cloudprojectColumnsToDisplay)
+	manageListRequest("/cloud/project", cloudprojectColumnsToDisplay, genericFilters)
 }
 
 func getCloudProject(_ *cobra.Command, args []string) {

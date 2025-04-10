@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listVmwareCloudDirectorOrganization(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/vmwareCloudDirector/organization", vmwareclouddirectororganizationColumnsToDisplay)
+	manageListRequest("/v2/vmwareCloudDirector/organization", vmwareclouddirectororganizationColumnsToDisplay, genericFilters)
 }
 
 func getVmwareCloudDirectorOrganization(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list VmwareCloudDirectorOrganization services
-	vmwareclouddirectororganizationCmd.AddCommand(&cobra.Command{
+	vmwareclouddirectororganizationListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VmwareCloudDirectorOrganization services",
 		Run:   listVmwareCloudDirectorOrganization,
-	})
+	}
+	vmwareclouddirectororganizationListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	vmwareclouddirectororganizationCmd.AddCommand(vmwareclouddirectororganizationListCmd)
 
 	// Command to get a single VmwareCloudDirectorOrganization
 	vmwareclouddirectororganizationCmd.AddCommand(&cobra.Command{

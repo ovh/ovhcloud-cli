@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listEmailMXPlan(_ *cobra.Command, _ []string) {
-	manageListRequest("/email/mxplan", emailmxplanColumnsToDisplay)
+	manageListRequest("/email/mxplan", emailmxplanColumnsToDisplay, genericFilters)
 }
 
 func getEmailMXPlan(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list EmailMXPlan services
-	emailmxplanCmd.AddCommand(&cobra.Command{
+	emailmxplanListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your EmailMXPlan services",
 		Run:   listEmailMXPlan,
-	})
+	}
+	emailmxplanListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	emailmxplanCmd.AddCommand(emailmxplanListCmd)
 
 	// Command to get a single EmailMXPlan
 	emailmxplanCmd.AddCommand(&cobra.Command{

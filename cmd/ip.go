@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -10,7 +9,7 @@ var (
 )
 
 func listIp(_ *cobra.Command, _ []string) {
-	manageListRequest("/ip", ipColumnsToDisplay)
+	manageListRequest("/ip", ipColumnsToDisplay, genericFilters)
 }
 
 func getIp(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Ip services
-	ipCmd.AddCommand(&cobra.Command{
+	ipListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Ip services",
 		Run:   listIp,
-	})
+	}
+	ipListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+	ipCmd.AddCommand(ipListCmd)
 
 	// Command to get a single Ip
 	ipCmd.AddCommand(&cobra.Command{
