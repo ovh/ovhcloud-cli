@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -6,11 +5,11 @@ import (
 )
 
 var (
-	baremetalColumnsToDisplay = []string{ "serverId","name","region","os" }
+	baremetalColumnsToDisplay = []string{"name", "region", "os", "powerState", "state"}
 )
 
 func listBaremetal(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/server", baremetalColumnsToDisplay)
+	manageListRequestWithFilters("/dedicated/server", baremetalColumnsToDisplay, genericFilters)
 }
 
 func getBaremetal(_ *cobra.Command, args []string) {
@@ -24,11 +23,18 @@ func init() {
 	}
 
 	// Command to list Baremetal services
-	baremetalCmd.AddCommand(&cobra.Command{
+	baremetalListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Baremetal services",
 		Run:   listBaremetal,
-	})
+	}
+	baremetalListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		`Filter results by any property, for example --filter 'iam.displayName==something'`,
+	)
+	baremetalCmd.AddCommand(baremetalListCmd)
 
 	// Command to get a single Baremetal
 	baremetalCmd.AddCommand(&cobra.Command{

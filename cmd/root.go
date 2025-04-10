@@ -29,6 +29,9 @@ var (
 
 	// Common flags used by all subcommands to control output format (json, yaml)
 	jsonOutput, yamlOutput bool
+
+	// Common filters that can be used in all listing commands
+	genericFilters []string
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.

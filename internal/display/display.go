@@ -1,10 +1,12 @@
 package display
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 
+	"github.com/PaesslerAG/gval"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/charmbracelet/lipgloss/tree"
@@ -118,6 +120,69 @@ func RenderTable(values []byte, columnsToDisplay []string) {
 		}
 
 		rows = append(rows, row)
+	}
+
+	var (
+		purple = lipgloss.Color("99")
+		gray   = lipgloss.Color("245")
+
+		headerStyle = lipgloss.NewStyle().Foreground(purple).Bold(true).Align(lipgloss.Center)
+		cellStyle   = lipgloss.NewStyle().Padding(0, 1)
+		oddRowStyle = cellStyle.Foreground(gray)
+	)
+
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(purple)).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			switch {
+			case row == table.HeaderRow:
+				return headerStyle
+			default:
+				return oddRowStyle
+			}
+		}).
+		Headers(columnsToDisplay...).
+		Rows(rows...)
+
+	fmt.Println(t)
+}
+
+func RenderTableFiltered(values []map[string]any, columnsToDisplay []string, jsonOutput, yamlOutput bool) {
+	switch {
+	case yamlOutput:
+		if err := PrettyPrintYAML(values); err != nil {
+			log.Fatalf("error displaying YAML results: %s", err)
+		}
+		return
+	case jsonOutput:
+		if err := PrettyPrintJSON(values); err != nil {
+			log.Fatalf("error displaying JSON results: %s", err)
+		}
+		return
+	}
+
+	var (
+		rows      [][]string
+		selectors gval.Evaluables
+	)
+
+	for _, col := range columnsToDisplay {
+		evaluator, err := gval.Full().NewEvaluable(col)
+		if err != nil {
+			log.Fatalf("invalid column to display %q: %s", col, err)
+		}
+		selectors = append(selectors, evaluator)
+	}
+
+	// Extract values to display
+	for _, value := range values {
+		values, err := selectors.EvalStrings(context.Background(), value)
+		if err != nil {
+			log.Fatalf("failed to select row fields: %s", err)
+		}
+
+		rows = append(rows, values)
 	}
 
 	var (

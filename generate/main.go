@@ -44,7 +44,7 @@ var config = map[string]*cfgEntry{
 	},
 	"/dedicated/server": {
 		productName:      "baremetal",
-		columnsToDisplay: []string{"serverId", "name", "region", "os"},
+		columnsToDisplay: []string{"name", "region", "os", "powerState", "state"},
 	},
 	"/dedicatedCloud": {
 		productName:      "dedicatedCloud",
