@@ -43,10 +43,10 @@ var config = map[string]*cfgEntry{
 		productName:      "dedicatedNasHA",
 		columnsToDisplay: []string{"serviceName", "customName", "datacenter"},
 	},
-	"/dedicated/server": {
-		productName:      "baremetal",
-		columnsToDisplay: []string{"name", "region", "os", "powerState", "state"},
-	},
+	// "/dedicated/server": {
+	// 	productName:      "baremetal",
+	// 	columnsToDisplay: []string{"name", "region", "os", "powerState", "state"},
+	// },
 	"/dedicatedCloud": {
 		productName:      "dedicatedCloud",
 		columnsToDisplay: []string{"serviceName", "location", "state", "description"},
@@ -161,7 +161,7 @@ var config = map[string]*cfgEntry{
 	"/vrack": {
 		productName: "vrack",
 		// TODO: service name not returned in response body, to fix
-		columnsToDisplay: []string{"name", "description"},
+		columnsToDisplay: []string{"iam.urn", "name", "description"},
 	},
 	"/xdsl": {
 		productName:      "xdsl",

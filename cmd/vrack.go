@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	vrackColumnsToDisplay = []string{ "name","description" }
+	vrackColumnsToDisplay = []string{"iam.urn", "name", "description"}
 
 	//go:embed templates/vrack.tmpl
 	vrackTemplate string
