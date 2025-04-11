@@ -20,6 +20,16 @@ _{{index .Result "iam" "displayName"}}_
 | Reverse | {{index .Result "reverse"}} |
 | Power state | {{index .Result "powerState"}} |
 
+
+{{if index .Result "tasks"}}
+## Tasks
+
+| ID | Function | Status | Done date |
+| --- | --- | --- | --- |
+{{ range index .Result "tasks" }}| {{.taskId}} | {{.function}} | {{.status}} | {{.doneDate}} |
+{{end}}
+{{end}}
+
 ## IAM information
 
 **URN**: {{index .Result "iam" "urn"}}

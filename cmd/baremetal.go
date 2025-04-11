@@ -4,8 +4,10 @@ import (
 	_ "embed"
 	"fmt"
 	"log"
+	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 var (
@@ -41,7 +43,23 @@ func listBaremetalTasks(_ *cobra.Command, args []string) {
 }
 
 func getBaremetal(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dedicated/server", args[0], baremetalTemplate)
+	path := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
+
+	// Fetch dedicated server
+	var object map[string]any
+	if err := client.Get(path, &object); err != nil {
+		log.Fatalf("error fetching %s: %s\n", path, err)
+	}
+
+	// Fetch running tasks
+	path = fmt.Sprintf("/dedicated/server/%s/task", url.PathEscape(args[0]))
+	tasks, err := fetchExpandedArray(path)
+	if err != nil {
+		log.Fatalf("error fetching tasks for %s: %s", args[0], err)
+	}
+	object["tasks"] = tasks
+
+	display.OutputObject(object, args[0], baremetalTemplate, jsonOutput, yamlOutput, interactiveOutput)
 }
 
 func rebootBaremetal(_ *cobra.Command, args []string) {
