@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	dedicatednashaColumnsToDisplay = []string{ "serviceName","customName","datacenter" }
+
+	//go:embed templates/dedicatednasha.tmpl
+	dedicatednashaTemplate string
 )
 
 func listDedicatedNasHA(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listDedicatedNasHA(_ *cobra.Command, _ []string) {
 }
 
 func getDedicatedNasHA(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dedicated/nasha", args[0], dedicatednashaColumnsToDisplay[0])
+	manageObjectRequest("/dedicated/nasha", args[0], dedicatednashaTemplate)
 }
 
 func init() {

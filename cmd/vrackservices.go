@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	vrackservicesColumnsToDisplay = []string{ "id","currentState.region","currentState. productStatus","resourceStatus" }
+
+	//go:embed templates/vrackservices.tmpl
+	vrackservicesTemplate string
 )
 
 func listVrackServices(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listVrackServices(_ *cobra.Command, _ []string) {
 }
 
 func getVrackServices(_ *cobra.Command, args []string) {
-	manageObjectRequest("/v2/vrackServices/resource", args[0], vrackservicesColumnsToDisplay[0])
+	manageObjectRequest("/v2/vrackServices/resource", args[0], vrackservicesTemplate)
 }
 
 func init() {

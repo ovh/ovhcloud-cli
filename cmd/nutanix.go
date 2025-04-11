@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	nutanixColumnsToDisplay = []string{ "serviceName","status" }
+
+	//go:embed templates/nutanix.tmpl
+	nutanixTemplate string
 )
 
 func listNutanix(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listNutanix(_ *cobra.Command, _ []string) {
 }
 
 func getNutanix(_ *cobra.Command, args []string) {
-	manageObjectRequest("/nutanix", args[0], nutanixColumnsToDisplay[0])
+	manageObjectRequest("/nutanix", args[0], nutanixTemplate)
 }
 
 func init() {

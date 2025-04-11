@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	webhostingColumnsToDisplay = []string{ "serviceName","displayName","datacenter","state" }
+
+	//go:embed templates/webhosting.tmpl
+	webhostingTemplate string
 )
 
 func listWebHosting(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listWebHosting(_ *cobra.Command, _ []string) {
 }
 
 func getWebHosting(_ *cobra.Command, args []string) {
-	manageObjectRequest("/hosting/web", args[0], webhostingColumnsToDisplay[0])
+	manageObjectRequest("/hosting/web", args[0], webhostingTemplate)
 }
 
 func init() {

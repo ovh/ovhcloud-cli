@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	vmwareclouddirectororganizationColumnsToDisplay = []string{ "id","currentState.fullName","currentState.region","resourceStatus" }
+
+	//go:embed templates/vmwareclouddirectororganization.tmpl
+	vmwareclouddirectororganizationTemplate string
 )
 
 func listVmwareCloudDirectorOrganization(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listVmwareCloudDirectorOrganization(_ *cobra.Command, _ []string) {
 }
 
 func getVmwareCloudDirectorOrganization(_ *cobra.Command, args []string) {
-	manageObjectRequest("/v2/vmwareCloudDirector/organization", args[0], vmwareclouddirectororganizationColumnsToDisplay[0])
+	manageObjectRequest("/v2/vmwareCloudDirector/organization", args[0], vmwareclouddirectororganizationTemplate)
 }
 
 func init() {

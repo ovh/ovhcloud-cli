@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	smsColumnsToDisplay = []string{ "name","status" }
+
+	//go:embed templates/sms.tmpl
+	smsTemplate string
 )
 
 func listSms(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listSms(_ *cobra.Command, _ []string) {
 }
 
 func getSms(_ *cobra.Command, args []string) {
-	manageObjectRequest("/sms", args[0], smsColumnsToDisplay[0])
+	manageObjectRequest("/sms", args[0], smsTemplate)
 }
 
 func init() {

@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	iploadbalancingColumnsToDisplay = []string{ "serviceName","displayName","zone","state" }
+
+	//go:embed templates/iploadbalancing.tmpl
+	iploadbalancingTemplate string
 )
 
 func listIpLoadbalancing(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listIpLoadbalancing(_ *cobra.Command, _ []string) {
 }
 
 func getIpLoadbalancing(_ *cobra.Command, args []string) {
-	manageObjectRequest("/ipLoadbalancing", args[0], iploadbalancingColumnsToDisplay[0])
+	manageObjectRequest("/ipLoadbalancing", args[0], iploadbalancingTemplate)
 }
 
 func init() {

@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	alldomColumnsToDisplay = []string{ "name","type","offer" }
+
+	//go:embed templates/alldom.tmpl
+	alldomTemplate string
 )
 
 func listAllDom(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listAllDom(_ *cobra.Command, _ []string) {
 }
 
 func getAllDom(_ *cobra.Command, args []string) {
-	manageObjectRequest("/allDom", args[0], alldomColumnsToDisplay[0])
+	manageObjectRequest("/allDom", args[0], alldomTemplate)
 }
 
 func init() {

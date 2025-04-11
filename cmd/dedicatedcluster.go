@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	dedicatedclusterColumnsToDisplay = []string{ "id","region","model","status" }
+
+	//go:embed templates/dedicatedcluster.tmpl
+	dedicatedclusterTemplate string
 )
 
 func listDedicatedCluster(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listDedicatedCluster(_ *cobra.Command, _ []string) {
 }
 
 func getDedicatedCluster(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dedicated/cluster", args[0], dedicatedclusterColumnsToDisplay[0])
+	manageObjectRequest("/dedicated/cluster", args[0], dedicatedclusterTemplate)
 }
 
 func init() {

@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	domainnameColumnsToDisplay = []string{ "domain","state","whoisOwner","expirationDate","renewalDate" }
+
+	//go:embed templates/domainname.tmpl
+	domainnameTemplate string
 )
 
 func listDomainName(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listDomainName(_ *cobra.Command, _ []string) {
 }
 
 func getDomainName(_ *cobra.Command, args []string) {
-	manageObjectRequest("/domain", args[0], domainnameColumnsToDisplay[0])
+	manageObjectRequest("/domain", args[0], domainnameTemplate)
 }
 
 func init() {

@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	overtheboxColumnsToDisplay = []string{ "serviceName","offer","status","bandwidth" }
+
+	//go:embed templates/overthebox.tmpl
+	overtheboxTemplate string
 )
 
 func listOverTheBox(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listOverTheBox(_ *cobra.Command, _ []string) {
 }
 
 func getOverTheBox(_ *cobra.Command, args []string) {
-	manageObjectRequest("/overTheBox", args[0], overtheboxColumnsToDisplay[0])
+	manageObjectRequest("/overTheBox", args[0], overtheboxTemplate)
 }
 
 func init() {

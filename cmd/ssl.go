@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	sslColumnsToDisplay = []string{ "serviceName","type","authority","status" }
+
+	//go:embed templates/ssl.tmpl
+	sslTemplate string
 )
 
 func listSsl(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listSsl(_ *cobra.Command, _ []string) {
 }
 
 func getSsl(_ *cobra.Command, args []string) {
-	manageObjectRequest("/ssl", args[0], sslColumnsToDisplay[0])
+	manageObjectRequest("/ssl", args[0], sslTemplate)
 }
 
 func init() {

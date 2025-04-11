@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	vpsColumnsToDisplay = []string{ "name","displayName","state","zone" }
+
+	//go:embed templates/vps.tmpl
+	vpsTemplate string
 )
 
 func listVps(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listVps(_ *cobra.Command, _ []string) {
 }
 
 func getVps(_ *cobra.Command, args []string) {
-	manageObjectRequest("/vps", args[0], vpsColumnsToDisplay[0])
+	manageObjectRequest("/vps", args[0], vpsTemplate)
 }
 
 func init() {

@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	sslgatewayColumnsToDisplay = []string{ "serviceName","displayName","state","zones" }
+
+	//go:embed templates/sslgateway.tmpl
+	sslgatewayTemplate string
 )
 
 func listSslGateway(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listSslGateway(_ *cobra.Command, _ []string) {
 }
 
 func getSslGateway(_ *cobra.Command, args []string) {
-	manageObjectRequest("/sslGateway", args[0], sslgatewayColumnsToDisplay[0])
+	manageObjectRequest("/sslGateway", args[0], sslgatewayTemplate)
 }
 
 func init() {

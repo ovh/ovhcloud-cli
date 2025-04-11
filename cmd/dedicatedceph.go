@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	dedicatedcephColumnsToDisplay = []string{ "serviceName","region","state","status" }
+
+	//go:embed templates/dedicatedceph.tmpl
+	dedicatedcephTemplate string
 )
 
 func listDedicatedCeph(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listDedicatedCeph(_ *cobra.Command, _ []string) {
 }
 
 func getDedicatedCeph(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dedicated/ceph", args[0], dedicatedcephColumnsToDisplay[0])
+	manageObjectRequest("/dedicated/ceph", args[0], dedicatedcephTemplate)
 }
 
 func init() {

@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	telephonyColumnsToDisplay = []string{ "billingAccount","description","status" }
+
+	//go:embed templates/telephony.tmpl
+	telephonyTemplate string
 )
 
 func listTelephony(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listTelephony(_ *cobra.Command, _ []string) {
 }
 
 func getTelephony(_ *cobra.Command, args []string) {
-	manageObjectRequest("/telephony", args[0], telephonyColumnsToDisplay[0])
+	manageObjectRequest("/telephony", args[0], telephonyTemplate)
 }
 
 func init() {

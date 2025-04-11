@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	ldpColumnsToDisplay = []string{ "serviceName","displayName","isClusterOwner","state","username" }
+
+	//go:embed templates/ldp.tmpl
+	ldpTemplate string
 )
 
 func listLdp(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listLdp(_ *cobra.Command, _ []string) {
 }
 
 func getLdp(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dbaas/logs", args[0], ldpColumnsToDisplay[0])
+	manageObjectRequest("/dbaas/logs", args[0], ldpTemplate)
 }
 
 func init() {

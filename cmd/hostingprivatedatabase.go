@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	hostingprivatedatabaseColumnsToDisplay = []string{ "serviceName","displayName","type","version","state" }
+
+	//go:embed templates/hostingprivatedatabase.tmpl
+	hostingprivatedatabaseTemplate string
 )
 
 func listHostingPrivateDatabase(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listHostingPrivateDatabase(_ *cobra.Command, _ []string) {
 }
 
 func getHostingPrivateDatabase(_ *cobra.Command, args []string) {
-	manageObjectRequest("/hosting/privateDatabase", args[0], hostingprivatedatabaseColumnsToDisplay[0])
+	manageObjectRequest("/hosting/privateDatabase", args[0], hostingprivatedatabaseTemplate)
 }
 
 func init() {

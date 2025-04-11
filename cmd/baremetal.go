@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	baremetalColumnsToDisplay = []string{ "name","region","os","powerState","state" }
+
+	//go:embed templates/baremetal.tmpl
+	baremetalTemplate string
 )
 
 func listBaremetal(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listBaremetal(_ *cobra.Command, _ []string) {
 }
 
 func getBaremetal(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dedicated/server", args[0], baremetalColumnsToDisplay[0])
+	manageObjectRequest("/dedicated/server", args[0], baremetalTemplate)
 }
 
 func init() {

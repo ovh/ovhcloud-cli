@@ -28,7 +28,7 @@ var (
 	cliConfigPath string
 
 	// Common flags used by all subcommands to control output format (json, yaml)
-	jsonOutput, yamlOutput bool
+	jsonOutput, yamlOutput, interactiveOutput bool
 
 	// Common filters that can be used in all listing commands
 	genericFilters []string
@@ -61,5 +61,6 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output in JSON")
 	rootCmd.PersistentFlags().BoolVar(&yamlOutput, "yaml", false, "Output in YAML")
+	rootCmd.PersistentFlags().BoolVar(&interactiveOutput, "interactive", false, "Interactive output")
 	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 }

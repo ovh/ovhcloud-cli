@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	dedicatedcloudColumnsToDisplay = []string{ "serviceName","location","state","description" }
+
+	//go:embed templates/dedicatedcloud.tmpl
+	dedicatedcloudTemplate string
 )
 
 func listDedicatedCloud(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listDedicatedCloud(_ *cobra.Command, _ []string) {
 }
 
 func getDedicatedCloud(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dedicatedCloud", args[0], dedicatedcloudColumnsToDisplay[0])
+	manageObjectRequest("/dedicatedCloud", args[0], dedicatedcloudTemplate)
 }
 
 func init() {

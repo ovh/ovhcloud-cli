@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	packxdslColumnsToDisplay = []string{ "packName","description" }
+
+	//go:embed templates/packxdsl.tmpl
+	packxdslTemplate string
 )
 
 func listPackXDSL(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listPackXDSL(_ *cobra.Command, _ []string) {
 }
 
 func getPackXDSL(_ *cobra.Command, args []string) {
-	manageObjectRequest("/pack/xdsl", args[0], packxdslColumnsToDisplay[0])
+	manageObjectRequest("/pack/xdsl", args[0], packxdslTemplate)
 }
 
 func init() {

@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	veeamcloudconnectColumnsToDisplay = []string{ "serviceName","productOffer","location","vmCount" }
+
+	//go:embed templates/veeamcloudconnect.tmpl
+	veeamcloudconnectTemplate string
 )
 
 func listVeeamCloudConnect(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listVeeamCloudConnect(_ *cobra.Command, _ []string) {
 }
 
 func getVeeamCloudConnect(_ *cobra.Command, args []string) {
-	manageObjectRequest("/veeamCloudConnect", args[0], veeamcloudconnectColumnsToDisplay[0])
+	manageObjectRequest("/veeamCloudConnect", args[0], veeamcloudconnectTemplate)
 }
 
 func init() {

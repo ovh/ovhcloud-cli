@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	storagenetappColumnsToDisplay = []string{ "id","name","region","status" }
+
+	//go:embed templates/storagenetapp.tmpl
+	storagenetappTemplate string
 )
 
 func listStorageNetApp(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listStorageNetApp(_ *cobra.Command, _ []string) {
 }
 
 func getStorageNetApp(_ *cobra.Command, args []string) {
-	manageObjectRequest("/storage/netapp", args[0], storagenetappColumnsToDisplay[0])
+	manageObjectRequest("/storage/netapp", args[0], storagenetappTemplate)
 }
 
 func init() {

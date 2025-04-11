@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	emaildomainColumnsToDisplay = []string{ "domain","status","offer" }
+
+	//go:embed templates/emaildomain.tmpl
+	emaildomainTemplate string
 )
 
 func listEmailDomain(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listEmailDomain(_ *cobra.Command, _ []string) {
 }
 
 func getEmailDomain(_ *cobra.Command, args []string) {
-	manageObjectRequest("/email/domain", args[0], emaildomainColumnsToDisplay[0])
+	manageObjectRequest("/email/domain", args[0], emaildomainTemplate)
 }
 
 func init() {

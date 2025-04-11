@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	locationColumnsToDisplay = []string{ "name","type","specificType","location" }
+
+	//go:embed templates/location.tmpl
+	locationTemplate string
 )
 
 func listLocation(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listLocation(_ *cobra.Command, _ []string) {
 }
 
 func getLocation(_ *cobra.Command, args []string) {
-	manageObjectRequest("/v2/location", args[0], locationColumnsToDisplay[0])
+	manageObjectRequest("/v2/location", args[0], locationTemplate)
 }
 
 func init() {

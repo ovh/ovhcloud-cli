@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	vmwareclouddirectorbackupColumnsToDisplay = []string{ "id","iam.displayName","currentState.azName","resourceStatus" }
+
+	//go:embed templates/vmwareclouddirectorbackup.tmpl
+	vmwareclouddirectorbackupTemplate string
 )
 
 func listVmwareCloudDirectorBackup(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listVmwareCloudDirectorBackup(_ *cobra.Command, _ []string) {
 }
 
 func getVmwareCloudDirectorBackup(_ *cobra.Command, args []string) {
-	manageObjectRequest("/v2/vmwareCloudDirector/backup", args[0], vmwareclouddirectorbackupColumnsToDisplay[0])
+	manageObjectRequest("/v2/vmwareCloudDirector/backup", args[0], vmwareclouddirectorbackupTemplate)
 }
 
 func init() {

@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
-	ipColumnsToDisplay = []string{ "ip","rir","routedTo","country","description" }
+	ipColumnsToDisplay = []string{"ip", "rir", "routedTo", "country", "description"}
+
+	//go:embed templates/ip.tmpl
+	ipTemplate string
 )
 
 func listIp(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listIp(_ *cobra.Command, _ []string) {
 }
 
 func getIp(_ *cobra.Command, args []string) {
-	manageObjectRequest("/ip", args[0], ipColumnsToDisplay[0])
+	manageObjectRequest("/ip", args[0], ipTemplate)
 }
 
 func init() {

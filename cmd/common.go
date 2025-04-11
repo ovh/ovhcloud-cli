@@ -36,7 +36,7 @@ func manageListRequest(path string, columnsToDisplay, filters []string) {
 	display.RenderTable(body, columnsToDisplay, jsonOutput, yamlOutput)
 }
 
-func manageObjectRequest(path, objectID, idKey string) {
+func manageObjectRequest(path, objectID, templateContent string) {
 	url := fmt.Sprintf("%s/%s", path, url.PathEscape(objectID))
 
 	var object map[string]any
@@ -44,5 +44,5 @@ func manageObjectRequest(path, objectID, idKey string) {
 		log.Fatalf("error fetching %s: %s\n", url, err)
 	}
 
-	display.OutputObject(object, idKey, jsonOutput, yamlOutput)
+	display.OutputObject(object, objectID, templateContent, jsonOutput, yamlOutput, interactiveOutput)
 }

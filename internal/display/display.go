@@ -1,12 +1,16 @@
 package display
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
+	"text/template"
 
 	"github.com/PaesslerAG/gval"
+	fxDisplay "github.com/amstuta/fx/display"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/charmbracelet/lipgloss/tree"
@@ -109,12 +113,12 @@ func generateChild(value any) *tree.Tree {
 func RenderTable(values []map[string]any, columnsToDisplay []string, jsonOutput, yamlOutput bool) {
 	switch {
 	case yamlOutput:
-		if err := PrettyPrintYAML(values); err != nil {
+		if err := prettyPrintYAML(values); err != nil {
 			log.Fatalf("error displaying YAML results: %s", err)
 		}
 		return
 	case jsonOutput:
-		if err := PrettyPrintJSON(values); err != nil {
+		if err := prettyPrintJSON(values); err != nil {
 			log.Fatalf("error displaying JSON results: %s", err)
 		}
 		return
@@ -216,7 +220,7 @@ func RenderConfigTable(cfg *ini.File) {
 	fmt.Println(t)
 }
 
-func PrettyPrintJSON(value any) error {
+func prettyPrintJSON(value any) error {
 	bytesOut, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
 		return err
@@ -227,7 +231,7 @@ func PrettyPrintJSON(value any) error {
 	return nil
 }
 
-func PrettyPrintYAML(value any) error {
+func prettyPrintYAML(value any) error {
 	bytesOut, err := yaml.Marshal(value)
 	if err != nil {
 		return err
@@ -238,17 +242,50 @@ func PrettyPrintYAML(value any) error {
 	return nil
 }
 
-func OutputObject(value map[string]any, idKey string, jsonOutput, yamlOutput bool) {
+func OutputObject(value map[string]any, serviceName, templateContent string, jsonOutput, yamlOutput, interactive bool) {
+	// Force JSON rendering if no template defined
+	if templateContent == "" && !yamlOutput && !interactive {
+		jsonOutput = true
+	}
+
 	switch {
 	case yamlOutput:
-		if err := PrettyPrintYAML(value); err != nil {
+		if err := prettyPrintYAML(value); err != nil {
 			log.Fatalf("error displaying YAML results: %s", err)
 		}
 	case jsonOutput:
-		if err := PrettyPrintJSON(value); err != nil {
+		if err := prettyPrintJSON(value); err != nil {
 			log.Fatalf("error displaying JSON results: %s", err)
 		}
+	case interactive:
+		bytes, err := json.Marshal(value)
+		if err != nil {
+			log.Fatalf("error preparing interactive output: %s", err)
+		}
+		fxDisplay.Display(bytes, "")
 	default:
-		renderObject(value, idKey)
+		var tpl bytes.Buffer
+		t := template.Must(template.New("").Parse(templateContent))
+		err := t.Execute(&tpl, map[string]any{
+			"ServiceName": serviceName,
+			"Result":      value,
+		})
+		if err != nil {
+			log.Fatalf("failed to execute template: %s", err)
+		}
+
+		r, err := glamour.NewTermRenderer(
+			glamour.WithAutoStyle(),
+			glamour.WithPreservedNewLines(),
+		)
+		if err != nil {
+			log.Fatalf("failed to init rendered: %s", err)
+		}
+
+		out, err := r.Render(tpl.String())
+		if err != nil {
+			log.Fatalf("execution failed: %s", err)
+		}
+		fmt.Print(out)
 	}
 }

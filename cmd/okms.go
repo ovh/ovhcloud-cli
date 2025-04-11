@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	okmsColumnsToDisplay = []string{ "id","region" }
+
+	//go:embed templates/okms.tmpl
+	okmsTemplate string
 )
 
 func listOkms(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listOkms(_ *cobra.Command, _ []string) {
 }
 
 func getOkms(_ *cobra.Command, args []string) {
-	manageObjectRequest("/v2/okms/resource", args[0], okmsColumnsToDisplay[0])
+	manageObjectRequest("/v2/okms/resource", args[0], okmsTemplate)
 }
 
 func init() {

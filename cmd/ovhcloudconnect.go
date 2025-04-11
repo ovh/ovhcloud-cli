@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	ovhcloudconnectColumnsToDisplay = []string{ "uuid","provider","status","description" }
+
+	//go:embed templates/ovhcloudconnect.tmpl
+	ovhcloudconnectTemplate string
 )
 
 func listOvhCloudConnect(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listOvhCloudConnect(_ *cobra.Command, _ []string) {
 }
 
 func getOvhCloudConnect(_ *cobra.Command, args []string) {
-	manageObjectRequest("/ovhCloudConnect", args[0], ovhcloudconnectColumnsToDisplay[0])
+	manageObjectRequest("/ovhCloudConnect", args[0], ovhcloudconnectTemplate)
 }
 
 func init() {

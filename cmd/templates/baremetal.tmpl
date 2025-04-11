@@ -1,0 +1,34 @@
+🚀 Dedicated server {{.ServiceName}}
+=======
+
+_{{index .Result "iam" "displayName"}}_
+
+## Location
+
+**Region**:            {{index .Result "region"}}
+**Availability zone**: {{index .Result "availabilityZone"}}
+**Datacenter**:        {{index .Result "datacenter"}}
+**Rack**:              {{index .Result "rack"}}
+
+## Server state
+
+| | |
+| --- | --- |
+| State | {{index .Result "state"}} |
+| Operating system | {{index .Result "os"}} |
+| IP | {{index .Result "ip"}} |
+| Reverse | {{index .Result "reverse"}} |
+| Power state | {{index .Result "powerState"}} |
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

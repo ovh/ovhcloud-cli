@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	supportticketsColumnsToDisplay = []string{ "ticketId","serviceName","type","category","state" }
+
+	//go:embed templates/supporttickets.tmpl
+	supportticketsTemplate string
 )
 
 func listSupportTickets(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listSupportTickets(_ *cobra.Command, _ []string) {
 }
 
 func getSupportTickets(_ *cobra.Command, args []string) {
-	manageObjectRequest("/support/tickets", args[0], supportticketsColumnsToDisplay[0])
+	manageObjectRequest("/support/tickets", args[0], supportticketsTemplate)
 }
 
 func init() {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -197,11 +198,16 @@ var config = map[string]*cfgEntry{
 var templ = `package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	{{.ProductNameLower}}ColumnsToDisplay = []string{ {{.ColumnsStr}} }
+
+	//go:embed templates/{{.ProductNameLower}}.tmpl
+	{{.ProductNameLower}}Template string
 )
 
 func list{{.ProductName}}(_ *cobra.Command, _ []string) {
@@ -209,7 +215,7 @@ func list{{.ProductName}}(_ *cobra.Command, _ []string) {
 }
 
 func get{{.ProductName}}(_ *cobra.Command, args []string) {
-	manageObjectRequest("{{.Path}}", args[0], {{.ProductNameLower}}ColumnsToDisplay[0])
+	manageObjectRequest("{{.Path}}", args[0], {{.ProductNameLower}}Template)
 }
 
 func init() {
@@ -260,6 +266,15 @@ func main() {
 			log.Fatalf("failed to open output file: %s", err)
 		}
 		defer f.Close()
+
+		templateFile := "../cmd/templates/" + strings.ToLower(cfg.productName) + ".tmpl"
+		if _, err := os.Stat(templateFile); errors.Is(err, os.ErrNotExist) {
+			tmplFile, err := os.Create(templateFile)
+			if err != nil {
+				log.Fatalf("failed to create template file: %s", err)
+			}
+			defer tmplFile.Close()
+		}
 
 		err = t.Execute(f, map[string]any{
 			"Path":             path,

@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	domainzoneColumnsToDisplay = []string{ "name","dnssecSupported","hasDnsAnycast" }
+
+	//go:embed templates/domainzone.tmpl
+	domainzoneTemplate string
 )
 
 func listDomainZone(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listDomainZone(_ *cobra.Command, _ []string) {
 }
 
 func getDomainZone(_ *cobra.Command, args []string) {
-	manageObjectRequest("/domain/zone", args[0], domainzoneColumnsToDisplay[0])
+	manageObjectRequest("/domain/zone", args[0], domainzoneTemplate)
 }
 
 func init() {

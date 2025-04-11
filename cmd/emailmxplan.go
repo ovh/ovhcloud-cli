@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	emailmxplanColumnsToDisplay = []string{ "domain","displayName","state","offer" }
+
+	//go:embed templates/emailmxplan.tmpl
+	emailmxplanTemplate string
 )
 
 func listEmailMXPlan(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listEmailMXPlan(_ *cobra.Command, _ []string) {
 }
 
 func getEmailMXPlan(_ *cobra.Command, args []string) {
-	manageObjectRequest("/email/mxplan", args[0], emailmxplanColumnsToDisplay[0])
+	manageObjectRequest("/email/mxplan", args[0], emailmxplanTemplate)
 }
 
 func init() {

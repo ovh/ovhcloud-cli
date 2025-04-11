@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	_ "embed"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	cdndedicatedColumnsToDisplay = []string{ "service","offer","anycast" }
+
+	//go:embed templates/cdndedicated.tmpl
+	cdndedicatedTemplate string
 )
 
 func listCdnDedicated(_ *cobra.Command, _ []string) {
@@ -13,7 +18,7 @@ func listCdnDedicated(_ *cobra.Command, _ []string) {
 }
 
 func getCdnDedicated(_ *cobra.Command, args []string) {
-	manageObjectRequest("/cdn/dedicated", args[0], cdndedicatedColumnsToDisplay[0])
+	manageObjectRequest("/cdn/dedicated", args[0], cdndedicatedTemplate)
 }
 
 func init() {
