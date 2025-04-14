@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -18,17 +21,34 @@ func fetchExpandedArray(path string) ([]map[string]any, error) {
 
 	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
 
-	resp, err := client.Do(req)
+	response, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching %s: %s", path, err)
 	}
 
-	var body []map[string]any
-	if err := client.UnmarshalResponse(resp, &body); err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %s", err)
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %s", err)
 	}
 
-	return body, nil
+	// < 200 && >= 300 : API error
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("invalid response status %d: %s", response.StatusCode, string(body))
+	}
+
+	// Nothing to unmarshal
+	if len(body) == 0 {
+		return nil, nil
+	}
+
+	var parsedBody []map[string]any
+	d := json.NewDecoder(bytes.NewReader(body))
+	if err := d.Decode(&parsedBody); err != nil {
+		return nil, fmt.Errorf("failed to parse response body: %s", err)
+	}
+
+	return parsedBody, nil
 }
 
 func manageListRequest(path string, columnsToDisplay, filters []string) {

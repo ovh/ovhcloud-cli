@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ipColumnsToDisplay = []string{"ip", "rir", "routedTo", "country", "description"}
+	ipColumnsToDisplay = []string{"ip", "rir", "routedTo.serviceName", "country", "description"}
 
 	//go:embed templates/ip.tmpl
 	ipTemplate string

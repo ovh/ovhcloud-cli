@@ -82,7 +82,7 @@ var config = map[string]*cfgEntry{
 	},
 	"/ip": {
 		productName:      "ip",
-		columnsToDisplay: []string{"ip", "rir", "routedTo", "country", "description"},
+		columnsToDisplay: []string{"ip", "rir", "routedTo.serviceName", "country", "description"},
 	},
 	"/ipLoadbalancing": {
 		productName:      "ipLoadbalancing",

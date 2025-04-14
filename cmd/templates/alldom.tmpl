@@ -1,0 +1,23 @@
+🚀 AllDom {{.ServiceName}}
+=======
+
+_{{index .Result "iam"  "displayName"}}_
+
+## General information
+
+**Name**:  {{index .Result "name"}}
+**Offer**: {{index .Result "offer"}}
+**Type**:  {{index .Result "type"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information
