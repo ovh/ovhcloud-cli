@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
@@ -74,4 +75,9 @@ func manageObjectRequest(path, objectID, templateContent string) {
 	}
 
 	display.OutputObject(object, objectID, templateContent, jsonOutput, yamlOutput, interactiveOutput)
+}
+
+func isInputFromPipe() bool {
+	fileInfo, _ := os.Stdin.Stat()
+	return fileInfo.Mode()&os.ModeCharDevice == 0
 }

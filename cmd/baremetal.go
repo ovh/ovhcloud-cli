@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"bufio"
 	_ "embed"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
+	"os"
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
@@ -17,7 +22,9 @@ var (
 	baremetalTemplate string
 
 	// Installation flags
-	customizations struct {
+	installationFile string
+	operatingSystem  string
+	customizations   struct {
 		ConfigDriveUserData             string            `json:"configDriveUserData,omitempty"`
 		EfiBootloaderPath               string            `json:"efiBootloaderPath,omitempty"`
 		Hostname                        string            `json:"hostname,omitempty"`
@@ -72,19 +79,135 @@ func rebootBaremetal(_ *cobra.Command, args []string) {
 	fmt.Println("\n⚡️ Reboot is started ...")
 }
 
-func reinstallBaremetal(_ *cobra.Command, args []string) {
-	os := args[1]
-	url := fmt.Sprintf("/dedicated/server/%s/reinstall", args[0])
-	parameters := map[string]any{
-		"operatingSystem": os,
-		"customizations":  customizations,
+func reinstallBaremetal(cmd *cobra.Command, args []string) {
+	var parameters map[string]any
+
+	if isInputFromPipe() { // Install data given through a pipe
+		var stdin []byte
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			stdin = append(stdin, scanner.Bytes()...)
+		}
+		if err := scanner.Err(); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("stdin = %s\n", stdin)
+
+		if err := json.Unmarshal(stdin, &parameters); err != nil {
+			log.Fatalf("failed to parse given installation data: %s", err)
+		}
+	} else if installationFile != "" { // Install data given in a file
+		log.Print("Flag --installation-file used, all other flags will be ignored")
+
+		fd, err := os.Open(installationFile)
+		if err != nil {
+			log.Fatalf("failed to open given file: %s", err)
+		}
+		defer fd.Close()
+
+		content, err := io.ReadAll(fd)
+		if err != nil {
+			log.Fatalf("failed to read installation file: %s", err)
+		}
+
+		if err := json.Unmarshal(content, &parameters); err != nil {
+			log.Fatalf("failed to parse given installation file: %s", err)
+		}
+	} else { // Install data given via CLI flags
+		parameters = map[string]any{
+			"operatingSystem": operatingSystem,
+			"customizations":  customizations,
+		}
 	}
 
+	url := fmt.Sprintf("/dedicated/server/%s/reinstall", args[0])
 	if err := client.Post(url, parameters, nil); err != nil {
 		log.Fatalf("error reinstalling server %s: %s\n", args[0], err)
 	}
 
 	fmt.Println("\n⚡️ Reinstallation started ...")
+}
+
+func initReinstallFile(_ *cobra.Command, args []string) {
+	location := args[0]
+
+	if _, err := os.Stat(location); !errors.Is(err, os.ErrNotExist) {
+		log.Fatalf("file %q already exists", location)
+	}
+
+	tmplFile, err := os.Create(location)
+	if err != nil {
+		log.Fatalf("failed to create installation file: %s", err)
+	}
+	defer tmplFile.Close()
+
+	parameters := `{
+"customizations": {
+	"configDriveUserData": "I2Nsb3VkLWNvbmZpZwpzc2hfYXV0aG9yaXplZF9rZXlzOgogIC0gc3NoLXJzYSBBQUFBQjhkallpdz09IG15c2VsZkBteWRvbWFpbi5uZXQKCnVzZXJzOgogIC0gbmFtZTogcGF0aWVudDAKICAgIHN1ZG86IEFMTD0oQUxMKSBOT1BBU1NXRDpBTEwKICAgIGdyb3VwczogdXNlcnMsIHN1ZG8KICAgIHNoZWxsOiAvYmluL2Jhc2gKICAgIGxvY2tfcGFzc3dkOiBmYWxzZQogICAgc3NoX2F1dGhvcml6ZWRfa2V5czoKICAgICAgLSBzc2gtcnNhIEFBQUFCOGRqWWl3PT0gbXlzZWxmQG15ZG9tYWluLm5ldApkaXNhYmxlX3Jvb3Q6IGZhbHNlCnBhY2thZ2VzOgogIC0gdmltCiAgLSB0cmVlCmZpbmFsX21lc3NhZ2U6IFRoZSBzeXN0ZW0gaXMgZmluYWxseSB1cCwgYWZ0ZXIgJFVQVElNRSBzZWNvbmRzCg==",
+	"efiBootloaderPath": "\\efi\\debian\\grubx64.efi",
+	"hostname": "mon-tux",
+	"httpHeaders": {
+		"Authorization": "Basic bG9naW46cGFzc3dvcmQ="
+	},
+	"imageCheckSum": "367f26c915f39314dde155db3a2b0326803e06975d1f4be04256f8b591e38fd4062d36eb7d50e99da7a50b7f4cd69640e56a4ab93e8e0274e4e478e0f84b5d29",
+	"imageCheckSumType": "sha512",
+	"imageURL": "https://github.com/ashmonger/akution_test/releases/download/0.5-compress/deb11k6.qcow2"
+},
+"operatingSystem": "byolinux_64",
+"storage": [
+  {
+	"partitioning": {
+		"disks": 4,
+		"layout": [
+		  {
+			"fileSystem": "ext4",
+			"mountPoint": "/boot",
+			"raidLevel": 1,
+			"size": 1024
+		  },
+		  {
+			"extras": {
+			"lv": {
+				"name": "root"
+			}
+		  },
+			"fileSystem": "ext4",
+			"mountPoint": "/",
+			"raidLevel": 1,
+			"size": 20480
+		  },
+		  {
+			"fileSystem": "swap",
+			"mountPoint": "swap",
+			"size": 2048
+		  },
+		  {
+			"extras": {
+			"zp": {
+				"name": "poule"
+			}
+			},
+			"fileSystem": "zfs",
+			"mountPoint": "/data",
+			"raidLevel": 5,
+			"size": 0
+		  }
+		]
+	  }
+	}
+  ],
+  "properties": {
+    "essential": "false",
+    "role": "webservers"
+  }
+}
+`
+
+	if _, err := tmplFile.WriteString(parameters); err != nil {
+		log.Fatalf("error writing installation file: %s", err)
+	}
+
+	fmt.Printf("\n⚡️ Installation file written at %s\n", location)
 }
 
 func init() {
@@ -143,12 +266,38 @@ func init() {
 
 	// Command to reinstall a baremetal
 	reinstallBaremetalCmd := &cobra.Command{
-		Use:        "reinstall",
-		Short:      "Reinstall a specific Baremetal",
-		Args:       cobra.ExactArgs(2),
-		ArgAliases: []string{"service_name", "operating_system"},
+		Use:   "reinstall",
+		Short: "Reinstall a specific Baremetal",
+		Long: `Use this command to reinstall the given dedicated server.
+There are two ways to define the installation parameters:
+
+1. Using CLI flags:
+
+  ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --os byolinux_64 --language fr-fr --image-url https://...
+
+2. Using a configuration file
+
+  First you can generate an example of installation file using the following command:
+
+  ovh-cli baremetal init-reinstall-file ./install.json
+
+  After editing the file to set the correct installation parameters, run:
+
+  ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --installation-file ./install.json
+
+  Note that you can also pipe the content of the file to reinstall, like the following:
+
+  cat ./install.json | ovh-cli baremetal reinstall ns1234.ip-11.22.33.net
+
+You can visit https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&branch=v1#post-/dedicated/server/-serviceName-/reinstall
+to see all the available parameters and real life examples.
+`,
+		Args:       cobra.ExactArgs(1),
+		ArgAliases: []string{"service_name"},
 		Run:        reinstallBaremetal,
 	}
+	reinstallBaremetalCmd.Flags().StringVar(&installationFile, "installation-file", "", "File containing installation parameters")
+	reinstallBaremetalCmd.Flags().StringVar(&operatingSystem, "os", "", "Operating system to install")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.ConfigDriveUserData, "config-drive-user-data", "", "Config Drive UserData")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.EfiBootloaderPath, "efi-bootloader-path", "", "Path of the EFI bootloader from the OS installed on the server")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.Hostname, "hostname", "", "Custom hostname")
@@ -162,6 +311,14 @@ func init() {
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.SshKey, "ssh-key", "", "SSH public key")
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
+
+	initReinstallBaremetalCmd := &cobra.Command{
+		Use:   "init-reinstall-file <location>",
+		Short: "Create a file with installation parameters",
+		Args:  cobra.ExactArgs(1),
+		Run:   initReinstallFile,
+	}
+	baremetalCmd.AddCommand(initReinstallBaremetalCmd)
 
 	rootCmd.AddCommand(baremetalCmd)
 }
