@@ -2,12 +2,16 @@ package cmd
 
 import (
 	_ "embed"
+	"fmt"
+	"log"
+	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 var (
-	domainzoneColumnsToDisplay = []string{ "name","dnssecSupported","hasDnsAnycast" }
+	domainzoneColumnsToDisplay = []string{"name", "dnssecSupported", "hasDnsAnycast"}
 
 	//go:embed templates/domainzone.tmpl
 	domainzoneTemplate string
@@ -18,7 +22,23 @@ func listDomainZone(_ *cobra.Command, _ []string) {
 }
 
 func getDomainZone(_ *cobra.Command, args []string) {
-	manageObjectRequest("/domain/zone", args[0], domainzoneTemplate)
+	path := fmt.Sprintf("/domain/zone/%s", url.PathEscape(args[0]))
+
+	// Fetch domain zone
+	var object map[string]any
+	if err := client.Get(path, &object); err != nil {
+		log.Fatalf("error fetching %s: %s\n", path, err)
+	}
+
+	// Fetch running tasks
+	path = fmt.Sprintf("/domain/zone/%s/record", url.PathEscape(args[0]))
+	records, err := fetchExpandedArray(path)
+	if err != nil {
+		log.Fatalf("error fetching records for %s: %s", args[0], err)
+	}
+	object["records"] = records
+
+	display.OutputObject(object, args[0], domainzoneTemplate, jsonOutput, yamlOutput, interactiveOutput)
 }
 
 func init() {

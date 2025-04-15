@@ -265,7 +265,7 @@ func OutputObject(value map[string]any, serviceName, templateContent string, jso
 		fxDisplay.Display(bytes, "")
 	default:
 		var tpl bytes.Buffer
-		t := template.Must(template.New("").Parse(templateContent))
+		t := template.Must(template.New("").Funcs(funcMap).Parse(templateContent))
 		err := t.Execute(&tpl, map[string]any{
 			"ServiceName": serviceName,
 			"Result":      value,

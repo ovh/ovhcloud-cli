@@ -55,10 +55,10 @@ var config = map[string]*cfgEntry{
 		productName:      "domainName",
 		columnsToDisplay: []string{"domain", "state", "whoisOwner", "expirationDate", "renewalDate"},
 	},
-	"/domain/zone": {
-		productName:      "domainZone",
-		columnsToDisplay: []string{"name", "dnssecSupported", "hasDnsAnycast"},
-	},
+	// "/domain/zone": {
+	// 	productName:      "domainZone",
+	// 	columnsToDisplay: []string{"name", "dnssecSupported", "hasDnsAnycast"},
+	// },
 	"/email/domain": {
 		productName:      "emailDomain",
 		columnsToDisplay: []string{"domain", "status", "offer"},
