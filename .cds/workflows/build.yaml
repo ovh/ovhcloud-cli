@@ -1,0 +1,17 @@
+name: Go
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: library/go-1-23
+    steps:
+    - uses: actions/checkout
+    - run: go get
+    - run: go build -v -o ovh-cli
+    - uses: actions/uploadArtifact
+      with:
+        path: ovh-cli
+        if-no-files-found: error
+
+integrations: [artifactory-digital-core-platform-api]
