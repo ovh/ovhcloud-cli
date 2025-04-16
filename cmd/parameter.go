@@ -1,0 +1,45 @@
+package cmd
+
+import (
+	_ "embed"
+	"errors"
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/spf13/cobra"
+)
+
+var (
+	paramFile        string
+	replaceParamFile bool
+)
+
+func addInitParameterFileFlag(cmd *cobra.Command, content string) {
+	cmd.Flags().StringVar(&paramFile, "init-file", "", "Create a file with example parameters")
+	cmd.Flags().BoolVar(&replaceParamFile, "replace", false, "Replace parameters file if it already exists")
+	cmd.PreRun = func(_ *cobra.Command, _ []string) {
+		if paramFile == "" {
+			return
+		}
+
+		if !replaceParamFile {
+			if _, err := os.Stat(paramFile); !errors.Is(err, os.ErrNotExist) {
+				log.Fatalf("file %q already exists", paramFile)
+			}
+		}
+
+		tmplFile, err := os.Create(paramFile)
+		if err != nil {
+			log.Fatalf("failed to create parameter file: %s", err)
+		}
+		defer tmplFile.Close()
+
+		if _, err := tmplFile.WriteString(content); err != nil {
+			log.Fatalf("error writing parameter file: %s", err)
+		}
+
+		fmt.Printf("\n⚡️ Parameter file written at %s\n", paramFile)
+		os.Exit(0)
+	}
+}
