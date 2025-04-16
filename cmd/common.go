@@ -63,7 +63,7 @@ func manageListRequest(path string, columnsToDisplay, filters []string) {
 		log.Fatalf("failed to filter results: %s", err)
 	}
 
-	display.RenderTable(body, columnsToDisplay, jsonOutput, yamlOutput)
+	display.RenderTable(body, columnsToDisplay, &outputFormatConfig)
 }
 
 func manageObjectRequest(path, objectID, templateContent string) {
@@ -74,7 +74,7 @@ func manageObjectRequest(path, objectID, templateContent string) {
 		log.Fatalf("error fetching %s: %s", url, err)
 	}
 
-	display.OutputObject(object, objectID, templateContent, jsonOutput, yamlOutput, interactiveOutput)
+	display.OutputObject(object, objectID, templateContent, &outputFormatConfig)
 }
 
 func isInputFromPipe() bool {

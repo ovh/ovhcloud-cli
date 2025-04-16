@@ -12,6 +12,7 @@ import (
 	"gopkg.in/ini.v1"
 
 	"stash.ovh.net/api/ovh-cli/internal/config"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 var (
@@ -28,7 +29,7 @@ var (
 	cliConfigPath string
 
 	// Common flags used by all subcommands to control output format (json, yaml)
-	jsonOutput, yamlOutput, interactiveOutput bool
+	outputFormatConfig display.OutputFormat
 
 	// Common filters that can be used in all listing commands
 	genericFilters []string
@@ -59,8 +60,9 @@ func init() {
 		log.Printf("cannot load configuration: %s", err)
 	}
 
-	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output in JSON")
-	rootCmd.PersistentFlags().BoolVar(&yamlOutput, "yaml", false, "Output in YAML")
-	rootCmd.PersistentFlags().BoolVar(&interactiveOutput, "interactive", false, "Interactive output")
-	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	rootCmd.PersistentFlags().BoolVar(&outputFormatConfig.JsonOutput, "json", false, "Output in JSON")
+	rootCmd.PersistentFlags().BoolVar(&outputFormatConfig.YamlOutput, "yaml", false, "Output in YAML")
+	rootCmd.PersistentFlags().BoolVar(&outputFormatConfig.InteractiveOutput, "interactive", false, "Interactive output")
+	rootCmd.PersistentFlags().StringVar(&outputFormatConfig.CustomFormat, "format", "", "Output value according to given format (expression using gval format)")
+	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml", "interactive", "format")
 }

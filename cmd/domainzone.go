@@ -38,7 +38,7 @@ func getDomainZone(_ *cobra.Command, args []string) {
 	}
 	object["records"] = records
 
-	display.OutputObject(object, args[0], domainzoneTemplate, jsonOutput, yamlOutput, interactiveOutput)
+	display.OutputObject(object, args[0], domainzoneTemplate, &outputFormatConfig)
 }
 
 func init() {

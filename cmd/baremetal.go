@@ -68,7 +68,7 @@ func getBaremetal(_ *cobra.Command, args []string) {
 	}
 	object["tasks"] = tasks
 
-	display.OutputObject(object, args[0], baremetalTemplate, jsonOutput, yamlOutput, interactiveOutput)
+	display.OutputObject(object, args[0], baremetalTemplate, &outputFormatConfig)
 }
 
 func rebootBaremetal(_ *cobra.Command, args []string) {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
 	"text/template"
 
 	"github.com/PaesslerAG/gval"
@@ -13,111 +14,61 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/charmbracelet/lipgloss/tree"
 	"github.com/ghodss/yaml"
 	"gopkg.in/ini.v1"
 )
 
-func renderObject(values map[string]any, titleKey string) {
-	enumeratorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63")).MarginRight(1)
-	rootStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("35")).Bold(true).Underline(true).MarginBottom(1)
-	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("140"))
-
-	t := tree.Root(values[titleKey]).
-		Enumerator(tree.RoundedEnumerator).
-		EnumeratorStyle(enumeratorStyle).
-		RootStyle(rootStyle).
-		ItemStyle(itemStyle)
-
-	for key, value := range values {
-		if key == titleKey {
-			continue
-		}
-
-		t.Child(key)
-
-		switch v := value.(type) {
-		case map[string]any:
-			subTree := tree.New()
-			for k, val := range v {
-				subTree.Child(k)
-				subTree.Child(generateChild(val))
-			}
-			t.Child(subTree)
-		case []any:
-			if len(v) == 0 {
-				t.Child(tree.New().Child("[]"))
-			} else {
-				for _, val := range v {
-					t.Child(generateChild(val))
-				}
-			}
-		case string:
-			if len(v) > 80 {
-				t.Child(tree.New().Child(v[:50] + "..."))
-			} else {
-				t.Child(tree.New().Child(v))
-			}
-		default:
-			if value == nil {
-				t.Child(tree.New().Child("null"))
-			} else if value == "" {
-				t.Child(tree.New().Child(`""`))
-			} else {
-				t.Child(tree.New().Child(value))
-			}
-		}
-	}
-
-	fmt.Println(table.New().Border(lipgloss.NormalBorder()).Row(fmt.Sprint(t)))
+// Common flags used by all subcommands to control output format (json, yaml)
+type OutputFormat struct {
+	JsonOutput, YamlOutput, InteractiveOutput bool
+	CustomFormat                              string
 }
 
-func generateChild(value any) *tree.Tree {
-	child := tree.New()
+func renderCustomFormat(value any, format string) {
+	ev, err := gval.Full().NewEvaluable(format)
+	if err != nil {
+		log.Fatalf("invalid format given: %s", err)
+	}
 
-	switch v := value.(type) {
-	case map[string]any:
-		subTree := tree.New()
-		for k, val := range v {
-			subTree.Child(k)
-			subTree.Child(generateChild(val))
-		}
-		child.Child(subTree)
-	case []any:
-		if len(v) == 0 {
-			child.Child("[]")
-		} else {
-			for _, val := range v {
-				child.Child(generateChild(val))
+	switch reflect.TypeOf(value).Kind() {
+	case reflect.Slice:
+		for _, val := range value.([]map[string]any) {
+			out, err := ev(context.Background(), val)
+			if err != nil {
+				log.Fatalf("couldn't extract data according to given format: %s", err)
 			}
-		}
-	case string:
-		if len(v) > 80 {
-			child.Child(v[:50] + "...")
-		} else {
-			child.Child(v)
+
+			outBytes, err := json.Marshal(out)
+			if err != nil {
+				log.Fatalf("error marshalling result")
+			}
+			fmt.Println(string(outBytes))
 		}
 	default:
-		if value == nil {
-			child.Child("null")
-		} else if value == "" {
-			child.Child(`""`)
-		} else {
-			child.Child(value)
+		out, err := ev(context.Background(), value)
+		if err != nil {
+			log.Fatalf("couldn't extract data according to given format: %s", err)
 		}
-	}
 
-	return child
+		outBytes, err := json.Marshal(out)
+		if err != nil {
+			log.Fatalf("error marshalling result")
+		}
+		fmt.Print(string(outBytes))
+	}
 }
 
-func RenderTable(values []map[string]any, columnsToDisplay []string, jsonOutput, yamlOutput bool) {
+func RenderTable(values []map[string]any, columnsToDisplay []string, outputFormat *OutputFormat) {
 	switch {
-	case yamlOutput:
+	case outputFormat.CustomFormat != "":
+		renderCustomFormat(values, outputFormat.CustomFormat)
+		return
+	case outputFormat.YamlOutput:
 		if err := prettyPrintYAML(values); err != nil {
 			log.Fatalf("error displaying YAML results: %s", err)
 		}
 		return
-	case jsonOutput:
+	case outputFormat.JsonOutput:
 		if err := prettyPrintJSON(values); err != nil {
 			log.Fatalf("error displaying JSON results: %s", err)
 		}
@@ -242,27 +193,34 @@ func prettyPrintYAML(value any) error {
 	return nil
 }
 
-func OutputObject(value map[string]any, serviceName, templateContent string, jsonOutput, yamlOutput, interactive bool) {
+func OutputObject(value map[string]any, serviceName, templateContent string, outputFormat *OutputFormat) {
 	// Force JSON rendering if no template defined
-	if templateContent == "" && !yamlOutput && !interactive {
-		jsonOutput = true
+	if templateContent == "" && !outputFormat.YamlOutput &&
+		!outputFormat.InteractiveOutput && outputFormat.CustomFormat == "" {
+		outputFormat.JsonOutput = true
 	}
 
 	switch {
-	case yamlOutput:
+	case outputFormat.CustomFormat != "":
+		renderCustomFormat(value, outputFormat.CustomFormat)
+		return
+	case outputFormat.YamlOutput:
 		if err := prettyPrintYAML(value); err != nil {
 			log.Fatalf("error displaying YAML results: %s", err)
 		}
-	case jsonOutput:
+		return
+	case outputFormat.JsonOutput:
 		if err := prettyPrintJSON(value); err != nil {
 			log.Fatalf("error displaying JSON results: %s", err)
 		}
-	case interactive:
+		return
+	case outputFormat.InteractiveOutput:
 		bytes, err := json.Marshal(value)
 		if err != nil {
 			log.Fatalf("error preparing interactive output: %s", err)
 		}
 		fxDisplay.Display(bytes, "")
+		return
 	default:
 		var tpl bytes.Buffer
 		t := template.Must(template.New("").Funcs(funcMap).Parse(templateContent))
