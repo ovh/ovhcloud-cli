@@ -9,6 +9,7 @@ import (
 
 	"github.com/ovh/go-ovh/ovh"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"gopkg.in/ini.v1"
 
 	"stash.ovh.net/api/ovh-cli/internal/config"
@@ -65,4 +66,13 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&outputFormatConfig.InteractiveOutput, "interactive", false, "Interactive output")
 	rootCmd.PersistentFlags().StringVar(&outputFormatConfig.CustomFormat, "format", "", "Output value according to given format (expression using gval format)")
 	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml", "interactive", "format")
+}
+
+func removeRootFlagsFromCommand(subCommand *cobra.Command) {
+	subCommand.SetHelpFunc(func(command *cobra.Command, strings []string) {
+		rootCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
+			flag.Hidden = true
+		})
+		command.Parent().HelpFunc()(command, strings)
+	})
 }

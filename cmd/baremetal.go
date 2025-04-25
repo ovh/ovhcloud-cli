@@ -161,7 +161,7 @@ func init() {
 
 	// Command to get a single Baremetal
 	baremetalCmd.AddCommand(&cobra.Command{
-		Use:        "get",
+		Use:        "get <service_name>",
 		Short:      "Retrieve information of a specific Baremetal",
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"service_name"},
@@ -170,7 +170,7 @@ func init() {
 
 	// Command to list baremetal tasks
 	baremetalListTasksCmd := &cobra.Command{
-		Use:        "list-tasks",
+		Use:        "list-tasks <service_name>",
 		Short:      "Retrieve tasks of a specific Baremetal",
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"service_name"},
@@ -185,17 +185,19 @@ func init() {
 	baremetalCmd.AddCommand(baremetalListTasksCmd)
 
 	// Command to reboot a baremetal
-	baremetalCmd.AddCommand(&cobra.Command{
-		Use:        "reboot",
+	baremetalRebootCmd := &cobra.Command{
+		Use:        "reboot <service_name>",
 		Short:      "Reboot a specific Baremetal",
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"service_name"},
 		Run:        rebootBaremetal,
-	})
+	}
+	removeRootFlagsFromCommand(baremetalRebootCmd)
+	baremetalCmd.AddCommand(baremetalRebootCmd)
 
 	// Command to reinstall a baremetal
 	reinstallBaremetalCmd := &cobra.Command{
-		Use:   "reinstall",
+		Use:   "reinstall <service_name>",
 		Short: "Reinstall a specific Baremetal",
 		Long: `Use this command to reinstall the given dedicated server.
 There are two ways to define the installation parameters:
@@ -241,6 +243,7 @@ to see all the available parameters and real life examples.
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.PostInstallationScript, "post-installation-script", "", "Post-installation script")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.SshKey, "ssh-key", "", "SSH public key")
+	removeRootFlagsFromCommand(reinstallBaremetalCmd)
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
 
 	rootCmd.AddCommand(baremetalCmd)

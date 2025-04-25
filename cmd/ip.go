@@ -85,29 +85,35 @@ func init() {
 	}
 	ipCmd.AddCommand(ipReverseCmd)
 
-	ipReverseCmd.AddCommand(&cobra.Command{
-		Use:        "set",
+	ipReverseSetCmd := &cobra.Command{
+		Use:        "set <service_name> <ip> <reverse>",
 		Short:      "Set reverse on the given IP",
 		Args:       cobra.ExactArgs(3),
 		ArgAliases: []string{"service_name", "ip", "reverse"},
 		Run:        ipSetReverse,
-	})
+	}
+	removeRootFlagsFromCommand(ipReverseSetCmd)
+	ipReverseCmd.AddCommand(ipReverseSetCmd)
 
-	ipReverseCmd.AddCommand(&cobra.Command{
-		Use:        "get",
+	ipReverseGetCmd := &cobra.Command{
+		Use:        "get <service_name>",
 		Short:      "List reverse on the given IP range",
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"service_name"},
 		Run:        ipGetReverse,
-	})
+	}
+	removeRootFlagsFromCommand(ipReverseGetCmd)
+	ipReverseCmd.AddCommand(ipReverseGetCmd)
 
-	ipReverseCmd.AddCommand(&cobra.Command{
-		Use:        "delete",
+	ipReverseDeleteCmd := &cobra.Command{
+		Use:        "delete <service_name> <ip>",
 		Short:      "Delete reverse on the given IP",
 		Args:       cobra.ExactArgs(2),
 		ArgAliases: []string{"service_name", "ip"},
 		Run:        ipDeleteReverse,
-	})
+	}
+	removeRootFlagsFromCommand(ipReverseDeleteCmd)
+	ipReverseCmd.AddCommand(ipReverseDeleteCmd)
 
 	rootCmd.AddCommand(ipCmd)
 }
