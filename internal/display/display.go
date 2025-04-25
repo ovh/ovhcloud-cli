@@ -90,12 +90,23 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 
 	// Extract values to display
 	for _, value := range values {
-		values, err := selectors.EvalStrings(context.Background(), value)
-		if err != nil {
-			log.Fatalf("failed to select row fields: %s", err)
+		var row []string
+		for _, selector := range selectors {
+			val, err := selector(context.Background(), value)
+			if err != nil {
+				log.Fatalf("failed to select row field: %s", err)
+			}
+
+			switch val.(type) {
+			case float32, float64:
+				// TODO: default formatting without decimals, may cause issues at some point
+				row = append(row, fmt.Sprintf("%.0f", val))
+			default:
+				row = append(row, fmt.Sprintf("%v", val))
+			}
 		}
 
-		rows = append(rows, values)
+		rows = append(rows, row)
 	}
 
 	var (
