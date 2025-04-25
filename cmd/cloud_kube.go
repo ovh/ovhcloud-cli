@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	_ "embed"
 	"fmt"
 	"log"
 	"net/url"
@@ -12,6 +13,9 @@ import (
 var (
 	cloudprojectKubeColumnsToDisplay = []string{"id", "name", "region", "version", "status"}
 	cloudProject                     string
+
+	//go:embed templates/cloud_kube.tmpl
+	cloudKubeTemplate string
 )
 
 func listKubes(_ *cobra.Command, _ []string) {
@@ -41,7 +45,7 @@ func getKube(_ *cobra.Command, args []string) {
 		cloudProject = projectID
 	}
 
-	manageObjectRequest(fmt.Sprintf("/cloud/project/%s/kube", url.PathEscape(cloudProject)), args[0], cloudprojectKubeColumnsToDisplay[0])
+	manageObjectRequest(fmt.Sprintf("/cloud/project/%s/kube", url.PathEscape(cloudProject)), args[0], cloudKubeTemplate)
 }
 
 func initKubeCommand(cloudCmd *cobra.Command) {
@@ -49,6 +53,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Use:   "kube",
 		Short: "List Kubernetes clusters in the given cloud project",
 	}
+	kubeCmd.PersistentFlags().StringVar(&cloudProject, "cloud-project", "", "Cloud project ID")
 
 	// Command to list Kuberetes clusters
 	kubeListCmd := &cobra.Command{
@@ -56,7 +61,6 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Short: "List your Kubernetes clusters",
 		Run:   listKubes,
 	}
-	kubeListCmd.PersistentFlags().StringVar(&cloudProject, "cloud-project", "", "Cloud project ID")
 	kubeCmd.AddCommand(kubeListCmd)
 
 	kubeCmd.AddCommand(&cobra.Command{

@@ -1,0 +1,33 @@
+🚀 Managed Kubernetes Cluster {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Region**:        {{index .Result "region"}}
+**Status**:        {{index .Result "status"}}
+**Creation date**: {{index .Result "createdAt"}}
+**Update date**:   {{index .Result "updatedAt"}}
+
+## Cluster state
+
+**Version**:         {{index .Result "version"}}
+**Up to date**:      {{index .Result "isUpToDate"}}
+**Update policy**:   {{index .Result "updatePolicy"}}
+**Kube proxy mode**: {{index .Result "kubeProxyMode"}}
+
+[Management URL]({{index .Result "url"}})
+[Nodes URL]({{index .Result "nodesUrl"}})
+
+## Network
+
+**Private network**:
+- ID: {{index .Result "privateNetworkId"}}{{if index .Result "privateNetworkConfiguration"}}
+- Default vRack gateway: {{index .Result "privateNetworkConfiguration" "defaultVrackGateway"}}
+- Private network routing as default: {{index .Result "privateNetworkConfiguration" "privateNetworkRoutingAsDefault"}}
+{{end}}
+**Nodes subnet**:         {{index .Result "nodesSubnetId"}}
+**Load balancer subnet**: {{index .Result "loadBalancersSubnetId"}}
+
+💡 Use option --json or --yaml to get the raw output with all information

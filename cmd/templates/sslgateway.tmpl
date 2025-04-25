@@ -1,0 +1,32 @@
+🚀 SSL gateway {{.ServiceName}}
+=======
+
+{{if index .Result "displayName"}}_{{index .Result "displayName"}}_{{end}}
+
+## General information
+
+**State**: {{index .Result "state"}}
+**Offer**: {{index .Result "offer"}}
+**Zones**: {{range index .Result "zones"}}
+- {{.}}{{end}}
+
+**IPv4**:                       {{index .Result "ipv4"}}
+**IPv6**:                       {{index .Result "ipv6"}}
+**Reverse**:                    {{index .Result "reverse"}}
+**HSTS**:                       {{index .Result "hsts"}}
+**HTTPS redirect**:             {{index .Result "httpsRedirect"}}
+**Contact backend over HTTPS**: {{index .Result "serverHttps"}}
+**SSL configuration**:          {{index .Result "sslConfiguration"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

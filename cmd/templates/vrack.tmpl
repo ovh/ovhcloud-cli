@@ -1,0 +1,20 @@
+🚀 vRack {{.ServiceName}}
+=======
+
+## General information
+
+**Name**:        {{index .Result "name"}}
+**Description**: {{index .Result "description"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

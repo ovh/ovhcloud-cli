@@ -1,0 +1,21 @@
+🚀 Veeam Enterprise {{.ServiceName}}
+=======
+
+## General information
+
+**Activation status**: {{index .Result "activationStatus"}}
+**Backup server IP**:  {{index .Result "ip"}}
+**Manager IP**:        {{index .Result "sourceIp"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

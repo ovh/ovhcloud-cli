@@ -1,0 +1,33 @@
+🚀 VPS {{.ServiceName}}
+=======
+
+{{if index .Result "displayName"}}_{{index .Result "displayName"}}_{{end}}
+
+## General information
+
+**Name**:  {{index .Result "name"}}
+**Offer**: {{index .Result "model" "offer"}}
+**State**: {{index .Result "state"}}
+**Zone**:  {{index .Result "zone"}} ({{index .Result "zoneType"}})
+
+## Specifications
+
+**Version**:         {{index .Result "model" "version"}}
+**vCores**:          {{index .Result "vcore"}}
+**Memory**:          {{index .Result "model" "memory"}}MB
+**Storage**:         {{index .Result "model" "disk"}}GB
+**Netboot mode**:    {{index .Result "netbootMode"}}
+**Keyboard layout**: {{index .Result "keymap"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information
