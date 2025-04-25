@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/config"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 var (
@@ -22,7 +23,7 @@ func listKubes(_ *cobra.Command, _ []string) {
 	if cloudProject == "" {
 		projectID, err := config.GetConfigValue(cliConfig, "", "default_cloud_project")
 		if err != nil {
-			log.Fatalf("failed to fetch default cloud project: %s", err)
+			display.ExitError("failed to fetch default cloud project: %s", err)
 		}
 		if projectID == "" {
 			log.Fatal("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration")
@@ -37,7 +38,7 @@ func getKube(_ *cobra.Command, args []string) {
 	if cloudProject == "" {
 		projectID, err := config.GetConfigValue(cliConfig, "", "default_cloud_project")
 		if err != nil {
-			log.Fatalf("failed to fetch default cloud project: %s", err)
+			display.ExitError("failed to fetch default cloud project: %s", err)
 		}
 		if projectID == "" {
 			log.Fatal("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration")

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -21,19 +20,19 @@ func login(_ *cobra.Command, _ []string) {
 
 	for k, v := range credentials {
 		if v == "" {
-			log.Fatalf("no value provided for %q", k)
+			display.ExitError("no value provided for %q", k)
 		}
 	}
 
 	regionConfigKey := fmt.Sprintf("ovh-%s", strings.ToLower(selectedRegion))
 
 	if err := config.SetConfigValue(cliConfig, cliConfigPath, "", "endpoint", regionConfigKey); err != nil {
-		log.Fatalf("failed to write endpoint in configuration: %s", err)
+		display.ExitError("failed to write endpoint in configuration: %s", err)
 	}
 
 	for k, v := range credentials {
 		if err := config.SetConfigValue(cliConfig, cliConfigPath, regionConfigKey, k, v); err != nil {
-			log.Fatalf("failed to write configuration %q: %s", k, err)
+			display.ExitError("failed to write configuration %q: %s", k, err)
 		}
 	}
 }

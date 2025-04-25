@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"os"
 	"reflect"
 	"text/template"
 
@@ -27,7 +27,7 @@ type OutputFormat struct {
 func renderCustomFormat(value any, format string) {
 	ev, err := gval.Full().NewEvaluable(format)
 	if err != nil {
-		log.Fatalf("invalid format given: %s", err)
+		ExitError("invalid format given: %s", err)
 	}
 
 	switch reflect.TypeOf(value).Kind() {
@@ -35,24 +35,24 @@ func renderCustomFormat(value any, format string) {
 		for _, val := range value.([]map[string]any) {
 			out, err := ev(context.Background(), val)
 			if err != nil {
-				log.Fatalf("couldn't extract data according to given format: %s", err)
+				ExitError("couldn't extract data according to given format: %s", err)
 			}
 
 			outBytes, err := json.Marshal(out)
 			if err != nil {
-				log.Fatalf("error marshalling result")
+				ExitError("error marshalling result")
 			}
 			fmt.Println(string(outBytes))
 		}
 	default:
 		out, err := ev(context.Background(), value)
 		if err != nil {
-			log.Fatalf("couldn't extract data according to given format: %s", err)
+			ExitError("couldn't extract data according to given format: %s", err)
 		}
 
 		outBytes, err := json.Marshal(out)
 		if err != nil {
-			log.Fatalf("error marshalling result")
+			ExitError("error marshalling result")
 		}
 		fmt.Print(string(outBytes))
 	}
@@ -65,12 +65,12 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		return
 	case outputFormat.YamlOutput:
 		if err := prettyPrintYAML(values); err != nil {
-			log.Fatalf("error displaying YAML results: %s", err)
+			ExitError("error displaying YAML results: %s", err)
 		}
 		return
 	case outputFormat.JsonOutput:
 		if err := prettyPrintJSON(values); err != nil {
-			log.Fatalf("error displaying JSON results: %s", err)
+			ExitError("error displaying JSON results: %s", err)
 		}
 		return
 	}
@@ -83,7 +83,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 	for _, col := range columnsToDisplay {
 		evaluator, err := gval.Full().NewEvaluable(col)
 		if err != nil {
-			log.Fatalf("invalid column to display %q: %s", col, err)
+			ExitError("invalid column to display %q: %s", col, err)
 		}
 		selectors = append(selectors, evaluator)
 	}
@@ -94,7 +94,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		for _, selector := range selectors {
 			val, err := selector(context.Background(), value)
 			if err != nil {
-				log.Fatalf("failed to select row field: %s", err)
+				ExitError("failed to select row field: %s", err)
 			}
 
 			switch val.(type) {
@@ -217,18 +217,18 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 		return
 	case outputFormat.YamlOutput:
 		if err := prettyPrintYAML(value); err != nil {
-			log.Fatalf("error displaying YAML results: %s", err)
+			ExitError("error displaying YAML results: %s", err)
 		}
 		return
 	case outputFormat.JsonOutput:
 		if err := prettyPrintJSON(value); err != nil {
-			log.Fatalf("error displaying JSON results: %s", err)
+			ExitError("error displaying JSON results: %s", err)
 		}
 		return
 	case outputFormat.InteractiveOutput:
 		bytes, err := json.Marshal(value)
 		if err != nil {
-			log.Fatalf("error preparing interactive output: %s", err)
+			ExitError("error preparing interactive output: %s", err)
 		}
 		fxDisplay.Display(bytes, "")
 		return
@@ -240,7 +240,7 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 			"Result":      value,
 		})
 		if err != nil {
-			log.Fatalf("failed to execute template: %s", err)
+			ExitError("failed to execute template: %s", err)
 		}
 
 		r, err := glamour.NewTermRenderer(
@@ -248,13 +248,18 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 			glamour.WithPreservedNewLines(),
 		)
 		if err != nil {
-			log.Fatalf("failed to init rendered: %s", err)
+			ExitError("failed to init rendered: %s", err)
 		}
 
 		out, err := r.Render(tpl.String())
 		if err != nil {
-			log.Fatalf("execution failed: %s", err)
+			ExitError("execution failed: %s", err)
 		}
 		fmt.Print(out)
 	}
+}
+
+func ExitError(message string, params ...any) {
+	fmt.Printf("🛑 "+message+"\n", params...)
+	os.Exit(1)
 }

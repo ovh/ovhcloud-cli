@@ -2,8 +2,11 @@ package cmd
 
 import (
 	_ "embed"
+	"fmt"
+	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 var (
@@ -19,6 +22,16 @@ func listIp(_ *cobra.Command, _ []string) {
 
 func getIp(_ *cobra.Command, args []string) {
 	manageObjectRequest("/ip", args[0], ipTemplate)
+}
+
+func ipSetReverse(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/ip/%s/reverse", url.PathEscape(args[0]))
+	if err := client.Post(url, map[string]string{
+		"ipReverse": args[1],
+		"reverse":   args[2],
+	}, nil); err != nil {
+		display.ExitError(err.Error())
+	}
 }
 
 func init() {
@@ -49,6 +62,21 @@ func init() {
 		ArgAliases: []string{"service_name"},
 		Run:        getIp,
 	})
+
+	ipReverseCmd := &cobra.Command{
+		Use:   "reverse",
+		Short: "Manage reverses on the given IP",
+	}
+	ipCmd.AddCommand(ipReverseCmd)
+
+	ipReverseSetCmd := &cobra.Command{
+		Use:        "set",
+		Short:      "Set reverse on the given IP",
+		Args:       cobra.ExactArgs(3),
+		ArgAliases: []string{"service_name", "ip", "reverse"},
+		Run:        ipSetReverse,
+	}
+	ipReverseCmd.AddCommand(ipReverseSetCmd)
 
 	rootCmd.AddCommand(ipCmd)
 }

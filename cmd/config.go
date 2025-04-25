@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"maps"
 	"slices"
 	"strings"
@@ -19,20 +18,20 @@ func showConfig(_ *cobra.Command, _ []string) {
 func setConfig(_ *cobra.Command, args []string) {
 	if _, ok := config.ConfigurableFields[args[0]]; !ok {
 		allowedKeys := slices.Collect(maps.Keys(config.ConfigurableFields))
-		log.Fatalf("unknown configuration field %q, customizable fields are: %s", args[0], allowedKeys)
+		display.ExitError("unknown configuration field %q, customizable fields are: %s", args[0], allowedKeys)
 	}
 	if err := config.SetConfigValue(cliConfig, cliConfigPath, "", args[0], args[1]); err != nil {
-		log.Fatalf("failed to set configuration: %s", err)
+		display.ExitError("failed to set configuration: %s", err)
 	}
 }
 
 func setRegion(_ *cobra.Command, args []string) {
 	if args[0] != "EU" && args[0] != "CA" && args[0] != "US" {
-		log.Fatalf("invalid region %q, valid values are [EU, CA, US]", args[0])
+		display.ExitError("invalid region %q, valid values are [EU, CA, US]", args[0])
 	}
 
 	if err := config.SetConfigValue(cliConfig, cliConfigPath, "", "endpoint", fmt.Sprintf("ovh-%s", strings.ToLower(args[0]))); err != nil {
-		log.Fatalf("failed to set region configuration: %s", err)
+		display.ExitError("failed to set region configuration: %s", err)
 	}
 }
 

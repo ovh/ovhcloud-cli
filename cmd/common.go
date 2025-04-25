@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -55,12 +54,12 @@ func fetchExpandedArray(path string) ([]map[string]any, error) {
 func manageListRequest(path string, columnsToDisplay, filters []string) {
 	body, err := fetchExpandedArray(path)
 	if err != nil {
-		log.Fatalf("failed to fetch results: %s", err)
+		display.ExitError("failed to fetch results: %s", err)
 	}
 
 	body, err = filtersLib.FilterLines(body, filters)
 	if err != nil {
-		log.Fatalf("failed to filter results: %s", err)
+		display.ExitError("failed to filter results: %s", err)
 	}
 
 	display.RenderTable(body, columnsToDisplay, &outputFormatConfig)
@@ -71,7 +70,7 @@ func manageObjectRequest(path, objectID, templateContent string) {
 
 	var object map[string]any
 	if err := client.Get(url, &object); err != nil {
-		log.Fatalf("error fetching %s: %s", url, err)
+		display.ExitError("error fetching %s: %s", url, err)
 	}
 
 	display.OutputObject(object, objectID, templateContent, &outputFormatConfig)

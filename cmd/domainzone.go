@@ -3,7 +3,6 @@ package cmd
 import (
 	_ "embed"
 	"fmt"
-	"log"
 	"net/url"
 
 	"github.com/spf13/cobra"
@@ -27,14 +26,14 @@ func getDomainZone(_ *cobra.Command, args []string) {
 	// Fetch domain zone
 	var object map[string]any
 	if err := client.Get(path, &object); err != nil {
-		log.Fatalf("error fetching %s: %s\n", path, err)
+		display.ExitError("error fetching %s: %s\n", path, err)
 	}
 
 	// Fetch running tasks
 	path = fmt.Sprintf("/domain/zone/%s/record", url.PathEscape(args[0]))
 	records, err := fetchExpandedArray(path)
 	if err != nil {
-		log.Fatalf("error fetching records for %s: %s", args[0], err)
+		display.ExitError("error fetching records for %s: %s", args[0], err)
 	}
 	object["records"] = records
 

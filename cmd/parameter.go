@@ -4,10 +4,10 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 var (
@@ -25,18 +25,18 @@ func addInitParameterFileFlag(cmd *cobra.Command, content string) {
 
 		if !replaceParamFile {
 			if _, err := os.Stat(paramFile); !errors.Is(err, os.ErrNotExist) {
-				log.Fatalf("file %q already exists", paramFile)
+				display.ExitError("file %q already exists", paramFile)
 			}
 		}
 
 		tmplFile, err := os.Create(paramFile)
 		if err != nil {
-			log.Fatalf("failed to create parameter file: %s", err)
+			display.ExitError("failed to create parameter file: %s", err)
 		}
 		defer tmplFile.Close()
 
 		if _, err := tmplFile.WriteString(content); err != nil {
-			log.Fatalf("error writing parameter file: %s", err)
+			display.ExitError("error writing parameter file: %s", err)
 		}
 
 		fmt.Printf("\n⚡️ Parameter file written at %s\n", paramFile)

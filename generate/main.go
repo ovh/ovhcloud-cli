@@ -3,10 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"text/template"
+
+	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 type cfgEntry struct {
@@ -263,7 +264,7 @@ func main() {
 
 		f, err := os.Create("../cmd/" + strings.ToLower(cfg.productName) + ".go")
 		if err != nil {
-			log.Fatalf("failed to open output file: %s", err)
+			display.ExitError("failed to open output file: %s", err)
 		}
 		defer f.Close()
 
@@ -271,7 +272,7 @@ func main() {
 		if _, err := os.Stat(templateFile); errors.Is(err, os.ErrNotExist) {
 			tmplFile, err := os.Create(templateFile)
 			if err != nil {
-				log.Fatalf("failed to create template file: %s", err)
+				display.ExitError("failed to create template file: %s", err)
 			}
 			defer tmplFile.Close()
 		}
@@ -283,7 +284,7 @@ func main() {
 			"ColumnsStr":       strings.Join(formattedCols, ","),
 		})
 		if err != nil {
-			log.Fatalf("execution failed: %s", err)
+			display.ExitError("execution failed: %s", err)
 		}
 	}
 }

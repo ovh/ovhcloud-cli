@@ -57,14 +57,14 @@ func getBaremetal(_ *cobra.Command, args []string) {
 	// Fetch dedicated server
 	var object map[string]any
 	if err := client.Get(path, &object); err != nil {
-		log.Fatalf("error fetching %s: %s\n", path, err)
+		display.ExitError("error fetching %s: %s\n", path, err)
 	}
 
 	// Fetch running tasks
 	path = fmt.Sprintf("/dedicated/server/%s/task", url.PathEscape(args[0]))
 	tasks, err := fetchExpandedArray(path)
 	if err != nil {
-		log.Fatalf("error fetching tasks for %s: %s", args[0], err)
+		display.ExitError("error fetching tasks for %s: %s", args[0], err)
 	}
 	object["tasks"] = tasks
 
@@ -75,7 +75,7 @@ func rebootBaremetal(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/dedicated/server/%s/reboot", args[0])
 
 	if err := client.Post(url, nil, nil); err != nil {
-		log.Fatalf("error rebooting server %s: %s\n", args[0], err)
+		display.ExitError("error rebooting server %s: %s\n", args[0], err)
 	}
 
 	fmt.Println("\n⚡️ Reboot is started ...")
@@ -101,28 +101,28 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 		}
 
 		if err := json.Unmarshal(stdin, &parameters); err != nil {
-			log.Fatalf("failed to parse given installation data: %s", err)
+			display.ExitError("failed to parse given installation data: %s", err)
 		}
 	} else if installationFile != "" { // Install data given in a file
 		log.Print("Flag --installation-file used, all other flags will be ignored")
 
 		fd, err := os.Open(installationFile)
 		if err != nil {
-			log.Fatalf("failed to open given file: %s", err)
+			display.ExitError("failed to open given file: %s", err)
 		}
 		defer fd.Close()
 
 		content, err := io.ReadAll(fd)
 		if err != nil {
-			log.Fatalf("failed to read installation file: %s", err)
+			display.ExitError("failed to read installation file: %s", err)
 		}
 
 		if err := json.Unmarshal(content, &parameters); err != nil {
-			log.Fatalf("failed to parse given installation file: %s", err)
+			display.ExitError("failed to parse given installation file: %s", err)
 		}
 	} else { // Install data given via CLI flags
 		if operatingSystem == "" {
-			log.Fatalf("operating system parameter is mandatory to trigger a reinstallation")
+			display.ExitError("operating system parameter is mandatory to trigger a reinstallation")
 		}
 
 		parameters = map[string]any{
@@ -133,7 +133,7 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 
 	url := fmt.Sprintf("/dedicated/server/%s/reinstall", args[0])
 	if err := client.Post(url, parameters, nil); err != nil {
-		log.Fatalf("error reinstalling server %s: %s\n", args[0], err)
+		display.ExitError("error reinstalling server %s: %s\n", args[0], err)
 	}
 
 	fmt.Println("\n⚡️ Reinstallation started ...")
