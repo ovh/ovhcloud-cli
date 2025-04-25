@@ -32,6 +32,22 @@ func ipSetReverse(_ *cobra.Command, args []string) {
 	}, nil); err != nil {
 		display.ExitError(err.Error())
 	}
+
+	fmt.Println("\n⚡️ Reverse correctly set")
+}
+
+func ipGetReverse(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/ip/%s/reverse", url.PathEscape(args[0]))
+	manageListRequest(url, []string{"ipReverse", "reverse"}, genericFilters)
+}
+
+func ipDeleteReverse(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/ip/%s/reverse/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+	if err := client.Delete(url, nil); err != nil {
+		display.ExitError(err.Error())
+	}
+
+	fmt.Println("\n⚡️ Reverse correctly deleted")
 }
 
 func init() {
@@ -69,14 +85,29 @@ func init() {
 	}
 	ipCmd.AddCommand(ipReverseCmd)
 
-	ipReverseSetCmd := &cobra.Command{
+	ipReverseCmd.AddCommand(&cobra.Command{
 		Use:        "set",
 		Short:      "Set reverse on the given IP",
 		Args:       cobra.ExactArgs(3),
 		ArgAliases: []string{"service_name", "ip", "reverse"},
 		Run:        ipSetReverse,
-	}
-	ipReverseCmd.AddCommand(ipReverseSetCmd)
+	})
+
+	ipReverseCmd.AddCommand(&cobra.Command{
+		Use:        "get",
+		Short:      "List reverse on the given IP range",
+		Args:       cobra.ExactArgs(1),
+		ArgAliases: []string{"service_name"},
+		Run:        ipGetReverse,
+	})
+
+	ipReverseCmd.AddCommand(&cobra.Command{
+		Use:        "delete",
+		Short:      "Delete reverse on the given IP",
+		Args:       cobra.ExactArgs(2),
+		ArgAliases: []string{"service_name", "ip"},
+		Run:        ipDeleteReverse,
+	})
 
 	rootCmd.AddCommand(ipCmd)
 }
