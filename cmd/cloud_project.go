@@ -2,10 +2,16 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+
+	"stash.ovh.net/api/ovh-cli/internal/config"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 var (
 	cloudprojectColumnsToDisplay = []string{"project_id", "projectName", "status", "description"}
+
+	// Cloud project set by CLI flags
+	cloudProject string
 )
 
 func listCloudProject(_ *cobra.Command, _ []string) {
@@ -44,7 +50,26 @@ func init() {
 	})
 
 	initKubeCommand(cloudCmd)
+	initContainerRegistryCommand(cloudCmd)
+	initCloudDatabaseCommand(cloudCmd)
+	initInstanceCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
 	rootCmd.AddCommand(cloudCmd)
+}
+
+func getConfiguredCloudProject() string {
+	if cloudProject != "" {
+		return cloudProject
+	}
+
+	projectID, err := config.GetConfigValue(cliConfig, "", "default_cloud_project")
+	if err != nil {
+		display.ExitError("failed to fetch default cloud project: %s", err)
+	}
+	if projectID == "" {
+		display.ExitError("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration")
+	}
+
+	return projectID
 }

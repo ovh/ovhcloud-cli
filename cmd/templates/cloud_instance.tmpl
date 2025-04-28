@@ -1,0 +1,38 @@
+🚀 Instance {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Region**:            {{index .Result "region"}}
+**Availability zone**: {{index .Result "availabilityZone"}}
+**Status**:            {{index .Result "status"}}
+**Creation date**:     {{index .Result "created"}}
+
+IP addresses:
+| IP | Type | Gateway IP |
+| --- | --- | --- |
+{{ range index .Result "ipAddresses" }}| {{.ip}} | {{.type}} | {{.gatewayIp}} |
+{{end}}
+
+## Flavor details
+
+**Name**:                   {{index .Result "flavor" "name"}}
+**Operating system**:       {{index .Result "flavor" "osType"}}
+**Number of disks**:        {{index .Result "flavor" "disk"}}
+**RAM**:                    {{index .Result "flavor" "ram"}} Gio
+**vCPUs**:                  {{index .Result "flavor" "vcpus"}}
+**Max inbound bandwidth**:  {{index .Result "flavor" "inboundBandwidth"}}Mbit/s
+**Max outbound bandwidth**: {{index .Result "flavor" "outboundBandwidth"}}Mbit/s
+
+## Image details
+
+**Name**:                   {{index .Result "image" "name"}}
+**Type**:                   {{index .Result "image" "type"}}
+**Minimum disks required**: {{index .Result "image" "minDisk"}}
+**Minimum RAM required**:   {{index .Result "image" "minRam"}}
+**Size**:                   {{index .Result "image" "size"}}Gib
+**Status**:                 {{index .Result "image" "status"}}
+
+💡 Use option --json or --yaml to get the raw output with all information

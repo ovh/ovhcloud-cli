@@ -3,50 +3,26 @@ package cmd
 import (
 	_ "embed"
 	"fmt"
-	"log"
 	"net/url"
 
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/config"
-	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 var (
 	cloudprojectKubeColumnsToDisplay = []string{"id", "name", "region", "version", "status"}
-	cloudProject                     string
 
 	//go:embed templates/cloud_kube.tmpl
 	cloudKubeTemplate string
 )
 
 func listKubes(_ *cobra.Command, _ []string) {
-	if cloudProject == "" {
-		projectID, err := config.GetConfigValue(cliConfig, "", "default_cloud_project")
-		if err != nil {
-			display.ExitError("failed to fetch default cloud project: %s", err)
-		}
-		if projectID == "" {
-			log.Fatal("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration")
-		}
-		cloudProject = projectID
-	}
-
-	manageListRequest(fmt.Sprintf("/cloud/project/%s/kube", cloudProject), cloudprojectKubeColumnsToDisplay, genericFilters)
+	projectID := url.PathEscape(getConfiguredCloudProject())
+	manageListRequest(fmt.Sprintf("/cloud/project/%s/kube", projectID), cloudprojectKubeColumnsToDisplay, genericFilters)
 }
 
 func getKube(_ *cobra.Command, args []string) {
-	if cloudProject == "" {
-		projectID, err := config.GetConfigValue(cliConfig, "", "default_cloud_project")
-		if err != nil {
-			display.ExitError("failed to fetch default cloud project: %s", err)
-		}
-		if projectID == "" {
-			log.Fatal("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration")
-		}
-		cloudProject = projectID
-	}
-
-	manageObjectRequest(fmt.Sprintf("/cloud/project/%s/kube", url.PathEscape(cloudProject)), args[0], cloudKubeTemplate)
+	projectID := url.PathEscape(getConfiguredCloudProject())
+	manageObjectRequest(fmt.Sprintf("/cloud/project/%s/kube", projectID), args[0], cloudKubeTemplate)
 }
 
 func initKubeCommand(cloudCmd *cobra.Command) {

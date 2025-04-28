@@ -1,0 +1,22 @@
+🚀 Managed Private Registry {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Region**:        {{index .Result "region"}}
+**Status**:        {{index .Result "status"}}
+**Creation date**: {{index .Result "createdAt"}}
+**Delivery date**: {{index .Result "deliveredAt"}}
+**Update date**:   {{index .Result "updatedAt"}}
+
+## Registry state
+
+**Version**:     {{index .Result "version"}}
+**Size**:        {{index .Result "size"}} bytes
+**IAM enabled**: {{index .Result "iamEnabled"}}
+
+[Registry URL]({{index .Result "url"}})
+
+💡 Use option --json or --yaml to get the raw output with all information
