@@ -17,7 +17,7 @@ var (
 
 func listKubes(_ *cobra.Command, _ []string) {
 	projectID := url.PathEscape(getConfiguredCloudProject())
-	manageListRequest(fmt.Sprintf("/cloud/project/%s/kube", projectID), cloudprojectKubeColumnsToDisplay, genericFilters)
+	manageListRequest(fmt.Sprintf("/cloud/project/%s/kube", projectID), "", cloudprojectKubeColumnsToDisplay, genericFilters)
 }
 
 func getKube(_ *cobra.Command, args []string) {
@@ -38,6 +38,12 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Short: "List your Kubernetes clusters",
 		Run:   listKubes,
 	}
+	kubeListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
 	kubeCmd.AddCommand(kubeListCmd)
 
 	kubeCmd.AddCommand(&cobra.Command{

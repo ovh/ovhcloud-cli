@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	emaildomainColumnsToDisplay = []string{ "domain","status","offer" }
+	emaildomainColumnsToDisplay = []string{"domain", "status", "offer"}
 
 	//go:embed templates/emaildomain.tmpl
 	emaildomainTemplate string
 )
 
 func listEmailDomain(_ *cobra.Command, _ []string) {
-	manageListRequest("/email/domain", emaildomainColumnsToDisplay, genericFilters)
+	manageListRequest("/email/domain", "", emaildomainColumnsToDisplay, genericFilters)
 }
 
 func getEmailDomain(_ *cobra.Command, args []string) {

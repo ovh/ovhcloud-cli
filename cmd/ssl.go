@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	sslColumnsToDisplay = []string{ "serviceName","type","authority","status" }
+	sslColumnsToDisplay = []string{"serviceName", "type", "authority", "status"}
 
 	//go:embed templates/ssl.tmpl
 	sslTemplate string
 )
 
 func listSsl(_ *cobra.Command, _ []string) {
-	manageListRequest("/ssl", sslColumnsToDisplay, genericFilters)
+	manageListRequest("/ssl", "", sslColumnsToDisplay, genericFilters)
 }
 
 func getSsl(_ *cobra.Command, args []string) {

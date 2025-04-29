@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	vmwareclouddirectororganizationColumnsToDisplay = []string{ "id","currentState.fullName","currentState.region","resourceStatus" }
+	vmwareclouddirectororganizationColumnsToDisplay = []string{"id", "currentState.fullName", "currentState.region", "resourceStatus"}
 
 	//go:embed templates/vmwareclouddirectororganization.tmpl
 	vmwareclouddirectororganizationTemplate string
 )
 
 func listVmwareCloudDirectorOrganization(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/vmwareCloudDirector/organization", vmwareclouddirectororganizationColumnsToDisplay, genericFilters)
+	manageListRequest("/v2/vmwareCloudDirector/organization", "id", vmwareclouddirectororganizationColumnsToDisplay, genericFilters)
 }
 
 func getVmwareCloudDirectorOrganization(_ *cobra.Command, args []string) {

@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	emailproColumnsToDisplay = []string{ "domain","displayName","state","offer" }
+	emailproColumnsToDisplay = []string{"domain", "displayName", "state", "offer"}
 
 	//go:embed templates/emailpro.tmpl
 	emailproTemplate string
 )
 
 func listEmailPro(_ *cobra.Command, _ []string) {
-	manageListRequest("/email/pro", emailproColumnsToDisplay, genericFilters)
+	manageListRequest("/email/pro", "", emailproColumnsToDisplay, genericFilters)
 }
 
 func getEmailPro(_ *cobra.Command, args []string) {

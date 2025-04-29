@@ -43,12 +43,12 @@ var (
 )
 
 func listBaremetal(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/server", baremetalColumnsToDisplay, genericFilters)
+	manageListRequest("/dedicated/server", "", baremetalColumnsToDisplay, genericFilters)
 }
 
 func listBaremetalTasks(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/dedicated/server/%s/task", args[0])
-	manageListRequest(url, []string{"taskId", "function", "status", "startDate", "doneDate"}, genericFilters)
+	manageListRequest(url, "", []string{"taskId", "function", "status", "startDate", "doneDate"}, genericFilters)
 }
 
 func getBaremetal(_ *cobra.Command, args []string) {
@@ -62,7 +62,7 @@ func getBaremetal(_ *cobra.Command, args []string) {
 
 	// Fetch running tasks
 	path = fmt.Sprintf("/dedicated/server/%s/task", url.PathEscape(args[0]))
-	tasks, err := fetchExpandedArray(path)
+	tasks, err := fetchExpandedArray(path, "")
 	if err != nil {
 		display.ExitError("error fetching tasks for %s: %s", args[0], err)
 	}

@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	locationColumnsToDisplay = []string{ "name","type","specificType","location" }
+	locationColumnsToDisplay = []string{"name", "type", "specificType", "location"}
 
 	//go:embed templates/location.tmpl
 	locationTemplate string
 )
 
 func listLocation(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/location", locationColumnsToDisplay, genericFilters)
+	manageListRequest("/v2/location", "name", locationColumnsToDisplay, genericFilters)
 }
 
 func getLocation(_ *cobra.Command, args []string) {

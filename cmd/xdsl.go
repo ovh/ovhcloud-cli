@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	xdslColumnsToDisplay = []string{ "accessName","accessType","provider","role","status" }
+	xdslColumnsToDisplay = []string{"accessName", "accessType", "provider", "role", "status"}
 
 	//go:embed templates/xdsl.tmpl
 	xdslTemplate string
 )
 
 func listXdsl(_ *cobra.Command, _ []string) {
-	manageListRequest("/xdsl", xdslColumnsToDisplay, genericFilters)
+	manageListRequest("/xdsl", "", xdslColumnsToDisplay, genericFilters)
 }
 
 func getXdsl(_ *cobra.Command, args []string) {

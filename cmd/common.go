@@ -1,58 +1,116 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
 
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 )
 
-func fetchExpandedArray(path string) ([]map[string]any, error) {
+func fetchObjectsParallel(path string, ids []any) ([]map[string]any, error) {
+	var (
+		parallelRequests = 10
+		sem              = semaphore.NewWeighted(int64(parallelRequests))
+		objects          = make([]map[string]any, len(ids))
+		g, ctx           = errgroup.WithContext(context.Background())
+	)
+
+	for i, id := range ids {
+		if err := sem.Acquire(ctx, 1); err != nil {
+			return nil, fmt.Errorf("failed to acquire semaphore: %w", err)
+		}
+
+		g.Go(func() error {
+			defer sem.Release(1)
+			url := fmt.Sprintf("%s/%s", path, url.PathEscape(fmt.Sprint(id)))
+
+			var object map[string]any
+			if err := client.Get(url, &object); err != nil {
+				return fmt.Errorf("failed to fetch object %q: %w", fmt.Sprint(id), err)
+			}
+
+			objects[i] = object
+
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	return objects, nil
+}
+
+func fetchIDs(path, idField string) ([]any, error) {
 	req, err := client.NewRequest(http.MethodGet, path, nil, true)
 	if err != nil {
 		return nil, fmt.Errorf("error crafting request: %s", err)
 	}
 
-	req.Header.Set("X-Pagination-Mode", "CachedObjectList-Pages")
+	var (
+		allIDs     []any
+		nextCursor string
+	)
 
-	response, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching %s: %s", path, err)
+	for {
+		if nextCursor != "" {
+			req.Header.Set("X-Pagination-Cursor", nextCursor)
+		}
+
+		response, err := client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching %s: %s", path, err)
+		}
+
+		var pageIDs []any
+		if err := client.UnmarshalResponse(response, &pageIDs); err != nil {
+			return nil, fmt.Errorf("failed to parse ids: %s", err)
+		}
+
+		if idField != "" {
+			for _, item := range pageIDs {
+				object, ok := item.(map[string]any)
+				if !ok {
+					return nil, fmt.Errorf("failed to extract ID from object, value %q is not an object", item)
+				}
+				allIDs = append(allIDs, object[idField])
+			}
+		} else {
+			allIDs = append(allIDs, pageIDs...)
+		}
+
+		nextCursor = response.Header.Get("X-Pagination-Cursor-Next")
+		if nextCursor == "" {
+			break
+		}
 	}
 
-	defer response.Body.Close()
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %s", err)
-	}
-
-	// < 200 && >= 300 : API error
-	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("invalid response status %d: %s", response.StatusCode, string(body))
-	}
-
-	// Nothing to unmarshal
-	if len(body) == 0 {
-		return nil, nil
-	}
-
-	var parsedBody []map[string]any
-	d := json.NewDecoder(bytes.NewReader(body))
-	if err := d.Decode(&parsedBody); err != nil {
-		return nil, fmt.Errorf("failed to parse response body: %s", err)
-	}
-
-	return parsedBody, nil
+	return allIDs, nil
 }
 
-func manageListRequest(path string, columnsToDisplay, filters []string) {
-	body, err := fetchExpandedArray(path)
+func fetchExpandedArray(path, idField string) ([]map[string]any, error) {
+	ids, err := fetchIDs(path, idField)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch ids: %w", err)
+	}
+
+	objects, err := fetchObjectsParallel(path, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch objects: %w", err)
+	}
+
+	return objects, nil
+}
+
+func manageListRequest(path, idField string, columnsToDisplay, filters []string) {
+	body, err := fetchExpandedArray(path, idField)
 	if err != nil {
 		display.ExitError("failed to fetch results: %s", err)
 	}

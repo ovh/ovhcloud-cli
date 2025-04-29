@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	telephonyColumnsToDisplay = []string{ "billingAccount","description","status" }
+	telephonyColumnsToDisplay = []string{"billingAccount", "description", "status"}
 
 	//go:embed templates/telephony.tmpl
 	telephonyTemplate string
 )
 
 func listTelephony(_ *cobra.Command, _ []string) {
-	manageListRequest("/telephony", telephonyColumnsToDisplay, genericFilters)
+	manageListRequest("/telephony", "", telephonyColumnsToDisplay, genericFilters)
 }
 
 func getTelephony(_ *cobra.Command, args []string) {

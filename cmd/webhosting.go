@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	webhostingColumnsToDisplay = []string{ "serviceName","displayName","datacenter","state" }
+	webhostingColumnsToDisplay = []string{"serviceName", "displayName", "datacenter", "state"}
 
 	//go:embed templates/webhosting.tmpl
 	webhostingTemplate string
 )
 
 func listWebHosting(_ *cobra.Command, _ []string) {
-	manageListRequest("/hosting/web", webhostingColumnsToDisplay, genericFilters)
+	manageListRequest("/hosting/web", "", webhostingColumnsToDisplay, genericFilters)
 }
 
 func getWebHosting(_ *cobra.Command, args []string) {

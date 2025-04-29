@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	overtheboxColumnsToDisplay = []string{ "serviceName","offer","status","bandwidth" }
+	overtheboxColumnsToDisplay = []string{"serviceName", "offer", "status", "bandwidth"}
 
 	//go:embed templates/overthebox.tmpl
 	overtheboxTemplate string
 )
 
 func listOverTheBox(_ *cobra.Command, _ []string) {
-	manageListRequest("/overTheBox", overtheboxColumnsToDisplay, genericFilters)
+	manageListRequest("/overTheBox", "", overtheboxColumnsToDisplay, genericFilters)
 }
 
 func getOverTheBox(_ *cobra.Command, args []string) {

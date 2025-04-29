@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	cdndedicatedColumnsToDisplay = []string{ "service","offer","anycast" }
+	cdndedicatedColumnsToDisplay = []string{"service", "offer", "anycast"}
 
 	//go:embed templates/cdndedicated.tmpl
 	cdndedicatedTemplate string
 )
 
 func listCdnDedicated(_ *cobra.Command, _ []string) {
-	manageListRequest("/cdn/dedicated", cdndedicatedColumnsToDisplay, genericFilters)
+	manageListRequest("/cdn/dedicated", "", cdndedicatedColumnsToDisplay, genericFilters)
 }
 
 func getCdnDedicated(_ *cobra.Command, args []string) {

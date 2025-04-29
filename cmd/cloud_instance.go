@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	cloudprojectInstanceColumnsToDisplay = []string{"id", "name", "region", "status"}
+	cloudprojectInstanceColumnsToDisplay = []string{"id", "name", "region", "flavor.name", "status"}
 
 	//go:embed templates/cloud_instance.tmpl
 	cloudInstanceTemplate string
@@ -17,7 +17,7 @@ var (
 
 func listInstances(_ *cobra.Command, _ []string) {
 	projectID := url.PathEscape(getConfiguredCloudProject())
-	manageListRequest(fmt.Sprintf("/cloud/project/%s/instance", projectID), cloudprojectInstanceColumnsToDisplay, genericFilters)
+	manageListRequest(fmt.Sprintf("/cloud/project/%s/instance", projectID), "id", cloudprojectInstanceColumnsToDisplay, genericFilters)
 }
 
 func getInstance(_ *cobra.Command, args []string) {
@@ -37,6 +37,12 @@ func initInstanceCommand(cloudCmd *cobra.Command) {
 		Short: "List your instances",
 		Run:   listInstances,
 	}
+	instanceListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
 	instanceCmd.AddCommand(instanceListCmd)
 
 	instanceCmd.AddCommand(&cobra.Command{

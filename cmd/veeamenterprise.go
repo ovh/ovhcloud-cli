@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	veeamenterpriseColumnsToDisplay = []string{ "serviceName","activationStatus","ip","sourceIp" }
+	veeamenterpriseColumnsToDisplay = []string{"serviceName", "activationStatus", "ip", "sourceIp"}
 
 	//go:embed templates/veeamenterprise.tmpl
 	veeamenterpriseTemplate string
 )
 
 func listVeeamEnterprise(_ *cobra.Command, _ []string) {
-	manageListRequest("/veeam/veeamEnterprise", veeamenterpriseColumnsToDisplay, genericFilters)
+	manageListRequest("/veeam/veeamEnterprise", "", veeamenterpriseColumnsToDisplay, genericFilters)
 }
 
 func getVeeamEnterprise(_ *cobra.Command, args []string) {

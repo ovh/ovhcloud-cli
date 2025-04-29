@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	dedicatedclusterColumnsToDisplay = []string{ "id","region","model","status" }
+	dedicatedclusterColumnsToDisplay = []string{"id", "region", "model", "status"}
 
 	//go:embed templates/dedicatedcluster.tmpl
 	dedicatedclusterTemplate string
 )
 
 func listDedicatedCluster(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/cluster", dedicatedclusterColumnsToDisplay, genericFilters)
+	manageListRequest("/dedicated/cluster", "", dedicatedclusterColumnsToDisplay, genericFilters)
 }
 
 func getDedicatedCluster(_ *cobra.Command, args []string) {

@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	dedicatedcloudColumnsToDisplay = []string{ "serviceName","location","state","description" }
+	dedicatedcloudColumnsToDisplay = []string{"serviceName", "location", "state", "description"}
 
 	//go:embed templates/dedicatedcloud.tmpl
 	dedicatedcloudTemplate string
 )
 
 func listDedicatedCloud(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicatedCloud", dedicatedcloudColumnsToDisplay, genericFilters)
+	manageListRequest("/dedicatedCloud", "", dedicatedcloudColumnsToDisplay, genericFilters)
 }
 
 func getDedicatedCloud(_ *cobra.Command, args []string) {

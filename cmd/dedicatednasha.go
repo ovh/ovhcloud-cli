@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	dedicatednashaColumnsToDisplay = []string{ "serviceName","customName","datacenter" }
+	dedicatednashaColumnsToDisplay = []string{"serviceName", "customName", "datacenter"}
 
 	//go:embed templates/dedicatednasha.tmpl
 	dedicatednashaTemplate string
 )
 
 func listDedicatedNasHA(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/nasha", dedicatednashaColumnsToDisplay, genericFilters)
+	manageListRequest("/dedicated/nasha", "", dedicatednashaColumnsToDisplay, genericFilters)
 }
 
 func getDedicatedNasHA(_ *cobra.Command, args []string) {

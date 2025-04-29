@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	veeamcloudconnectColumnsToDisplay = []string{ "serviceName","productOffer","location","vmCount" }
+	veeamcloudconnectColumnsToDisplay = []string{"serviceName", "productOffer", "location", "vmCount"}
 
 	//go:embed templates/veeamcloudconnect.tmpl
 	veeamcloudconnectTemplate string
 )
 
 func listVeeamCloudConnect(_ *cobra.Command, _ []string) {
-	manageListRequest("/veeamCloudConnect", veeamcloudconnectColumnsToDisplay, genericFilters)
+	manageListRequest("/veeamCloudConnect", "", veeamcloudconnectColumnsToDisplay, genericFilters)
 }
 
 func getVeeamCloudConnect(_ *cobra.Command, args []string) {

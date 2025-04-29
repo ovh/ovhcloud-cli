@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	sslgatewayColumnsToDisplay = []string{ "serviceName","displayName","state","zones" }
+	sslgatewayColumnsToDisplay = []string{"serviceName", "displayName", "state", "zones"}
 
 	//go:embed templates/sslgateway.tmpl
 	sslgatewayTemplate string
 )
 
 func listSslGateway(_ *cobra.Command, _ []string) {
-	manageListRequest("/sslGateway", sslgatewayColumnsToDisplay, genericFilters)
+	manageListRequest("/sslGateway", "", sslgatewayColumnsToDisplay, genericFilters)
 }
 
 func getSslGateway(_ *cobra.Command, args []string) {

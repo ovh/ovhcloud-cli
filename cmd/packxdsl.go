@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	packxdslColumnsToDisplay = []string{ "packName","description" }
+	packxdslColumnsToDisplay = []string{"packName", "description"}
 
 	//go:embed templates/packxdsl.tmpl
 	packxdslTemplate string
 )
 
 func listPackXDSL(_ *cobra.Command, _ []string) {
-	manageListRequest("/pack/xdsl", packxdslColumnsToDisplay, genericFilters)
+	manageListRequest("/pack/xdsl", "", packxdslColumnsToDisplay, genericFilters)
 }
 
 func getPackXDSL(_ *cobra.Command, args []string) {

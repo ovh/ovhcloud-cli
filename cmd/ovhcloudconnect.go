@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	ovhcloudconnectColumnsToDisplay = []string{ "uuid","provider","status","description" }
+	ovhcloudconnectColumnsToDisplay = []string{"uuid", "provider", "status", "description"}
 
 	//go:embed templates/ovhcloudconnect.tmpl
 	ovhcloudconnectTemplate string
 )
 
 func listOvhCloudConnect(_ *cobra.Command, _ []string) {
-	manageListRequest("/ovhCloudConnect", ovhcloudconnectColumnsToDisplay, genericFilters)
+	manageListRequest("/ovhCloudConnect", "", ovhcloudconnectColumnsToDisplay, genericFilters)
 }
 
 func getOvhCloudConnect(_ *cobra.Command, args []string) {

@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	dedicatedcephColumnsToDisplay = []string{ "serviceName","region","state","status" }
+	dedicatedcephColumnsToDisplay = []string{"serviceName", "region", "state", "status"}
 
 	//go:embed templates/dedicatedceph.tmpl
 	dedicatedcephTemplate string
 )
 
 func listDedicatedCeph(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/ceph", dedicatedcephColumnsToDisplay, genericFilters)
+	manageListRequest("/dedicated/ceph", "", dedicatedcephColumnsToDisplay, genericFilters)
 }
 
 func getDedicatedCeph(_ *cobra.Command, args []string) {

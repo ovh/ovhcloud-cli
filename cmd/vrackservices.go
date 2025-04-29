@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	vrackservicesColumnsToDisplay = []string{ "id","currentState.region","currentState. productStatus","resourceStatus" }
+	vrackservicesColumnsToDisplay = []string{"id", "currentState.region", "currentState. productStatus", "resourceStatus"}
 
 	//go:embed templates/vrackservices.tmpl
 	vrackservicesTemplate string
 )
 
 func listVrackServices(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/vrackServices/resource", vrackservicesColumnsToDisplay, genericFilters)
+	manageListRequest("/v2/vrackServices/resource", "id", vrackservicesColumnsToDisplay, genericFilters)
 }
 
 func getVrackServices(_ *cobra.Command, args []string) {

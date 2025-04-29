@@ -17,7 +17,7 @@ var (
 )
 
 func listDomainZone(_ *cobra.Command, _ []string) {
-	manageListRequest("/domain/zone", domainzoneColumnsToDisplay, genericFilters)
+	manageListRequest("/domain/zone", "", domainzoneColumnsToDisplay, genericFilters)
 }
 
 func getDomainZone(_ *cobra.Command, args []string) {
@@ -31,7 +31,7 @@ func getDomainZone(_ *cobra.Command, args []string) {
 
 	// Fetch running tasks
 	path = fmt.Sprintf("/domain/zone/%s/record", url.PathEscape(args[0]))
-	records, err := fetchExpandedArray(path)
+	records, err := fetchExpandedArray(path, "")
 	if err != nil {
 		display.ExitError("error fetching records for %s: %s", args[0], err)
 	}

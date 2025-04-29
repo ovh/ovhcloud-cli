@@ -14,7 +14,7 @@ var (
 )
 
 func listVrack(_ *cobra.Command, _ []string) {
-	manageListRequest("/vrack", vrackColumnsToDisplay, genericFilters)
+	manageListRequest("/vrack", "", vrackColumnsToDisplay, genericFilters)
 }
 
 func getVrack(_ *cobra.Command, args []string) {

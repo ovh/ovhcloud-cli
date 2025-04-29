@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	nutanixColumnsToDisplay = []string{ "serviceName","status" }
+	nutanixColumnsToDisplay = []string{"serviceName", "status"}
 
 	//go:embed templates/nutanix.tmpl
 	nutanixTemplate string
 )
 
 func listNutanix(_ *cobra.Command, _ []string) {
-	manageListRequest("/nutanix", nutanixColumnsToDisplay, genericFilters)
+	manageListRequest("/nutanix", "", nutanixColumnsToDisplay, genericFilters)
 }
 
 func getNutanix(_ *cobra.Command, args []string) {

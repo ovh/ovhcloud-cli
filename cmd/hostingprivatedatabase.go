@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	hostingprivatedatabaseColumnsToDisplay = []string{ "serviceName","displayName","type","version","state" }
+	hostingprivatedatabaseColumnsToDisplay = []string{"serviceName", "displayName", "type", "version", "state"}
 
 	//go:embed templates/hostingprivatedatabase.tmpl
 	hostingprivatedatabaseTemplate string
 )
 
 func listHostingPrivateDatabase(_ *cobra.Command, _ []string) {
-	manageListRequest("/hosting/privateDatabase", hostingprivatedatabaseColumnsToDisplay, genericFilters)
+	manageListRequest("/hosting/privateDatabase", "", hostingprivatedatabaseColumnsToDisplay, genericFilters)
 }
 
 func getHostingPrivateDatabase(_ *cobra.Command, args []string) {

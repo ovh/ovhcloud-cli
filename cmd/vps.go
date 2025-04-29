@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	vpsColumnsToDisplay = []string{ "name","displayName","state","zone" }
+	vpsColumnsToDisplay = []string{"name", "displayName", "state", "zone"}
 
 	//go:embed templates/vps.tmpl
 	vpsTemplate string
 )
 
 func listVps(_ *cobra.Command, _ []string) {
-	manageListRequest("/vps", vpsColumnsToDisplay, genericFilters)
+	manageListRequest("/vps", "", vpsColumnsToDisplay, genericFilters)
 }
 
 func getVps(_ *cobra.Command, args []string) {

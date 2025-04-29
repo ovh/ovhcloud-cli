@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	domainnameColumnsToDisplay = []string{ "domain","state","whoisOwner","expirationDate","renewalDate" }
+	domainnameColumnsToDisplay = []string{"domain", "state", "whoisOwner", "expirationDate", "renewalDate"}
 
 	//go:embed templates/domainname.tmpl
 	domainnameTemplate string
 )
 
 func listDomainName(_ *cobra.Command, _ []string) {
-	manageListRequest("/domain", domainnameColumnsToDisplay, genericFilters)
+	manageListRequest("/domain", "", domainnameColumnsToDisplay, genericFilters)
 }
 
 func getDomainName(_ *cobra.Command, args []string) {

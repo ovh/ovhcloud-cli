@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	vmwareclouddirectorbackupColumnsToDisplay = []string{ "id","iam.displayName","currentState.azName","resourceStatus" }
+	vmwareclouddirectorbackupColumnsToDisplay = []string{"id", "iam.displayName", "currentState.azName", "resourceStatus"}
 
 	//go:embed templates/vmwareclouddirectorbackup.tmpl
 	vmwareclouddirectorbackupTemplate string
 )
 
 func listVmwareCloudDirectorBackup(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/vmwareCloudDirector/backup", vmwareclouddirectorbackupColumnsToDisplay, genericFilters)
+	manageListRequest("/v2/vmwareCloudDirector/backup", "id", vmwareclouddirectorbackupColumnsToDisplay, genericFilters)
 }
 
 func getVmwareCloudDirectorBackup(_ *cobra.Command, args []string) {

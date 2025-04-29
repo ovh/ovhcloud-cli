@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	alldomColumnsToDisplay = []string{ "name","type","offer" }
+	alldomColumnsToDisplay = []string{"name", "type", "offer"}
 
 	//go:embed templates/alldom.tmpl
 	alldomTemplate string
 )
 
 func listAllDom(_ *cobra.Command, _ []string) {
-	manageListRequest("/allDom", alldomColumnsToDisplay, genericFilters)
+	manageListRequest("/allDom", "", alldomColumnsToDisplay, genericFilters)
 }
 
 func getAllDom(_ *cobra.Command, args []string) {

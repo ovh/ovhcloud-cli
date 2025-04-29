@@ -17,7 +17,7 @@ var (
 )
 
 func listIp(_ *cobra.Command, _ []string) {
-	manageListRequest("/ip", ipColumnsToDisplay, genericFilters)
+	manageListRequest("/ip", "", ipColumnsToDisplay, genericFilters)
 }
 
 func getIp(_ *cobra.Command, args []string) {
@@ -38,7 +38,7 @@ func ipSetReverse(_ *cobra.Command, args []string) {
 
 func ipGetReverse(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/ip/%s/reverse", url.PathEscape(args[0]))
-	manageListRequest(url, []string{"ipReverse", "reverse"}, genericFilters)
+	manageListRequest(url, "", []string{"ipReverse", "reverse"}, genericFilters)
 }
 
 func ipDeleteReverse(_ *cobra.Command, args []string) {

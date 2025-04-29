@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	smsColumnsToDisplay = []string{ "name","status" }
+	smsColumnsToDisplay = []string{"name", "status"}
 
 	//go:embed templates/sms.tmpl
 	smsTemplate string
 )
 
 func listSms(_ *cobra.Command, _ []string) {
-	manageListRequest("/sms", smsColumnsToDisplay, genericFilters)
+	manageListRequest("/sms", "", smsColumnsToDisplay, genericFilters)
 }
 
 func getSms(_ *cobra.Command, args []string) {

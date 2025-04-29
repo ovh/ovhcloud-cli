@@ -17,7 +17,7 @@ var (
 
 func listCloudDatabases(_ *cobra.Command, _ []string) {
 	projectID := url.PathEscape(getConfiguredCloudProject())
-	manageListRequest(fmt.Sprintf("/cloud/project/%s/database/service", projectID), cloudprojectDatabaseColumnsToDisplay, genericFilters)
+	manageListRequest(fmt.Sprintf("/cloud/project/%s/database/service", projectID), "", cloudprojectDatabaseColumnsToDisplay, genericFilters)
 }
 
 func getCloudDatabase(_ *cobra.Command, args []string) {
@@ -37,6 +37,12 @@ func initCloudDatabaseCommand(cloudCmd *cobra.Command) {
 		Short: "List your databases",
 		Run:   listCloudDatabases,
 	}
+	databaseListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
 	databaseCmd.AddCommand(databaseListCmd)
 
 	databaseCmd.AddCommand(&cobra.Command{

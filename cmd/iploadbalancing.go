@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	iploadbalancingColumnsToDisplay = []string{ "serviceName","displayName","zone","state" }
+	iploadbalancingColumnsToDisplay = []string{"serviceName", "displayName", "zone", "state"}
 
 	//go:embed templates/iploadbalancing.tmpl
 	iploadbalancingTemplate string
 )
 
 func listIpLoadbalancing(_ *cobra.Command, _ []string) {
-	manageListRequest("/ipLoadbalancing", iploadbalancingColumnsToDisplay, genericFilters)
+	manageListRequest("/ipLoadbalancing", "", iploadbalancingColumnsToDisplay, genericFilters)
 }
 
 func getIpLoadbalancing(_ *cobra.Command, args []string) {

@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	storagenetappColumnsToDisplay = []string{ "id","name","region","status" }
+	storagenetappColumnsToDisplay = []string{"id", "name", "region", "status"}
 
 	//go:embed templates/storagenetapp.tmpl
 	storagenetappTemplate string
 )
 
 func listStorageNetApp(_ *cobra.Command, _ []string) {
-	manageListRequest("/storage/netapp", storagenetappColumnsToDisplay, genericFilters)
+	manageListRequest("/storage/netapp", "", storagenetappColumnsToDisplay, genericFilters)
 }
 
 func getStorageNetApp(_ *cobra.Command, args []string) {

@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	supportticketsColumnsToDisplay = []string{ "ticketId","serviceName","type","category","state" }
+	supportticketsColumnsToDisplay = []string{"ticketId", "serviceName", "type", "category", "state"}
 
 	//go:embed templates/supporttickets.tmpl
 	supportticketsTemplate string
 )
 
 func listSupportTickets(_ *cobra.Command, _ []string) {
-	manageListRequest("/support/tickets", supportticketsColumnsToDisplay, genericFilters)
+	manageListRequest("/support/tickets", "", supportticketsColumnsToDisplay, genericFilters)
 }
 
 func getSupportTickets(_ *cobra.Command, args []string) {

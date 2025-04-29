@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	okmsColumnsToDisplay = []string{ "id","region" }
+	okmsColumnsToDisplay = []string{"id", "region"}
 
 	//go:embed templates/okms.tmpl
 	okmsTemplate string
 )
 
 func listOkms(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/okms/resource", okmsColumnsToDisplay, genericFilters)
+	manageListRequest("/v2/okms/resource", "id", okmsColumnsToDisplay, genericFilters)
 }
 
 func getOkms(_ *cobra.Command, args []string) {

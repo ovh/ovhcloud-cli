@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	ldpColumnsToDisplay = []string{ "serviceName","displayName","isClusterOwner","state","username" }
+	ldpColumnsToDisplay = []string{"serviceName", "displayName", "isClusterOwner", "state", "username"}
 
 	//go:embed templates/ldp.tmpl
 	ldpTemplate string
 )
 
 func listLdp(_ *cobra.Command, _ []string) {
-	manageListRequest("/dbaas/logs", ldpColumnsToDisplay, genericFilters)
+	manageListRequest("/dbaas/logs", "", ldpColumnsToDisplay, genericFilters)
 }
 
 func getLdp(_ *cobra.Command, args []string) {

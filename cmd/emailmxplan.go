@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	emailmxplanColumnsToDisplay = []string{ "domain","displayName","state","offer" }
+	emailmxplanColumnsToDisplay = []string{"domain", "displayName", "state", "offer"}
 
 	//go:embed templates/emailmxplan.tmpl
 	emailmxplanTemplate string
 )
 
 func listEmailMXPlan(_ *cobra.Command, _ []string) {
-	manageListRequest("/email/mxplan", emailmxplanColumnsToDisplay, genericFilters)
+	manageListRequest("/email/mxplan", "", emailmxplanColumnsToDisplay, genericFilters)
 }
 
 func getEmailMXPlan(_ *cobra.Command, args []string) {

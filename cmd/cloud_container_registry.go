@@ -17,7 +17,7 @@ var (
 
 func listContainerRegistries(_ *cobra.Command, _ []string) {
 	projectID := url.PathEscape(getConfiguredCloudProject())
-	manageListRequest(fmt.Sprintf("/cloud/project/%s/containerRegistry", projectID), cloudprojectContainerRegistryColumnsToDisplay, genericFilters)
+	manageListRequest(fmt.Sprintf("/cloud/project/%s/containerRegistry", projectID), "id", cloudprojectContainerRegistryColumnsToDisplay, genericFilters)
 }
 
 func getContainerRegistry(_ *cobra.Command, args []string) {
@@ -37,6 +37,12 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 		Short: "List your container registries",
 		Run:   listContainerRegistries,
 	}
+	registryListCmd.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
 	registryCmd.AddCommand(registryListCmd)
 
 	registryCmd.AddCommand(&cobra.Command{
