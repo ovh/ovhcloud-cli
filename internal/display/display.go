@@ -81,7 +81,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 	)
 
 	for _, col := range columnsToDisplay {
-		evaluator, err := gval.Full().NewEvaluable(col)
+		evaluator, err := gval.Base().NewEvaluable(col)
 		if err != nil {
 			ExitError("invalid column to display %q: %s", col, err)
 		}
@@ -133,6 +133,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		Rows(rows...)
 
 	fmt.Println(t)
+	fmt.Println("💡 Use option --json or --yaml to get the raw output with all information")
 }
 
 func RenderConfigTable(cfg *ini.File) {

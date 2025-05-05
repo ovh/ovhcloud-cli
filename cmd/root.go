@@ -66,6 +66,12 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&outputFormatConfig.InteractiveOutput, "interactive", false, "Interactive output")
 	rootCmd.PersistentFlags().StringVar(&outputFormatConfig.CustomFormat, "format", "", "Output value according to given format (expression using gval format)")
 	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml", "interactive", "format")
+
+	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		if client == nil {
+			display.ExitError("API client is not initialized, please run `ovh-cli login` to authenticate")
+		}
+	}
 }
 
 func removeRootFlagsFromCommand(subCommand *cobra.Command) {
@@ -75,4 +81,15 @@ func removeRootFlagsFromCommand(subCommand *cobra.Command) {
 		})
 		command.Parent().HelpFunc()(command, strings)
 	})
+}
+
+func withFilterFlag(c *cobra.Command) *cobra.Command {
+	c.PersistentFlags().StringArrayVar(
+		&genericFilters,
+		"filter",
+		nil,
+		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+	)
+
+	return c
 }

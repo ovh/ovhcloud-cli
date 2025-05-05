@@ -11,7 +11,10 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
 	"stash.ovh.net/api/ovh-cli/internal/display"
+	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
+	"stash.ovh.net/api/ovh-cli/internal/openapi"
 )
 
 var (
@@ -22,6 +25,9 @@ var (
 
 	//go:embed parameter-samples/baremetal.json
 	baremetalInstallationExample string
+
+	//go:embed api-schemas/baremetal.json
+	baremetalOpenapiSchema []byte
 
 	// Installation flags
 	installationFile string
@@ -40,6 +46,10 @@ var (
 		PostInstallationScriptExtension string            `json:"postInstallationScriptExtension,omitempty"`
 		SshKey                          string            `json:"sshKey,omitempty"`
 	}
+
+	// Virtual Network Interfaces Aggregation flags
+	baremetalOLAInterfaces []string
+	baremetalOLAName       string
 )
 
 func listBaremetal(_ *cobra.Command, _ []string) {
@@ -71,6 +81,39 @@ func getBaremetal(_ *cobra.Command, args []string) {
 	display.OutputObject(object, args[0], baremetalTemplate, &outputFormatConfig)
 }
 
+func editBaremetal(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
+
+	// Fetch dedicated server
+	var object map[string]any
+	if err := client.Get(url, &object); err != nil {
+		display.ExitError("error fetching dedicated server %s: %s\n", args[0], err)
+	}
+
+	// Filter editable fields
+	editableBody, err := openapi.FilterEditableFields(
+		baremetalOpenapiSchema,
+		"/dedicated/server/{serviceName}",
+		"put",
+		object,
+	)
+	if err != nil {
+		display.ExitError("failed to extract writable properties: %s", err)
+	}
+
+	// Format editable body
+	editableOutput, err := json.MarshalIndent(editableBody, "", "  ")
+	if err != nil {
+		display.ExitError("failed to marshal writable body: %s", err)
+	}
+
+	fmt.Println(string(editableOutput))
+
+	// Open $editor with editable body
+	// Get updated body and PUT it
+	// Fetch updated body and call display.OutputObject
+}
+
 func rebootBaremetal(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/dedicated/server/%s/reboot", args[0])
 
@@ -79,6 +122,66 @@ func rebootBaremetal(_ *cobra.Command, args []string) {
 	}
 
 	fmt.Println("\n⚡️ Reboot is started ...")
+}
+
+func listBaremetalInterventions(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/dedicated/server/%s/intervention", args[0])
+	manageListRequest(url, "", []string{"interventionId", "type", "date"}, genericFilters)
+}
+
+func listBaremetalBoots(_ *cobra.Command, args []string) {
+	path := fmt.Sprintf("/dedicated/server/%s/boot", url.PathEscape(args[0]))
+
+	boots, err := fetchExpandedArray(path, "")
+	if err != nil {
+		display.ExitError("error fetching boot options for server %q: %s", args[0], err)
+	}
+
+	for _, boot := range boots {
+		path = fmt.Sprintf("/dedicated/server/%s/boot/%s/option", url.PathEscape(args[0]), boot["bootId"])
+
+		options, err := fetchExpandedArray(path, "")
+		if err != nil {
+			display.ExitError("error fetching options of boot %d for server %s: %s", boot["bootId"], args[0], err)
+		}
+
+		boot["options"] = options
+	}
+
+	boots, err = filtersLib.FilterLines(boots, genericFilters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+	}
+
+	display.RenderTable(boots, []string{"bootId", "bootType", "description", "kernel"}, &outputFormatConfig)
+}
+
+func listBaremetalVNIs(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/dedicated/server/%s/virtualNetworkInterface", args[0])
+	manageListRequest(url, "", []string{"uuid", "name", "mode", "vrack", "enabled"}, genericFilters)
+}
+
+func createBaremetalOLAAggregation(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/dedicated/server/%s/ola/aggregation", url.PathEscape(args[0]))
+	if err := client.Post(url, map[string]any{
+		"name":                     baremetalOLAName,
+		"virtualNetworkInterfaces": baremetalOLAInterfaces,
+	}, nil); err != nil {
+		display.ExitError("failed to create OLA aggregation: %s", err)
+	}
+}
+
+func resetBaremetalOLAAggregation(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/dedicated/server/%s/ola/reset", url.PathEscape(args[0]))
+
+	for _, itf := range baremetalOLAInterfaces {
+		if err := client.Post(url, map[string]string{
+			"virtualNetworkInterface": itf,
+		}, nil); err != nil {
+			display.ExitError("failed to reset interface %s: %s", itf, err)
+		}
+		fmt.Printf("✅ Interface %s reset to default configuration ...\n", itf)
+	}
 }
 
 func reinstallBaremetal(cmd *cobra.Command, args []string) {
@@ -142,7 +245,7 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 func init() {
 	baremetalCmd := &cobra.Command{
 		Use:   "baremetal",
-		Short: "Retrieve information and manage your Baremetal services",
+		Short: "Retrieve information and manage your baremetal services",
 	}
 
 	// Command to list Baremetal services
@@ -151,43 +254,40 @@ func init() {
 		Short: "List your Baremetal services",
 		Run:   listBaremetal,
 	}
-	baremetalListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	baremetalCmd.AddCommand(baremetalListCmd)
+	baremetalCmd.AddCommand(withFilterFlag(baremetalListCmd))
 
 	// Command to get a single Baremetal
 	baremetalCmd.AddCommand(&cobra.Command{
 		Use:        "get <service_name>",
-		Short:      "Retrieve information of a specific Baremetal",
+		Short:      "Retrieve information of a specific baremetal",
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"service_name"},
 		Run:        getBaremetal,
 	})
 
+	// Command to edit a single Baremetal
+	baremetalCmd.AddCommand(&cobra.Command{
+		Use:        "edit <service_name>",
+		Short:      "Update the given baremetal",
+		Args:       cobra.ExactArgs(1),
+		ArgAliases: []string{"service_name"},
+		Run:        editBaremetal,
+	})
+
 	// Command to list baremetal tasks
 	baremetalListTasksCmd := &cobra.Command{
 		Use:        "list-tasks <service_name>",
-		Short:      "Retrieve tasks of a specific Baremetal",
+		Short:      "Retrieve tasks of the given baremetal",
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"service_name"},
 		Run:        listBaremetalTasks,
 	}
-	baremetalListTasksCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	baremetalCmd.AddCommand(baremetalListTasksCmd)
+	baremetalCmd.AddCommand(withFilterFlag(baremetalListTasksCmd))
 
 	// Command to reboot a baremetal
 	baremetalRebootCmd := &cobra.Command{
 		Use:        "reboot <service_name>",
-		Short:      "Reboot a specific Baremetal",
+		Short:      "Reboot the given baremetal",
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"service_name"},
 		Run:        rebootBaremetal,
@@ -198,7 +298,7 @@ func init() {
 	// Command to reinstall a baremetal
 	reinstallBaremetalCmd := &cobra.Command{
 		Use:   "reinstall <service_name>",
-		Short: "Reinstall a specific Baremetal",
+		Short: "Reinstall the given baremetal",
 		Long: `Use this command to reinstall the given dedicated server.
 There are two ways to define the installation parameters:
 
@@ -245,6 +345,73 @@ to see all the available parameters and real life examples.
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.SshKey, "ssh-key", "", "SSH public key")
 	removeRootFlagsFromCommand(reinstallBaremetalCmd)
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
+
+	// List boots and their options
+	baremetalBootCmd := &cobra.Command{
+		Use:   "boot",
+		Short: "Manage boot options for the given baremetal",
+	}
+	baremetalCmd.AddCommand(baremetalBootCmd)
+	baremetalListBootsCmd := &cobra.Command{
+		Use:        "list <service_name>",
+		Short:      "List boot options for the given baremetal",
+		Args:       cobra.ExactArgs(1),
+		ArgAliases: []string{"service_name"},
+		Run:        listBaremetalBoots,
+	}
+	baremetalBootCmd.AddCommand(withFilterFlag(baremetalListBootsCmd))
+
+	// List interventions
+	baremetalInterventionCmd := &cobra.Command{
+		Use:   "intervention",
+		Short: "Manage interventions of the given baremetal",
+	}
+	baremetalCmd.AddCommand(baremetalInterventionCmd)
+	baremetalListInterventionsCmd := &cobra.Command{
+		Use:        "list <service_name>",
+		Short:      "List interventions for the given baremetal",
+		Args:       cobra.ExactArgs(1),
+		ArgAliases: []string{"service_name"},
+		Run:        listBaremetalInterventions,
+	}
+	baremetalInterventionCmd.AddCommand(withFilterFlag(baremetalListInterventionsCmd))
+
+	// Commands to manage virtual network interfaces
+	baremetalVNICmd := &cobra.Command{
+		Use:   "vni",
+		Short: "Manage Virtual Network Interfaces of the given baremetal",
+	}
+	baremetalCmd.AddCommand(baremetalVNICmd)
+	baremetalVNICmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:        "list <service_name>",
+		Short:      "List Virtual Network Interfaces of the given baremetal",
+		Args:       cobra.ExactArgs(1),
+		ArgAliases: []string{"service_name"},
+		Run:        listBaremetalVNIs,
+	}))
+	baremetalVNICreateOLAAggregationCmd := &cobra.Command{
+		Use:        "ola-create-aggregation <service_name> --name <name> --interface <uuid> --interface <uuid>",
+		Short:      "Group interfaces into an aggregation",
+		Args:       cobra.ExactArgs(1),
+		ArgAliases: []string{"service_name"},
+		Run:        createBaremetalOLAAggregation,
+	}
+	baremetalVNICreateOLAAggregationCmd.Flags().StringArrayVar(&baremetalOLAInterfaces, "interface", nil, "Interfaces to group")
+	baremetalVNICreateOLAAggregationCmd.MarkFlagRequired("interface")
+	baremetalVNICreateOLAAggregationCmd.Flags().StringVar(&baremetalOLAName, "name", "", "Name of the aggregation")
+	baremetalVNICreateOLAAggregationCmd.MarkFlagRequired("name")
+	baremetalVNICmd.AddCommand(baremetalVNICreateOLAAggregationCmd)
+
+	baremetalVNIResetOLAAggregationCmd := &cobra.Command{
+		Use:        "ola-reset <service_name> --interface <uuid> --interface <uuid>",
+		Short:      "Reset interfaces to default configuration",
+		Args:       cobra.ExactArgs(1),
+		ArgAliases: []string{"service_name"},
+		Run:        resetBaremetalOLAAggregation,
+	}
+	baremetalVNIResetOLAAggregationCmd.Flags().StringArrayVar(&baremetalOLAInterfaces, "interface", nil, "Interfaces to group")
+	baremetalVNIResetOLAAggregationCmd.MarkFlagRequired("interface")
+	baremetalVNICmd.AddCommand(baremetalVNIResetOLAAggregationCmd)
 
 	rootCmd.AddCommand(baremetalCmd)
 }

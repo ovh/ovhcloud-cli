@@ -44,5 +44,8 @@ func init() {
 		Run:   login,
 	}
 
+	// Disable parent pre-run that verifies if the API client is correctly initialized
+	loginCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {}
+
 	rootCmd.AddCommand(loginCmd)
 }

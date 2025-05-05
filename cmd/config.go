@@ -41,6 +41,9 @@ func init() {
 		Short: "Manage your CLI configuration",
 	}
 
+	// Disable parent pre-run that verifies if the API client is correctly initialized
+	configCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {}
+
 	// Command to show the full config
 	configCmd.AddCommand(&cobra.Command{
 		Use:   "show",

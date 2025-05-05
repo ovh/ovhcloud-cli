@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/PaesslerAG/gval"
+	"github.com/PaesslerAG/jsonpath"
 )
 
 func FilterLines(values []map[string]any, filters []string) ([]map[string]any, error) {
@@ -12,7 +13,7 @@ func FilterLines(values []map[string]any, filters []string) ([]map[string]any, e
 
 	var evs gval.Evaluables
 	for _, filter := range filters {
-		evaluator, err := gval.Full().NewEvaluable(filter)
+		evaluator, err := gval.Full(jsonpath.PlaceholderExtension()).NewEvaluable(filter)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse filter %q: %s", filter, err)
 		}
