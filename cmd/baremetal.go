@@ -9,10 +9,12 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"slices"
 
 	"github.com/spf13/cobra"
 
 	"stash.ovh.net/api/ovh-cli/internal/display"
+	"stash.ovh.net/api/ovh-cli/internal/editor"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/openapi"
 )
@@ -107,11 +109,23 @@ func editBaremetal(_ *cobra.Command, args []string) {
 		display.ExitError("failed to marshal writable body: %s", err)
 	}
 
-	fmt.Println(string(editableOutput))
+	// Edit value
+	updatedBody, err := editor.EditValue(editableOutput)
+	if err != nil {
+		display.ExitError("failed to edit properties: %s", err)
+	}
 
-	// Open $editor with editable body
-	// Get updated body and PUT it
-	// Fetch updated body and call display.OutputObject
+	if slices.Equal(updatedBody, editableOutput) {
+		fmt.Println("\n🟠 Resource not updated, exiting")
+		return
+	}
+
+	// Update API call
+	if err := client.Put(url, json.RawMessage(updatedBody), nil); err != nil {
+		display.ExitError("failed to update baremetal: %s", err)
+	}
+
+	fmt.Println("\n✅ Baremetal server updated succesfully ...")
 }
 
 func rebootBaremetal(_ *cobra.Command, args []string) {
