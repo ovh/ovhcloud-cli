@@ -33,13 +33,7 @@ func init() {
 		Short: "List your Telephony services",
 		Run:   listTelephony,
 	}
-	telephonyListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	telephonyCmd.AddCommand(telephonyListCmd)
+	telephonyCmd.AddCommand(withFilterFlag(telephonyListCmd))
 
 	// Command to get a single Telephony
 	telephonyCmd.AddCommand(&cobra.Command{

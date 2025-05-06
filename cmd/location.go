@@ -33,13 +33,7 @@ func init() {
 		Short: "List your Location services",
 		Run:   listLocation,
 	}
-	locationListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	locationCmd.AddCommand(locationListCmd)
+	locationCmd.AddCommand(withFilterFlag(locationListCmd))
 
 	// Command to get a single Location
 	locationCmd.AddCommand(&cobra.Command{

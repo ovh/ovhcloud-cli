@@ -33,13 +33,7 @@ func init() {
 		Short: "List your VeeamEnterprise services",
 		Run:   listVeeamEnterprise,
 	}
-	veeamenterpriseListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	veeamenterpriseCmd.AddCommand(veeamenterpriseListCmd)
+	veeamenterpriseCmd.AddCommand(withFilterFlag(veeamenterpriseListCmd))
 
 	// Command to get a single VeeamEnterprise
 	veeamenterpriseCmd.AddCommand(&cobra.Command{

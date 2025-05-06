@@ -33,13 +33,7 @@ func init() {
 		Short: "List your StorageNetApp services",
 		Run:   listStorageNetApp,
 	}
-	storagenetappListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	storagenetappCmd.AddCommand(storagenetappListCmd)
+	storagenetappCmd.AddCommand(withFilterFlag(storagenetappListCmd))
 
 	// Command to get a single StorageNetApp
 	storagenetappCmd.AddCommand(&cobra.Command{

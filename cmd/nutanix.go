@@ -33,13 +33,7 @@ func init() {
 		Short: "List your Nutanix services",
 		Run:   listNutanix,
 	}
-	nutanixListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	nutanixCmd.AddCommand(nutanixListCmd)
+	nutanixCmd.AddCommand(withFilterFlag(nutanixListCmd))
 
 	// Command to get a single Nutanix
 	nutanixCmd.AddCommand(&cobra.Command{

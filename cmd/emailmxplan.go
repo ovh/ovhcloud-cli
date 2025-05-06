@@ -33,13 +33,7 @@ func init() {
 		Short: "List your EmailMXPlan services",
 		Run:   listEmailMXPlan,
 	}
-	emailmxplanListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	emailmxplanCmd.AddCommand(emailmxplanListCmd)
+	emailmxplanCmd.AddCommand(withFilterFlag(emailmxplanListCmd))
 
 	// Command to get a single EmailMXPlan
 	emailmxplanCmd.AddCommand(&cobra.Command{

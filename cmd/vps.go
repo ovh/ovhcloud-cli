@@ -33,13 +33,7 @@ func init() {
 		Short: "List your Vps services",
 		Run:   listVps,
 	}
-	vpsListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	vpsCmd.AddCommand(vpsListCmd)
+	vpsCmd.AddCommand(withFilterFlag(vpsListCmd))
 
 	// Command to get a single Vps
 	vpsCmd.AddCommand(&cobra.Command{

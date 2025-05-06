@@ -33,13 +33,7 @@ func init() {
 		Short: "List your VmwareCloudDirectorBackup services",
 		Run:   listVmwareCloudDirectorBackup,
 	}
-	vmwareclouddirectorbackupListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	vmwareclouddirectorbackupCmd.AddCommand(vmwareclouddirectorbackupListCmd)
+	vmwareclouddirectorbackupCmd.AddCommand(withFilterFlag(vmwareclouddirectorbackupListCmd))
 
 	// Command to get a single VmwareCloudDirectorBackup
 	vmwareclouddirectorbackupCmd.AddCommand(&cobra.Command{

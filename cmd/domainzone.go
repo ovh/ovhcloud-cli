@@ -52,13 +52,7 @@ func init() {
 		Short: "List your DomainZone services",
 		Run:   listDomainZone,
 	}
-	domainzoneListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	domainzoneCmd.AddCommand(domainzoneListCmd)
+	domainzoneCmd.AddCommand(withFilterFlag(domainzoneListCmd))
 
 	// Command to get a single DomainZone
 	domainzoneCmd.AddCommand(&cobra.Command{

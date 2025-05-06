@@ -33,13 +33,7 @@ func init() {
 		Short: "List your Vrack services",
 		Run:   listVrack,
 	}
-	vrackListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	vrackCmd.AddCommand(vrackListCmd)
+	vrackCmd.AddCommand(withFilterFlag(vrackListCmd))
 
 	// Command to get a single Vrack
 	vrackCmd.AddCommand(&cobra.Command{

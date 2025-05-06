@@ -33,13 +33,7 @@ func init() {
 		Short: "List your Ldp services",
 		Run:   listLdp,
 	}
-	ldpListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	ldpCmd.AddCommand(ldpListCmd)
+	ldpCmd.AddCommand(withFilterFlag(ldpListCmd))
 
 	// Command to get a single Ldp
 	ldpCmd.AddCommand(&cobra.Command{

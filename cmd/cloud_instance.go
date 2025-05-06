@@ -37,13 +37,7 @@ func initInstanceCommand(cloudCmd *cobra.Command) {
 		Short: "List your instances",
 		Run:   listInstances,
 	}
-	instanceListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	instanceCmd.AddCommand(instanceListCmd)
+	instanceCmd.AddCommand(withFilterFlag(instanceListCmd))
 
 	instanceCmd.AddCommand(&cobra.Command{
 		Use:        "get",

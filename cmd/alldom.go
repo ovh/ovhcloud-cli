@@ -33,13 +33,7 @@ func init() {
 		Short: "List your AllDom services",
 		Run:   listAllDom,
 	}
-	alldomListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	alldomCmd.AddCommand(alldomListCmd)
+	alldomCmd.AddCommand(withFilterFlag(alldomListCmd))
 
 	// Command to get a single AllDom
 	alldomCmd.AddCommand(&cobra.Command{

@@ -33,13 +33,7 @@ func init() {
 		Short: "List your VmwareCloudDirectorOrganization services",
 		Run:   listVmwareCloudDirectorOrganization,
 	}
-	vmwareclouddirectororganizationListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	vmwareclouddirectororganizationCmd.AddCommand(vmwareclouddirectororganizationListCmd)
+	vmwareclouddirectororganizationCmd.AddCommand(withFilterFlag(vmwareclouddirectororganizationListCmd))
 
 	// Command to get a single VmwareCloudDirectorOrganization
 	vmwareclouddirectororganizationCmd.AddCommand(&cobra.Command{

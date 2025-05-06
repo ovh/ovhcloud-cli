@@ -33,13 +33,7 @@ func init() {
 		Short: "List your EmailPro services",
 		Run:   listEmailPro,
 	}
-	emailproListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	emailproCmd.AddCommand(emailproListCmd)
+	emailproCmd.AddCommand(withFilterFlag(emailproListCmd))
 
 	// Command to get a single EmailPro
 	emailproCmd.AddCommand(&cobra.Command{

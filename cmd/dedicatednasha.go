@@ -33,13 +33,7 @@ func init() {
 		Short: "List your DedicatedNasHA services",
 		Run:   listDedicatedNasHA,
 	}
-	dedicatednashaListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	dedicatednashaCmd.AddCommand(dedicatednashaListCmd)
+	dedicatednashaCmd.AddCommand(withFilterFlag(dedicatednashaListCmd))
 
 	// Command to get a single DedicatedNasHA
 	dedicatednashaCmd.AddCommand(&cobra.Command{

@@ -33,13 +33,7 @@ func init() {
 		Short: "List your Ssl services",
 		Run:   listSsl,
 	}
-	sslListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	sslCmd.AddCommand(sslListCmd)
+	sslCmd.AddCommand(withFilterFlag(sslListCmd))
 
 	// Command to get a single Ssl
 	sslCmd.AddCommand(&cobra.Command{

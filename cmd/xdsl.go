@@ -33,13 +33,7 @@ func init() {
 		Short: "List your Xdsl services",
 		Run:   listXdsl,
 	}
-	xdslListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	xdslCmd.AddCommand(xdslListCmd)
+	xdslCmd.AddCommand(withFilterFlag(xdslListCmd))
 
 	// Command to get a single Xdsl
 	xdslCmd.AddCommand(&cobra.Command{

@@ -33,13 +33,7 @@ func init() {
 		Short: "List your HostingPrivateDatabase services",
 		Run:   listHostingPrivateDatabase,
 	}
-	hostingprivatedatabaseListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	hostingprivatedatabaseCmd.AddCommand(hostingprivatedatabaseListCmd)
+	hostingprivatedatabaseCmd.AddCommand(withFilterFlag(hostingprivatedatabaseListCmd))
 
 	// Command to get a single HostingPrivateDatabase
 	hostingprivatedatabaseCmd.AddCommand(&cobra.Command{

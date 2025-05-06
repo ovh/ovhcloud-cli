@@ -33,13 +33,7 @@ func init() {
 		Short: "List your DedicatedCeph services",
 		Run:   listDedicatedCeph,
 	}
-	dedicatedcephListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	dedicatedcephCmd.AddCommand(dedicatedcephListCmd)
+	dedicatedcephCmd.AddCommand(withFilterFlag(dedicatedcephListCmd))
 
 	// Command to get a single DedicatedCeph
 	dedicatedcephCmd.AddCommand(&cobra.Command{

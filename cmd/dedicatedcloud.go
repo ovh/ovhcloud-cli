@@ -33,13 +33,7 @@ func init() {
 		Short: "List your DedicatedCloud services",
 		Run:   listDedicatedCloud,
 	}
-	dedicatedcloudListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	dedicatedcloudCmd.AddCommand(dedicatedcloudListCmd)
+	dedicatedcloudCmd.AddCommand(withFilterFlag(dedicatedcloudListCmd))
 
 	// Command to get a single DedicatedCloud
 	dedicatedcloudCmd.AddCommand(&cobra.Command{

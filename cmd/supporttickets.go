@@ -33,13 +33,7 @@ func init() {
 		Short: "List your SupportTickets services",
 		Run:   listSupportTickets,
 	}
-	supportticketsListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	supportticketsCmd.AddCommand(supportticketsListCmd)
+	supportticketsCmd.AddCommand(withFilterFlag(supportticketsListCmd))
 
 	// Command to get a single SupportTickets
 	supportticketsCmd.AddCommand(&cobra.Command{

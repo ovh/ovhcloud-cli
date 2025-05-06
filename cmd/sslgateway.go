@@ -33,13 +33,7 @@ func init() {
 		Short: "List your SslGateway services",
 		Run:   listSslGateway,
 	}
-	sslgatewayListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	sslgatewayCmd.AddCommand(sslgatewayListCmd)
+	sslgatewayCmd.AddCommand(withFilterFlag(sslgatewayListCmd))
 
 	// Command to get a single SslGateway
 	sslgatewayCmd.AddCommand(&cobra.Command{

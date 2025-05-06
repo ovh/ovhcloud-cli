@@ -33,13 +33,7 @@ func init() {
 		Short: "List your DedicatedCluster services",
 		Run:   listDedicatedCluster,
 	}
-	dedicatedclusterListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	dedicatedclusterCmd.AddCommand(dedicatedclusterListCmd)
+	dedicatedclusterCmd.AddCommand(withFilterFlag(dedicatedclusterListCmd))
 
 	// Command to get a single DedicatedCluster
 	dedicatedclusterCmd.AddCommand(&cobra.Command{

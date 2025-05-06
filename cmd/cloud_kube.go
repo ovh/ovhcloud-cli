@@ -38,13 +38,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Short: "List your Kubernetes clusters",
 		Run:   listKubes,
 	}
-	kubeListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	kubeCmd.AddCommand(kubeListCmd)
+	kubeCmd.AddCommand(withFilterFlag(kubeListCmd))
 
 	kubeCmd.AddCommand(&cobra.Command{
 		Use:        "get",

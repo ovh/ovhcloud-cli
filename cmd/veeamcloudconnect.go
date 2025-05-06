@@ -33,13 +33,7 @@ func init() {
 		Short: "List your VeeamCloudConnect services",
 		Run:   listVeeamCloudConnect,
 	}
-	veeamcloudconnectListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	veeamcloudconnectCmd.AddCommand(veeamcloudconnectListCmd)
+	veeamcloudconnectCmd.AddCommand(withFilterFlag(veeamcloudconnectListCmd))
 
 	// Command to get a single VeeamCloudConnect
 	veeamcloudconnectCmd.AddCommand(&cobra.Command{

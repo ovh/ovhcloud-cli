@@ -33,13 +33,7 @@ func init() {
 		Short: "List your PackXDSL services",
 		Run:   listPackXDSL,
 	}
-	packxdslListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	packxdslCmd.AddCommand(packxdslListCmd)
+	packxdslCmd.AddCommand(withFilterFlag(packxdslListCmd))
 
 	// Command to get a single PackXDSL
 	packxdslCmd.AddCommand(&cobra.Command{

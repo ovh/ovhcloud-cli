@@ -37,13 +37,7 @@ func initCloudDatabaseCommand(cloudCmd *cobra.Command) {
 		Short: "List your databases",
 		Run:   listCloudDatabases,
 	}
-	databaseListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	databaseCmd.AddCommand(databaseListCmd)
+	databaseCmd.AddCommand(withFilterFlag(databaseListCmd))
 
 	databaseCmd.AddCommand(&cobra.Command{
 		Use:        "get",

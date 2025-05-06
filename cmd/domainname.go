@@ -33,13 +33,7 @@ func init() {
 		Short: "List your DomainName services",
 		Run:   listDomainName,
 	}
-	domainnameListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	domainnameCmd.AddCommand(domainnameListCmd)
+	domainnameCmd.AddCommand(withFilterFlag(domainnameListCmd))
 
 	// Command to get a single DomainName
 	domainnameCmd.AddCommand(&cobra.Command{

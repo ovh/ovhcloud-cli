@@ -33,13 +33,7 @@ func init() {
 		Short: "List your EmailDomain services",
 		Run:   listEmailDomain,
 	}
-	emaildomainListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	emaildomainCmd.AddCommand(emaildomainListCmd)
+	emaildomainCmd.AddCommand(withFilterFlag(emaildomainListCmd))
 
 	// Command to get a single EmailDomain
 	emaildomainCmd.AddCommand(&cobra.Command{

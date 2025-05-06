@@ -33,13 +33,7 @@ func init() {
 		Short: "List your Okms services",
 		Run:   listOkms,
 	}
-	okmsListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	okmsCmd.AddCommand(okmsListCmd)
+	okmsCmd.AddCommand(withFilterFlag(okmsListCmd))
 
 	// Command to get a single Okms
 	okmsCmd.AddCommand(&cobra.Command{

@@ -62,13 +62,7 @@ func init() {
 		Short: "List your Ip services",
 		Run:   listIp,
 	}
-	ipListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	ipCmd.AddCommand(ipListCmd)
+	ipCmd.AddCommand(withFilterFlag(ipListCmd))
 
 	// Command to get a single Ip
 	ipCmd.AddCommand(&cobra.Command{

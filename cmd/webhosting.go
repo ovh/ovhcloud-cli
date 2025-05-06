@@ -33,13 +33,7 @@ func init() {
 		Short: "List your WebHosting services",
 		Run:   listWebHosting,
 	}
-	webhostingListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	webhostingCmd.AddCommand(webhostingListCmd)
+	webhostingCmd.AddCommand(withFilterFlag(webhostingListCmd))
 
 	// Command to get a single WebHosting
 	webhostingCmd.AddCommand(&cobra.Command{

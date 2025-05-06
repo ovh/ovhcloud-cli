@@ -33,13 +33,7 @@ func init() {
 		Short: "List your IpLoadbalancing services",
 		Run:   listIpLoadbalancing,
 	}
-	iploadbalancingListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	iploadbalancingCmd.AddCommand(iploadbalancingListCmd)
+	iploadbalancingCmd.AddCommand(withFilterFlag(iploadbalancingListCmd))
 
 	// Command to get a single IpLoadbalancing
 	iploadbalancingCmd.AddCommand(&cobra.Command{

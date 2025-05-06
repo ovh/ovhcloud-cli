@@ -33,13 +33,7 @@ func init() {
 		Short: "List your CdnDedicated services",
 		Run:   listCdnDedicated,
 	}
-	cdndedicatedListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	cdndedicatedCmd.AddCommand(cdndedicatedListCmd)
+	cdndedicatedCmd.AddCommand(withFilterFlag(cdndedicatedListCmd))
 
 	// Command to get a single CdnDedicated
 	cdndedicatedCmd.AddCommand(&cobra.Command{

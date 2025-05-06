@@ -33,13 +33,7 @@ func init() {
 		Short: "List your OvhCloudConnect services",
 		Run:   listOvhCloudConnect,
 	}
-	ovhcloudconnectListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	ovhcloudconnectCmd.AddCommand(ovhcloudconnectListCmd)
+	ovhcloudconnectCmd.AddCommand(withFilterFlag(ovhcloudconnectListCmd))
 
 	// Command to get a single OvhCloudConnect
 	ovhcloudconnectCmd.AddCommand(&cobra.Command{

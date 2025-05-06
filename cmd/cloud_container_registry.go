@@ -37,13 +37,7 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 		Short: "List your container registries",
 		Run:   listContainerRegistries,
 	}
-	registryListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	registryCmd.AddCommand(registryListCmd)
+	registryCmd.AddCommand(withFilterFlag(registryListCmd))
 
 	registryCmd.AddCommand(&cobra.Command{
 		Use:        "get",

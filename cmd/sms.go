@@ -33,13 +33,7 @@ func init() {
 		Short: "List your Sms services",
 		Run:   listSms,
 	}
-	smsListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	smsCmd.AddCommand(smsListCmd)
+	smsCmd.AddCommand(withFilterFlag(smsListCmd))
 
 	// Command to get a single Sms
 	smsCmd.AddCommand(&cobra.Command{

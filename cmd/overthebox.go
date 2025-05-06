@@ -33,13 +33,7 @@ func init() {
 		Short: "List your OverTheBox services",
 		Run:   listOverTheBox,
 	}
-	overtheboxListCmd.PersistentFlags().StringArrayVar(
-		&genericFilters,
-		"filter",
-		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
-	)
-	overtheboxCmd.AddCommand(overtheboxListCmd)
+	overtheboxCmd.AddCommand(withFilterFlag(overtheboxListCmd))
 
 	// Command to get a single OverTheBox
 	overtheboxCmd.AddCommand(&cobra.Command{
