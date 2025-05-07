@@ -10,7 +10,7 @@ import (
 )
 
 func login(_ *cobra.Command, _ []string) {
-	selectedRegion := display.RunChoicePicker("Which OVHcloud API do you want to login to ?", []string{"EU", "CA", "US"})
+	selectedRegion := display.RunLoginPicker("Which OVHcloud API do you want to login to ?", []string{"EU", "CA", "US"})
 
 	if selectedRegion == "" {
 		return

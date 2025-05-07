@@ -98,7 +98,7 @@ func (m model) View() string {
 	return "\n" + m.list.View()
 }
 
-func RunChoicePicker(question string, choices []string) string {
+func RunLoginPicker(question string, choices []string) string {
 	var items []list.Item
 	for _, choice := range choices {
 		items = append(items, item(choice))

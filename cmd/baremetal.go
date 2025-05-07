@@ -9,7 +9,7 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"slices"
+	"strconv"
 
 	"github.com/spf13/cobra"
 
@@ -33,6 +33,7 @@ var (
 
 	// Installation flags
 	installationFile string
+	installViaEditor bool
 	operatingSystem  string
 	customizations   struct {
 		ConfigDriveUserData             string            `json:"configDriveUserData,omitempty"`
@@ -85,47 +86,7 @@ func getBaremetal(_ *cobra.Command, args []string) {
 
 func editBaremetal(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
-
-	// Fetch dedicated server
-	var object map[string]any
-	if err := client.Get(url, &object); err != nil {
-		display.ExitError("error fetching dedicated server %s: %s\n", args[0], err)
-	}
-
-	// Filter editable fields
-	editableBody, err := openapi.FilterEditableFields(
-		baremetalOpenapiSchema,
-		"/dedicated/server/{serviceName}",
-		"put",
-		object,
-	)
-	if err != nil {
-		display.ExitError("failed to extract writable properties: %s", err)
-	}
-
-	// Format editable body
-	editableOutput, err := json.MarshalIndent(editableBody, "", "  ")
-	if err != nil {
-		display.ExitError("failed to marshal writable body: %s", err)
-	}
-
-	// Edit value
-	updatedBody, err := editor.EditValue(editableOutput)
-	if err != nil {
-		display.ExitError("failed to edit properties: %s", err)
-	}
-
-	if slices.Equal(updatedBody, editableOutput) {
-		fmt.Println("\n🟠 Resource not updated, exiting")
-		return
-	}
-
-	// Update API call
-	if err := client.Put(url, json.RawMessage(updatedBody), nil); err != nil {
-		display.ExitError("failed to update baremetal: %s", err)
-	}
-
-	fmt.Println("\n✅ Baremetal server updated succesfully ...")
+	editor.EditResource(client, "/dedicated/server/{serviceName}", url, baremetalOpenapiSchema)
 }
 
 func rebootBaremetal(_ *cobra.Command, args []string) {
@@ -168,6 +129,22 @@ func listBaremetalBoots(_ *cobra.Command, args []string) {
 	}
 
 	display.RenderTable(boots, []string{"bootId", "bootType", "description", "kernel"}, &outputFormatConfig)
+}
+
+func setBaremetalBootId(_ *cobra.Command, args []string) {
+	bootID, err := strconv.Atoi(args[1])
+	if err != nil {
+		display.ExitError("invalid boot ID given, expected a number")
+	}
+
+	url := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
+	if err := client.Put(url, map[string]any{
+		"bootId": bootID,
+	}, nil); err != nil {
+		display.ExitError("error setting boot ID: %s", err)
+	}
+
+	fmt.Printf("\n✅ Boot ID %d correctly configured\n", bootID)
 }
 
 func listBaremetalVNIs(_ *cobra.Command, args []string) {
@@ -214,11 +191,36 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 			stdin = append(stdin, scanner.Bytes()...)
 		}
 		if err := scanner.Err(); err != nil {
-			log.Fatal(err)
+			display.ExitError(err.Error())
 		}
 
 		if err := json.Unmarshal(stdin, &parameters); err != nil {
 			display.ExitError("failed to parse given installation data: %s", err)
+		}
+	} else if installViaEditor {
+		log.Print("Flag --editor used, all other flags will be ignored")
+
+		examples, err := openapi.GetOperationRequestExamples(baremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post")
+		if err != nil {
+			display.ExitError("failed to fetch API call examples: %s", err)
+		}
+
+		_, choice, err := display.RunGenericChoicePicker("Please select an installation example", examples)
+		if err != nil {
+			display.ExitError(err.Error())
+		}
+
+		if choice == "" {
+			display.ExitWarning("No installation example selected, exiting...")
+		}
+
+		newValue, err := editor.EditValueWithEditor([]byte(choice))
+		if err != nil {
+			display.ExitError("failed to edit installation parameters using editor: %s", err)
+		}
+
+		if err := json.Unmarshal(newValue, &parameters); err != nil {
+			display.ExitError("failed to parse given installation parameters: %s", err)
 		}
 	} else if installationFile != "" { // Install data given in a file
 		log.Print("Flag --installation-file used, all other flags will be ignored")
@@ -314,7 +316,7 @@ func init() {
 		Use:   "reinstall <service_name>",
 		Short: "Reinstall the given baremetal",
 		Long: `Use this command to reinstall the given dedicated server.
-There are two ways to define the installation parameters:
+There are three ways to define the installation parameters:
 
 1. Using CLI flags:
 
@@ -326,6 +328,7 @@ There are two ways to define the installation parameters:
 
   ovh-cli baremetal reinstall --init-file ./install.json
 
+  You will be able to choose from several installation examples. Once an example has been selected, the content is written in the given file.
   After editing the file to set the correct installation parameters, run:
 
   ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json
@@ -333,6 +336,13 @@ There are two ways to define the installation parameters:
   Note that you can also pipe the content of the file to reinstall, like the following:
 
   cat ./install.json | ovh-cli baremetal reinstall ns1234.ip-11.22.33.net
+
+3. Using your default text editor
+
+  ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --editor
+
+  You will be able to choose from several installation examples. Once an example has been selected, the CLI will open your
+  default text editor to update the parameters. When saving the file, the reinstallation will be run.
 
 You can visit https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&branch=v1#post-/dedicated/server/-serviceName-/reinstall
 to see all the available parameters and real life examples.
@@ -342,8 +352,9 @@ to see all the available parameters and real life examples.
 		Run:        reinstallBaremetal,
 	}
 
-	addInitParameterFileFlag(reinstallBaremetalCmd, baremetalInstallationExample)
+	addInitParameterFileFlag(reinstallBaremetalCmd, baremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetalInstallationExample)
 	reinstallBaremetalCmd.Flags().StringVar(&installationFile, "from-file", "", "File containing installation parameters")
+	reinstallBaremetalCmd.Flags().BoolVar(&installViaEditor, "editor", false, "Use a text editor to define installation parameters")
 	reinstallBaremetalCmd.Flags().StringVar(&operatingSystem, "os", "", "Operating system to install")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.ConfigDriveUserData, "config-drive-user-data", "", "Config Drive UserData")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.EfiBootloaderPath, "efi-bootloader-path", "", "Path of the EFI bootloader from the OS installed on the server")
@@ -358,6 +369,7 @@ to see all the available parameters and real life examples.
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.SshKey, "ssh-key", "", "SSH public key")
 	removeRootFlagsFromCommand(reinstallBaremetalCmd)
+	reinstallBaremetalCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
 
 	// List boots and their options
@@ -374,6 +386,13 @@ to see all the available parameters and real life examples.
 		Run:        listBaremetalBoots,
 	}
 	baremetalBootCmd.AddCommand(withFilterFlag(baremetalListBootsCmd))
+	baremetalBootCmd.AddCommand(&cobra.Command{
+		Use:        "set <service_name> <boot_id>",
+		Short:      "Configure a boot ID on the given baremetal",
+		Args:       cobra.ExactArgs(2),
+		ArgAliases: []string{"service_name", "boot_id"},
+		Run:        setBaremetalBootId,
+	})
 
 	// List interventions
 	baremetalInterventionCmd := &cobra.Command{

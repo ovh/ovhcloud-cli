@@ -4,10 +4,12 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
+	"stash.ovh.net/api/ovh-cli/internal/openapi"
 )
 
 var (
@@ -15,7 +17,7 @@ var (
 	replaceParamFile bool
 )
 
-func addInitParameterFileFlag(cmd *cobra.Command, content string) {
+func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, method, defaultContent string) {
 	cmd.Flags().StringVar(&paramFile, "init-file", "", "Create a file with example parameters")
 	cmd.Flags().BoolVar(&replaceParamFile, "replace", false, "Replace parameters file if it already exists")
 	cmd.PreRun = func(_ *cobra.Command, _ []string) {
@@ -29,13 +31,35 @@ func addInitParameterFileFlag(cmd *cobra.Command, content string) {
 			}
 		}
 
+		examples, err := openapi.GetOperationRequestExamples(openapiSchema, path, method)
+		if err != nil {
+			display.ExitError("failed to fetch parameter file examples: %s", err)
+		}
+
+		var choice string
+		if len(examples) > 0 {
+			_, choice, err = display.RunGenericChoicePicker("Please select a parameter example", examples)
+			if err != nil {
+				display.ExitError(err.Error())
+			}
+		}
+
+		if choice == "" {
+			if defaultContent == "" {
+				display.ExitWarning("No example selected, exiting...")
+			} else {
+				log.Print("No example chosen, using default value")
+				choice = defaultContent
+			}
+		}
+
 		tmplFile, err := os.Create(paramFile)
 		if err != nil {
 			display.ExitError("failed to create parameter file: %s", err)
 		}
 		defer tmplFile.Close()
 
-		if _, err := tmplFile.WriteString(content); err != nil {
+		if _, err := tmplFile.WriteString(choice); err != nil {
 			display.ExitError("error writing parameter file: %s", err)
 		}
 

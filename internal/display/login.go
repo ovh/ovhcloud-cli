@@ -2,7 +2,6 @@ package display
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -39,7 +38,7 @@ func RunLoginInput() map[string]string {
 	p := tea.NewProgram(mod)
 
 	if _, err := p.Run(); err != nil {
-		log.Fatal(err)
+		ExitError(err.Error())
 	}
 
 	return map[string]string{

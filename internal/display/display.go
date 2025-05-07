@@ -264,3 +264,8 @@ func ExitError(message string, params ...any) {
 	fmt.Printf("🛑 "+message+"\n", params...)
 	os.Exit(1)
 }
+
+func ExitWarning(message string, params ...any) {
+	fmt.Printf("🟠 "+message+"\n", params...)
+	os.Exit(0)
+}
