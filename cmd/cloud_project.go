@@ -53,6 +53,7 @@ func init() {
 	initContainerRegistryCommand(cloudCmd)
 	initCloudDatabaseCommand(cloudCmd)
 	initInstanceCommand(cloudCmd)
+	initCloudLoadbalancerCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
 	rootCmd.AddCommand(cloudCmd)

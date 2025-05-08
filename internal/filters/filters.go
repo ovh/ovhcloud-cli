@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"reflect"
 
 	"github.com/PaesslerAG/gval"
 	"github.com/PaesslerAG/jsonpath"
 )
 
-var additionalEvaluators = []gval.Language{
+var AdditionalEvaluators = []gval.Language{
 	// jsonpath.PlaceholderExtension() adds support for '$["date"]' syntax, to be
 	// able to select fields that have the same name as a function in gval Full language
 	jsonpath.PlaceholderExtension(),
@@ -37,6 +38,14 @@ func getJsonNumberEvaluator(operator string, baseEvaluator func(a, b float64) (a
 			err            error
 		)
 
+		// Handle other types the same way InfixOperators from gval do
+		var defaultFunc = func(x, y any) bool { return false }
+		if operator == "==" {
+			defaultFunc = reflect.DeepEqual
+		} else if operator == "!=" {
+			defaultFunc = func(x, y any) bool { return !reflect.DeepEqual(x, y) }
+		}
+
 		switch a := a.(type) {
 		case json.Number:
 			floatA, err = a.Float64()
@@ -46,7 +55,7 @@ func getJsonNumberEvaluator(operator string, baseEvaluator func(a, b float64) (a
 		case float64:
 			floatA = a
 		default:
-			return false, nil
+			return defaultFunc(a, b), nil
 		}
 
 		switch b := b.(type) {
@@ -58,7 +67,7 @@ func getJsonNumberEvaluator(operator string, baseEvaluator func(a, b float64) (a
 		case float64:
 			floatB = b
 		default:
-			return false, nil
+			return defaultFunc(a, b), nil
 		}
 
 		return baseEvaluator(floatA, floatB)
@@ -70,7 +79,7 @@ func FilterLines(values []map[string]any, filters []string) ([]map[string]any, e
 
 	var evs gval.Evaluables
 	for _, filter := range filters {
-		evaluator, err := gval.Full(additionalEvaluators...).NewEvaluable(filter)
+		evaluator, err := gval.Full(AdditionalEvaluators...).NewEvaluable(filter)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse filter %q: %s", filter, err)
 		}

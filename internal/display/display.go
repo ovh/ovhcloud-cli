@@ -16,6 +16,7 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/ghodss/yaml"
 	"gopkg.in/ini.v1"
+	"stash.ovh.net/api/ovh-cli/internal/filters"
 )
 
 // Common flags used by all subcommands to control output format (json, yaml)
@@ -25,7 +26,7 @@ type OutputFormat struct {
 }
 
 func renderCustomFormat(value any, format string) {
-	ev, err := gval.Full().NewEvaluable(format)
+	ev, err := gval.Full(filters.AdditionalEvaluators...).NewEvaluable(format)
 	if err != nil {
 		ExitError("invalid format given: %s", err)
 	}
