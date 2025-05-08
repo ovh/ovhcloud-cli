@@ -4,46 +4,73 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
+	"math"
 
 	"github.com/PaesslerAG/gval"
 	"github.com/PaesslerAG/jsonpath"
 )
 
-var (
-	// customEqualFilter is a custom "==" operator added to the basic
-	// gval ones that adds support for json.Number comparison
-	customEqualFilter = gval.InfixOperator("==", func(a, b interface{}) (interface{}, error) {
+var additionalEvaluators = []gval.Language{
+	// jsonpath.PlaceholderExtension() adds support for '$["date"]' syntax, to be
+	// able to select fields that have the same name as a function in gval Full language
+	jsonpath.PlaceholderExtension(),
+
+	// additional evaluators to handle json.Number type
+	getJsonNumberEvaluator("+", func(a, b float64) (any, error) { return a + b, nil }),
+	getJsonNumberEvaluator("-", func(a, b float64) (any, error) { return a - b, nil }),
+	getJsonNumberEvaluator("*", func(a, b float64) (any, error) { return a * b, nil }),
+	getJsonNumberEvaluator("/", func(a, b float64) (any, error) { return a / b, nil }),
+	getJsonNumberEvaluator("%", func(a, b float64) (any, error) { return math.Mod(a, b), nil }),
+	getJsonNumberEvaluator("**", func(a, b float64) (any, error) { return math.Pow(a, b), nil }),
+	getJsonNumberEvaluator(">", func(a, b float64) (any, error) { return a > b, nil }),
+	getJsonNumberEvaluator(">=", func(a, b float64) (any, error) { return a >= b, nil }),
+	getJsonNumberEvaluator("<", func(a, b float64) (any, error) { return a < b, nil }),
+	getJsonNumberEvaluator("<=", func(a, b float64) (any, error) { return a <= b, nil }),
+	getJsonNumberEvaluator("==", func(a, b float64) (any, error) { return a == b, nil }),
+	getJsonNumberEvaluator("!=", func(a, b float64) (any, error) { return a != b, nil }),
+}
+
+func getJsonNumberEvaluator(operator string, baseEvaluator func(a, b float64) (any, error)) gval.Language {
+	return gval.InfixOperator(operator, func(a, b any) (any, error) {
 		var (
-			newA any = a
-			newB any = b
-			err  error
+			floatA, floatB float64
+			err            error
 		)
-		if reflect.TypeOf(a).String() == "json.Number" {
-			newA, err = a.(json.Number).Float64()
+
+		switch a := a.(type) {
+		case json.Number:
+			floatA, err = a.Float64()
 			if err != nil {
 				return false, err
 			}
-		}
-		if reflect.TypeOf(b).String() == "json.Number" {
-			newB, err = b.(json.Number).Float64()
-			if err != nil {
-				return false, err
-			}
+		case float64:
+			floatA = a
+		default:
+			return false, nil
 		}
 
-		return reflect.DeepEqual(newA, newB), nil
+		switch b := b.(type) {
+		case json.Number:
+			floatB, err = b.Float64()
+			if err != nil {
+				return false, err
+			}
+		case float64:
+			floatB = b
+		default:
+			return false, nil
+		}
+
+		return baseEvaluator(floatA, floatB)
 	})
-)
+}
 
 func FilterLines(values []map[string]any, filters []string) ([]map[string]any, error) {
 	var rows []map[string]any
 
 	var evs gval.Evaluables
 	for _, filter := range filters {
-		// jsonpath.PlaceholderExtension() is added to gval.Full to add support for '$["date"]' syntax, to
-		// be able to select fields that have the same name as a function in gval Full language.
-		evaluator, err := gval.Full(jsonpath.PlaceholderExtension(), customEqualFilter).NewEvaluable(filter)
+		evaluator, err := gval.Full(additionalEvaluators...).NewEvaluable(filter)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse filter %q: %s", filter, err)
 		}
