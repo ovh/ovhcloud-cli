@@ -54,6 +54,7 @@ func init() {
 	initCloudDatabaseCommand(cloudCmd)
 	initInstanceCommand(cloudCmd)
 	initCloudLoadbalancerCommand(cloudCmd)
+	initCloudNetworkCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
 	rootCmd.AddCommand(cloudCmd)
