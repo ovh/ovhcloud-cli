@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"stash.ovh.net/api/ovh-cli/internal/utils"
 )
 
 func FilterEditableFields(spec []byte, path, method string, body map[string]any) (map[string]any, error) {
@@ -20,7 +21,7 @@ func FilterEditableFields(spec []byte, path, method string, body map[string]any)
 	return pruned, nil
 }
 
-func GetOperationRequestExamples(spec []byte, path, method string) (map[string]string, error) {
+func GetOperationRequestExamples(spec []byte, path, method string, replaceValues map[string]any) (map[string]string, error) {
 	content, err := getRequestBodyFromSpec(spec, path, method)
 	if err != nil {
 		return nil, err
@@ -29,9 +30,24 @@ func GetOperationRequestExamples(spec []byte, path, method string) (map[string]s
 	examples := make(map[string]string, len(content.Examples))
 
 	for k, v := range content.Examples {
-		example, err := json.MarshalIndent(v.Value.Value, "", "  ")
+		// Marshal & unmarshal example to get the request
+		// body example as a map[string]any
+		jsonExample, err := json.Marshal(v.Value.Value)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshel request body example: %w", err)
+			return nil, fmt.Errorf("failed to marshal request example: %s", err)
+		}
+		var objectExample map[string]any
+		if err := json.Unmarshal(jsonExample, &objectExample); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal request example: %s", err)
+		}
+
+		// Merge replace values with the example
+		objectExample = utils.MergeMaps(replaceValues, objectExample)
+
+		// Marshal the final merged example
+		example, err := json.MarshalIndent(objectExample, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request body example: %w", err)
 		}
 
 		examples[k] = string(example)

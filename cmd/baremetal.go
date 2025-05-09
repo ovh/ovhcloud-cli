@@ -17,7 +17,23 @@ import (
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/openapi"
+	"stash.ovh.net/api/ovh-cli/internal/utils"
 )
+
+type baremetalCustomizations struct {
+	ConfigDriveUserData             string            `json:"configDriveUserData,omitempty"`
+	EfiBootloaderPath               string            `json:"efiBootloaderPath,omitempty"`
+	Hostname                        string            `json:"hostname,omitempty"`
+	HttpHeaders                     map[string]string `json:"httpHeaders,omitempty"`
+	ImageCheckSum                   string            `json:"imageCheckSum,omitempty"`
+	ImageCheckSumType               string            `json:"imageCheckSumType,omitempty"`
+	ImageType                       string            `json:"imageType,omitempty"`
+	ImageURL                        string            `json:"imageURL,omitempty"`
+	Language                        string            `json:"language,omitempty"`
+	PostInstallationScript          string            `json:"postInstallationScript,omitempty"`
+	PostInstallationScriptExtension string            `json:"postInstallationScriptExtension,omitempty"`
+	SshKey                          string            `json:"sshKey,omitempty"`
+}
 
 var (
 	baremetalColumnsToDisplay = []string{"name", "region", "os", "powerState", "state"}
@@ -35,20 +51,7 @@ var (
 	installationFile string
 	installViaEditor bool
 	operatingSystem  string
-	customizations   struct {
-		ConfigDriveUserData             string            `json:"configDriveUserData,omitempty"`
-		EfiBootloaderPath               string            `json:"efiBootloaderPath,omitempty"`
-		Hostname                        string            `json:"hostname,omitempty"`
-		HttpHeaders                     map[string]string `json:"httpHeaders,omitempty"`
-		ImageCheckSum                   string            `json:"imageCheckSum,omitempty"`
-		ImageCheckSumType               string            `json:"imageCheckSumType,omitempty"`
-		ImageType                       string            `json:"imageType,omitempty"`
-		ImageURL                        string            `json:"imageURL,omitempty"`
-		Language                        string            `json:"language,omitempty"`
-		PostInstallationScript          string            `json:"postInstallationScript,omitempty"`
-		PostInstallationScriptExtension string            `json:"postInstallationScriptExtension,omitempty"`
-		SshKey                          string            `json:"sshKey,omitempty"`
-	}
+	customizations   baremetalCustomizations
 
 	// Virtual Network Interfaces Aggregation flags
 	baremetalOLAInterfaces []string
@@ -182,6 +185,22 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Create object from parameters given on command line
+	jsonCliParameters, err := json.Marshal(struct {
+		OS             string                  `json:"operatingSystem,omitempty"`
+		Customizations baremetalCustomizations `json:"customizations"`
+	}{
+		OS:             operatingSystem,
+		Customizations: customizations,
+	})
+	if err != nil {
+		display.ExitError("failed to prepare arguments from command line: %s", err)
+	}
+	var cliParameters map[string]any
+	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
+		display.ExitError("failed to parse arguments from command line: %s", err)
+	}
+
 	var parameters map[string]any
 
 	if isInputFromPipe() { // Install data given through a pipe
@@ -198,9 +217,9 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 			display.ExitError("failed to parse given installation data: %s", err)
 		}
 	} else if installViaEditor {
-		log.Print("Flag --editor used, all other flags will be ignored")
+		log.Print("Flag --editor used, all other flags will override the example values")
 
-		examples, err := openapi.GetOperationRequestExamples(baremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post")
+		examples, err := openapi.GetOperationRequestExamples(baremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", cliParameters)
 		if err != nil {
 			display.ExitError("failed to fetch API call examples: %s", err)
 		}
@@ -223,7 +242,7 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 			display.ExitError("failed to parse given installation parameters: %s", err)
 		}
 	} else if installationFile != "" { // Install data given in a file
-		log.Print("Flag --installation-file used, all other flags will be ignored")
+		log.Print("Flag --installation-file used, all other flags will override the file values")
 
 		fd, err := os.Open(installationFile)
 		if err != nil {
@@ -239,18 +258,27 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 		if err := json.Unmarshal(content, &parameters); err != nil {
 			display.ExitError("failed to parse given installation file: %s", err)
 		}
-	} else { // Install data given via CLI flags
-		if operatingSystem == "" {
-			display.ExitError("operating system parameter is mandatory to trigger a reinstallation")
-		}
-
-		parameters = map[string]any{
-			"operatingSystem": operatingSystem,
-			"customizations":  customizations,
-		}
 	}
 
-	url := fmt.Sprintf("/dedicated/server/%s/reinstall", args[0])
+	// Only merge CLI parameters with other ones if not in --editor mode.
+	// In this case, the CLI parameters have already been merged with the
+	// request examples coming from API schemas.
+	if !installViaEditor {
+		parameters = utils.MergeMaps(cliParameters, parameters)
+	}
+
+	// Check if at least an OS was provided as it is mandatory
+	if parameters["operatingSystem"] == "" {
+		display.ExitError("operating system parameter is mandatory to trigger a reinstallation")
+	}
+
+	out, err := json.MarshalIndent(parameters, "", " ")
+	if err != nil {
+		display.ExitError("installation parameters cannot be marshalled: %s", err)
+	}
+	fmt.Println(string(out))
+
+	url := fmt.Sprintf("/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
 	if err := client.Post(url, parameters, nil); err != nil {
 		display.ExitError("error reinstalling server %s: %s\n", args[0], err)
 	}
@@ -318,7 +346,7 @@ func init() {
 		Long: `Use this command to reinstall the given dedicated server.
 There are three ways to define the installation parameters:
 
-1. Using CLI flags:
+1. Using only CLI flags:
 
   ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --os byolinux_64 --language fr-fr --image-url https://...
 
@@ -326,16 +354,20 @@ There are three ways to define the installation parameters:
 
   First you can generate an example of installation file using the following command:
 
-  ovh-cli baremetal reinstall --init-file ./install.json
+	ovh-cli baremetal reinstall --init-file ./install.json
 
   You will be able to choose from several installation examples. Once an example has been selected, the content is written in the given file.
   After editing the file to set the correct installation parameters, run:
 
-  ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json
+	ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json
 
   Note that you can also pipe the content of the file to reinstall, like the following:
 
-  cat ./install.json | ovh-cli baremetal reinstall ns1234.ip-11.22.33.net
+	cat ./install.json | ovh-cli baremetal reinstall ns1234.ip-11.22.33.net
+
+  In both cases, you can override the parameters in the given file using command line flags, for example:
+
+	ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json --hostname new-hostname
 
 3. Using your default text editor
 
@@ -343,6 +375,10 @@ There are three ways to define the installation parameters:
 
   You will be able to choose from several installation examples. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the reinstallation will be run.
+
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
+
+	ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --editor --os debian12_64
 
 You can visit https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&branch=v1#post-/dedicated/server/-serviceName-/reinstall
 to see all the available parameters and real life examples.

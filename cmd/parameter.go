@@ -31,7 +31,7 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 			}
 		}
 
-		examples, err := openapi.GetOperationRequestExamples(openapiSchema, path, method)
+		examples, err := openapi.GetOperationRequestExamples(openapiSchema, path, method, nil)
 		if err != nil {
 			display.ExitError("failed to fetch parameter file examples: %s", err)
 		}
