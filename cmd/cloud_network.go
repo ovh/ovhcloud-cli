@@ -3,7 +3,6 @@ package cmd
 import (
 	_ "embed"
 	"fmt"
-	"log"
 	"net/url"
 
 	"github.com/spf13/cobra"
@@ -213,24 +212,12 @@ func getCloudGateway(_ *cobra.Command, args []string) {
 	// TODO: speed up with parallel search or by adding a required region argument
 	var foundGateway map[string]any
 	for _, region := range regions {
-		url := fmt.Sprintf("/cloud/project/%s/region/%s/gateway", projectID, url.PathEscape(region.(string)))
-
-		var regionGateways []map[string]any
-		if err := client.Get(url, &regionGateways); err != nil {
-			log.Printf("failed to fetch gateways for region %s: %s", region, err)
-			continue
-		}
-
-		for _, gateway := range regionGateways {
-			if gateway["id"] == args[0] {
-				foundGateway = gateway
-				break
-			}
-		}
-
-		if foundGateway != nil {
+		url := fmt.Sprintf("/cloud/project/%s/region/%s/gateway/%s",
+			projectID, url.PathEscape(region.(string)), url.PathEscape(args[0]))
+		if err := client.Get(url, &foundGateway); err == nil {
 			break
 		}
+		foundGateway = nil
 	}
 
 	if foundGateway == nil {
