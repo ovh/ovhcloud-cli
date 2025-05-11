@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -13,25 +14,32 @@ import (
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 )
 
-func fetchObjectsParallel(path string, ids []any) ([]map[string]any, error) {
+func fetchObjectsParallel[T any](path string, ids []any, ignoreErrors bool) ([]T, error) {
 	var (
 		parallelRequests = 10
 		sem              = semaphore.NewWeighted(int64(parallelRequests))
-		objects          = make([]map[string]any, len(ids))
+		objects          = make([]T, len(ids))
 		g, ctx           = errgroup.WithContext(context.Background())
 	)
 
 	for i, id := range ids {
 		if err := sem.Acquire(ctx, 1); err != nil {
-			return nil, fmt.Errorf("failed to acquire semaphore: %w", err)
+			// Here the error is ctx.Err(), so just log it and
+			// let the g.Wait() return the "real" error
+			log.Printf("failed to acquire semaphore: %s", err)
+			break
 		}
 
 		g.Go(func() error {
 			defer sem.Release(1)
-			url := fmt.Sprintf("%s/%s", path, url.PathEscape(fmt.Sprint(id)))
+			url := fmt.Sprintf(path, url.PathEscape(fmt.Sprint(id)))
 
-			var object map[string]any
+			var object T
 			if err := client.Get(url, &object); err != nil {
+				if ignoreErrors {
+					log.Printf("error fetching %s: %s", url, err)
+					return nil
+				}
 				return fmt.Errorf("failed to fetch object %q: %w", fmt.Sprint(id), err)
 			}
 
@@ -101,7 +109,7 @@ func fetchExpandedArray(path, idField string) ([]map[string]any, error) {
 		return nil, fmt.Errorf("failed to fetch ids: %w", err)
 	}
 
-	objects, err := fetchObjectsParallel(path, ids)
+	objects, err := fetchObjectsParallel[map[string]any](path+"/%s", ids, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch objects: %w", err)
 	}

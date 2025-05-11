@@ -3,6 +3,7 @@ package cmd
 import (
 	_ "embed"
 	"fmt"
+	"log"
 	"net/url"
 
 	"github.com/spf13/cobra"
@@ -12,12 +13,16 @@ import (
 
 var (
 	cloudprojectNetworkColumnsToDisplay = []string{"id", "name", "openstackId", "region", "status"}
+	cloudprojectGatewayColumnsToDisplay = []string{"id", "name", "region", "model", "status"}
 
 	//go:embed templates/cloud_network_private.tmpl
 	cloudNetworkPrivateTemplate string
 
 	//go:embed templates/cloud_network_public.tmpl
 	cloudNetworkPublicTemplate string
+
+	//go:embed templates/cloud_network_gateway.tmpl
+	cloudGatewayTemplate string
 )
 
 func listCloudPrivateNetworks(_ *cobra.Command, _ []string) {
@@ -164,6 +169,77 @@ func getCloudPublicNetwork(_ *cobra.Command, args []string) {
 	display.OutputObject(object, args[0], cloudNetworkPublicTemplate, &outputFormatConfig)
 }
 
+func listCloudGateways(_ *cobra.Command, _ []string) {
+	projectID := url.PathEscape(getConfiguredCloudProject())
+
+	// Fetch regions with network feature available
+	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
+	if err != nil {
+		display.ExitError("failed to fetch regions with network feature available: %s", err)
+	}
+
+	// Fetch gateways in all regions
+	url := fmt.Sprintf("/cloud/project/%s/region", projectID)
+	gateways, err := fetchObjectsParallel[[]map[string]any](url+"/%s/gateway", regions, true)
+	if err != nil {
+		display.ExitError("failed to fetch gateways: %s", err)
+	}
+
+	// Flatten gateways in a single array
+	var allGateways []map[string]any
+	for _, regionGateways := range gateways {
+		allGateways = append(allGateways, regionGateways...)
+	}
+
+	// Filter results
+	allGateways, err = filtersLib.FilterLines(allGateways, genericFilters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+	}
+
+	display.RenderTable(allGateways, cloudprojectGatewayColumnsToDisplay, &outputFormatConfig)
+}
+
+func getCloudGateway(_ *cobra.Command, args []string) {
+	projectID := url.PathEscape(getConfiguredCloudProject())
+
+	// Fetch regions with network feature available
+	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
+	if err != nil {
+		display.ExitError("failed to fetch regions with network feature available: %s", err)
+	}
+
+	// Search for the given gateway in all regions
+	// TODO: speed up with parallel search or by adding a required region argument
+	var foundGateway map[string]any
+	for _, region := range regions {
+		url := fmt.Sprintf("/cloud/project/%s/region/%s/gateway", projectID, url.PathEscape(region.(string)))
+
+		var regionGateways []map[string]any
+		if err := client.Get(url, &regionGateways); err != nil {
+			log.Printf("failed to fetch gateways for region %s: %s", region, err)
+			continue
+		}
+
+		for _, gateway := range regionGateways {
+			if gateway["id"] == args[0] {
+				foundGateway = gateway
+				break
+			}
+		}
+
+		if foundGateway != nil {
+			break
+		}
+	}
+
+	if foundGateway == nil {
+		display.ExitError("no gateway found with given ID")
+	}
+
+	display.OutputObject(foundGateway, args[0], cloudGatewayTemplate, &outputFormatConfig)
+}
+
 func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 	networkCmd := &cobra.Command{
 		Use:   "network",
@@ -186,7 +262,7 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 	privateNetworkCmd.AddCommand(withFilterFlag(privateNetworkListCmd))
 
 	privateNetworkCmd.AddCommand(&cobra.Command{
-		Use:        "get",
+		Use:        "get <network_id>",
 		Short:      "Get a specific private network",
 		Run:        getCloudPrivateNetwork,
 		Args:       cobra.ExactArgs(1),
@@ -207,10 +283,31 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 	publicNetworkCmd.AddCommand(withFilterFlag(publicNetworkListCmd))
 
 	publicNetworkCmd.AddCommand(&cobra.Command{
-		Use:        "get",
+		Use:        "get <network_id>",
 		Short:      "Get a specific public network",
 		Run:        getCloudPublicNetwork,
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"network_id"},
+	})
+
+	gatewayCmd := &cobra.Command{
+		Use:   "gateway",
+		Short: "Manage gateways in the given cloud project",
+	}
+	networkCmd.AddCommand(gatewayCmd)
+
+	gatewayListCmd := &cobra.Command{
+		Use:   "list",
+		Short: "List your gateways",
+		Run:   listCloudGateways,
+	}
+	gatewayCmd.AddCommand(withFilterFlag(gatewayListCmd))
+
+	gatewayCmd.AddCommand(&cobra.Command{
+		Use:        "get <gateway_id>",
+		Short:      "Get a specific gateway",
+		Run:        getCloudGateway,
+		Args:       cobra.ExactArgs(1),
+		ArgAliases: []string{"gateway_id"},
 	})
 }

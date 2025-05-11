@@ -1,0 +1,29 @@
+🚀 Gateway {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Status**: {{index .Result "status"}}
+**Region**: {{index .Result "region"}}
+**Model**:  {{index .Result "model"}}
+
+## External information
+
+**Network ID**: {{index .Result "externalInformation" "networkId"}}
+
+**IPs**:
+| IP | Subnet |
+| --- | --- |
+{{ range index .Result "externalInformation" "ips" }}| {{.ip}} | {{.subnetId}} |
+{{end}}
+
+## Interfaces
+
+| ID | IP | Network | Subnet |
+| --- | --- | --- | --- |
+{{ range index .Result "interfaces" }}| {{.id}} | {{.ip}} | {{.subnetId}} | {{.networkId}} |
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

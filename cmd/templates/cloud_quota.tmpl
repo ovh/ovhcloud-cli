@@ -1,0 +1,58 @@
+🚀 Quotas for region {{.ServiceName}}
+=======
+
+{{if index .Result "instance"}}
+## Instances
+
+| Resource | Used / Available |
+| --- | --- |
+| Instances | {{index .Result "instance" "usedInstances"}} / {{index .Result "instance" "maxInstances"}} |
+| Cores | {{index .Result "instance" "usedCores"}} / {{index .Result "instance" "maxCores"}} |
+| RAM | {{index .Result "instance" "usedRAM"}} / {{index .Result "instance" "maxRAM"}} |
+{{end}}
+
+{{if index .Result "volume"}}
+## Volumes
+
+| Resource | Used / Available |
+| --- | --- |
+| Volumes | {{index .Result "volume" "volumeCount"}} / {{index .Result "volume" "maxVolumeCount"}} |
+| Volumes capacity | {{index .Result "volume" "usedGigabytes"}} / {{index .Result "volume" "maxGigabytes"}} GB |
+| Backup volumes | {{index .Result "volume" "volumeBackupCount"}} / {{index .Result "volume" "maxVolumeBackupCount"}} |
+| Backup volumes capacity | {{index .Result "volume" "usedBackupGigabytes"}} / {{index .Result "volume" "maxBackupGigabytes"}} GB |
+{{end}}
+
+{{if index .Result "network"}}
+## Networks
+
+| Resource | Used / Available |
+| --- | --- |
+| Networks | {{index .Result "network" "usedNetworks"}} / {{index .Result "network" "maxNetworks"}} |
+| Subnets | {{index .Result "network" "usedSubnets"}} / {{index .Result "network" "maxSubnets"}} |
+| Gateways | {{index .Result "network" "usedGateways"}} / {{index .Result "network" "maxGateways"}} |
+| Floating IPs | {{index .Result "network" "usedFloatingIPs"}} / {{index .Result "network" "maxFloatingIPs"}} |
+{{end}}
+
+{{if index .Result "loadbalancer"}}
+## Load balancers
+
+| Resource | Used / Available |
+| --- | --- |
+| Load balancers | {{index .Result "loadbalancer" "usedLoadbalancers"}} / {{index .Result "loadbalancer" "maxLoadbalancers"}} |
+{{end}}
+
+{{if index .Result "keymanager"}}
+## Key manager
+
+| Resource | Used / Available |
+| --- | --- |
+| Secrets | {{index .Result "keymanager" "usedSecrets"}} / {{index .Result "keymanager" "maxSecrets"}} |
+{{end}}
+
+{{if index .Result "keypair"}}
+## Keypair
+
+**Maximum allowed**: {{index .Result "keypair" "maxCount"}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

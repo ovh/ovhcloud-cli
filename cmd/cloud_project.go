@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"stash.ovh.net/api/ovh-cli/internal/config"
@@ -55,6 +57,9 @@ func init() {
 	initInstanceCommand(cloudCmd)
 	initCloudLoadbalancerCommand(cloudCmd)
 	initCloudNetworkCommand(cloudCmd)
+	initCloudOperationCommand(cloudCmd)
+	initCloudQuotaCommand(cloudCmd)
+	initCloudRegionCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
 	rootCmd.AddCommand(cloudCmd)
@@ -74,4 +79,33 @@ func getConfiguredCloudProject() string {
 	}
 
 	return projectID
+}
+
+func getCloudRegionsWithFeatureAvailable(projectID, serviceName string) ([]any, error) {
+	url := fmt.Sprintf("/cloud/project/%s/region", projectID)
+
+	// List regions available in the cloud project
+	regions, err := fetchExpandedArray(url, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch regions: %w", err)
+	}
+
+	// Filter regions having given feature available
+	var regionIDs []any
+	for _, region := range regions {
+		if region["status"] != "UP" {
+			continue
+		}
+
+		services := region["services"].([]any)
+		for _, service := range services {
+			service := service.(map[string]any)
+			if service["name"] == serviceName && service["status"] == "UP" {
+				regionIDs = append(regionIDs, region["name"])
+				break
+			}
+		}
+	}
+
+	return regionIDs, nil
 }
