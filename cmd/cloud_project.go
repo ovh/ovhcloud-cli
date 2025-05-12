@@ -60,6 +60,8 @@ func init() {
 	initCloudOperationCommand(cloudCmd)
 	initCloudQuotaCommand(cloudCmd)
 	initCloudRegionCommand(cloudCmd)
+	initCloudSSHKeyCommand(cloudCmd)
+	initCloudUserCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
 	rootCmd.AddCommand(cloudCmd)

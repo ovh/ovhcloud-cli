@@ -268,7 +268,7 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 	}
 
 	// Check if at least an OS was provided as it is mandatory
-	if parameters["operatingSystem"] == "" {
+	if os, ok := parameters["operatingSystem"]; !ok || os == "" {
 		display.ExitError("operating system parameter is mandatory to trigger a reinstallation")
 	}
 
@@ -276,7 +276,8 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 	if err != nil {
 		display.ExitError("installation parameters cannot be marshalled: %s", err)
 	}
-	fmt.Println(string(out))
+
+	log.Println("Installation parameters: \n" + string(out))
 
 	url := fmt.Sprintf("/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
 	if err := client.Post(url, parameters, nil); err != nil {
