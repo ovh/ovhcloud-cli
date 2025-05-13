@@ -56,7 +56,11 @@ func fetchObjectsParallel[T any](path string, ids []any, ignoreErrors bool) ([]T
 	return objects, nil
 }
 
-func fetchIDs(path, idField string) ([]any, error) {
+// fetchArray calls the given path (and expects it to return an array), and
+// paginates to fetch all the results.
+// If "idField" given, it tries to extract the given field from the objects returned
+// by the API call.
+func fetchArray(path, idField string) ([]any, error) {
 	req, err := client.NewRequest(http.MethodGet, path, nil, true)
 	if err != nil {
 		return nil, fmt.Errorf("error crafting request: %s", err)
@@ -104,7 +108,7 @@ func fetchIDs(path, idField string) ([]any, error) {
 }
 
 func fetchExpandedArray(path, idField string) ([]map[string]any, error) {
-	ids, err := fetchIDs(path, idField)
+	ids, err := fetchArray(path, idField)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch ids: %w", err)
 	}
@@ -129,6 +133,25 @@ func manageListRequest(path, idField string, columnsToDisplay, filters []string)
 	}
 
 	display.RenderTable(body, columnsToDisplay, &outputFormatConfig)
+}
+
+func manageListRequestNoExpand(path string, columnsToDisplay, filters []string) {
+	body, err := fetchArray(path, "")
+	if err != nil {
+		display.ExitError("failed to fetch results: %s", err)
+	}
+
+	var objects []map[string]any
+	for _, object := range body {
+		objects = append(objects, object.(map[string]any))
+	}
+
+	objects, err = filtersLib.FilterLines(objects, filters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+	}
+
+	display.RenderTable(objects, columnsToDisplay, &outputFormatConfig)
 }
 
 func manageObjectRequest(path, objectID, templateContent string) {

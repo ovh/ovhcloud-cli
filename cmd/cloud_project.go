@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/spf13/cobra"
 
@@ -62,6 +63,8 @@ func init() {
 	initCloudRegionCommand(cloudCmd)
 	initCloudSSHKeyCommand(cloudCmd)
 	initCloudUserCommand(cloudCmd)
+	initCloudStorageS3Command(cloudCmd)
+	initCloudStorageSwiftCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
 	rootCmd.AddCommand(cloudCmd)
@@ -83,7 +86,7 @@ func getConfiguredCloudProject() string {
 	return projectID
 }
 
-func getCloudRegionsWithFeatureAvailable(projectID, serviceName string) ([]any, error) {
+func getCloudRegionsWithFeatureAvailable(projectID string, features ...string) ([]any, error) {
 	url := fmt.Sprintf("/cloud/project/%s/region", projectID)
 
 	// List regions available in the cloud project
@@ -102,7 +105,8 @@ func getCloudRegionsWithFeatureAvailable(projectID, serviceName string) ([]any, 
 		services := region["services"].([]any)
 		for _, service := range services {
 			service := service.(map[string]any)
-			if service["name"] == serviceName && service["status"] == "UP" {
+
+			if slices.Contains(features, service["name"].(string)) && service["status"] == "UP" {
 				regionIDs = append(regionIDs, region["name"])
 				break
 			}
