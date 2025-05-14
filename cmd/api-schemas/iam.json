@@ -1,0 +1,3605 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/v2"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "dbaas.logs.LogKind": {
+        "type": "object",
+        "description": "Log kind",
+        "properties": {
+          "additionalReturnedFields": {
+            "type": "array",
+            "description": "List of additional log fields managed in this log kind",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the log kind",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Log kind display name",
+            "readOnly": true
+          },
+          "kindId": {
+            "type": "string",
+            "description": "Log kind ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Log kind name",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the log kind",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogSubscription": {
+        "type": "object",
+        "description": "Log subscription",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the subscription",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "kind": {
+            "type": "string",
+            "description": "Log kind name of this subscription",
+            "readOnly": true
+          },
+          "resource": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionResource"
+              }
+            ],
+            "description": "Subscribed resource, where the logs come from",
+            "readOnly": true
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Name of the destination log service",
+            "readOnly": true
+          },
+          "streamId": {
+            "type": "string",
+            "description": "Id of the destination log stream",
+            "readOnly": true
+          },
+          "subscriptionId": {
+            "type": "string",
+            "description": "Subscription ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the subscription",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogSubscriptionCreation": {
+        "type": "object",
+        "description": "Log subscription creation payload",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Log kind name to subscribe to"
+          },
+          "streamId": {
+            "type": "string",
+            "description": "Customer log stream ID",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "kind",
+          "streamId"
+        ]
+      },
+      "dbaas.logs.LogSubscriptionResource": {
+        "type": "object",
+        "description": "Log subscription resource",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of subscribed resource",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of subscribed resource",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogSubscriptionResponse": {
+        "type": "object",
+        "description": "Asynchronous operation after subscribing or unsubscribing to a resource logs",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "description": "Identifier of the operation",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Operation owner's service name",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogUrlCreation": {
+        "type": "object",
+        "description": "Log temporary URL creation payload",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Log kind name"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "dbaas.logs.TemporaryLogsLink": {
+        "type": "object",
+        "description": "Temporary url information",
+        "properties": {
+          "expirationDate": {
+            "type": "string",
+            "description": "Temporary url expiration date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "description": "Temporary url",
+            "readOnly": true
+          }
+        }
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.AuthorizeBatchRequest": {
+        "type": "object",
+        "description": "Authorization request",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "description": "List of actions to check authorizations for",
+            "items": {
+              "type": "string"
+            }
+          },
+          "resourceURNs": {
+            "type": "array",
+            "description": "Resources on which accesses should be checked",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "actions",
+          "resourceURNs"
+        ]
+      },
+      "iam.AuthorizeBatchResponse": {
+        "type": "object",
+        "description": "Result of an authorization request",
+        "properties": {
+          "authorizedActions": {
+            "type": "array",
+            "description": "Authorized actions",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "resourceURN": {
+            "type": "string",
+            "description": "URN of the resource",
+            "readOnly": true
+          },
+          "unauthorizedActions": {
+            "type": "array",
+            "description": "Unauthorized actions",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "iam.AuthorizeRequest": {
+        "type": "object",
+        "description": "Authorization request",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "description": "List of actions to check authorizations for",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "actions"
+        ]
+      },
+      "iam.AuthorizeResponse": {
+        "type": "object",
+        "description": "Result of an authorization request",
+        "properties": {
+          "authorizedActions": {
+            "type": "array",
+            "description": "Authorized actions",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "unauthorizedActions": {
+            "type": "array",
+            "description": "Unauthorized actions",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "iam.PermissionsGroup": {
+        "type": "object",
+        "description": "Permissions group defines a re-usable set of permissions",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Creation time",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the permissions group"
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the permissions group",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the permissions group"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owner of the permissions group",
+            "readOnly": true
+          },
+          "permissions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.Permissions"
+              }
+            ],
+            "description": "Permissions granted when using this permissions group"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update time",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies to include this permissions group",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "description",
+          "name",
+          "permissions"
+        ]
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.group.Creation": {
+        "type": "object",
+        "description": "Properties needed to create a group",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the group"
+          },
+          "resources": {
+            "type": "array",
+            "description": "Resources to add in the created group",
+            "items": {
+              "$ref": "#/components/schemas/iam.group.Resource"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "iam.group.Resource": {
+        "type": "object",
+        "description": "Resource is an entity standing for a product. It is used for right delegation",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Resource name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "owner": {
+            "type": "string",
+            "description": "Resource owner",
+            "nullable": true,
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Resource type. All types can be retrieved at /reference/resource/type",
+            "nullable": true,
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "nullable": true
+          }
+        }
+      },
+      "iam.group.Response": {
+        "type": "object",
+        "description": "Group defines a set of resources",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Creation time",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the group",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the group",
+            "readOnly": true
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owner of the group",
+            "readOnly": true
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Whether you can add or remove resources",
+            "readOnly": true
+          },
+          "resources": {
+            "type": "array",
+            "description": "Resources included in the group",
+            "items": {
+              "$ref": "#/components/schemas/iam.group.Resource"
+            },
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update time",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.group.Update": {
+        "type": "object",
+        "description": "Fields to update for a given group",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "New name of the group"
+          },
+          "resources": {
+            "type": "array",
+            "description": "New list of resources of the group",
+            "items": {
+              "$ref": "#/components/schemas/iam.group.Resource"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "resources"
+        ]
+      },
+      "iam.policy.Action": {
+        "type": "object",
+        "description": "Action that can be allowed or denied on a resource",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Name of the action"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "iam.policy.Condition": {
+        "type": "object",
+        "description": "Condition included in a policy",
+        "properties": {
+          "conditions": {
+            "type": "array",
+            "description": "conditions",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/iam.policy.Condition"
+            }
+          },
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.Condition.OperatorEnum"
+              }
+            ],
+            "description": "Operator used with conditions"
+          },
+          "values": {
+            "type": "object",
+            "description": "Conditions to apply",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "iam.policy.Condition.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to restrict policy",
+        "enum": [
+          "AND",
+          "MATCH",
+          "NOT",
+          "OR"
+        ]
+      },
+      "iam.policy.Creation": {
+        "type": "object",
+        "description": "Policy definition",
+        "properties": {
+          "conditions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.Condition"
+              }
+            ],
+            "description": "Conditions restrict permissions following resources, date or customer's information",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the policy"
+          },
+          "expiredAt": {
+            "type": "string",
+            "description": "Expiration date of the policy, after this date it will no longer be applied",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "identities": {
+            "type": "array",
+            "description": "Recipients of the delegated resources",
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the policy"
+          },
+          "permissions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.Permissions"
+              }
+            ],
+            "description": "Permissions accorded to the recipients on the given resources"
+          },
+          "permissionsGroups": {
+            "type": "array",
+            "description": "Permissions groups accorded to the recipients on the given resources",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/iam.policy.PermissionsGroup"
+            }
+          },
+          "resources": {
+            "type": "array",
+            "description": "Resources to delegate",
+            "items": {
+              "$ref": "#/components/schemas/iam.policy.Resource"
+            }
+          }
+        },
+        "required": [
+          "identities",
+          "name",
+          "permissions",
+          "resources"
+        ]
+      },
+      "iam.policy.Group": {
+        "type": "object",
+        "description": "Group defines a set of resources",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the group",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the group",
+            "readOnly": true
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Whether you can add or remove resources",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.policy.Permissions": {
+        "type": "object",
+        "description": "Permissions included in a policy",
+        "properties": {
+          "allow": {
+            "type": "array",
+            "description": "List of allowed actions",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/iam.policy.Action"
+            }
+          },
+          "deny": {
+            "type": "array",
+            "description": "Actions to deny the access to",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/iam.policy.Action"
+            }
+          },
+          "except": {
+            "type": "array",
+            "description": "Actions to filter from the allowed list",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/iam.policy.Action"
+            }
+          }
+        }
+      },
+      "iam.policy.PermissionsGroup": {
+        "type": "object",
+        "description": "Permissions group linked to a policy",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the permissions group",
+            "nullable": true,
+            "readOnly": true
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owner of the permissions group",
+            "nullable": true,
+            "readOnly": true
+          },
+          "permissions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.Permissions"
+              }
+            ],
+            "description": "Permissions embedded in the permissions group",
+            "nullable": true,
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "URN of the permissions group"
+          }
+        }
+      },
+      "iam.policy.Resource": {
+        "type": "object",
+        "description": "Resource in a policy",
+        "properties": {
+          "group": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.Group"
+              }
+            ],
+            "description": "Group object, if resource is a group",
+            "nullable": true,
+            "readOnly": true
+          },
+          "resource": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.SingleResource"
+              }
+            ],
+            "description": "Resource object, if resource is a single resource",
+            "nullable": true,
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "URN of the resource"
+          }
+        },
+        "required": [
+          "urn"
+        ]
+      },
+      "iam.policy.Response": {
+        "type": "object",
+        "description": "Policy definition",
+        "properties": {
+          "conditions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.Condition"
+              }
+            ],
+            "description": "Conditions restrict permissions following resources, date or customer's information",
+            "nullable": true,
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation time",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the policy",
+            "nullable": true,
+            "readOnly": true
+          },
+          "expiredAt": {
+            "type": "string",
+            "description": "Expiration date of the policy, after this date it will no longer be applied",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the policy",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "identities": {
+            "type": "array",
+            "description": "Recipients of the delegated resources",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the policy",
+            "readOnly": true
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owner of the policy",
+            "readOnly": true
+          },
+          "permissions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.Permissions"
+              }
+            ],
+            "description": "Permissions accorded to the recipients on the given resources",
+            "readOnly": true
+          },
+          "permissionsGroups": {
+            "type": "array",
+            "description": "Permissions groups accorded to the recipients on the given resources",
+            "items": {
+              "$ref": "#/components/schemas/iam.policy.PermissionsGroup"
+            },
+            "readOnly": true
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Whether you can update policy",
+            "readOnly": true
+          },
+          "resources": {
+            "type": "array",
+            "description": "Resources to delegate",
+            "items": {
+              "$ref": "#/components/schemas/iam.policy.Resource"
+            },
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update time",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.policy.SingleResource": {
+        "type": "object",
+        "description": "Single resource in a policy",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Display name of the resource",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the resource",
+            "readOnly": true
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owner of the resource",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Resource type. All types can be retrieved at /reference/resource/type",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.policy.Update": {
+        "type": "object",
+        "description": "Properties needed to update a policy",
+        "properties": {
+          "conditions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.Condition"
+              }
+            ],
+            "description": "Conditions restrict permissions following resources, date or customer's information",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the policy"
+          },
+          "expiredAt": {
+            "type": "string",
+            "description": "Expiration date of the policy, after this date it will no longer be applied",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "identities": {
+            "type": "array",
+            "description": "Recipients of the delegated resources",
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the policy"
+          },
+          "permissions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.policy.Permissions"
+              }
+            ],
+            "description": "Permissions accorded to the recipients on the given resources"
+          },
+          "permissionsGroups": {
+            "type": "array",
+            "description": "Permissions groups accorded to the recipients on the given resources",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/iam.policy.PermissionsGroup"
+            }
+          },
+          "resources": {
+            "type": "array",
+            "description": "Resources to delegate",
+            "items": {
+              "$ref": "#/components/schemas/iam.policy.Resource"
+            }
+          }
+        },
+        "required": [
+          "identities",
+          "name",
+          "permissions",
+          "resources"
+        ]
+      },
+      "iam.reference.Action": {
+        "type": "object",
+        "description": "Action that can be allowed or denied on a resource",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Name of the action",
+            "readOnly": true
+          },
+          "categories": {
+            "type": "array",
+            "description": "List of categories the action belongs to",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the action",
+            "readOnly": true
+          },
+          "hasQueryParameters": {
+            "type": "boolean",
+            "description": "Whether you can use the action with additional parameters",
+            "readOnly": true
+          },
+          "resourceType": {
+            "type": "string",
+            "description": "Resource type related to the action",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.AddTag": {
+        "type": "object",
+        "description": "Fields to add a tag to a resource",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Resource tag key. It must comply with '^[a-zA-Z0-9_.:/=+@-]{1,128}\\z'"
+          },
+          "value": {
+            "type": "string",
+            "description": "Resource tag value. It must comply with '^[a-zA-Z0-9_.:/=+@-]{0,256}\\z'"
+          }
+        },
+        "required": [
+          "key",
+          "value"
+        ]
+      },
+      "iam.resource.Resource": {
+        "type": "object",
+        "description": "Resource is an entity standing for a product. It is used for right delegation",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Resource name",
+            "readOnly": true
+          },
+          "owner": {
+            "type": "string",
+            "description": "Resource owner",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "type": "string",
+            "description": "Resource type. All types can be retrieved at /reference/resource/type",
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
+            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/iam/authorization/check": {
+      "post": {
+        "summary": "Validate your authorizations on given resources",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/iam.AuthorizeBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/iam.AuthorizeBatchResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Authorization"
+        ],
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ]
+      }
+    },
+    "/iam/log/kind": {
+      "get": {
+        "summary": "List available log kinds",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Logs"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/log/kind/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "DbaasLogsLogKind"
+      }
+    },
+    "/iam/log/kind/{name}": {
+      "get": {
+        "summary": "Get a log kind",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogKind"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Logs"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/log/kind/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "name"
+      }
+    },
+    "/iam/log/subscription": {
+      "get": {
+        "summary": "List subscription IDs for a cluster",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "description": "Filter on a specific kind (e.g., default)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Logs"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/log/subscription/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "DbaasLogsLogSubscription"
+      },
+      "post": {
+        "summary": "Create a subscription from logs to a pre-existing LDP stream",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Logs"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/log/subscription/create",
+            "required": true
+          },
+          {
+            "name": "ldp:apiovh:output/graylog/stream/forwardTo",
+            "description": "Required on the targeted LDP service",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/iam/log/subscription/{subscriptionId}": {
+      "delete": {
+        "summary": "Delete a subscription",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscriptionId",
+            "description": "Subscription ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Logs"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/log/subscription/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get subscription details",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscriptionId",
+            "description": "Subscription ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogSubscription"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Logs"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/log/subscription/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "subscriptionId"
+      }
+    },
+    "/iam/log/url": {
+      "post": {
+        "summary": "Generate a temporary URL to retrieve logs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dbaas.logs.LogUrlCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.TemporaryLogsLink"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Logs"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/log/url/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/iam/permissionsGroup": {
+      "get": {
+        "summary": "Retrieve all permissions groups",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/iam.PermissionsGroup"
+                  }
+                },
+                "examples": {
+                  "Get permissions groups": {
+                    "value": [
+                      {
+                        "createdAt": "2023-05-12T13:38:15.73892Z",
+                        "description": "Set of actions required to manage vrack products",
+                        "id": "6956639e-3848-11ee-ae3c-0050568ce122",
+                        "name": "vrackManagement",
+                        "owner": "ovh",
+                        "permissions": {
+                          "allow": [
+                            {
+                              "action": "*:vrack:*"
+                            }
+                          ]
+                        },
+                        "updatedAt": "2023-06-19T13:13:34.642173Z",
+                        "urn": "urn:v1:eu:permissionsGroup:ovh:vrackManagement"
+                      }
+                    ],
+                    "summary": "Response body returned when listing permissions groups"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Permissions & policies"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/permissionsGroup/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "urn",
+        "x-expanded-response": "IamPermissionsGroup"
+      },
+      "post": {
+        "summary": "Create a permissions group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/iam.PermissionsGroup"
+              },
+              "examples": {
+                "Create a permissions group": {
+                  "value": {
+                    "description": "My custom permissions group",
+                    "name": "myPermissions",
+                    "permissions": {
+                      "allow": [
+                        {
+                          "action": "*:apiovh:*"
+                        }
+                      ]
+                    }
+                  },
+                  "summary": "Request body used when creating a permissions group"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.PermissionsGroup"
+                },
+                "examples": {
+                  "Get a permissions group": {
+                    "value": {
+                      "createdAt": "2023-05-12T13:38:15.73892Z",
+                      "description": "My custom permissions group",
+                      "id": "6956639e-3848-11ee-ae3c-0050568ce122",
+                      "name": "myPermissions",
+                      "owner": "aa1-ovh",
+                      "permissions": {
+                        "allow": [
+                          {
+                            "action": "*:apiovh:*"
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-06-19T13:13:34.642173Z",
+                      "urn": "urn:v1:eu:permissionsGroup:aa1-ovh:myPermissions"
+                    },
+                    "summary": "Response body returned when creating a permissions group"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Permissions & policies"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/permissionsGroup/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/iam/permissionsGroup/{permissionsGroupURN}": {
+      "delete": {
+        "summary": "Delete the given permissions group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "permissionsGroupURN",
+            "description": "Permissions groupurn",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "tags": [
+          "Permissions & policies"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/permissionsGroup/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Retrieve the given permissions group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "permissionsGroupURN",
+            "description": "Permissions groupurn",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.PermissionsGroup"
+                },
+                "examples": {
+                  "Get a permissions group": {
+                    "value": {
+                      "createdAt": "2023-05-12T13:38:15.73892Z",
+                      "description": "Set of actions required to manage vrack products",
+                      "id": "6956639e-3848-11ee-ae3c-0050568ce122",
+                      "name": "vrackManagement",
+                      "owner": "ovh",
+                      "permissions": {
+                        "allow": [
+                          {
+                            "action": "*:vrack:*"
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-06-19T13:13:34.642173Z",
+                      "urn": "urn:v1:eu:permissionsGroup:ovh:vrackManagement"
+                    },
+                    "summary": "Response body returned when getting a permissions group"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Permissions & policies"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/permissionsGroup/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "urn"
+      },
+      "put": {
+        "summary": "Update a permissions group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "permissionsGroupURN",
+            "description": "Permissions groupurn",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/iam.PermissionsGroup"
+              },
+              "examples": {
+                "Update a permissions group": {
+                  "value": {
+                    "description": "My custom permissions group",
+                    "name": "myPermissions",
+                    "permissions": {
+                      "allow": [
+                        {
+                          "action": "*:apiovh:*"
+                        }
+                      ]
+                    }
+                  },
+                  "summary": "Request body used when updating a permissions group"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.PermissionsGroup"
+                },
+                "examples": {
+                  "Update a permissions group": {
+                    "value": {
+                      "createdAt": "2023-05-12T13:38:15.73892Z",
+                      "description": "My custom permissions group",
+                      "id": "6956639e-3848-11ee-ae3c-0050568ce122",
+                      "name": "myPermissions",
+                      "owner": "aa1-ovh",
+                      "permissions": {
+                        "allow": [
+                          {
+                            "action": "*:apiovh:*"
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-06-19T13:13:34.642173Z",
+                      "urn": "urn:v1:eu:permissionsGroup:aa1-ovh:myPermissions"
+                    },
+                    "summary": "Response body returned when updating a permissions group"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Permissions & policies"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/permissionsGroup/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/iam/policy": {
+      "get": {
+        "summary": "Retrieve all policies",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "description": "Filter on policies embedding the given IAM action",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "in": "query",
+            "name": "details",
+            "description": "Add extra information about resources in output",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "identity",
+            "description": "Filter on policies embedding the given identity",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "in": "query",
+            "name": "readOnly",
+            "description": "Filter on the readOnly attribute",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resourceURN",
+            "description": "Filter on policies embedding the given resource URN",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/iam.policy.Response"
+                  }
+                },
+                "examples": {
+                  "Get policies": {
+                    "value": [
+                      {
+                        "conditions": {
+                          "operator": "MATCH",
+                          "values": {
+                            "date(Europe/Paris).WeekDay.In": "monday,tuesday",
+                            "resource.Tag(security_level)": "high"
+                          }
+                        },
+                        "createdAt": "2023-05-12T13:38:15.73892Z",
+                        "description": "Delegate DNS zone management to the development team",
+                        "id": "6956639e-3848-11ee-ae3c-0050568ce122",
+                        "identities": [
+                          "urn:v1:eu:identity:group:aa1-ovh/devs"
+                        ],
+                        "name": "dev-dns-delegation",
+                        "owner": "aa1-ovh",
+                        "permissions": {
+                          "allow": [
+                            {
+                              "action": "dnsZone:apiovh:get"
+                            },
+                            {
+                              "action": "dnsZone:apiovh:record/*"
+                            }
+                          ],
+                          "except": [
+                            {
+                              "action": "dnsZone:apiovh:record/delete"
+                            }
+                          ]
+                        },
+                        "permissionsGroups": [],
+                        "readOnly": false,
+                        "resources": [
+                          {
+                            "urn": "urn:v1:eu:resource:dnsZone:example.domain.dev"
+                          }
+                        ],
+                        "updatedAt": "2023-06-19T13:13:34.642173Z"
+                      }
+                    ],
+                    "summary": "Response body returned when listing policies"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Permissions & policies"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/policy/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "IamPolicyResponse"
+      },
+      "post": {
+        "summary": "Create a new policy",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/iam.policy.Creation"
+              },
+              "examples": {
+                "Create a policy": {
+                  "value": {
+                    "conditions": {
+                      "conditions": [
+                        {
+                          "operator": "MATCH",
+                          "values": {
+                            "date(Europe/Paris).WeekDay.In": "monday,tuesday",
+                            "resource.Tag(security_level)": "high"
+                          }
+                        },
+                        {
+                          "operator": "MATCH",
+                          "values": {
+                            "date(Europe/Paris).WeekDay": "monday",
+                            "request.IP": "192.72.0.1"
+                          }
+                        }
+                      ],
+                      "operator": "OR"
+                    },
+                    "description": "Delegate DNS zone management to the development team",
+                    "identities": [
+                      "urn:v1:eu:identity:group:aa1-ovh/devs"
+                    ],
+                    "name": "dev-dns-delegation",
+                    "permissions": {
+                      "allow": [
+                        {
+                          "action": "dnsZone:apiovh:get"
+                        },
+                        {
+                          "action": "dnsZone:apiovh:record/*"
+                        }
+                      ],
+                      "except": [
+                        {
+                          "action": "dnsZone:apiovh:record/delete"
+                        }
+                      ]
+                    },
+                    "resources": [
+                      {
+                        "urn": "urn:v1:eu:resource:dnsZone:example.domain.dev"
+                      }
+                    ]
+                  },
+                  "summary": "Request body used to create a policy"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.policy.Response"
+                },
+                "examples": {
+                  "Policy creation response": {
+                    "value": {
+                      "conditions": {
+                        "conditions": [
+                          {
+                            "operator": "MATCH",
+                            "values": {
+                              "date(Europe/Paris).WeekDay.In": "monday,tuesday",
+                              "resource.Tag(security_level)": "high"
+                            }
+                          },
+                          {
+                            "operator": "MATCH",
+                            "values": {
+                              "date(Europe/Paris).WeekDay": "monday",
+                              "request.IP": "192.72.0.1"
+                            }
+                          }
+                        ],
+                        "operator": "OR"
+                      },
+                      "createdAt": "2023-05-12T13:38:15.73892Z",
+                      "description": "Delegate DNS zone management to the development team",
+                      "id": "6956639e-3848-11ee-ae3c-0050568ce122",
+                      "identities": [
+                        "urn:v1:eu:identity:group:aa1-ovh/devs"
+                      ],
+                      "name": "dev-dns-delegation",
+                      "owner": "aa1-ovh",
+                      "permissions": {
+                        "allow": [
+                          {
+                            "action": "dnsZone:apiovh:get"
+                          },
+                          {
+                            "action": "dnsZone:apiovh:record/*"
+                          }
+                        ],
+                        "except": [
+                          {
+                            "action": "dnsZone:apiovh:record/delete"
+                          }
+                        ]
+                      },
+                      "permissionsGroups": [],
+                      "readOnly": false,
+                      "resources": [
+                        {
+                          "urn": "urn:v1:eu:resource:dnsZone:example.domain.dev"
+                        }
+                      ]
+                    },
+                    "summary": "Response body returned when creating a policy"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Permissions & policies"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/policy/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/iam/policy/{policyId}": {
+      "delete": {
+        "summary": "Delete the given policy",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policyId",
+            "description": "Policy ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "tags": [
+          "Permissions & policies"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/policy/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Retrieve the given policy",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "details",
+            "description": "Add extra information about resources in output",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "policyId",
+            "description": "Policy ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.policy.Response"
+                },
+                "examples": {
+                  "Get a policy": {
+                    "value": {
+                      "conditions": {
+                        "conditions": [
+                          {
+                            "operator": "MATCH",
+                            "values": {
+                              "date(Europe/Paris).WeekDay.In": "monday,tuesday",
+                              "resource.Tag(security_level)": "high"
+                            }
+                          },
+                          {
+                            "operator": "MATCH",
+                            "values": {
+                              "date(Europe/Paris).WeekDay": "monday",
+                              "request.IP": "192.72.0.1"
+                            }
+                          }
+                        ],
+                        "operator": "OR"
+                      },
+                      "createdAt": "2023-05-12T13:38:15.73892Z",
+                      "description": "Delegate DNS zone management to the development team",
+                      "id": "6956639e-3848-11ee-ae3c-0050568ce122",
+                      "identities": [
+                        "urn:v1:eu:identity:group:aa1-ovh/devs"
+                      ],
+                      "name": "dev-dns-delegation",
+                      "owner": "aa1-ovh",
+                      "permissions": {
+                        "allow": [
+                          {
+                            "action": "dnsZone:apiovh:get"
+                          },
+                          {
+                            "action": "dnsZone:apiovh:record/*"
+                          }
+                        ],
+                        "except": [
+                          {
+                            "action": "dnsZone:apiovh:record/delete"
+                          }
+                        ]
+                      },
+                      "permissionsGroups": [
+                        {
+                          "urn": "urn:v1:eu:permissionsGroup:ovh:default"
+                        }
+                      ],
+                      "readOnly": false,
+                      "resources": [
+                        {
+                          "urn": "urn:v1:eu:resource:dnsZone:example.domain.dev"
+                        }
+                      ],
+                      "updatedAt": "2023-06-19T13:13:34.642173Z"
+                    },
+                    "summary": "Response body returned when getting a policy"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Permissions & policies"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/policy/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update an existing policy",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policyId",
+            "description": "Policy ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/iam.policy.Update"
+              },
+              "examples": {
+                "Update a policy": {
+                  "value": {
+                    "conditions": {
+                      "operator": "MATCH",
+                      "values": {
+                        "date(Europe/Paris).WeekDay.In": "monday,tuesday",
+                        "resource.Tag(security_level)": "high"
+                      }
+                    },
+                    "description": "Delegate DNS zone management to the UX team",
+                    "identities": [
+                      "urn:v1:eu:identity:group:aa1-ovh/ux"
+                    ],
+                    "name": "ux-dns-delegation",
+                    "permissions": {
+                      "allow": [
+                        {
+                          "action": "dnsZone:apiovh:get"
+                        }
+                      ],
+                      "except": [
+                        {
+                          "action": "dnsZone:apiovh:record/delete"
+                        }
+                      ]
+                    },
+                    "resources": [
+                      {
+                        "urn": "urn:v1:eu:resource:dnsZone:example.domain.dev"
+                      }
+                    ]
+                  },
+                  "summary": "Request body used to update a policy"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.policy.Response"
+                },
+                "examples": {
+                  "Policy update response": {
+                    "value": {
+                      "conditions": {
+                        "operator": "MATCH",
+                        "values": {
+                          "date(Europe/Paris).WeekDay.In": "monday,tuesday",
+                          "resource.Tag(security_level)": "high"
+                        }
+                      },
+                      "createdAt": "2023-05-12T13:38:15.73892Z",
+                      "description": "Delegate DNS zone management to the UX team",
+                      "id": "6956639e-3848-11ee-ae3c-0050568ce122",
+                      "identities": [
+                        "urn:v1:eu:identity:group:aa1-ovh/ux"
+                      ],
+                      "name": "ux-dns-delegation",
+                      "owner": "aa1-ovh",
+                      "permissions": {
+                        "allow": [
+                          {
+                            "action": "dnsZone:apiovh:get"
+                          }
+                        ],
+                        "except": [
+                          {
+                            "action": "dnsZone:apiovh:record/delete"
+                          }
+                        ]
+                      },
+                      "permissionsGroups": [],
+                      "readOnly": false,
+                      "resources": [
+                        {
+                          "urn": "urn:v1:eu:resource:dnsZone:example.domain.dev"
+                        }
+                      ],
+                      "updatedAt": "2023-06-19T13:13:34.642173Z"
+                    },
+                    "summary": "Response body returned after updating a policy"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Permissions & policies"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/policy/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/iam/reference/action": {
+      "get": {
+        "summary": "Retrieve all actions",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resourceType",
+            "description": "Filter actions for specific resource types",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/iam.reference.Action"
+                  }
+                },
+                "examples": {
+                  "Get IAM actions": {
+                    "value": [
+                      {
+                        "action": "dedicatedServer:apiovh:install/start",
+                        "categories": [
+                          "OPERATE"
+                        ],
+                        "description": "Start an install on a dedicated server",
+                        "hasQueryParameters": false,
+                        "resourceType": "dedicatedServer"
+                      },
+                      {
+                        "action": "dedicatedServer:apiovh:install/status/get",
+                        "categories": [
+                          "READ"
+                        ],
+                        "description": "Get installation status",
+                        "hasQueryParameters": false,
+                        "resourceType": "dedicatedServer"
+                      }
+                    ],
+                    "summary": "Response body containing IAM actions"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reference"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ]
+      }
+    },
+    "/iam/reference/resource/type": {
+      "get": {
+        "summary": "Retrieve all resource types",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "examples": {
+                  "Get resource types": {
+                    "value": [
+                      "dedicatedServer",
+                      "publicCloudProject",
+                      "vps"
+                    ],
+                    "summary": "Response body containing resource types"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reference"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ]
+      }
+    },
+    "/iam/resource": {
+      "get": {
+        "summary": "List all resources",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resourceName",
+            "description": "Filter resources for specific resource names",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "in": "query",
+            "name": "resourceType",
+            "description": "Filter resources for specific resource types",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "in": "query",
+            "name": "resourceURN",
+            "description": "Filter resources for specific resource URN patterns",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "in": "query",
+            "name": "tags",
+            "description": "Filter resources using tag filters",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/iam.resource.Resource"
+                  }
+                },
+                "examples": {
+                  "Get resources": {
+                    "value": [
+                      {
+                        "displayName": "Production dedicated server",
+                        "id": "5d0e28e2-306e-11ee-8dad-0050568ce122",
+                        "name": "ns-123456.ip-11.22.33.eu",
+                        "owner": "aa1-ovh",
+                        "tags": {
+                          "environment": "production",
+                          "team": "website"
+                        },
+                        "type": "dedicatedServer",
+                        "urn": "urn:v1:eu:resource:dedicatedServer:ns-123456.ip-11.22.33.eu"
+                      }
+                    ],
+                    "summary": "Response body returned when listing resources"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-response-identifier": "urn",
+        "x-expanded-response": "IamResourceResource"
+      }
+    },
+    "/iam/resource/{resourceURN}": {
+      "get": {
+        "summary": "Retrieve a resource",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resourceURN",
+            "description": "ResourceURN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.resource.Resource"
+                },
+                "examples": {
+                  "Get a resource": {
+                    "value": {
+                      "displayName": "Production dedicated server",
+                      "id": "5d0e28e2-306e-11ee-8dad-0050568ce122",
+                      "name": "ns-123456.ip-11.22.33.eu",
+                      "owner": "aa1-ovh",
+                      "tags": {
+                        "environment": "production",
+                        "team": "website"
+                      },
+                      "type": "dedicatedServer",
+                      "urn": "urn:v1:eu:resource:dedicatedServer:ns-123456.ip-11.22.33.eu"
+                    },
+                    "summary": "Response body returned when getting a resource"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-response-identifier": "urn"
+      },
+      "put": {
+        "summary": "Update an existing resource",
+        "description": "Update an existing resource\\\nDepending on the update, you will require specific grants on this resource:\n- Adding tag(s) requires action '$resourceType:apiovh:iam/resource/tag/add'\n- Removing tag(s) requires action '$resourceType:apiovh:iam/resource/tag/remove'\n\n(with $resourceType the type of the updated resource)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resourceURN",
+            "description": "ResourceURN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/iam.resource.Resource"
+              },
+              "examples": {
+                "Edit resource tags": {
+                  "value": {
+                    "tags": {
+                      "environment": "production",
+                      "team": "website"
+                    }
+                  },
+                  "summary": "Request body used to edit the tags of a resource"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.resource.Resource"
+                },
+                "examples": {
+                  "Edit resource tags": {
+                    "value": {
+                      "displayName": "Production dedicated server",
+                      "id": "5d0e28e2-306e-11ee-8dad-0050568ce122",
+                      "name": "ns-123456.ip-11.22.33.eu",
+                      "owner": "aa1-ovh",
+                      "tags": {
+                        "environment": "production",
+                        "team": "website"
+                      },
+                      "type": "dedicatedServer",
+                      "urn": "urn:v1:eu:resource:dedicatedServer:ns-123456.ip-11.22.33.eu"
+                    },
+                    "summary": "Response body returned after editing the tags of a resource"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/resource/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/iam/resource/{resourceURN}/authorization/check": {
+      "post": {
+        "summary": "Validate authorizations on a given resource",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resourceURN",
+            "description": "ResourceURN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/iam.AuthorizeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.AuthorizeResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Authorization",
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ]
+      }
+    },
+    "/iam/resource/{resourceURN}/tag": {
+      "post": {
+        "summary": "Add a tag to a resource",
+        "description": "Add a tag to a resource\\\nThis action requires to be granted on action '$resourceType:apiovh:iam/resource/tag/add' (with $resourceType the type of the updated resource)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resourceURN",
+            "description": "ResourceURN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/iam.resource.AddTag"
+              },
+              "examples": {
+                "Add a tag to a resource": {
+                  "value": {
+                    "key": "environment",
+                    "value": "production"
+                  },
+                  "summary": "Request body used to update tags of a resource"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "tags": [
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/resource/tag/add",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/iam/resource/{resourceURN}/tag/{key}": {
+      "delete": {
+        "summary": "Remove a tag from a resource",
+        "description": "Remove a tag from a resource\\\nThis action requires to be granted on action '$resourceType:apiovh:iam/resource/tag/remove' (with $resourceType the type of the updated resource)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "resourceURN",
+            "description": "ResourceURN",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "tags": [
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/resource/tag/remove",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/iam/resourceGroup": {
+      "get": {
+        "summary": "Retrieve all resource groups",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "details",
+            "description": "Add extra information about resources in output",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/iam.group.Response"
+                  }
+                },
+                "examples": {
+                  "List resource group": {
+                    "value": [
+                      {
+                        "createdAt": "2020-03-19T10:45:18.000Z",
+                        "id": "9167fb26-382b-11ee-895a-0050568ce122",
+                        "name": "productionDedicatedServers",
+                        "owner": "aa1-ovh",
+                        "readOnly": false,
+                        "resources": [
+                          {
+                            "displayName": "DedicatedProd-1",
+                            "id": "d94d0a7a-382c-11ee-9153-0050568ce122",
+                            "name": "ns-123456.ip-11.22.33.eu",
+                            "owner": "ab1-ovh",
+                            "type": "dedicatedServer",
+                            "urn": "urn:v1:eu:resource:dedicatedServer:ns-123456.ip-11.22.33.eu"
+                          },
+                          {
+                            "displayName": "DedicatedProd-2",
+                            "id": "20fae9d2-382d-11ee-8042-0050568ce122",
+                            "name": "ns-234567.ip-11.22.33.eu",
+                            "owner": "ab2-ovh",
+                            "type": "dedicatedServer",
+                            "urn": "urn:v1:eu:resource:dedicatedServer:ns-234567.ip-11.22.33.eu"
+                          }
+                        ],
+                        "updatedAt": "2023-06-08T02:12:02.000Z",
+                        "urn": "urn:v1:eu:resourceGroup:9167fb26-382b-11ee-895a-0050568ce122"
+                      }
+                    ],
+                    "summary": "Response body returned when listing resource groups with details"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/resourceGroup/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "IamGroupResponse"
+      },
+      "post": {
+        "summary": "Create a new resource group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/iam.group.Creation"
+              },
+              "examples": {
+                "Create a resource group": {
+                  "value": {
+                    "name": "productionDedicatedServers",
+                    "resources": [
+                      {
+                        "id": "d94d0a7a-382c-11ee-9153-0050568ce122"
+                      }
+                    ]
+                  },
+                  "summary": "Request body used to create a resource group"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.group.Response"
+                },
+                "examples": {
+                  "Resource group creation": {
+                    "value": {
+                      "createdAt": "2020-03-19T10:45:18.000Z",
+                      "id": "9167fb26-382b-11ee-895a-0050568ce122",
+                      "name": "productionDedicatedServers",
+                      "owner": "aa1-ovh",
+                      "readOnly": false,
+                      "resources": [
+                        {
+                          "id": "d94d0a7a-382c-11ee-9153-0050568ce122"
+                        }
+                      ],
+                      "urn": "urn:v1:eu:resourceGroup:9167fb26-382b-11ee-895a-0050568ce122"
+                    },
+                    "summary": "Response body returned after creating a resource group"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/resourceGroup/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/iam/resourceGroup/{groupId}": {
+      "delete": {
+        "summary": "Delete the given resource group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "groupId",
+            "description": "Group ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "tags": [
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/resourceGroup/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Retrieve the given resource group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "details",
+            "description": "Add extra information about resources in output",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "groupId",
+            "description": "Group ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.group.Response"
+                },
+                "examples": {
+                  "Get a resource group": {
+                    "value": {
+                      "createdAt": "2020-03-19T10:45:18.000Z",
+                      "id": "9167fb26-382b-11ee-895a-0050568ce122",
+                      "name": "productionDedicatedServers",
+                      "owner": "aa1-ovh",
+                      "readOnly": false,
+                      "resources": [
+                        {
+                          "displayName": "DedicatedProd-1",
+                          "id": "d94d0a7a-382c-11ee-9153-0050568ce122",
+                          "name": "ns-123456.ip-11.22.33.eu",
+                          "owner": "ab1-ovh",
+                          "type": "dedicatedServer",
+                          "urn": "urn:v1:eu:resource:dedicatedServer:ns-123456.ip-11.22.33.eu"
+                        },
+                        {
+                          "displayName": "DedicatedProd-2",
+                          "id": "20fae9d2-382d-11ee-8042-0050568ce122",
+                          "name": "ns-234567.ip-11.22.33.eu",
+                          "owner": "ab2-ovh",
+                          "type": "dedicatedServer",
+                          "urn": "urn:v1:eu:resource:dedicatedServer:ns-234567.ip-11.22.33.eu"
+                        }
+                      ],
+                      "updatedAt": "2023-06-08T02:12:02.000Z",
+                      "urn": "urn:v1:eu:resourceGroup:9167fb26-382b-11ee-895a-0050568ce122"
+                    },
+                    "summary": "Response body returned when getting a resource group with details"
+                  },
+                  "Get a resource group without details": {
+                    "value": {
+                      "createdAt": "2020-03-19T10:45:18.000Z",
+                      "id": "9167fb26-382b-11ee-895a-0050568ce122",
+                      "name": "productionDedicatedServers",
+                      "owner": "aa1-ovh",
+                      "readOnly": false,
+                      "resources": [
+                        {
+                          "id": "d94d0a7a-382c-11ee-9153-0050568ce122"
+                        },
+                        {
+                          "id": "20fae9d2-382d-11ee-8042-0050568ce122"
+                        }
+                      ],
+                      "updatedAt": "2023-06-08T02:12:02.000Z",
+                      "urn": "urn:v1:eu:resourceGroup:9167fb26-382b-11ee-895a-0050568ce122"
+                    },
+                    "summary": "Response body returned when getting a resource group without details"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/resourceGroup/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update an existing resource group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "groupId",
+            "description": "Group ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/iam.group.Update"
+              },
+              "examples": {
+                "Edit a resource group": {
+                  "value": {
+                    "name": "productionDedicatedServersUpdated",
+                    "resources": [
+                      {
+                        "id": "20fae9d2-382d-11ee-8042-0050568ce122"
+                      }
+                    ]
+                  },
+                  "summary": "Request body used to update a resource group"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/iam.group.Response"
+                },
+                "examples": {
+                  "Edit resource group": {
+                    "value": {
+                      "createdAt": "2020-03-19T10:45:18.000Z",
+                      "id": "9167fb26-382b-11ee-895a-0050568ce122",
+                      "name": "productionDedicatedServersUpdated",
+                      "owner": "aa1-ovh",
+                      "readOnly": false,
+                      "resources": [
+                        {
+                          "id": "20fae9d2-382d-11ee-8042-0050568ce122"
+                        }
+                      ],
+                      "updatedAt": "2023-06-08T02:12:02.000Z",
+                      "urn": "urn:v1:eu:resourceGroup:9167fb26-382b-11ee-895a-0050568ce122"
+                    },
+                    "summary": "Response body returned after updating a resource group"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resources"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:iam/resourceGroup/edit",
+            "required": true
+          }
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Reference",
+      "x-tag-expanded": false,
+      "description": "This section contains reference data used across the IAM."
+    },
+    {
+      "name": "Resources",
+      "x-tag-expanded": false,
+      "description": "A <b>resource</b> represents any service bought by a customer and any asset that can be delegated in the IAM. A resource group is a set of <b>resources</b> belonging to a specific <b>owner</b>. <br/> These routes allow to create and manage your groups."
+    },
+    {
+      "name": "Authorization",
+      "x-tag-expanded": false,
+      "description": "These routes allow to validate authorizations granted on resources."
+    },
+    {
+      "name": "Logs",
+      "x-tag-expanded": false,
+      "description": "Routes allowing to forward IAM logs to a given log stream."
+    },
+    {
+      "name": "Permissions & policies",
+      "x-tag-expanded": false,
+      "description": "A policy is a document that describes what actions an account, user and/or group of users can perform, on which resources and under what conditions."
+    }
+  ]
+}

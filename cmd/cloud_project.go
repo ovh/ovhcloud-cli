@@ -37,11 +37,11 @@ func init() {
 	}
 
 	// Command to list CloudProject services
-	cloudprojectCmd.AddCommand(&cobra.Command{
+	cloudprojectCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:   "list",
 		Short: "List your cloud projects",
 		Run:   listCloudProject,
-	})
+	}))
 
 	// Command to get a single CloudProject
 	cloudprojectCmd.AddCommand(&cobra.Command{
@@ -65,6 +65,7 @@ func init() {
 	initCloudUserCommand(cloudCmd)
 	initCloudStorageS3Command(cloudCmd)
 	initCloudStorageSwiftCommand(cloudCmd)
+	initCloudVolumeCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
 	rootCmd.AddCommand(cloudCmd)
