@@ -16,7 +16,8 @@ _{{index .Result "iam" "displayName"}}_
 | --- | --- |
 | State | {{index .Result "state"}} |
 | Operating system | {{index .Result "os"}} |
-| IP | {{index .Result "ip"}} |
+| IPv4 | {{index .Result "ip"}} |
+| IPv6 | {{index .Result "network" "routing" "ipv6" "ip"}} |
 | Reverse | {{index .Result "reverse"}} |
 | Power state | {{index .Result "powerState"}} |
 
@@ -29,6 +30,12 @@ _{{index .Result "iam" "displayName"}}_
 {{ range index .Result "tasks" }}| {{.taskId}} | {{.function}} | {{.status}} | {{.doneDate}} |
 {{end}}
 {{end}}
+
+## Billing information
+
+Expiration:        {{index .Result "serviceInfo" "expiration"}}
+Automatic renewal: {{index .Result "serviceInfo" "renew" "automatic"}}
+{{if index .Result "serviceInfo" "engagedUpTo"}}Engaged up to:     {{index .Result "serviceInfo" "engagedUpTo"}}{{end}}
 
 ## IAM information
 

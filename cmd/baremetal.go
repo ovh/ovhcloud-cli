@@ -84,6 +84,21 @@ func getBaremetal(_ *cobra.Command, args []string) {
 	}
 	object["tasks"] = tasks
 
+	// Fetch network information
+	path = fmt.Sprintf("/dedicated/server/%s/specifications/network", url.PathEscape(args[0]))
+	var network map[string]any
+	if err := client.Get(path, &network); err != nil {
+		display.ExitError("error fetching network specifications for %s: %s\n", args[0], err)
+	}
+	object["network"] = network
+
+	path = fmt.Sprintf("/dedicated/server/%s/serviceInfos", url.PathEscape(args[0]))
+	var serviceInfo map[string]any
+	if err := client.Get(path, &serviceInfo); err != nil {
+		display.ExitError("error fetching billing information for %s: %s\n", args[0], err)
+	}
+	object["serviceInfo"] = serviceInfo
+
 	display.OutputObject(object, args[0], baremetalTemplate, &outputFormatConfig)
 }
 
@@ -103,8 +118,35 @@ func rebootBaremetal(_ *cobra.Command, args []string) {
 }
 
 func listBaremetalInterventions(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/dedicated/server/%s/intervention", args[0])
-	manageListRequest(url, "", []string{"interventionId", "type", "date"}, genericFilters)
+	path := fmt.Sprintf("/dedicated/server/%s/intervention", args[0])
+
+	interventions, err := fetchExpandedArray(path, "")
+	if err != nil {
+		display.ExitError("failed to fetch past interventions: %s", err)
+	}
+
+	for _, inter := range interventions {
+		inter["status"] = "done"
+	}
+
+	path = fmt.Sprintf("/dedicated/server/%s/plannedIntervention", args[0])
+	plannedInterventions, err := fetchExpandedArray(path, "")
+	if err != nil {
+		display.ExitError("failed to fetch planned interventions: %s", err)
+	}
+
+	for _, inter := range plannedInterventions {
+		inter["date"] = inter["wantedStartDate"]
+	}
+
+	plannedInterventions = append(plannedInterventions, interventions...)
+
+	plannedInterventions, err = filtersLib.FilterLines(plannedInterventions, genericFilters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+	}
+
+	display.RenderTable(plannedInterventions, []string{"type", "date", "status"}, &outputFormatConfig)
 }
 
 func listBaremetalBoots(_ *cobra.Command, args []string) {
@@ -431,20 +473,14 @@ to see all the available parameters and real life examples.
 		Run:        setBaremetalBootId,
 	})
 
-	// List interventions
-	baremetalInterventionCmd := &cobra.Command{
-		Use:   "intervention",
-		Short: "Manage interventions of the given baremetal",
-	}
-	baremetalCmd.AddCommand(baremetalInterventionCmd)
 	baremetalListInterventionsCmd := &cobra.Command{
-		Use:        "list <service_name>",
-		Short:      "List interventions for the given baremetal",
+		Use:        "list-interventions <service_name>",
+		Short:      "List past and planned interventions for the given baremetal",
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"service_name"},
 		Run:        listBaremetalInterventions,
 	}
-	baremetalInterventionCmd.AddCommand(withFilterFlag(baremetalListInterventionsCmd))
+	baremetalCmd.AddCommand(withFilterFlag(baremetalListInterventionsCmd))
 
 	// Commands to manage virtual network interfaces
 	baremetalVNICmd := &cobra.Command{

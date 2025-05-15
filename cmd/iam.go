@@ -14,6 +14,7 @@ var (
 	iamPolicyColumnsToDisplay           = []string{"id", "name", "owner", "readOnly"}
 	iamPermissionsGroupColumnsToDisplay = []string{"id", "name", "description"}
 	iamResourceColumnsToDisplay         = []string{"urn", "type", "displayName"}
+	iamResourceGroupColumnsToDisplay    = []string{"id", "name", "owner", "readOnly"}
 
 	//go:embed templates/iam_policy.tmpl
 	iamPolicyTemplate string
@@ -23,6 +24,9 @@ var (
 
 	//go:embed templates/iam_resource.tmpl
 	iamResourceTemplate string
+
+	//go:embed templates/iam_resource_group.tmpl
+	iamResourceGroupTemplate string
 
 	//go:embed api-schemas/iam.json
 	iamOpenapiSchema []byte
@@ -62,6 +66,21 @@ func listIAMResources(_ *cobra.Command, _ []string) {
 
 func getIAMResource(_ *cobra.Command, args []string) {
 	manageObjectRequest("/v2/iam/resource", args[0], iamResourceTemplate)
+}
+
+func listIAMResourceGroups(_ *cobra.Command, _ []string) {
+	manageListRequestNoExpand("/v2/iam/resourceGroup", iamResourceGroupColumnsToDisplay, genericFilters)
+}
+
+func getIAMResourceGroup(_ *cobra.Command, args []string) {
+	path := fmt.Sprintf("/v2/iam/resourceGroup/%s?details=true", url.PathEscape(args[0]))
+
+	var object map[string]any
+	if err := client.Get(path, &object); err != nil {
+		display.ExitError("error fetching IAM resource group %s: %s", args[0], err)
+	}
+
+	display.OutputObject(object, args[0], iamResourceGroupTemplate, &outputFormatConfig)
 }
 
 func init() {
@@ -129,6 +148,24 @@ func init() {
 		Use:   "get <resource_urn>",
 		Short: "Get a specific IAM resource",
 		Run:   getIAMResource,
+	})
+
+	iamResourceGroupCmd := &cobra.Command{
+		Use:   "resource-group",
+		Short: "Manage IAM resource groups",
+	}
+	iamCmd.AddCommand(iamResourceGroupCmd)
+
+	iamResourceGroupCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list",
+		Short: "List IAM resource groups",
+		Run:   listIAMResourceGroups,
+	}))
+
+	iamResourceGroupCmd.AddCommand(&cobra.Command{
+		Use:   "get <resource_group_id>",
+		Short: "Get a specific IAM resource group",
+		Run:   getIAMResourceGroup,
 	})
 
 	rootCmd.AddCommand(iamCmd)
