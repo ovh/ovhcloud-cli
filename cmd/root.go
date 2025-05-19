@@ -1,10 +1,8 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/ovh/go-ovh/ovh"
@@ -34,6 +32,13 @@ var (
 
 	// Common filters that can be used in all listing commands
 	genericFilters []string
+
+	// Flag used to activate debug mode
+	debug bool
+
+	// Flag used by all actions that trigger asynchronous tasks to
+	// wait for task completion before exiting
+	waitForTask bool
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -53,6 +58,7 @@ func init() {
 	if err != nil {
 		log.Print(`OVHcloud API client not initialized, please run "ovh-cli login" to authenticate`)
 	}
+	client.Client.Transport = NewTransport("OVH", http.DefaultTransport)
 
 	// Load configuration files by order of increasing priority. All configuration
 	// files are optional. Only load file from user home if home could be resolve
@@ -61,6 +67,7 @@ func init() {
 		log.Printf("cannot load configuration: %s", err)
 	}
 
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Activate debug mode (will log all HTTP requests details)")
 	rootCmd.PersistentFlags().BoolVar(&outputFormatConfig.JsonOutput, "json", false, "Output in JSON")
 	rootCmd.PersistentFlags().BoolVar(&outputFormatConfig.YamlOutput, "yaml", false, "Output in YAML")
 	rootCmd.PersistentFlags().BoolVar(&outputFormatConfig.InteractiveOutput, "interactive", false, "Interactive output")
@@ -77,7 +84,9 @@ func init() {
 func removeRootFlagsFromCommand(subCommand *cobra.Command) {
 	subCommand.SetHelpFunc(func(command *cobra.Command, strings []string) {
 		rootCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
-			flag.Hidden = true
+			if flag.Name != "debug" {
+				flag.Hidden = true
+			}
 		})
 		command.Parent().HelpFunc()(command, strings)
 	})

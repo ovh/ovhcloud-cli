@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"net/url"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -56,6 +58,12 @@ var (
 	// Virtual Network Interfaces Aggregation flags
 	baremetalOLAInterfaces []string
 	baremetalOLAName       string
+
+	// IPMI flags
+	baremetalIpmiTTL        int
+	baremetalIpmiAccessType string
+	baremetalIpmiIP         string
+	baremetalIpmiSshKey     string
 )
 
 func listBaremetal(_ *cobra.Command, _ []string) {
@@ -108,13 +116,118 @@ func editBaremetal(_ *cobra.Command, args []string) {
 }
 
 func rebootBaremetal(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/dedicated/server/%s/reboot", args[0])
+	url := fmt.Sprintf("/dedicated/server/%s/reboot", url.PathEscape(args[0]))
 
 	if err := client.Post(url, nil, nil); err != nil {
 		display.ExitError("error rebooting server %s: %s\n", args[0], err)
 	}
 
 	fmt.Println("\n⚡️ Reboot is started ...")
+}
+
+func rebootRescueBaremetal(cmd *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/dedicated/server/%s/boot?bootType=rescue", url.PathEscape(args[0]))
+
+	var boots []int
+	if err := client.Get(endpoint, &boots); err != nil {
+		display.ExitError("failed to fetch boot options: %s", err)
+	}
+
+	if len(boots) == 0 {
+		display.ExitError("no boot found for rescue mode")
+	}
+
+	// Update server with boot ID
+	endpoint = fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
+	if err := client.Put(endpoint, map[string]any{
+		"bootId": boots[0],
+	}, nil); err != nil {
+		display.ExitError("failed to set boot ID %d for server: %s", boots[0], err)
+	}
+
+	// Reboot server
+	endpoint += "/reboot"
+
+	var task map[string]any
+	if err := client.Post(endpoint, nil, &task); err != nil {
+		display.ExitError("failed to reboot server: %s", err)
+	}
+
+	if !waitForTask {
+		fmt.Println("\n⚡️ Reboot in rescue mode is started ...")
+		return
+	}
+
+	if err := waitForDedicatedServerTask(args[0], task["taskId"]); err != nil {
+		display.ExitError("failed to wait for server to be rebooted: %s", err)
+	}
+
+	fmt.Println("\n⚡️ Reboot done, fetching new authentication secrets...")
+
+	// Fetch new secrets
+	getBaremetalAuthenticationSecrets(cmd, args)
+}
+
+func waitForDedicatedServerTask(serviceName string, taskID any) error {
+	endpoint := fmt.Sprintf("/dedicated/server/%s/task/%s", url.PathEscape(serviceName), taskID)
+
+	for retry := 0; retry < 100; retry++ {
+		var task map[string]any
+
+		if err := client.Get(endpoint, &task); err != nil {
+			return fmt.Errorf("failed to fetch task: %w", err)
+		}
+
+		switch task["status"] {
+		case "done":
+			return nil
+		case "todo", "init", "doing":
+			log.Printf("Still waiting for task to complete (status=%s) ...", task["status"])
+			time.Sleep(30 * time.Second)
+		default:
+			return fmt.Errorf("invalid state for task %d: %s", taskID, task["status"])
+		}
+	}
+
+	return fmt.Errorf("timeout waiting for task %d to be completed", taskID)
+}
+
+func baremetalGetIPMIAccess(_ *cobra.Command, args []string) {
+	path := fmt.Sprintf("/dedicated/server/%s/features/ipmi/access", url.PathEscape(args[0]))
+
+	parameters := map[string]any{
+		"type": baremetalIpmiAccessType,
+		"ttl":  baremetalIpmiTTL,
+	}
+	if baremetalIpmiIP != "" {
+		parameters["ipToAllow"] = baremetalIpmiIP
+	}
+	if baremetalIpmiSshKey != "" {
+		parameters["sshKey"] = baremetalIpmiSshKey
+	}
+
+	var task map[string]any
+	if err := client.Post(path, parameters, &task); err != nil {
+		display.ExitError("failed to request IMPI access: %s", err)
+	}
+
+	if err := waitForDedicatedServerTask(args[0], task["taskId"]); err != nil {
+		display.ExitError("failed waiting for task: %s", err)
+	}
+
+	path += "?type=" + url.QueryEscape(baremetalIpmiAccessType)
+
+	var accessDetails map[string]any
+	if err := client.Get(path, &accessDetails); err != nil {
+		display.ExitError("failed to fetch IPMI access information: %s", err)
+	}
+
+	output := fmt.Sprintf("\n⚡️ IPMI access: %s", accessDetails["value"])
+	if expiration, ok := accessDetails["expiration"]; ok {
+		output += fmt.Sprintf(" (expires at %s)", expiration)
+	}
+
+	fmt.Println(output)
 }
 
 func listBaremetalInterventions(_ *cobra.Command, args []string) {
@@ -321,12 +434,105 @@ func reinstallBaremetal(cmd *cobra.Command, args []string) {
 
 	log.Println("Installation parameters: \n" + string(out))
 
+	var task map[string]any
 	url := fmt.Sprintf("/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
-	if err := client.Post(url, parameters, nil); err != nil {
+	if err := client.Post(url, parameters, &task); err != nil {
 		display.ExitError("error reinstalling server %s: %s\n", args[0], err)
 	}
 
 	fmt.Println("\n⚡️ Reinstallation started ...")
+
+	if !waitForTask {
+		return
+	}
+
+	if err := waitForDedicatedServerTask(args[0], task["taskId"]); err != nil {
+		display.ExitError("failed to wait for server to be reinstalled: %s", err)
+	}
+
+	fmt.Println("\n⚡️ Reinstall done, fetching new authentication secrets...")
+
+	// Fetch new secrets
+	getBaremetalAuthenticationSecrets(cmd, args)
+}
+
+func getBaremetalRelatedIPs(_ *cobra.Command, args []string) {
+	path := fmt.Sprintf("/ip?routedTo.serviceName=%s", url.QueryEscape(args[0]))
+
+	var ips []any
+	if err := client.Get(path, &ips); err != nil {
+		display.ExitError("failed to fetch IPs related to baremetal %s: %s", args[0], err)
+	}
+
+	ipsExpanded, err := fetchObjectsParallel[map[string]any]("/ip/%s", ips, false)
+	if err != nil {
+		display.ExitError("failed to fetch objects for each IP: %s", err)
+	}
+
+	ipsExpanded, err = filtersLib.FilterLines(ipsExpanded, genericFilters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+	}
+
+	display.RenderTable(ipsExpanded, []string{"ip", "type", "description", "campus"}, &outputFormatConfig)
+}
+
+func getBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
+	path := fmt.Sprintf("/dedicated/server/%s/authenticationSecret", url.PathEscape(args[0]))
+
+	var allSecrets []map[string]any
+	if err := client.Post(path, nil, &allSecrets); err != nil {
+		display.ExitError("failed to fetch secrets IDs: %s", err)
+	}
+
+	for _, secret := range allSecrets {
+		if secretID, ok := secret["password"]; ok {
+			var secretValue map[string]any
+			if err := client.Post("/secret/retrieve", map[string]any{
+				"id": secretID,
+			}, &secretValue); err != nil {
+				display.ExitError("failed to retrieve secret value: %s", err)
+			}
+			maps.Copy(secret, secretValue)
+		}
+	}
+
+	allSecrets, err := filtersLib.FilterLines(allSecrets, genericFilters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+	}
+
+	display.RenderTable(allSecrets, []string{"type", "url", "user", "secret", "expiration"}, &outputFormatConfig)
+}
+
+func getBaremetalCompatibleOses(_ *cobra.Command, args []string) {
+	path := fmt.Sprintf("/dedicated/server/%s/install/compatibleTemplates", url.PathEscape(args[0]))
+
+	var oses map[string]any
+	if err := client.Get(path, &oses); err != nil {
+		display.ExitError("failed to fetch compatible OSes: %s", err)
+	}
+
+	var formattedValues []map[string]any
+	for _, os := range oses["ovh"].([]any) {
+		formattedValues = append(formattedValues, map[string]any{
+			"source": "ovh",
+			"name":   os,
+		})
+	}
+	for _, os := range oses["personal"].([]any) {
+		formattedValues = append(formattedValues, map[string]any{
+			"source": "personal",
+			"name":   os,
+		})
+	}
+
+	formattedValues, err := filtersLib.FilterLines(formattedValues, genericFilters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+	}
+
+	display.RenderTable(formattedValues, []string{"source", "name"}, &outputFormatConfig)
 }
 
 func init() {
@@ -382,6 +588,17 @@ func init() {
 	removeRootFlagsFromCommand(baremetalRebootCmd)
 	baremetalCmd.AddCommand(baremetalRebootCmd)
 
+	// Command to reboot a baremetal in rescue mode
+	baremetalRebootRescueCmd := &cobra.Command{
+		Use:   "reboot-rescue <service_name>",
+		Short: "Reboot the given baremetal in rescue mode",
+		Args:  cobra.ExactArgs(1),
+		Run:   rebootRescueBaremetal,
+	}
+	removeRootFlagsFromCommand(baremetalRebootRescueCmd)
+	baremetalRebootRescueCmd.Flags().BoolVar(&waitForTask, "wait", false, "Wait for reboot to be done before exiting")
+	baremetalCmd.AddCommand(baremetalRebootRescueCmd)
+
 	// Command to reinstall a baremetal
 	reinstallBaremetalCmd := &cobra.Command{
 		Use:   "reinstall <service_name>",
@@ -425,6 +642,8 @@ There are three ways to define the installation parameters:
 
 You can visit https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&branch=v1#post-/dedicated/server/-serviceName-/reinstall
 to see all the available parameters and real life examples.
+
+Please note that all parameters are not compatible with all OSes.
 `,
 		Args:       cobra.MaximumNArgs(1),
 		ArgAliases: []string{"service_name"},
@@ -447,6 +666,7 @@ to see all the available parameters and real life examples.
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.PostInstallationScript, "post-installation-script", "", "Post-installation script")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&customizations.SshKey, "ssh-key", "", "SSH public key")
+	reinstallBaremetalCmd.Flags().BoolVar(&waitForTask, "wait", false, "Wait for reinstall to be done before exiting")
 	removeRootFlagsFromCommand(reinstallBaremetalCmd)
 	reinstallBaremetalCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
@@ -481,6 +701,27 @@ to see all the available parameters and real life examples.
 		Run:        listBaremetalInterventions,
 	}
 	baremetalCmd.AddCommand(withFilterFlag(baremetalListInterventionsCmd))
+
+	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-ips <service_name>",
+		Short: "List all IPs that are routed to the given baremetal",
+		Args:  cobra.ExactArgs(1),
+		Run:   getBaremetalRelatedIPs,
+	}))
+
+	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-secrets <service_name>",
+		Short: "Retrieve secrets to connect to the server",
+		Args:  cobra.ExactArgs(1),
+		Run:   getBaremetalAuthenticationSecrets,
+	}))
+
+	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-compatible-os <service_name>",
+		Short: "Retrieve OSes that can be installed on this baremetal",
+		Args:  cobra.ExactArgs(1),
+		Run:   getBaremetalCompatibleOses,
+	}))
 
 	// Commands to manage virtual network interfaces
 	baremetalVNICmd := &cobra.Command{
@@ -518,6 +759,26 @@ to see all the available parameters and real life examples.
 	baremetalVNIResetOLAAggregationCmd.Flags().StringArrayVar(&baremetalOLAInterfaces, "interface", nil, "Interfaces to group")
 	baremetalVNIResetOLAAggregationCmd.MarkFlagRequired("interface")
 	baremetalVNICmd.AddCommand(baremetalVNIResetOLAAggregationCmd)
+
+	baremetalIPMICmd := &cobra.Command{
+		Use:   "ipmi",
+		Short: "Manage IPMI on your baremetal",
+	}
+	baremetalCmd.AddCommand(baremetalIPMICmd)
+
+	baremetalIPMIGetAccessCmd := &cobra.Command{
+		Use:   "get-access <service_name> --type serialOverLanURL --ttl 5",
+		Short: "Request an acces on KVM IPMI interface",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetalGetIPMIAccess,
+	}
+	baremetalIPMIGetAccessCmd.Flags().IntVar(&baremetalIpmiTTL, "ttl", 1, "Time to live in minutes for cache (1, 3, 5, 10, 15)")
+	baremetalIPMIGetAccessCmd.MarkFlagRequired("ttl")
+	baremetalIPMIGetAccessCmd.Flags().StringVar(&baremetalIpmiAccessType, "type", "", "Distinct way to acces a KVM IPMI session (kvmipHtml5URL, kvmipJnlp, serialOverLanSshKey, serialOverLanURL)")
+	baremetalIPMIGetAccessCmd.MarkFlagRequired("type")
+	baremetalIPMIGetAccessCmd.Flags().StringVar(&baremetalIpmiIP, "allowed-ip", "", "IPv4 address that can use the access")
+	baremetalIPMIGetAccessCmd.Flags().StringVar(&baremetalIpmiSshKey, "ssh-key", "", "Public SSH key for Serial Over Lan SSH access")
+	baremetalIPMICmd.AddCommand(baremetalIPMIGetAccessCmd)
 
 	rootCmd.AddCommand(baremetalCmd)
 }
