@@ -24,24 +24,23 @@ func getVps(_ *cobra.Command, args []string) {
 func init() {
 	vpsCmd := &cobra.Command{
 		Use:   "vps",
-		Short: "Retrieve information and manage your Vps services",
+		Short: "Retrieve information and manage your VPS services",
 	}
 
 	// Command to list Vps services
 	vpsListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your Vps services",
+		Short: "List your VPS services",
 		Run:   listVps,
 	}
 	vpsCmd.AddCommand(withFilterFlag(vpsListCmd))
 
 	// Command to get a single Vps
 	vpsCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Vps",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getVps,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific VPS",
+		Args:  cobra.ExactArgs(1),
+		Run:   getVps,
 	})
 
 	rootCmd.AddCommand(vpsCmd)

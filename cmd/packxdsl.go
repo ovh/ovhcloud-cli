@@ -23,7 +23,7 @@ func getPackXDSL(_ *cobra.Command, args []string) {
 
 func init() {
 	packxdslCmd := &cobra.Command{
-		Use:   "packxdsl",
+		Use:   "pack-xdsl",
 		Short: "Retrieve information and manage your PackXDSL services",
 	}
 
@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single PackXDSL
 	packxdslCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific PackXDSL",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getPackXDSL,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific PackXDSL",
+		Args:  cobra.ExactArgs(1),
+		Run:   getPackXDSL,
 	})
 
 	rootCmd.AddCommand(packxdslCmd)

@@ -24,24 +24,23 @@ func getSms(_ *cobra.Command, args []string) {
 func init() {
 	smsCmd := &cobra.Command{
 		Use:   "sms",
-		Short: "Retrieve information and manage your Sms services",
+		Short: "Retrieve information and manage your SMS services",
 	}
 
 	// Command to list Sms services
 	smsListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your Sms services",
+		Short: "List your SMS services",
 		Run:   listSms,
 	}
 	smsCmd.AddCommand(withFilterFlag(smsListCmd))
 
 	// Command to get a single Sms
 	smsCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Sms",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getSms,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific SMS",
+		Args:  cobra.ExactArgs(1),
+		Run:   getSms,
 	})
 
 	rootCmd.AddCommand(smsCmd)

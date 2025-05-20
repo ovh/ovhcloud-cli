@@ -23,25 +23,24 @@ func getEmailMXPlan(_ *cobra.Command, args []string) {
 
 func init() {
 	emailmxplanCmd := &cobra.Command{
-		Use:   "emailmxplan",
-		Short: "Retrieve information and manage your EmailMXPlan services",
+		Use:   "email-mxplan",
+		Short: "Retrieve information and manage your Email MXPlan services",
 	}
 
 	// Command to list EmailMXPlan services
 	emailmxplanListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your EmailMXPlan services",
+		Short: "List your Email MXPlan services",
 		Run:   listEmailMXPlan,
 	}
 	emailmxplanCmd.AddCommand(withFilterFlag(emailmxplanListCmd))
 
 	// Command to get a single EmailMXPlan
 	emailmxplanCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific EmailMXPlan",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getEmailMXPlan,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific Email MXPlan",
+		Args:  cobra.ExactArgs(1),
+		Run:   getEmailMXPlan,
 	})
 
 	rootCmd.AddCommand(emailmxplanCmd)

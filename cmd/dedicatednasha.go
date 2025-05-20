@@ -23,8 +23,8 @@ func getDedicatedNasHA(_ *cobra.Command, args []string) {
 
 func init() {
 	dedicatednashaCmd := &cobra.Command{
-		Use:   "dedicatednasha",
-		Short: "Retrieve information and manage your DedicatedNasHA services",
+		Use:   "dedicated-nasha",
+		Short: "Retrieve information and manage your Dedicated NasHA services",
 	}
 
 	// Command to list DedicatedNasHA services
@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single DedicatedNasHA
 	dedicatednashaCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific DedicatedNasHA",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getDedicatedNasHA,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific DedicatedNasHA",
+		Args:  cobra.ExactArgs(1),
+		Run:   getDedicatedNasHA,
 	})
 
 	rootCmd.AddCommand(dedicatednashaCmd)

@@ -23,25 +23,24 @@ func getCdnDedicated(_ *cobra.Command, args []string) {
 
 func init() {
 	cdndedicatedCmd := &cobra.Command{
-		Use:   "cdndedicated",
-		Short: "Retrieve information and manage your CdnDedicated services",
+		Use:   "cdn-dedicated",
+		Short: "Retrieve information and manage your dedicated CDN services",
 	}
 
 	// Command to list CdnDedicated services
 	cdndedicatedListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your CdnDedicated services",
+		Short: "List your dedicated CDN services",
 		Run:   listCdnDedicated,
 	}
 	cdndedicatedCmd.AddCommand(withFilterFlag(cdndedicatedListCmd))
 
 	// Command to get a single CdnDedicated
 	cdndedicatedCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific CdnDedicated",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getCdnDedicated,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific CDN",
+		Args:  cobra.ExactArgs(1),
+		Run:   getCdnDedicated,
 	})
 
 	rootCmd.AddCommand(cdndedicatedCmd)

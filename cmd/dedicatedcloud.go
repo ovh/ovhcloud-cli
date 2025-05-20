@@ -23,7 +23,7 @@ func getDedicatedCloud(_ *cobra.Command, args []string) {
 
 func init() {
 	dedicatedcloudCmd := &cobra.Command{
-		Use:   "dedicatedcloud",
+		Use:   "dedicated-cloud",
 		Short: "Retrieve information and manage your DedicatedCloud services",
 	}
 
@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single DedicatedCloud
 	dedicatedcloudCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific DedicatedCloud",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getDedicatedCloud,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific DedicatedCloud",
+		Args:  cobra.ExactArgs(1),
+		Run:   getDedicatedCloud,
 	})
 
 	rootCmd.AddCommand(dedicatedcloudCmd)

@@ -42,25 +42,24 @@ func getDomainZone(_ *cobra.Command, args []string) {
 
 func init() {
 	domainzoneCmd := &cobra.Command{
-		Use:   "domainzone",
-		Short: "Retrieve information and manage your DomainZone services",
+		Use:   "domain-zone",
+		Short: "Retrieve information and manage your domain zones",
 	}
 
 	// Command to list DomainZone services
 	domainzoneListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your DomainZone services",
+		Short: "List your domain zones",
 		Run:   listDomainZone,
 	}
 	domainzoneCmd.AddCommand(withFilterFlag(domainzoneListCmd))
 
 	// Command to get a single DomainZone
 	domainzoneCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific DomainZone",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getDomainZone,
+		Use:   "get <zone_name>",
+		Short: "Retrieve information of a specific domain zone",
+		Args:  cobra.ExactArgs(1),
+		Run:   getDomainZone,
 	})
 
 	rootCmd.AddCommand(domainzoneCmd)

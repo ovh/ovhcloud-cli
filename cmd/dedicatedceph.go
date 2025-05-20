@@ -23,25 +23,24 @@ func getDedicatedCeph(_ *cobra.Command, args []string) {
 
 func init() {
 	dedicatedcephCmd := &cobra.Command{
-		Use:   "dedicatedceph",
-		Short: "Retrieve information and manage your DedicatedCeph services",
+		Use:   "dedicated-ceph",
+		Short: "Retrieve information and manage your Dedicated Ceph services",
 	}
 
 	// Command to list DedicatedCeph services
 	dedicatedcephListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your DedicatedCeph services",
+		Short: "List your Dedicated Ceph services",
 		Run:   listDedicatedCeph,
 	}
 	dedicatedcephCmd.AddCommand(withFilterFlag(dedicatedcephListCmd))
 
 	// Command to get a single DedicatedCeph
 	dedicatedcephCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific DedicatedCeph",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getDedicatedCeph,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific Dedicated Ceph",
+		Args:  cobra.ExactArgs(1),
+		Run:   getDedicatedCeph,
 	})
 
 	rootCmd.AddCommand(dedicatedcephCmd)

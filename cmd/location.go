@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single Location
 	locationCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Location",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getLocation,
+		Use:   "get <location_name>",
+		Short: "Retrieve information of a specific Location",
+		Args:  cobra.ExactArgs(1),
+		Run:   getLocation,
 	})
 
 	rootCmd.AddCommand(locationCmd)

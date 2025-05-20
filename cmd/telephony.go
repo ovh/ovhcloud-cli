@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single Telephony
 	telephonyCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Telephony",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getTelephony,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific Telephony",
+		Args:  cobra.ExactArgs(1),
+		Run:   getTelephony,
 	})
 
 	rootCmd.AddCommand(telephonyCmd)

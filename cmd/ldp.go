@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single Ldp
 	ldpCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Ldp",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getLdp,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific Ldp",
+		Args:  cobra.ExactArgs(1),
+		Run:   getLdp,
 	})
 
 	rootCmd.AddCommand(ldpCmd)

@@ -23,7 +23,7 @@ func getEmailPro(_ *cobra.Command, args []string) {
 
 func init() {
 	emailproCmd := &cobra.Command{
-		Use:   "emailpro",
+		Use:   "email-pro",
 		Short: "Retrieve information and manage your EmailPro services",
 	}
 
@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single EmailPro
 	emailproCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific EmailPro",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getEmailPro,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific EmailPro",
+		Args:  cobra.ExactArgs(1),
+		Run:   getEmailPro,
 	})
 
 	rootCmd.AddCommand(emailproCmd)

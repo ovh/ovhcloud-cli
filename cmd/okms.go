@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single Okms
 	okmsCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Okms",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getOkms,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific Okms",
+		Args:  cobra.ExactArgs(1),
+		Run:   getOkms,
 	})
 
 	rootCmd.AddCommand(okmsCmd)

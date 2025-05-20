@@ -23,7 +23,7 @@ func getHostingPrivateDatabase(_ *cobra.Command, args []string) {
 
 func init() {
 	hostingprivatedatabaseCmd := &cobra.Command{
-		Use:   "hostingprivatedatabase",
+		Use:   "hosting-private-database",
 		Short: "Retrieve information and manage your HostingPrivateDatabase services",
 	}
 
@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single HostingPrivateDatabase
 	hostingprivatedatabaseCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific HostingPrivateDatabase",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getHostingPrivateDatabase,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific HostingPrivateDatabase",
+		Args:  cobra.ExactArgs(1),
+		Run:   getHostingPrivateDatabase,
 	})
 
 	rootCmd.AddCommand(hostingprivatedatabaseCmd)

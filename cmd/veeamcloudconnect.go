@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single VeeamCloudConnect
 	veeamcloudconnectCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific VeeamCloudConnect",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getVeeamCloudConnect,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific VeeamCloudConnect",
+		Args:  cobra.ExactArgs(1),
+		Run:   getVeeamCloudConnect,
 	})
 
 	rootCmd.AddCommand(veeamcloudconnectCmd)

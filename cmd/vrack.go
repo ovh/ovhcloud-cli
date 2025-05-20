@@ -24,24 +24,23 @@ func getVrack(_ *cobra.Command, args []string) {
 func init() {
 	vrackCmd := &cobra.Command{
 		Use:   "vrack",
-		Short: "Retrieve information and manage your Vrack services",
+		Short: "Retrieve information and manage your vRack services",
 	}
 
 	// Command to list Vrack services
 	vrackListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your Vrack services",
+		Short: "List your vRackservices",
 		Run:   listVrack,
 	}
 	vrackCmd.AddCommand(withFilterFlag(vrackListCmd))
 
 	// Command to get a single Vrack
 	vrackCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Vrack",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getVrack,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific vRack",
+		Args:  cobra.ExactArgs(1),
+		Run:   getVrack,
 	})
 
 	rootCmd.AddCommand(vrackCmd)

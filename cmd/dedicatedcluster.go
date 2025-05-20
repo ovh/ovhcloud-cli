@@ -23,7 +23,7 @@ func getDedicatedCluster(_ *cobra.Command, args []string) {
 
 func init() {
 	dedicatedclusterCmd := &cobra.Command{
-		Use:   "dedicatedcluster",
+		Use:   "dedicated-cluster",
 		Short: "Retrieve information and manage your DedicatedCluster services",
 	}
 
@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single DedicatedCluster
 	dedicatedclusterCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific DedicatedCluster",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getDedicatedCluster,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific DedicatedCluster",
+		Args:  cobra.ExactArgs(1),
+		Run:   getDedicatedCluster,
 	})
 
 	rootCmd.AddCommand(dedicatedclusterCmd)

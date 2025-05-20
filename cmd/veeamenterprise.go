@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single VeeamEnterprise
 	veeamenterpriseCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific VeeamEnterprise",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getVeeamEnterprise,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific VeeamEnterprise",
+		Args:  cobra.ExactArgs(1),
+		Run:   getVeeamEnterprise,
 	})
 
 	rootCmd.AddCommand(veeamenterpriseCmd)

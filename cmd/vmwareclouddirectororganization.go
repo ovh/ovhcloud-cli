@@ -23,25 +23,24 @@ func getVmwareCloudDirectorOrganization(_ *cobra.Command, args []string) {
 
 func init() {
 	vmwareclouddirectororganizationCmd := &cobra.Command{
-		Use:   "vmwareclouddirectororganization",
-		Short: "Retrieve information and manage your VmwareCloudDirectorOrganization services",
+		Use:   "vmwareclouddirector-organization",
+		Short: "Retrieve information and manage your VmwareCloudDirector Organizations",
 	}
 
 	// Command to list VmwareCloudDirectorOrganization services
 	vmwareclouddirectororganizationListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your VmwareCloudDirectorOrganization services",
+		Short: "List your VmwareCloudDirector Organizations",
 		Run:   listVmwareCloudDirectorOrganization,
 	}
 	vmwareclouddirectororganizationCmd.AddCommand(withFilterFlag(vmwareclouddirectororganizationListCmd))
 
 	// Command to get a single VmwareCloudDirectorOrganization
 	vmwareclouddirectororganizationCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific VmwareCloudDirectorOrganization",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getVmwareCloudDirectorOrganization,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific VmwareCloudDirector Organization",
+		Args:  cobra.ExactArgs(1),
+		Run:   getVmwareCloudDirectorOrganization,
 	})
 
 	rootCmd.AddCommand(vmwareclouddirectororganizationCmd)

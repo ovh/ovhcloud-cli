@@ -23,25 +23,24 @@ func getSupportTickets(_ *cobra.Command, args []string) {
 
 func init() {
 	supportticketsCmd := &cobra.Command{
-		Use:   "supporttickets",
-		Short: "Retrieve information and manage your SupportTickets services",
+		Use:   "support-tickets",
+		Short: "Retrieve information and manage your support tickets",
 	}
 
-	// Command to list SupportTickets services
+	// Command to list tickets
 	supportticketsListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your SupportTickets services",
+		Short: "List your support tickets",
 		Run:   listSupportTickets,
 	}
 	supportticketsCmd.AddCommand(withFilterFlag(supportticketsListCmd))
 
-	// Command to get a single SupportTickets
+	// Command to get a single support ticket
 	supportticketsCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific SupportTickets",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getSupportTickets,
+		Use:   "get <ticket_id>",
+		Short: "Retrieve information of a specific support ticket",
+		Args:  cobra.ExactArgs(1),
+		Run:   getSupportTickets,
 	})
 
 	rootCmd.AddCommand(supportticketsCmd)

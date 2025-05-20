@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single OverTheBox
 	overtheboxCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific OverTheBox",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getOverTheBox,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific OverTheBox",
+		Args:  cobra.ExactArgs(1),
+		Run:   getOverTheBox,
 	})
 
 	rootCmd.AddCommand(overtheboxCmd)

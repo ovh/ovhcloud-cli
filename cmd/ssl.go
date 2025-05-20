@@ -24,24 +24,23 @@ func getSsl(_ *cobra.Command, args []string) {
 func init() {
 	sslCmd := &cobra.Command{
 		Use:   "ssl",
-		Short: "Retrieve information and manage your Ssl services",
+		Short: "Retrieve information and manage your SSL services",
 	}
 
 	// Command to list Ssl services
 	sslListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your Ssl services",
+		Short: "List your SSL services",
 		Run:   listSsl,
 	}
 	sslCmd.AddCommand(withFilterFlag(sslListCmd))
 
 	// Command to get a single Ssl
 	sslCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Ssl",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getSsl,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific Ssl",
+		Args:  cobra.ExactArgs(1),
+		Run:   getSsl,
 	})
 
 	rootCmd.AddCommand(sslCmd)

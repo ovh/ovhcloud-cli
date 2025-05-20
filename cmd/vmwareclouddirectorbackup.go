@@ -23,25 +23,24 @@ func getVmwareCloudDirectorBackup(_ *cobra.Command, args []string) {
 
 func init() {
 	vmwareclouddirectorbackupCmd := &cobra.Command{
-		Use:   "vmwareclouddirectorbackup",
+		Use:   "vmwareclouddirector-backup",
 		Short: "Retrieve information and manage your VmwareCloudDirectorBackup services",
 	}
 
 	// Command to list VmwareCloudDirectorBackup services
 	vmwareclouddirectorbackupListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your VmwareCloudDirectorBackup services",
+		Short: "List your VmwareCloudDirector Backup services",
 		Run:   listVmwareCloudDirectorBackup,
 	}
 	vmwareclouddirectorbackupCmd.AddCommand(withFilterFlag(vmwareclouddirectorbackupListCmd))
 
 	// Command to get a single VmwareCloudDirectorBackup
 	vmwareclouddirectorbackupCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific VmwareCloudDirectorBackup",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getVmwareCloudDirectorBackup,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific VmwareCloudDirector Backup",
+		Args:  cobra.ExactArgs(1),
+		Run:   getVmwareCloudDirectorBackup,
 	})
 
 	rootCmd.AddCommand(vmwareclouddirectorbackupCmd)

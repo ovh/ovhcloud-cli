@@ -23,25 +23,24 @@ func getSslGateway(_ *cobra.Command, args []string) {
 
 func init() {
 	sslgatewayCmd := &cobra.Command{
-		Use:   "sslgateway",
-		Short: "Retrieve information and manage your SslGateway services",
+		Use:   "ssl-gateway",
+		Short: "Retrieve information and manage your SSL Gateway services",
 	}
 
 	// Command to list SslGateway services
 	sslgatewayListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your SslGateway services",
+		Short: "List your SSL Gateway services",
 		Run:   listSslGateway,
 	}
 	sslgatewayCmd.AddCommand(withFilterFlag(sslgatewayListCmd))
 
 	// Command to get a single SslGateway
 	sslgatewayCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific SslGateway",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getSslGateway,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific SSL Gateway",
+		Args:  cobra.ExactArgs(1),
+		Run:   getSslGateway,
 	})
 
 	rootCmd.AddCommand(sslgatewayCmd)

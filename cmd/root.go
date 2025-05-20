@@ -57,8 +57,9 @@ func init() {
 	client, err = ovh.NewDefaultClient()
 	if err != nil {
 		log.Print(`OVHcloud API client not initialized, please run "ovh-cli login" to authenticate`)
+	} else {
+		client.Client.Transport = NewTransport("OVH", http.DefaultTransport)
 	}
-	client.Client.Transport = NewTransport("OVH", http.DefaultTransport)
 
 	// Load configuration files by order of increasing priority. All configuration
 	// files are optional. Only load file from user home if home could be resolve

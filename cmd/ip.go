@@ -66,11 +66,10 @@ func init() {
 
 	// Command to get a single Ip
 	ipCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Ip",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getIp,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific Ip",
+		Args:  cobra.ExactArgs(1),
+		Run:   getIp,
 	})
 
 	ipReverseCmd := &cobra.Command{
@@ -80,31 +79,28 @@ func init() {
 	ipCmd.AddCommand(ipReverseCmd)
 
 	ipReverseSetCmd := &cobra.Command{
-		Use:        "set <service_name> <ip> <reverse>",
-		Short:      "Set reverse on the given IP",
-		Args:       cobra.ExactArgs(3),
-		ArgAliases: []string{"service_name", "ip", "reverse"},
-		Run:        ipSetReverse,
+		Use:   "set <service_name> <ip> <reverse>",
+		Short: "Set reverse on the given IP",
+		Args:  cobra.ExactArgs(3),
+		Run:   ipSetReverse,
 	}
 	removeRootFlagsFromCommand(ipReverseSetCmd)
 	ipReverseCmd.AddCommand(ipReverseSetCmd)
 
 	ipReverseGetCmd := &cobra.Command{
-		Use:        "get <service_name>",
-		Short:      "List reverse on the given IP range",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        ipGetReverse,
+		Use:   "get <service_name>",
+		Short: "List reverse on the given IP range",
+		Args:  cobra.ExactArgs(1),
+		Run:   ipGetReverse,
 	}
 	removeRootFlagsFromCommand(ipReverseGetCmd)
 	ipReverseCmd.AddCommand(ipReverseGetCmd)
 
 	ipReverseDeleteCmd := &cobra.Command{
-		Use:        "delete <service_name> <ip>",
-		Short:      "Delete reverse on the given IP",
-		Args:       cobra.ExactArgs(2),
-		ArgAliases: []string{"service_name", "ip"},
-		Run:        ipDeleteReverse,
+		Use:   "delete <service_name> <ip>",
+		Short: "Delete reverse on the given IP",
+		Args:  cobra.ExactArgs(2),
+		Run:   ipDeleteReverse,
 	}
 	removeRootFlagsFromCommand(ipReverseDeleteCmd)
 	ipReverseCmd.AddCommand(ipReverseDeleteCmd)

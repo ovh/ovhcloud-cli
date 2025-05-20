@@ -23,25 +23,24 @@ func getEmailDomain(_ *cobra.Command, args []string) {
 
 func init() {
 	emaildomainCmd := &cobra.Command{
-		Use:   "emaildomain",
-		Short: "Retrieve information and manage your EmailDomain services",
+		Use:   "email-domain",
+		Short: "Retrieve information and manage your Email Domain services",
 	}
 
 	// Command to list EmailDomain services
 	emaildomainListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your EmailDomain services",
+		Short: "List your Email Domain services",
 		Run:   listEmailDomain,
 	}
 	emaildomainCmd.AddCommand(withFilterFlag(emaildomainListCmd))
 
 	// Command to get a single EmailDomain
 	emaildomainCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific EmailDomain",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getEmailDomain,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific Email Domain",
+		Args:  cobra.ExactArgs(1),
+		Run:   getEmailDomain,
 	})
 
 	rootCmd.AddCommand(emaildomainCmd)

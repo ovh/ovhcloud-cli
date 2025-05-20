@@ -24,24 +24,23 @@ func getXdsl(_ *cobra.Command, args []string) {
 func init() {
 	xdslCmd := &cobra.Command{
 		Use:   "xdsl",
-		Short: "Retrieve information and manage your Xdsl services",
+		Short: "Retrieve information and manage your XDSL services",
 	}
 
 	// Command to list Xdsl services
 	xdslListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your Xdsl services",
+		Short: "List your XDSL services",
 		Run:   listXdsl,
 	}
 	xdslCmd.AddCommand(withFilterFlag(xdslListCmd))
 
 	// Command to get a single Xdsl
 	xdslCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Xdsl",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getXdsl,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific XDSL",
+		Args:  cobra.ExactArgs(1),
+		Run:   getXdsl,
 	})
 
 	rootCmd.AddCommand(xdslCmd)

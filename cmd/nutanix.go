@@ -37,11 +37,10 @@ func init() {
 
 	// Command to get a single Nutanix
 	nutanixCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific Nutanix",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getNutanix,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific Nutanix",
+		Args:  cobra.ExactArgs(1),
+		Run:   getNutanix,
 	})
 
 	rootCmd.AddCommand(nutanixCmd)
