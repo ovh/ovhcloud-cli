@@ -305,6 +305,40 @@ func setBaremetalBootId(_ *cobra.Command, args []string) {
 	fmt.Printf("\n✅ Boot ID %d correctly configured\n", bootID)
 }
 
+func setBaremetalBootScript(_ *cobra.Command, args []string) {
+	var (
+		script []byte
+		err    error
+	)
+
+	if installViaEditor {
+		script, err = editor.EditValueWithEditor(nil)
+		if err != nil {
+			display.ExitError("failed to edit installation parameters using editor: %s", err)
+		}
+	} else {
+		fd, err := os.Open(installationFile)
+		if err != nil {
+			display.ExitError("failed to open given file: %s", err)
+		}
+		defer fd.Close()
+
+		script, err = io.ReadAll(fd)
+		if err != nil {
+			display.ExitError("failed to read installation file: %s", err)
+		}
+	}
+
+	url := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
+	if err := client.Put(url, map[string]any{
+		"bootScript": string(script),
+	}, nil); err != nil {
+		display.ExitError("error setting boot script: %s", err)
+	}
+
+	fmt.Println("\n✅ Boot script correctly configured")
+}
+
 func listBaremetalVNIs(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/dedicated/server/%s/virtualNetworkInterface", args[0])
 	manageListRequest(url, "", []string{"uuid", "name", "mode", "vrack", "enabled"}, genericFilters)
@@ -677,14 +711,13 @@ Please note that all parameters are not compatible with all OSes.
 		Short: "Manage boot options for the given baremetal",
 	}
 	baremetalCmd.AddCommand(baremetalBootCmd)
-	baremetalListBootsCmd := &cobra.Command{
+	baremetalBootCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:        "list <service_name>",
 		Short:      "List boot options for the given baremetal",
 		Args:       cobra.ExactArgs(1),
 		ArgAliases: []string{"service_name"},
 		Run:        listBaremetalBoots,
-	}
-	baremetalBootCmd.AddCommand(withFilterFlag(baremetalListBootsCmd))
+	}))
 	baremetalBootCmd.AddCommand(&cobra.Command{
 		Use:        "set <service_name> <boot_id>",
 		Short:      "Configure a boot ID on the given baremetal",
@@ -692,6 +725,17 @@ Please note that all parameters are not compatible with all OSes.
 		ArgAliases: []string{"service_name", "boot_id"},
 		Run:        setBaremetalBootId,
 	})
+	baremetalBootSetScriptCmd := &cobra.Command{
+		Use:   "set-script <service_name>",
+		Short: "Configure a boot script on the given baremetal",
+		Args:  cobra.ExactArgs(1),
+		Run:   setBaremetalBootScript,
+	}
+	baremetalBootSetScriptCmd.Flags().StringVar(&installationFile, "from-file", "", "File containing boot script")
+	baremetalBootSetScriptCmd.Flags().BoolVar(&installViaEditor, "editor", false, "Use a text editor to define the boot script")
+	baremetalBootSetScriptCmd.MarkFlagsOneRequired("from-file", "editor")
+	baremetalBootSetScriptCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	baremetalBootCmd.AddCommand(baremetalBootSetScriptCmd)
 
 	baremetalListInterventionsCmd := &cobra.Command{
 		Use:        "list-interventions <service_name>",
