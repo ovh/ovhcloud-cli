@@ -1,4 +1,4 @@
-package cmd
+package http
 
 import (
 	"context"
@@ -6,15 +6,28 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 
+	"github.com/ovh/go-ovh/ovh"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 )
 
-func fetchObjectsParallel[T any](path string, ids []any, ignoreErrors bool) ([]T, error) {
+// OVH API client
+var Client *ovh.Client
+
+func InitClient() {
+	var err error
+
+	// Init API client
+	Client, err = ovh.NewDefaultClient()
+	if err != nil {
+		log.Print(`OVHcloud API client not initialized, please run "ovh-cli login" to authenticate`)
+	} else {
+		Client.Client.Transport = NewTransport("OVH", http.DefaultTransport)
+	}
+}
+
+func FetchObjectsParallel[T any](path string, ids []any, ignoreErrors bool) ([]T, error) {
 	var (
 		parallelRequests = 10
 		sem              = semaphore.NewWeighted(int64(parallelRequests))
@@ -35,7 +48,7 @@ func fetchObjectsParallel[T any](path string, ids []any, ignoreErrors bool) ([]T
 			url := fmt.Sprintf(path, url.PathEscape(fmt.Sprint(id)))
 
 			var object T
-			if err := client.Get(url, &object); err != nil {
+			if err := Client.Get(url, &object); err != nil {
 				if ignoreErrors {
 					log.Printf("error fetching %s: %s", url, err)
 					return nil
@@ -60,8 +73,8 @@ func fetchObjectsParallel[T any](path string, ids []any, ignoreErrors bool) ([]T
 // paginates to fetch all the results.
 // If "idField" given, it tries to extract the given field from the objects returned
 // by the API call.
-func fetchArray(path, idField string) ([]any, error) {
-	req, err := client.NewRequest(http.MethodGet, path, nil, true)
+func FetchArray(path, idField string) ([]any, error) {
+	req, err := Client.NewRequest(http.MethodGet, path, nil, true)
 	if err != nil {
 		return nil, fmt.Errorf("error crafting request: %s", err)
 	}
@@ -76,13 +89,13 @@ func fetchArray(path, idField string) ([]any, error) {
 			req.Header.Set("X-Pagination-Cursor", nextCursor)
 		}
 
-		response, err := client.Do(req)
+		response, err := Client.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching %s: %s", path, err)
 		}
 
 		var pageIDs []any
-		if err := client.UnmarshalResponse(response, &pageIDs); err != nil {
+		if err := Client.UnmarshalResponse(response, &pageIDs); err != nil {
 			return nil, fmt.Errorf("failed to parse ids: %s", err)
 		}
 
@@ -107,65 +120,16 @@ func fetchArray(path, idField string) ([]any, error) {
 	return allIDs, nil
 }
 
-func fetchExpandedArray(path, idField string) ([]map[string]any, error) {
-	ids, err := fetchArray(path, idField)
+func FetchExpandedArray(path, idField string) ([]map[string]any, error) {
+	ids, err := FetchArray(path, idField)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch ids: %w", err)
 	}
 
-	objects, err := fetchObjectsParallel[map[string]any](path+"/%s", ids, false)
+	objects, err := FetchObjectsParallel[map[string]any](path+"/%s", ids, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch objects: %w", err)
 	}
 
 	return objects, nil
-}
-
-func manageListRequest(path, idField string, columnsToDisplay, filters []string) {
-	body, err := fetchExpandedArray(path, idField)
-	if err != nil {
-		display.ExitError("failed to fetch results: %s", err)
-	}
-
-	body, err = filtersLib.FilterLines(body, filters)
-	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
-	}
-
-	display.RenderTable(body, columnsToDisplay, &outputFormatConfig)
-}
-
-func manageListRequestNoExpand(path string, columnsToDisplay, filters []string) {
-	body, err := fetchArray(path, "")
-	if err != nil {
-		display.ExitError("failed to fetch results: %s", err)
-	}
-
-	var objects []map[string]any
-	for _, object := range body {
-		objects = append(objects, object.(map[string]any))
-	}
-
-	objects, err = filtersLib.FilterLines(objects, filters)
-	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
-	}
-
-	display.RenderTable(objects, columnsToDisplay, &outputFormatConfig)
-}
-
-func manageObjectRequest(path, objectID, templateContent string) {
-	url := fmt.Sprintf("%s/%s", path, url.PathEscape(objectID))
-
-	var object map[string]any
-	if err := client.Get(url, &object); err != nil {
-		display.ExitError("error fetching %s: %s", url, err)
-	}
-
-	display.OutputObject(object, objectID, templateContent, &outputFormatConfig)
-}
-
-func isInputFromPipe() bool {
-	fileInfo, _ := os.Stdin.Stat()
-	return fileInfo.Mode()&os.ModeCharDevice == 0
 }

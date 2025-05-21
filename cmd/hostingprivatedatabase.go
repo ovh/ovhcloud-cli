@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/hostingprivatedatabase"
 )
-
-var (
-	hostingprivatedatabaseColumnsToDisplay = []string{"serviceName", "displayName", "type", "version", "state"}
-
-	//go:embed templates/hostingprivatedatabase.tmpl
-	hostingprivatedatabaseTemplate string
-)
-
-func listHostingPrivateDatabase(_ *cobra.Command, _ []string) {
-	manageListRequest("/hosting/privateDatabase", "", hostingprivatedatabaseColumnsToDisplay, genericFilters)
-}
-
-func getHostingPrivateDatabase(_ *cobra.Command, args []string) {
-	manageObjectRequest("/hosting/privateDatabase", args[0], hostingprivatedatabaseTemplate)
-}
 
 func init() {
 	hostingprivatedatabaseCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	hostingprivatedatabaseListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your HostingPrivateDatabase services",
-		Run:   listHostingPrivateDatabase,
+		Run:   hostingprivatedatabase.ListHostingPrivateDatabase,
 	}
 	hostingprivatedatabaseCmd.AddCommand(withFilterFlag(hostingprivatedatabaseListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific HostingPrivateDatabase",
 		Args:  cobra.ExactArgs(1),
-		Run:   getHostingPrivateDatabase,
+		Run:   hostingprivatedatabase.GetHostingPrivateDatabase,
 	})
 
 	rootCmd.AddCommand(hostingprivatedatabaseCmd)

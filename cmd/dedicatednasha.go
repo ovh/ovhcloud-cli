@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/dedicatednasha"
 )
-
-var (
-	dedicatednashaColumnsToDisplay = []string{"serviceName", "customName", "datacenter"}
-
-	//go:embed templates/dedicatednasha.tmpl
-	dedicatednashaTemplate string
-)
-
-func listDedicatedNasHA(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/nasha", "", dedicatednashaColumnsToDisplay, genericFilters)
-}
-
-func getDedicatedNasHA(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dedicated/nasha", args[0], dedicatednashaTemplate)
-}
 
 func init() {
 	dedicatednashaCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	dedicatednashaListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your DedicatedNasHA services",
-		Run:   listDedicatedNasHA,
+		Run:   dedicatednasha.ListDedicatedNasHA,
 	}
 	dedicatednashaCmd.AddCommand(withFilterFlag(dedicatednashaListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific DedicatedNasHA",
 		Args:  cobra.ExactArgs(1),
-		Run:   getDedicatedNasHA,
+		Run:   dedicatednasha.GetDedicatedNasHA,
 	})
 
 	rootCmd.AddCommand(dedicatednashaCmd)

@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/okms"
 )
-
-var (
-	okmsColumnsToDisplay = []string{"id", "region"}
-
-	//go:embed templates/okms.tmpl
-	okmsTemplate string
-)
-
-func listOkms(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/okms/resource", "id", okmsColumnsToDisplay, genericFilters)
-}
-
-func getOkms(_ *cobra.Command, args []string) {
-	manageObjectRequest("/v2/okms/resource", args[0], okmsTemplate)
-}
 
 func init() {
 	okmsCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	okmsListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Okms services",
-		Run:   listOkms,
+		Run:   okms.ListOkms,
 	}
 	okmsCmd.AddCommand(withFilterFlag(okmsListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific Okms",
 		Args:  cobra.ExactArgs(1),
-		Run:   getOkms,
+		Run:   okms.GetOkms,
 	})
 
 	rootCmd.AddCommand(okmsCmd)

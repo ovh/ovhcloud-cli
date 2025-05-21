@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package cmd
+package http
 
 import (
 	"bytes"
@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
+
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 )
 
 type transport struct {
@@ -18,7 +20,7 @@ type transport struct {
 }
 
 func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if debug {
+	if flags.Debug {
 		reqData, err := httputil.DumpRequestOut(req, true)
 		if err == nil {
 			log.Printf("[DEBUG] "+logReqMsg, t.name, prettyPrintJsonLines(reqData))
@@ -32,7 +34,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return resp, err
 	}
 
-	if debug {
+	if flags.Debug {
 		respData, err := httputil.DumpResponse(resp, true)
 		if err == nil {
 			log.Printf("[DEBUG] "+logRespMsg, t.name, prettyPrintJsonLines(respData))

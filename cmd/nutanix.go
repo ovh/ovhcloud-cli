@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/nutanix"
 )
-
-var (
-	nutanixColumnsToDisplay = []string{"serviceName", "status"}
-
-	//go:embed templates/nutanix.tmpl
-	nutanixTemplate string
-)
-
-func listNutanix(_ *cobra.Command, _ []string) {
-	manageListRequest("/nutanix", "", nutanixColumnsToDisplay, genericFilters)
-}
-
-func getNutanix(_ *cobra.Command, args []string) {
-	manageObjectRequest("/nutanix", args[0], nutanixTemplate)
-}
 
 func init() {
 	nutanixCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	nutanixListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Nutanix services",
-		Run:   listNutanix,
+		Run:   nutanix.ListNutanix,
 	}
 	nutanixCmd.AddCommand(withFilterFlag(nutanixListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific Nutanix",
 		Args:  cobra.ExactArgs(1),
-		Run:   getNutanix,
+		Run:   nutanix.GetNutanix,
 	})
 
 	rootCmd.AddCommand(nutanixCmd)

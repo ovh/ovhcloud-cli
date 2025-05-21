@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/ssl"
 )
-
-var (
-	sslColumnsToDisplay = []string{"serviceName", "type", "authority", "status"}
-
-	//go:embed templates/ssl.tmpl
-	sslTemplate string
-)
-
-func listSsl(_ *cobra.Command, _ []string) {
-	manageListRequest("/ssl", "", sslColumnsToDisplay, genericFilters)
-}
-
-func getSsl(_ *cobra.Command, args []string) {
-	manageObjectRequest("/ssl", args[0], sslTemplate)
-}
 
 func init() {
 	sslCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	sslListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your SSL services",
-		Run:   listSsl,
+		Run:   ssl.ListSsl,
 	}
 	sslCmd.AddCommand(withFilterFlag(sslListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific Ssl",
 		Args:  cobra.ExactArgs(1),
-		Run:   getSsl,
+		Run:   ssl.GetSsl,
 	})
 
 	rootCmd.AddCommand(sslCmd)

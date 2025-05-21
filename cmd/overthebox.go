@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/overthebox"
 )
-
-var (
-	overtheboxColumnsToDisplay = []string{"serviceName", "offer", "status", "bandwidth"}
-
-	//go:embed templates/overthebox.tmpl
-	overtheboxTemplate string
-)
-
-func listOverTheBox(_ *cobra.Command, _ []string) {
-	manageListRequest("/overTheBox", "", overtheboxColumnsToDisplay, genericFilters)
-}
-
-func getOverTheBox(_ *cobra.Command, args []string) {
-	manageObjectRequest("/overTheBox", args[0], overtheboxTemplate)
-}
 
 func init() {
 	overtheboxCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	overtheboxListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your OverTheBox services",
-		Run:   listOverTheBox,
+		Run:   overthebox.ListOverTheBox,
 	}
 	overtheboxCmd.AddCommand(withFilterFlag(overtheboxListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific OverTheBox",
 		Args:  cobra.ExactArgs(1),
-		Run:   getOverTheBox,
+		Run:   overthebox.GetOverTheBox,
 	})
 
 	rootCmd.AddCommand(overtheboxCmd)

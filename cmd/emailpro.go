@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/emailpro"
 )
-
-var (
-	emailproColumnsToDisplay = []string{"domain", "displayName", "state", "offer"}
-
-	//go:embed templates/emailpro.tmpl
-	emailproTemplate string
-)
-
-func listEmailPro(_ *cobra.Command, _ []string) {
-	manageListRequest("/email/pro", "", emailproColumnsToDisplay, genericFilters)
-}
-
-func getEmailPro(_ *cobra.Command, args []string) {
-	manageObjectRequest("/email/pro", args[0], emailproTemplate)
-}
 
 func init() {
 	emailproCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	emailproListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your EmailPro services",
-		Run:   listEmailPro,
+		Run:   emailpro.ListEmailPro,
 	}
 	emailproCmd.AddCommand(withFilterFlag(emailproListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific EmailPro",
 		Args:  cobra.ExactArgs(1),
-		Run:   getEmailPro,
+		Run:   emailpro.GetEmailPro,
 	})
 
 	rootCmd.AddCommand(emailproCmd)

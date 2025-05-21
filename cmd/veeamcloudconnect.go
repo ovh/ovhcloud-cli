@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/veeamcloudconnect"
 )
-
-var (
-	veeamcloudconnectColumnsToDisplay = []string{"serviceName", "productOffer", "location", "vmCount"}
-
-	//go:embed templates/veeamcloudconnect.tmpl
-	veeamcloudconnectTemplate string
-)
-
-func listVeeamCloudConnect(_ *cobra.Command, _ []string) {
-	manageListRequest("/veeamCloudConnect", "", veeamcloudconnectColumnsToDisplay, genericFilters)
-}
-
-func getVeeamCloudConnect(_ *cobra.Command, args []string) {
-	manageObjectRequest("/veeamCloudConnect", args[0], veeamcloudconnectTemplate)
-}
 
 func init() {
 	veeamcloudconnectCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	veeamcloudconnectListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VeeamCloudConnect services",
-		Run:   listVeeamCloudConnect,
+		Run:   veeamcloudconnect.ListVeeamCloudConnect,
 	}
 	veeamcloudconnectCmd.AddCommand(withFilterFlag(veeamcloudconnectListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific VeeamCloudConnect",
 		Args:  cobra.ExactArgs(1),
-		Run:   getVeeamCloudConnect,
+		Run:   veeamcloudconnect.GetVeeamCloudConnect,
 	})
 
 	rootCmd.AddCommand(veeamcloudconnectCmd)

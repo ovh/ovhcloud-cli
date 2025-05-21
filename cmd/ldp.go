@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/ldp"
 )
-
-var (
-	ldpColumnsToDisplay = []string{"serviceName", "displayName", "isClusterOwner", "state", "username"}
-
-	//go:embed templates/ldp.tmpl
-	ldpTemplate string
-)
-
-func listLdp(_ *cobra.Command, _ []string) {
-	manageListRequest("/dbaas/logs", "", ldpColumnsToDisplay, genericFilters)
-}
-
-func getLdp(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dbaas/logs", args[0], ldpTemplate)
-}
 
 func init() {
 	ldpCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	ldpListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Ldp services",
-		Run:   listLdp,
+		Run:   ldp.ListLdp,
 	}
 	ldpCmd.AddCommand(withFilterFlag(ldpListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific Ldp",
 		Args:  cobra.ExactArgs(1),
-		Run:   getLdp,
+		Run:   ldp.GetLdp,
 	})
 
 	rootCmd.AddCommand(ldpCmd)

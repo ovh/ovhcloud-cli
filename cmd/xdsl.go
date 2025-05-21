@@ -4,22 +4,8 @@ import (
 	_ "embed"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/xdsl"
 )
-
-var (
-	xdslColumnsToDisplay = []string{"accessName", "accessType", "provider", "role", "status"}
-
-	//go:embed templates/xdsl.tmpl
-	xdslTemplate string
-)
-
-func listXdsl(_ *cobra.Command, _ []string) {
-	manageListRequest("/xdsl", "", xdslColumnsToDisplay, genericFilters)
-}
-
-func getXdsl(_ *cobra.Command, args []string) {
-	manageObjectRequest("/xdsl", args[0], xdslTemplate)
-}
 
 func init() {
 	xdslCmd := &cobra.Command{
@@ -31,7 +17,7 @@ func init() {
 	xdslListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your XDSL services",
-		Run:   listXdsl,
+		Run:   xdsl.ListXdsl,
 	}
 	xdslCmd.AddCommand(withFilterFlag(xdslListCmd))
 
@@ -40,7 +26,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific XDSL",
 		Args:  cobra.ExactArgs(1),
-		Run:   getXdsl,
+		Run:   xdsl.GetXdsl,
 	})
 
 	rootCmd.AddCommand(xdslCmd)

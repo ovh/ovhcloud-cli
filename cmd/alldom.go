@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/alldom"
 )
-
-var (
-	alldomColumnsToDisplay = []string{"name", "type", "offer"}
-
-	//go:embed templates/alldom.tmpl
-	alldomTemplate string
-)
-
-func listAllDom(_ *cobra.Command, _ []string) {
-	manageListRequest("/allDom", "", alldomColumnsToDisplay, genericFilters)
-}
-
-func getAllDom(_ *cobra.Command, args []string) {
-	manageObjectRequest("/allDom", args[0], alldomTemplate)
-}
 
 func init() {
 	alldomCmd := &cobra.Command{
@@ -31,17 +15,16 @@ func init() {
 	alldomListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your AllDom services",
-		Run:   listAllDom,
+		Run:   alldom.ListAllDom,
 	}
 	alldomCmd.AddCommand(withFilterFlag(alldomListCmd))
 
 	// Command to get a single AllDom
 	alldomCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific AllDom",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        getAllDom,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific AllDom",
+		Args:  cobra.ExactArgs(1),
+		Run:   alldom.GetAllDom,
 	})
 
 	rootCmd.AddCommand(alldomCmd)

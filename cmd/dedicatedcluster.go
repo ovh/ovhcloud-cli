@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/dedicatedcluster"
 )
-
-var (
-	dedicatedclusterColumnsToDisplay = []string{"id", "region", "model", "status"}
-
-	//go:embed templates/dedicatedcluster.tmpl
-	dedicatedclusterTemplate string
-)
-
-func listDedicatedCluster(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/cluster", "", dedicatedclusterColumnsToDisplay, genericFilters)
-}
-
-func getDedicatedCluster(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dedicated/cluster", args[0], dedicatedclusterTemplate)
-}
 
 func init() {
 	dedicatedclusterCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	dedicatedclusterListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your DedicatedCluster services",
-		Run:   listDedicatedCluster,
+		Run:   dedicatedcluster.ListDedicatedCluster,
 	}
 	dedicatedclusterCmd.AddCommand(withFilterFlag(dedicatedclusterListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific DedicatedCluster",
 		Args:  cobra.ExactArgs(1),
-		Run:   getDedicatedCluster,
+		Run:   dedicatedcluster.GetDedicatedCluster,
 	})
 
 	rootCmd.AddCommand(dedicatedclusterCmd)

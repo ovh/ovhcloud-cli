@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/sslgateway"
 )
-
-var (
-	sslgatewayColumnsToDisplay = []string{"serviceName", "displayName", "state", "zones"}
-
-	//go:embed templates/sslgateway.tmpl
-	sslgatewayTemplate string
-)
-
-func listSslGateway(_ *cobra.Command, _ []string) {
-	manageListRequest("/sslGateway", "", sslgatewayColumnsToDisplay, genericFilters)
-}
-
-func getSslGateway(_ *cobra.Command, args []string) {
-	manageObjectRequest("/sslGateway", args[0], sslgatewayTemplate)
-}
 
 func init() {
 	sslgatewayCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	sslgatewayListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your SSL Gateway services",
-		Run:   listSslGateway,
+		Run:   sslgateway.ListSslGateway,
 	}
 	sslgatewayCmd.AddCommand(withFilterFlag(sslgatewayListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific SSL Gateway",
 		Args:  cobra.ExactArgs(1),
-		Run:   getSslGateway,
+		Run:   sslgateway.GetSslGateway,
 	})
 
 	rootCmd.AddCommand(sslgatewayCmd)

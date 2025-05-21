@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/vmwareclouddirectororganization"
 )
-
-var (
-	vmwareclouddirectororganizationColumnsToDisplay = []string{"id", "currentState.fullName", "currentState.region", "resourceStatus"}
-
-	//go:embed templates/vmwareclouddirectororganization.tmpl
-	vmwareclouddirectororganizationTemplate string
-)
-
-func listVmwareCloudDirectorOrganization(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/vmwareCloudDirector/organization", "id", vmwareclouddirectororganizationColumnsToDisplay, genericFilters)
-}
-
-func getVmwareCloudDirectorOrganization(_ *cobra.Command, args []string) {
-	manageObjectRequest("/v2/vmwareCloudDirector/organization", args[0], vmwareclouddirectororganizationTemplate)
-}
 
 func init() {
 	vmwareclouddirectororganizationCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	vmwareclouddirectororganizationListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VmwareCloudDirector Organizations",
-		Run:   listVmwareCloudDirectorOrganization,
+		Run:   vmwareclouddirectororganization.ListVmwareCloudDirectorOrganization,
 	}
 	vmwareclouddirectororganizationCmd.AddCommand(withFilterFlag(vmwareclouddirectororganizationListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific VmwareCloudDirector Organization",
 		Args:  cobra.ExactArgs(1),
-		Run:   getVmwareCloudDirectorOrganization,
+		Run:   vmwareclouddirectororganization.GetVmwareCloudDirectorOrganization,
 	})
 
 	rootCmd.AddCommand(vmwareclouddirectororganizationCmd)

@@ -1,5 +1,7 @@
 package utils
 
+import "os"
+
 func MergeMaps(left, right map[string]any) map[string]any {
 	if left == nil {
 		return right
@@ -45,4 +47,9 @@ func MergeMaps(left, right map[string]any) map[string]any {
 	}
 
 	return returnLeft
+}
+
+func IsInputFromPipe() bool {
+	fileInfo, _ := os.Stdin.Stat()
+	return fileInfo.Mode()&os.ModeCharDevice == 0
 }

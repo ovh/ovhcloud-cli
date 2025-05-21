@@ -1,50 +1,29 @@
 package cmd
 
 import (
-	_ "embed"
-	"fmt"
-	"net/url"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
-
-var (
-	cloudprojectContainerRegistryColumnsToDisplay = []string{"id", "name", "region", "status"}
-
-	//go:embed templates/cloud_container_registry.tmpl
-	cloudContainerRegistryTemplate string
-)
-
-func listContainerRegistries(_ *cobra.Command, _ []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
-	manageListRequest(fmt.Sprintf("/cloud/project/%s/containerRegistry", projectID), "id", cloudprojectContainerRegistryColumnsToDisplay, genericFilters)
-}
-
-func getContainerRegistry(_ *cobra.Command, args []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
-	manageObjectRequest(fmt.Sprintf("/cloud/project/%s/containerRegistry", projectID), args[0], cloudContainerRegistryTemplate)
-}
 
 func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 	registryCmd := &cobra.Command{
 		Use:   "container-registry",
 		Short: "Manage container registries in the given cloud project",
 	}
-	registryCmd.PersistentFlags().StringVar(&cloudProject, "cloud-project", "", "Cloud project ID")
+	registryCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	registryListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your container registries",
-		Run:   listContainerRegistries,
+		Run:   cloud.ListContainerRegistries,
 	}
 	registryCmd.AddCommand(withFilterFlag(registryListCmd))
 
 	registryCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Get a specific container registry",
-		Run:        getContainerRegistry,
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"registry_id"},
+		Use:   "get <registry_id>",
+		Short: "Get a specific container registry",
+		Run:   cloud.GetContainerRegistry,
+		Args:  cobra.ExactArgs(1),
 	})
 
 	cloudCmd.AddCommand(registryCmd)

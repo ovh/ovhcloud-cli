@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/emailmxplan"
 )
-
-var (
-	emailmxplanColumnsToDisplay = []string{"domain", "displayName", "state", "offer"}
-
-	//go:embed templates/emailmxplan.tmpl
-	emailmxplanTemplate string
-)
-
-func listEmailMXPlan(_ *cobra.Command, _ []string) {
-	manageListRequest("/email/mxplan", "", emailmxplanColumnsToDisplay, genericFilters)
-}
-
-func getEmailMXPlan(_ *cobra.Command, args []string) {
-	manageObjectRequest("/email/mxplan", args[0], emailmxplanTemplate)
-}
 
 func init() {
 	emailmxplanCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	emailmxplanListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Email MXPlan services",
-		Run:   listEmailMXPlan,
+		Run:   emailmxplan.ListEmailMXPlan,
 	}
 	emailmxplanCmd.AddCommand(withFilterFlag(emailmxplanListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific Email MXPlan",
 		Args:  cobra.ExactArgs(1),
-		Run:   getEmailMXPlan,
+		Run:   emailmxplan.GetEmailMXPlan,
 	})
 
 	rootCmd.AddCommand(emailmxplanCmd)

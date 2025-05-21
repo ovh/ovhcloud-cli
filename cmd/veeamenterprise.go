@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/veeamenterprise"
 )
-
-var (
-	veeamenterpriseColumnsToDisplay = []string{"serviceName", "activationStatus", "ip", "sourceIp"}
-
-	//go:embed templates/veeamenterprise.tmpl
-	veeamenterpriseTemplate string
-)
-
-func listVeeamEnterprise(_ *cobra.Command, _ []string) {
-	manageListRequest("/veeam/veeamEnterprise", "", veeamenterpriseColumnsToDisplay, genericFilters)
-}
-
-func getVeeamEnterprise(_ *cobra.Command, args []string) {
-	manageObjectRequest("/veeam/veeamEnterprise", args[0], veeamenterpriseTemplate)
-}
 
 func init() {
 	veeamenterpriseCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	veeamenterpriseListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VeeamEnterprise services",
-		Run:   listVeeamEnterprise,
+		Run:   veeamenterprise.ListVeeamEnterprise,
 	}
 	veeamenterpriseCmd.AddCommand(withFilterFlag(veeamenterpriseListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific VeeamEnterprise",
 		Args:  cobra.ExactArgs(1),
-		Run:   getVeeamEnterprise,
+		Run:   veeamenterprise.GetVeeamEnterprise,
 	})
 
 	rootCmd.AddCommand(veeamenterpriseCmd)

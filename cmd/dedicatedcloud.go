@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/dedicatedcloud"
 )
-
-var (
-	dedicatedcloudColumnsToDisplay = []string{"serviceName", "location", "state", "description"}
-
-	//go:embed templates/dedicatedcloud.tmpl
-	dedicatedcloudTemplate string
-)
-
-func listDedicatedCloud(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicatedCloud", "", dedicatedcloudColumnsToDisplay, genericFilters)
-}
-
-func getDedicatedCloud(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dedicatedCloud", args[0], dedicatedcloudTemplate)
-}
 
 func init() {
 	dedicatedcloudCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	dedicatedcloudListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your DedicatedCloud services",
-		Run:   listDedicatedCloud,
+		Run:   dedicatedcloud.ListDedicatedCloud,
 	}
 	dedicatedcloudCmd.AddCommand(withFilterFlag(dedicatedcloudListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific DedicatedCloud",
 		Args:  cobra.ExactArgs(1),
-		Run:   getDedicatedCloud,
+		Run:   dedicatedcloud.GetDedicatedCloud,
 	})
 
 	rootCmd.AddCommand(dedicatedcloudCmd)

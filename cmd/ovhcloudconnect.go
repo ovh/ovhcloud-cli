@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/ovhcloudconnect"
 )
-
-var (
-	ovhcloudconnectColumnsToDisplay = []string{"uuid", "provider", "status", "description"}
-
-	//go:embed templates/ovhcloudconnect.tmpl
-	ovhcloudconnectTemplate string
-)
-
-func listOvhCloudConnect(_ *cobra.Command, _ []string) {
-	manageListRequest("/ovhCloudConnect", "", ovhcloudconnectColumnsToDisplay, genericFilters)
-}
-
-func getOvhCloudConnect(_ *cobra.Command, args []string) {
-	manageObjectRequest("/ovhCloudConnect", args[0], ovhcloudconnectTemplate)
-}
 
 func init() {
 	ovhcloudconnectCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	ovhcloudconnectListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your OvhCloudConnect services",
-		Run:   listOvhCloudConnect,
+		Run:   ovhcloudconnect.ListOvhCloudConnect,
 	}
 	ovhcloudconnectCmd.AddCommand(withFilterFlag(ovhcloudconnectListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific OvhCloudConnect",
 		Args:  cobra.ExactArgs(1),
-		Run:   getOvhCloudConnect,
+		Run:   ovhcloudconnect.GetOvhCloudConnect,
 	})
 
 	rootCmd.AddCommand(ovhcloudconnectCmd)

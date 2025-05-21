@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/webhosting"
 )
-
-var (
-	webhostingColumnsToDisplay = []string{"serviceName", "displayName", "datacenter", "state"}
-
-	//go:embed templates/webhosting.tmpl
-	webhostingTemplate string
-)
-
-func listWebHosting(_ *cobra.Command, _ []string) {
-	manageListRequest("/hosting/web", "", webhostingColumnsToDisplay, genericFilters)
-}
-
-func getWebHosting(_ *cobra.Command, args []string) {
-	manageObjectRequest("/hosting/web", args[0], webhostingTemplate)
-}
 
 func init() {
 	webhostingCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	webhostingListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your WebHosting services",
-		Run:   listWebHosting,
+		Run:   webhosting.ListWebHosting,
 	}
 	webhostingCmd.AddCommand(withFilterFlag(webhostingListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific WebHosting",
 		Args:  cobra.ExactArgs(1),
-		Run:   getWebHosting,
+		Run:   webhosting.GetWebHosting,
 	})
 
 	rootCmd.AddCommand(webhostingCmd)

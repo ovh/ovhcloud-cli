@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/vmwareclouddirectorbackup"
 )
-
-var (
-	vmwareclouddirectorbackupColumnsToDisplay = []string{"id", "iam.displayName", "currentState.azName", "resourceStatus"}
-
-	//go:embed templates/vmwareclouddirectorbackup.tmpl
-	vmwareclouddirectorbackupTemplate string
-)
-
-func listVmwareCloudDirectorBackup(_ *cobra.Command, _ []string) {
-	manageListRequest("/v2/vmwareCloudDirector/backup", "id", vmwareclouddirectorbackupColumnsToDisplay, genericFilters)
-}
-
-func getVmwareCloudDirectorBackup(_ *cobra.Command, args []string) {
-	manageObjectRequest("/v2/vmwareCloudDirector/backup", args[0], vmwareclouddirectorbackupTemplate)
-}
 
 func init() {
 	vmwareclouddirectorbackupCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	vmwareclouddirectorbackupListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VmwareCloudDirector Backup services",
-		Run:   listVmwareCloudDirectorBackup,
+		Run:   vmwareclouddirectorbackup.ListVmwareCloudDirectorBackup,
 	}
 	vmwareclouddirectorbackupCmd.AddCommand(withFilterFlag(vmwareclouddirectorbackupListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific VmwareCloudDirector Backup",
 		Args:  cobra.ExactArgs(1),
-		Run:   getVmwareCloudDirectorBackup,
+		Run:   vmwareclouddirectorbackup.GetVmwareCloudDirectorBackup,
 	})
 
 	rootCmd.AddCommand(vmwareclouddirectorbackupCmd)

@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/supporttickets"
 )
-
-var (
-	supportticketsColumnsToDisplay = []string{"ticketId", "serviceName", "type", "category", "state"}
-
-	//go:embed templates/supporttickets.tmpl
-	supportticketsTemplate string
-)
-
-func listSupportTickets(_ *cobra.Command, _ []string) {
-	manageListRequest("/support/tickets", "", supportticketsColumnsToDisplay, genericFilters)
-}
-
-func getSupportTickets(_ *cobra.Command, args []string) {
-	manageObjectRequest("/support/tickets", args[0], supportticketsTemplate)
-}
 
 func init() {
 	supportticketsCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	supportticketsListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your support tickets",
-		Run:   listSupportTickets,
+		Run:   supporttickets.ListSupportTickets,
 	}
 	supportticketsCmd.AddCommand(withFilterFlag(supportticketsListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <ticket_id>",
 		Short: "Retrieve information of a specific support ticket",
 		Args:  cobra.ExactArgs(1),
-		Run:   getSupportTickets,
+		Run:   supporttickets.GetSupportTickets,
 	})
 
 	rootCmd.AddCommand(supportticketsCmd)

@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/packxdsl"
 )
-
-var (
-	packxdslColumnsToDisplay = []string{"packName", "description"}
-
-	//go:embed templates/packxdsl.tmpl
-	packxdslTemplate string
-)
-
-func listPackXDSL(_ *cobra.Command, _ []string) {
-	manageListRequest("/pack/xdsl", "", packxdslColumnsToDisplay, genericFilters)
-}
-
-func getPackXDSL(_ *cobra.Command, args []string) {
-	manageObjectRequest("/pack/xdsl", args[0], packxdslTemplate)
-}
 
 func init() {
 	packxdslCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	packxdslListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your PackXDSL services",
-		Run:   listPackXDSL,
+		Run:   packxdsl.ListPackXDSL,
 	}
 	packxdslCmd.AddCommand(withFilterFlag(packxdslListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific PackXDSL",
 		Args:  cobra.ExactArgs(1),
-		Run:   getPackXDSL,
+		Run:   packxdsl.GetPackXDSL,
 	})
 
 	rootCmd.AddCommand(packxdslCmd)

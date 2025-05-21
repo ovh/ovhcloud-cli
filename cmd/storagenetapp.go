@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/storagenetapp"
 )
-
-var (
-	storagenetappColumnsToDisplay = []string{"id", "name", "region", "status"}
-
-	//go:embed templates/storagenetapp.tmpl
-	storagenetappTemplate string
-)
-
-func listStorageNetApp(_ *cobra.Command, _ []string) {
-	manageListRequest("/storage/netapp", "", storagenetappColumnsToDisplay, genericFilters)
-}
-
-func getStorageNetApp(_ *cobra.Command, args []string) {
-	manageObjectRequest("/storage/netapp", args[0], storagenetappTemplate)
-}
 
 func init() {
 	storagenetappCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	storagenetappListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Storage NetApp services",
-		Run:   listStorageNetApp,
+		Run:   storagenetapp.ListStorageNetApp,
 	}
 	storagenetappCmd.AddCommand(withFilterFlag(storagenetappListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific StorageNetApp",
 		Args:  cobra.ExactArgs(1),
-		Run:   getStorageNetApp,
+		Run:   storagenetapp.GetStorageNetApp,
 	})
 
 	rootCmd.AddCommand(storagenetappCmd)

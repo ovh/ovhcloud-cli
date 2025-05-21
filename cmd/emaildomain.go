@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/emaildomain"
 )
-
-var (
-	emaildomainColumnsToDisplay = []string{"domain", "status", "offer"}
-
-	//go:embed templates/emaildomain.tmpl
-	emaildomainTemplate string
-)
-
-func listEmailDomain(_ *cobra.Command, _ []string) {
-	manageListRequest("/email/domain", "", emaildomainColumnsToDisplay, genericFilters)
-}
-
-func getEmailDomain(_ *cobra.Command, args []string) {
-	manageObjectRequest("/email/domain", args[0], emaildomainTemplate)
-}
 
 func init() {
 	emaildomainCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	emaildomainListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Email Domain services",
-		Run:   listEmailDomain,
+		Run:   emaildomain.ListEmailDomain,
 	}
 	emaildomainCmd.AddCommand(withFilterFlag(emaildomainListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific Email Domain",
 		Args:  cobra.ExactArgs(1),
-		Run:   getEmailDomain,
+		Run:   emaildomain.GetEmailDomain,
 	})
 
 	rootCmd.AddCommand(emaildomainCmd)

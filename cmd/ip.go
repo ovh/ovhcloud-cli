@@ -1,54 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-	"fmt"
-	"net/url"
-
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/display"
+	"stash.ovh.net/api/ovh-cli/internal/services/ip"
 )
-
-var (
-	ipColumnsToDisplay = []string{"ip", "rir", "routedTo.serviceName", "country", "description"}
-
-	//go:embed templates/ip.tmpl
-	ipTemplate string
-)
-
-func listIp(_ *cobra.Command, _ []string) {
-	manageListRequest("/ip", "", ipColumnsToDisplay, genericFilters)
-}
-
-func getIp(_ *cobra.Command, args []string) {
-	manageObjectRequest("/ip", args[0], ipTemplate)
-}
-
-func ipSetReverse(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/ip/%s/reverse", url.PathEscape(args[0]))
-	if err := client.Post(url, map[string]string{
-		"ipReverse": args[1],
-		"reverse":   args[2],
-	}, nil); err != nil {
-		display.ExitError(err.Error())
-	}
-
-	fmt.Println("\n⚡️ Reverse correctly set")
-}
-
-func ipGetReverse(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/ip/%s/reverse", url.PathEscape(args[0]))
-	manageListRequest(url, "", []string{"ipReverse", "reverse"}, genericFilters)
-}
-
-func ipDeleteReverse(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/ip/%s/reverse/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
-	if err := client.Delete(url, nil); err != nil {
-		display.ExitError(err.Error())
-	}
-
-	fmt.Println("\n⚡️ Reverse correctly deleted")
-}
 
 func init() {
 	ipCmd := &cobra.Command{
@@ -60,7 +15,7 @@ func init() {
 	ipListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Ip services",
-		Run:   listIp,
+		Run:   ip.ListIp,
 	}
 	ipCmd.AddCommand(withFilterFlag(ipListCmd))
 
@@ -69,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific Ip",
 		Args:  cobra.ExactArgs(1),
-		Run:   getIp,
+		Run:   ip.GetIp,
 	})
 
 	ipReverseCmd := &cobra.Command{
@@ -82,7 +37,7 @@ func init() {
 		Use:   "set <service_name> <ip> <reverse>",
 		Short: "Set reverse on the given IP",
 		Args:  cobra.ExactArgs(3),
-		Run:   ipSetReverse,
+		Run:   ip.IpSetReverse,
 	}
 	removeRootFlagsFromCommand(ipReverseSetCmd)
 	ipReverseCmd.AddCommand(ipReverseSetCmd)
@@ -91,7 +46,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "List reverse on the given IP range",
 		Args:  cobra.ExactArgs(1),
-		Run:   ipGetReverse,
+		Run:   ip.IpGetReverse,
 	}
 	removeRootFlagsFromCommand(ipReverseGetCmd)
 	ipReverseCmd.AddCommand(ipReverseGetCmd)
@@ -100,7 +55,7 @@ func init() {
 		Use:   "delete <service_name> <ip>",
 		Short: "Delete reverse on the given IP",
 		Args:  cobra.ExactArgs(2),
-		Run:   ipDeleteReverse,
+		Run:   ip.IpDeleteReverse,
 	}
 	removeRootFlagsFromCommand(ipReverseDeleteCmd)
 	ipReverseCmd.AddCommand(ipReverseDeleteCmd)

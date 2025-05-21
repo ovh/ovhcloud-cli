@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/vrack"
 )
-
-var (
-	vrackColumnsToDisplay = []string{"serviceName", "name", "description"}
-
-	//go:embed templates/vrack.tmpl
-	vrackTemplate string
-)
-
-func listVrack(_ *cobra.Command, _ []string) {
-	manageListRequest("/vrack", "", vrackColumnsToDisplay, genericFilters)
-}
-
-func getVrack(_ *cobra.Command, args []string) {
-	manageObjectRequest("/vrack", args[0], vrackTemplate)
-}
 
 func init() {
 	vrackCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	vrackListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your vRackservices",
-		Run:   listVrack,
+		Run:   vrack.ListVrack,
 	}
 	vrackCmd.AddCommand(withFilterFlag(vrackListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific vRack",
 		Args:  cobra.ExactArgs(1),
-		Run:   getVrack,
+		Run:   vrack.GetVrack,
 	})
 
 	rootCmd.AddCommand(vrackCmd)

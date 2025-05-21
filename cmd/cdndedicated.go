@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/cdndedicated"
 )
-
-var (
-	cdndedicatedColumnsToDisplay = []string{"service", "offer", "anycast"}
-
-	//go:embed templates/cdndedicated.tmpl
-	cdndedicatedTemplate string
-)
-
-func listCdnDedicated(_ *cobra.Command, _ []string) {
-	manageListRequest("/cdn/dedicated", "", cdndedicatedColumnsToDisplay, genericFilters)
-}
-
-func getCdnDedicated(_ *cobra.Command, args []string) {
-	manageObjectRequest("/cdn/dedicated", args[0], cdndedicatedTemplate)
-}
 
 func init() {
 	cdndedicatedCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	cdndedicatedListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your dedicated CDN services",
-		Run:   listCdnDedicated,
+		Run:   cdndedicated.ListCdnDedicated,
 	}
 	cdndedicatedCmd.AddCommand(withFilterFlag(cdndedicatedListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific CDN",
 		Args:  cobra.ExactArgs(1),
-		Run:   getCdnDedicated,
+		Run:   cdndedicated.GetCdnDedicated,
 	})
 
 	rootCmd.AddCommand(cdndedicatedCmd)

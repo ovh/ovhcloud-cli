@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/dedicatedceph"
 )
-
-var (
-	dedicatedcephColumnsToDisplay = []string{"serviceName", "region", "state", "status"}
-
-	//go:embed templates/dedicatedceph.tmpl
-	dedicatedcephTemplate string
-)
-
-func listDedicatedCeph(_ *cobra.Command, _ []string) {
-	manageListRequest("/dedicated/ceph", "", dedicatedcephColumnsToDisplay, genericFilters)
-}
-
-func getDedicatedCeph(_ *cobra.Command, args []string) {
-	manageObjectRequest("/dedicated/ceph", args[0], dedicatedcephTemplate)
-}
 
 func init() {
 	dedicatedcephCmd := &cobra.Command{
@@ -31,7 +15,7 @@ func init() {
 	dedicatedcephListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Dedicated Ceph services",
-		Run:   listDedicatedCeph,
+		Run:   dedicatedceph.ListDedicatedCeph,
 	}
 	dedicatedcephCmd.AddCommand(withFilterFlag(dedicatedcephListCmd))
 
@@ -40,7 +24,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific Dedicated Ceph",
 		Args:  cobra.ExactArgs(1),
-		Run:   getDedicatedCeph,
+		Run:   dedicatedceph.GetDedicatedCeph,
 	})
 
 	rootCmd.AddCommand(dedicatedcephCmd)

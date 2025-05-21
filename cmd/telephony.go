@@ -1,25 +1,9 @@
 package cmd
 
 import (
-	_ "embed"
-
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/telephony"
 )
-
-var (
-	telephonyColumnsToDisplay = []string{"billingAccount", "description", "status"}
-
-	//go:embed templates/telephony.tmpl
-	telephonyTemplate string
-)
-
-func listTelephony(_ *cobra.Command, _ []string) {
-	manageListRequest("/telephony", "", telephonyColumnsToDisplay, genericFilters)
-}
-
-func getTelephony(_ *cobra.Command, args []string) {
-	manageObjectRequest("/telephony", args[0], telephonyTemplate)
-}
 
 func init() {
 	telephonyCmd := &cobra.Command{
@@ -31,16 +15,16 @@ func init() {
 	telephonyListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your Telephony services",
-		Run:   listTelephony,
+		Run:   telephony.ListTelephony,
 	}
 	telephonyCmd.AddCommand(withFilterFlag(telephonyListCmd))
 
 	// Command to get a single Telephony
 	telephonyCmd.AddCommand(&cobra.Command{
 		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific Telephony",
+		Short: "Retrieve information of a specific Telephony service",
 		Args:  cobra.ExactArgs(1),
-		Run:   getTelephony,
+		Run:   telephony.GetTelephony,
 	})
 
 	rootCmd.AddCommand(telephonyCmd)

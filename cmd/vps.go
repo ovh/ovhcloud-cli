@@ -4,22 +4,8 @@ import (
 	_ "embed"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/services/vps"
 )
-
-var (
-	vpsColumnsToDisplay = []string{"name", "displayName", "state", "zone"}
-
-	//go:embed templates/vps.tmpl
-	vpsTemplate string
-)
-
-func listVps(_ *cobra.Command, _ []string) {
-	manageListRequest("/vps", "", vpsColumnsToDisplay, genericFilters)
-}
-
-func getVps(_ *cobra.Command, args []string) {
-	manageObjectRequest("/vps", args[0], vpsTemplate)
-}
 
 func init() {
 	vpsCmd := &cobra.Command{
@@ -31,7 +17,7 @@ func init() {
 	vpsListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VPS services",
-		Run:   listVps,
+		Run:   vps.ListVps,
 	}
 	vpsCmd.AddCommand(withFilterFlag(vpsListCmd))
 
@@ -40,7 +26,7 @@ func init() {
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific VPS",
 		Args:  cobra.ExactArgs(1),
-		Run:   getVps,
+		Run:   vps.GetVps,
 	})
 
 	rootCmd.AddCommand(vpsCmd)
