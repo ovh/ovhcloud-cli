@@ -1,0 +1,27 @@
+🚀 Cloud Project {{.ServiceName}}
+=======
+
+_{{index .Result "description"}}_
+
+## General information
+
+**Project name**:  {{index .Result "projectName"}}
+**Status**:        {{index .Result "status"}}
+**Access**:        {{index .Result "access"}}
+**Unleash**:       {{index .Result "unleash"}}
+**Manual quota**:  {{index .Result "manualQuota"}}
+**Creation date**: {{index .Result "creationDate"}}
+{{if index .Result "expiration"}}**Expiration**:    {{index .Result "expiration"}}{{end}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

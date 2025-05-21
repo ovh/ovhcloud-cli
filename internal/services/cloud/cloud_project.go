@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	_ "embed"
 	"fmt"
 	"slices"
 
@@ -18,6 +19,9 @@ var (
 
 	// Cloud project set by CLI flags
 	CloudProject string
+
+	//go:embed templates/cloud_project.tmpl
+	cloudProjectTemplate string
 )
 
 func ListCloudProject(_ *cobra.Command, _ []string) {
@@ -25,7 +29,7 @@ func ListCloudProject(_ *cobra.Command, _ []string) {
 }
 
 func GetCloudProject(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/cloud/project", args[0], cloudprojectColumnsToDisplay[0])
+	common.ManageObjectRequest("/cloud/project", args[0], cloudProjectTemplate)
 }
 
 func getConfiguredCloudProject() string {
