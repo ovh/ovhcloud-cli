@@ -21,11 +21,31 @@ func Login(_ *cobra.Command, _ []string) {
 
 	for k, v := range credentials {
 		if v == "" {
-			display.ExitError("no value provided for %q", k)
+			display.ExitWarning("no value provided for %q", k)
 		}
 	}
 
 	regionConfigKey := fmt.Sprintf("ovh-%s", strings.ToLower(selectedRegion))
+
+	// If no configuration file could be loaded, choose the location to write a new one
+	if flags.CliConfigPath == "" {
+		choices := make(map[string]string, len(config.ConfigPaths))
+		expandedPaths := config.ExpandConfigPaths()
+		for idx, cfg := range config.ConfigPaths {
+			choices[cfg] = expandedPaths[idx]
+		}
+
+		_, path, err := display.RunGenericChoicePicker("Please choose a location to store your configuration", choices)
+		if err != nil {
+			display.ExitError("failed to select a config path: %s", err)
+		}
+
+		if path == "" {
+			display.ExitWarning("no config path selected, configuration not saved")
+		}
+
+		flags.CliConfigPath = path
+	}
 
 	if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, "", "endpoint", regionConfigKey); err != nil {
 		display.ExitError("failed to write endpoint in configuration: %s", err)

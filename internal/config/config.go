@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	configPaths = []string{
+	ConfigPaths = []string{
 		// System wide configuration
 		"/etc/ovh.conf",
 		// Configuration in user's home
@@ -40,14 +40,14 @@ func currentUserHome() (string, error) {
 }
 
 // configPaths returns configPaths, with ~/ prefix expanded.
-func expandConfigPaths() []string {
+func ExpandConfigPaths() []string {
 	paths := []string{}
 
 	// Will be initialized on first use
 	var home string
 	var homeErr error
 
-	for _, path := range configPaths {
+	for _, path := range ConfigPaths {
 		if strings.HasPrefix(path, "~/") {
 			// Find home if needed
 			if home == "" && homeErr == nil {
@@ -70,7 +70,7 @@ func expandConfigPaths() []string {
 // loadINI builds a ini.File from the configuration paths provided in configPaths.
 // It's a helper for loadConfig.
 func LoadINI() (*ini.File, string) {
-	paths := expandConfigPaths()
+	paths := ExpandConfigPaths()
 	if len(paths) == 0 {
 		return ini.Empty(), ""
 	}
@@ -120,7 +120,7 @@ func GetConfigValue(cfg *ini.File, sectionName, keyName string) (string, error) 
 
 func SetConfigValue(cfg *ini.File, path, sectionName, keyName, value string) error {
 	if path == "" {
-		path = configPaths[0]
+		path = ConfigPaths[0]
 	}
 
 	if sectionName == "" {

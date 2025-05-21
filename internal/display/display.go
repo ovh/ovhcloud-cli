@@ -64,6 +64,13 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 	case outputFormat.CustomFormat != "":
 		renderCustomFormat(values, outputFormat.CustomFormat)
 		return
+	case outputFormat.InteractiveOutput:
+		bytes, err := json.Marshal(values)
+		if err != nil {
+			ExitError("error preparing interactive output: %s", err)
+		}
+		fxDisplay.Display(bytes, "")
+		return
 	case outputFormat.YamlOutput:
 		if err := prettyPrintYAML(values); err != nil {
 			ExitError("error displaying YAML results: %s", err)
