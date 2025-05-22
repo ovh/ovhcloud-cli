@@ -27,5 +27,12 @@ func init() {
 		Run:   hostingprivatedatabase.GetHostingPrivateDatabase,
 	})
 
+	// Command to update a single HostingPrivateDatabase
+	hostingprivatedatabaseCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given HostingPrivateDatabase service",
+		Run:   hostingprivatedatabase.EditHostingPrivateDatabase,
+	})
+
 	rootCmd.AddCommand(hostingprivatedatabaseCmd)
 }

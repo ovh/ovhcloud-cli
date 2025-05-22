@@ -3,12 +3,14 @@ package cloud
 import (
 	_ "embed"
 	"fmt"
+	"net/url"
 	"slices"
 
 	"github.com/spf13/cobra"
 
 	"stash.ovh.net/api/ovh-cli/internal/config"
 	"stash.ovh.net/api/ovh-cli/internal/display"
+	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -22,6 +24,9 @@ var (
 
 	//go:embed templates/cloud_project.tmpl
 	cloudProjectTemplate string
+
+	//go:embed api-schemas/cloud.json
+	cloudOpenapiSchema []byte
 )
 
 func ListCloudProject(_ *cobra.Command, _ []string) {
@@ -30,6 +35,11 @@ func ListCloudProject(_ *cobra.Command, _ []string) {
 
 func GetCloudProject(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/cloud/project", args[0], cloudProjectTemplate)
+}
+
+func EditCloudProject(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/cloud/project/%s", url.PathEscape(args[0]))
+	editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}", endpoint, cloudOpenapiSchema)
 }
 
 func getConfiguredCloudProject() string {

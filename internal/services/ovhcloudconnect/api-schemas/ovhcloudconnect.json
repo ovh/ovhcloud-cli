@@ -1,0 +1,4679 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/1.0"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "common.RegionEnum": {
+        "type": "string",
+        "description": "RegionEnum",
+        "enum": [
+          "af-north-lz-rba",
+          "ap-south-mum",
+          "ap-southeast-sgp",
+          "ap-southeast-syd",
+          "ca-east-bhs",
+          "ca-east-tor",
+          "eu-central-lz-prg",
+          "eu-central-waw",
+          "eu-north-lz-sto",
+          "eu-south-lz-mad",
+          "eu-south-lz-mil",
+          "eu-west-eri",
+          "eu-west-gra",
+          "eu-west-gra-snc",
+          "eu-west-lim",
+          "eu-west-lz-ams",
+          "eu-west-lz-bru",
+          "eu-west-lz-dln",
+          "eu-west-lz-lux",
+          "eu-west-lz-mrs",
+          "eu-west-lz-vie",
+          "eu-west-lz-zrh",
+          "eu-west-par",
+          "eu-west-rbx",
+          "eu-west-rbx-snc",
+          "eu-west-sbg",
+          "eu-west-sbg-snc",
+          "us-east-lz-atl",
+          "us-east-lz-chi",
+          "us-east-lz-dal",
+          "us-east-lz-mia",
+          "us-east-lz-nyc",
+          "us-east-vin",
+          "us-west-hil",
+          "us-west-lz-den",
+          "us-west-lz-lax",
+          "us-west-lz-pao"
+        ]
+      },
+      "dbaas.logs.LogKind": {
+        "type": "object",
+        "description": "Log kind",
+        "properties": {
+          "additionalReturnedFields": {
+            "type": "array",
+            "description": "List of additional log fields managed in this log kind",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the log kind",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Log kind display name",
+            "readOnly": true
+          },
+          "kindId": {
+            "type": "string",
+            "description": "Log kind ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Log kind name",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the log kind",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogSubscription": {
+        "type": "object",
+        "description": "Log subscription",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the subscription",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "kind": {
+            "type": "string",
+            "description": "Log kind name of this subscription",
+            "readOnly": true
+          },
+          "resource": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionResource"
+              }
+            ],
+            "description": "Subscribed resource, where the logs come from",
+            "readOnly": true
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Name of the destination log service",
+            "readOnly": true
+          },
+          "streamId": {
+            "type": "string",
+            "description": "Id of the destination log stream",
+            "readOnly": true
+          },
+          "subscriptionId": {
+            "type": "string",
+            "description": "Subscription ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the subscription",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogSubscriptionCreation": {
+        "type": "object",
+        "description": "Log subscription creation payload",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Log kind name to subscribe to"
+          },
+          "streamId": {
+            "type": "string",
+            "description": "Customer log stream ID",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "kind",
+          "streamId"
+        ]
+      },
+      "dbaas.logs.LogSubscriptionResource": {
+        "type": "object",
+        "description": "Log subscription resource",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of subscribed resource",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of subscribed resource",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogSubscriptionResponse": {
+        "type": "object",
+        "description": "Asynchronous operation after subscribing or unsubscribing to a resource logs",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "description": "Identifier of the operation",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Operation owner's service name",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogUrlCreation": {
+        "type": "object",
+        "description": "Log temporary URL creation payload",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Log kind name"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "dbaas.logs.TemporaryLogsLink": {
+        "type": "object",
+        "description": "Temporary url information",
+        "properties": {
+          "expirationDate": {
+            "type": "string",
+            "description": "Temporary url expiration date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "description": "Temporary url",
+            "readOnly": true
+          }
+        }
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "ovhcloudconnect.Datacenter": {
+        "type": "object",
+        "description": "OVHcloud Connect Datacenter",
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "Get availability to add new configuration on it",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "ID of the datacenter",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "name of the datacenter",
+            "readOnly": true
+          },
+          "region": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.RegionEnum"
+              }
+            ],
+            "description": "region of the datacenter",
+            "readOnly": true
+          },
+          "regionType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.datacenter.RegionTypeEnum"
+              }
+            ],
+            "description": "region type of the datacenter",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.DatacenterConfig": {
+        "type": "object",
+        "description": "OVHcloud Connect Service Datacenter Configuration",
+        "properties": {
+          "datacenterId": {
+            "type": "integer",
+            "description": "ID of the datacenter linked"
+          },
+          "id": {
+            "type": "integer",
+            "description": "ID of the Datacenter configuration",
+            "readOnly": true
+          },
+          "ovhBgpArea": {
+            "type": "integer",
+            "description": "OVH Private AS",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.popConfig.StatusEnum"
+              }
+            ],
+            "description": "Status of the pop configuration",
+            "readOnly": true
+          },
+          "subnet": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4Block"
+              }
+            ],
+            "description": "Subnet should be a /28 min",
+            "nullable": true
+          }
+        },
+        "required": [
+          "datacenterId"
+        ]
+      },
+      "ovhcloudconnect.DatacenterExtraConfig": {
+        "type": "object",
+        "description": "OVHcloud Connect Service Datacenter Extra Configuration",
+        "properties": {
+          "bgpNeighborArea": {
+            "type": "integer",
+            "description": "BGP AS number",
+            "nullable": true
+          },
+          "bgpNeighborIp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "Router IP for BGP",
+            "nullable": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "ID of the extra configuration ",
+            "readOnly": true
+          },
+          "nextHop": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "Static route next hop",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.popConfig.StatusEnum"
+              }
+            ],
+            "description": "Status of the pop configuration",
+            "readOnly": true
+          },
+          "subnet": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4Block"
+              }
+            ],
+            "description": "Static route ip",
+            "nullable": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.datacenterExtraConfig.TypeEnum"
+              }
+            ],
+            "description": "Type of the configuration"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "ovhcloudconnect.Diagnostic": {
+        "type": "object",
+        "description": "OVHcloud Connect Diagnostic",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Date of the diagnostic",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the diagnostic",
+            "nullable": true,
+            "readOnly": true
+          },
+          "function": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.diagnostic.FunctionEnum"
+              }
+            ],
+            "description": "Diagnostic function",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "Diagnostic id",
+            "readOnly": true
+          },
+          "result": {
+            "type": "array",
+            "description": "Diagnostic result",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ovhcloudconnect.DiagnosticResult"
+            },
+            "readOnly": true
+          },
+          "source": {
+            "type": "string",
+            "description": "Source where the diagnostic was run",
+            "nullable": true,
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.task.StatusEnum"
+              }
+            ],
+            "description": "Diagnostic status",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.DiagnosticConfiguration": {
+        "type": "object",
+        "description": "OVHcloud Connect Service Diagnostic Configuration",
+        "properties": {
+          "dcConfigId": {
+            "type": "integer",
+            "description": "ID of the Datacenter configuration"
+          },
+          "diagnosticName": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.diagnostic.FunctionEnum"
+              }
+            ],
+            "description": "Name of the diagnostic"
+          },
+          "diagnosticType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.diagnostic.TypeEnum"
+              }
+            ],
+            "description": "Type of the diagnostic"
+          },
+          "extraConfigId": {
+            "type": "integer",
+            "description": "ID of the extra configuration "
+          },
+          "popConfigId": {
+            "type": "integer",
+            "description": "ID of the Pop Configuration"
+          }
+        },
+        "required": [
+          "diagnosticName",
+          "popConfigId"
+        ]
+      },
+      "ovhcloudconnect.DiagnosticResult": {
+        "type": "object",
+        "description": "OVHcloud Connect Diagnostic Result",
+        "properties": {
+          "aspath": {
+            "type": "string",
+            "description": "As-path for routes",
+            "nullable": true,
+            "readOnly": true
+          },
+          "cmd": {
+            "type": "string",
+            "description": "Command sent to equipment",
+            "nullable": true,
+            "readOnly": true
+          },
+          "localprefix": {
+            "type": "integer",
+            "description": "Local prefix used for routes",
+            "nullable": true,
+            "readOnly": true
+          },
+          "mac": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/macAddress"
+              }
+            ],
+            "description": "Mac address",
+            "nullable": true,
+            "readOnly": true
+          },
+          "med": {
+            "type": "integer",
+            "description": "BGP Med (Metric)",
+            "nullable": true,
+            "readOnly": true
+          },
+          "output": {
+            "type": "string",
+            "description": "Output of command sent to equipment",
+            "nullable": true,
+            "readOnly": true
+          },
+          "prefix": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "Prefix for routes",
+            "nullable": true,
+            "readOnly": true
+          },
+          "routermac": {
+            "type": "string",
+            "description": "eVPN router mac",
+            "nullable": true,
+            "readOnly": true
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Local date when route/mac was declared",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.Incident": {
+        "type": "object",
+        "description": "OVHcloud Connect Incident",
+        "properties": {
+          "endDate": {
+            "type": "string",
+            "description": "Ending date of the incident",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "Incident reference",
+            "readOnly": true
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Starting date of the incident",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.incident.TypeEnum"
+              }
+            ],
+            "description": "Type of incident",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.Interface": {
+        "type": "object",
+        "description": "OVHcloud Connect Interface",
+        "properties": {
+          "deviceDisplayName": {
+            "type": "string",
+            "description": "Patch panel name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "deviceRackDisplayName": {
+            "type": "string",
+            "description": "Equipment name in the rack",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "Interface reference",
+            "readOnly": true
+          },
+          "incomingLightStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.interface.LightStatusEnum"
+              }
+            ],
+            "description": "Status of the light received on the port (checked every 5 min)",
+            "readOnly": true
+          },
+          "incomingLightValue": {
+            "type": "number",
+            "description": "Value of the light received on the port (checked every 5 min)",
+            "nullable": true,
+            "readOnly": true
+          },
+          "interfaceName": {
+            "type": "string",
+            "description": "Port location",
+            "nullable": true,
+            "readOnly": true
+          },
+          "interfaceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.interface.LightStatusEnum"
+              }
+            ],
+            "description": "Status of the interface",
+            "readOnly": true
+          },
+          "interfaceStatusLastUpdate": {
+            "type": "string",
+            "description": "Date of the last interface status change detected",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "interfaceTerminationType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.interface.TerminationTypeEnum"
+              }
+            ],
+            "description": "Fiber termination type",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lightLastUpdate": {
+            "type": "string",
+            "description": "Date of the last light change detected",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "outgoingLightStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.interface.LightStatusEnum"
+              }
+            ],
+            "description": "Status of the light emitted on the port (checked every 5 min)",
+            "readOnly": true
+          },
+          "outgoingLightValue": {
+            "type": "number",
+            "description": "Value of the light emitted on the port (checked every 5 min)",
+            "nullable": true,
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.interface.StatusEnum"
+              }
+            ],
+            "description": "Status of the port",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.InterfaceStatus": {
+        "type": "object",
+        "description": "OVHcloud Connect Interface status",
+        "properties": {
+          "lastChange": {
+            "type": "string",
+            "description": "Last time the interface changed status",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lastDown": {
+            "type": "string",
+            "description": "Last time the interface status went from up to down",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lastUp": {
+            "type": "string",
+            "description": "Last time the interface status went from down to up",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Last time the status was updated",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.status.StatusEnum"
+              }
+            ],
+            "description": "Status of the interface",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.Key": {
+        "type": "object",
+        "description": "OVHcloud Connect Service Key",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Service Key id",
+            "readOnly": true
+          },
+          "key": {
+            "type": "string",
+            "description": "Reference of the service",
+            "readOnly": true
+          },
+          "provider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.service.ProviderEnum"
+              }
+            ],
+            "description": "Service Key provider",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.key.StatusEnum"
+              }
+            ],
+            "description": "Service Key status",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.Metrics": {
+        "type": "object",
+        "description": "OVHcloud Connect Metrics",
+        "properties": {
+          "timestamp": {
+            "type": "integer",
+            "description": "timestamp corresponding to the value",
+            "readOnly": true
+          },
+          "value": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.MetricsValue"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.MetricsValue": {
+        "type": "object",
+        "description": "OVHcloud Connect Metrics value",
+        "properties": {
+          "unit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.interface.MetricsUnitEnum"
+              }
+            ],
+            "description": "Unit in which the value is expressed",
+            "readOnly": true
+          },
+          "value": {
+            "type": "number",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.Monitoring": {
+        "type": "object",
+        "description": "OVHcloud Connect Monitoring",
+        "properties": {
+          "activated": {
+            "type": "boolean",
+            "description": "Whether alert is activated",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the monitoring alert",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the monitoring alert",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the monitoring alert",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.PopConfStatus": {
+        "type": "object",
+        "description": "OVHcloud Connect L3 peering current status",
+        "properties": {
+          "flapCount": {
+            "type": "number",
+            "description": "Number of flap since last UP",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lastChange": {
+            "type": "string",
+            "description": "Last time the interface changed status",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lastDown": {
+            "type": "string",
+            "description": "Last time the interface status went from up to down",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lastUp": {
+            "type": "string",
+            "description": "Last time the interface status went from down to up",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Last time the status was updated",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.status.StatusEnum"
+              }
+            ],
+            "description": "Status of the peering",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.PopConfig": {
+        "type": "object",
+        "description": "OVHcloud Connect Service Pop Configuration",
+        "properties": {
+          "customerBgpArea": {
+            "type": "integer",
+            "description": "Customer Private AS",
+            "nullable": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "ID of the Pop Configuration",
+            "readOnly": true
+          },
+          "interfaceId": {
+            "type": "integer",
+            "description": "ID of the interface"
+          },
+          "ovhBgpArea": {
+            "type": "integer",
+            "description": "OVH Private AS",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.popConfig.StatusEnum"
+              }
+            ],
+            "description": "Status of the pop configuration",
+            "readOnly": true
+          },
+          "subnet": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4Block"
+              }
+            ],
+            "description": "Subnet should be a /30, first IP for OVH, second IP for customer",
+            "nullable": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.popConfig.TypeEnum"
+              }
+            ],
+            "description": "Type of the pop configuration"
+          }
+        },
+        "required": [
+          "interfaceId",
+          "type"
+        ]
+      },
+      "ovhcloudconnect.SendKeyAnswer": {
+        "type": "object",
+        "description": "OVHcloud Connect send key answer",
+        "properties": {
+          "messageCode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.messageCode.Enum"
+              }
+            ],
+            "description": "message code for UX to display appropriate text",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.Service": {
+        "type": "object",
+        "description": "OVHcloud Connect Service",
+        "properties": {
+          "bandwidth": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.service.BandwidthEnum"
+              }
+            ],
+            "description": "Service bandwidth",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Service description",
+            "readOnly": true
+          },
+          "interfaceList": {
+            "type": "array",
+            "description": "List of interfaces linked to a service",
+            "items": {
+              "type": "integer"
+            },
+            "readOnly": true
+          },
+          "pop": {
+            "type": "string",
+            "description": "Pop reference where the service is delivered",
+            "readOnly": true
+          },
+          "portQuantity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.service.PortEnum"
+              }
+            ],
+            "description": "Port quantity",
+            "readOnly": true
+          },
+          "product": {
+            "type": "string",
+            "description": "Product name of the service",
+            "readOnly": true
+          },
+          "provider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.service.ProviderEnum"
+              }
+            ],
+            "description": "Service provider",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.service.StatusEnum"
+              }
+            ],
+            "description": "Service status",
+            "readOnly": true
+          },
+          "uuid": {
+            "type": "string",
+            "description": "Service UUID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "vrack": {
+            "type": "string",
+            "description": "vrack linked to the service",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.ServiceWithIAM": {
+        "type": "object",
+        "description": "OVHcloud Connect Service",
+        "properties": {
+          "bandwidth": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.service.BandwidthEnum"
+              }
+            ],
+            "description": "Service bandwidth",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Service description",
+            "readOnly": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "interfaceList": {
+            "type": "array",
+            "description": "List of interfaces linked to a service",
+            "items": {
+              "type": "integer"
+            },
+            "readOnly": true
+          },
+          "pop": {
+            "type": "string",
+            "description": "Pop reference where the service is delivered",
+            "readOnly": true
+          },
+          "portQuantity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.service.PortEnum"
+              }
+            ],
+            "description": "Port quantity",
+            "readOnly": true
+          },
+          "product": {
+            "type": "string",
+            "description": "Product name of the service",
+            "readOnly": true
+          },
+          "provider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.service.ProviderEnum"
+              }
+            ],
+            "description": "Service provider",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.service.StatusEnum"
+              }
+            ],
+            "description": "Service status",
+            "readOnly": true
+          },
+          "uuid": {
+            "type": "string",
+            "description": "Service UUID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "vrack": {
+            "type": "string",
+            "description": "vrack linked to the service",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.Subscriptions": {
+        "type": "object",
+        "description": "OVHcloud Connect Subscriptions",
+        "properties": {
+          "subscriptions": {
+            "type": "array",
+            "description": "List of subscriptions alerts.",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ovhcloudconnect.Task": {
+        "type": "object",
+        "description": "OVHcloud Connect Task",
+        "properties": {
+          "function": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.task.FunctionEnum"
+              }
+            ],
+            "description": "Task function",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "Task id",
+            "readOnly": true
+          },
+          "resourceId": {
+            "type": "integer",
+            "description": "Reference of the created resource",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ovhcloudconnect.task.StatusEnum"
+              }
+            ],
+            "description": "Task status",
+            "readOnly": true
+          }
+        }
+      },
+      "ovhcloudconnect.To": {
+        "type": "object",
+        "description": "OVHcloud Connect email",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address to send the key"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ovhcloudconnect.Update": {
+        "type": "object",
+        "description": "Missing description",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "New description for your service",
+            "nullable": true
+          }
+        }
+      },
+      "ovhcloudconnect.datacenter.RegionTypeEnum": {
+        "type": "string",
+        "description": "Enum values for datacenter region type",
+        "enum": [
+          "1-AZ",
+          "3-AZ"
+        ]
+      },
+      "ovhcloudconnect.datacenterExtraConfig.TypeEnum": {
+        "type": "string",
+        "description": "Enum values for Datacenter Extra Configuration Type",
+        "enum": [
+          "bgp",
+          "network"
+        ]
+      },
+      "ovhcloudconnect.diagnostic.FunctionEnum": {
+        "type": "string",
+        "description": "Enum values for Diagnostic function",
+        "enum": [
+          "diagMacs",
+          "diagPeering",
+          "diagPeeringExtra",
+          "diagRoutes"
+        ]
+      },
+      "ovhcloudconnect.diagnostic.TypeEnum": {
+        "type": "string",
+        "description": "Enum values for Diagnostic type",
+        "enum": [
+          "advertised-routes",
+          "default",
+          "routes"
+        ]
+      },
+      "ovhcloudconnect.incident.TypeEnum": {
+        "type": "string",
+        "description": "Enum values for incident type status",
+        "enum": [
+          "incident",
+          "maintenance"
+        ]
+      },
+      "ovhcloudconnect.interface.LightStatusEnum": {
+        "type": "string",
+        "description": "Enum values for the light status",
+        "enum": [
+          "down",
+          "unknown",
+          "up"
+        ]
+      },
+      "ovhcloudconnect.interface.MetricsPeriodEnum": {
+        "type": "string",
+        "description": "Enum values for the period of the statistics",
+        "enum": [
+          "daily",
+          "hourly",
+          "weekly"
+        ]
+      },
+      "ovhcloudconnect.interface.MetricsTypeEnum": {
+        "type": "string",
+        "description": "Enum values for the type of the statistics",
+        "enum": [
+          "error:download",
+          "error:upload",
+          "light:in",
+          "light:out",
+          "traffic:download",
+          "traffic:upload"
+        ]
+      },
+      "ovhcloudconnect.interface.MetricsUnitEnum": {
+        "type": "string",
+        "description": "Enum values for the unit of the statistics",
+        "enum": [
+          "bytes/s",
+          "dbm",
+          "error/s",
+          "prefix_accepted",
+          "prefix_limit"
+        ]
+      },
+      "ovhcloudconnect.interface.StatusEnum": {
+        "type": "string",
+        "description": "Enum values for interface status",
+        "enum": [
+          "disabled",
+          "enabled",
+          "reserved"
+        ]
+      },
+      "ovhcloudconnect.interface.TerminationTypeEnum": {
+        "type": "string",
+        "description": "Enum values for the termination type",
+        "enum": [
+          "LC/PC",
+          "SC/PC"
+        ]
+      },
+      "ovhcloudconnect.key.StatusEnum": {
+        "type": "string",
+        "description": "Enum values for service key status",
+        "enum": [
+          "active",
+          "cancelled",
+          "doing",
+          "terminated",
+          "toCheck"
+        ]
+      },
+      "ovhcloudconnect.messageCode.Enum": {
+        "type": "string",
+        "description": "Enum values for messageCode",
+        "enum": [
+          "mailSent"
+        ]
+      },
+      "ovhcloudconnect.popConfig.MetricsTypeEnum": {
+        "type": "string",
+        "description": "Enum values for the type of the statistics",
+        "enum": [
+          "prefix:accepted",
+          "prefix:limit"
+        ]
+      },
+      "ovhcloudconnect.popConfig.StatusEnum": {
+        "type": "string",
+        "description": "Enum values for Pop Configuration Status",
+        "enum": [
+          "active",
+          "init",
+          "toDelete"
+        ]
+      },
+      "ovhcloudconnect.popConfig.TypeEnum": {
+        "type": "string",
+        "description": "Enum values for Pop Configuration Type",
+        "enum": [
+          "l2",
+          "l3"
+        ]
+      },
+      "ovhcloudconnect.service.BandwidthEnum": {
+        "type": "string",
+        "description": "Enum values for bandwidth",
+        "enum": [
+          "100g",
+          "100m",
+          "10g",
+          "1g",
+          "200m",
+          "20g",
+          "2g",
+          "500m",
+          "5g"
+        ]
+      },
+      "ovhcloudconnect.service.PortEnum": {
+        "type": "string",
+        "description": "Enum values for port quantity",
+        "enum": [
+          "1",
+          "2"
+        ]
+      },
+      "ovhcloudconnect.service.ProviderEnum": {
+        "type": "string",
+        "description": "Enum values for service provider",
+        "enum": [
+          "OVHcloud",
+          "RISQ",
+          "consoleconnect",
+          "digitalrealty",
+          "equinix",
+          "fibrenoire",
+          "intercloud",
+          "internal",
+          "interxion",
+          "megaport",
+          "orange"
+        ]
+      },
+      "ovhcloudconnect.service.StatusEnum": {
+        "type": "string",
+        "description": "Enum values for the Service",
+        "enum": [
+          "active",
+          "closed"
+        ]
+      },
+      "ovhcloudconnect.status.StatusEnum": {
+        "type": "string",
+        "description": "Enum values for status",
+        "enum": [
+          "down",
+          "up"
+        ]
+      },
+      "ovhcloudconnect.task.FunctionEnum": {
+        "type": "string",
+        "description": "Enum values for Task function",
+        "enum": [
+          "addDatacenterConfiguration",
+          "addDatacenterExtraConfiguration",
+          "addPopConfiguration",
+          "addVrack",
+          "delDatacenterConfiguration",
+          "delDatacenterExtraConfiguration",
+          "delPopConfiguration",
+          "lockInterface",
+          "removeVrack",
+          "unlockInterface"
+        ]
+      },
+      "ovhcloudconnect.task.StatusEnum": {
+        "type": "string",
+        "description": "Enum values for Task status",
+        "enum": [
+          "denied",
+          "doing",
+          "done",
+          "error",
+          "pause",
+          "todo"
+        ]
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "service.RenewType": {
+        "type": "object",
+        "description": "Map a possible renew for a specific service",
+        "properties": {
+          "automatic": {
+            "type": "boolean",
+            "description": "The service is automatically renewed"
+          },
+          "deleteAtExpiration": {
+            "type": "boolean",
+            "description": "The service will be deleted at expiration"
+          },
+          "forced": {
+            "type": "boolean",
+            "description": "The service forced to be renewed"
+          },
+          "manualPayment": {
+            "type": "boolean",
+            "description": "The service needs to be manually renewed and paid",
+            "nullable": true
+          },
+          "period": {
+            "type": "integer",
+            "description": "period of renew in month",
+            "nullable": true
+          }
+        }
+      },
+      "service.RenewalTypeEnum": {
+        "type": "string",
+        "description": "Detailed renewal type of a service",
+        "enum": [
+          "automaticForcedProduct",
+          "automaticV2012",
+          "automaticV2014",
+          "automaticV2016",
+          "manual",
+          "oneShot",
+          "option"
+        ]
+      },
+      "service.StateEnum": {
+        "type": "string",
+        "description": "service.StateEnum",
+        "enum": [
+          "autorenewInProgress",
+          "expired",
+          "inCreation",
+          "ok",
+          "pendingDebt",
+          "unPaid"
+        ]
+      },
+      "service.TerminationFutureUseEnum": {
+        "type": "string",
+        "description": "All future uses you can provide for a service termination",
+        "enum": [
+          "NOT_REPLACING_SERVICE",
+          "OTHER",
+          "SUBSCRIBE_AN_OTHER_SERVICE",
+          "SUBSCRIBE_OTHER_KIND_OF_SERVICE_WITH_COMPETITOR",
+          "SUBSCRIBE_SIMILAR_SERVICE_WITH_COMPETITOR"
+        ]
+      },
+      "service.TerminationReasonEnum": {
+        "type": "string",
+        "description": "All reasons you can provide for a service termination",
+        "enum": [
+          "FEATURES_DONT_SUIT_ME",
+          "LACK_OF_PERFORMANCES",
+          "MIGRATED_TO_ANOTHER_OVH_PRODUCT",
+          "MIGRATED_TO_COMPETITOR",
+          "NOT_ENOUGH_RECOGNITION",
+          "NOT_NEEDED_ANYMORE",
+          "NOT_RELIABLE",
+          "NO_ANSWER",
+          "OTHER",
+          "PRODUCT_DIMENSION_DONT_SUIT_ME",
+          "PRODUCT_TOOLS_DONT_SUIT_ME",
+          "TOO_EXPENSIVE",
+          "TOO_HARD_TO_USE",
+          "UNSATIFIED_BY_CUSTOMER_SUPPORT"
+        ]
+      },
+      "services.Service": {
+        "type": "object",
+        "description": "Details about a Service",
+        "properties": {
+          "canDeleteAtExpiration": {
+            "type": "boolean",
+            "description": "Indicates that the service can be set up to be deleted at expiration",
+            "readOnly": true
+          },
+          "contactAdmin": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactBilling": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactTech": {
+            "type": "string",
+            "readOnly": true
+          },
+          "creation": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "engagedUpTo": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "possibleRenewPeriod": {
+            "type": "array",
+            "description": "All the possible renew period of your service in month",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            },
+            "readOnly": true
+          },
+          "renew": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewType"
+              }
+            ],
+            "description": "Way of handling the renew",
+            "nullable": true
+          },
+          "renewalType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewalTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "serviceId": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.StateEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "services.changeContact": {
+        "type": "object",
+        "description": "Service change contact payload",
+        "properties": {
+          "contactAdmin": {
+            "type": "string",
+            "description": "The contact to set as admin contact"
+          },
+          "contactBilling": {
+            "type": "string",
+            "description": "The contact to set as billing contact"
+          },
+          "contactTech": {
+            "type": "string",
+            "description": "The contact to set as tech contact"
+          }
+        }
+      },
+      "services.confirmTermination": {
+        "type": "object",
+        "description": "Service confirm termination payload",
+        "properties": {
+          "commentary": {
+            "type": "string",
+            "description": "Commentary about your termination request"
+          },
+          "futureUse": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.TerminationFutureUseEnum"
+              }
+            ],
+            "description": "All future uses you can provide for a service termination"
+          },
+          "reason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.TerminationReasonEnum"
+              }
+            ],
+            "description": "All reasons you can provide for a service termination"
+          },
+          "token": {
+            "type": "string",
+            "description": "The termination token sent by email to the admin contact"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
+            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/ovhCloudConnect": {
+      "get": {
+        "summary": "List available services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OvhcloudconnectServiceWithIAM"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}": {
+      "get": {
+        "summary": "Get service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.ServiceWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Modify service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ovhcloudconnect.Update"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/changeContact": {
+      "post": {
+        "summary": "Launch a contact change procedure",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.changeContact"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:changeContact",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/config/pop": {
+      "get": {
+        "summary": "Get Pop Configuration linked to of a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OvhcloudconnectPopConfig"
+      },
+      "post": {
+        "summary": "Create a Pop Configuration",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ovhcloudconnect.PopConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/config/pop/{popId}": {
+      "delete": {
+        "summary": "Delete a Pop Configuration",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get Pop Configuration of a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.PopConfig"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/config/pop/{popId}/datacenter": {
+      "get": {
+        "summary": "Get Datacenter Configuration linked to of a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/datacenter/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OvhcloudconnectDatacenterConfig"
+      },
+      "post": {
+        "summary": "Create a Datacenter Configuration",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ovhcloudconnect.DatacenterConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/datacenter/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/config/pop/{popId}/datacenter/{datacenterId}": {
+      "delete": {
+        "summary": "Delete a Datacenter Configuration",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "datacenterId",
+            "description": "Datacenter ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/datacenter/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get Datacenter Configuration of a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "datacenterId",
+            "description": "Datacenter ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.DatacenterConfig"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/datacenter/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/config/pop/{popId}/datacenter/{datacenterId}/extra": {
+      "get": {
+        "summary": "Get Datacenter Extra Configuration linked to of a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "datacenterId",
+            "description": "Datacenter ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/datacenter/extra/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OvhcloudconnectDatacenterExtraConfig"
+      },
+      "post": {
+        "summary": "Create a Datacenter Extra Configuration",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "datacenterId",
+            "description": "Datacenter ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ovhcloudconnect.DatacenterExtraConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/datacenter/extra/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/config/pop/{popId}/datacenter/{datacenterId}/extra/{extraId}": {
+      "delete": {
+        "summary": "Delete a Datacenter Extra Configuration",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "datacenterId",
+            "description": "Datacenter ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "extraId",
+            "description": "Extra ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/datacenter/extra/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get Datacenter Extra Configuration of a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "datacenterId",
+            "description": "Datacenter ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "extraId",
+            "description": "Extra ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.DatacenterExtraConfig"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/datacenter/extra/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/config/pop/{popId}/statistics": {
+      "get": {
+        "summary": "Statistics related to a POP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "description": "The period the statistics are fetched for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ovhcloudconnect.interface.MetricsPeriodEnum"
+            }
+          },
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "description": "The type of statistic to be fetched",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ovhcloudconnect.popConfig.MetricsTypeEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ovhcloudconnect.Metrics"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/pop/statistics/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/config/pop/{popId}/status": {
+      "get": {
+        "summary": "Current status of the L3 Pop config.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "popId",
+            "description": "Pop ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.PopConfStatus"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:config/status/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/confirmTermination": {
+      "post": {
+        "summary": "Confirm service termination",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.confirmTermination"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:confirmTermination",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/datacenter": {
+      "get": {
+        "summary": "List available Datacenter",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:datacenter/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OvhcloudconnectDatacenter"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/datacenter/{id}": {
+      "get": {
+        "summary": "Get Datacenter",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Datacenter"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:datacenter/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/diagnostic": {
+      "get": {
+        "summary": "Get Diagnostics linked to a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:diagnostic/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OvhcloudconnectDiagnostic"
+      },
+      "post": {
+        "summary": "Create a Diagnostic linked to a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ovhcloudconnect.DiagnosticConfiguration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Diagnostic"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:diagnostic/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/diagnostic/{id}": {
+      "get": {
+        "summary": "Get Diagnostic linked to a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Diagnostic"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:diagnostic/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/incident": {
+      "get": {
+        "summary": "List incidents linked to the Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:incident/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OvhcloudconnectIncident"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/incident/{id}": {
+      "get": {
+        "summary": "Get the incident information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Incident"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:incident/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/interface": {
+      "get": {
+        "summary": "List interfaces linked to the Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:interface/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OvhcloudconnectInterface"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/interface/{id}": {
+      "get": {
+        "summary": "Get the Interface information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Interface"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:interface/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/interface/{id}/lock": {
+      "post": {
+        "summary": "Lock the port",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:interface/lock",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/interface/{id}/statistics": {
+      "get": {
+        "summary": "Statistics for an OCC interface for a given type",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "description": "The period the statistics are fetched for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ovhcloudconnect.interface.MetricsPeriodEnum"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "description": "The type of statistic to be fetched",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ovhcloudconnect.interface.MetricsTypeEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ovhcloudconnect.Metrics"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:interface/statistics/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/interface/{id}/status": {
+      "get": {
+        "summary": "Current status of the interface.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.InterfaceStatus"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:interface/status/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/interface/{id}/unlock": {
+      "post": {
+        "summary": "Unlock the port",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:interface/unlock",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/loa": {
+      "post": {
+        "summary": "Generate a loa for a service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:loa/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/log/kind": {
+      "get": {
+        "summary": "List available log kinds",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:log/kind/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "DbaasLogsLogKind"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/log/kind/{name}": {
+      "get": {
+        "summary": "Get a log kind",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogKind"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:log/kind/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "name"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/log/subscription": {
+      "get": {
+        "summary": "List subscription IDs for a cluster",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "description": "Filter on a specific kind (e.g., audit)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:log/subscription/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "DbaasLogsLogSubscription"
+      },
+      "post": {
+        "summary": "Create a subscription from logs to a pre-existing LDP stream",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:log/subscription/create",
+            "required": true
+          },
+          {
+            "name": "ldp:apiovh:output/graylog/stream/forwardTo",
+            "description": "Required on the targeted LDP service",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/log/subscription/{subscriptionId}": {
+      "delete": {
+        "summary": "Delete a subscription",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subscriptionId",
+            "description": "Subscription ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:log/subscription/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get subscription details",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subscriptionId",
+            "description": "Subscription ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogSubscription"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:log/subscription/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "subscriptionId"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/log/url": {
+      "post": {
+        "summary": "Generate a temporary URL to retrieve logs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dbaas.logs.LogUrlCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.TemporaryLogsLink"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:log/url/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/monitoring": {
+      "delete": {
+        "summary": "Delete monitoring",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:monitoring/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "List monitoring alerts",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ovhcloudconnect.Monitoring"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:monitoring/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "type"
+      },
+      "post": {
+        "summary": "Monitor the Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ovhcloudconnect.Subscriptions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:monitoring/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/serviceInfos": {
+      "get": {
+        "summary": "Get service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/services.Service"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:serviceInfos/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.Service"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:serviceInfos/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/serviceKey": {
+      "get": {
+        "summary": "Get Keys linked to a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:serviceKey/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OvhcloudconnectKey"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/serviceKey/{serviceKeyId}": {
+      "get": {
+        "summary": "Get Key linked to a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceKeyId",
+            "description": "Service key ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Key"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:serviceKey/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/serviceKey/{serviceKeyId}/regenerate": {
+      "post": {
+        "summary": "Regenerate Service Key linked to a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceKeyId",
+            "description": "Service key ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Key"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:serviceKey/regenerate",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/serviceKey/{serviceKeyId}/send": {
+      "post": {
+        "summary": "Send key value to customer",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceKeyId",
+            "description": "Service key ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ovhcloudconnect.To"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.SendKeyAnswer"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:serviceKey/send",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/task": {
+      "get": {
+        "summary": "Get Task linked to a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:task/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OvhcloudconnectTask"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/task/{id}": {
+      "get": {
+        "summary": "Get Tasks linked to a OVHcloud Connect Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ovhcloudconnect.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:task/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/ovhCloudConnect/{serviceName}/terminate": {
+      "post": {
+        "summary": "Ask for the termination of your service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ovhCloudConnect:apiovh:terminate",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}

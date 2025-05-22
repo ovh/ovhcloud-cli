@@ -26,5 +26,11 @@ func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	loadbalancerCmd.AddCommand(&cobra.Command{
+		Use:   "edit <loadbalancer_id>",
+		Short: "Edit the given loadbalancer",
+		Run:   cloud.EditCloudLoadbalancer,
+	})
+
 	cloudCmd.AddCommand(loadbalancerCmd)
 }

@@ -26,5 +26,11 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	volumeCmd.AddCommand(&cobra.Command{
+		Use:   "edit <volume_id>",
+		Short: "Edit the given volume",
+		Run:   cloud.EditVolume,
+	})
+
 	cloudCmd.AddCommand(volumeCmd)
 }

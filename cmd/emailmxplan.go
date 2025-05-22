@@ -27,5 +27,12 @@ func init() {
 		Run:   emailmxplan.GetEmailMXPlan,
 	})
 
+	// Command to update a single EmailMXPlan
+	emailmxplanCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given Email MXPlan",
+		Run:   emailmxplan.EditEmailMXPlan,
+	})
+
 	rootCmd.AddCommand(emailmxplanCmd)
 }

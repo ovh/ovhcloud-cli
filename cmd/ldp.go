@@ -27,5 +27,12 @@ func init() {
 		Run:   ldp.GetLdp,
 	})
 
+	// Command to update a single Ldp
+	ldpCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given Ldp",
+		Run:   ldp.EditLdp,
+	})
+
 	rootCmd.AddCommand(ldpCmd)
 }

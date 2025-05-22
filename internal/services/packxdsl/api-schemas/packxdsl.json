@@ -1,0 +1,5753 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/1.0"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "complexType.UnitAndValue_long": {
+        "type": "object",
+        "description": "A numeric value tagged with its unit",
+        "properties": {
+          "unit": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer"
+          }
+        }
+      },
+      "connectivity.eligibility.Building": {
+        "type": "object",
+        "description": "Details of a Building",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Building name"
+          },
+          "nro": {
+            "type": "string",
+            "description": "Building NRO (Optical main distribution frame)",
+            "nullable": true
+          },
+          "reference": {
+            "type": "string",
+            "description": "Identifier which refer to a building uniquely"
+          },
+          "stairs": {
+            "type": "array",
+            "description": "Stairs for this building",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/connectivity.eligibility.BuildingStair"
+            }
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/connectivity.eligibility.BuildingTypeEnum"
+              }
+            ],
+            "description": "Building type",
+            "nullable": true
+          }
+        }
+      },
+      "connectivity.eligibility.BuildingStair": {
+        "type": "object",
+        "description": "Stair details of a Building",
+        "properties": {
+          "floors": {
+            "type": "array",
+            "description": "List of floor indentifier, \"_NA_\" if no identifier is available",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stair": {
+            "type": "string",
+            "description": "Stair identifier, \"_NA_\" if no identifier is available"
+          }
+        }
+      },
+      "connectivity.eligibility.BuildingTypeEnum": {
+        "type": "string",
+        "description": "Building type",
+        "enum": [
+          "BUILDING",
+          "HOUSE"
+        ]
+      },
+      "connectivity.eligibility.InstallationTypeEnum": {
+        "type": "string",
+        "description": "Installation type, for fiber only",
+        "enum": [
+          "activate",
+          "activate_undefined",
+          "create",
+          "multiOtp"
+        ]
+      },
+      "connectivity.eligibility.OfferProductProviderEnum": {
+        "type": "string",
+        "description": "Offer product provider",
+        "enum": [
+          "AI",
+          "ALTERNATIVE",
+          "AX",
+          "AXIONE",
+          "BOUYGTEL",
+          "BOUYGUES",
+          "COVAGE",
+          "FI",
+          "KOSC",
+          "OR",
+          "ORANGE",
+          "OS",
+          "REFERENCE",
+          "SFR",
+          "TF"
+        ]
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "nichandle.CountryEnum": {
+        "type": "string",
+        "description": "Countries a nichandle can choose",
+        "enum": [
+          "AC",
+          "AD",
+          "AE",
+          "AF",
+          "AG",
+          "AI",
+          "AL",
+          "AM",
+          "AO",
+          "AQ",
+          "AR",
+          "AS",
+          "AT",
+          "AU",
+          "AW",
+          "AX",
+          "AZ",
+          "BA",
+          "BB",
+          "BD",
+          "BE",
+          "BF",
+          "BG",
+          "BH",
+          "BI",
+          "BJ",
+          "BL",
+          "BM",
+          "BN",
+          "BO",
+          "BQ",
+          "BR",
+          "BS",
+          "BT",
+          "BW",
+          "BY",
+          "BZ",
+          "CA",
+          "CC",
+          "CD",
+          "CF",
+          "CG",
+          "CH",
+          "CI",
+          "CK",
+          "CL",
+          "CM",
+          "CN",
+          "CO",
+          "CR",
+          "CU",
+          "CV",
+          "CW",
+          "CX",
+          "CY",
+          "CZ",
+          "DE",
+          "DG",
+          "DJ",
+          "DK",
+          "DM",
+          "DO",
+          "DZ",
+          "EA",
+          "EC",
+          "EE",
+          "EG",
+          "EH",
+          "ER",
+          "ES",
+          "ET",
+          "FI",
+          "FJ",
+          "FK",
+          "FM",
+          "FO",
+          "FR",
+          "GA",
+          "GB",
+          "GD",
+          "GE",
+          "GF",
+          "GG",
+          "GH",
+          "GI",
+          "GL",
+          "GM",
+          "GN",
+          "GP",
+          "GQ",
+          "GR",
+          "GS",
+          "GT",
+          "GU",
+          "GW",
+          "GY",
+          "HK",
+          "HN",
+          "HR",
+          "HT",
+          "HU",
+          "IC",
+          "ID",
+          "IE",
+          "IL",
+          "IM",
+          "IN",
+          "IO",
+          "IQ",
+          "IR",
+          "IS",
+          "IT",
+          "JE",
+          "JM",
+          "JO",
+          "JP",
+          "KE",
+          "KG",
+          "KH",
+          "KI",
+          "KM",
+          "KN",
+          "KP",
+          "KR",
+          "KW",
+          "KY",
+          "KZ",
+          "LA",
+          "LB",
+          "LC",
+          "LI",
+          "LK",
+          "LR",
+          "LS",
+          "LT",
+          "LU",
+          "LV",
+          "LY",
+          "MA",
+          "MC",
+          "MD",
+          "ME",
+          "MF",
+          "MG",
+          "MH",
+          "MK",
+          "ML",
+          "MM",
+          "MN",
+          "MO",
+          "MP",
+          "MQ",
+          "MR",
+          "MS",
+          "MT",
+          "MU",
+          "MV",
+          "MW",
+          "MX",
+          "MY",
+          "MZ",
+          "NA",
+          "NC",
+          "NE",
+          "NF",
+          "NG",
+          "NI",
+          "NL",
+          "NO",
+          "NP",
+          "NR",
+          "NU",
+          "NZ",
+          "OM",
+          "PA",
+          "PE",
+          "PF",
+          "PG",
+          "PH",
+          "PK",
+          "PL",
+          "PM",
+          "PN",
+          "PR",
+          "PS",
+          "PT",
+          "PW",
+          "PY",
+          "QA",
+          "RE",
+          "RO",
+          "RS",
+          "RU",
+          "RW",
+          "SA",
+          "SB",
+          "SC",
+          "SD",
+          "SE",
+          "SG",
+          "SH",
+          "SI",
+          "SJ",
+          "SK",
+          "SL",
+          "SM",
+          "SN",
+          "SO",
+          "SR",
+          "SS",
+          "ST",
+          "SV",
+          "SX",
+          "SY",
+          "SZ",
+          "TA",
+          "TC",
+          "TD",
+          "TF",
+          "TG",
+          "TH",
+          "TJ",
+          "TK",
+          "TL",
+          "TM",
+          "TN",
+          "TO",
+          "TR",
+          "TT",
+          "TV",
+          "TW",
+          "TZ",
+          "UA",
+          "UG",
+          "UM",
+          "UNKNOWN",
+          "US",
+          "UY",
+          "UZ",
+          "VA",
+          "VC",
+          "VE",
+          "VG",
+          "VI",
+          "VN",
+          "VU",
+          "WF",
+          "WS",
+          "XK",
+          "YE",
+          "YT",
+          "ZA",
+          "ZM",
+          "ZW"
+        ]
+      },
+      "order.Contract": {
+        "type": "object",
+        "description": "A contract",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "order.CurrencyCodeEnum": {
+        "type": "string",
+        "enum": [
+          "AUD",
+          "CAD",
+          "CZK",
+          "EUR",
+          "GBP",
+          "INR",
+          "LTL",
+          "MAD",
+          "N/A",
+          "PLN",
+          "SGD",
+          "TND",
+          "USD",
+          "XOF",
+          "points"
+        ]
+      },
+      "order.Price": {
+        "type": "object",
+        "description": "Price with it's currency and textual representation",
+        "properties": {
+          "currencyCode": {
+            "$ref": "#/components/schemas/order.CurrencyCodeEnum"
+          },
+          "text": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      },
+      "pack.xdsl.AsyncTaskStatusEnum": {
+        "type": "string",
+        "description": "AsyncTask status",
+        "enum": [
+          "error",
+          "ok",
+          "pending"
+        ]
+      },
+      "pack.xdsl.AsyncTask_long": {
+        "type": "object",
+        "description": "Async task",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error",
+            "nullable": true
+          },
+          "result": {
+            "type": "integer"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.AsyncTaskStatusEnum"
+              }
+            ],
+            "description": "Status of the call"
+          }
+        }
+      },
+      "pack.xdsl.AsyncTask_pack.xdsl.addressMove.MoveOfferResponse": {
+        "type": "object",
+        "description": "Async task",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error",
+            "nullable": true
+          },
+          "result": {
+            "$ref": "#/components/schemas/pack.xdsl.addressMove.MoveOfferResponse"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.AsyncTaskStatusEnum"
+              }
+            ],
+            "description": "Status of the call"
+          }
+        }
+      },
+      "pack.xdsl.AsyncTask_pack.xdsl.migration.MigrationOfferResponse": {
+        "type": "object",
+        "description": "Async task",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error",
+            "nullable": true
+          },
+          "result": {
+            "$ref": "#/components/schemas/pack.xdsl.migration.MigrationOfferResponse"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.AsyncTaskStatusEnum"
+              }
+            ],
+            "description": "Status of the call"
+          }
+        }
+      },
+      "pack.xdsl.ContactInfos": {
+        "type": "object",
+        "description": "Information about the contact",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "contact address",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "description": "contact city",
+            "nullable": true
+          },
+          "country": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/nichandle.CountryEnum"
+              }
+            ],
+            "description": "contact country"
+          },
+          "email": {
+            "type": "string",
+            "description": "contact email"
+          },
+          "firstname": {
+            "type": "string",
+            "description": "contact firstname",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "contact name",
+            "nullable": true
+          },
+          "organisation": {
+            "type": "string",
+            "description": "contact organisation",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "description": "contact phone",
+            "nullable": true
+          },
+          "phoneCountry": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/nichandle.CountryEnum"
+              }
+            ],
+            "description": "contact phoneCountry",
+            "nullable": true
+          },
+          "zip": {
+            "type": "string",
+            "description": "contact zip",
+            "nullable": true
+          }
+        }
+      },
+      "pack.xdsl.DomainActionEnum": {
+        "type": "string",
+        "description": "Domain action",
+        "enum": [
+          "create",
+          "trade",
+          "transfer"
+        ]
+      },
+      "pack.xdsl.ExchangeAccountService": {
+        "type": "object",
+        "description": "Exchange 2013 service",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "exchangeService": {
+            "type": "string",
+            "readOnly": true
+          },
+          "organizationName": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "pack.xdsl.HostedEmail.Account": {
+        "type": "object",
+        "description": "HostedEmail account",
+        "properties": {
+          "antispamEnabled": {
+            "type": "boolean",
+            "description": "Is the anti-spam enabled ?"
+          },
+          "antivirusEnabled": {
+            "type": "boolean",
+            "description": "Is the anti-virus enabled ?"
+          },
+          "offer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.HostedEmail.AccountOfferEnum"
+              }
+            ],
+            "description": "Offer name"
+          },
+          "primaryEmailAddress": {
+            "type": "string",
+            "description": "Primary email address"
+          },
+          "quota": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/complexType.UnitAndValue_long"
+              }
+            ],
+            "description": "Quota of the mailbox"
+          },
+          "size": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/complexType.UnitAndValue_long"
+              }
+            ],
+            "description": "Size of the maibox"
+          }
+        }
+      },
+      "pack.xdsl.HostedEmail.AccountOfferEnum": {
+        "type": "string",
+        "description": "Available offers",
+        "enum": [
+          "individual"
+        ]
+      },
+      "pack.xdsl.HostedEmail.Configuration": {
+        "type": "object",
+        "description": "HostedEmail configuration",
+        "properties": {
+          "services": {
+            "type": "array",
+            "description": "List of services configurations",
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.HostedEmail.ConfigurationService"
+            }
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.HostedEmail.ConfigurationStatusEnum"
+              }
+            ],
+            "description": "Status"
+          },
+          "webmailUrl": {
+            "type": "string",
+            "description": "Webmail url"
+          }
+        }
+      },
+      "pack.xdsl.HostedEmail.ConfigurationService": {
+        "type": "object",
+        "description": "HostedEmail configuration service",
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "Service host"
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Service IP"
+          },
+          "port": {
+            "type": "integer",
+            "description": "Service port"
+          },
+          "service": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.HostedEmail.ConfigurationServiceEnum"
+              }
+            ],
+            "description": "Service name"
+          },
+          "smtpAuth": {
+            "type": "boolean",
+            "description": "Does the service use SMTP AUTH ?",
+            "nullable": true
+          },
+          "startTls": {
+            "type": "boolean",
+            "description": "Does the service use STARTTLS ?"
+          }
+        }
+      },
+      "pack.xdsl.HostedEmail.ConfigurationServiceEnum": {
+        "type": "string",
+        "description": "Available types of service",
+        "enum": [
+          "imap",
+          "imaps",
+          "pop3",
+          "pop3s",
+          "smtp",
+          "smtps",
+          "submission"
+        ]
+      },
+      "pack.xdsl.HostedEmail.ConfigurationStatusEnum": {
+        "type": "string",
+        "description": "Available configuration statuses",
+        "enum": [
+          "active",
+          "suspended"
+        ]
+      },
+      "pack.xdsl.HostedEmailService": {
+        "type": "object",
+        "description": "Hosted email services",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "pack.xdsl.ModemOptionEnum": {
+        "type": "string",
+        "description": "modem type",
+        "enum": [
+          "no",
+          "recycled",
+          "yes"
+        ]
+      },
+      "pack.xdsl.OrderFollowUpStep": {
+        "type": "object",
+        "description": "Information about order follow up step",
+        "properties": {
+          "comments": {
+            "type": "array",
+            "description": "Additional information about the step",
+            "items": {
+              "type": "string"
+            }
+          },
+          "doneDate": {
+            "type": "string",
+            "description": "Date when the step has been done",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "durationUnit": {
+            "type": "string",
+            "description": "Unit used for the expected duration step"
+          },
+          "expectedDuration": {
+            "type": "integer",
+            "description": "Expected duration step"
+          },
+          "name": {
+            "type": "string",
+            "description": "Order follow up step name"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the step"
+          }
+        }
+      },
+      "pack.xdsl.PackAdsl": {
+        "type": "object",
+        "description": "Pack of xDSL services",
+        "properties": {
+          "capabilities": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.PackCapabilities"
+              }
+            ],
+            "description": "Capabilities of the pack",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Customer pack description",
+            "nullable": true
+          },
+          "offerDescription": {
+            "type": "string",
+            "description": "Name of the offer",
+            "readOnly": true
+          },
+          "offerPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price of the offer",
+            "readOnly": true
+          },
+          "packName": {
+            "type": "string",
+            "description": "Name of the xdsl pack",
+            "readOnly": true
+          }
+        }
+      },
+      "pack.xdsl.PackAdslWithIAM": {
+        "type": "object",
+        "description": "Pack of xDSL services",
+        "properties": {
+          "capabilities": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.PackCapabilities"
+              }
+            ],
+            "description": "Capabilities of the pack",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Customer pack description",
+            "nullable": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "offerDescription": {
+            "type": "string",
+            "description": "Name of the offer",
+            "readOnly": true
+          },
+          "offerPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price of the offer",
+            "readOnly": true
+          },
+          "packName": {
+            "type": "string",
+            "description": "Name of the xdsl pack",
+            "readOnly": true
+          }
+        }
+      },
+      "pack.xdsl.PackCapabilities": {
+        "type": "object",
+        "description": "Describe the capabilities of this pack",
+        "properties": {
+          "canMoveAddress": {
+            "type": "boolean",
+            "description": "Whether or not this pack can move address"
+          },
+          "isLegacyOffer": {
+            "type": "boolean",
+            "description": "Whether or not this pack is from an old offer"
+          },
+          "isResellerOffer": {
+            "type": "boolean",
+            "description": "Whether or not this pack is a reseller offer"
+          }
+        }
+      },
+      "pack.xdsl.PackDetail": {
+        "type": "object",
+        "description": "Information about pack xdsl",
+        "properties": {
+          "accessname": {
+            "type": "string",
+            "description": "Reference of the access"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the access"
+          },
+          "number": {
+            "type": "string",
+            "description": "Number of the line"
+          },
+          "packname": {
+            "type": "string",
+            "description": "Name of the pack"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/xdsl.DslTypeEnum"
+              }
+            ],
+            "description": "Type of the access"
+          }
+        }
+      },
+      "pack.xdsl.ResiliationFollowUpDetail": {
+        "type": "object",
+        "description": "Details about the resiliation",
+        "properties": {
+          "dateTodo": {
+            "type": "string",
+            "description": "Date when the resiliation will take effect",
+            "format": "date-time"
+          },
+          "needModemReturn": {
+            "type": "boolean",
+            "description": "If the customer needs to return his modem"
+          },
+          "registrationDate": {
+            "type": "string",
+            "description": "Date when the resiliation was asked",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the resiliation"
+          }
+        }
+      },
+      "pack.xdsl.ResiliationReasonEnum": {
+        "type": "string",
+        "description": "Reason of a resiliation",
+        "enum": [
+          "addressMove",
+          "billingProblems",
+          "cessationOfActivity",
+          "changeOfTerms",
+          "changeOperator",
+          "eligibilityFtth",
+          "ftth",
+          "goToCompetitor",
+          "other",
+          "price",
+          "technicalProblems"
+        ]
+      },
+      "pack.xdsl.ResiliationSurvey": {
+        "type": "object",
+        "description": "Information about the reason for the resiliation",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "Comment about this resiliation",
+            "nullable": true
+          },
+          "subsidiary": {
+            "type": "string",
+            "description": "Subsidiary response about this resiliation",
+            "nullable": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.ResiliationReasonEnum"
+              }
+            ],
+            "description": "Type of reason for the resiliation"
+          }
+        }
+      },
+      "pack.xdsl.ResiliationTerms": {
+        "type": "object",
+        "description": "Show the resiliation terms",
+        "properties": {
+          "due": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price due at resiliationDate"
+          },
+          "engageDate": {
+            "type": "string",
+            "description": "Date until which the customer is engaged",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "minResiliationDate": {
+            "type": "string",
+            "description": "Minimum date at which the pack can be resiliated",
+            "format": "date-time"
+          },
+          "resiliationDate": {
+            "type": "string",
+            "description": "Date at which the pack will be resiliated",
+            "format": "date-time"
+          },
+          "resiliationReasons": {
+            "type": "array",
+            "description": "List of available resiliation reasons",
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.ResiliationReasonEnum"
+            }
+          }
+        }
+      },
+      "pack.xdsl.Service": {
+        "type": "object",
+        "description": "Service link to the pack",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "id": {
+            "type": "number",
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.ServiceNameEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "pack.xdsl.ServiceInformation": {
+        "type": "object",
+        "description": "Informations about a service",
+        "properties": {
+          "inCreation": {
+            "type": "integer"
+          },
+          "name": {
+            "$ref": "#/components/schemas/pack.xdsl.ServiceNameEnum"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "used": {
+            "type": "integer"
+          }
+        }
+      },
+      "pack.xdsl.ServiceNameEnum": {
+        "type": "string",
+        "description": "Service name",
+        "enum": [
+          "domain",
+          "emailPro",
+          "exchangeAccount",
+          "exchangeIndividual",
+          "exchangeOrganization",
+          "grt10ho",
+          "grt20m10ho",
+          "grt20m4ho",
+          "grt4ho",
+          "grt5m10ho",
+          "grt5m4ho",
+          "grtAlt",
+          "grtDsp",
+          "grtFt",
+          "grtKosc",
+          "grtOvh",
+          "hostedEmail",
+          "modem",
+          "overTheBoxHardware",
+          "overTheBoxService",
+          "voipAlias",
+          "voipBillingAccount",
+          "voipEcoFax",
+          "voipLine",
+          "voipTrunk",
+          "xdslAccess"
+        ]
+      },
+      "pack.xdsl.ShippingAddress": {
+        "type": "object",
+        "description": "Shipping address",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "cityName": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "shippingId": {
+            "type": "string"
+          },
+          "zipCode": {
+            "type": "string"
+          }
+        }
+      },
+      "pack.xdsl.ShippingAddressContextEnum": {
+        "type": "string",
+        "description": "Allowed contexts when looking for shipping addresses",
+        "enum": [
+          "migration",
+          "voipLine"
+        ]
+      },
+      "pack.xdsl.Task": {
+        "type": "object",
+        "description": "Describes the current status of a task",
+        "properties": {
+          "function": {
+            "type": "string",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.TaskStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "updateDate": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "pack.xdsl.TaskStatusEnum": {
+        "type": "string",
+        "description": "Status of a task.",
+        "enum": [
+          "cancelled",
+          "doing",
+          "done",
+          "error",
+          "problem",
+          "todo"
+        ]
+      },
+      "pack.xdsl.UnpackTerms": {
+        "type": "object",
+        "description": "Terms to unpack services",
+        "properties": {
+          "isAllowed": {
+            "type": "boolean",
+            "description": "Tells whether or not the service can be unpacked"
+          },
+          "price": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price bill on the unpack action"
+          },
+          "renewPeriod": {
+            "type": "number",
+            "description": "Renew period in month of the service"
+          },
+          "renewPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "The price it will cost when it will be renew"
+          }
+        }
+      },
+      "pack.xdsl.VoIPHardware": {
+        "type": "object",
+        "description": "Hardware for VoIP line",
+        "properties": {
+          "deposit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "nullable": true
+          },
+          "fees": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "nullable": true
+          },
+          "image": {
+            "type": "string",
+            "nullable": true
+          },
+          "label": {
+            "type": "string"
+          },
+          "max": {
+            "type": "integer",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "needShipping": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "pack.xdsl.VoIPLineOrder": {
+        "type": "object",
+        "description": "Represents an order of VoIP lines",
+        "properties": {
+          "needPayment": {
+            "type": "boolean",
+            "description": "Whether or not this order need to be payed manually"
+          },
+          "orderId": {
+            "type": "integer"
+          },
+          "orderUrl": {
+            "type": "string"
+          },
+          "taskIds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "pack.xdsl.VoipLineService": {
+        "type": "object",
+        "description": "VOIP line services",
+        "properties": {
+          "billingAccount": {
+            "type": "string",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "pack.xdsl.addressMove.MoveOffer": {
+        "type": "object",
+        "description": "Address move offer",
+        "properties": {
+          "contracts": {
+            "type": "array",
+            "description": "Contracts details for this offer",
+            "items": {
+              "$ref": "#/components/schemas/order.Contract"
+            }
+          },
+          "customOntAddress": {
+            "type": "boolean",
+            "description": "Tells if the custom ont address is available on the offer"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the offer"
+          },
+          "engageMonths": {
+            "type": "integer",
+            "description": "Number of months of engagement",
+            "nullable": true
+          },
+          "engaged": {
+            "type": "boolean",
+            "description": "Tells if the customer is still engaged"
+          },
+          "modemOptions": {
+            "type": "array",
+            "description": "List of modems for this offer",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.migration.OfferModemOption"
+            }
+          },
+          "modemReferenceToReturn": {
+            "type": "string",
+            "description": "Modem reference (Mac or Serial) to be returned",
+            "nullable": true
+          },
+          "needModem": {
+            "type": "boolean",
+            "description": "Tells if the offer needs a modem"
+          },
+          "needNewModem": {
+            "type": "boolean",
+            "description": "Tells if the customer will have to change its modem"
+          },
+          "offerName": {
+            "type": "string",
+            "description": "Name of the offer"
+          },
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/connectivity.eligibility.OfferProductProviderEnum"
+              }
+            ],
+            "description": "Collection operator (CO)",
+            "nullable": true
+          },
+          "options": {
+            "type": "array",
+            "description": "Available options for the migration",
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.migration.OfferAvailableOption"
+            }
+          },
+          "prices": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.PriceOffer"
+              }
+            ],
+            "description": "Prices detailed applicable for this offer"
+          },
+          "productCodes": {
+            "type": "array",
+            "description": "List of product from provider available for an offer",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subServicesToDelete": {
+            "type": "array",
+            "description": "List of sub services to delete",
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.migration.SubServiceToDelete"
+            }
+          },
+          "url": {
+            "type": "string",
+            "description": "URL of the offer"
+          }
+        }
+      },
+      "pack.xdsl.addressMove.MoveOfferResponse": {
+        "type": "object",
+        "description": "List of available Move address offer",
+        "properties": {
+          "offers": {
+            "type": "array",
+            "description": "Array of offers",
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.addressMove.MoveOffer"
+            }
+          }
+        }
+      },
+      "pack.xdsl.addressMove.Price": {
+        "type": "object",
+        "description": "Price details for an offer",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the price"
+          },
+          "price": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price of the offer",
+            "nullable": true
+          }
+        }
+      },
+      "pack.xdsl.addressMove.PriceOffer": {
+        "type": "object",
+        "description": "Price details for an offer",
+        "properties": {
+          "creationLineFees": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.Price"
+              }
+            ],
+            "description": "Creation line fees"
+          },
+          "currentOfferPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.Price"
+              }
+            ],
+            "description": "Price of the current offer"
+          },
+          "due": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.Price"
+              }
+            ],
+            "description": "Upgrade offer price"
+          },
+          "firstYearPromo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.Price"
+              }
+            ],
+            "description": "Subscription price the first year"
+          },
+          "gtrComfortFees": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.Price"
+              }
+            ],
+            "description": "Install fee for GTR option comfort additional cost",
+            "nullable": true
+          },
+          "installFees": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.Price"
+              }
+            ],
+            "description": "Installation fees"
+          },
+          "modemRental": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.Price"
+              }
+            ],
+            "description": "Price for modem rental"
+          },
+          "price": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.Price"
+              }
+            ],
+            "description": "Price of the offer"
+          },
+          "promotion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.migrationAndAddressMove.Promotion"
+              }
+            ],
+            "description": "Promotion, if available",
+            "nullable": true
+          },
+          "providerAI": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.Price"
+              }
+            ],
+            "description": "Subscription price for provider AI additional cost",
+            "nullable": true
+          },
+          "providerOrange": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.addressMove.Price"
+              }
+            ],
+            "description": "Subscription price for provider ORANGE additional cost",
+            "nullable": true
+          }
+        }
+      },
+      "pack.xdsl.migration.MigrationOffer": {
+        "type": "object",
+        "description": "Migration offer",
+        "properties": {
+          "contractList": {
+            "type": "array",
+            "description": "DEPRECATED - List of contracts",
+            "items": {
+              "type": "string"
+            }
+          },
+          "contracts": {
+            "type": "array",
+            "description": "List of contracts for this offer",
+            "items": {
+              "$ref": "#/components/schemas/order.Contract"
+            }
+          },
+          "currentOfferPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price of the current offer"
+          },
+          "customOntAddress": {
+            "type": "boolean",
+            "description": "Tells if the custom ont address is available on the offer"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the offer"
+          },
+          "due": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price to make the migration",
+            "nullable": true
+          },
+          "engageMonths": {
+            "type": "integer",
+            "description": "Number of months of engagement",
+            "nullable": true
+          },
+          "engaged": {
+            "type": "boolean",
+            "description": "Tells if the customer is still engaged"
+          },
+          "engagementMonths": {
+            "type": "array",
+            "description": "List of number of months possible for engagement",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "firstYearPromo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Subscription price the first year",
+            "nullable": true
+          },
+          "gtrComfortFees": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Install fee for GTR option comfort additional cost",
+            "nullable": true
+          },
+          "installFees": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Installation fees",
+            "nullable": true
+          },
+          "modemMacToReturn": {
+            "type": "string",
+            "description": "Mac address of the modem to be returned",
+            "nullable": true
+          },
+          "modemOptions": {
+            "type": "array",
+            "description": "List of modems for this offer",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.migration.OfferModemOption"
+            }
+          },
+          "modemRental": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price for modem rental",
+            "nullable": true
+          },
+          "multiOtp": {
+            "type": "boolean",
+            "description": "Tells if the multiOtp is possible on the address"
+          },
+          "needModem": {
+            "type": "boolean",
+            "description": "Tells if the offer needs a modem"
+          },
+          "needNewModem": {
+            "type": "boolean",
+            "description": "Tells if the customer will have to change its modem"
+          },
+          "offerName": {
+            "type": "string",
+            "description": "Name of the offer"
+          },
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/connectivity.eligibility.OfferProductProviderEnum"
+              }
+            ],
+            "description": "Collection operator (CO)",
+            "nullable": true
+          },
+          "options": {
+            "type": "array",
+            "description": "Available options for the migration",
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.migration.OfferAvailableOption"
+            }
+          },
+          "price": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price of the offer"
+          },
+          "promotion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.migrationAndAddressMove.Promotion"
+              }
+            ],
+            "description": "Promotion, if available",
+            "nullable": true
+          },
+          "providerAI": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Subscription price for provider AI additional cost",
+            "nullable": true
+          },
+          "providerOrange": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Subscription price for provider ORANGE additional cost",
+            "nullable": true
+          },
+          "subServicesToDelete": {
+            "type": "array",
+            "description": "List of sub services to delete",
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.migration.SubServiceToDelete"
+            }
+          },
+          "url": {
+            "type": "string",
+            "description": "URL of the offer"
+          }
+        }
+      },
+      "pack.xdsl.migration.MigrationOfferResponse": {
+        "type": "object",
+        "description": "List of available Migration offer",
+        "properties": {
+          "buildings": {
+            "type": "array",
+            "description": "Array of buildings",
+            "items": {
+              "$ref": "#/components/schemas/connectivity.eligibility.Building"
+            }
+          },
+          "offers": {
+            "type": "array",
+            "description": "Array of offers",
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.migration.MigrationOffer"
+            }
+          }
+        }
+      },
+      "pack.xdsl.migration.OfferAvailableOption": {
+        "type": "object",
+        "description": "Available option for the offer",
+        "properties": {
+          "duration": {
+            "type": "integer",
+            "description": "Number of months paid for"
+          },
+          "included": {
+            "type": "integer",
+            "description": "Number of slots included by default in this offer"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the option"
+          },
+          "optional": {
+            "type": "integer",
+            "description": "Number of optional slots that can be puchased"
+          },
+          "optionalPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price of an additional slot. You pay this price everytime the duration is expired",
+            "nullable": true
+          }
+        }
+      },
+      "pack.xdsl.migration.OfferModemOption": {
+        "type": "object",
+        "description": "Available modem option for the offer",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the modem"
+          },
+          "price": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price of for this modem",
+            "nullable": true
+          }
+        }
+      },
+      "pack.xdsl.migration.OfferOption": {
+        "type": "object",
+        "description": "Option of Offer",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the option"
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Number of slots, couting included slots"
+          }
+        }
+      },
+      "pack.xdsl.migration.OfferServiceToDelete": {
+        "type": "object",
+        "description": "Option of Offer",
+        "properties": {
+          "service": {
+            "type": "string",
+            "description": "Type of the service"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.ServiceNameEnum"
+              }
+            ],
+            "description": "Type of the service to delete"
+          }
+        }
+      },
+      "pack.xdsl.migration.OfferServiceToKeep": {
+        "type": "object",
+        "description": "Option of Offer",
+        "properties": {
+          "service": {
+            "type": "string",
+            "description": "Type of the service"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.ServiceNameEnum"
+              }
+            ],
+            "description": "Type of the service to keep"
+          }
+        }
+      },
+      "pack.xdsl.migration.SubServiceDetails": {
+        "type": "object",
+        "description": "Sub service with unpack terms details",
+        "properties": {
+          "isAllowed": {
+            "type": "boolean",
+            "description": "Tells whether or not the service can be unpacked"
+          },
+          "price": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Price bill on the unpack action"
+          },
+          "renewPeriod": {
+            "type": "number",
+            "description": "Renew period in month of the service"
+          },
+          "renewPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "The price it will cost when it will be renewed"
+          },
+          "service": {
+            "type": "string",
+            "description": "sub service name"
+          }
+        }
+      },
+      "pack.xdsl.migration.SubServiceToDelete": {
+        "type": "object",
+        "description": "Sub service to delete",
+        "properties": {
+          "numberToDelete": {
+            "type": "integer",
+            "description": "Number of services to be deleted"
+          },
+          "services": {
+            "type": "array",
+            "description": "List of domains of sub services",
+            "items": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.ServiceNameEnum"
+              }
+            ],
+            "description": "Type of service to be deleted"
+          }
+        }
+      },
+      "pack.xdsl.migration.SubServicesDetailsToDelete": {
+        "type": "object",
+        "description": "Sub services to delete with unpack terms",
+        "properties": {
+          "numberToDelete": {
+            "type": "integer",
+            "description": "Number of services to be deleted"
+          },
+          "services": {
+            "type": "array",
+            "description": "List of domains of sub services with unpack terms",
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.migration.SubServiceDetails"
+            }
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.ServiceNameEnum"
+              }
+            ],
+            "description": "Type of service to be deleted"
+          }
+        }
+      },
+      "pack.xdsl.migrationAndAddressMove.Promotion": {
+        "type": "object",
+        "description": "Migration or address move offer promotion",
+        "properties": {
+          "endDate": {
+            "type": "string",
+            "description": "Promotion end date, if applicable",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "description": "Identifier of the promotion"
+          },
+          "installFee": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.migrationAndAddressMove.PromotionDetails"
+              }
+            ],
+            "description": "Details of the promotion for the install fee",
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Promotion start date, if applicable",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "subscription": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/pack.xdsl.migrationAndAddressMove.PromotionDetails"
+              }
+            ],
+            "description": "Details of the promotion for the subscription",
+            "nullable": true
+          }
+        }
+      },
+      "pack.xdsl.migrationAndAddressMove.PromotionDetails": {
+        "type": "object",
+        "description": "Migration or address move offer promotion details",
+        "properties": {
+          "discount": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Promotion discount"
+          },
+          "duration": {
+            "type": "string",
+            "description": "Duration of the promotion, if applicable (only for recurrent billing)",
+            "nullable": true,
+            "format": "duration"
+          }
+        }
+      },
+      "pack.xdsl.promotionCode.Capabilities": {
+        "type": "object",
+        "description": "Informations about a promotion code",
+        "properties": {
+          "amount": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Amount of the promotion code"
+          },
+          "canGenerate": {
+            "type": "boolean",
+            "description": "True if the promotion code generation is available"
+          },
+          "engagement": {
+            "type": "integer",
+            "description": "Number of months of engagement"
+          },
+          "reasonCodes": {
+            "type": "array",
+            "description": "Enum of the possible errors",
+            "items": {
+              "$ref": "#/components/schemas/pack.xdsl.promotionCode.ReasonCodes"
+            }
+          }
+        }
+      },
+      "pack.xdsl.promotionCode.ReasonCodes": {
+        "type": "string",
+        "description": "Reasons why the promotion code can not be generated",
+        "enum": [
+          "noMoreAvailable",
+          "offerNotCompatible",
+          "serviceNotInOkState",
+          "stillEngaged",
+          "taskInProgress"
+        ]
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "service.RenewType": {
+        "type": "object",
+        "description": "Map a possible renew for a specific service",
+        "properties": {
+          "automatic": {
+            "type": "boolean",
+            "description": "The service is automatically renewed"
+          },
+          "deleteAtExpiration": {
+            "type": "boolean",
+            "description": "The service will be deleted at expiration"
+          },
+          "forced": {
+            "type": "boolean",
+            "description": "The service forced to be renewed"
+          },
+          "manualPayment": {
+            "type": "boolean",
+            "description": "The service needs to be manually renewed and paid",
+            "nullable": true
+          },
+          "period": {
+            "type": "integer",
+            "description": "period of renew in month",
+            "nullable": true
+          }
+        }
+      },
+      "service.RenewalTypeEnum": {
+        "type": "string",
+        "description": "Detailed renewal type of a service",
+        "enum": [
+          "automaticForcedProduct",
+          "automaticV2012",
+          "automaticV2014",
+          "automaticV2016",
+          "automaticV2024",
+          "manual",
+          "oneShot",
+          "option"
+        ]
+      },
+      "service.StateEnum": {
+        "type": "string",
+        "enum": [
+          "autorenewInProgress",
+          "expired",
+          "inCreation",
+          "ok",
+          "pendingDebt",
+          "unPaid"
+        ]
+      },
+      "services.Service": {
+        "type": "object",
+        "description": "Details about a Service",
+        "properties": {
+          "canDeleteAtExpiration": {
+            "type": "boolean",
+            "description": "Indicates that the service can be set up to be deleted at expiration",
+            "readOnly": true
+          },
+          "contactAdmin": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactBilling": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactTech": {
+            "type": "string",
+            "readOnly": true
+          },
+          "creation": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "engagedUpTo": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "possibleRenewPeriod": {
+            "type": "array",
+            "description": "All the possible renew period of your service in month",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            },
+            "readOnly": true
+          },
+          "renew": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewType"
+              }
+            ],
+            "description": "Way of handling the renew",
+            "nullable": true
+          },
+          "renewalType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewalTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "serviceId": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.StateEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      },
+      "xdsl.DslTypeEnum": {
+        "type": "string",
+        "description": "Possible DSL technologies",
+        "enum": [
+          "adsl",
+          "ftte",
+          "ftth",
+          "sdsl",
+          "vdsl"
+        ]
+      },
+      "xdsl.eligibility.BookMeetingSlot": {
+        "type": "object",
+        "description": "Parameters to book a time slot for a meeting",
+        "properties": {
+          "fakeMeeting": {
+            "type": "boolean",
+            "description": "Whether or not to book a fake meeting slots (if no slots are available)"
+          },
+          "meetingSlot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/xdsl.eligibility.MeetingSlot"
+              }
+            ],
+            "description": "The time slot to book, null if fakeMeeting is true",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the customer",
+            "nullable": true
+          }
+        }
+      },
+      "xdsl.eligibility.MeetingSlot": {
+        "type": "object",
+        "description": "Represents a time slot for a meeting",
+        "properties": {
+          "endDate": {
+            "type": "string",
+            "description": "The end of the time slot",
+            "format": "date-time"
+          },
+          "slotId": {
+            "type": "string",
+            "description": "Represent a meeting id for a fiber collect operator",
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "description": "The beginning of the time slot",
+            "format": "date-time"
+          },
+          "uiCode": {
+            "type": "string",
+            "description": "An opaque string that represents an intervention unit"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
+            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/pack/xdsl": {
+      "get": {
+        "summary": "List available services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "PackXdslPackAdslWithIAM"
+      }
+    },
+    "/pack/xdsl/search": {
+      "get": {
+        "summary": "Get the list of pack linked to the pattern",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "pattern",
+            "description": "This parameter could be IP / line number / pack name / access name / order id / mac address",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/pack.xdsl.PackDetail"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:packXdsl/search",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.PackAdslWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/pack.xdsl.PackAdsl"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:put",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/addressMove/moveOffer": {
+      "post": {
+        "summary": "Move the access to another address",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "acceptContracts": {
+                    "type": "boolean",
+                    "description": "You explicitly accept the terms of the contract corresponding to your new offer"
+                  },
+                  "building": {
+                    "type": "string",
+                    "description": "Building identifier, \"null\" if no identifier is available"
+                  },
+                  "buildingReference": {
+                    "type": "string",
+                    "description": "Building reference for FTTH and FTTE offers"
+                  },
+                  "contactPhone": {
+                    "type": "string",
+                    "description": "Customer contact phone number"
+                  },
+                  "door": {
+                    "type": "string",
+                    "description": "Door identifier, \"null\" if no identifier is available"
+                  },
+                  "eligibilityReference": {
+                    "type": "string",
+                    "description": "Eligibility reference"
+                  },
+                  "engageMonths": {
+                    "type": "integer",
+                    "description": "Number of months of re-engagement"
+                  },
+                  "floor": {
+                    "type": "string",
+                    "description": "Floor identifier, \"null\" if no identifier is available"
+                  },
+                  "installationType": {
+                    "description": "Installation type, only on FTTH technology",
+                    "$ref": "#/components/schemas/connectivity.eligibility.InstallationTypeEnum"
+                  },
+                  "keepCurrentNumber": {
+                    "type": "boolean",
+                    "description": "Whether or not the current number should be kept"
+                  },
+                  "meeting": {
+                    "description": "Data to book a meeting slot",
+                    "$ref": "#/components/schemas/xdsl.eligibility.BookMeetingSlot"
+                  },
+                  "modem": {
+                    "description": "Modem choose",
+                    "$ref": "#/components/schemas/pack.xdsl.ModemOptionEnum"
+                  },
+                  "mondialRelayId": {
+                    "type": "integer",
+                    "description": "Mondial relay ID if a shipping is needed"
+                  },
+                  "moveOutDate": {
+                    "type": "string",
+                    "description": "The date when the customer is no longer at the current address. Must be between now and +30 days. The default date will be the one in 30 days from now.",
+                    "format": "date-time"
+                  },
+                  "nicShipping": {
+                    "type": "string",
+                    "description": "nicShipping if a shipping is needed"
+                  },
+                  "offerName": {
+                    "type": "string",
+                    "description": "Reference of the new offer"
+                  },
+                  "ontShippingContact": {
+                    "type": "string",
+                    "description": "Allows you to personalize a delivery address for the ONT. If empty, the address will be that of the installation"
+                  },
+                  "options": {
+                    "type": "array",
+                    "description": "Options wanted in the new offer",
+                    "items": {
+                      "$ref": "#/components/schemas/pack.xdsl.migration.OfferOption"
+                    }
+                  },
+                  "otp": {
+                    "type": "boolean",
+                    "description": "Do you have an Optical Termination Point (Point de Terminaison Optique) at home ?"
+                  },
+                  "otpReference": {
+                    "type": "string",
+                    "description": "Reference of the Optical Termination Point"
+                  },
+                  "productCode": {
+                    "type": "string",
+                    "description": "Product code, an unique identifier for the product from addressMove/offer"
+                  },
+                  "residence": {
+                    "type": "string",
+                    "description": "Residence identifier, \"null\" if no identifier is available"
+                  },
+                  "stair": {
+                    "type": "string",
+                    "description": "Stair identifier, \"null\" if no identifier is available"
+                  },
+                  "subServicesToDelete": {
+                    "type": "array",
+                    "description": "List of domains of services to delete if needed",
+                    "items": {
+                      "$ref": "#/components/schemas/pack.xdsl.migration.OfferServiceToDelete"
+                    }
+                  },
+                  "subServicesToKeep": {
+                    "type": "array",
+                    "description": "List of domains of services to keep if needed",
+                    "items": {
+                      "$ref": "#/components/schemas/pack.xdsl.migration.OfferServiceToKeep"
+                    }
+                  }
+                },
+                "required": [
+                  "acceptContracts",
+                  "eligibilityReference",
+                  "keepCurrentNumber",
+                  "modem",
+                  "offerName",
+                  "otp",
+                  "productCode"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.AsyncTask_long"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:addressMove/moveOffer",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/addressMove/offers": {
+      "post": {
+        "summary": "Get the possibilities of address move offers available",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "eligibilityReference": {
+                    "type": "string",
+                    "description": "Eligibility reference"
+                  }
+                },
+                "required": [
+                  "eligibilityReference"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.AsyncTask_pack.xdsl.addressMove.MoveOfferResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:addressMove/offers/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/addressMove/servicesToDeleteUnpackTerms": {
+      "post": {
+        "summary": "Calculate services to delete with unpack terms for new offer and options",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "eligibilityReference": {
+                    "type": "string",
+                    "description": "Eligibility reference"
+                  },
+                  "offerName": {
+                    "type": "string",
+                    "description": "Reference of the new offer"
+                  },
+                  "options": {
+                    "type": "array",
+                    "description": "Options wanted in the new offer",
+                    "items": {
+                      "$ref": "#/components/schemas/pack.xdsl.migration.OfferOption"
+                    }
+                  }
+                },
+                "required": [
+                  "eligibilityReference",
+                  "offerName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/pack.xdsl.migration.SubServicesDetailsToDelete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:addressMove/servicesToDeleteUnpackTerms/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/canCancelResiliation": {
+      "get": {
+        "summary": "Check if the resiliation can be cancelled",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:canCancelResiliation/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/cancelResiliation": {
+      "post": {
+        "summary": "Cancel the ongoing resiliation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:cancelResiliation/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/changeContact": {
+      "post": {
+        "summary": "Launch a contact change procedure",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactAdmin": {
+                    "type": "string",
+                    "description": "The contact to set as admin contact"
+                  },
+                  "contactBilling": {
+                    "type": "string",
+                    "description": "The contact to set as billing contact"
+                  },
+                  "contactTech": {
+                    "type": "string",
+                    "description": "The contact to set as tech contact"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:changeContact",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/contactOwner": {
+      "get": {
+        "summary": "Get contact infos about the owner",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.ContactInfos"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:contactOwner/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/domain/options/tlds": {
+      "get": {
+        "summary": "Get the available tlds for domain order",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:domain/options/tlds/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/domain/services": {
+      "get": {
+        "summary": "Domain services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:domain/services/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Activate a domain service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "description": "Domain action",
+                    "$ref": "#/components/schemas/pack.xdsl.DomainActionEnum"
+                  },
+                  "authInfo": {
+                    "type": "string",
+                    "description": "Needed for transfer from another registrar"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "description": "Domain name"
+                  },
+                  "tld": {
+                    "type": "string",
+                    "description": "TLD of the domain"
+                  }
+                },
+                "required": [
+                  "action",
+                  "domain",
+                  "tld"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:domain/services/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/emailPro/options/domains": {
+      "get": {
+        "summary": "List the available domains for the Email Pro service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:emailPro/options/domains/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/emailPro/options/isEmailAvailable": {
+      "get": {
+        "summary": "Check if the given email address is available for an Email Pro activation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "email",
+            "description": "The email address",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:emailPro/options/isEmailAvailable/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/emailPro/services": {
+      "get": {
+        "summary": "List the Email Pro services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:emailPro/services/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Activate an Email Pro service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "The email address"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The password",
+                    "format": "password"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:emailPro/services/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/exchangeAccount/services": {
+      "get": {
+        "summary": "Exchange 2013 services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:exchangeAccount/services/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "PackXdslExchangeAccountService"
+      }
+    },
+    "/pack/xdsl/{packName}/exchangeAccount/services/{domain}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.ExchangeAccountService"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:exchangeAccount/services/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/exchangeIndividual/options/domains": {
+      "get": {
+        "summary": "Get the available domains",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:exchangeIndividual/options/domains/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/exchangeIndividual/options/isEmailAvailable": {
+      "get": {
+        "summary": "Check if the email address is available for service creation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:exchangeIndividual/options/isEmailAvailable/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/exchangeOrganization/services": {
+      "get": {
+        "summary": "Exchange 2013 organization services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:exchangeOrganization/services/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/hostedEmail/options/domains": {
+      "get": {
+        "summary": "Get the hostedemail available domains",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:hostedEmail/options/domains/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/hostedEmail/services": {
+      "get": {
+        "summary": "Hosted email services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:hostedEmail/services/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "PackXdslHostedEmailService"
+      },
+      "post": {
+        "summary": "Activate an hosted email service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "Email address"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Password",
+                    "format": "password"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:hostedEmail/services/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/hostedEmail/services/{domain}": {
+      "delete": {
+        "summary": "Delete hosted email account",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:hostedEmail/services/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.HostedEmailService"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:hostedEmail/services/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/hostedEmail/services/{domain}/account": {
+      "get": {
+        "summary": "Get hosted email account informations",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.HostedEmail.Account"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:hostedEmail/services/account/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/hostedEmail/services/{domain}/changePassword": {
+      "post": {
+        "summary": "Change hosted email account password",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "New password",
+                    "format": "password"
+                  }
+                },
+                "required": [
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:hostedEmail/services/changePassword",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/hostedEmail/services/{domain}/configuration": {
+      "get": {
+        "summary": "Get hosted email configuration informations",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.HostedEmail.Configuration"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:hostedEmail/services/configuration/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/migration/migrate": {
+      "post": {
+        "summary": "Migrate to the selected offer",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "acceptContracts": {
+                    "type": "boolean",
+                    "description": "You explicitly accept the terms of the contract corresponding to your new offer"
+                  },
+                  "buildingReference": {
+                    "type": "string",
+                    "description": "Building reference for FTTH and FTTE offers"
+                  },
+                  "contactPhone": {
+                    "type": "string",
+                    "description": "Customer contact phone number"
+                  },
+                  "engageMonths": {
+                    "type": "integer",
+                    "description": "Number of months of re-engagement"
+                  },
+                  "floor": {
+                    "type": "string",
+                    "description": "Floor identifier, \"_NA_\" if no identifier is available"
+                  },
+                  "installationType": {
+                    "description": "Installation type, only on FTTH technology",
+                    "$ref": "#/components/schemas/connectivity.eligibility.InstallationTypeEnum"
+                  },
+                  "meeting": {
+                    "description": "Data to book a meeting slot",
+                    "$ref": "#/components/schemas/xdsl.eligibility.BookMeetingSlot"
+                  },
+                  "modem": {
+                    "description": "Modem choose",
+                    "$ref": "#/components/schemas/pack.xdsl.ModemOptionEnum"
+                  },
+                  "mondialRelayId": {
+                    "type": "integer",
+                    "description": "Mondial relay ID if a shipping is needed"
+                  },
+                  "nicShipping": {
+                    "type": "string",
+                    "description": "nicShipping if a shipping is needed"
+                  },
+                  "offerName": {
+                    "type": "string",
+                    "description": "Reference of the new offer"
+                  },
+                  "ontShippingContact": {
+                    "type": "string",
+                    "description": "Allows you to personalize a delivery address for the ONT. If empty, the address will be that of the installation"
+                  },
+                  "options": {
+                    "type": "array",
+                    "description": "Options wanted in the new offer",
+                    "items": {
+                      "$ref": "#/components/schemas/pack.xdsl.migration.OfferOption"
+                    }
+                  },
+                  "otp": {
+                    "type": "boolean",
+                    "description": "Do you have an Optical Termination Point (Point de Terminaison Optique) at home ?"
+                  },
+                  "otpReference": {
+                    "type": "string",
+                    "description": "Reference of the Optical Termination Point"
+                  },
+                  "productCode": {
+                    "type": "string",
+                    "description": "Product code, an unique identifier to designate the chosen offer"
+                  },
+                  "stair": {
+                    "type": "string",
+                    "description": "Stair identifier, \"_NA_\" if no identifier is available"
+                  },
+                  "subServicesToDelete": {
+                    "type": "array",
+                    "description": "List of domains of services to delete if needed",
+                    "items": {
+                      "$ref": "#/components/schemas/pack.xdsl.migration.OfferServiceToDelete"
+                    }
+                  },
+                  "subServicesToKeep": {
+                    "type": "array",
+                    "description": "List of domains of services to keep if needed",
+                    "items": {
+                      "$ref": "#/components/schemas/pack.xdsl.migration.OfferServiceToKeep"
+                    }
+                  }
+                },
+                "required": [
+                  "acceptContracts",
+                  "modem",
+                  "offerName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:migration/migrate",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/migration/offers": {
+      "post": {
+        "summary": "Get the possibilities of migration offers available",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "buildingReference": {
+                    "type": "string",
+                    "description": "Building reference for FTTH and FTTE offers"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.AsyncTask_pack.xdsl.migration.MigrationOfferResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:migration/offers/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/migration/servicesToDeleteUnpackTerms": {
+      "post": {
+        "summary": "Calculate services to delete with unpack terms for an offer and options",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "offerName": {
+                    "type": "string",
+                    "description": "Reference of the new offer"
+                  },
+                  "options": {
+                    "type": "array",
+                    "description": "Options wanted in the new offer",
+                    "items": {
+                      "$ref": "#/components/schemas/pack.xdsl.migration.OfferOption"
+                    }
+                  }
+                },
+                "required": [
+                  "offerName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/pack.xdsl.migration.SubServicesDetailsToDelete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:migration/servicesToDeleteUnpackTerms/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/orderFollowUp": {
+      "get": {
+        "summary": "Returns the list of steps and their status that will be executed to deliver the order",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/pack.xdsl.OrderFollowUpStep"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:orderFollowUp/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/promotionCode/capabilities": {
+      "get": {
+        "summary": "Get informations about the promotion code generation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.promotionCode.Capabilities"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:promotionCode/capabilities/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/promotionCode/generate": {
+      "post": {
+        "summary": "Creates a task to generate a new promotion code",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:promotionCode/generate",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/resiliate": {
+      "post": {
+        "summary": "Resiliate the pack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resiliationDate": {
+                    "type": "string",
+                    "description": "Effective date of the resiliation",
+                    "format": "date-time"
+                  },
+                  "resiliationSurvey": {
+                    "description": "Comment about resiliation reasons",
+                    "$ref": "#/components/schemas/pack.xdsl.ResiliationSurvey"
+                  },
+                  "servicesToKeep": {
+                    "type": "array",
+                    "description": "Ids of service you will keep on resiliation. (you can get it with /pack/xdsl/{packName}/subServices)",
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "required": [
+                  "resiliationSurvey"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.ResiliationFollowUpDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:resiliate",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/resiliationFollowUp": {
+      "get": {
+        "summary": "Get information about the ongoing resiliation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.ResiliationFollowUpDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:resiliationFollowUp/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/resiliationTerms": {
+      "get": {
+        "summary": "Get resiliation terms",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resiliationDate",
+            "description": "The desired resiliation date",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.ResiliationTerms"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:resiliationTerms/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/serviceInfos": {
+      "get": {
+        "summary": "Get service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/services.Service"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:serviceInfos/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.Service"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:serviceInfos/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/services": {
+      "get": {
+        "summary": "Informations about the services included in the pack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/pack.xdsl.ServiceInformation"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:services/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/shippingAddresses": {
+      "get": {
+        "summary": "Allowed shipping addresses given a context",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "context",
+            "description": "Context",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/pack.xdsl.ShippingAddressContextEnum"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/pack.xdsl.ShippingAddress"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:shippingAddresses/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/subServices": {
+      "get": {
+        "summary": "List services contained in the pack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:subServices/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "PackXdslService"
+      }
+    },
+    "/pack/xdsl/{packName}/subServices/{domain}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.Service"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:subServices/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/subServices/{domain}/keepServiceTerms": {
+      "get": {
+        "summary": "Give the condition to unpack service from pack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.UnpackTerms"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:subServices/keepServiceTerms/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/tasks": {
+      "get": {
+        "summary": "Tasks scheduled for this pack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "function",
+            "description": "Filter the value of function property (=)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "description": "Filter the value of status property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/pack.xdsl.TaskStatusEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:tasks/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "PackXdslTask"
+      }
+    },
+    "/pack/xdsl/{packName}/tasks/{id}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id of the object",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:tasks/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/voipBillingAccount/services": {
+      "get": {
+        "summary": "VOIP billing accounts",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:voipBillingAccount/services/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/voipEcofax/services": {
+      "get": {
+        "summary": "VOIP ecofax service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:voipEcofax/services/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Activate a voicefax service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:voipEcofax/services/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/voipLine/options/customShippingAddress": {
+      "post": {
+        "summary": "Create a new shippingId to be used for voipLine service creation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "description": "Address, including street name"
+                  },
+                  "cityName": {
+                    "type": "string",
+                    "description": "City name"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "description": "First name"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "description": "Last name"
+                  },
+                  "zipCode": {
+                    "type": "string",
+                    "description": "Zip code"
+                  }
+                },
+                "required": [
+                  "address",
+                  "cityName",
+                  "firstName",
+                  "lastName",
+                  "zipCode"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:voipLine/options/customShippingAddress/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/voipLine/options/hardwares": {
+      "get": {
+        "summary": "Get available hardwares",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/pack.xdsl.VoIPHardware"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:voipLine/options/hardwares/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/voipLine/options/shippingAddresses": {
+      "get": {
+        "summary": "Get available shipping addresses",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/pack.xdsl.ShippingAddress"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:voipLine/options/shippingAddresses/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/voipLine/services": {
+      "get": {
+        "summary": "VOIP line services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:voipLine/services/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "PackXdslVoipLineService"
+      },
+      "post": {
+        "summary": "Activate a voip line service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hardwareNames": {
+                    "type": "array",
+                    "description": "List of names from hardwares call",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "mondialRelayId": {
+                    "type": "string",
+                    "description": "Mondial relay ID"
+                  },
+                  "shippingId": {
+                    "type": "string",
+                    "description": "Shipping ID for the order"
+                  }
+                },
+                "required": [
+                  "hardwareNames"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.VoIPLineOrder"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:voipLine/services/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/voipLine/services/{domain}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pack.xdsl.VoipLineService"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:voipLine/services/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/pack/xdsl/{packName}/xdslAccess/services": {
+      "get": {
+        "summary": "xDSL access services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packName",
+            "description": "The internal name of your pack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "packXdsl:apiovh:xdslAccess/services/get",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}

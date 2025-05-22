@@ -27,5 +27,12 @@ func init() {
 		Run:   sms.GetSms,
 	})
 
+	// Command to update a single Sms
+	smsCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given SMS account",
+		Run:   sms.EditSms,
+	})
+
 	rootCmd.AddCommand(smsCmd)
 }

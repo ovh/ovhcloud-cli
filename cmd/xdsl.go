@@ -29,5 +29,12 @@ func init() {
 		Run:   xdsl.GetXdsl,
 	})
 
+	// Command to update a single Xdsl
+	xdslCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given XDSL",
+		Run:   xdsl.EditXdsl,
+	})
+
 	rootCmd.AddCommand(xdslCmd)
 }

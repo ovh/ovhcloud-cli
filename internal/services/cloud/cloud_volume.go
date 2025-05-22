@@ -6,7 +6,9 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
+	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -25,4 +27,10 @@ func ListCloudVolumes(_ *cobra.Command, _ []string) {
 func GetVolume(_ *cobra.Command, args []string) {
 	projectID := url.PathEscape(getConfiguredCloudProject())
 	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/volume", projectID), args[0], cloudVolumeTemplate)
+}
+
+func EditVolume(_ *cobra.Command, args []string) {
+	projectID := url.PathEscape(getConfiguredCloudProject())
+	endpoint := fmt.Sprintf("/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0]))
+	editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/volume/{volumeId}", endpoint, cloudOpenapiSchema)
 }

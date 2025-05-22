@@ -27,5 +27,12 @@ func init() {
 		Run:   vrackservices.GetVrackServices,
 	})
 
+	// Command to update a single VrackServices
+	vrackservicesCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given vRackServices",
+		Run:   vrackservices.EditVrackServices,
+	})
+
 	rootCmd.AddCommand(vrackservicesCmd)
 }

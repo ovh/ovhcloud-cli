@@ -27,5 +27,12 @@ func init() {
 		Run:   emailpro.GetEmailPro,
 	})
 
+	// Command to update a single EmailPro
+	emailproCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given EmailPro",
+		Run:   emailpro.EditEmailPro,
+	})
+
 	rootCmd.AddCommand(emailproCmd)
 }

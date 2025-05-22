@@ -27,6 +27,13 @@ func init() {
 		Run:   ip.GetIp,
 	})
 
+	// Command to update a single Ip
+	ipCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given IP",
+		Run:   ip.EditIp,
+	})
+
 	ipReverseCmd := &cobra.Command{
 		Use:   "reverse",
 		Short: "Manage reverses on the given IP",

@@ -26,5 +26,11 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	registryCmd.AddCommand(&cobra.Command{
+		Use:   "edit <registry_id>",
+		Short: "Edit the given container registry",
+		Run:   cloud.EditContainerRegistry,
+	})
+
 	cloudCmd.AddCommand(registryCmd)
 }

@@ -1,0 +1,6607 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/1.0"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "complexType.Range_long": {
+        "type": "object",
+        "description": "Start and end points (inclusive) of a range",
+        "properties": {
+          "from": {
+            "type": "integer"
+          },
+          "to": {
+            "type": "integer"
+          }
+        }
+      },
+      "coreTypes.CountryEnum": {
+        "type": "string",
+        "description": "ISO country codes",
+        "enum": [
+          "ac",
+          "ad",
+          "ae",
+          "af",
+          "ag",
+          "ai",
+          "al",
+          "am",
+          "an",
+          "ao",
+          "aq",
+          "ar",
+          "as",
+          "at",
+          "au",
+          "aw",
+          "ax",
+          "az",
+          "ba",
+          "bb",
+          "bd",
+          "be",
+          "bf",
+          "bg",
+          "bh",
+          "bi",
+          "bj",
+          "bl",
+          "bm",
+          "bn",
+          "bo",
+          "bq",
+          "br",
+          "bs",
+          "bt",
+          "bv",
+          "bw",
+          "by",
+          "bz",
+          "ca",
+          "cc",
+          "cd",
+          "cf",
+          "cg",
+          "ch",
+          "ci",
+          "ck",
+          "cl",
+          "cm",
+          "cn",
+          "co",
+          "cr",
+          "cs",
+          "cu",
+          "cv",
+          "cw",
+          "cx",
+          "cy",
+          "cz",
+          "de",
+          "dj",
+          "dk",
+          "dm",
+          "do",
+          "dz",
+          "ec",
+          "ee",
+          "eg",
+          "eh",
+          "er",
+          "es",
+          "et",
+          "fc",
+          "fd",
+          "fi",
+          "fj",
+          "fk",
+          "fm",
+          "fo",
+          "fr",
+          "fx",
+          "ga",
+          "gb",
+          "gd",
+          "ge",
+          "gf",
+          "gg",
+          "gh",
+          "gi",
+          "gl",
+          "gm",
+          "gn",
+          "gp",
+          "gq",
+          "gr",
+          "gs",
+          "gt",
+          "gu",
+          "gw",
+          "gy",
+          "hk",
+          "hm",
+          "hn",
+          "hr",
+          "ht",
+          "hu",
+          "id",
+          "ie",
+          "il",
+          "im",
+          "in",
+          "io",
+          "iq",
+          "ir",
+          "is",
+          "it",
+          "je",
+          "jm",
+          "jo",
+          "jp",
+          "ke",
+          "kg",
+          "kh",
+          "ki",
+          "km",
+          "kn",
+          "kp",
+          "kr",
+          "kw",
+          "ky",
+          "kz",
+          "la",
+          "lb",
+          "lc",
+          "li",
+          "lk",
+          "lr",
+          "ls",
+          "lt",
+          "lu",
+          "lv",
+          "ly",
+          "ma",
+          "mc",
+          "md",
+          "me",
+          "mf",
+          "mg",
+          "mh",
+          "mk",
+          "ml",
+          "mm",
+          "mn",
+          "mo",
+          "mp",
+          "mq",
+          "mr",
+          "ms",
+          "mt",
+          "mu",
+          "mv",
+          "mw",
+          "mx",
+          "my",
+          "mz",
+          "na",
+          "nc",
+          "ne",
+          "nf",
+          "ng",
+          "ni",
+          "nl",
+          "no",
+          "np",
+          "nr",
+          "nu",
+          "nz",
+          "om",
+          "pa",
+          "pe",
+          "pf",
+          "pg",
+          "ph",
+          "pk",
+          "pl",
+          "pm",
+          "pn",
+          "pr",
+          "ps",
+          "pt",
+          "pw",
+          "py",
+          "qa",
+          "qc",
+          "re",
+          "ro",
+          "rs",
+          "ru",
+          "rw",
+          "sa",
+          "sb",
+          "sc",
+          "sd",
+          "se",
+          "sg",
+          "sh",
+          "si",
+          "sj",
+          "sk",
+          "sl",
+          "sm",
+          "sn",
+          "so",
+          "sr",
+          "ss",
+          "st",
+          "sv",
+          "sx",
+          "sy",
+          "sz",
+          "tc",
+          "td",
+          "tf",
+          "tg",
+          "th",
+          "tj",
+          "tk",
+          "tl",
+          "tm",
+          "tn",
+          "to",
+          "tp",
+          "tr",
+          "tt",
+          "tv",
+          "tw",
+          "tz",
+          "ua",
+          "ug",
+          "uk",
+          "um",
+          "us",
+          "uy",
+          "uz",
+          "va",
+          "vc",
+          "ve",
+          "vg",
+          "vi",
+          "vn",
+          "vu",
+          "we",
+          "wf",
+          "ws",
+          "ye",
+          "yt",
+          "yu",
+          "za",
+          "zm",
+          "zw"
+        ]
+      },
+      "coreTypes.RegionCodenameEnum": {
+        "type": "string",
+        "description": "Region names",
+        "enum": [
+          "af-central-lz-abj",
+          "af-north-lz-rba",
+          "ap-south-lz-akl",
+          "ap-south-lz-blr",
+          "ap-south-lz-icd",
+          "ap-south-mum",
+          "ap-southeast-sgp",
+          "ap-southeast-syd",
+          "ca-east-bhs",
+          "ca-east-tor",
+          "eu-central-lz-buh",
+          "eu-central-lz-sof",
+          "eu-central-waw",
+          "eu-east-lz-prg",
+          "eu-north-lz-cph",
+          "eu-north-lz-hel",
+          "eu-north-lz-osl",
+          "eu-north-lz-sto",
+          "eu-south-lz-lis",
+          "eu-south-lz-mad",
+          "eu-south-lz-mil",
+          "eu-south-mil",
+          "eu-west-eri",
+          "eu-west-gra",
+          "eu-west-lim",
+          "eu-west-lz-ams",
+          "eu-west-lz-bru",
+          "eu-west-lz-dln",
+          "eu-west-lz-lux",
+          "eu-west-lz-mnc",
+          "eu-west-lz-mrs",
+          "eu-west-lz-vie",
+          "eu-west-lz-zrh",
+          "eu-west-par",
+          "eu-west-rbx",
+          "eu-west-sbg",
+          "me-south-lz-dxb",
+          "sa-central-lz-mex",
+          "sa-east-lz-sao",
+          "sa-west-lz-bue",
+          "sa-west-lz-scl",
+          "us-central-lz-slc",
+          "us-central-lz-stl",
+          "us-east-lz-atl",
+          "us-east-lz-bos",
+          "us-east-lz-chi",
+          "us-east-lz-dal",
+          "us-east-lz-mia",
+          "us-east-lz-nyc",
+          "us-east-vin",
+          "us-west-hil",
+          "us-west-lz-den",
+          "us-west-lz-lax",
+          "us-west-lz-pao",
+          "us-west-lz-phx",
+          "us-west-lz-sea"
+        ]
+      },
+      "dedicated.DatacenterEnum": {
+        "type": "string",
+        "description": "ovh datacenter",
+        "enum": [
+          "bhs1",
+          "bhs2",
+          "bhs3",
+          "bhs4",
+          "bhs5",
+          "bhs6",
+          "bhs7",
+          "bhs8",
+          "cch01",
+          "crx1",
+          "crx2",
+          "dc1",
+          "eri1",
+          "eri2",
+          "gra04",
+          "gra1",
+          "gra2",
+          "gra3",
+          "gsw",
+          "hdf01",
+          "hil1",
+          "ieb01",
+          "lil1-int1",
+          "lim1",
+          "lim2",
+          "lim3",
+          "mr901",
+          "p19",
+          "rbx",
+          "rbx-hz",
+          "rbx1",
+          "rbx10",
+          "rbx2",
+          "rbx3",
+          "rbx4",
+          "rbx5",
+          "rbx6",
+          "rbx7",
+          "rbx8",
+          "rbx9",
+          "sbg1",
+          "sbg2",
+          "sbg3",
+          "sbg4",
+          "sbg5",
+          "sgp02",
+          "sgp1",
+          "syd03",
+          "syd1",
+          "syd2",
+          "vin1",
+          "waw1",
+          "ynm1",
+          "yyz01"
+        ]
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ip.Antiphishing": {
+        "type": "object",
+        "description": "Phishing URLs hosted on your IP",
+        "properties": {
+          "creationDate": {
+            "type": "string",
+            "description": "Date of the event",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "Internal ID of the phishing entry",
+            "readOnly": true
+          },
+          "ipOnAntiphishing": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "IP address hosting the phishing URL",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.AntiphishingStateEnum"
+              }
+            ],
+            "description": "Current state of the phishing",
+            "readOnly": true
+          },
+          "urlPhishing": {
+            "type": "string",
+            "description": "Phishing URL",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.AntiphishingStateEnum": {
+        "type": "string",
+        "description": "Possible values for antiphishing state",
+        "enum": [
+          "blocked",
+          "blocking",
+          "unblocked",
+          "unblocking"
+        ]
+      },
+      "ip.ArpBlockedIp": {
+        "type": "object",
+        "description": "ARP blocked IP information",
+        "properties": {
+          "blockedSince": {
+            "type": "string",
+            "description": "The last blocking date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "ipBlocked": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "your IP",
+            "readOnly": true
+          },
+          "logs": {
+            "type": "string",
+            "description": "ARP logs",
+            "nullable": true,
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.ArpStateEnum"
+              }
+            ],
+            "description": "this IP address state",
+            "readOnly": true
+          },
+          "time": {
+            "type": "integer",
+            "description": "Time (in seconds) remaining before you can request your IP to be unblocked",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.ArpStateEnum": {
+        "type": "string",
+        "description": "Possible values for IP state",
+        "enum": [
+          "blocked",
+          "unblocking"
+        ]
+      },
+      "ip.BlockedIp": {
+        "type": "object",
+        "description": "Blocked IP information",
+        "properties": {
+          "blockedSince": {
+            "type": "string",
+            "description": "The last blocking date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "ipBlocked": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "your IP",
+            "readOnly": true
+          },
+          "logs": {
+            "type": "string",
+            "description": "Logs",
+            "nullable": true,
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.BlockedIpStateEnum"
+              }
+            ],
+            "description": "this IP address state",
+            "readOnly": true
+          },
+          "time": {
+            "type": "integer",
+            "description": "Time (in seconds) remaining before you can request your IP to be unblocked",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.BlockedIpStateEnum": {
+        "type": "string",
+        "description": "Possible values for IP state",
+        "enum": [
+          "blocked",
+          "unblocking"
+        ]
+      },
+      "ip.ByoipAggregationPreview": {
+        "type": "object",
+        "description": "Preview of an IP aggregation on BYOIP Additional IPs",
+        "properties": {
+          "aggregationIp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "Aggregation Additional IP that will be created"
+          },
+          "childrenIps": {
+            "type": "array",
+            "description": "Existing Additional IP(s) that will be aggregated",
+            "items": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        }
+      },
+      "ip.ByoipSlicingPreview": {
+        "type": "object",
+        "description": "Preview of an IP slicing on BYOIP Additional IPs",
+        "properties": {
+          "childrenIps": {
+            "type": "array",
+            "description": "Additional IP(s) that will be created",
+            "items": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          "slicingSize": {
+            "type": "integer",
+            "description": "Slicing size"
+          }
+        }
+      },
+      "ip.Campus": {
+        "type": "object",
+        "description": "Campus of an IP address",
+        "properties": {
+          "bringYourOwnIpSupportedRirForIp": {
+            "type": "array",
+            "description": "List of RIRs whose IPs can be imported in the campus",
+            "items": {
+              "type": "string"
+            }
+          },
+          "datacenters": {
+            "type": "array",
+            "description": "List of datacenters in the campus",
+            "items": {
+              "$ref": "#/components/schemas/dedicated.DatacenterEnum"
+            }
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the campus"
+          },
+          "name": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.CampusEnum"
+              }
+            ],
+            "description": "Campus name"
+          }
+        }
+      },
+      "ip.CampusEnum": {
+        "type": "string",
+        "description": "Possible values for IP campuses' names",
+        "enum": [
+          "BHS",
+          "ERI",
+          "GRA",
+          "HIL",
+          "LIM",
+          "PAR",
+          "RBX",
+          "SBG",
+          "SGP",
+          "SYD",
+          "VIN",
+          "WAW",
+          "YNM",
+          "YYZ"
+        ]
+      },
+      "ip.Destination": {
+        "type": "object",
+        "description": "A structure given service and its nexthops as a destination for failover ips",
+        "properties": {
+          "nexthop": {
+            "type": "array",
+            "description": "Nexthops available on this service",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "service": {
+            "type": "string",
+            "description": "Service destination"
+          }
+        }
+      },
+      "ip.Destinations": {
+        "type": "object",
+        "description": "A structure given all services allowed as a destination for this ip",
+        "properties": {
+          "cloudProject": {
+            "type": "array",
+            "description": "list of public cloud projects",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ip.Destination"
+            }
+          },
+          "dedicatedCloud": {
+            "type": "array",
+            "description": "list of dedicated clouds",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ip.Destination"
+            }
+          },
+          "dedicatedServer": {
+            "type": "array",
+            "description": "list of dedicated servers",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ip.Destination"
+            }
+          },
+          "hostingReseller": {
+            "type": "array",
+            "description": "list of hosting reseller services",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ip.Destination"
+            }
+          },
+          "ipLoadbalancing": {
+            "type": "array",
+            "description": "list of load balancing services",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ip.Destination"
+            }
+          },
+          "vps": {
+            "type": "array",
+            "description": "list of vps",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ip.Destination"
+            }
+          }
+        }
+      },
+      "ip.FirewallActionEnum": {
+        "type": "string",
+        "description": "Possible values for action",
+        "enum": [
+          "deny",
+          "permit"
+        ]
+      },
+      "ip.FirewallIp": {
+        "type": "object",
+        "description": "Your IP on firewall",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "ipOnFirewall": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.FirewallStateEnum"
+              }
+            ],
+            "description": "Current state of your ip on firewall",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.FirewallNetworkRule": {
+        "type": "object",
+        "description": "Rule on ip",
+        "properties": {
+          "action": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.FirewallActionEnum"
+              }
+            ],
+            "description": "Action on this rule",
+            "readOnly": true
+          },
+          "creationDate": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "destination": {
+            "type": "string",
+            "description": "Destination ip for your rule",
+            "readOnly": true
+          },
+          "destinationPort": {
+            "type": "string",
+            "description": "Destination port range for your rule. Only with TCP/UDP protocol",
+            "nullable": true,
+            "readOnly": true
+          },
+          "fragments": {
+            "type": "boolean",
+            "description": "Fragments option",
+            "nullable": true,
+            "readOnly": true
+          },
+          "protocol": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.FirewallProtocolEnum"
+              }
+            ],
+            "description": "Network protocol",
+            "readOnly": true
+          },
+          "rule": {
+            "type": "string",
+            "readOnly": true
+          },
+          "sequence": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "source": {
+            "type": "string",
+            "description": "Source ip for your rule",
+            "readOnly": true
+          },
+          "sourcePort": {
+            "type": "string",
+            "description": "Source port range for your rule. Only with TCP/UDP protocol",
+            "nullable": true,
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.FirewallRuleStateEnum"
+              }
+            ],
+            "description": "Current state of your rule",
+            "readOnly": true
+          },
+          "tcpOption": {
+            "type": "string",
+            "description": "TCP option on your rule",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "ip.FirewallOptionTCP": {
+        "type": "object",
+        "description": "Possible option for TCP",
+        "properties": {
+          "fragments": {
+            "type": "boolean",
+            "description": "TCP fragments",
+            "nullable": true
+          },
+          "option": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.FirewallTCPOptionEnum"
+              }
+            ],
+            "description": "TCP option",
+            "nullable": true
+          }
+        }
+      },
+      "ip.FirewallProtocolEnum": {
+        "type": "string",
+        "description": "Possible values for protocol",
+        "enum": [
+          "ah",
+          "esp",
+          "gre",
+          "icmp",
+          "ipv4",
+          "tcp",
+          "udp"
+        ]
+      },
+      "ip.FirewallRuleStateEnum": {
+        "type": "string",
+        "description": "Possible values for firewall rule state",
+        "enum": [
+          "creationPending",
+          "ok",
+          "removalPending"
+        ]
+      },
+      "ip.FirewallSequenceRangeEnum": {
+        "type": "integer",
+        "description": "Possible values for action",
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ]
+      },
+      "ip.FirewallStateEnum": {
+        "type": "string",
+        "description": "Possible values for firewall ip state",
+        "enum": [
+          "disableFirewallPending",
+          "enableFirewallPending",
+          "ok"
+        ]
+      },
+      "ip.FirewallTCPOptionEnum": {
+        "type": "string",
+        "description": "Possible values for TCP option - only for TCP protocol",
+        "enum": [
+          "established",
+          "syn"
+        ]
+      },
+      "ip.GameMitigation": {
+        "type": "object",
+        "description": "GAME Anti-DDoS",
+        "properties": {
+          "firewallModeEnabled": {
+            "type": "boolean",
+            "description": "Firewall mode : in UDP, only allow traffic matching your rules (as well as established traffic). If not enabled, traffic to ports not defined in your rules will be permited. TCP traffic is unaffected by this."
+          },
+          "ipOnGame": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "readOnly": true
+          },
+          "maxRules": {
+            "type": "integer",
+            "description": "Maximum number of rules for this IP",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.GameMitigationStateEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "supportedProtocols": {
+            "type": "array",
+            "description": "List of protocols available on this IP",
+            "items": {
+              "$ref": "#/components/schemas/ip.GameMitigationRuleProtocolEnum"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "ip.GameMitigationRule": {
+        "type": "object",
+        "description": "Rule on ip:ports",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID of the rule",
+            "readOnly": true
+          },
+          "ports": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/complexType.Range_long"
+              }
+            ],
+            "readOnly": true
+          },
+          "protocol": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.GameMitigationRuleProtocolEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.GameMitigationRuleStateEnum"
+              }
+            ],
+            "description": "Current state of your rule",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.GameMitigationRuleProtocolEnum": {
+        "type": "string",
+        "description": "Possible values for game rule protocol",
+        "enum": [
+          "arkSurvivalEvolved",
+          "arkSurvivalEvolvedV311.78+",
+          "arma",
+          "counterStrike2",
+          "fiveM",
+          "gtaMultiTheftAutoSanAndreas",
+          "gtaSanAndreasMultiplayerMod",
+          "hl2Source",
+          "minecraftBedrockWithRacknetCookie",
+          "minecraftJava",
+          "minecraftPocketEdition",
+          "minecraftQuery",
+          "mumble",
+          "other",
+          "rust",
+          "teamspeak2",
+          "teamspeak3",
+          "trackmaniaShootmania",
+          "valheim"
+        ]
+      },
+      "ip.GameMitigationRuleStateEnum": {
+        "type": "string",
+        "description": "Possible values for game mitigation rule state",
+        "enum": [
+          "createRulePending",
+          "deleteRulePending",
+          "ok"
+        ]
+      },
+      "ip.GameMitigationStateEnum": {
+        "type": "string",
+        "description": "Possible values for udp mitigation rule state",
+        "enum": [
+          "cleanRulesPending",
+          "firewallModeDisablePending",
+          "firewallModeEnablePending",
+          "ok"
+        ]
+      },
+      "ip.Ip": {
+        "type": "object",
+        "description": "Your IP",
+        "properties": {
+          "bringYourOwnIp": {
+            "type": "boolean",
+            "description": "Is this IP part of the Bring your own IP program (alpha)",
+            "readOnly": true
+          },
+          "campus": {
+            "type": "string",
+            "description": "Where is the IP used/usable (alpha)",
+            "nullable": true,
+            "readOnly": true
+          },
+          "canBeTerminated": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "country": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/coreTypes.CountryEnum"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Custom description on your ip",
+            "nullable": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "readOnly": true
+          },
+          "isAdditionalIp": {
+            "type": "boolean",
+            "description": "Is this IP an Additional IP (alpha)",
+            "readOnly": true
+          },
+          "organisationId": {
+            "type": "string",
+            "description": "IP block organisation Id",
+            "nullable": true,
+            "readOnly": true
+          },
+          "regions": {
+            "type": "array",
+            "description": "Where is the IP used/usable, in the form of region codenames (alpha)",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/coreTypes.RegionCodenameEnum"
+            },
+            "readOnly": true
+          },
+          "rir": {
+            "type": "string",
+            "description": "Regional Internet Registry of the IP (alpha)",
+            "nullable": true,
+            "readOnly": true
+          },
+          "routedTo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.RoutedTo"
+              }
+            ],
+            "description": "Routage information",
+            "nullable": true,
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.IpTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "version": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.IpVersionEnum"
+              }
+            ],
+            "description": "Version of the IP (alpha)",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.IpMigrationToken": {
+        "type": "object",
+        "description": "IP migration to OVH",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "description": "destination customer ID",
+            "readOnly": true
+          },
+          "token": {
+            "type": "string",
+            "description": "migration token",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.IpTask": {
+        "type": "object",
+        "description": "IP tasks",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "Details of this task",
+            "nullable": true,
+            "readOnly": true
+          },
+          "destination": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.RoutedTo"
+              }
+            ],
+            "description": "Destination for moveFloatingIp tasks",
+            "nullable": true,
+            "readOnly": true
+          },
+          "doneDate": {
+            "type": "string",
+            "description": "Completion date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "function": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.TaskFunctionEnum"
+              }
+            ],
+            "description": "Function name",
+            "readOnly": true
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "last update",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Task Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.TaskStatusEnum"
+              }
+            ],
+            "description": "Task status",
+            "readOnly": true
+          },
+          "taskId": {
+            "type": "integer",
+            "description": "the id of the task",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.IpTypeEnum": {
+        "type": "string",
+        "description": "Possible values for ip type",
+        "enum": [
+          "cdn",
+          "cloud",
+          "dedicated",
+          "failover",
+          "hosted_ssl",
+          "housing",
+          "loadBalancing",
+          "mail",
+          "overthebox",
+          "pcc",
+          "pci",
+          "private",
+          "vpn",
+          "vps",
+          "vrack",
+          "xdsl"
+        ]
+      },
+      "ip.IpVersionEnum": {
+        "type": "integer",
+        "description": "Possible values for IP version",
+        "enum": [
+          4,
+          6
+        ]
+      },
+      "ip.IpWithIAM": {
+        "type": "object",
+        "description": "Your IP",
+        "properties": {
+          "bringYourOwnIp": {
+            "type": "boolean",
+            "description": "Is this IP part of the Bring your own IP program (alpha)",
+            "readOnly": true
+          },
+          "campus": {
+            "type": "string",
+            "description": "Where is the IP used/usable (alpha)",
+            "nullable": true,
+            "readOnly": true
+          },
+          "canBeTerminated": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "country": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/coreTypes.CountryEnum"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Custom description on your ip",
+            "nullable": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "readOnly": true
+          },
+          "isAdditionalIp": {
+            "type": "boolean",
+            "description": "Is this IP an Additional IP (alpha)",
+            "readOnly": true
+          },
+          "organisationId": {
+            "type": "string",
+            "description": "IP block organisation Id",
+            "nullable": true,
+            "readOnly": true
+          },
+          "regions": {
+            "type": "array",
+            "description": "Where is the IP used/usable, in the form of region codenames (alpha)",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/coreTypes.RegionCodenameEnum"
+            },
+            "readOnly": true
+          },
+          "rir": {
+            "type": "string",
+            "description": "Regional Internet Registry of the IP (alpha)",
+            "nullable": true,
+            "readOnly": true
+          },
+          "routedTo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.RoutedTo"
+              }
+            ],
+            "description": "Routage information",
+            "nullable": true,
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.IpTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "version": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.IpVersionEnum"
+              }
+            ],
+            "description": "Version of the IP (alpha)",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.MitigationIp": {
+        "type": "object",
+        "description": "Your IP on mitigation",
+        "properties": {
+          "auto": {
+            "type": "boolean",
+            "description": "Set on true if your ip is on auto-mitigation",
+            "readOnly": true
+          },
+          "ipOnMitigation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "readOnly": true
+          },
+          "permanent": {
+            "type": "boolean",
+            "description": "Set on true if your ip is on permanent mitigation"
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.MitigationStateEnum"
+              }
+            ],
+            "description": "Current state of your ip on mitigation",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.MitigationProfile": {
+        "type": "object",
+        "description": "Mitigation profile for your ip",
+        "properties": {
+          "autoMitigationTimeOut": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.MitigationProfileAutoMitigationTimeOutEnum"
+              }
+            ],
+            "description": "Delay to wait before remove ip from auto mitigation after an attack"
+          },
+          "ipMitigationProfile": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.MitigationProfileStateEnum"
+              }
+            ],
+            "description": "Current state of your mitigation profile",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.MitigationProfileAutoMitigationTimeOutEnum": {
+        "type": "integer",
+        "description": "Possible values for auto mitigation timeout (minutes)",
+        "enum": [
+          0,
+          15,
+          60,
+          360,
+          1560
+        ]
+      },
+      "ip.MitigationProfileStateEnum": {
+        "type": "string",
+        "description": "Possible values for mitigation profile state",
+        "enum": [
+          "ok",
+          "tasksPending"
+        ]
+      },
+      "ip.MitigationStateEnum": {
+        "type": "string",
+        "description": "Possible values for mitigation state",
+        "enum": [
+          "creationPending",
+          "ok",
+          "removalPending"
+        ]
+      },
+      "ip.ReverseDelegation": {
+        "type": "object",
+        "description": "Your reverse delegations on IPv6 subnet",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "NS target for delegation",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.ReverseIp": {
+        "type": "object",
+        "description": "Your reverse records on IP",
+        "properties": {
+          "ipReverse": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "readOnly": true
+          },
+          "reverse": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.RipeInfos": {
+        "type": "object",
+        "description": "IP block RIPE informations",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "netname": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ip.RoutedTo": {
+        "type": "object",
+        "description": "Information about routing",
+        "properties": {
+          "serviceName": {
+            "type": "string",
+            "description": "Service where ip is routed to",
+            "nullable": true
+          }
+        }
+      },
+      "ip.ServiceIp": {
+        "type": "object",
+        "description": "Your IP linked to service",
+        "properties": {
+          "canBeTerminated": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "country": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/coreTypes.CountryEnum"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Custom description on your ip",
+            "nullable": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "readOnly": true
+          },
+          "organisationId": {
+            "type": "string",
+            "description": "IP block organisation Id",
+            "nullable": true,
+            "readOnly": true
+          },
+          "routedTo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.RoutedTo"
+              }
+            ],
+            "description": "Routage information",
+            "nullable": true,
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.IpTypeEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "ip.ServiceIpWithIAM": {
+        "type": "object",
+        "description": "Your IP linked to service",
+        "properties": {
+          "canBeTerminated": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "country": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/coreTypes.CountryEnum"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Custom description on your ip",
+            "nullable": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "readOnly": true
+          },
+          "organisationId": {
+            "type": "string",
+            "description": "IP block organisation Id",
+            "nullable": true,
+            "readOnly": true
+          },
+          "routedTo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.RoutedTo"
+              }
+            ],
+            "description": "Routage information",
+            "nullable": true,
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.IpTypeEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "ip.SpamIp": {
+        "type": "object",
+        "description": "Your IP spam stats",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Last date the ip was blocked",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "ipSpamming": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "IP address which is sending spam",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip.SpamStateEnum"
+              }
+            ],
+            "description": "Current state of the ip",
+            "readOnly": true
+          },
+          "time": {
+            "type": "integer",
+            "description": "Time (in seconds) while the IP will be blocked",
+            "readOnly": true
+          }
+        }
+      },
+      "ip.SpamStateEnum": {
+        "type": "string",
+        "description": "Possible values for spam state",
+        "enum": [
+          "blockedForSpam",
+          "unblocked",
+          "unblocking"
+        ]
+      },
+      "ip.SpamStats": {
+        "type": "object",
+        "description": "Spam statistics about an IP address",
+        "properties": {
+          "averageSpamscore": {
+            "type": "integer",
+            "description": "Average spam score.",
+            "nullable": true
+          },
+          "detectedSpams": {
+            "type": "array",
+            "description": "Detailed list of the spams",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ip.SpamTarget"
+            }
+          },
+          "numberOfSpams": {
+            "type": "integer",
+            "description": "Number of spams sent"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "Time when the IP address was blocked"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Number of emails sent"
+          }
+        }
+      },
+      "ip.SpamTarget": {
+        "type": "object",
+        "description": "Spam's target information",
+        "properties": {
+          "date": {
+            "type": "integer",
+            "description": "Timestamp when the email was sent"
+          },
+          "destinationIp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "IP address of the target"
+          },
+          "messageId": {
+            "type": "string",
+            "description": "The message-id of the email"
+          },
+          "spamscore": {
+            "type": "integer",
+            "description": "Spam score for the email"
+          }
+        }
+      },
+      "ip.TaskFunctionEnum": {
+        "type": "string",
+        "description": "different task operation",
+        "enum": [
+          "arinBlockReassign",
+          "changeRipeOrg",
+          "checkAndReleaseIp",
+          "genericMoveFloatingIp",
+          "supernetByoipFailoverPartitioning"
+        ]
+      },
+      "ip.TaskStatusEnum": {
+        "type": "string",
+        "description": "different task status",
+        "enum": [
+          "cancelled",
+          "customerError",
+          "doing",
+          "done",
+          "init",
+          "ovhError",
+          "todo"
+        ]
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "service.RenewType": {
+        "type": "object",
+        "description": "Map a possible renew for a specific service",
+        "properties": {
+          "automatic": {
+            "type": "boolean",
+            "description": "The service is automatically renewed"
+          },
+          "deleteAtExpiration": {
+            "type": "boolean",
+            "description": "The service will be deleted at expiration"
+          },
+          "forced": {
+            "type": "boolean",
+            "description": "The service forced to be renewed"
+          },
+          "manualPayment": {
+            "type": "boolean",
+            "description": "The service needs to be manually renewed and paid",
+            "nullable": true
+          },
+          "period": {
+            "type": "integer",
+            "description": "period of renew in month",
+            "nullable": true
+          }
+        }
+      },
+      "service.RenewalTypeEnum": {
+        "type": "string",
+        "description": "Detailed renewal type of a service",
+        "enum": [
+          "automaticForcedProduct",
+          "automaticV2012",
+          "automaticV2014",
+          "automaticV2016",
+          "automaticV2024",
+          "manual",
+          "oneShot",
+          "option"
+        ]
+      },
+      "service.StateEnum": {
+        "type": "string",
+        "enum": [
+          "autorenewInProgress",
+          "expired",
+          "inCreation",
+          "ok",
+          "pendingDebt",
+          "unPaid"
+        ]
+      },
+      "service.TerminationFutureUseEnum": {
+        "type": "string",
+        "description": "All future uses you can provide for a service termination",
+        "enum": [
+          "NOT_REPLACING_SERVICE",
+          "OTHER",
+          "SUBSCRIBE_AN_OTHER_SERVICE",
+          "SUBSCRIBE_OTHER_KIND_OF_SERVICE_WITH_COMPETITOR",
+          "SUBSCRIBE_SIMILAR_SERVICE_WITH_COMPETITOR"
+        ]
+      },
+      "service.TerminationReasonEnum": {
+        "type": "string",
+        "description": "All reasons you can provide for a service termination",
+        "enum": [
+          "FEATURES_DONT_SUIT_ME",
+          "LACK_OF_PERFORMANCES",
+          "MIGRATED_TO_ANOTHER_OVH_PRODUCT",
+          "MIGRATED_TO_COMPETITOR",
+          "NOT_ENOUGH_RECOGNITION",
+          "NOT_NEEDED_ANYMORE",
+          "NOT_RELIABLE",
+          "NO_ANSWER",
+          "OTHER",
+          "PRODUCT_DIMENSION_DONT_SUIT_ME",
+          "PRODUCT_TOOLS_DONT_SUIT_ME",
+          "TOO_EXPENSIVE",
+          "TOO_HARD_TO_USE",
+          "UNSATIFIED_BY_CUSTOMER_SUPPORT"
+        ]
+      },
+      "services.Service": {
+        "type": "object",
+        "description": "Details about a Service",
+        "properties": {
+          "canDeleteAtExpiration": {
+            "type": "boolean",
+            "description": "Indicates that the service can be set up to be deleted at expiration",
+            "readOnly": true
+          },
+          "contactAdmin": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactBilling": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactTech": {
+            "type": "string",
+            "readOnly": true
+          },
+          "creation": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "engagedUpTo": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "possibleRenewPeriod": {
+            "type": "array",
+            "description": "All the possible renew period of your service in month",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            },
+            "readOnly": true
+          },
+          "renew": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewType"
+              }
+            ],
+            "description": "Way of handling the renew",
+            "nullable": true
+          },
+          "renewalType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewalTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "serviceId": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.StateEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
+            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/ip": {
+      "get": {
+        "summary": "Your OVH IPs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "campus",
+            "description": "Filter the value of campus property (ilike) (alpha)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "description",
+            "description": "Filter the value of description property (like)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          },
+          {
+            "in": "query",
+            "name": "ip",
+            "description": "Filter the value of ip property (contains or equals)",
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "isAdditionalIp",
+            "description": "Filter the value of isAdditionalIp property (=) (alpha)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "routedTo.serviceName",
+            "description": "Filter the value of routedTo.serviceName property (like)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "description": "Filter the value of type property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.IpTypeEnum"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "description": "Filter the value of version property (=) (alpha)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.IpVersionEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipBlock"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpIp"
+      }
+    },
+    "/ip/campus": {
+      "get": {
+        "summary": "Get IP campuses",
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ip.Campus"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ]
+      }
+    },
+    "/ip/service": {
+      "get": {
+        "summary": "Your ip services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:service/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpServiceIpWithIAM"
+      }
+    },
+    "/ip/service/{serviceName}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your IP services",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.ServiceIpWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:service/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your IP services",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ip.ServiceIp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:service/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/service/{serviceName}/changeContact": {
+      "post": {
+        "summary": "Launch a contact change procedure",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your IP services",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactAdmin": {
+                    "type": "string",
+                    "description": "The contact to set as admin contact"
+                  },
+                  "contactBilling": {
+                    "type": "string",
+                    "description": "The contact to set as billing contact"
+                  },
+                  "contactTech": {
+                    "type": "string",
+                    "description": "The contact to set as tech contact"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:service/changeContact",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/service/{serviceName}/confirmTermination": {
+      "post": {
+        "summary": "Confirm service termination",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your IP services",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "commentary": {
+                    "type": "string",
+                    "description": "Commentary about your termination request"
+                  },
+                  "futureUse": {
+                    "description": "What next after your termination request",
+                    "$ref": "#/components/schemas/service.TerminationFutureUseEnum"
+                  },
+                  "reason": {
+                    "description": "Reason of your termination request",
+                    "$ref": "#/components/schemas/service.TerminationReasonEnum"
+                  },
+                  "token": {
+                    "type": "string",
+                    "description": "The termination token sent by email to the admin contact"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:service/confirmTermination",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/service/{serviceName}/serviceInfos": {
+      "get": {
+        "summary": "Get service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your IP services",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/services.Service"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:service/serviceInfos/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your IP services",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.Service"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:service/serviceInfos/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/service/{serviceName}/terminate": {
+      "post": {
+        "summary": "Ask for the termination of your service",
+        "description": "Ask for the termination of your service. Admin contact of this service will receive a termination token by email in order to confirm its termination with /confirmTermination endpoint.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your IP services",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:service/terminate",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.IpWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ip.Ip"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/antihack": {
+      "get": {
+        "summary": "Anti-Hack blocked IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "description": "Filter the value of state property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.BlockedIpStateEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipv4"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:antihack/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpBlockedIp"
+      }
+    },
+    "/ip/{ip}/antihack/{ipBlocked}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipBlocked",
+            "description": "your IP",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.BlockedIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:antihack/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/antihack/{ipBlocked}/unblock": {
+      "post": {
+        "summary": "Unblock this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipBlocked",
+            "description": "your IP",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:antihack/unblock",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/arp": {
+      "get": {
+        "summary": "ARP blocked IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "description": "Filter the value of state property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.ArpStateEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipv4"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:arp/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpArpBlockedIp"
+      }
+    },
+    "/ip/{ip}/arp/{ipBlocked}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipBlocked",
+            "description": "your IP",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.ArpBlockedIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:arp/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/arp/{ipBlocked}/unblock": {
+      "post": {
+        "summary": "Unblock this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipBlocked",
+            "description": "your IP",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:arp/unblock",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/bringYourOwnIp/aggregate": {
+      "get": {
+        "summary": "Get available aggregation configurations for this BYOIP Additional IP and it's neighbor(s)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ip.ByoipAggregationPreview"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:bringYourOwnIp/aggregate/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Aggregate a sliced BYOIP Additional IPs and it's neighbor(s) into a single bigger Additional IP parent",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "aggregationIp": {
+                    "description": "IP range to create by aggregation of all it's children",
+                    "$ref": "#/components/schemas/ipBlock"
+                  }
+                },
+                "required": [
+                  "aggregationIp"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.IpTask"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:bringYourOwnIp/aggregate/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/bringYourOwnIp/slice": {
+      "get": {
+        "summary": "Get available slicing configurations for this BYOIP Additional IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ip.ByoipSlicingPreview"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:bringYourOwnIp/slice/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Slice a BYOIP Additional IP into smaller Additional IPs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slicingSize": {
+                    "type": "integer",
+                    "description": "Size (ip mask) of the IPs to create inside given IP"
+                  }
+                },
+                "required": [
+                  "slicingSize"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.IpTask"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:bringYourOwnIp/slice/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/changeOrg": {
+      "post": {
+        "summary": "Change organisation of this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "organisation": {
+                    "type": "string",
+                    "description": "Your organisation id (RIPE_XXXX) to add on block informations"
+                  }
+                },
+                "required": [
+                  "organisation"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.IpTask"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:changeOrg",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/delegation": {
+      "get": {
+        "summary": "Reverse delegation on IPv6 subnet",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:delegation/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpReverseDelegation"
+      },
+      "post": {
+        "summary": "Add target for reverse delegation on IPv6 subnet",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "description": "Target for reverse delegation on IPv6"
+                  }
+                },
+                "required": [
+                  "target"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.ReverseDelegation"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:delegation/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/delegation/{target}": {
+      "delete": {
+        "summary": "Delete a target for reverse delegation on IPv6 subnet",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target",
+            "description": "NS target for delegation",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:delegation/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target",
+            "description": "NS target for delegation",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.ReverseDelegation"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:delegation/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/firewall": {
+      "get": {
+        "summary": "Ip under firewall",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "enabled",
+            "description": "Filter the value of enabled property (=)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "description": "Filter the value of state property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.FirewallStateEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipv4"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:firewall/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpFirewallIp"
+      },
+      "post": {
+        "summary": "AntiDDOS option. Add new IP on firewall",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ipOnFirewall": {
+                    "$ref": "#/components/schemas/ipv4"
+                  }
+                },
+                "required": [
+                  "ipOnFirewall"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.FirewallIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:firewall/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/firewall/{ipOnFirewall}": {
+      "delete": {
+        "summary": "AntiDDOS option. Delete IP and rules from firewall",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnFirewall",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:firewall/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnFirewall",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.FirewallIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:firewall/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnFirewall",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ip.FirewallIp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:firewall/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/firewall/{ipOnFirewall}/rule": {
+      "get": {
+        "summary": "Rules for this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnFirewall",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "description": "Filter the value of state property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.FirewallRuleStateEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:firewall/rule/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpFirewallNetworkRule"
+      },
+      "post": {
+        "summary": "AntiDDOS option. Add new rule on your IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnFirewall",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "description": "Action on this rule",
+                    "$ref": "#/components/schemas/ip.FirewallActionEnum"
+                  },
+                  "destinationPort": {
+                    "type": "integer",
+                    "description": "Destination port for your rule. Only with TCP/UDP protocol"
+                  },
+                  "protocol": {
+                    "description": "Network protocol",
+                    "$ref": "#/components/schemas/ip.FirewallProtocolEnum"
+                  },
+                  "sequence": {
+                    "description": "Sequence number of your rule",
+                    "$ref": "#/components/schemas/ip.FirewallSequenceRangeEnum"
+                  },
+                  "source": {
+                    "description": "Source ip for your rule. Any if not set",
+                    "$ref": "#/components/schemas/ipv4Block"
+                  },
+                  "sourcePort": {
+                    "type": "integer",
+                    "description": "Source port for your rule. Only with TCP/UDP protocol"
+                  },
+                  "tcpOption": {
+                    "description": "Option on your rule. Can only be used with TCP protocol",
+                    "$ref": "#/components/schemas/ip.FirewallOptionTCP"
+                  }
+                },
+                "required": [
+                  "action",
+                  "protocol",
+                  "sequence"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.FirewallNetworkRule"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:firewall/rule/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/firewall/{ipOnFirewall}/rule/{sequence}": {
+      "delete": {
+        "summary": "AntiDDOS option. Delete rule",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnFirewall",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sequence",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.FirewallNetworkRule"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:firewall/rule/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnFirewall",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sequence",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.FirewallNetworkRule"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:firewall/rule/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/game": {
+      "get": {
+        "summary": "Ip under game anti-ddos",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipv4"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:game/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpGameMitigation"
+      }
+    },
+    "/ip/{ip}/game/{ipOnGame}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnGame",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.GameMitigation"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:game/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnGame",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ip.GameMitigation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:game/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/game/{ipOnGame}/rule": {
+      "get": {
+        "summary": "IDs of rules configured for this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnGame",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:game/rule/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpGameMitigationRule"
+      },
+      "post": {
+        "summary": "Add new rule on your IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnGame",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ports": {
+                    "description": "The UDP port range to apply the rule on",
+                    "$ref": "#/components/schemas/complexType.Range_long"
+                  },
+                  "protocol": {
+                    "description": "The protocol running behind the given port(s). See supportedProtocols on the IP to know which values are valid here",
+                    "$ref": "#/components/schemas/ip.GameMitigationRuleProtocolEnum"
+                  }
+                },
+                "required": [
+                  "ports",
+                  "protocol"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.GameMitigationRule"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:game/rule/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/game/{ipOnGame}/rule/{id}": {
+      "delete": {
+        "summary": "Delete rule",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "ID of the rule",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnGame",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.GameMitigationRule"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:game/rule/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "ID of the rule",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnGame",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.GameMitigationRule"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:game/rule/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/license/cloudLinux": {
+      "get": {
+        "summary": "Cloud Linux licenses associated to this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ipAddress",
+            "description": "Filter the value of ipAddress property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:license/cloudLinux/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/license/cpanel": {
+      "get": {
+        "summary": "Cpanel licenses associated to this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ipAddress",
+            "description": "Filter the value of ipAddress property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:license/cpanel/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/license/directadmin": {
+      "get": {
+        "summary": "DirectAdmin licenses associated to this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ipAddress",
+            "description": "Filter the value of ipAddress property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:license/directadmin/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/license/plesk": {
+      "get": {
+        "summary": "Plesk licenses associated to this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ipAddress",
+            "description": "Filter the value of ipAddress property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:license/plesk/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/license/sqlserver": {
+      "get": {
+        "summary": "SQL Server licenses associated to this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ipAddress",
+            "description": "Filter the value of ipAddress property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:license/sqlserver/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/license/virtuozzo": {
+      "get": {
+        "summary": "Virtuozzo licenses associated to this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ipAddress",
+            "description": "Filter the value of ipAddress property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:license/virtuozzo/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/license/windows": {
+      "get": {
+        "summary": "Windows licenses associated to this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ipAddress",
+            "description": "Filter the value of ipAddress property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:license/windows/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/license/worklight": {
+      "get": {
+        "summary": "WorkLight licenses associated to this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ipAddress",
+            "description": "Filter the value of ipAddress property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:license/worklight/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/migrationToken": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.IpMigrationToken"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:migrationToken/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Generate a migration token",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customerId": {
+                    "type": "string",
+                    "description": "destination customer ID"
+                  }
+                },
+                "required": [
+                  "customerId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.IpMigrationToken"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:migrationToken/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/mitigation": {
+      "get": {
+        "summary": "Ip under mitigation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "auto",
+            "description": "Filter the value of auto property (=)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "description": "Filter the value of state property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.MitigationStateEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipv4"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:mitigation/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpMitigationIp"
+      },
+      "post": {
+        "summary": "AntiDDOS option. Add new IP on permanent mitigation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ipOnMitigation": {
+                    "$ref": "#/components/schemas/ipv4"
+                  }
+                },
+                "required": [
+                  "ipOnMitigation"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.MitigationIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:mitigation/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/mitigation/{ipOnMitigation}": {
+      "delete": {
+        "summary": "AntiDDOS option. Delete IP from mitigation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnMitigation",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.MitigationIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:mitigation/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnMitigation",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.MitigationIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:mitigation/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipOnMitigation",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ip.MitigationIp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:mitigation/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/mitigationProfiles": {
+      "get": {
+        "summary": "Manage mitigation profile on your IPs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipv4"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:mitigationProfiles/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpMitigationProfile"
+      },
+      "post": {
+        "summary": "Create new profile for one of your ip",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "autoMitigationTimeOut": {
+                    "description": "Delay to wait before remove ip from auto mitigation after an attack",
+                    "$ref": "#/components/schemas/ip.MitigationProfileAutoMitigationTimeOutEnum"
+                  },
+                  "ipMitigationProfile": {
+                    "$ref": "#/components/schemas/ipv4"
+                  }
+                },
+                "required": [
+                  "autoMitigationTimeOut",
+                  "ipMitigationProfile"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.MitigationProfile"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:mitigationProfiles/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/mitigationProfiles/{ipMitigationProfile}": {
+      "delete": {
+        "summary": "Delete mitigation profile",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipMitigationProfile",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:mitigationProfiles/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipMitigationProfile",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.MitigationProfile"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:mitigationProfiles/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipMitigationProfile",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ip.MitigationProfile"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:mitigationProfiles/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/move": {
+      "get": {
+        "summary": "List services available as a destination",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.Destinations"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:move/get",
+            "required": true
+          },
+          {
+            "name": "dedicatedServer:apiovh:ip/additionalIp/move",
+            "description": "Needed on a Dedicated Server for it to be available as a move destination",
+            "required": false
+          },
+          {
+            "name": "pccVMware:apiovh:ip/additionalIp/move",
+            "description": "Needed on a PCC VMware for it to be available as a move destination",
+            "required": false
+          },
+          {
+            "name": "publicCloudProject:apiovh:ip/additionalIp/move",
+            "description": "Needed on a Cloud Project for it to be available as a move destination",
+            "required": false
+          },
+          {
+            "name": "vps:apiovh:ip/additionalIp/move",
+            "description": "Needed on a Virtual Server for it to be available as a move destination",
+            "required": false
+          },
+          {
+            "name": "loadbalancer:apiovh:ip/additionalIp/move",
+            "description": "Needed on an IP Load Balancer for it to be available as a move destination",
+            "required": false
+          },
+          {
+            "name": "vrack:apiovh:ip/additionalIp/move",
+            "description": "Needed on a vRack for it to be available as a move destination",
+            "required": false
+          }
+        ]
+      },
+      "post": {
+        "summary": "Move this IP to another service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nexthop": {
+                    "type": "string",
+                    "description": "Nexthop of destination service"
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "Service destination"
+                  }
+                },
+                "required": [
+                  "to"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.IpTask"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:move",
+            "required": true
+          },
+          {
+            "name": "dedicatedServer:apiovh:ip/additionalIp/move",
+            "description": "Needed on a Dedicated Server for it to be available as a move destination",
+            "required": false
+          },
+          {
+            "name": "pccVMware:apiovh:ip/additionalIp/move",
+            "description": "Needed on a PCC VMware for it to be available as a move destination",
+            "required": false
+          },
+          {
+            "name": "publicCloudProject:apiovh:ip/additionalIp/move",
+            "description": "Needed on a Cloud Project for it to be available as a move destination",
+            "required": false
+          },
+          {
+            "name": "vps:apiovh:ip/additionalIp/move",
+            "description": "Needed on a Virtual Server for it to be available as a move destination",
+            "required": false
+          },
+          {
+            "name": "loadbalancer:apiovh:ip/additionalIp/move",
+            "description": "Needed on an IP Load Balancer for it to be available as a move destination",
+            "required": false
+          },
+          {
+            "name": "vrack:apiovh:ip/additionalIp/move",
+            "description": "Needed on a vRack for it to be available as a move destination",
+            "required": false
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/park": {
+      "post": {
+        "summary": "Park this IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.IpTask"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:park",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/phishing": {
+      "get": {
+        "summary": "Ip under anti-phishing",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ipOnAntiphishing",
+            "description": "Filter the value of ipOnAntiphishing property (within or equals)",
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "description": "Filter the value of state property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.AntiphishingStateEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:phishing/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpAntiphishing"
+      }
+    },
+    "/ip/{ip}/phishing/{id}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Internal ID of the phishing entry",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.Antiphishing"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:phishing/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/reverse": {
+      "get": {
+        "summary": "Reverse on your ip",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ip"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:reverse/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpReverseIp"
+      },
+      "post": {
+        "summary": "Add reverse on an ip",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ipReverse": {
+                    "$ref": "#/components/schemas/ip"
+                  },
+                  "reverse": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ipReverse",
+                  "reverse"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.ReverseIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:reverse/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/reverse/{ipReverse}": {
+      "delete": {
+        "summary": "Delete a reverse on one IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipReverse",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ip"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:reverse/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipReverse",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ip"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.ReverseIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:reverse/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/ripe": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.RipeInfos"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:ripe/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ip.RipeInfos"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:ripe/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/spam": {
+      "get": {
+        "summary": "Ip spamming",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "description": "Filter the value of state property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.SpamStateEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipv4"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:spam/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpSpamIp"
+      }
+    },
+    "/ip/{ip}/spam/{ipSpamming}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipSpamming",
+            "description": "IP address which is sending spam",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.SpamIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:spam/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/spam/{ipSpamming}/stats": {
+      "get": {
+        "summary": "Get statistics about the email traffic",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "description": "Start date",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipSpamming",
+            "description": "IP address which is sending spam",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "description": "End date",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ip.SpamStats"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:spam/stats/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/spam/{ipSpamming}/unblock": {
+      "post": {
+        "summary": "Release the ip from anti-spam system",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipSpamming",
+            "description": "IP address which is sending spam",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.SpamIp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:spam/unblock",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/task": {
+      "get": {
+        "summary": "IP tasks",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "function",
+            "description": "Filter the value of function property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.TaskFunctionEnum"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "description": "Filter the value of status property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/ip.TaskStatusEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:task/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "IpIpTask"
+      }
+    },
+    "/ip/{ip}/task/{taskId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "taskId",
+            "description": "the id of the task",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.IpTask"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:task/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/ip/{ip}/terminate": {
+      "post": {
+        "summary": "Delete a failover IP",
+        "deprecated": true,
+        "x-deprecation-date": "2016-07-21T00:00:00+01:00",
+        "x-deletion-date": "2017-01-21T00:00:00+01:00",
+        "x-replacement-route": "/ip/service/{serviceName}/terminate",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ip.IpTask"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "ip:apiovh:terminate",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}

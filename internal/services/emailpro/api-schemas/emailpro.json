@@ -1,0 +1,5794 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/1.0"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "email.pro.Account": {
+        "type": "object",
+        "description": "Mailbox",
+        "properties": {
+          "SAMAccountName": {
+            "type": "string",
+            "description": "SAM account name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "configured": {
+            "type": "boolean",
+            "description": "Indicates if the account is configured",
+            "readOnly": true
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentUsage": {
+            "type": "integer",
+            "description": "Mailbox usage",
+            "nullable": true,
+            "readOnly": true
+          },
+          "deleteAtExpiration": {
+            "type": "boolean",
+            "description": "delete at expiration",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Account display name",
+            "nullable": true
+          },
+          "domain": {
+            "type": "string",
+            "description": "Email domain"
+          },
+          "expirationDate": {
+            "type": "string",
+            "description": "expiration date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "expirationOutlookDate": {
+            "type": "string",
+            "description": "expiration date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "description": "Account first name",
+            "nullable": true
+          },
+          "hiddenFromGAL": {
+            "type": "boolean",
+            "description": "Hide account in Global Address List"
+          },
+          "id": {
+            "type": "integer",
+            "description": "Account id",
+            "readOnly": true
+          },
+          "initial": {
+            "type": "string",
+            "description": "Account initials",
+            "nullable": true
+          },
+          "lastLogoffDate": {
+            "type": "string",
+            "description": "Last logoff",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lastLogonDate": {
+            "type": "string",
+            "description": "Last logon",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Account last name",
+            "nullable": true
+          },
+          "lastUpdateDate": {
+            "type": "string",
+            "description": "Last update",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "login": {
+            "type": "string",
+            "description": "Account login"
+          },
+          "mailingFilter": {
+            "type": "array",
+            "description": "Enable or disable anti-virus and anti-spam",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/email.pro.MailingFilterEnum"
+            }
+          },
+          "passwordLastUpdate": {
+            "type": "string",
+            "description": "Time of account's password last update",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "primaryEmailAddress": {
+            "type": "string",
+            "description": "Default email for this mailbox",
+            "readOnly": true
+          },
+          "quota": {
+            "type": "integer",
+            "description": "Account maximum size"
+          },
+          "renewPeriod": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.renewPeriodEnum"
+              }
+            ],
+            "description": "change the renew period",
+            "nullable": true
+          },
+          "spamAndVirusConfiguration": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.spamAndVirusConfiguration"
+              }
+            ],
+            "description": "Spam and Antivirus configuration"
+          },
+          "spamDetected": {
+            "type": "boolean",
+            "description": "Account was sending spam",
+            "readOnly": true
+          },
+          "spamTicketNumber": {
+            "type": "integer",
+            "description": "Ticket number of spam detection",
+            "nullable": true,
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ObjectStateEnum"
+              }
+            ],
+            "description": "Account state",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Pending tasks for this account",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.AccountAlias": {
+        "type": "object",
+        "description": "Aliases on this mailbox",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "description": "Alias",
+            "readOnly": true
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Pending task id",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.AccountDiagnosis": {
+        "type": "object",
+        "description": "Account Diagnosis",
+        "properties": {
+          "canReceiveEmail": {
+            "type": "boolean",
+            "description": "Determines if ingoing message has been received",
+            "readOnly": true
+          },
+          "canSendEmail": {
+            "type": "boolean",
+            "description": "Determines if outgoing message has been delivered",
+            "readOnly": true
+          },
+          "connectiveWebmail": {
+            "type": "boolean",
+            "description": "Determines if possible to authenticate with credentials",
+            "readOnly": true
+          },
+          "isLocked": {
+            "type": "boolean",
+            "description": "Determines if account is locked",
+            "readOnly": true
+          },
+          "isMxValid": {
+            "type": "boolean",
+            "description": "Determines if MX record for account's domain is properly set",
+            "readOnly": true
+          },
+          "isSpammer": {
+            "type": "boolean",
+            "description": "Determines if account is flagged as spammer",
+            "readOnly": true
+          },
+          "isSrvValid": {
+            "type": "boolean",
+            "description": "Determines if SRV (autodiscovery) record for account's domain is properly set",
+            "readOnly": true
+          },
+          "isSuspended": {
+            "type": "boolean",
+            "description": "Determines if account is suspended",
+            "readOnly": true
+          },
+          "lastCheck": {
+            "type": "string",
+            "description": "Last performed diagnostics date",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.AccountFullAccess": {
+        "type": "object",
+        "description": "Users having full access on this mailbox",
+        "properties": {
+          "allowedAccountId": {
+            "type": "integer",
+            "description": "Account id to give full access",
+            "readOnly": true
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Pending task id",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.AccountNative": {
+        "type": "object",
+        "description": "Mailbox",
+        "properties": {
+          "SAMAccountName": {
+            "type": "string",
+            "description": "SAM account name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "configured": {
+            "type": "boolean",
+            "description": "Indicates if the account is configured",
+            "readOnly": true
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentUsage": {
+            "type": "integer",
+            "description": "Mailbox usage",
+            "nullable": true,
+            "readOnly": true
+          },
+          "deleteAtExpiration": {
+            "type": "boolean",
+            "description": "delete at expiration",
+            "nullable": true,
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Account display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "description": "Email domain",
+            "readOnly": true
+          },
+          "expirationDate": {
+            "type": "string",
+            "description": "expiration date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "expirationOutlookDate": {
+            "type": "string",
+            "description": "expiration date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "description": "Account first name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "hiddenFromGAL": {
+            "type": "boolean",
+            "description": "Hide account in Global Address List",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "Account id",
+            "readOnly": true
+          },
+          "initial": {
+            "type": "string",
+            "description": "Account initials",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lastLogoffDate": {
+            "type": "string",
+            "description": "Last logoff",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lastLogonDate": {
+            "type": "string",
+            "description": "Last logon",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Account last name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lastUpdateDate": {
+            "type": "string",
+            "description": "Last update",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "login": {
+            "type": "string",
+            "description": "Account login",
+            "readOnly": true
+          },
+          "mailingFilter": {
+            "type": "array",
+            "description": "Enable or disable anti-virus and anti-spam",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/email.pro.MailingFilterEnum"
+            },
+            "readOnly": true
+          },
+          "passwordLastUpdate": {
+            "type": "string",
+            "description": "Time of account's password last update",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "primaryEmailAddress": {
+            "type": "string",
+            "description": "Default email for this mailbox",
+            "readOnly": true
+          },
+          "quota": {
+            "type": "integer",
+            "description": "Account maximum size",
+            "readOnly": true
+          },
+          "renewPeriod": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.renewPeriodEnum"
+              }
+            ],
+            "description": "change the renew period",
+            "nullable": true,
+            "readOnly": true
+          },
+          "spamAndVirusConfiguration": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.spamAndVirusConfiguration"
+              }
+            ],
+            "description": "Spam and Antivirus configuration",
+            "readOnly": true
+          },
+          "spamDetected": {
+            "type": "boolean",
+            "description": "Account was sending spam",
+            "readOnly": true
+          },
+          "spamTicketNumber": {
+            "type": "integer",
+            "description": "Ticket number of spam detection",
+            "nullable": true,
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ObjectStateEnum"
+              }
+            ],
+            "description": "Account state",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Pending tasks for this account",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.AccountSendAs": {
+        "type": "object",
+        "description": "Users authorized to send mails from this mailbox",
+        "properties": {
+          "allowedAccountId": {
+            "type": "integer",
+            "description": "Account id to give send as",
+            "readOnly": true
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Pending task id",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.AccountSendOnBehalfTo": {
+        "type": "object",
+        "description": "Get users authorized to Send On Behalf To mails from this mailbox",
+        "properties": {
+          "allowedAccountId": {
+            "type": "integer",
+            "description": "Account id to give send on behalf to",
+            "readOnly": true
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Pending task id",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.DisclaimerAttributeEnum": {
+        "type": "string",
+        "description": "Disclaimer attributes list",
+        "enum": [
+          "City",
+          "Company",
+          "Country",
+          "Department",
+          "DisplayName",
+          "Email",
+          "FaxNumber",
+          "FirstName",
+          "HomePhoneNumber",
+          "Initials",
+          "LastName",
+          "Manager",
+          "MobileNumber",
+          "Notes",
+          "Office",
+          "OtherFaxNumber",
+          "OtherHomePhoneNumber",
+          "OtherPhoneNumber",
+          "PagerNumber",
+          "PhoneNumber",
+          "State",
+          "Street",
+          "Title",
+          "UserLogonName",
+          "ZipCode"
+        ]
+      },
+      "email.pro.Dkim": {
+        "type": "object",
+        "description": "DKIM for a domain",
+        "properties": {
+          "cnameIsValid": {
+            "type": "boolean",
+            "description": "DNS CNAME validation passed",
+            "readOnly": true
+          },
+          "customerRecord": {
+            "type": "string",
+            "description": "Customer DNS record",
+            "readOnly": true
+          },
+          "header": {
+            "type": "string",
+            "description": "Header used for DKIM signature",
+            "readOnly": true
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Last update date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "recordType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.DkimRecordTypeEnum"
+              }
+            ],
+            "description": "Record type of the customer record",
+            "readOnly": true
+          },
+          "selectorName": {
+            "type": "string",
+            "description": "Selector name",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.DkimStatusEnum"
+              }
+            ],
+            "description": "DKIM status",
+            "readOnly": true
+          },
+          "targetRecord": {
+            "type": "string",
+            "description": "Target of the customer record",
+            "nullable": true,
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Pending task for this DKIM",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.DkimRecordTypeEnum": {
+        "type": "string",
+        "description": "Record type of the customer record",
+        "enum": [
+          "CNAME"
+        ]
+      },
+      "email.pro.DkimStatusEnum": {
+        "type": "string",
+        "description": "DKIM status",
+        "enum": [
+          "deleting",
+          "disabling",
+          "enabling",
+          "inProduction",
+          "ready",
+          "todo",
+          "waitingRecord"
+        ]
+      },
+      "email.pro.Domain": {
+        "type": "object",
+        "description": "Domain",
+        "properties": {
+          "cnameToCheck": {
+            "type": "string",
+            "description": "Cname that will be checked to prove the domain ownership",
+            "nullable": true,
+            "readOnly": true
+          },
+          "domainAliases": {
+            "type": "array",
+            "description": "List of aliases for this domain",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "domainValidated": {
+            "type": "boolean",
+            "description": "Domain validation status",
+            "readOnly": true
+          },
+          "isAliasDomain": {
+            "type": "boolean",
+            "description": "Indicate if this domain is an alias for another domain",
+            "readOnly": true
+          },
+          "mxIsValid": {
+            "type": "boolean",
+            "description": "If true your dns mx configuration is valid",
+            "readOnly": true
+          },
+          "mxRecord": {
+            "type": "array",
+            "description": "Domain MX record configured in DNS",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "mxRelay": {
+            "type": "string",
+            "description": "If specified, emails to not existing address will be redirected to that domain",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Domain name",
+            "readOnly": true
+          },
+          "srvIsValid": {
+            "type": "boolean",
+            "description": "If true your dns srv record is valid",
+            "readOnly": true
+          },
+          "srvRecord": {
+            "type": "array",
+            "description": "Domain SRV record configured in DNS",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ObjectStateEnum"
+              }
+            ],
+            "description": "Domain state",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Pending taks id",
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.DomainTypeEnum"
+              }
+            ],
+            "description": "Domain type"
+          }
+        }
+      },
+      "email.pro.DomainDkimDiagnostics": {
+        "type": "object",
+        "description": "Dkim selectors and DNS configuration state",
+        "properties": {
+          "errorCode": {
+            "type": "integer",
+            "description": "Error code related to misconfiguration of DKIM, if exists",
+            "nullable": true,
+            "readOnly": true
+          },
+          "message": {
+            "type": "string",
+            "description": "DKIM misconfiguration description, if exists",
+            "nullable": true,
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.DomainDkimDiagnosticsStateEnum"
+              }
+            ],
+            "description": "State of DKIM selectors",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.DomainDkimDiagnosticsStateEnum": {
+        "type": "string",
+        "description": "DKIM status",
+        "enum": [
+          "active",
+          "disabled",
+          "error",
+          "inProgress",
+          "toConfigure"
+        ]
+      },
+      "email.pro.DomainNative": {
+        "type": "object",
+        "description": "Domain",
+        "properties": {
+          "cnameToCheck": {
+            "type": "string",
+            "description": "Cname that will be checked to prove the domain ownership",
+            "nullable": true,
+            "readOnly": true
+          },
+          "dkimDiagnostics": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.DomainDkimDiagnostics"
+              }
+            ],
+            "description": "Dkim selectors and DNS configuration state",
+            "nullable": true,
+            "readOnly": true
+          },
+          "domainAliases": {
+            "type": "array",
+            "description": "List of aliases for this domain",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "domainValidated": {
+            "type": "boolean",
+            "description": "Domain validation status",
+            "readOnly": true
+          },
+          "expectedAutodiscoverSRV": {
+            "type": "string",
+            "description": "Expected SRV record on this domain",
+            "readOnly": true
+          },
+          "expectedMX": {
+            "type": "array",
+            "description": "Expected MX record(s) on this domain",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "expectedSPF": {
+            "type": "string",
+            "description": "Expected SPF record on this domain",
+            "readOnly": true
+          },
+          "isAliasDomain": {
+            "type": "boolean",
+            "description": "Indicate if this domain is an alias for another domain",
+            "readOnly": true
+          },
+          "mxIsValid": {
+            "type": "boolean",
+            "description": "If true your DNS MX configuration is valid",
+            "readOnly": true
+          },
+          "mxRecord": {
+            "type": "array",
+            "description": "Domain MX record configured in DNS",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "mxRelay": {
+            "type": "string",
+            "description": "If specified, emails to not existing address will be redirected to that domain",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Domain name",
+            "readOnly": true
+          },
+          "spfIsValid": {
+            "type": "boolean",
+            "description": "SPF record validation passed",
+            "readOnly": true
+          },
+          "spfRecord": {
+            "type": "array",
+            "description": "Domain's SPF record configured in the DNS",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "srvIsValid": {
+            "type": "boolean",
+            "description": "If true your DNS SRV record is valid",
+            "readOnly": true
+          },
+          "srvRecord": {
+            "type": "array",
+            "description": "Domain SRV record configured in DNS",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ObjectStateEnum"
+              }
+            ],
+            "description": "Domain state",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Pending tasks id",
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.DomainTypeEnum"
+              }
+            ],
+            "description": "Domain type",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.DomainTypeEnum": {
+        "type": "string",
+        "description": "Domain type",
+        "enum": [
+          "authoritative",
+          "nonAuthoritative"
+        ]
+      },
+      "email.pro.ExternalContact": {
+        "type": "object",
+        "description": "External contact for this pro service",
+        "properties": {
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Contact display name"
+          },
+          "externalEmailAddress": {
+            "type": "string",
+            "description": "Contact email"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "Contact first name",
+            "nullable": true
+          },
+          "hiddenFromGAL": {
+            "type": "boolean",
+            "description": "Hide the contact in Global Address List"
+          },
+          "id": {
+            "type": "integer",
+            "description": "Contact id",
+            "readOnly": true
+          },
+          "initials": {
+            "type": "string",
+            "description": "Contact initals",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Contact last name",
+            "nullable": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ObjectStateEnum"
+              }
+            ],
+            "description": "Contact state",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Task pending id",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.ExternalContactNative": {
+        "type": "object",
+        "description": "External contact for this pro service",
+        "properties": {
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Contact display name",
+            "readOnly": true
+          },
+          "externalEmailAddress": {
+            "type": "string",
+            "description": "Contact email",
+            "readOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "description": "Contact first name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "hiddenFromGAL": {
+            "type": "boolean",
+            "description": "Hide the contact in Global Address List",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "Contact id",
+            "readOnly": true
+          },
+          "initials": {
+            "type": "string",
+            "description": "Contact initals",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Contact last name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ObjectStateEnum"
+              }
+            ],
+            "description": "Contact state",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Task pending id",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.MailingFilterEnum": {
+        "type": "string",
+        "description": "Mailing filter options availlable",
+        "enum": [
+          "vaderetro"
+        ]
+      },
+      "email.pro.ObjectStateEnum": {
+        "type": "string",
+        "description": "Current object state",
+        "enum": [
+          "creating",
+          "deleting",
+          "ok",
+          "reopening",
+          "suspended",
+          "suspending",
+          "unknown"
+        ]
+      },
+      "email.pro.Server": {
+        "type": "object",
+        "description": "Server",
+        "properties": {
+          "currentDiskUsage": {
+            "type": "integer",
+            "description": "Current disk usage in MB",
+            "nullable": true,
+            "readOnly": true
+          },
+          "diskSize": {
+            "type": "integer",
+            "description": "Total disk size in MB",
+            "nullable": true,
+            "readOnly": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "ipV4",
+            "readOnly": true
+          },
+          "ipV6": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv6"
+              }
+            ],
+            "description": "ipV6",
+            "nullable": true,
+            "readOnly": true
+          },
+          "isAValid": {
+            "type": "boolean",
+            "description": "If true your dns A record is valid",
+            "readOnly": true
+          },
+          "isAaaaValid": {
+            "type": "boolean",
+            "description": "If true your dns AAAA record is valid",
+            "readOnly": true
+          },
+          "isPtrV6Valid": {
+            "type": "boolean",
+            "description": "If true your dns ptrV6 record is valid",
+            "readOnly": true
+          },
+          "isPtrValid": {
+            "type": "boolean",
+            "description": "If true your dns ptr record is valid",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ServerStateEnum"
+              }
+            ],
+            "description": "Server state",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Task pending id",
+            "readOnly": true
+          },
+          "version": {
+            "type": "string",
+            "description": "Server version",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.ServerStateEnum": {
+        "type": "string",
+        "description": "Server State",
+        "enum": [
+          "configurationPending",
+          "notConfigured",
+          "ok"
+        ]
+      },
+      "email.pro.Service": {
+        "type": "object",
+        "description": "Email pro service",
+        "properties": {
+          "complexityEnabled": {
+            "type": "boolean",
+            "description": "enable policy for strong and secure passwords"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "service displayName",
+            "nullable": true
+          },
+          "domain": {
+            "type": "string",
+            "description": "Domain name of your service",
+            "readOnly": true
+          },
+          "hostname": {
+            "type": "string",
+            "description": "Hostname of your service",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lastUpdateDate": {
+            "type": "string",
+            "description": "Update date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lockoutDuration": {
+            "type": "integer",
+            "description": "number of minutes account will remain locked if it occurs"
+          },
+          "lockoutObservationWindow": {
+            "type": "integer",
+            "description": "number of minutes that must elapse after a failed logon to reset lockout trigger"
+          },
+          "lockoutThreshold": {
+            "type": "integer",
+            "description": "number of attempts before account to be locked",
+            "nullable": true
+          },
+          "maxPasswordAge": {
+            "type": "integer",
+            "description": "maximum number of days that account's password is valid before expiration",
+            "nullable": true
+          },
+          "maxReceiveSize": {
+            "type": "integer",
+            "description": "Maximum message size that You can receive in MB"
+          },
+          "maxSendSize": {
+            "type": "integer",
+            "description": "Maximum message size that You can send in MB"
+          },
+          "minPasswordAge": {
+            "type": "integer",
+            "description": "minimum number of days before able to change account's password",
+            "nullable": true
+          },
+          "minPasswordLength": {
+            "type": "integer",
+            "description": "minimum number of characters password must contain",
+            "nullable": true
+          },
+          "offer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ServiceOfferEnum"
+              }
+            ],
+            "description": "Type of your offer",
+            "readOnly": true
+          },
+          "spamAndVirusConfiguration": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.spamAndVirusConfiguration"
+              }
+            ],
+            "description": "Spam and Antivirus configuration"
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ServiceStateEnum"
+              }
+            ],
+            "description": "State of your service",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Task pending id",
+            "readOnly": true
+          },
+          "webUrl": {
+            "type": "string",
+            "description": "URL for web interface",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.ServiceNative": {
+        "type": "object",
+        "description": "Email pro service",
+        "properties": {
+          "complexityEnabled": {
+            "type": "boolean",
+            "description": "enable policy for strong and secure passwords",
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "service displayName",
+            "nullable": true,
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "description": "Domain name of your service",
+            "readOnly": true
+          },
+          "hostname": {
+            "type": "string",
+            "description": "Hostname of your service",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lastUpdateDate": {
+            "type": "string",
+            "description": "Update date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lockoutDuration": {
+            "type": "integer",
+            "description": "number of minutes account will remain locked if it occurs",
+            "readOnly": true
+          },
+          "lockoutObservationWindow": {
+            "type": "integer",
+            "description": "number of minutes that must elapse after a failed logon to reset lockout trigger",
+            "readOnly": true
+          },
+          "lockoutThreshold": {
+            "type": "integer",
+            "description": "number of attempts before account to be locked",
+            "nullable": true,
+            "readOnly": true
+          },
+          "maxPasswordAge": {
+            "type": "integer",
+            "description": "maximum number of days that account's password is valid before expiration",
+            "nullable": true,
+            "readOnly": true
+          },
+          "maxReceiveSize": {
+            "type": "integer",
+            "description": "Maximum message size that You can receive in MB",
+            "readOnly": true
+          },
+          "maxSendSize": {
+            "type": "integer",
+            "description": "Maximum message size that You can send in MB",
+            "readOnly": true
+          },
+          "minPasswordAge": {
+            "type": "integer",
+            "description": "minimum number of days before able to change account's password",
+            "nullable": true,
+            "readOnly": true
+          },
+          "minPasswordLength": {
+            "type": "integer",
+            "description": "minimum number of characters password must contain",
+            "nullable": true,
+            "readOnly": true
+          },
+          "offer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ServiceOfferEnum"
+              }
+            ],
+            "description": "Type of your offer",
+            "readOnly": true
+          },
+          "spamAndVirusConfiguration": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.spamAndVirusConfiguration"
+              }
+            ],
+            "description": "Spam and Antivirus configuration",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ServiceStateEnum"
+              }
+            ],
+            "description": "State of your service",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Task pending id",
+            "readOnly": true
+          },
+          "webUrl": {
+            "type": "string",
+            "description": "URL for web interface",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.ServiceNativeWithIAM": {
+        "type": "object",
+        "description": "Email pro service",
+        "properties": {
+          "complexityEnabled": {
+            "type": "boolean",
+            "description": "enable policy for strong and secure passwords",
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "service displayName",
+            "nullable": true,
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "description": "Domain name of your service",
+            "readOnly": true
+          },
+          "hostname": {
+            "type": "string",
+            "description": "Hostname of your service",
+            "nullable": true,
+            "readOnly": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lastUpdateDate": {
+            "type": "string",
+            "description": "Update date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lockoutDuration": {
+            "type": "integer",
+            "description": "number of minutes account will remain locked if it occurs",
+            "readOnly": true
+          },
+          "lockoutObservationWindow": {
+            "type": "integer",
+            "description": "number of minutes that must elapse after a failed logon to reset lockout trigger",
+            "readOnly": true
+          },
+          "lockoutThreshold": {
+            "type": "integer",
+            "description": "number of attempts before account to be locked",
+            "nullable": true,
+            "readOnly": true
+          },
+          "maxPasswordAge": {
+            "type": "integer",
+            "description": "maximum number of days that account's password is valid before expiration",
+            "nullable": true,
+            "readOnly": true
+          },
+          "maxReceiveSize": {
+            "type": "integer",
+            "description": "Maximum message size that You can receive in MB",
+            "readOnly": true
+          },
+          "maxSendSize": {
+            "type": "integer",
+            "description": "Maximum message size that You can send in MB",
+            "readOnly": true
+          },
+          "minPasswordAge": {
+            "type": "integer",
+            "description": "minimum number of days before able to change account's password",
+            "nullable": true,
+            "readOnly": true
+          },
+          "minPasswordLength": {
+            "type": "integer",
+            "description": "minimum number of characters password must contain",
+            "nullable": true,
+            "readOnly": true
+          },
+          "offer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ServiceOfferEnum"
+              }
+            ],
+            "description": "Type of your offer",
+            "readOnly": true
+          },
+          "spamAndVirusConfiguration": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.spamAndVirusConfiguration"
+              }
+            ],
+            "description": "Spam and Antivirus configuration",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ServiceStateEnum"
+              }
+            ],
+            "description": "State of your service",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Task pending id",
+            "readOnly": true
+          },
+          "webUrl": {
+            "type": "string",
+            "description": "URL for web interface",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.ServiceOfferEnum": {
+        "type": "string",
+        "description": "Service Offer name",
+        "enum": [
+          "emailpro"
+        ]
+      },
+      "email.pro.ServiceStateEnum": {
+        "type": "string",
+        "description": "Service State",
+        "enum": [
+          "creating",
+          "deleting",
+          "inMaintenance",
+          "ok",
+          "reopening",
+          "suspended",
+          "suspending"
+        ]
+      },
+      "email.pro.ServiceWithIAM": {
+        "type": "object",
+        "description": "Email pro service",
+        "properties": {
+          "complexityEnabled": {
+            "type": "boolean",
+            "description": "enable policy for strong and secure passwords"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "service displayName",
+            "nullable": true
+          },
+          "domain": {
+            "type": "string",
+            "description": "Domain name of your service",
+            "readOnly": true
+          },
+          "hostname": {
+            "type": "string",
+            "description": "Hostname of your service",
+            "nullable": true,
+            "readOnly": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lastUpdateDate": {
+            "type": "string",
+            "description": "Update date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "lockoutDuration": {
+            "type": "integer",
+            "description": "number of minutes account will remain locked if it occurs"
+          },
+          "lockoutObservationWindow": {
+            "type": "integer",
+            "description": "number of minutes that must elapse after a failed logon to reset lockout trigger"
+          },
+          "lockoutThreshold": {
+            "type": "integer",
+            "description": "number of attempts before account to be locked",
+            "nullable": true
+          },
+          "maxPasswordAge": {
+            "type": "integer",
+            "description": "maximum number of days that account's password is valid before expiration",
+            "nullable": true
+          },
+          "maxReceiveSize": {
+            "type": "integer",
+            "description": "Maximum message size that You can receive in MB"
+          },
+          "maxSendSize": {
+            "type": "integer",
+            "description": "Maximum message size that You can send in MB"
+          },
+          "minPasswordAge": {
+            "type": "integer",
+            "description": "minimum number of days before able to change account's password",
+            "nullable": true
+          },
+          "minPasswordLength": {
+            "type": "integer",
+            "description": "minimum number of characters password must contain",
+            "nullable": true
+          },
+          "offer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ServiceOfferEnum"
+              }
+            ],
+            "description": "Type of your offer",
+            "readOnly": true
+          },
+          "spamAndVirusConfiguration": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.spamAndVirusConfiguration"
+              }
+            ],
+            "description": "Spam and Antivirus configuration"
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.ServiceStateEnum"
+              }
+            ],
+            "description": "State of your service",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Task pending id",
+            "readOnly": true
+          },
+          "webUrl": {
+            "type": "string",
+            "description": "URL for web interface",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.Task": {
+        "type": "object",
+        "description": "Organization task details",
+        "properties": {
+          "finishDate": {
+            "type": "string",
+            "description": "Completion date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "function": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.TaskFunctionEnum"
+              }
+            ],
+            "description": "Function name",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "Task id",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.TaskStatusEnum"
+              }
+            ],
+            "description": "Task status",
+            "readOnly": true
+          },
+          "todoDate": {
+            "type": "string",
+            "description": "Creation date",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.TaskFunctionEnum": {
+        "type": "string",
+        "description": "function enumeration for task",
+        "enum": [
+          "addAccount",
+          "addAlias",
+          "addDomain",
+          "addDomainDKIM",
+          "addDomainDisclaimer",
+          "addExternalContact",
+          "addFullAccess",
+          "addSendAs",
+          "addSendOnBehalfTo",
+          "addServiceAuthorizedIp",
+          "changeHostname",
+          "changePassword",
+          "configureCustomer",
+          "deleteAccount",
+          "deleteAlias",
+          "deleteDomain",
+          "deleteDomainDKIM",
+          "deleteDomainDisclaimer",
+          "deleteExternalContact",
+          "deleteFullAccess",
+          "deleteSendAs",
+          "deleteSendOnBehalfTo",
+          "deleteService",
+          "deleteServiceAuthorizedIp",
+          "diagnoseAccount",
+          "disableDKIM",
+          "enableDKIM",
+          "expandDrive",
+          "installServer",
+          "maintenance",
+          "migrateAccountViaOMM",
+          "migrationAccount",
+          "migrationDisclaimer",
+          "migrationExternalContact",
+          "migrationHistory",
+          "migrationService",
+          "reOpenAccount",
+          "setAccount",
+          "setAlias",
+          "setDns",
+          "setDomain",
+          "setDomainDisclaimer",
+          "setExternalContact",
+          "setService",
+          "suspendAccount",
+          "suspendService",
+          "unknown",
+          "unsuspendAccount",
+          "unsuspendService"
+        ]
+      },
+      "email.pro.TaskStatusEnum": {
+        "type": "string",
+        "description": "Task status",
+        "enum": [
+          "cancelled",
+          "doing",
+          "done",
+          "error",
+          "todo"
+        ]
+      },
+      "email.pro.disclaimer": {
+        "type": "object",
+        "description": "disclaimer",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Signature, added at the bottom of your organization emails"
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Disclaimer name",
+            "readOnly": true
+          },
+          "outsideOnly": {
+            "type": "boolean",
+            "description": "Activate the disclaimer only for external emails"
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "task pending id",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.disclaimerNative": {
+        "type": "object",
+        "description": "disclaimer",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Signature, added at the bottom of your organization emails",
+            "readOnly": true
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Disclaimer name",
+            "readOnly": true
+          },
+          "outsideOnly": {
+            "type": "boolean",
+            "description": "Activate the disclaimer only for external emails",
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "task pending id",
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.dkim": {
+        "type": "object",
+        "description": "DKIM for a domain",
+        "properties": {
+          "customerRecord": {
+            "type": "string",
+            "description": "customer DNS record",
+            "readOnly": true
+          },
+          "header": {
+            "type": "string",
+            "description": "header used for DKIM signature",
+            "readOnly": true
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Last update date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "recordType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.dkimRecordTypeEnum"
+              }
+            ],
+            "description": "Record type of the customer record",
+            "readOnly": true
+          },
+          "selectorName": {
+            "type": "string",
+            "description": "selectorName",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/email.pro.dkimStatusEnum"
+              }
+            ],
+            "description": "dkim status",
+            "readOnly": true
+          },
+          "targetRecord": {
+            "type": "string",
+            "description": "Target of the customer record",
+            "nullable": true,
+            "readOnly": true
+          },
+          "taskPendingId": {
+            "type": "integer",
+            "description": "Pending task for this DKIM",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "email.pro.dkimRecordTypeEnum": {
+        "type": "string",
+        "description": "Record type of the customer record",
+        "enum": [
+          "CNAME"
+        ]
+      },
+      "email.pro.dkimStatusEnum": {
+        "type": "string",
+        "description": "dkim status",
+        "enum": [
+          "deleting",
+          "disabling",
+          "enabling",
+          "inProduction",
+          "ready",
+          "todo",
+          "waitingRecord"
+        ]
+      },
+      "email.pro.renewPeriodEnum": {
+        "type": "string",
+        "description": "Renew period",
+        "enum": [
+          "monthly",
+          "yearly"
+        ]
+      },
+      "email.pro.spamAndVirusConfiguration": {
+        "type": "object",
+        "description": "Spam and Antyvirus configuration",
+        "properties": {
+          "checkDKIM": {
+            "type": "boolean",
+            "description": "Check DKIM of message",
+            "readOnly": true
+          },
+          "checkSPF": {
+            "type": "boolean",
+            "description": "Check SPF of message",
+            "readOnly": true
+          },
+          "deleteSpam": {
+            "type": "boolean",
+            "description": "If message is a spam delete it",
+            "readOnly": true
+          },
+          "deleteVirus": {
+            "type": "boolean",
+            "description": "If message is a virus delete it",
+            "readOnly": true
+          },
+          "putInJunk": {
+            "type": "boolean",
+            "description": "If message is a spam or virus put in junk. Overridden by deleteSpam or deleteVirus",
+            "readOnly": true
+          },
+          "tagSpam": {
+            "type": "boolean",
+            "description": "If message is a spam change its subject",
+            "readOnly": true
+          },
+          "tagVirus": {
+            "type": "boolean",
+            "description": "If message is a virus change its subject",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "service.RenewType": {
+        "type": "object",
+        "description": "Map a possible renew for a specific service",
+        "properties": {
+          "automatic": {
+            "type": "boolean",
+            "description": "The service is automatically renewed"
+          },
+          "deleteAtExpiration": {
+            "type": "boolean",
+            "description": "The service will be deleted at expiration"
+          },
+          "forced": {
+            "type": "boolean",
+            "description": "The service forced to be renewed"
+          },
+          "manualPayment": {
+            "type": "boolean",
+            "description": "The service needs to be manually renewed and paid",
+            "nullable": true
+          },
+          "period": {
+            "type": "integer",
+            "description": "period of renew in month",
+            "nullable": true
+          }
+        }
+      },
+      "service.RenewalTypeEnum": {
+        "type": "string",
+        "description": "Detailed renewal type of a service",
+        "enum": [
+          "automaticForcedProduct",
+          "automaticV2012",
+          "automaticV2014",
+          "automaticV2016",
+          "automaticV2024",
+          "manual",
+          "oneShot",
+          "option"
+        ]
+      },
+      "service.StateEnum": {
+        "type": "string",
+        "enum": [
+          "autorenewInProgress",
+          "expired",
+          "inCreation",
+          "ok",
+          "pendingDebt",
+          "unPaid"
+        ]
+      },
+      "services.Service": {
+        "type": "object",
+        "description": "Details about a Service",
+        "properties": {
+          "canDeleteAtExpiration": {
+            "type": "boolean",
+            "description": "Indicates that the service can be set up to be deleted at expiration",
+            "readOnly": true
+          },
+          "contactAdmin": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactBilling": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactTech": {
+            "type": "string",
+            "readOnly": true
+          },
+          "creation": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "engagedUpTo": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "possibleRenewPeriod": {
+            "type": "array",
+            "description": "All the possible renew period of your service in month",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            },
+            "readOnly": true
+          },
+          "renew": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewType"
+              }
+            ],
+            "description": "Way of handling the renew",
+            "nullable": true
+          },
+          "renewalType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewalTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "serviceId": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.StateEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
+            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/email/pro": {
+      "get": {
+        "summary": "List available services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProServiceNativeWithIAM"
+      }
+    },
+    "/email/pro/{service}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.ServiceNativeWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/email.pro.Service"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:put",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account": {
+      "get": {
+        "summary": "Accounts associated to this pro service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "id",
+            "description": "Filter the value of id property (like)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "primaryEmailAddress",
+            "description": "Filter the value of primaryEmailAddress property (like)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProAccountNative"
+      }
+    },
+    "/email/pro/{service}/account/{email}": {
+      "delete": {
+        "summary": "Delete existing mailbox in pro server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.AccountNative"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "primaryEmailAddress"
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/email.pro.Account"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/alias": {
+      "get": {
+        "summary": "Aliases associated to this mailbox",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/alias/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProAccountAlias"
+      },
+      "post": {
+        "summary": "Create new alias",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "alias": {
+                    "type": "string",
+                    "description": "Alias"
+                  }
+                },
+                "required": [
+                  "alias"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/alias/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/alias/{alias}": {
+      "delete": {
+        "summary": "Delete existing alias",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alias",
+            "description": "Alias",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/alias/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "alias",
+            "description": "Alias",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.AccountAlias"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/alias/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/changePassword": {
+      "post": {
+        "summary": "Change mailbox password",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "new password",
+                    "format": "password"
+                  }
+                },
+                "required": [
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/changePassword",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/diagnostics": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.AccountDiagnosis"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/diagnostics/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create new diagnosis request",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "Account password"
+                  }
+                },
+                "required": [
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/diagnostics/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/fullAccess": {
+      "get": {
+        "summary": "Full access granted users for this mailbox",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/fullAccess/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProAccountFullAccess"
+      },
+      "post": {
+        "summary": "Allow full access to a user",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "allowedAccountId": {
+                    "type": "integer",
+                    "description": "User to give full access"
+                  }
+                },
+                "required": [
+                  "allowedAccountId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/fullAccess/grant",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/fullAccess/{allowedAccountId}": {
+      "delete": {
+        "summary": "Revoke full access",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "allowedAccountId",
+            "description": "Account id to give full access",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/fullAccess/revoke",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "allowedAccountId",
+            "description": "Allowed account ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.AccountFullAccess"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/fullAccess/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/sendAs": {
+      "get": {
+        "summary": "Send as granted users for this mailbox",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/sendAs/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProAccountSendAs"
+      },
+      "post": {
+        "summary": "Allow another user to send mails from this mailbox",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "allowAccountId": {
+                    "type": "integer",
+                    "description": "Account id to allow to send mails from this mailbox"
+                  }
+                },
+                "required": [
+                  "allowAccountId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/sendAs/grant",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/sendAs/{allowedAccountId}": {
+      "delete": {
+        "summary": "Delete allowed user for sendAs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "allowedAccountId",
+            "description": "Account id to give send as",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/sendAs/revoke",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "allowedAccountId",
+            "description": "Allowed account ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.AccountSendAs"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/sendAs/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/sendOnBehalfTo": {
+      "get": {
+        "summary": "SendOnBehalfTo granted users for this mailbox",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/sendOnBehalfTo/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProAccountSendOnBehalfTo"
+      },
+      "post": {
+        "summary": "Allow another user to Send On Behalf To mails from this mailbox",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "allowAccountId": {
+                    "type": "integer",
+                    "description": "Account id to allow to send On Behalf To mails from this mailbox"
+                  }
+                },
+                "required": [
+                  "allowAccountId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/sendOnBehalfTo/grant",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/sendOnBehalfTo/{allowedAccountId}": {
+      "delete": {
+        "summary": "Delete allowed user for SendOnBehalfTo",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "allowedAccountId",
+            "description": "Account id to give send on behalf to",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/sendOnBehalfTo/revoke",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "allowedAccountId",
+            "description": "Allowed account ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.AccountSendOnBehalfTo"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/sendOnBehalfTo/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/tasks": {
+      "get": {
+        "summary": "Pending task for this mailbox",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/tasks/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProTask"
+      }
+    },
+    "/email/pro/{service}/account/{email}/tasks/{id}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/tasks/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/account/{email}/terminate": {
+      "post": {
+        "summary": "Terminate account at expiration date",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email",
+            "description": "Default email for this mailbox",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:account/terminate",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/billingMigrated": {
+      "get": {
+        "summary": "Detects billing transition status for the service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:billingMigrated/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/billingPlan": {
+      "get": {
+        "summary": "Emailpro billing plan",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:billingPlan/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/changeContact": {
+      "post": {
+        "summary": "Launch a contact change procedure",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactAdmin": {
+                    "type": "string",
+                    "description": "The contact to set as admin contact"
+                  },
+                  "contactBilling": {
+                    "type": "string",
+                    "description": "The contact to set as billing contact"
+                  },
+                  "contactTech": {
+                    "type": "string",
+                    "description": "The contact to set as tech contact"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:changeContact",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/domain": {
+      "get": {
+        "summary": "Domains associated to this service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "description": "Filter the value of state property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/email.pro.ObjectStateEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProDomainNative"
+      },
+      "post": {
+        "summary": "Create new domain in pro services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "autoEnableDKIM": {
+                    "type": "boolean",
+                    "description": "Enable DKIM automatically after DKIM configuration"
+                  },
+                  "configureAutodiscover": {
+                    "type": "boolean",
+                    "description": "If you host domain in OVH we can configure autodiscover record automatically"
+                  },
+                  "configureDKIM": {
+                    "type": "boolean",
+                    "description": "Launch configuration of DKIM automatically for the domain"
+                  },
+                  "configureMx": {
+                    "type": "boolean",
+                    "description": "If you host domain in OVH we can configure mx record automatically"
+                  },
+                  "configureSPF": {
+                    "type": "boolean",
+                    "description": "Enable automatic SPF record (only for domains hosted by OVHcloud)"
+                  },
+                  "mxRelay": {
+                    "type": "string",
+                    "description": "If specified, emails to not existing address will be redirected to that domain"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Domain to install on server"
+                  },
+                  "type": {
+                    "description": "Type of domain that You want to install",
+                    "$ref": "#/components/schemas/email.pro.DomainTypeEnum"
+                  }
+                },
+                "required": [
+                  "name",
+                  "type"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/domain/{domainName}": {
+      "delete": {
+        "summary": "Delete existing domain in pro services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.DomainNative"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "name"
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/email.pro.Domain"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/domain/{domainName}/disclaimer": {
+      "delete": {
+        "summary": "Delete existing organization disclaimer",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/disclaimer/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.disclaimerNative"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/disclaimer/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create organization disclaimer of each email",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "Signature, added at the bottom of your organization emails"
+                  },
+                  "outsideOnly": {
+                    "type": "boolean",
+                    "description": "Activate the disclaimer only for external emails"
+                  }
+                },
+                "required": [
+                  "content"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/disclaimer/create",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/email.pro.disclaimer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/disclaimer/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/domain/{domainName}/disclaimerAttribute": {
+      "get": {
+        "summary": "Get diclaimer attributes to substitute with Active Directory properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/email.pro.DisclaimerAttributeEnum"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/disclaimerAttribute/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/domain/{domainName}/dkim": {
+      "get": {
+        "summary": "DKIM associated to this domain",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/dkim/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProDkim"
+      },
+      "post": {
+        "summary": "Create DKIM selector on this domain",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "autoEnableDKIM": {
+                    "type": "boolean",
+                    "description": "Enable DKIM automatically after DKIM configuration"
+                  },
+                  "configureDkim": {
+                    "type": "boolean",
+                    "description": "If you host domain in OVH we can configure dkim dns record automatically"
+                  },
+                  "selectorName": {
+                    "type": "string",
+                    "description": "selector name for DKIM"
+                  }
+                },
+                "required": [
+                  "selectorName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/dkim/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/domain/{domainName}/dkim/{selectorName}": {
+      "delete": {
+        "summary": "Delete DKIM selector on this domain",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "selectorName",
+            "description": "selectorName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/dkim/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "selectorName",
+            "description": "Selector name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Dkim"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/dkim/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "selectorName"
+      }
+    },
+    "/email/pro/{service}/domain/{domainName}/dkim/{selectorName}/disable": {
+      "post": {
+        "summary": "disable dkim signing",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "selectorName",
+            "description": "selectorName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/dkim/disable",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/domain/{domainName}/dkim/{selectorName}/enable": {
+      "post": {
+        "summary": "enable dkim signing or switch selector used",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "selectorName",
+            "description": "selectorName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/dkim/enable",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/domain/{domainName}/dkimSelector": {
+      "get": {
+        "summary": "Get dkim selector list",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domainName",
+            "description": "Domain name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:domain/dkimSelector/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/externalContact": {
+      "get": {
+        "summary": "External contacts for this service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "displayName",
+            "description": "Filter the value of displayName property (like)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "externalEmailAddress",
+            "description": "Filter the value of externalEmailAddress property (like)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "firstName",
+            "description": "Filter the value of firstName property (like)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "id",
+            "description": "Filter the value of id property (like)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lastName",
+            "description": "Filter the value of lastName property (like)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:externalContact/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProExternalContactNative"
+      },
+      "post": {
+        "summary": "create new external contact",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "description": "Contact display name"
+                  },
+                  "externalEmailAddress": {
+                    "type": "string",
+                    "description": "Contact email address"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "description": "Contact first name"
+                  },
+                  "hiddenFromGAL": {
+                    "type": "boolean",
+                    "description": "Hide the contact in Global Address List"
+                  },
+                  "initials": {
+                    "type": "string",
+                    "description": "Contact initials"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "description": "Contact last name"
+                  }
+                },
+                "required": [
+                  "externalEmailAddress"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:externalContact/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/externalContact/{externalEmailAddress}": {
+      "delete": {
+        "summary": "delete external contact",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "externalEmailAddress",
+            "description": "Contact email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:externalContact/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "externalEmailAddress",
+            "description": "External email address",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.ExternalContactNative"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:externalContact/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "externalEmailAddress"
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "externalEmailAddress",
+            "description": "Contact email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/email.pro.ExternalContact"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:externalContact/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/server": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Server"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:server/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/serviceInfos": {
+      "get": {
+        "summary": "Get service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/services.Service"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:serviceInfos/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.Service"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:serviceInfos/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/task": {
+      "get": {
+        "summary": "Pending actions",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:task/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "EmailProTask"
+      }
+    },
+    "/email/pro/{service}/task/{id}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "Service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/email.pro.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:task/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/email/pro/{service}/updateFlagsOnAllAccounts": {
+      "post": {
+        "summary": "Update spam and virus flags on all active accounts",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service",
+            "description": "The internal name of your pro organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "emailPro:apiovh:updateFlagsOnAllAccounts",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}

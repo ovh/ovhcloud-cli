@@ -27,5 +27,12 @@ func init() {
 		Run:   telephony.GetTelephony,
 	})
 
+	// Command to update a single Telephony
+	telephonyCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given Telephony service",
+		Run:   telephony.EditTelephony,
+	})
+
 	rootCmd.AddCommand(telephonyCmd)
 }

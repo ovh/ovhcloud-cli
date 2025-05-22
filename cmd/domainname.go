@@ -27,5 +27,12 @@ func init() {
 		Run:   domainname.GetDomainName,
 	})
 
+	// Command to update a single DomainName
+	domainnameCmd.AddCommand(&cobra.Command{
+		Use:   "edit <domain_name>",
+		Short: "Edit the given domain name service",
+		Run:   domainname.EditDomainName,
+	})
+
 	rootCmd.AddCommand(domainnameCmd)
 }

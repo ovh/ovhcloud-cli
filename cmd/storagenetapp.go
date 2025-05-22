@@ -27,5 +27,12 @@ func init() {
 		Run:   storagenetapp.GetStorageNetApp,
 	})
 
+	// Command to update a single StorageNetApp
+	storagenetappCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given StorageNetApp",
+		Run:   storagenetapp.EditStorageNetApp,
+	})
+
 	rootCmd.AddCommand(storagenetappCmd)
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
+	"stash.ovh.net/api/ovh-cli/internal/editor"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -76,4 +77,32 @@ func GetStorageS3(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputObject(foundContainer, args[0], cloudStorageS3Template, &flags.OutputFormatConfig)
+}
+
+func EditStorageS3(_ *cobra.Command, args []string) {
+	projectID := url.PathEscape(getConfiguredCloudProject())
+
+	// Fetch regions with network feature available
+	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "storage-s3-high-perf", "storage-s3-standard")
+	if err != nil {
+		display.ExitError("failed to fetch regions with storage feature available: %s", err)
+	}
+
+	// Search for the given container in all regions
+	// TODO: speed up with parallel search or by adding a required region argument
+	var foundURL string
+	for _, region := range regions {
+		endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/storage/%s",
+			projectID, url.PathEscape(region.(string)), url.PathEscape(args[0]))
+		if err := httpLib.Client.Get(endpoint, nil); err == nil {
+			foundURL = endpoint
+			break
+		}
+	}
+
+	if foundURL == "" {
+		display.ExitError("no storage container found with given ID")
+	}
+
+	editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}", foundURL, cloudOpenapiSchema)
 }

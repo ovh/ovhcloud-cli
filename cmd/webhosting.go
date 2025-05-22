@@ -27,5 +27,12 @@ func init() {
 		Run:   webhosting.GetWebHosting,
 	})
 
+	// Command to update a single WebHosting
+	webhostingCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given WebHosting",
+		Run:   webhosting.EditWebHosting,
+	})
+
 	rootCmd.AddCommand(webhostingCmd)
 }

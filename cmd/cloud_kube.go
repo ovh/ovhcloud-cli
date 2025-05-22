@@ -27,5 +27,11 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	kubeCmd.AddCommand(&cobra.Command{
+		Use:   "edit <cluster_id>",
+		Short: "Edit the given Kubernetes cluster",
+		Run:   cloud.EditKube,
+	})
+
 	cloudCmd.AddCommand(kubeCmd)
 }

@@ -1,0 +1,3535 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/1.0"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "service.RenewType": {
+        "type": "object",
+        "description": "Map a possible renew for a specific service",
+        "properties": {
+          "automatic": {
+            "type": "boolean",
+            "description": "The service is automatically renewed"
+          },
+          "deleteAtExpiration": {
+            "type": "boolean",
+            "description": "The service will be deleted at expiration"
+          },
+          "forced": {
+            "type": "boolean",
+            "description": "The service forced to be renewed"
+          },
+          "manualPayment": {
+            "type": "boolean",
+            "description": "The service needs to be manually renewed and paid",
+            "nullable": true
+          },
+          "period": {
+            "type": "integer",
+            "description": "period of renew in month",
+            "nullable": true
+          }
+        }
+      },
+      "service.RenewalTypeEnum": {
+        "type": "string",
+        "description": "Detailed renewal type of a service",
+        "enum": [
+          "automaticForcedProduct",
+          "automaticV2012",
+          "automaticV2014",
+          "automaticV2016",
+          "manual",
+          "oneShot",
+          "option"
+        ]
+      },
+      "service.StateEnum": {
+        "type": "string",
+        "description": "service.StateEnum",
+        "enum": [
+          "autorenewInProgress",
+          "expired",
+          "inCreation",
+          "ok",
+          "pendingDebt",
+          "unPaid"
+        ]
+      },
+      "service.TerminationFutureUseEnum": {
+        "type": "string",
+        "description": "All future uses you can provide for a service termination",
+        "enum": [
+          "NOT_REPLACING_SERVICE",
+          "OTHER",
+          "SUBSCRIBE_AN_OTHER_SERVICE",
+          "SUBSCRIBE_OTHER_KIND_OF_SERVICE_WITH_COMPETITOR",
+          "SUBSCRIBE_SIMILAR_SERVICE_WITH_COMPETITOR"
+        ]
+      },
+      "service.TerminationReasonEnum": {
+        "type": "string",
+        "description": "All reasons you can provide for a service termination",
+        "enum": [
+          "FEATURES_DONT_SUIT_ME",
+          "LACK_OF_PERFORMANCES",
+          "MIGRATED_TO_ANOTHER_OVH_PRODUCT",
+          "MIGRATED_TO_COMPETITOR",
+          "NOT_ENOUGH_RECOGNITION",
+          "NOT_NEEDED_ANYMORE",
+          "NOT_RELIABLE",
+          "NO_ANSWER",
+          "OTHER",
+          "PRODUCT_DIMENSION_DONT_SUIT_ME",
+          "PRODUCT_TOOLS_DONT_SUIT_ME",
+          "TOO_EXPENSIVE",
+          "TOO_HARD_TO_USE",
+          "UNSATIFIED_BY_CUSTOMER_SUPPORT"
+        ]
+      },
+      "services.Service": {
+        "type": "object",
+        "description": "Details about a Service",
+        "properties": {
+          "canDeleteAtExpiration": {
+            "type": "boolean",
+            "description": "Indicates that the service can be set up to be deleted at expiration",
+            "readOnly": true
+          },
+          "contactAdmin": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactBilling": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactTech": {
+            "type": "string",
+            "readOnly": true
+          },
+          "creation": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "engagedUpTo": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "possibleRenewPeriod": {
+            "type": "array",
+            "description": "All the possible renew period of your service in month",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            },
+            "readOnly": true
+          },
+          "renew": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewType"
+              }
+            ],
+            "description": "Way of handling the renew",
+            "nullable": true
+          },
+          "renewalType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewalTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "serviceId": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.StateEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "services.changeContact": {
+        "type": "object",
+        "description": "Service change contact payload",
+        "properties": {
+          "contactAdmin": {
+            "type": "string",
+            "description": "The contact to set as admin contact"
+          },
+          "contactBilling": {
+            "type": "string",
+            "description": "The contact to set as billing contact"
+          },
+          "contactTech": {
+            "type": "string",
+            "description": "The contact to set as tech contact"
+          }
+        }
+      },
+      "services.confirmTermination": {
+        "type": "object",
+        "description": "Service confirm termination payload",
+        "properties": {
+          "commentary": {
+            "type": "string",
+            "description": "Commentary about your termination request"
+          },
+          "futureUse": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.TerminationFutureUseEnum"
+              }
+            ],
+            "description": "All future uses you can provide for a service termination"
+          },
+          "reason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.TerminationReasonEnum"
+              }
+            ],
+            "description": "All reasons you can provide for a service termination"
+          },
+          "token": {
+            "type": "string",
+            "description": "The termination token sent by email to the admin contact"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "storage.MetricsToken": {
+        "type": "object",
+        "description": "Metrics token",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "description": "Backend url",
+            "readOnly": true
+          },
+          "expiry": {
+            "type": "string",
+            "description": "Token expiration date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "token": {
+            "type": "string",
+            "description": "Generated token",
+            "format": "password",
+            "readOnly": true
+          }
+        }
+      },
+      "storage.NetAppNetwork": {
+        "type": "object",
+        "description": "A network",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Network ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppNetworkStatusEnum"
+              }
+            ],
+            "description": "Network status",
+            "nullable": true,
+            "readOnly": true
+          },
+          "vRackServicesURN": {
+            "type": "string",
+            "description": "vRack Services URN the network is attached to",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "storage.NetAppNetworkStatusEnum": {
+        "type": "string",
+        "description": "Network status",
+        "enum": [
+          "associated",
+          "associating",
+          "dissociating",
+          "to_configure"
+        ]
+      },
+      "storage.NetAppService": {
+        "type": "object",
+        "description": "A service",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Service creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Service ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Service name",
+            "readOnly": true
+          },
+          "performanceLevel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppServicePerformanceLevelEnum"
+              }
+            ],
+            "description": "Service performance level",
+            "readOnly": true
+          },
+          "product": {
+            "type": "string",
+            "description": "Product name",
+            "readOnly": true
+          },
+          "quota": {
+            "type": "integer",
+            "description": "Service quota",
+            "readOnly": true
+          },
+          "region": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.RegionEnum"
+              }
+            ],
+            "description": "Service region",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppServiceStatusEnum"
+              }
+            ],
+            "description": "Service status",
+            "readOnly": true
+          }
+        }
+      },
+      "storage.NetAppServicePerformanceLevelEnum": {
+        "type": "string",
+        "description": "Service performance level",
+        "enum": [
+          "premium"
+        ]
+      },
+      "storage.NetAppServiceStatusEnum": {
+        "type": "string",
+        "description": "Service status",
+        "enum": [
+          "creating",
+          "deleted",
+          "deleting",
+          "reopening",
+          "running",
+          "suspended",
+          "suspending"
+        ]
+      },
+      "storage.NetAppServiceUpdate": {
+        "type": "object",
+        "description": "Service updatable properties",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "New service name"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "storage.NetAppServiceWithIAM": {
+        "type": "object",
+        "description": "A service",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Service creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Service ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Service name",
+            "readOnly": true
+          },
+          "performanceLevel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppServicePerformanceLevelEnum"
+              }
+            ],
+            "description": "Service performance level",
+            "readOnly": true
+          },
+          "product": {
+            "type": "string",
+            "description": "Product name",
+            "readOnly": true
+          },
+          "quota": {
+            "type": "integer",
+            "description": "Service quota",
+            "readOnly": true
+          },
+          "region": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.RegionEnum"
+              }
+            ],
+            "description": "Service region",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppServiceStatusEnum"
+              }
+            ],
+            "description": "Service status",
+            "readOnly": true
+          }
+        }
+      },
+      "storage.NetAppShare": {
+        "type": "object",
+        "description": "A share",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Share creation date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Share description",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Share ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "mountPointName": {
+            "type": "string",
+            "description": "User-defined name used to generate human readable access path for the share",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Share name",
+            "nullable": true
+          },
+          "protocol": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.ProtocolEnum"
+              }
+            ],
+            "description": "Share protocol",
+            "nullable": true
+          },
+          "size": {
+            "type": "integer",
+            "description": "Share size in Gigabytes",
+            "nullable": true
+          },
+          "snapshotID": {
+            "type": "string",
+            "description": "Snapshot ID used to create the share",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppShareStatusEnum"
+              }
+            ],
+            "description": "Share status",
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "required": [
+          "protocol",
+          "size"
+        ]
+      },
+      "storage.NetAppShareACLPermissionEnum": {
+        "type": "string",
+        "description": "ACL permission",
+        "enum": [
+          "ro",
+          "rw"
+        ]
+      },
+      "storage.NetAppShareACLRule": {
+        "type": "object",
+        "description": "A share ACL rule",
+        "properties": {
+          "accessLevel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppShareACLPermissionEnum"
+              }
+            ],
+            "description": "Rule access level",
+            "nullable": true
+          },
+          "accessTo": {
+            "type": "string",
+            "description": "Rule destination",
+            "nullable": true
+          },
+          "accessType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppShareACLTypeEnum"
+              }
+            ],
+            "description": "Rule access type",
+            "nullable": true,
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Rule creation date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Rule ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppShareACLStatusEnum"
+              }
+            ],
+            "description": "Rule status",
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "required": [
+          "accessLevel",
+          "accessTo"
+        ]
+      },
+      "storage.NetAppShareACLStatusEnum": {
+        "type": "string",
+        "description": "ACL status",
+        "enum": [
+          "active",
+          "applying",
+          "denying",
+          "error",
+          "queued_to_apply",
+          "queued_to_deny"
+        ]
+      },
+      "storage.NetAppShareACLTypeEnum": {
+        "type": "string",
+        "description": "ACL type",
+        "enum": [
+          "ip"
+        ]
+      },
+      "storage.NetAppShareAccessPath": {
+        "type": "object",
+        "description": "A share access path",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Access path ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "path": {
+            "type": "string",
+            "description": "Access path",
+            "readOnly": true
+          },
+          "preferred": {
+            "type": "boolean",
+            "description": "Is this the preferred access path?",
+            "readOnly": true
+          }
+        }
+      },
+      "storage.NetAppShareExtendOrShrink": {
+        "type": "object",
+        "description": "A share",
+        "properties": {
+          "size": {
+            "type": "integer",
+            "description": "Share size in Gigabytes",
+            "nullable": true
+          }
+        },
+        "required": [
+          "size"
+        ]
+      },
+      "storage.NetAppShareRevertToSnapshot": {
+        "type": "object",
+        "description": "A share",
+        "properties": {
+          "snapshotID": {
+            "type": "string",
+            "description": "Latest share snapshot",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "snapshotID"
+        ]
+      },
+      "storage.NetAppShareSnapshot": {
+        "type": "object",
+        "description": "A share snapshot",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Snapshot creation date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Snapshot description",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Snapshot ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Snapshot name",
+            "nullable": true
+          },
+          "path": {
+            "type": "string",
+            "description": "Snapshot path",
+            "nullable": true,
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppSnapshotStatusEnum"
+              }
+            ],
+            "description": "Snapshot status",
+            "nullable": true,
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppSnapshotTypeEnum"
+              }
+            ],
+            "description": "Snapshot type",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "storage.NetAppShareSnapshotPolicy": {
+        "type": "object",
+        "description": "A snapshot policy",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Snapshot policy ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppShareSnapshotPolicyStatusEnum"
+              }
+            ],
+            "description": "Association status between the share and the snapshot policy",
+            "readOnly": true
+          }
+        }
+      },
+      "storage.NetAppShareSnapshotPolicyStatusEnum": {
+        "type": "string",
+        "description": "Association status between the share and the snapshot policy",
+        "enum": [
+          "active",
+          "error",
+          "updating"
+        ]
+      },
+      "storage.NetAppShareSnapshotPolicyUpdate": {
+        "type": "object",
+        "description": "A snapshot policy",
+        "properties": {
+          "snapshotPolicyID": {
+            "type": "string",
+            "description": "Snapshot policy ID",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "snapshotPolicyID"
+        ]
+      },
+      "storage.NetAppShareSnapshotReserve": {
+        "type": "object",
+        "description": "Snapshot reserve properties",
+        "properties": {
+          "percent": {
+            "type": "integer",
+            "description": "Share space percentage reserved for snapshots",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppShareSnapshotReserveStatusEnum"
+              }
+            ],
+            "description": "Status",
+            "readOnly": true
+          }
+        }
+      },
+      "storage.NetAppShareSnapshotReserveStatusEnum": {
+        "type": "string",
+        "description": "Snapshot reserve properties status",
+        "enum": [
+          "active",
+          "error",
+          "updating"
+        ]
+      },
+      "storage.NetAppShareSnapshotReserveUpdate": {
+        "type": "object",
+        "description": "A snapshot policy",
+        "properties": {
+          "percent": {
+            "type": "integer",
+            "description": "Share space percentage reserved for snapshots"
+          }
+        },
+        "required": [
+          "percent"
+        ]
+      },
+      "storage.NetAppShareSnapshotUpdate": {
+        "type": "object",
+        "description": "Share snapshot updatable properties",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "New snapshot description",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "New snapshot name",
+            "nullable": true
+          }
+        }
+      },
+      "storage.NetAppShareStatusEnum": {
+        "type": "string",
+        "description": "Share status",
+        "enum": [
+          "available",
+          "creating",
+          "creating_from_snapshot",
+          "deleted",
+          "deleting",
+          "error",
+          "error_deleting",
+          "extending",
+          "extending_error",
+          "inactive",
+          "manage_error",
+          "manage_starting",
+          "migrating",
+          "migrating_to",
+          "replication_change",
+          "reverting",
+          "reverting_error",
+          "shrinking",
+          "shrinking_error",
+          "shrinking_possible_data_loss_error",
+          "unmanage_error",
+          "unmanage_starting",
+          "unmanaged"
+        ]
+      },
+      "storage.NetAppShareUpdate": {
+        "type": "object",
+        "description": "NetApp share updatable properties",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "New share description",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "New share name",
+            "nullable": true
+          }
+        }
+      },
+      "storage.NetAppSnapshotPolicy": {
+        "type": "object",
+        "description": "A snapshot policy",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Snapshot policy creation date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Snapshot policy description",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Snapshot policy ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Is this the default snapshot policy?",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Snapshot policy name",
+            "nullable": true
+          },
+          "rules": {
+            "type": "array",
+            "description": "Snapshot policy rules",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/storage.NetAppSnapshotPolicyRule"
+            }
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppSnapshotPolicyStatusEnum"
+              }
+            ],
+            "description": "Snapshot policy status",
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "required": [
+          "rules"
+        ]
+      },
+      "storage.NetAppSnapshotPolicyRule": {
+        "type": "object",
+        "description": "A snapshot policy rule",
+        "properties": {
+          "copies": {
+            "type": "integer",
+            "description": "Number of snapshot copies to keep",
+            "nullable": true
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Prefix to use for snapshots",
+            "nullable": true
+          },
+          "schedule": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/storage.NetAppSnapshotPolicySchedule"
+              }
+            ],
+            "description": "Snapshot policy schedule",
+            "nullable": true
+          }
+        },
+        "required": [
+          "copies",
+          "prefix",
+          "schedule"
+        ]
+      },
+      "storage.NetAppSnapshotPolicySchedule": {
+        "type": "object",
+        "description": "A snapshot policy schedule",
+        "properties": {
+          "days": {
+            "type": "array",
+            "description": "The days of the month the schedule runs (1 through 31). Empty for all.",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            }
+          },
+          "hours": {
+            "type": "array",
+            "description": "The hours of the day the schedule runs (0 through 23). Empty for all.",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            }
+          },
+          "minutes": {
+            "type": "array",
+            "description": "The minutes the schedule runs (0 through 59). Required to have at least one value.",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "months": {
+            "type": "array",
+            "description": "The months of the year the schedule runs (1 through 12). Empty for all.",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            }
+          },
+          "weekdays": {
+            "type": "array",
+            "description": "The days of the week the schedule runs (0 through 6, where 0 is Sunday and 6 is Saturday). Empty for all.",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "minutes"
+        ]
+      },
+      "storage.NetAppSnapshotPolicyStatusEnum": {
+        "type": "string",
+        "description": "Snapshot policy status",
+        "enum": [
+          "available",
+          "creating",
+          "deleting",
+          "error",
+          "updating"
+        ]
+      },
+      "storage.NetAppSnapshotPolicyUpdate": {
+        "type": "object",
+        "description": "Snapshot policy updatable properties",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "New snapshot policy description",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "New snapshot policy name",
+            "nullable": true
+          }
+        }
+      },
+      "storage.NetAppSnapshotStatusEnum": {
+        "type": "string",
+        "description": "Snapshot status",
+        "enum": [
+          "available",
+          "creating",
+          "deleting",
+          "error",
+          "error_deleting",
+          "manage_error",
+          "manage_starting",
+          "restoring",
+          "unmanage_error",
+          "unmanage_starting"
+        ]
+      },
+      "storage.NetAppSnapshotTypeEnum": {
+        "type": "string",
+        "description": "Snapshot type",
+        "enum": [
+          "automatic",
+          "manual",
+          "system"
+        ]
+      },
+      "storage.ProtocolEnum": {
+        "type": "string",
+        "description": "Storage protocol",
+        "enum": [
+          "NFS"
+        ]
+      },
+      "storage.RegionEnum": {
+        "type": "string",
+        "description": "Region of customer's service",
+        "enum": [
+          "ca-east-bhs",
+          "eu-west-gra",
+          "eu-west-lim",
+          "eu-west-rbx",
+          "eu-west-sbg"
+        ]
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
+            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/storage/netapp": {
+      "get": {
+        "summary": "List available services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/storage.NetAppServiceWithIAM"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "StorageNetAppServiceWithIAM"
+      }
+    },
+    "/storage/netapp/{serviceName}": {
+      "get": {
+        "summary": "Get service details",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppServiceWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppServiceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppService"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/changeContact": {
+      "post": {
+        "summary": "Launch a contact change procedure",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.changeContact"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:changeContact",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/confirmTermination": {
+      "post": {
+        "summary": "Confirm service termination",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.confirmTermination"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:confirmTermination",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/metricsToken": {
+      "get": {
+        "summary": "Get metrics token",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.MetricsToken"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:metricsToken/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/network": {
+      "get": {
+        "summary": "List networks",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "detail",
+            "description": "Get detailed information about each network",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/storage.NetAppNetwork"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:network/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "StorageNetAppNetwork"
+      }
+    },
+    "/storage/netapp/{serviceName}/network/{networkId}": {
+      "get": {
+        "summary": "Get network details",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppNetwork"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:network/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/storage/netapp/{serviceName}/serviceInfos": {
+      "get": {
+        "summary": "Get service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/services.Service"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:serviceInfos/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.Service"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:serviceInfos/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share": {
+      "get": {
+        "summary": "List available shares",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "detail",
+            "description": "Get detailed information about each share",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mountPointName",
+            "description": "If specified, returns only shares with given mount point name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/storage.NetAppShare"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "StorageNetAppShare"
+      },
+      "post": {
+        "summary": "Create a share",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppShare"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShare"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}": {
+      "delete": {
+        "summary": "Delete a share",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get share details",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShare"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update a share",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppShareUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShare"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/accessPath": {
+      "get": {
+        "summary": "List available access paths",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/storage.NetAppShareAccessPath"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/accessPath/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "StorageNetAppShareAccessPath"
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/accessPath/{accessPathId}": {
+      "get": {
+        "summary": "Get access path details",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accessPathId",
+            "description": "Access path ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShareAccessPath"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/accessPath/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/acl": {
+      "get": {
+        "summary": "List available ACLs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/storage.NetAppShareACLRule"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/acl/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "StorageNetAppShareACLRule"
+      },
+      "post": {
+        "summary": "Create an ACL",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppShareACLRule"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShareACLRule"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/acl/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/acl/{aclRuleId}": {
+      "delete": {
+        "summary": "Delete an ACL",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "aclRuleId",
+            "description": "Acl rule ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/acl/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get ACL details",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "aclRuleId",
+            "description": "Acl rule ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShareACLRule"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/acl/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/extend": {
+      "post": {
+        "summary": "Extend share size",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppShareExtendOrShrink"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/extend",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/revert": {
+      "post": {
+        "summary": "Revert a share to it's latest snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppShareRevertToSnapshot"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/revertToSnapshot",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/shrink": {
+      "post": {
+        "summary": "Shrink share size",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppShareExtendOrShrink"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/shrink",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/snapshot": {
+      "get": {
+        "summary": "List available snapshots",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "detail",
+            "description": "Get detailed information about each snapshot",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/storage.NetAppShareSnapshot"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/snapshot/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "StorageNetAppShareSnapshot"
+      },
+      "post": {
+        "summary": "Create a snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppShareSnapshot"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShareSnapshot"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/snapshot/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/snapshot/{snapshotId}": {
+      "delete": {
+        "summary": "Delete a snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "description": "Snapshot ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/snapshot/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get snapshot details",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "description": "Snapshot ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShareSnapshot"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/snapshot/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update a snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "description": "Snapshot ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppShareSnapshotUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShareSnapshot"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/snapshot/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/snapshot/{snapshotId}/hold": {
+      "post": {
+        "summary": "Hold an automatic share snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "description": "Snapshot ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShareSnapshot"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/snapshot/hold",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/snapshotPolicy": {
+      "get": {
+        "summary": "Get snapshot policy used by a share",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShareSnapshotPolicy"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/snapshotPolicy/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update snapshot policy used by a share",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppShareSnapshotPolicyUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/snapshotPolicy/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/share/{shareId}/snapshotReserve": {
+      "get": {
+        "summary": "Get snapshot reserve properties of a share",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppShareSnapshotReserve"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/snapshotReserve/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update snapshot reserve properties of a share",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shareId",
+            "description": "Share ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppShareSnapshotReserveUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:share/snapshotReserve/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/snapshotPolicy": {
+      "get": {
+        "summary": "Get a list of snapshot policies",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/storage.NetAppSnapshotPolicy"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:snapshotPolicy/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "StorageNetAppSnapshotPolicy"
+      },
+      "post": {
+        "summary": "Create a snapshot policy",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppSnapshotPolicy"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppSnapshotPolicy"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:snapshotPolicy/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/snapshotPolicy/{snapshotPolicyId}": {
+      "delete": {
+        "summary": "Delete a snapshot policy",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotPolicyId",
+            "description": "Snapshot policy ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:snapshotPolicy/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get snapshot policy details",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotPolicyId",
+            "description": "Snapshot policy ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/storage.NetAppSnapshotPolicy"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:snapshotPolicy/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update a snapshot policy",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotPolicyId",
+            "description": "Snapshot policy ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/storage.NetAppSnapshotPolicyUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:snapshotPolicy/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/storage/netapp/{serviceName}/terminate": {
+      "post": {
+        "summary": "Ask for the termination of your service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "storageNetApp:apiovh:terminate",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}

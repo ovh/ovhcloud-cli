@@ -63,12 +63,22 @@ func GetIAMPermissionsGroup(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/v2/iam/permissionsGroup", args[0], iamPermissionsGroupTemplate)
 }
 
+func EditIAMPermissionsGroup(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/v2/iam/permissionsGroup/%s", url.PathEscape(args[0]))
+	editor.EditResource(httpLib.Client, "/iam/permissionsGroup/{permissionsGroupURN}", url, iamOpenapiSchema)
+}
+
 func ListIAMResources(_ *cobra.Command, _ []string) {
 	common.ManageListRequestNoExpand("/v2/iam/resource", iamResourceColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetIAMResource(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/v2/iam/resource", args[0], iamResourceTemplate)
+}
+
+func EditIAMResource(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/v2/iam/resource/%s", url.PathEscape(args[0]))
+	editor.EditResource(httpLib.Client, "/iam/resource/{resourceURN}", url, iamOpenapiSchema)
 }
 
 func ListIAMResourceGroups(_ *cobra.Command, _ []string) {
@@ -84,4 +94,9 @@ func GetIAMResourceGroup(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputObject(object, args[0], iamResourceGroupTemplate, &flags.OutputFormatConfig)
+}
+
+func EditIAMResourceGroup(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/v2/iam/resourceGroup/%s", url.PathEscape(args[0]))
+	editor.EditResource(httpLib.Client, "/iam/resourceGroup/{groupId}", url, iamOpenapiSchema)
 }

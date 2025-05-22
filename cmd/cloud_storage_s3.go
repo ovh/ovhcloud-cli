@@ -26,5 +26,11 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	storageS3Cmd.AddCommand(&cobra.Command{
+		Use:   "edit <container_name>",
+		Short: "Edit the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+		Run:   cloud.EditStorageS3,
+	})
+
 	cloudCmd.AddCommand(storageS3Cmd)
 }

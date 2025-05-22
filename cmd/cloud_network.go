@@ -33,6 +33,12 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	privateNetworkCmd.AddCommand(&cobra.Command{
+		Use:   "edit <network_id>",
+		Short: "Edit the given private network",
+		Run:   cloud.EditCloudPrivateNetwork,
+	})
+
 	publicNetworkCmd := &cobra.Command{
 		Use:   "public",
 		Short: "Manage public networks in the given cloud project",
@@ -71,5 +77,11 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Short: "Get a specific gateway",
 		Run:   cloud.GetCloudGateway,
 		Args:  cobra.ExactArgs(1),
+	})
+
+	gatewayCmd.AddCommand(&cobra.Command{
+		Use:   "edit <gateway_id>",
+		Short: "Edit the given gateway",
+		Run:   cloud.EditCloudGateway,
 	})
 }

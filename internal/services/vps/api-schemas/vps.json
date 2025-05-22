@@ -1,0 +1,7563 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/1.0"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "complexType.SafeKeyValueCanBeNull_string": {
+        "type": "object",
+        "description": "complexType.SafeKeyValueCanBeNull_string",
+        "properties": {
+          "key": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "complexType.UnitAndValue_double": {
+        "type": "object",
+        "description": "complexType.UnitAndValue_double",
+        "properties": {
+          "unit": {
+            "type": "string",
+            "readOnly": true
+          },
+          "value": {
+            "type": "number",
+            "readOnly": true
+          }
+        }
+      },
+      "complexType.UnitAndValue_long": {
+        "type": "object",
+        "description": "complexType.UnitAndValue_long",
+        "properties": {
+          "unit": {
+            "type": "string",
+            "readOnly": true
+          },
+          "value": {
+            "type": "integer",
+            "readOnly": true
+          }
+        }
+      },
+      "complexType.UnitAndValues_vps.VpsTimestampValue": {
+        "type": "object",
+        "description": "complexType.UnitAndValues_vps.VpsTimestampValue",
+        "properties": {
+          "unit": {
+            "type": "string",
+            "readOnly": true
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/vps.VpsTimestampValue"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "coreTypes.CountryEnum": {
+        "type": "string",
+        "description": "ISO country codes",
+        "enum": [
+          "ac",
+          "ad",
+          "ae",
+          "af",
+          "ag",
+          "ai",
+          "al",
+          "am",
+          "an",
+          "ao",
+          "aq",
+          "ar",
+          "as",
+          "at",
+          "au",
+          "aw",
+          "ax",
+          "az",
+          "ba",
+          "bb",
+          "bd",
+          "be",
+          "bf",
+          "bg",
+          "bh",
+          "bi",
+          "bj",
+          "bl",
+          "bm",
+          "bn",
+          "bo",
+          "bq",
+          "br",
+          "bs",
+          "bt",
+          "bv",
+          "bw",
+          "by",
+          "bz",
+          "ca",
+          "cc",
+          "cd",
+          "cf",
+          "cg",
+          "ch",
+          "ci",
+          "ck",
+          "cl",
+          "cm",
+          "cn",
+          "co",
+          "cr",
+          "cs",
+          "cu",
+          "cv",
+          "cw",
+          "cx",
+          "cy",
+          "cz",
+          "de",
+          "dj",
+          "dk",
+          "dm",
+          "do",
+          "dz",
+          "ec",
+          "ee",
+          "eg",
+          "eh",
+          "er",
+          "es",
+          "et",
+          "fc",
+          "fd",
+          "fi",
+          "fj",
+          "fk",
+          "fm",
+          "fo",
+          "fr",
+          "fx",
+          "ga",
+          "gb",
+          "gd",
+          "ge",
+          "gf",
+          "gg",
+          "gh",
+          "gi",
+          "gl",
+          "gm",
+          "gn",
+          "gp",
+          "gq",
+          "gr",
+          "gs",
+          "gt",
+          "gu",
+          "gw",
+          "gy",
+          "hk",
+          "hm",
+          "hn",
+          "hr",
+          "ht",
+          "hu",
+          "id",
+          "ie",
+          "il",
+          "im",
+          "in",
+          "io",
+          "iq",
+          "ir",
+          "is",
+          "it",
+          "je",
+          "jm",
+          "jo",
+          "jp",
+          "ke",
+          "kg",
+          "kh",
+          "ki",
+          "km",
+          "kn",
+          "kp",
+          "kr",
+          "kw",
+          "ky",
+          "kz",
+          "la",
+          "lb",
+          "lc",
+          "li",
+          "lk",
+          "lr",
+          "ls",
+          "lt",
+          "lu",
+          "lv",
+          "ly",
+          "ma",
+          "mc",
+          "md",
+          "me",
+          "mf",
+          "mg",
+          "mh",
+          "mk",
+          "ml",
+          "mm",
+          "mn",
+          "mo",
+          "mp",
+          "mq",
+          "mr",
+          "ms",
+          "mt",
+          "mu",
+          "mv",
+          "mw",
+          "mx",
+          "my",
+          "mz",
+          "na",
+          "nc",
+          "ne",
+          "nf",
+          "ng",
+          "ni",
+          "nl",
+          "no",
+          "np",
+          "nr",
+          "nu",
+          "nz",
+          "om",
+          "pa",
+          "pe",
+          "pf",
+          "pg",
+          "ph",
+          "pk",
+          "pl",
+          "pm",
+          "pn",
+          "pr",
+          "ps",
+          "pt",
+          "pw",
+          "py",
+          "qa",
+          "qc",
+          "re",
+          "ro",
+          "rs",
+          "ru",
+          "rw",
+          "sa",
+          "sb",
+          "sc",
+          "sd",
+          "se",
+          "sg",
+          "sh",
+          "si",
+          "sj",
+          "sk",
+          "sl",
+          "sm",
+          "sn",
+          "so",
+          "sr",
+          "ss",
+          "st",
+          "sv",
+          "sx",
+          "sy",
+          "sz",
+          "tc",
+          "td",
+          "tf",
+          "tg",
+          "th",
+          "tj",
+          "tk",
+          "tl",
+          "tm",
+          "tn",
+          "to",
+          "tp",
+          "tr",
+          "tt",
+          "tv",
+          "tw",
+          "tz",
+          "ua",
+          "ug",
+          "uk",
+          "um",
+          "us",
+          "uy",
+          "uz",
+          "va",
+          "vc",
+          "ve",
+          "vg",
+          "vi",
+          "vn",
+          "vu",
+          "we",
+          "wf",
+          "ws",
+          "ye",
+          "yt",
+          "yu",
+          "za",
+          "zm",
+          "zw"
+        ]
+      },
+      "coreTypes.IpVersionEnum": {
+        "type": "string",
+        "description": "Ip versions",
+        "enum": [
+          "v4",
+          "v6"
+        ]
+      },
+      "dedicated.TaskFunctionEnum": {
+        "type": "string",
+        "description": "different task operation",
+        "enum": [
+          "INFRA_002_VirtualNetworkInterface",
+          "INFRA_002_VirtualNetworkInterface_group",
+          "INFRA_002_VirtualNetworkInterface_ungroup",
+          "INFRA_ONE_NETWORK_ONEAPI_VirtualNetworkInterface_group",
+          "INFRA_ONE_NETWORK_ONEAPI_VirtualNetworkInterface_ungroup",
+          "INFRA_ONE_NETWORK_VirtualNetworkInterface_group",
+          "INFRA_ONE_NETWORK_VirtualNetworkInterface_ungroup",
+          "addVirtualMac",
+          "addWindowSplaFromExistingSerial",
+          "applyBackupFtpAcls",
+          "applyBackupFtpQuota",
+          "bypassAntiDDosGame",
+          "changePasswordBackupFTP",
+          "changeRipeOrg",
+          "checkAndReleaseIp",
+          "createBackupFTP",
+          "createOrUpdateRipeOrg",
+          "createPrivateNetwork",
+          "disableFirewall",
+          "enableFirewall",
+          "genericMoveFloatingIp",
+          "hardReboot",
+          "hardware_update",
+          "ipmi/configureSGX",
+          "migrateBackupFTP",
+          "moveFloatingIp",
+          "moveVirtualMac",
+          "reagregateBlock",
+          "rebootPower8To",
+          "reinstallServer",
+          "releaseIp",
+          "removeBackupFTP",
+          "removeVirtualMac",
+          "requestAccessIPMI",
+          "resetIPMI",
+          "resetIPMISession",
+          "testIPMIhttp",
+          "testIPMIpassword",
+          "testIPMIping",
+          "virtualMacAdd",
+          "virtualMacDelete"
+        ]
+      },
+      "dedicated.TaskStatusEnum": {
+        "type": "string",
+        "description": "different task status",
+        "enum": [
+          "cancelled",
+          "customerError",
+          "doing",
+          "done",
+          "init",
+          "ovhError",
+          "todo"
+        ]
+      },
+      "dedicated.server.BackupFtpAcl": {
+        "type": "object",
+        "description": "Backup Ftp ACL for this server and Backup Ftp",
+        "properties": {
+          "cifs": {
+            "type": "boolean",
+            "description": "Whether to allow the CIFS (SMB) protocol for this ACL"
+          },
+          "ftp": {
+            "type": "boolean",
+            "description": "Whether to allow the FTP protocol for this ACL"
+          },
+          "ipBlock": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "The IP Block specific to this ACL",
+            "readOnly": true
+          },
+          "isApplied": {
+            "type": "boolean",
+            "description": "Whether the rule has been applied on the Backup Ftp",
+            "readOnly": true
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Date of the last object modification",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "nfs": {
+            "type": "boolean",
+            "description": "Whether to allow the NFS protocol for this ACL"
+          }
+        }
+      },
+      "dedicated.server.Task": {
+        "type": "object",
+        "description": "Server tasks",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "Details of this task",
+            "nullable": true,
+            "readOnly": true
+          },
+          "doneDate": {
+            "type": "string",
+            "description": "Completion date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "function": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dedicated.TaskFunctionEnum"
+              }
+            ],
+            "description": "Function name",
+            "readOnly": true
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "last update",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "needSchedule": {
+            "type": "boolean",
+            "description": "Whether this task need to be scheduled or not",
+            "readOnly": true
+          },
+          "note": {
+            "type": "string",
+            "description": "Extra information about this task",
+            "nullable": true,
+            "readOnly": true
+          },
+          "plannedInterventionId": {
+            "type": "integer",
+            "description": "ID of the planned intervention for this task",
+            "nullable": true,
+            "readOnly": true
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Task Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dedicated.TaskStatusEnum"
+              }
+            ],
+            "description": "Task status",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "array",
+            "description": "Task result tags output",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/complexType.SafeKeyValueCanBeNull_string"
+            },
+            "readOnly": true
+          },
+          "taskId": {
+            "type": "integer",
+            "description": "the id of the task",
+            "readOnly": true
+          },
+          "ticketReference": {
+            "type": "string",
+            "description": "Reference of the thread on the support tool",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "nichandle.CountryEnum": {
+        "type": "string",
+        "description": "Countries a nichandle can choose",
+        "enum": [
+          "AC",
+          "AD",
+          "AE",
+          "AF",
+          "AG",
+          "AI",
+          "AL",
+          "AM",
+          "AO",
+          "AQ",
+          "AR",
+          "AS",
+          "AT",
+          "AU",
+          "AW",
+          "AX",
+          "AZ",
+          "BA",
+          "BB",
+          "BD",
+          "BE",
+          "BF",
+          "BG",
+          "BH",
+          "BI",
+          "BJ",
+          "BL",
+          "BM",
+          "BN",
+          "BO",
+          "BQ",
+          "BR",
+          "BS",
+          "BT",
+          "BW",
+          "BY",
+          "BZ",
+          "CA",
+          "CC",
+          "CD",
+          "CF",
+          "CG",
+          "CH",
+          "CI",
+          "CK",
+          "CL",
+          "CM",
+          "CN",
+          "CO",
+          "CR",
+          "CU",
+          "CV",
+          "CW",
+          "CX",
+          "CY",
+          "CZ",
+          "DE",
+          "DG",
+          "DJ",
+          "DK",
+          "DM",
+          "DO",
+          "DZ",
+          "EA",
+          "EC",
+          "EE",
+          "EG",
+          "EH",
+          "ER",
+          "ES",
+          "ET",
+          "FI",
+          "FJ",
+          "FK",
+          "FM",
+          "FO",
+          "FR",
+          "GA",
+          "GB",
+          "GD",
+          "GE",
+          "GF",
+          "GG",
+          "GH",
+          "GI",
+          "GL",
+          "GM",
+          "GN",
+          "GP",
+          "GQ",
+          "GR",
+          "GS",
+          "GT",
+          "GU",
+          "GW",
+          "GY",
+          "HK",
+          "HN",
+          "HR",
+          "HT",
+          "HU",
+          "IC",
+          "ID",
+          "IE",
+          "IL",
+          "IM",
+          "IN",
+          "IO",
+          "IQ",
+          "IR",
+          "IS",
+          "IT",
+          "JE",
+          "JM",
+          "JO",
+          "JP",
+          "KE",
+          "KG",
+          "KH",
+          "KI",
+          "KM",
+          "KN",
+          "KP",
+          "KR",
+          "KW",
+          "KY",
+          "KZ",
+          "LA",
+          "LB",
+          "LC",
+          "LI",
+          "LK",
+          "LR",
+          "LS",
+          "LT",
+          "LU",
+          "LV",
+          "LY",
+          "MA",
+          "MC",
+          "MD",
+          "ME",
+          "MF",
+          "MG",
+          "MH",
+          "MK",
+          "ML",
+          "MM",
+          "MN",
+          "MO",
+          "MP",
+          "MQ",
+          "MR",
+          "MS",
+          "MT",
+          "MU",
+          "MV",
+          "MW",
+          "MX",
+          "MY",
+          "MZ",
+          "NA",
+          "NC",
+          "NE",
+          "NF",
+          "NG",
+          "NI",
+          "NL",
+          "NO",
+          "NP",
+          "NR",
+          "NU",
+          "NZ",
+          "OM",
+          "PA",
+          "PE",
+          "PF",
+          "PG",
+          "PH",
+          "PK",
+          "PL",
+          "PM",
+          "PN",
+          "PR",
+          "PS",
+          "PT",
+          "PW",
+          "PY",
+          "QA",
+          "RE",
+          "RO",
+          "RS",
+          "RU",
+          "RW",
+          "SA",
+          "SB",
+          "SC",
+          "SD",
+          "SE",
+          "SG",
+          "SH",
+          "SI",
+          "SJ",
+          "SK",
+          "SL",
+          "SM",
+          "SN",
+          "SO",
+          "SR",
+          "SS",
+          "ST",
+          "SV",
+          "SX",
+          "SY",
+          "SZ",
+          "TA",
+          "TC",
+          "TD",
+          "TF",
+          "TG",
+          "TH",
+          "TJ",
+          "TK",
+          "TL",
+          "TM",
+          "TN",
+          "TO",
+          "TR",
+          "TT",
+          "TV",
+          "TW",
+          "TZ",
+          "UA",
+          "UG",
+          "UM",
+          "UNKNOWN",
+          "US",
+          "UY",
+          "UZ",
+          "VA",
+          "VC",
+          "VE",
+          "VG",
+          "VI",
+          "VN",
+          "VU",
+          "WF",
+          "WS",
+          "XK",
+          "YE",
+          "YT",
+          "ZA",
+          "ZM",
+          "ZW"
+        ]
+      },
+      "nichandle.OvhSubsidiaryEnum": {
+        "type": "string",
+        "description": "OVH subsidiaries",
+        "enum": [
+          "CZ",
+          "DE",
+          "ES",
+          "EU",
+          "FI",
+          "FR",
+          "GB",
+          "IE",
+          "IT",
+          "LT",
+          "MA",
+          "NL",
+          "PL",
+          "PT",
+          "SN",
+          "TN"
+        ]
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "secondaryDns.SecondaryDNS": {
+        "type": "object",
+        "description": "Secondary dns infos",
+        "properties": {
+          "creationDate": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "dns": {
+            "type": "string",
+            "description": "secondary dns server",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "description": "domain on slave server",
+            "readOnly": true
+          },
+          "ipMaster": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "IPv4 address (e.g., 192.0.2.0)"
+          }
+        }
+      },
+      "secondaryDns.SecondaryDNSNameServer": {
+        "type": "object",
+        "description": "A structure describing informations about available nameserver for secondary dns ",
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "description": "the name server",
+            "readOnly": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "IPv4 address (e.g., 192.0.2.0)",
+            "readOnly": true
+          },
+          "ipv6": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv6"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "service.RenewType": {
+        "type": "object",
+        "description": "Map a possible renew for a specific service",
+        "properties": {
+          "automatic": {
+            "type": "boolean",
+            "description": "The service is automatically renewed"
+          },
+          "deleteAtExpiration": {
+            "type": "boolean",
+            "description": "The service will be deleted at expiration"
+          },
+          "forced": {
+            "type": "boolean",
+            "description": "The service forced to be renewed"
+          },
+          "manualPayment": {
+            "type": "boolean",
+            "description": "The service needs to be manually renewed and paid",
+            "nullable": true
+          },
+          "period": {
+            "type": "integer",
+            "description": "period of renew in month",
+            "nullable": true
+          }
+        }
+      },
+      "service.RenewalTypeEnum": {
+        "type": "string",
+        "description": "Detailed renewal type of a service",
+        "enum": [
+          "automaticForcedProduct",
+          "automaticV2012",
+          "automaticV2014",
+          "automaticV2016",
+          "manual",
+          "oneShot",
+          "option"
+        ]
+      },
+      "service.StateEnum": {
+        "type": "string",
+        "description": "service.StateEnum",
+        "enum": [
+          "autorenewInProgress",
+          "expired",
+          "inCreation",
+          "ok",
+          "pendingDebt",
+          "unPaid"
+        ]
+      },
+      "service.TerminationFutureUseEnum": {
+        "type": "string",
+        "description": "All future uses you can provide for a service termination",
+        "enum": [
+          "NOT_REPLACING_SERVICE",
+          "OTHER",
+          "SUBSCRIBE_AN_OTHER_SERVICE",
+          "SUBSCRIBE_OTHER_KIND_OF_SERVICE_WITH_COMPETITOR",
+          "SUBSCRIBE_SIMILAR_SERVICE_WITH_COMPETITOR"
+        ]
+      },
+      "service.TerminationReasonEnum": {
+        "type": "string",
+        "description": "All reasons you can provide for a service termination",
+        "enum": [
+          "FEATURES_DONT_SUIT_ME",
+          "LACK_OF_PERFORMANCES",
+          "MIGRATED_TO_ANOTHER_OVH_PRODUCT",
+          "MIGRATED_TO_COMPETITOR",
+          "NOT_ENOUGH_RECOGNITION",
+          "NOT_NEEDED_ANYMORE",
+          "NOT_RELIABLE",
+          "NO_ANSWER",
+          "OTHER",
+          "PRODUCT_DIMENSION_DONT_SUIT_ME",
+          "PRODUCT_TOOLS_DONT_SUIT_ME",
+          "TOO_EXPENSIVE",
+          "TOO_HARD_TO_USE",
+          "UNSATIFIED_BY_CUSTOMER_SUPPORT"
+        ]
+      },
+      "services.Service": {
+        "type": "object",
+        "description": "Details about a Service",
+        "properties": {
+          "canDeleteAtExpiration": {
+            "type": "boolean",
+            "description": "Indicates that the service can be set up to be deleted at expiration",
+            "readOnly": true
+          },
+          "contactAdmin": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactBilling": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactTech": {
+            "type": "string",
+            "readOnly": true
+          },
+          "creation": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "engagedUpTo": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "possibleRenewPeriod": {
+            "type": "array",
+            "description": "All the possible renew period of your service in month",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            },
+            "readOnly": true
+          },
+          "renew": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewType"
+              }
+            ],
+            "description": "Way of handling the renew",
+            "nullable": true
+          },
+          "renewalType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewalTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "serviceId": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.StateEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "services.changeContact": {
+        "type": "object",
+        "description": "Service change contact payload",
+        "properties": {
+          "contactAdmin": {
+            "type": "string",
+            "description": "The contact to set as admin contact"
+          },
+          "contactBilling": {
+            "type": "string",
+            "description": "The contact to set as billing contact"
+          },
+          "contactTech": {
+            "type": "string",
+            "description": "The contact to set as tech contact"
+          }
+        }
+      },
+      "services.confirmTermination": {
+        "type": "object",
+        "description": "Service confirm termination payload",
+        "properties": {
+          "commentary": {
+            "type": "string",
+            "description": "Commentary about your termination request"
+          },
+          "futureUse": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.TerminationFutureUseEnum"
+              }
+            ],
+            "description": "All future uses you can provide for a service termination"
+          },
+          "reason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.TerminationReasonEnum"
+              }
+            ],
+            "description": "All reasons you can provide for a service termination"
+          },
+          "token": {
+            "type": "string",
+            "description": "The termination token sent by email to the admin contact"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      },
+      "vps.AutomatedBackup": {
+        "type": "object",
+        "description": "Backup your VPS",
+        "properties": {
+          "schedule": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/time"
+              }
+            ],
+            "description": "Scheduled time of your daily backup",
+            "nullable": true,
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.BackupStateEnum"
+              }
+            ],
+            "description": "Backup state",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.BackupFtp": {
+        "type": "object",
+        "description": "Backup Ftp assigned to this VPS",
+        "properties": {
+          "ftpBackupName": {
+            "type": "string",
+            "description": "The backup FTP server name",
+            "readOnly": true
+          },
+          "quota": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/complexType.UnitAndValue_long"
+              }
+            ],
+            "description": "The disk space available on your backup FTP",
+            "nullable": true,
+            "readOnly": true
+          },
+          "readOnlyDate": {
+            "type": "string",
+            "description": "If not-null, gives the date since when your account was set in read-only mode because the quota was exceeded",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "The backup FTP type",
+            "readOnly": true
+          },
+          "usage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/complexType.UnitAndValue_long"
+              }
+            ],
+            "description": "The disk space currently used on your backup FTP",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "vps.BackupStateEnum": {
+        "type": "string",
+        "description": "Available AutomatedBackup states",
+        "enum": [
+          "disabled",
+          "enabled"
+        ]
+      },
+      "vps.Datacenter": {
+        "type": "object",
+        "description": "Information about a datacenter of a VPS Virtual Machine",
+        "properties": {
+          "country": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/coreTypes.CountryEnum"
+              }
+            ],
+            "description": "Datacenter ISO country code",
+            "readOnly": true
+          },
+          "longName": {
+            "type": "string",
+            "description": "Datacenter display name",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Datacenter name",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.Disk": {
+        "type": "object",
+        "description": "Information about a disk of a VPS Virtual Machine",
+        "properties": {
+          "bandwidthLimit": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "lowFreeSpaceThreshold": {
+            "type": "integer",
+            "description": "The low disk free space threshold in MiB",
+            "nullable": true
+          },
+          "monitoring": {
+            "type": "boolean",
+            "description": "The monitoring state of this disk",
+            "nullable": true
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Service name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "size": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.disk.StateEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.disk.TypeEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "vps.DownloadSnapshotURL": {
+        "type": "object",
+        "description": "URL to download the VPS snapshot",
+        "properties": {
+          "size": {
+            "type": "integer",
+            "description": "Snapshot size (bytes)",
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to download the snapshot",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.Image": {
+        "type": "object",
+        "description": "Installation image for a VPS",
+        "properties": {
+          "id": {
+            "type": "string",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.Ip": {
+        "type": "object",
+        "description": "Information about an IP address for a VPS Virtual Machine",
+        "properties": {
+          "gateway": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "geolocation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ip.GeolocationEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "ipAddress": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "The effective ip address of the Ip object",
+            "readOnly": true
+          },
+          "macAddress": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "reverse": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ip.TypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "version": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/coreTypes.IpVersionEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "vps.Model": {
+        "type": "object",
+        "description": "A structure describing characteristics of a VPS model",
+        "properties": {
+          "availableOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/vps.VpsOptionEnum"
+            }
+          },
+          "datacenter": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "disk": {
+            "type": "integer"
+          },
+          "maximumAdditionnalIp": {
+            "type": "integer"
+          },
+          "memory": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "offer": {
+            "type": "string"
+          },
+          "vcore": {
+            "type": "integer"
+          },
+          "version": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsVersionEnum"
+              }
+            ],
+            "description": "All versions that VPS can have"
+          }
+        }
+      },
+      "vps.Option": {
+        "type": "object",
+        "description": "Information about the options of a VPS Virtual Machine",
+        "properties": {
+          "option": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsOptionEnum"
+              }
+            ],
+            "description": "The option name",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsOptionStateEnum"
+              }
+            ],
+            "description": "The state of the option",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.RestoreStateEnum": {
+        "type": "string",
+        "description": "Available restore state",
+        "enum": [
+          "available",
+          "restored",
+          "restoring"
+        ]
+      },
+      "vps.RestoreTypeEnum": {
+        "type": "string",
+        "description": "Available restore types",
+        "enum": [
+          "file",
+          "full"
+        ]
+      },
+      "vps.Snapshot": {
+        "type": "object",
+        "description": "Information about the snapshot of a VPS Virtual Machine",
+        "properties": {
+          "creationDate": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "readOnly": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "vps.Software": {
+        "type": "object",
+        "description": "Available softwares on a Template",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.SoftwareStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.SoftwareTypeEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "vps.SoftwareStatusEnum": {
+        "type": "string",
+        "description": "Available Status for a vps Software",
+        "enum": [
+          "deprecated",
+          "stable",
+          "testing"
+        ]
+      },
+      "vps.SoftwareTypeEnum": {
+        "type": "string",
+        "description": "Available Type for a vps Software",
+        "enum": [
+          "database",
+          "environment",
+          "webserver"
+        ]
+      },
+      "vps.Task": {
+        "type": "object",
+        "description": "Operation on a VPS Virtual Machine",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "progress": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.TaskStateEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.TaskTypeEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "vps.TaskStateEnum": {
+        "type": "string",
+        "description": "All states a VPS task can be in",
+        "enum": [
+          "blocked",
+          "cancelled",
+          "doing",
+          "done",
+          "error",
+          "paused",
+          "todo",
+          "waitingAck"
+        ]
+      },
+      "vps.TaskTypeEnum": {
+        "type": "string",
+        "description": "All type a VPS task can be",
+        "enum": [
+          "addVeeamBackupJob",
+          "changeRootPassword",
+          "createSnapshot",
+          "deleteSnapshot",
+          "deliverVm",
+          "getConsoleUrl",
+          "internalTask",
+          "migrate",
+          "openConsoleAccess",
+          "provisioningAdditionalIp",
+          "reOpenVm",
+          "rebootVm",
+          "reinstallVm",
+          "removeVeeamBackup",
+          "rescheduleAutoBackup",
+          "restoreFullVeeamBackup",
+          "restoreVeeamBackup",
+          "restoreVm",
+          "revertSnapshot",
+          "setMonitoring",
+          "setNetboot",
+          "startVm",
+          "stopVm",
+          "upgradeVm"
+        ]
+      },
+      "vps.Template": {
+        "type": "object",
+        "description": "Installation template for a VPS Virtual Machine",
+        "properties": {
+          "availableLanguage": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "bitFormat": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.TemplateBitFormatEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "distribution": {
+            "type": "string",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "locale": {
+            "type": "string",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.TemplateBitFormatEnum": {
+        "type": "integer",
+        "description": "Bitness of a VPS template",
+        "enum": [
+          32,
+          64
+        ]
+      },
+      "vps.VPS": {
+        "type": "object",
+        "description": "VPS Virtual Machine",
+        "properties": {
+          "cluster": {
+            "type": "string",
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Set the name displayed in ManagerV6 for your VPS (max 50 chars)",
+            "nullable": true
+          },
+          "keymap": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsKeymapEnum"
+              }
+            ],
+            "description": "Set KVM keyboard layout on VPS Cloud. Reboot your VPS after change",
+            "nullable": true
+          },
+          "memoryLimit": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "model": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.Model"
+              }
+            ],
+            "readOnly": true
+          },
+          "monitoringIpBlocks": {
+            "type": "array",
+            "description": "Ip blocks for OVH monitoring servers",
+            "items": {
+              "$ref": "#/components/schemas/ipBlock"
+            },
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "netbootMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsNetbootEnum"
+              }
+            ],
+            "description": "All values a VPS netboot mode can be in"
+          },
+          "offerType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsOfferEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "slaMonitoring": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsStateEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "vcore": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "zone": {
+            "type": "string",
+            "readOnly": true
+          },
+          "zoneType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ZoneTypeEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "vps.VPSWithIAM": {
+        "type": "object",
+        "description": "VPS Virtual Machine",
+        "properties": {
+          "cluster": {
+            "type": "string",
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Set the name displayed in ManagerV6 for your VPS (max 50 chars)",
+            "nullable": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "keymap": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsKeymapEnum"
+              }
+            ],
+            "description": "Set KVM keyboard layout on VPS Cloud. Reboot your VPS after change",
+            "nullable": true
+          },
+          "memoryLimit": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "model": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.Model"
+              }
+            ],
+            "readOnly": true
+          },
+          "monitoringIpBlocks": {
+            "type": "array",
+            "description": "Ip blocks for OVH monitoring servers",
+            "items": {
+              "$ref": "#/components/schemas/ipBlock"
+            },
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "netbootMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsNetbootEnum"
+              }
+            ],
+            "description": "All values a VPS netboot mode can be in"
+          },
+          "offerType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsOfferEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "slaMonitoring": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VpsStateEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "vcore": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "zone": {
+            "type": "string",
+            "readOnly": true
+          },
+          "zoneType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ZoneTypeEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "vps.Veeam": {
+        "type": "object",
+        "description": "Informations about a VPS Veeam backups",
+        "properties": {
+          "backup": {
+            "type": "boolean",
+            "description": "Backup state",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.Vnc": {
+        "type": "object",
+        "description": "A VNC connection informations",
+        "properties": {
+          "host": {
+            "type": "string",
+            "readOnly": true
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "readOnly": true
+          },
+          "port": {
+            "type": "integer",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.VncProtocolEnum": {
+        "type": "string",
+        "description": "All supported VNC protocols by VPS",
+        "enum": [
+          "VNC",
+          "VNCOverWebSocket"
+        ]
+      },
+      "vps.VpsBillingVersion": {
+        "type": "object",
+        "description": "VPS billing version",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.VpsKeymapEnum": {
+        "type": "string",
+        "description": "All values keymap can be in",
+        "enum": [
+          "fr",
+          "us"
+        ]
+      },
+      "vps.VpsMonitoringPeriodEnum": {
+        "type": "string",
+        "description": "Available periods for the VPS monitoring",
+        "enum": [
+          "lastday",
+          "lastmonth",
+          "lastweek",
+          "lastyear",
+          "today"
+        ]
+      },
+      "vps.VpsMonitoringStatistics": {
+        "type": "object",
+        "description": "Statistics about resource usage",
+        "properties": {
+          "cpu": {
+            "type": "number",
+            "description": "Average CPU usage in percentage over the last 24 hours",
+            "readOnly": true
+          },
+          "disk": {
+            "type": "number",
+            "description": "Current disk usage in percentage",
+            "readOnly": true
+          },
+          "memory": {
+            "type": "number",
+            "description": "Average memory usage in percentage over the last 24 hours",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.VpsNetbootEnum": {
+        "type": "string",
+        "description": "All values a VPS netboot mode can be in",
+        "enum": [
+          "local",
+          "rescue"
+        ]
+      },
+      "vps.VpsOfferEnum": {
+        "type": "string",
+        "description": "All offers a VPS can have",
+        "enum": [
+          "beta-classic",
+          "classic",
+          "cloud",
+          "cloudram",
+          "game-classic",
+          "lowlat",
+          "ssd"
+        ]
+      },
+      "vps.VpsOptionEnum": {
+        "type": "string",
+        "description": "All options a VPS can have",
+        "enum": [
+          "additionalDisk",
+          "automatedBackup",
+          "cpanel",
+          "ftpbackup",
+          "plesk",
+          "snapshot",
+          "veeam",
+          "windows"
+        ]
+      },
+      "vps.VpsOptionStateEnum": {
+        "type": "string",
+        "description": "All states a VPS Option can be in",
+        "enum": [
+          "released",
+          "subscribed"
+        ]
+      },
+      "vps.VpsStateEnum": {
+        "type": "string",
+        "description": "All states a VPS can be in",
+        "enum": [
+          "backuping",
+          "installing",
+          "maintenance",
+          "rebooting",
+          "rescued",
+          "running",
+          "stopped",
+          "stopping",
+          "upgrading"
+        ]
+      },
+      "vps.VpsStatisticTypeEnum": {
+        "type": "string",
+        "description": "Available types for the VPS monitoring and use",
+        "enum": [
+          "cpu:iowait",
+          "cpu:max",
+          "cpu:nice",
+          "cpu:sys",
+          "cpu:used",
+          "cpu:user",
+          "mem:max",
+          "mem:used",
+          "net:rx",
+          "net:tx"
+        ]
+      },
+      "vps.VpsTimestampValue": {
+        "type": "object",
+        "description": "A timestamp associated to a value",
+        "properties": {
+          "timestamp": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "value": {
+            "type": "number",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "vps.VpsVersionEnum": {
+        "type": "string",
+        "description": "All versions that VPS can have",
+        "enum": [
+          "2013v1",
+          "2014v1",
+          "2015v1",
+          "2017v1",
+          "2017v2",
+          "2017v3",
+          "2018v1",
+          "2018v2",
+          "2019v1"
+        ]
+      },
+      "vps.ZoneTypeEnum": {
+        "type": "string",
+        "description": "Enum values for zone type",
+        "enum": [
+          "localzone",
+          "region"
+        ]
+      },
+      "vps.automatedBackup.Attached": {
+        "type": "object",
+        "description": "A backup attached to your VPS",
+        "properties": {
+          "access": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.automatedBackup.attached.Infos"
+              }
+            ],
+            "description": "A structure describing a backup's access informations",
+            "readOnly": true
+          },
+          "restorePoint": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.automatedBackup.attached.Infos": {
+        "type": "object",
+        "description": "A structure describing a backup's access informations",
+        "properties": {
+          "additionalDisk": {
+            "type": "string",
+            "description": "Additional Disk details",
+            "nullable": true,
+            "readOnly": true
+          },
+          "nfs": {
+            "type": "string",
+            "description": "NFS URL of the backup",
+            "nullable": true,
+            "readOnly": true
+          },
+          "smb": {
+            "type": "string",
+            "description": "SMB URL of the backup",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "vps.automatedBackup.detachBackup.post": {
+        "type": "object",
+        "description": "vps.automatedBackup.detachBackup.post",
+        "properties": {
+          "restorePoint": {
+            "type": "string",
+            "description": "restorePoint fetched in /vps/{serviceName}/automatedBackup/attachedBackup",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "restorePoint"
+        ]
+      },
+      "vps.automatedBackup.reschedule.post": {
+        "type": "object",
+        "description": "vps.automatedBackup.reschedule.post",
+        "properties": {
+          "schedule": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/time"
+              }
+            ],
+            "description": "Time (e.g., 15:04:05)"
+          }
+        },
+        "required": [
+          "schedule"
+        ]
+      },
+      "vps.automatedBackup.restore.post": {
+        "type": "object",
+        "description": "vps.automatedBackup.restore.post",
+        "properties": {
+          "changePassword": {
+            "type": "boolean",
+            "description": "Only with restore full on VPS Cloud 2014"
+          },
+          "restorePoint": {
+            "type": "string",
+            "description": "Restore Point fetched in /automatedBackup/restorePoints",
+            "format": "date-time"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.RestoreTypeEnum"
+              }
+            ],
+            "description": "Available restore types"
+          }
+        },
+        "required": [
+          "restorePoint",
+          "type"
+        ]
+      },
+      "vps.backupftp.access.post": {
+        "type": "object",
+        "description": "vps.backupftp.access.post",
+        "properties": {
+          "cifs": {
+            "type": "boolean",
+            "description": "Whether to allow the CIFS (SMB) protocol for this ACL"
+          },
+          "ftp": {
+            "type": "boolean",
+            "description": "Whether to allow the FTP protocol for this ACL"
+          },
+          "ipBlock": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "IP CIDR notation (e.g., 192.0.2.0/24)"
+          },
+          "nfs": {
+            "type": "boolean",
+            "description": "Whether to allow the NFS protocol for this ACL"
+          }
+        },
+        "required": [
+          "cifs",
+          "ipBlock",
+          "nfs"
+        ]
+      },
+      "vps.createSnapshot.post": {
+        "type": "object",
+        "description": "vps.createSnapshot.post",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "A textual description for your snapshot"
+          }
+        }
+      },
+      "vps.disk.StateEnum": {
+        "type": "string",
+        "description": "Possible states the disk can be in",
+        "enum": [
+          "connected",
+          "disconnected",
+          "pending"
+        ]
+      },
+      "vps.disk.StatisticTypeEnum": {
+        "type": "string",
+        "description": "Available types for the Disk monitoring and use",
+        "enum": [
+          "max",
+          "used"
+        ]
+      },
+      "vps.disk.TypeEnum": {
+        "type": "string",
+        "description": "Possible type a disk can be in",
+        "enum": [
+          "additional",
+          "primary"
+        ]
+      },
+      "vps.ip.GeolocationEnum": {
+        "type": "string",
+        "description": "Geolocation of the IP Address",
+        "enum": [
+          "au",
+          "be",
+          "ca",
+          "cz",
+          "de",
+          "es",
+          "fi",
+          "fr",
+          "gb",
+          "ie",
+          "in",
+          "it",
+          "lt",
+          "nl",
+          "pl",
+          "pt",
+          "sg",
+          "uk",
+          "us"
+        ]
+      },
+      "vps.ip.ServiceStatus": {
+        "type": "object",
+        "description": "Service states for an Ip",
+        "properties": {
+          "dns": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ip.ServiceStatusService"
+              }
+            ],
+            "description": "Port and state of a service on an IP",
+            "readOnly": true
+          },
+          "http": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ip.ServiceStatusService"
+              }
+            ],
+            "description": "Port and state of a service on an IP",
+            "readOnly": true
+          },
+          "https": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ip.ServiceStatusService"
+              }
+            ],
+            "description": "Port and state of a service on an IP",
+            "readOnly": true
+          },
+          "ping": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ip.ServiceStatusStateEnum"
+              }
+            ],
+            "description": "Possible states of a service (ping, port)",
+            "readOnly": true
+          },
+          "smtp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ip.ServiceStatusService"
+              }
+            ],
+            "description": "Port and state of a service on an IP",
+            "readOnly": true
+          },
+          "ssh": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ip.ServiceStatusService"
+              }
+            ],
+            "description": "Port and state of a service on an IP",
+            "readOnly": true
+          },
+          "tools": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ip.ServiceStatusStateEnum"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "vps.ip.ServiceStatusService": {
+        "type": "object",
+        "description": "Port and state of a service on an IP",
+        "properties": {
+          "port": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.ip.ServiceStatusStateEnum"
+              }
+            ],
+            "description": "Possible states of a service (ping, port)",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.ip.ServiceStatusStateEnum": {
+        "type": "string",
+        "description": "Possible states of a service (ping, port)",
+        "enum": [
+          "down",
+          "up"
+        ]
+      },
+      "vps.ip.TypeEnum": {
+        "type": "string",
+        "description": "Ip types on a VPS",
+        "enum": [
+          "additional",
+          "primary"
+        ]
+      },
+      "vps.migration.DatacenterEnum": {
+        "type": "string",
+        "description": "All datacenter of vps migration",
+        "enum": [
+          "BHS",
+          "DE",
+          "GRA",
+          "SBG",
+          "SGP",
+          "SYD",
+          "UK",
+          "WAW"
+        ]
+      },
+      "vps.migration.OptionMapping2016": {
+        "type": "object",
+        "description": "Mapping between a VPS 2016 option code and a VPS 2020 option code",
+        "properties": {
+          "currentPlan": {
+            "type": "string",
+            "description": "VPS option current plan code",
+            "readOnly": true
+          },
+          "newPlan": {
+            "type": "string",
+            "description": "New VPS option plan code after migration",
+            "readOnly": true
+          },
+          "options": {
+            "type": "array",
+            "description": "Mapping of VPS options of option from VPS 2016 to VPS 2020",
+            "items": {
+              "$ref": "#/components/schemas/vps.migration.OptionOptionMapping2016"
+            },
+            "readOnly": true
+          },
+          "product": {
+            "type": "string",
+            "description": "VPS option product",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.migration.OptionOptionMapping2016": {
+        "type": "object",
+        "description": "Mapping between a VPS 2016 option code and a VPS 2020 option code",
+        "properties": {
+          "currentPlan": {
+            "type": "string",
+            "description": "VPS option current plan code",
+            "readOnly": true
+          },
+          "newPlan": {
+            "type": "string",
+            "description": "New VPS option plan code after migration",
+            "readOnly": true
+          },
+          "product": {
+            "type": "string",
+            "description": "VPS option product",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.migration.StatusEnum": {
+        "type": "string",
+        "description": "All status a migration task can be in",
+        "enum": [
+          "available",
+          "notAvailable",
+          "ongoing",
+          "planned",
+          "toPlan"
+        ]
+      },
+      "vps.migration.VPS2016to2020": {
+        "type": "object",
+        "description": "A structure describing a migration from VPS 2016 to VPS 2020",
+        "properties": {
+          "currentPlan": {
+            "type": "string",
+            "description": "VPS current plan code",
+            "readOnly": true
+          },
+          "datacenter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.migration.DatacenterEnum"
+              }
+            ],
+            "description": "All datacenter of vps migration",
+            "readOnly": true
+          },
+          "date": {
+            "type": "string",
+            "description": "Migration start date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "newPlan": {
+            "type": "string",
+            "description": "New VPS plan code after migration",
+            "readOnly": true
+          },
+          "options": {
+            "type": "array",
+            "description": "Mapping of VPS options from VPS 2016 to VPS 2020",
+            "items": {
+              "$ref": "#/components/schemas/vps.migration.OptionMapping2016"
+            },
+            "readOnly": true
+          },
+          "product": {
+            "type": "string",
+            "description": "VPS product",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.migration.StatusEnum"
+              }
+            ],
+            "description": "All status a migration task can be in",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.migration.VPS2018to2020": {
+        "type": "object",
+        "description": "A structure describing a migration from VPS 2016/2018 to VPS 2020",
+        "properties": {
+          "datacenter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.migration.DatacenterEnum"
+              }
+            ],
+            "description": "All datacenter of vps migration",
+            "readOnly": true
+          },
+          "date": {
+            "type": "string",
+            "description": "Migration start date",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "plans": {
+            "type": "array",
+            "description": "List of available plans to migrate",
+            "items": {
+              "$ref": "#/components/schemas/vps.migration.VPS2018to2020Plan"
+            },
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.migration.StatusEnum"
+              }
+            ],
+            "description": "All status a migration task can be in",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.migration.VPS2018to2020Plan": {
+        "type": "object",
+        "description": "A structure describing a migration plan from VPS 2016/2018 to VPS 2020",
+        "properties": {
+          "currentPlan": {
+            "type": "string",
+            "description": "VPS current plan code",
+            "readOnly": true
+          },
+          "newPlan": {
+            "type": "string",
+            "description": "New VPS plan code after migration",
+            "readOnly": true
+          },
+          "options": {
+            "type": "array",
+            "description": "Mapping of VPS options from VPS 2016 to VPS 2020",
+            "items": {
+              "$ref": "#/components/schemas/vps.migration.OptionMapping2016"
+            },
+            "readOnly": true
+          },
+          "product": {
+            "type": "string",
+            "description": "VPS product",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.migration2018.post": {
+        "type": "object",
+        "description": "vps.migration2018.post",
+        "properties": {
+          "newPlan": {
+            "type": "string",
+            "description": "Choosen plan for migration"
+          }
+        },
+        "required": [
+          "newPlan"
+        ]
+      },
+      "vps.openConsoleAccess.post": {
+        "type": "object",
+        "description": "vps.openConsoleAccess.post",
+        "properties": {
+          "protocol": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.VncProtocolEnum"
+              }
+            ],
+            "description": "All supported VNC protocols by VPS"
+          }
+        }
+      },
+      "vps.order.rule.Datacenter": {
+        "type": "object",
+        "description": "Datacenter rules",
+        "properties": {
+          "datacenter": {
+            "type": "string",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.order.rule.DatacenterStatusEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "vps.order.rule.DatacenterStatusEnum": {
+        "type": "string",
+        "description": "Possible values for datacenter status",
+        "enum": [
+          "available",
+          "out-of-stock"
+        ]
+      },
+      "vps.order.rule.Datacenters": {
+        "type": "object",
+        "description": "Datacenters rules",
+        "properties": {
+          "datacenters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/vps.order.rule.Datacenter"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "vps.order.rule.OSChoice": {
+        "type": "object",
+        "description": "OS choice rules",
+        "properties": {
+          "name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.order.rule.OSChoiceStatusEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "vps.order.rule.OSChoiceStatusEnum": {
+        "type": "string",
+        "description": "Possible values for OS choice status",
+        "enum": [
+          "available",
+          "checked-by-default",
+          "unavailable"
+        ]
+      },
+      "vps.order.rule.OSChoices": {
+        "type": "object",
+        "description": "OS choices rules",
+        "properties": {
+          "choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/vps.order.rule.OSChoice"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "vps.rebuild.post": {
+        "type": "object",
+        "description": "vps.rebuild.post",
+        "properties": {
+          "doNotSendPassword": {
+            "type": "boolean",
+            "description": "If asked, the installation password will NOT be sent (only if sshKey defined)"
+          },
+          "imageId": {
+            "type": "string",
+            "description": "Id of the vps.Image fetched in /images list"
+          },
+          "installRTM": {
+            "type": "boolean",
+            "description": "If asked, RTM will be installed on your VPS"
+          },
+          "publicSshKey": {
+            "type": "string",
+            "description": "Public SSH key to pre-install on your VPS"
+          },
+          "sshKey": {
+            "type": "string",
+            "description": "SSH key name to pre-install on your VPS (name from /me/sshKey)"
+          }
+        },
+        "required": [
+          "imageId"
+        ]
+      },
+      "vps.reinstall.post": {
+        "type": "object",
+        "description": "vps.reinstall.post",
+        "properties": {
+          "doNotSendPassword": {
+            "type": "boolean",
+            "description": "If asked, the installation password will NOT be sent (only if sshKey defined)"
+          },
+          "language": {
+            "type": "string",
+            "description": "Distribution language. default : en"
+          },
+          "publicSshKey": {
+            "type": "string",
+            "description": "Public SSH key to pre-install on your VPS"
+          },
+          "softwareId": {
+            "type": "array",
+            "description": "Id of the vps.Software type fetched in /template/{id}/software",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "sshKey": {
+            "type": "array",
+            "description": "SSH key names to pre-install on your VPS (name from /me/sshKey)",
+            "items": {
+              "type": "string"
+            }
+          },
+          "templateId": {
+            "type": "integer",
+            "description": "Id of the vps.Template fetched in /templates list"
+          }
+        },
+        "required": [
+          "templateId"
+        ]
+      },
+      "vps.secondaryDnsDomains.post": {
+        "type": "object",
+        "description": "vps.secondaryDnsDomains.post",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "The domain to add"
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "IPv4 address (e.g., 192.0.2.0)"
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "vps.veeam.ExportTypeEnum": {
+        "type": "string",
+        "description": "A structure describing a Veeam backup's export options",
+        "enum": [
+          "nfs",
+          "smb"
+        ]
+      },
+      "vps.veeam.Infos": {
+        "type": "object",
+        "description": "A structure describing a Veeam backup's access informations",
+        "properties": {
+          "nfs": {
+            "type": "string",
+            "description": "NFS URL of the backup",
+            "readOnly": true
+          },
+          "smb": {
+            "type": "string",
+            "description": "SMB URL of the backup",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.veeam.RestorePoint": {
+        "type": "object",
+        "description": "Informations about a VPS Veeam restore points",
+        "properties": {
+          "creationTime": {
+            "type": "string",
+            "description": "The restore point's creation time",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "description": "The restore point's id",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.veeam.RestoredBackup": {
+        "type": "object",
+        "description": "Currently restored backup",
+        "properties": {
+          "accessInfos": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.veeam.Infos"
+              }
+            ],
+            "description": "Backup access informations",
+            "readOnly": true
+          },
+          "restorePointId": {
+            "type": "integer",
+            "description": "The restore point id",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.veeam.StateEnum"
+              }
+            ],
+            "description": "The restored backup state",
+            "readOnly": true
+          }
+        }
+      },
+      "vps.veeam.StateEnum": {
+        "type": "string",
+        "description": "A structure describing a Veeam restored backup's state",
+        "enum": [
+          "mounted",
+          "restoring",
+          "unmounted",
+          "unmounting"
+        ]
+      },
+      "vps.veeam.restorePoints.restore.post": {
+        "type": "object",
+        "description": "vps.veeam.restorePoints.restore.post",
+        "properties": {
+          "changePassword": {
+            "type": "boolean",
+            "description": "(Full only) Change the restored VPS root password when done"
+          },
+          "export": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vps.veeam.ExportTypeEnum"
+              }
+            ],
+            "description": "A structure describing a Veeam backup's export options"
+          },
+          "full": {
+            "type": "boolean",
+            "description": "Replace your current VPS by the restorePoint"
+          }
+        },
+        "required": [
+          "full"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
+            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/vps": {
+      "get": {
+        "summary": "List available services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VpsVPSWithIAM"
+      }
+    },
+    "/vps/datacenter": {
+      "get": {
+        "summary": "List all the datacenters for a specific country",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "country",
+            "description": "Country targeted",
+            "schema": {
+              "$ref": "#/components/schemas/nichandle.CountryEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ]
+      }
+    },
+    "/vps/order/rule/datacenter": {
+      "get": {
+        "summary": "List datacenters with priority and stock status",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "os",
+            "description": "VPS OS selection in order api",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ovhSubsidiary",
+            "description": "Subsidiary to sort datacenters",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/nichandle.OvhSubsidiaryEnum"
+            }
+          },
+          {
+            "in": "query",
+            "name": "planCode",
+            "description": "VPS plan code from order api",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.order.rule.Datacenters"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ]
+      }
+    },
+    "/vps/order/rule/osChoices": {
+      "get": {
+        "summary": "List OS choices with status",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "datacenter",
+            "description": "VPS datacenter",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "os",
+            "description": "VPS OS selection in order api",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.order.rule.OSChoices"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.VPSWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.VPS"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:put",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/abortSnapshot": {
+      "post": {
+        "summary": "Abort ongoing snapshot or autobackup",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:abortSnapshot",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/activeOptions": {
+      "get": {
+        "summary": "Return all active options for the virtual server",
+        "deprecated": true,
+        "x-deprecation-date": "2013-10-23T00:00:00Z",
+        "x-deletion-date": "2013-11-23T00:00:00Z",
+        "x-replacement-route": "/1.0/vps/{serviceName}/option",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vps.VpsOptionEnum"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:activeOptions/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/automatedBackup": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.AutomatedBackup"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:automatedBackup/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/automatedBackup/attachedBackup": {
+      "get": {
+        "summary": "Backup attached to your VPS",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vps.automatedBackup.Attached"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:automatedBackup/attachedBackup/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/automatedBackup/detachBackup": {
+      "post": {
+        "summary": "Create a VPS.Task that will umount a restored backup on your VPS",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.automatedBackup.detachBackup.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:automatedBackup/detachBackup",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/automatedBackup/reschedule": {
+      "post": {
+        "summary": "Change the scheduled time of your daily backup",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.automatedBackup.reschedule.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:automatedBackup/reschedule",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/automatedBackup/restore": {
+      "post": {
+        "summary": "Creates a VPS.Task that will restore the given restorePoint",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.automatedBackup.restore.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:automatedBackup/restore",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/automatedBackup/restorePoints": {
+      "get": {
+        "summary": "Get available Restore Points",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "description": "The state of the restore point",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/vps.RestoreStateEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:automatedBackup/restorePoints/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/availableUpgrade": {
+      "get": {
+        "summary": "Return all models the virtual server can be upgraded to",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vps.Model"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:availableUpgrade/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/backupftp": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.BackupFtp"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:backupftp/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/backupftp/access": {
+      "get": {
+        "summary": "List of IP blocks (and protocols to allow on these blocks) authorized on your backup FTP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipBlock"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:backupftp/access/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "DedicatedServerBackupFtpAcl"
+      },
+      "post": {
+        "summary": "Create a new Backup FTP ACL",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.backupftp.access.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dedicated.server.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:backupftp/access/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/backupftp/access/{ipBlock}": {
+      "delete": {
+        "summary": "Revoke this ACL",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipBlock",
+            "description": "Ip block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dedicated.server.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:backupftp/access/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipBlock",
+            "description": "Ip block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dedicated.server.BackupFtpAcl"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:backupftp/access/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipBlock",
+            "description": "Ip block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dedicated.server.BackupFtpAcl"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:backupftp/access/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/backupftp/authorizableBlocks": {
+      "get": {
+        "summary": "Get all IP blocks that can be used in the ACL",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipBlock"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:backupftp/authorizableBlocks/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/backupftp/password": {
+      "post": {
+        "summary": "Change your Backup FTP password",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dedicated.server.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:backupftp/password/set",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/changeContact": {
+      "post": {
+        "summary": "Launch a contact change procedure",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.changeContact"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:changeContact/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/confirmTermination": {
+      "post": {
+        "summary": "Confirm service termination",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.confirmTermination"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:confirmTermination",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/createSnapshot": {
+      "post": {
+        "summary": "Create a snapshot of the Virtual Server if the snapshot option is enabled and if there is no existing snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.createSnapshot.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:snapshot/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/datacenter": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Datacenter"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:datacenter/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/disks": {
+      "get": {
+        "summary": "Disks associated to this virtual server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:disks/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VpsDisk"
+      }
+    },
+    "/vps/{serviceName}/disks/{id}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Disk"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:disks/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.Disk"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:disks/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/disks/{id}/monitoring": {
+      "get": {
+        "summary": "Return many statistics about the disk for a given period",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "description": "The period the statistics are fetched for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/vps.VpsMonitoringPeriodEnum"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "description": "The type of statistic to be fetched",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/vps.disk.StatisticTypeEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/complexType.UnitAndValues_vps.VpsTimestampValue"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:disks/monitoring/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/disks/{id}/use": {
+      "get": {
+        "summary": "Return many statistics about the disk at that time",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "description": "The type of statistic to be fetched",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/vps.disk.StatisticTypeEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/complexType.UnitAndValue_double"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:disks/use/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/distribution": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Template"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:distribution/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/distribution/software": {
+      "get": {
+        "summary": "List available softwares for this template Id",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:distribution/software/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VpsSoftware"
+      }
+    },
+    "/vps/{serviceName}/distribution/software/{softwareId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "softwareId",
+            "description": "Software ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Software"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:distribution/software/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/getConsoleUrl": {
+      "post": {
+        "summary": "Return the VPS console URL",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:getConsoleUrl",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/images/available": {
+      "get": {
+        "summary": "Images available for this virtual server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:images/available/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VpsImage"
+      }
+    },
+    "/vps/{serviceName}/images/available/{id}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Image"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:images/available/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/images/current": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Image"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:images/current/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/ipCountryAvailable": {
+      "get": {
+        "summary": "Get the countries you can select for your IPs geolocation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vps.ip.GeolocationEnum"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:ipCountryAvailable/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/ips": {
+      "get": {
+        "summary": "Ips associated to this virtual server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ip"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:ips/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VpsIp"
+      }
+    },
+    "/vps/{serviceName}/ips/{ipAddress}": {
+      "delete": {
+        "summary": "Release a given Ip (Additional Ip)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipAddress",
+            "description": "Ip address",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ip"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:ips/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipAddress",
+            "description": "Ip address",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ip"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Ip"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:ips/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipAddress",
+            "description": "Ip address",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ip"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.Ip"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:ips/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/migration2016": {
+      "get": {
+        "summary": "Get information on a possible migration of a VPS 2016 to VPS 2020",
+        "deprecated": true,
+        "x-deprecation-date": "2022-04-01T00:00:00Z",
+        "x-deletion-date": "2022-05-01T00:00:00Z",
+        "x-replacement-route": "/1.0/vps/{serviceName}/migration2018",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.migration.VPS2016to2020"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:migration2016/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Schedule the migration of a VPS 2016 to VPS 2020",
+        "deprecated": true,
+        "x-deprecation-date": "2022-04-01T00:00:00Z",
+        "x-deletion-date": "2022-05-01T00:00:00Z",
+        "x-replacement-route": "/1.0/vps/{serviceName}/migration2018",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:migration2016/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/migration2018": {
+      "get": {
+        "summary": "Get information on a possible migration of a VPS 2016/2018 to VPS 2020",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.migration.VPS2018to2020"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:migration2018/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Schedule the migration of a VPS 2016/2018 to VPS 2020",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.migration2018.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:migration2018/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/models": {
+      "get": {
+        "summary": "Return all models for the range of the virtual server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vps.Model"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:models/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/monitoring": {
+      "get": {
+        "summary": "Return many statistics about the virtual machine for a given period",
+        "deprecated": true,
+        "x-deprecation-date": "2024-07-15T10:00:00Z",
+        "x-deletion-date": "2024-09-15T00:00:00Z",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "description": "The period the statistics are fetched for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/vps.VpsMonitoringPeriodEnum"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "description": "The type of statistic to be fetched",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/vps.VpsStatisticTypeEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/complexType.UnitAndValues_vps.VpsTimestampValue"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:monitoring/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/openConsoleAccess": {
+      "post": {
+        "summary": "Return the necessary informations to open a VNC connection to your VPS",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.openConsoleAccess.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Vnc"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:openConsoleAccess",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/option": {
+      "get": {
+        "summary": "List of VPS options",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vps.VpsOptionEnum"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:option/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VpsOption"
+      }
+    },
+    "/vps/{serviceName}/option/{option}": {
+      "delete": {
+        "summary": "Release a given option",
+        "deprecated": true,
+        "x-deprecation-date": "2023-12-22T00:00:00Z",
+        "x-deletion-date": "2024-06-01T00:00:00Z",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "deleteNow",
+            "description": "Delete option now, don't wait for expiration",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "option",
+            "description": "Option",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/vps.VpsOptionEnum"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:option/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "option",
+            "description": "Option",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/vps.VpsOptionEnum"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Option"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:option/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/reboot": {
+      "post": {
+        "summary": "Request a reboot of the machine",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:reboot",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/rebuild": {
+      "post": {
+        "summary": "Reinstall the virtual server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.rebuild.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:rebuild",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/reinstall": {
+      "post": {
+        "summary": "Reinstall the virtual server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.reinstall.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:reinstall",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/secondaryDnsDomains": {
+      "get": {
+        "summary": "List of secondary dns domain name",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:secondaryDnsDomains/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "SecondaryDnsSecondaryDNS"
+      },
+      "post": {
+        "summary": "add a domain on secondary dns",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.secondaryDnsDomains.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:secondaryDnsDomains/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/secondaryDnsDomains/{domain}": {
+      "delete": {
+        "summary": "remove this domain",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "description": "Domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:secondaryDnsDomains/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "description": "Domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/secondaryDns.SecondaryDNS"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:secondaryDnsDomains/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "description": "Domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/secondaryDns.SecondaryDNS"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:secondaryDnsDomains/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/secondaryDnsDomains/{domain}/dnsServer": {
+      "get": {
+        "summary": "domain name server informations",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "domain",
+            "description": "Domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/secondaryDns.SecondaryDNSNameServer"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:secondaryDnsDomains/dnsServer/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/secondaryDnsNameServerAvailable": {
+      "get": {
+        "summary": "Secondary nameServer available for your Server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/secondaryDns.SecondaryDNSNameServer"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:secondaryDnsNameServerAvailable/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/serviceInfos": {
+      "get": {
+        "summary": "Get service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/services.Service"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:serviceInfos/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.Service"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:serviceInfos/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/setPassword": {
+      "post": {
+        "summary": "Start the process in order to set the root password of the virtual machine",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:setPassword",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/snapshot": {
+      "delete": {
+        "summary": "Creates a vps.Task that will delete the Snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:snapshot/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Snapshot"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:snapshot/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.Snapshot"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:snapshot/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/snapshot/download": {
+      "get": {
+        "summary": "Download the snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.DownloadSnapshotURL"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:snapshot/download/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/snapshot/revert": {
+      "post": {
+        "summary": "Revert the Virtual Server to this snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:snapshot/revert",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/start": {
+      "post": {
+        "summary": "Request the machine to start",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:start",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/statistics": {
+      "get": {
+        "summary": "Return monitoring statistics about the virtual machine",
+        "deprecated": true,
+        "x-deprecation-date": "2023-11-07T00:00:00Z",
+        "x-deletion-date": "2024-01-07T00:00:00Z",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.VpsMonitoringStatistics"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:statistics/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/status": {
+      "get": {
+        "summary": "Give the status of the services of the main IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.ip.ServiceStatus"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:status/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/stop": {
+      "post": {
+        "summary": "Request the machine to stop",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:stop",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/tasks": {
+      "get": {
+        "summary": "Tasks associated to this virtual server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "description": "Filter the value of state property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/vps.TaskStateEnum"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "description": "Filter the value of type property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/vps.TaskTypeEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:tasks/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VpsTask"
+      }
+    },
+    "/vps/{serviceName}/tasks/{id}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:tasks/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/templates": {
+      "get": {
+        "summary": "Templates available for this virtual server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:templates/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VpsTemplate"
+      }
+    },
+    "/vps/{serviceName}/templates/{id}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Template"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:templates/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/templates/{id}/software": {
+      "get": {
+        "summary": "List available softwares for this template Id",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:templates/software/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VpsSoftware"
+      }
+    },
+    "/vps/{serviceName}/templates/{id}/software/{softwareId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "softwareId",
+            "description": "Software ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Software"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:templates/software/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/terminate": {
+      "post": {
+        "summary": "Ask for the termination of your service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:terminate",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/use": {
+      "get": {
+        "summary": "Return many statistics about the virtual machine at that time",
+        "deprecated": true,
+        "x-deprecation-date": "2023-07-31T00:00:00Z",
+        "x-deletion-date": "2023-10-01T00:00:00Z",
+        "x-replacement-route": "/1.0/vps/{serviceName}/monitoring",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "description": "The type of statistic to be fetched",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/vps.VpsStatisticTypeEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/complexType.UnitAndValue_double"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:use/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/veeam": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Veeam"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:veeam/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/veeam/restorePoints": {
+      "get": {
+        "summary": "Veeam restore points for the VPS",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "creationTime",
+            "description": "Filter the value of creationTime property (like)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:veeam/restorePoints/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VpsVeeamRestorePoint"
+      }
+    },
+    "/vps/{serviceName}/veeam/restorePoints/{id}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.veeam.RestorePoint"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:veeam/restorePoints/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/veeam/restorePoints/{id}/restore": {
+      "post": {
+        "summary": "Creates a VPS.Task that will restore the given restorePoint",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vps.veeam.restorePoints.restore.post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:veeam/restorePoints/restore",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/veeam/restoredBackup": {
+      "delete": {
+        "summary": "Creates a VPS.Task that will unmount the backup",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:veeam/restoredBackup/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.veeam.RestoredBackup"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:veeam/restoredBackup/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vps/{serviceName}/version": {
+      "get": {
+        "summary": "Get the VPS billing version",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vps.VpsBillingVersion"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vps:apiovh:version/get",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}

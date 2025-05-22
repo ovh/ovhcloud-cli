@@ -29,5 +29,12 @@ func init() {
 		Run:   iploadbalancing.GetIpLoadbalancing,
 	})
 
+	// Command to update a single IpLoadbalancing
+	iploadbalancingCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given IpLoadbalancing",
+		Run:   iploadbalancing.EditIpLoadbalancing,
+	})
+
 	rootCmd.AddCommand(iploadbalancingCmd)
 }

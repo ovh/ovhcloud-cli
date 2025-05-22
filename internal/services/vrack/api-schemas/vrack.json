@@ -1,0 +1,5578 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/1.0"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "complexType.UnitAndValue_double": {
+        "type": "object",
+        "description": "A numeric value tagged with its unit",
+        "properties": {
+          "unit": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      },
+      "dedicated.server.MrtgPeriodEnum": {
+        "type": "string",
+        "description": "distincts MRTG period",
+        "enum": [
+          "daily",
+          "hourly",
+          "monthly",
+          "weekly",
+          "yearly"
+        ]
+      },
+      "dedicated.server.MrtgTimestampValue": {
+        "type": "object",
+        "description": "A timestamp associated to a value",
+        "properties": {
+          "timestamp": {
+            "type": "integer"
+          },
+          "value": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/complexType.UnitAndValue_double"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "dedicated.server.MrtgTypeEnum": {
+        "type": "string",
+        "description": "distincts MRTG type",
+        "enum": [
+          "errors:download",
+          "errors:upload",
+          "packets:download",
+          "packets:upload",
+          "traffic:download",
+          "traffic:upload"
+        ]
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "service.StateEnum": {
+        "type": "string",
+        "enum": [
+          "autorenewInProgress",
+          "expired",
+          "inCreation",
+          "ok",
+          "pendingDebt",
+          "unPaid"
+        ]
+      },
+      "service.TerminationFutureUseEnum": {
+        "type": "string",
+        "description": "All future uses you can provide for a service termination",
+        "enum": [
+          "NOT_REPLACING_SERVICE",
+          "OTHER",
+          "SUBSCRIBE_AN_OTHER_SERVICE",
+          "SUBSCRIBE_OTHER_KIND_OF_SERVICE_WITH_COMPETITOR",
+          "SUBSCRIBE_SIMILAR_SERVICE_WITH_COMPETITOR"
+        ]
+      },
+      "service.TerminationReasonEnum": {
+        "type": "string",
+        "description": "All reasons you can provide for a service termination",
+        "enum": [
+          "FEATURES_DONT_SUIT_ME",
+          "LACK_OF_PERFORMANCES",
+          "MIGRATED_TO_ANOTHER_OVH_PRODUCT",
+          "MIGRATED_TO_COMPETITOR",
+          "NOT_ENOUGH_RECOGNITION",
+          "NOT_NEEDED_ANYMORE",
+          "NOT_RELIABLE",
+          "NO_ANSWER",
+          "OTHER",
+          "PRODUCT_DIMENSION_DONT_SUIT_ME",
+          "PRODUCT_TOOLS_DONT_SUIT_ME",
+          "TOO_EXPENSIVE",
+          "TOO_HARD_TO_USE",
+          "UNSATIFIED_BY_CUSTOMER_SUPPORT"
+        ]
+      },
+      "services.NonExpiringService": {
+        "type": "object",
+        "description": "Details about a non-expiring Service",
+        "properties": {
+          "contactAdmin": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactBilling": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactTech": {
+            "type": "string",
+            "readOnly": true
+          },
+          "creation": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "serviceId": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.StateEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      },
+      "vrack.AllowedDedicatedServerInterfaces": {
+        "type": "object",
+        "description": "A structure giving all dedicated server interfaces allowed for this vrack",
+        "properties": {
+          "dedicatedServer": {
+            "type": "string",
+            "description": "the name of dedicatedServer"
+          },
+          "dedicatedServerInterface": {
+            "type": "string",
+            "description": "the unique identifier of dedicatedServerInterface"
+          },
+          "name": {
+            "type": "string",
+            "description": "the name of dedicatedServerInterface"
+          }
+        }
+      },
+      "vrack.AllowedServiceEnum": {
+        "type": "string",
+        "description": "Possible values for vrack allowed service",
+        "enum": [
+          "cloudProject",
+          "dedicatedCloud",
+          "dedicatedCloudDatacenter",
+          "dedicatedConnect",
+          "dedicatedServer",
+          "dedicatedServerInterface",
+          "ip",
+          "ipLoadbalancing",
+          "ipv6",
+          "legacyVrack",
+          "ovhCloudConnect",
+          "vmwareCloudDirectorVirtualDataCenter",
+          "vrackServices"
+        ]
+      },
+      "vrack.AllowedServices": {
+        "type": "object",
+        "description": "A structure given all service allowed for this vrack",
+        "properties": {
+          "cloudProject": {
+            "type": "array",
+            "description": "list of publicCloud projects allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "dedicatedCloud": {
+            "type": "array",
+            "description": "list of dedicated cloud allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "dedicatedCloudDatacenter": {
+            "type": "array",
+            "description": "list of dedicated cloud datacenters allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "dedicatedConnect": {
+            "type": "array",
+            "description": "list of dedicated connect links allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "dedicatedServer": {
+            "type": "array",
+            "description": "list of dedicated servers allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "dedicatedServerInterface": {
+            "type": "array",
+            "description": "list of dedicated server interfaces allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/vrack.AllowedDedicatedServerInterfaces"
+            }
+          },
+          "ip": {
+            "type": "array",
+            "description": "list of blocks allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          "ipLoadbalancing": {
+            "type": "array",
+            "description": "list of ipLoadbalancing allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "ipv6": {
+            "type": "array",
+            "description": "list of ipv6 blocks allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          "legacyVrack": {
+            "type": "array",
+            "description": "list of legacy vrack (1.0) allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "ovhCloudConnect": {
+            "type": "array",
+            "description": "List of the ovhCloudConnect services allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "vmwareCloudDirectorVirtualDataCenter": {
+            "type": "array",
+            "description": "List of the vmwareCloudDirectorVirtualDataCenter allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "vrackServices": {
+            "type": "array",
+            "description": "List of the vrackServices allowed to be connected to vrack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "vrack.EligibleDedicatedServerInterfaces": {
+        "type": "object",
+        "description": "Dedicated server interfaces allowed for this vRack",
+        "properties": {
+          "dedicatedServer": {
+            "type": "string",
+            "description": "The name of the dedicatedServer",
+            "readOnly": true
+          },
+          "dedicatedServerInterface": {
+            "type": "string",
+            "description": "The unique identifier of the dedicatedServerInterface",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the dedicatedServerInterface",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.EligibleServices": {
+        "type": "object",
+        "description": "Eligible services for this vRack",
+        "properties": {
+          "cloudProject": {
+            "type": "array",
+            "description": "List of publicCloud projects allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "dedicatedCloud": {
+            "type": "array",
+            "description": "List of dedicated cloud allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "dedicatedCloudDatacenter": {
+            "type": "array",
+            "description": "List of dedicated cloud datacenters allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "dedicatedConnect": {
+            "type": "array",
+            "description": "List of dedicated connect links allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "dedicatedServer": {
+            "type": "array",
+            "description": "List of dedicated servers allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "dedicatedServerInterface": {
+            "type": "array",
+            "description": "List of dedicated server interfaces allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/vrack.EligibleDedicatedServerInterfaces"
+            },
+            "readOnly": true
+          },
+          "ip": {
+            "type": "array",
+            "description": "List of blocks allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ipBlock"
+            },
+            "readOnly": true
+          },
+          "ipLoadbalancing": {
+            "type": "array",
+            "description": "List of ipLoadbalancing allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "ipv6": {
+            "type": "array",
+            "description": "List of ipv6 blocks allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ipv6Block"
+            },
+            "readOnly": true
+          },
+          "legacyVrack": {
+            "type": "array",
+            "description": "List of legacy vRack (1.0) allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "ovhCloudConnect": {
+            "type": "array",
+            "description": "List of the ovhCloudConnect services allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "readOnly": true
+          },
+          "vmwareCloudDirectorVirtualDataCenter": {
+            "type": "array",
+            "description": "List of the VMwareCloudDirectorVirtualDatacenter allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "vrackServices": {
+            "type": "array",
+            "description": "List of the vrackServices allowed to be connected to this vRack",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.EligibleServicesResponse": {
+        "type": "object",
+        "description": "Eligible services call response",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the call",
+            "readOnly": true
+          },
+          "errors": {
+            "type": "array",
+            "description": "List of services where an error has been encountered",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "result": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrack.EligibleServices"
+              }
+            ],
+            "description": "Eligible services for this vRack",
+            "readOnly": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the call",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.SlaacEnum": {
+        "type": "string",
+        "description": "Possible values for slaac",
+        "enum": [
+          "disabled",
+          "enabled"
+        ]
+      },
+      "vrack.Task": {
+        "type": "object",
+        "description": "vrack tasks",
+        "properties": {
+          "function": {
+            "type": "string",
+            "readOnly": true
+          },
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "lastUpdate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "orderId": {
+            "type": "integer",
+            "nullable": true,
+            "readOnly": true
+          },
+          "serviceName": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrack.TaskStatusEnum"
+              }
+            ],
+            "description": "Task status",
+            "readOnly": true
+          },
+          "targetDomain": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "todoDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.TaskStatusEnum": {
+        "type": "string",
+        "description": "All states a vRack Task can be in",
+        "enum": [
+          "cancelled",
+          "doing",
+          "done",
+          "init",
+          "todo"
+        ]
+      },
+      "vrack.VrackZoneEnum": {
+        "type": "string",
+        "description": "Possible values for vrack zone",
+        "enum": [
+          "bhs",
+          "cch",
+          "fra1",
+          "gra",
+          "lon1",
+          "pdx1",
+          "rbx",
+          "sbg",
+          "sgp1",
+          "syd1",
+          "syd2",
+          "was1",
+          "waw",
+          "yyz"
+        ]
+      },
+      "vrack.bridgedSubrange": {
+        "type": "object",
+        "description": "Bridged subrange within your IP v6 block",
+        "properties": {
+          "bridgedSubrange": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv6Block"
+              }
+            ],
+            "description": "subrange bridged into your vrack",
+            "readOnly": true
+          },
+          "gateway": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv6"
+              }
+            ],
+            "description": "Your gateway",
+            "readOnly": true
+          },
+          "slaac": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrack.SlaacEnum"
+              }
+            ],
+            "description": "Slaac status"
+          }
+        }
+      },
+      "vrack.cloudProject": {
+        "type": "object",
+        "description": "PublicCloud project in vrack",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "publicCloud project",
+            "readOnly": true
+          },
+          "vrack": {
+            "type": "string",
+            "description": "vrack name",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.dedicatedCloud": {
+        "type": "object",
+        "description": "VMware on OVHcloud vRack link",
+        "properties": {
+          "dedicatedCloud": {
+            "type": "string",
+            "description": "your dedicated cloud service",
+            "readOnly": true
+          },
+          "vlanId": {
+            "type": "integer",
+            "description": "Dedicated cloud vlanId used",
+            "nullable": true,
+            "readOnly": true
+          },
+          "vrack": {
+            "type": "string",
+            "description": "vrack name",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.dedicatedConnect": {
+        "type": "object",
+        "description": "vrack dedicated connect interface",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "A name for your dedicatedConnect link"
+          }
+        }
+      },
+      "vrack.dedicatedServer": {
+        "type": "object",
+        "description": "vrack dedicated server interfaces (LEGACY)",
+        "properties": {
+          "dedicatedServer": {
+            "type": "string",
+            "description": "Dedicated Server",
+            "readOnly": true
+          },
+          "vrack": {
+            "type": "string",
+            "description": "vrack name",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.dedicatedServerInterface": {
+        "type": "object",
+        "description": "vrack dedicated server interfaces",
+        "properties": {
+          "dedicatedServerInterface": {
+            "type": "string",
+            "description": "Dedicated Server Interface",
+            "readOnly": true
+          },
+          "vrack": {
+            "type": "string",
+            "description": "vrack name",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.ip": {
+        "type": "object",
+        "description": "IP block in vrack",
+        "properties": {
+          "gateway": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "Your gateway",
+            "nullable": true,
+            "readOnly": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "Your IP block",
+            "readOnly": true
+          },
+          "region": {
+            "type": "string",
+            "description": "Where you want your block announced on the network",
+            "nullable": true,
+            "readOnly": true
+          },
+          "zone": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrack.VrackZoneEnum"
+              }
+            ],
+            "description": "Where you want your block announced on the network",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.iplb": {
+        "type": "object",
+        "description": "ipLoadbalancing in vrack",
+        "properties": {
+          "ipLoadbalancing": {
+            "type": "string",
+            "description": "Your ipLoadbalancing",
+            "readOnly": true
+          },
+          "vrack": {
+            "type": "string",
+            "description": "vrack name",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.ipv6": {
+        "type": "object",
+        "description": "IP v6 block in vrack",
+        "properties": {
+          "ipv6": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv6Block"
+              }
+            ],
+            "description": "Your IP v6 block",
+            "readOnly": true
+          },
+          "region": {
+            "type": "string",
+            "description": "Where you want your block announced on the network",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.legacyVrack": {
+        "type": "object",
+        "description": "interface between legacy vrack (vrackXXXX) and vrack (pn-XXXX)",
+        "properties": {
+          "legacyVrack": {
+            "type": "string",
+            "description": "your legacy vrack service",
+            "readOnly": true
+          },
+          "vlanId": {
+            "type": "integer",
+            "description": "vlan to set on legacy vrack equipments",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.ovhCloudConnect": {
+        "type": "object",
+        "description": "ovhCloudConnect in vrack",
+        "properties": {
+          "ovhCloudConnect": {
+            "type": "string",
+            "description": "ovhCloudConnect service name",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "vrack": {
+            "type": "string",
+            "description": "vrack name",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.pccDatacenter": {
+        "type": "object",
+        "description": "vrack datacenter interface",
+        "properties": {
+          "datacenter": {
+            "type": "string",
+            "description": "Your dedicatedCloud datacenter name",
+            "readOnly": true
+          },
+          "dedicatedCloud": {
+            "type": "string",
+            "description": "Your dedicatedCloud name",
+            "readOnly": true
+          },
+          "vrack": {
+            "type": "string",
+            "description": "vrack name",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.publicRoutingOption": {
+        "type": "object",
+        "description": "A structure describing the public routing option",
+        "properties": {
+          "bandwidth": {
+            "type": "integer",
+            "description": "Global bandwidth for blocks in your vrack (in Mbps)",
+            "nullable": true
+          }
+        }
+      },
+      "vrack.routedSubrange": {
+        "type": "object",
+        "description": "Routed subranges within your IP v6 block",
+        "properties": {
+          "nexthop": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv6"
+              }
+            ],
+            "description": "nexthop used as a gateway for your routed subrange",
+            "readOnly": true
+          },
+          "routedSubrange": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv6Block"
+              }
+            ],
+            "description": "subrange routed into your vrack",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.vmwareCloudDirectorVirtualDataCenter": {
+        "type": "object",
+        "description": "vmwareCloudDirector virtualDataCenter in vrack",
+        "properties": {
+          "vmwareCloudDirectorVirtualDataCenter": {
+            "type": "string",
+            "description": "vmwareCloudDirectorVirtualDataCenter service name",
+            "readOnly": true
+          },
+          "vrack": {
+            "type": "string",
+            "description": "vrack name",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.vrack": {
+        "type": "object",
+        "description": "vrack",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the vRack"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the vRack"
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Service name of your vRack on OVHcloud",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.vrackServices": {
+        "type": "object",
+        "description": "vrackServices in vrack",
+        "properties": {
+          "vrack": {
+            "type": "string",
+            "description": "vrack name",
+            "readOnly": true
+          },
+          "vrackServices": {
+            "type": "string",
+            "description": "vrackServices service name",
+            "readOnly": true
+          }
+        }
+      },
+      "vrack.vrackWithIAM": {
+        "type": "object",
+        "description": "vrack",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the vRack"
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the vRack"
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Service name of your vRack on OVHcloud",
+            "readOnly": true
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
+            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/vrack": {
+      "get": {
+        "summary": "List available services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackVrackWithIAM"
+      }
+    },
+    "/vrack/{serviceName}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.vrackWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vrack.vrack"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:put",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/allowedServices": {
+      "get": {
+        "summary": "List all services allowed in this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "serviceFamily",
+            "description": "Filter on a specific service family",
+            "schema": {
+              "$ref": "#/components/schemas/vrack.AllowedServiceEnum"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.AllowedServices"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:allowedServices/get",
+            "required": true
+          },
+          {
+            "name": "publicCloudProject:apiovh:vrack/attach",
+            "description": "Needed on the Cloud Project services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "legacyVrack:apiovh:vrack/attach",
+            "description": "Needed on the legacy vRack services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "ipLoadbalancing:apiovh:vrack/attach",
+            "description": "Needed on the IP Load Balancer services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "ovhCloudConnect:apiovh:vrack/attach",
+            "description": "Needed on the OVH Cloud Connect services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "dedicatedServer:apiovh:vrack/attach",
+            "description": "Needed on the Dedicated Server services to be listed in dedicatedServer and dedicatedServerInterface body entries",
+            "required": false
+          },
+          {
+            "name": "pccVMware:apiovh:vrack/attach",
+            "description": "Needed on the Dedicated Cloud (VMware) services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "vrackServices:apiovh:vrack/attach",
+            "description": "Needed on the VrackServices services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "ip:apiovh:vrack/attach",
+            "description": "Needed on the IP services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "vmwareCloudDirector:apiovh:organization/virtualDataCenter/vrack/attach",
+            "description": "Needed on the VCD VirtualDataCenter services to be listed in the response body",
+            "required": false
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/changeContact": {
+      "post": {
+        "summary": "Launch a contact change procedure",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactAdmin": {
+                    "type": "string",
+                    "description": "The contact to set as admin contact"
+                  },
+                  "contactBilling": {
+                    "type": "string",
+                    "description": "The contact to set as billing contact"
+                  },
+                  "contactTech": {
+                    "type": "string",
+                    "description": "The contact to set as tech contact"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:changeContact",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/cloudProject": {
+      "get": {
+        "summary": "vrack for publicCloud project",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:cloudProject/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackCloudProject"
+      },
+      "post": {
+        "summary": "add a publicCloud project to this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "project": {
+                    "type": "string",
+                    "description": "publicCloud project to add"
+                  }
+                },
+                "required": [
+                  "project"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:cloudProject/attach",
+            "required": true
+          },
+          {
+            "name": "publicCloudProject:apiovh:vrack/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/cloudProject/{project}": {
+      "delete": {
+        "summary": "remove this publicCloud project from this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project",
+            "description": "publicCloud project",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:cloudProject/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project",
+            "description": "publicCloud project",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.cloudProject"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:cloudProject/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/confirmTermination": {
+      "post": {
+        "summary": "Confirm service termination",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "commentary": {
+                    "type": "string",
+                    "description": "Commentary about your termination request"
+                  },
+                  "futureUse": {
+                    "description": "What next after your termination request",
+                    "$ref": "#/components/schemas/service.TerminationFutureUseEnum"
+                  },
+                  "reason": {
+                    "description": "Reason of your termination request",
+                    "$ref": "#/components/schemas/service.TerminationReasonEnum"
+                  },
+                  "token": {
+                    "type": "string",
+                    "description": "The termination token sent by email to the admin contact"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:confirmTermination",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedCloud": {
+      "get": {
+        "summary": "vrack dedicated cloud (VmNetwork)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:pccVMware/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackDedicatedCloud"
+      },
+      "post": {
+        "summary": "Add VMware on OVHcloud to vRack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dedicatedCloud": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "dedicatedCloud"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:pccVMware/attach",
+            "required": true
+          },
+          {
+            "name": "pccVMware:apiovh:vrack/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedCloud/{dedicatedCloud}": {
+      "delete": {
+        "summary": "Remove VMware on OVHcloud from vRack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dedicatedCloud",
+            "description": "your dedicated cloud service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:pccVMware/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get vRack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dedicatedCloud",
+            "description": "your dedicated cloud service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.dedicatedCloud"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:pccVMware/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedCloudDatacenter": {
+      "get": {
+        "summary": "vrack dedicated cloud datacenter",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedCloudDatacenter/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackPccDatacenter"
+      }
+    },
+    "/vrack/{serviceName}/dedicatedCloudDatacenter/{datacenter}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "datacenter",
+            "description": "Your dedicatedCloud datacenter name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.pccDatacenter"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedCloudDatacenter/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedCloudDatacenter/{datacenter}/allowedVrack": {
+      "get": {
+        "summary": "Vracks allowed for your dedicatedCloud datacenter",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "datacenter",
+            "description": "Your dedicatedCloud datacenter name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedCloudDatacenter/allowedVrack/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedCloudDatacenter/{datacenter}/move": {
+      "post": {
+        "summary": "Move your dedicatedCloud datacenter from a Vrack to another",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "datacenter",
+            "description": "Your dedicatedCloud datacenter name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "targetServiceName": {
+                    "type": "string",
+                    "description": "The internal name of your target vrack"
+                  }
+                },
+                "required": [
+                  "targetServiceName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedCloudDatacenter/move",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedConnect": {
+      "get": {
+        "summary": "vrack dedicated connect",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedConnect/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackDedicatedConnect"
+      },
+      "post": {
+        "summary": "add a dedicatedConnect link to this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "entryPointSwitch": {
+                    "type": "string",
+                    "description": "Hostname of the network device where the dedicatedConnect link is connected to"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "A name for the dedicatedConnect link"
+                  },
+                  "vlanId": {
+                    "type": "integer",
+                    "description": "Vlan id of the dedicated link on OVH's G5 router"
+                  }
+                },
+                "required": [
+                  "entryPointSwitch",
+                  "name",
+                  "vlanId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedConnect/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedConnect/{name}": {
+      "delete": {
+        "summary": "remove this a dedicatedConnect link from this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "A name for your dedicatedConnect link",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedConnect/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "A name for your dedicatedConnect link",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.dedicatedConnect"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedConnect/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "A name for your dedicatedConnect link",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vrack.dedicatedConnect"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedConnect/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedServer": {
+      "get": {
+        "summary": "vrack for dedicated server",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedServer/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackDedicatedServer"
+      },
+      "post": {
+        "summary": "add a dedicated server to this vrack (LEGACY)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dedicatedServer": {
+                    "type": "string",
+                    "description": "Dedicated server to add "
+                  }
+                },
+                "required": [
+                  "dedicatedServer"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedServer/attach",
+            "required": true
+          },
+          {
+            "name": "dedicatedServer:apiovh:vrack/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedServer/{dedicatedServer}": {
+      "delete": {
+        "summary": "remove this server from this vrack (LEGACY)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dedicatedServer",
+            "description": "Dedicated Server",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedServer/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dedicatedServer",
+            "description": "Dedicated Server",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.dedicatedServer"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedServer/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedServer/{dedicatedServer}/mrtg": {
+      "get": {
+        "summary": "Retrieve vrack traffic graph values (LEGACY)",
+        "deprecated": true,
+        "x-deprecation-date": "2017-10-23T00:00:00+01:00",
+        "x-deletion-date": "2018-04-23T00:00:00+01:00",
+        "x-replacement-route": "/dedicated/server/{serviceName}/networkInterfaceController",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dedicatedServer",
+            "description": "Dedicated Server",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "description": "mrtg period",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/dedicated.server.MrtgPeriodEnum"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "description": "mrtg type",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/dedicated.server.MrtgTypeEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/dedicated.server.MrtgTimestampValue"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedServer/mrtg/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedServerInterface": {
+      "get": {
+        "summary": "vrack for dedicated server interface",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedServerInterface/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackDedicatedServerInterface"
+      },
+      "post": {
+        "summary": "add a dedicated server interface to this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dedicatedServerInterface": {
+                    "type": "string",
+                    "description": "Dedicated server interface to add "
+                  }
+                },
+                "required": [
+                  "dedicatedServerInterface"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedServerInterface/attach",
+            "required": true
+          },
+          {
+            "name": "dedicatedServer:apiovh:vrack/attach",
+            "description": "Check the action on the Dedicated Server that bares the Dedicated Server Interface",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedServerInterface/{dedicatedServerInterface}": {
+      "delete": {
+        "summary": "remove this server interface from this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dedicatedServerInterface",
+            "description": "Dedicated Server Interface",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedServerInterface/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dedicatedServerInterface",
+            "description": "Dedicated Server Interface",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.dedicatedServerInterface"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedServerInterface/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/dedicatedServerInterfaceDetails": {
+      "get": {
+        "summary": "Details for all dedicated server interfaces in this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vrack.AllowedDedicatedServerInterfaces"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:dedicatedServerInterfaceDetails/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/eligibleServices": {
+      "get": {
+        "summary": "List all eligible services for this vRack asynchronously",
+        "description": "This route allows asynchronous service eligibility requests. It means the route can be called several times until all the eligible services are returned.\n\nWhile the `status` is set to `pending` the results are partial.\n\nOnce the `status` is set to `done`, all the eligible services have been found.\n\nIn the eventuality of errors getting specific service types, the errors will be listed in the `errors` field.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.EligibleServicesResponse"
+                },
+                "examples": {
+                  "1. Partial result": {
+                    "value": {
+                      "createdAt": "2024-06-21 08:38:09",
+                      "errors": [],
+                      "result": {
+                        "ip": [
+                          "123.123.123.123/24",
+                          "234.234.234.234/28",
+                          "34.34.34.34/30"
+                        ],
+                        "ipv6": [
+                          "2001:3000:b00::/56"
+                        ],
+                        "legacyVrack": []
+                      },
+                      "status": "pending"
+                    },
+                    "summary": "1. Partial result"
+                  },
+                  "2. Complete result": {
+                    "value": {
+                      "createdAt": "2024-06-21 08:38:09",
+                      "errors": [],
+                      "result": {
+                        "cloudProject": [],
+                        "dedicatedCloud": [],
+                        "dedicatedServer": [
+                          "nsxxxxxxx.ip-xxx-xxx-xxx.eu",
+                          "nsyyyyyy.ip-yyy-yy-yyy.eu"
+                        ],
+                        "dedicatedServerInterface": [],
+                        "ip": [
+                          "123.123.123.123/24",
+                          "234.234.234.234/28",
+                          "34.34.34.34/30"
+                        ],
+                        "ipLoadbalancing": [
+                          "loadbalancer-abcdef1234567890abcdef1234567890"
+                        ],
+                        "ipv6": [
+                          "2001:3000:b00::/56"
+                        ],
+                        "legacyVrack": [],
+                        "ovhCloudConnect": [],
+                        "vmwareCloudDirectorVirtualDataCenter": [],
+                        "vrackServices": [
+                          "vrs-xxx-xxx-xxx-xxx"
+                        ]
+                      },
+                      "status": "done"
+                    },
+                    "summary": "2. Complete result"
+                  },
+                  "3. Error in result": {
+                    "value": {
+                      "createdAt": "2024-06-21 08:38:09",
+                      "errors": [
+                        "cloudProject"
+                      ],
+                      "result": {
+                        "cloudProject": [],
+                        "dedicatedCloud": [],
+                        "dedicatedServer": [
+                          "nsxxxxxxx.ip-xxx-xxx-xxx.eu",
+                          "nsyyyyyy.ip-yyy-yy-yyy.eu"
+                        ],
+                        "dedicatedServerInterface": [],
+                        "ip": [
+                          "123.123.123.123/24",
+                          "234.234.234.234/28",
+                          "34.34.34.34/30"
+                        ],
+                        "ipLoadbalancing": [
+                          "loadbalancer-abcdef1234567890abcdef1234567890"
+                        ],
+                        "ipv6": [
+                          "2001:3000:b00::/56"
+                        ],
+                        "legacyVrack": [],
+                        "ovhCloudConnect": [],
+                        "vmwareCloudDirectorVirtualDataCenter": [],
+                        "vrackServices": [
+                          "vrs-xxx-xxx-xxx-xxx"
+                        ]
+                      },
+                      "status": "done"
+                    },
+                    "summary": "3. Error in result"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:eligibleServices/get",
+            "required": true
+          },
+          {
+            "name": "legacyVrack:apiovh:vrack/attach",
+            "description": "Needed on the legacy vRack services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "ipLoadbalancing:apiovh:vrack/attach",
+            "description": "Needed on the IP Load Balancer services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "ovhCloudConnect:apiovh:vrack/attach",
+            "description": "Needed on the OVH Cloud Connect services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "dedicatedServer:apiovh:vrack/attach",
+            "description": "Needed on the Dedicated Server services to be listed in dedicatedServer and dedicatedServerInterface body entries",
+            "required": false
+          },
+          {
+            "name": "pccVMware:apiovh:vrack/attach",
+            "description": "Needed on the Dedicated Cloud (VMware) services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "vrackServices:apiovh:vrack/attach",
+            "description": "Needed on the VrackServices services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "ip:apiovh:vrack/attach",
+            "description": "Needed on the IP Block services to be listed in the response body",
+            "required": false
+          },
+          {
+            "name": "vmwareCloudDirector:apiovh:organization/virtualDataCenter/vrack/attach",
+            "description": "Needed on the VMwareCloudDirector VirtualDataCenter services to be listed in the response body",
+            "required": false
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ip": {
+      "get": {
+        "summary": "vrack for IP blocks",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipBlock"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ip/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackIp"
+      },
+      "post": {
+        "summary": "add an IP block to this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "block": {
+                    "description": "Your IP block",
+                    "$ref": "#/components/schemas/ipBlock"
+                  },
+                  "region": {
+                    "type": "string",
+                    "description": "Choose the region in which to route the block"
+                  }
+                },
+                "required": [
+                  "block"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ip/attach",
+            "required": true
+          },
+          {
+            "name": "ip:apiovh:vrack/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ip/{ip}": {
+      "delete": {
+        "summary": "remove this IP block from this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "description": "Your IP block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ip/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "description": "Your IP block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.ip"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ip/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ip/{ip}/announceInZone": {
+      "post": {
+        "summary": "Announce IP to zone for vrack",
+        "deprecated": true,
+        "x-deprecation-date": "2025-05-12T00:00:00+01:00",
+        "x-deletion-date": "2025-12-01T00:00:00+01:00",
+        "x-replacement-route": "/vrack/{serviceName}/ip",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "description": "Your IP block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "zone": {
+                    "description": "Zone to announce in",
+                    "$ref": "#/components/schemas/vrack.VrackZoneEnum"
+                  }
+                },
+                "required": [
+                  "zone"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ip/announceInZone",
+            "required": true
+          },
+          {
+            "name": "ip:apiovh:vrack/announceInZone",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ip/{ip}/availableZone": {
+      "get": {
+        "summary": "Zone available to announce your block",
+        "deprecated": true,
+        "x-deprecation-date": "2025-05-12T00:00:00+01:00",
+        "x-deletion-date": "2025-12-01T00:00:00+01:00",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ip",
+            "description": "Your IP block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipBlock"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vrack.VrackZoneEnum"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ip/availableZone/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ipLoadbalancing": {
+      "get": {
+        "summary": "vrack for ipLoadbalancing",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipLoadbalancing/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackIplb"
+      },
+      "post": {
+        "summary": "add an ipLoadbalancing to this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ipLoadbalancing": {
+                    "type": "string",
+                    "description": "Your ipLoadbalancing"
+                  }
+                },
+                "required": [
+                  "ipLoadbalancing"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipLoadbalancing/attach",
+            "required": true
+          },
+          {
+            "name": "ipLoadbalancing:apiovh:vrack/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ipLoadbalancing/{ipLoadbalancing}": {
+      "delete": {
+        "summary": "remove this ipLoadbalancing from this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipLoadbalancing",
+            "description": "Your ipLoadbalancing",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipLoadbalancing/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipLoadbalancing",
+            "description": "Your ipLoadbalancing",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.iplb"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipLoadbalancing/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ipv6": {
+      "get": {
+        "summary": "vrack for IP v6 blocks",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipv6Block"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackIpv6"
+      },
+      "post": {
+        "summary": "add an IP v6 block to this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "block": {
+                    "description": "Your IP v6 block",
+                    "$ref": "#/components/schemas/ipv6Block"
+                  }
+                },
+                "required": [
+                  "block"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/attach",
+            "required": true
+          },
+          {
+            "name": "ip:apiovh:vrack/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ipv6/{ipv6}": {
+      "delete": {
+        "summary": "remove this IP v6 block from this vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipv6",
+            "description": "Your IP v6 block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipv6",
+            "description": "Your IP v6 block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.ipv6"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ipv6/{ipv6}/bridgedSubrange": {
+      "get": {
+        "summary": "subrange bridged into your vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipv6",
+            "description": "Your IP v6 block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipv6Block"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackBridgedSubrange"
+      }
+    },
+    "/vrack/{serviceName}/ipv6/{ipv6}/bridgedSubrange/{bridgedSubrange}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bridgedSubrange",
+            "description": "subrange bridged into your vrack",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipv6",
+            "description": "Your IP v6 block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.bridgedSubrange"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update Slaac status",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bridgedSubrange",
+            "description": "subrange bridged into your vrack",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ipv6",
+            "description": "Your IP v6 block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vrack.bridgedSubrange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/bridgedSubrange/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ipv6/{ipv6}/routedSubrange": {
+      "get": {
+        "summary": "subrange routed into your vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipv6",
+            "description": "Your IP v6 block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ipv6Block"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackRoutedSubrange"
+      },
+      "post": {
+        "summary": "route a subrange of your IP v6 block into your vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipv6",
+            "description": "Your IP v6 block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nexthop": {
+                    "description": "nexthop to configure for your routed subrange (must be part of bridged subrange)",
+                    "$ref": "#/components/schemas/ipv6"
+                  },
+                  "routedSubrange": {
+                    "description": "subrange to route into your vrack",
+                    "$ref": "#/components/schemas/ipv6Block"
+                  }
+                },
+                "required": [
+                  "nexthop",
+                  "routedSubrange"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/routedSubrange/create",
+            "required": true
+          },
+          {
+            "name": "ip:apiovh:vrack/routedSubrange/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ipv6/{ipv6}/routedSubrange/{routedSubrange}": {
+      "delete": {
+        "summary": "unroute subrange from your vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipv6",
+            "description": "Your IP v6 block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "routedSubrange",
+            "description": "subrange routed into your vrack",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/routedSubrange/delete",
+            "required": true
+          },
+          {
+            "name": "ip:apiovh:vrack/routedSubrange/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ipv6",
+            "description": "Your IP v6 block",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "routedSubrange",
+            "description": "subrange routed into your vrack",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ipv6Block"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.routedSubrange"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ipv6/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/legacyVrack": {
+      "get": {
+        "summary": "vrack for legacy vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:legacyVrack/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackLegacyVrack"
+      },
+      "post": {
+        "summary": "add a legacy vrack (vrackXXXX) to this vrack (pn-XXXX)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "legacyVrack": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "legacyVrack"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:legacyVrack/attach",
+            "required": true
+          },
+          {
+            "name": "legacyVrack:apiovh:vrack/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/legacyVrack/{legacyVrack}": {
+      "delete": {
+        "summary": "remove this legacy vrack (vrackXXXX) from this vrack (pn-XXXX)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "legacyVrack",
+            "description": "your legacy vrack service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:legacyVrack/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "legacyVrack",
+            "description": "your legacy vrack service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.legacyVrack"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:legacyVrack/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ovhCloudConnect": {
+      "get": {
+        "summary": "vrack for ovhCloudConnect",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ovhCloudConnect/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackOvhCloudConnect"
+      },
+      "post": {
+        "summary": "Add an ovhCloudConnect to the vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ovhCloudConnect": {
+                    "type": "string",
+                    "description": "ovhCloudConnect service name",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "ovhCloudConnect"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ovhCloudConnect/attach",
+            "required": true
+          },
+          {
+            "name": "ovhCloudConnect:apiovh:vrack/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/ovhCloudConnect/{ovhCloudConnect}": {
+      "delete": {
+        "summary": "Remove the ovhCloudConnect from the vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ovhCloudConnect",
+            "description": "ovhCloudConnect service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ovhCloudConnect/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ovhCloudConnect",
+            "description": "ovhCloudConnect service name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.ovhCloudConnect"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:ovhCloudConnect/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/publicRoutingOption": {
+      "get": {
+        "summary": "Information on public routing option",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.publicRoutingOption"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:publicRoutingOption/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/serviceInfos": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/services.NonExpiringService"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:serviceInfos/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/task": {
+      "get": {
+        "summary": "vrack tasks",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:task/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackTask"
+      }
+    },
+    "/vrack/{serviceName}/task/{taskId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:task/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/terminate": {
+      "post": {
+        "summary": "Ask for the termination of your service",
+        "description": "Ask for the termination of your service. Admin contact of this service will receive a termination token by email in order to confirm its termination with /confirmTermination endpoint.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:terminate",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/vmwareCloudDirectorVirtualDataCenter": {
+      "get": {
+        "summary": "vrack for vmwareCloudDirectorVirtualDataCenter",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:vmwareCloudDirectoryVirtualDataCenter/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackVmwareCloudDirectorVirtualDataCenter"
+      },
+      "post": {
+        "summary": "Add a vmwareCloudDirectorVirtualDataCenter to the vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "vmwareCloudDirectorVirtualDataCenter": {
+                    "type": "string",
+                    "description": "vmwareCloudDirectorVirtualDataCenter service name"
+                  }
+                },
+                "required": [
+                  "vmwareCloudDirectorVirtualDataCenter"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:vmwareCloudDirectoryVirtualDataCenter/attach",
+            "required": true
+          },
+          {
+            "name": "vmwareCloudDirector:apiovh:organization/virtualDataCenter/vrack/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/vmwareCloudDirectorVirtualDataCenter/{vmwareCloudDirectorVirtualDataCenter}": {
+      "delete": {
+        "summary": "Remove the vmwareCloudDirectorVirtualDataCenter from the vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vmwareCloudDirectorVirtualDataCenter",
+            "description": "vmwareCloudDirectorVirtualDataCenter service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:vmwareCloudDirectoryVirtualDataCenter/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vmwareCloudDirectorVirtualDataCenter",
+            "description": "vmwareCloudDirectorVirtualDataCenter service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.vmwareCloudDirectorVirtualDataCenter"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:vmwareCloudDirectoryVirtualDataCenter/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/vrackServices": {
+      "get": {
+        "summary": "vrack for vrackServices",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:vrackServices/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackVrackServices"
+      },
+      "post": {
+        "summary": "Add a vrackServices to the vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "vrackServices": {
+                    "type": "string",
+                    "description": "vrackServices service name"
+                  }
+                },
+                "required": [
+                  "vrackServices"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:vrackServices/attach",
+            "required": true
+          },
+          {
+            "name": "vrackServices:apiovh:vrack/attach",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/vrack/{serviceName}/vrackServices/{vrackServices}": {
+      "delete": {
+        "summary": "Remove the vrackServices from the vrack",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vrackServices",
+            "description": "vrackServices service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:vrackServices/detach",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your vrack",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vrackServices",
+            "description": "vrackServices service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrack.vrackServices"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrack:apiovh:vrackServices/get",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}

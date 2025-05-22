@@ -54,6 +54,12 @@ func init() {
 		Run:   iam.GetIAMPermissionsGroup,
 	})
 
+	iamPermissionsGroupCmd.AddCommand(&cobra.Command{
+		Use:   "edit <permissions_group_id>",
+		Short: "Edit a specific IAM permissions group",
+		Run:   iam.EditIAMPermissionsGroup,
+	})
+
 	iamResourceCmd := &cobra.Command{
 		Use:   "resource",
 		Short: "Manage IAM resources",
@@ -72,6 +78,12 @@ func init() {
 		Run:   iam.GetIAMResource,
 	})
 
+	iamResourceCmd.AddCommand(&cobra.Command{
+		Use:   "edit <resource_urn>",
+		Short: "Edit a specific IAM resource",
+		Run:   iam.EditIAMResource,
+	})
+
 	iamResourceGroupCmd := &cobra.Command{
 		Use:   "resource-group",
 		Short: "Manage IAM resource groups",
@@ -88,6 +100,12 @@ func init() {
 		Use:   "get <resource_group_id>",
 		Short: "Get a specific IAM resource group",
 		Run:   iam.GetIAMResourceGroup,
+	})
+
+	iamResourceGroupCmd.AddCommand(&cobra.Command{
+		Use:   "edit <resource_group_id>",
+		Short: "Edit a specific IAM resource group",
+		Run:   iam.EditIAMResourceGroup,
 	})
 
 	rootCmd.AddCommand(iamCmd)

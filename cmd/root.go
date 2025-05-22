@@ -66,7 +66,7 @@ func withFilterFlag(c *cobra.Command) *cobra.Command {
 		&flags.GenericFilters,
 		"filter",
 		nil,
-		"Filter results by any property using github.com/PaesslerAG/gval syntax'",
+		"Filter results by any property using https://github.com/PaesslerAG/gval syntax'",
 	)
 
 	return c

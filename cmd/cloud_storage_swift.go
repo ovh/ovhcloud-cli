@@ -26,5 +26,11 @@ func initCloudStorageSwiftCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	storageSwiftCmd.AddCommand(&cobra.Command{
+		Use:   "edit <container_id>",
+		Short: "Edit the given SWIFT storage container",
+		Run:   cloud.EditStorageSwift,
+	})
+
 	cloudCmd.AddCommand(storageSwiftCmd)
 }

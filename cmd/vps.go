@@ -13,7 +13,7 @@ func init() {
 		Short: "Retrieve information and manage your VPS services",
 	}
 
-	// Command to list Vps services
+	// Command to list VPS services
 	vpsListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your VPS services",
@@ -21,12 +21,19 @@ func init() {
 	}
 	vpsCmd.AddCommand(withFilterFlag(vpsListCmd))
 
-	// Command to get a single Vps
+	// Command to get a single VPS
 	vpsCmd.AddCommand(&cobra.Command{
 		Use:   "get <service_name>",
 		Short: "Retrieve information of a specific VPS",
 		Args:  cobra.ExactArgs(1),
 		Run:   vps.GetVps,
+	})
+
+	// Command to update a single VPS
+	vpsCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given VPS",
+		Run:   vps.EditVps,
 	})
 
 	rootCmd.AddCommand(vpsCmd)

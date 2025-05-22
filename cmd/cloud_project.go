@@ -25,11 +25,16 @@ func init() {
 
 	// Command to get a single CloudProject
 	cloudprojectCmd.AddCommand(&cobra.Command{
-		Use:        "get",
-		Short:      "Retrieve information of a specific cloud project",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        cloud.GetCloudProject,
+		Use:   "get <project_id>",
+		Short: "Retrieve information of a specific cloud project",
+		Args:  cobra.ExactArgs(1),
+		Run:   cloud.GetCloudProject,
+	})
+
+	cloudprojectCmd.AddCommand(&cobra.Command{
+		Use:   "edit <project_id>",
+		Short: "Edit the given cloud project",
+		Run:   cloud.EditCloudProject,
 	})
 
 	initKubeCommand(cloudCmd)

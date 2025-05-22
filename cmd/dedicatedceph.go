@@ -27,5 +27,12 @@ func init() {
 		Run:   dedicatedceph.GetDedicatedCeph,
 	})
 
+	// Command to update a single DedicatedCeph
+	dedicatedcephCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given Dedicated Ceph",
+		Run:   dedicatedceph.EditDedicatedCeph,
+	})
+
 	rootCmd.AddCommand(dedicatedcephCmd)
 }

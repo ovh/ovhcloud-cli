@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
+	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -17,6 +18,9 @@ var (
 
 	//go:embed templates/ip.tmpl
 	ipTemplate string
+
+	//go:embed api-schemas/ip.json
+	ipOpenapiSchema []byte
 )
 
 func ListIp(_ *cobra.Command, _ []string) {
@@ -25,6 +29,11 @@ func ListIp(_ *cobra.Command, _ []string) {
 
 func GetIp(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/ip", args[0], ipTemplate)
+}
+
+func EditIp(_ *cobra.Command, args []string) {
+	url := fmt.Sprintf("/ip/%s", url.PathEscape(args[0]))
+	editor.EditResource(httpLib.Client, "/ip/{ip}", url, ipOpenapiSchema)
 }
 
 func IpSetReverse(_ *cobra.Command, args []string) {

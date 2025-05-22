@@ -2,9 +2,13 @@ package hostingprivatedatabase
 
 import (
 	_ "embed"
+	"fmt"
+	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
+	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -13,6 +17,9 @@ var (
 
 	//go:embed templates/hostingprivatedatabase.tmpl
 	hostingprivatedatabaseTemplate string
+
+	//go:embed api-schemas/hostingprivatedatabase.json
+	hostingprivatedatabaseOpenapiSchema []byte
 )
 
 func ListHostingPrivateDatabase(_ *cobra.Command, _ []string) {
@@ -21,4 +28,9 @@ func ListHostingPrivateDatabase(_ *cobra.Command, _ []string) {
 
 func GetHostingPrivateDatabase(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/hosting/privateDatabase", args[0], hostingprivatedatabaseTemplate)
+}
+
+func EditHostingPrivateDatabase(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/hosting/privateDatabase/%s", url.PathEscape(args[0]))
+	editor.EditResource(httpLib.Client, "/hosting/privateDatabase/{serviceName}", endpoint, hostingprivatedatabaseOpenapiSchema)
 }

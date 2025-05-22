@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
+	"stash.ovh.net/api/ovh-cli/internal/editor"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -89,6 +90,12 @@ func GetCloudPrivateNetwork(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputObject(object, args[0], cloudNetworkPrivateTemplate, &flags.OutputFormatConfig)
+}
+
+func EditCloudPrivateNetwork(_ *cobra.Command, args []string) {
+	projectID := url.PathEscape(getConfiguredCloudProject())
+	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
+	editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/network/private/{networkId}", endpoint, cloudOpenapiSchema)
 }
 
 func ListCloudPublicNetworks(_ *cobra.Command, _ []string) {
@@ -227,4 +234,32 @@ func GetCloudGateway(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputObject(foundGateway, args[0], cloudGatewayTemplate, &flags.OutputFormatConfig)
+}
+
+func EditCloudGateway(_ *cobra.Command, args []string) {
+	projectID := url.PathEscape(getConfiguredCloudProject())
+
+	// Fetch regions with network feature available
+	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
+	if err != nil {
+		display.ExitError("failed to fetch regions with network feature available: %s", err)
+	}
+
+	// Search for the given gateway in all regions
+	// TODO: speed up with parallel search or by adding a required region argument
+	var foundURL string
+	for _, region := range regions {
+		endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/gateway/%s",
+			projectID, url.PathEscape(region.(string)), url.PathEscape(args[0]))
+		if err := httpLib.Client.Get(endpoint, nil); err == nil {
+			foundURL = endpoint
+			break
+		}
+	}
+
+	if foundURL == "" {
+		display.ExitError("no gateway found with given ID")
+	}
+
+	editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/region/{regionName}/gateway/{id}", foundURL, cloudOpenapiSchema)
 }

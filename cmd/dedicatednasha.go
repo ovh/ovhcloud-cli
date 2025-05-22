@@ -14,7 +14,7 @@ func init() {
 	// Command to list DedicatedNasHA services
 	dedicatednashaListCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List your DedicatedNasHA services",
+		Short: "List your Dedicated NasHA services",
 		Run:   dedicatednasha.ListDedicatedNasHA,
 	}
 	dedicatednashaCmd.AddCommand(withFilterFlag(dedicatednashaListCmd))
@@ -22,9 +22,16 @@ func init() {
 	// Command to get a single DedicatedNasHA
 	dedicatednashaCmd.AddCommand(&cobra.Command{
 		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific DedicatedNasHA",
+		Short: "Retrieve information of a specific Dedicated NasHA",
 		Args:  cobra.ExactArgs(1),
 		Run:   dedicatednasha.GetDedicatedNasHA,
+	})
+
+	// Command to update a single DedicatedNasHA
+	dedicatednashaCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given Dedicated NasHA",
+		Run:   dedicatednasha.EditDedicatedNasHA,
 	})
 
 	rootCmd.AddCommand(dedicatednashaCmd)

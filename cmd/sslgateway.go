@@ -27,5 +27,12 @@ func init() {
 		Run:   sslgateway.GetSslGateway,
 	})
 
+	// Command to update a single SslGateway
+	sslgatewayCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given SSL Gateway",
+		Run:   sslgateway.EditSslGateway,
+	})
+
 	rootCmd.AddCommand(sslgatewayCmd)
 }

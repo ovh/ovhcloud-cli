@@ -102,13 +102,23 @@ func pruneUnknownFields(data map[string]interface{}, schema *openapi3.Schema) ma
 
 		if val, ok := data[propName]; ok {
 			// If the property is an object, recurse
-			// TODO: handle arrays
 			if propSchema.Value.Type.Is("object") {
 				if nestedMap, ok := val.(map[string]interface{}); ok {
 					cleaned[propName] = pruneUnknownFields(nestedMap, propSchema.Value)
 				} else {
 					cleaned[propName] = val
 				}
+			} else if propSchema.Value.Type.Is("array") {
+				arrayVal := val.([]any)
+				prunedArray := make([]any, 0, len(arrayVal))
+				for _, arrayValue := range arrayVal {
+					if arrayMapValue, ok := arrayValue.(map[string]any); ok {
+						prunedArray = append(prunedArray, pruneUnknownFields(arrayMapValue, propSchema.Value.Items.Value))
+					} else {
+						prunedArray = append(prunedArray, arrayValue)
+					}
+				}
+				cleaned[propName] = prunedArray
 			} else {
 				cleaned[propName] = val
 			}

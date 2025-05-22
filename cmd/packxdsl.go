@@ -27,5 +27,12 @@ func init() {
 		Run:   packxdsl.GetPackXDSL,
 	})
 
+	// Command to update a single PackXDSL
+	packxdslCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given PackXDSL",
+		Run:   packxdsl.EditPackXDSL,
+	})
+
 	rootCmd.AddCommand(packxdslCmd)
 }

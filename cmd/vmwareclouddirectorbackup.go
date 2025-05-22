@@ -27,5 +27,12 @@ func init() {
 		Run:   vmwareclouddirectorbackup.GetVmwareCloudDirectorBackup,
 	})
 
+	// Command to update a single VmwareCloudDirectorBackup
+	vmwareclouddirectorbackupCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given VmwareCloudDirector Backup",
+		Run:   vmwareclouddirectorbackup.EditVmwareCloudDirectorBackup,
+	})
+
 	rootCmd.AddCommand(vmwareclouddirectorbackupCmd)
 }

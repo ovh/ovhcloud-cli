@@ -27,5 +27,12 @@ func init() {
 		Run:   ovhcloudconnect.GetOvhCloudConnect,
 	})
 
+	// Command to update a single OvhCloudConnect
+	ovhcloudconnectCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given OvhCloudConnect",
+		Run:   ovhcloudconnect.EditOvhCloudConnect,
+	})
+
 	rootCmd.AddCommand(ovhcloudconnectCmd)
 }

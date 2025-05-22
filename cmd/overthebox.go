@@ -27,5 +27,12 @@ func init() {
 		Run:   overthebox.GetOverTheBox,
 	})
 
+	// Command to update a single OverTheBox
+	overtheboxCmd.AddCommand(&cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Edit the given OverTheBox",
+		Run:   overthebox.EditOverTheBox,
+	})
+
 	rootCmd.AddCommand(overtheboxCmd)
 }
