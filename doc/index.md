@@ -58,6 +58,17 @@ ovh-cli [command] [flags]
 
 [gval]: https://github.com/PaesslerAG/gval
 
+#### Filtering examples
+
+- Strict string equality: `--filter 'name=="something"'`
+- String regexp comparison: `--filter 'name=~"something"'`
+- Number comparison: `--filter 'bootId > 1'`
+
+#### Formatting example
+
+- Extract only one field: `--format 'ip'`
+- Extract an object: `--format '{name: ip}'`
+
 ---
 
 ## Command Reference
