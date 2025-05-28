@@ -17,7 +17,7 @@ _{{index .Result "iam" "displayName"}}_
 | State | {{index .Result "state"}} |
 | Operating system | {{index .Result "os"}} |
 | IPv4 | {{index .Result "ip"}} |
-| IPv6 | {{index .Result "network" "routing" "ipv6" "ip"}} |
+{{if index .Result "network" "routing" "ipv6"}}| IPv6 | {{index .Result "network" "routing" "ipv6" "ip"}} |{{end}}
 | Reverse | {{index .Result "reverse"}} |
 | Power state | {{index .Result "powerState"}} |
 

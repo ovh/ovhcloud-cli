@@ -124,7 +124,7 @@ func RebootBaremetal(_ *cobra.Command, args []string) {
 		display.ExitError("error rebooting server %s: %s\n", args[0], err)
 	}
 
-	fmt.Println("\n⚡️ Reboot is started ...")
+	fmt.Println("\n⚡️ Reboot launched ...")
 }
 
 func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
