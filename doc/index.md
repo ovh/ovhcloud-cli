@@ -49,6 +49,7 @@ ovh-cli [command] [flags]
 | Flag              | Description                                          |
 | ----------------- | ---------------------------------------------------- |
 | `--debug`         | Activate debug mode (logs all HTTP‑request details). |
+| `--ignore-errors` | Ignore errors of API calls made when listing items.  |
 | `--format <expr>` | Format output with a [gval] expression.              |
 | `--filter <expr>` | Filter lists output with a [gval] expression.        |
 | `-h`, `--help`    | Display help for `ovh-cli` or a specific command.    |

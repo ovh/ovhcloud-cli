@@ -10,6 +10,7 @@ import (
 	"github.com/ovh/go-ovh/ovh"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 )
 
 // OVH API client
@@ -126,9 +127,21 @@ func FetchExpandedArray(path, idField string) ([]map[string]any, error) {
 		return nil, fmt.Errorf("failed to fetch ids: %w", err)
 	}
 
-	objects, err := FetchObjectsParallel[map[string]any](path+"/%s", ids, false)
+	objects, err := FetchObjectsParallel[map[string]any](path+"/%s", ids, flags.IgnoreErrors)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch objects: %w", err)
+	}
+
+	// If we ignore errors, we can have nil entries in the output, so filter them out
+	if flags.IgnoreErrors {
+		withNilFiltered := make([]map[string]any, 0, len(objects))
+		for _, obj := range objects {
+			if obj != nil {
+				withNilFiltered = append(withNilFiltered, obj)
+			}
+		}
+
+		return withNilFiltered, nil
 	}
 
 	return objects, nil

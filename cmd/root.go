@@ -37,6 +37,7 @@ func init() {
 	flags.CliConfig, flags.CliConfigPath = config.LoadINI()
 
 	rootCmd.PersistentFlags().BoolVar(&flags.Debug, "debug", false, "Activate debug mode (will log all HTTP requests details)")
+	rootCmd.PersistentFlags().BoolVar(&flags.IgnoreErrors, "ignore-errors", false, "Ignore errors in API calls when it is not fatal to the execution")
 	rootCmd.PersistentFlags().BoolVar(&flags.OutputFormatConfig.JsonOutput, "json", false, "Output in JSON")
 	rootCmd.PersistentFlags().BoolVar(&flags.OutputFormatConfig.YamlOutput, "yaml", false, "Output in YAML")
 	rootCmd.PersistentFlags().BoolVar(&flags.OutputFormatConfig.InteractiveOutput, "interactive", false, "Interactive output")

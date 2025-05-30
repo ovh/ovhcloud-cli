@@ -10,6 +10,9 @@ var (
 	// Flag to activate debug mode
 	Debug bool
 
+	// Flag used to ignore errors in API calls
+	IgnoreErrors bool
+
 	// Common flags used by all subcommands to control output format (json, yaml)
 	OutputFormatConfig display.OutputFormat
 

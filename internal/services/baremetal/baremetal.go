@@ -500,7 +500,7 @@ func GetBaremetalRelatedIPs(_ *cobra.Command, args []string) {
 		display.ExitError("failed to fetch IPs related to baremetal %s: %s", args[0], err)
 	}
 
-	ipsExpanded, err := httpLib.FetchObjectsParallel[map[string]any]("/ip/%s", ips, false)
+	ipsExpanded, err := httpLib.FetchObjectsParallel[map[string]any]("/ip/%s", ips, flags.IgnoreErrors)
 	if err != nil {
 		display.ExitError("failed to fetch objects for each IP: %s", err)
 	}
