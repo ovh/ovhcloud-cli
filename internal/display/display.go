@@ -11,7 +11,7 @@ import (
 	"text/template"
 
 	"github.com/PaesslerAG/gval"
-	fxDisplay "github.com/amstuta/fx/display"
+	fxdisplay "github.com/amstuta/fx/display"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -70,7 +70,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		if err != nil {
 			ExitError("error preparing interactive output: %s", err)
 		}
-		fxDisplay.Display(bytes, "")
+		fxdisplay.Display(bytes, "")
 		return
 	case outputFormat.YamlOutput:
 		if err := prettyPrintYAML(values); err != nil {
@@ -251,7 +251,7 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 		if err != nil {
 			ExitError("error preparing interactive output: %s", err)
 		}
-		fxDisplay.Display(bytes, "")
+		fxdisplay.Display(bytes, "")
 		return
 	default:
 		var tpl bytes.Buffer
