@@ -36,12 +36,12 @@ func init() {
 	// files are optional. Only load file from user home if home could be resolve
 	flags.CliConfig, flags.CliConfigPath = config.LoadINI()
 
-	rootCmd.PersistentFlags().BoolVar(&flags.Debug, "debug", false, "Activate debug mode (will log all HTTP requests details)")
-	rootCmd.PersistentFlags().BoolVar(&flags.IgnoreErrors, "ignore-errors", false, "Ignore errors in API calls when it is not fatal to the execution")
-	rootCmd.PersistentFlags().BoolVar(&flags.OutputFormatConfig.JsonOutput, "json", false, "Output in JSON")
-	rootCmd.PersistentFlags().BoolVar(&flags.OutputFormatConfig.YamlOutput, "yaml", false, "Output in YAML")
-	rootCmd.PersistentFlags().BoolVar(&flags.OutputFormatConfig.InteractiveOutput, "interactive", false, "Interactive output")
-	rootCmd.PersistentFlags().StringVar(&flags.OutputFormatConfig.CustomFormat, "format", "", "Output value according to given format (expression using gval format)")
+	rootCmd.PersistentFlags().BoolVarP(&flags.Debug, "debug", "d", false, "Activate debug mode (will log all HTTP requests details)")
+	rootCmd.PersistentFlags().BoolVarP(&flags.IgnoreErrors, "ignore-errors", "e", false, "Ignore errors in API calls when it is not fatal to the execution")
+	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.JsonOutput, "json", "j", false, "Output in JSON")
+	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.YamlOutput, "yaml", "y", false, "Output in YAML")
+	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.InteractiveOutput, "interactive", "i", false, "Interactive output")
+	rootCmd.PersistentFlags().StringVarP(&flags.OutputFormatConfig.CustomFormat, "format", "f", "", "Output value according to given format (expression using gval format)")
 	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml", "interactive", "format")
 
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
