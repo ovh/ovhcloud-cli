@@ -27,6 +27,9 @@ var (
 
 	//go:embed api-schemas/cloud.json
 	cloudOpenapiSchema []byte
+
+	//go:embed api-schemas/cloud_v2.json
+	cloudV2OpenapiSchema []byte
 )
 
 func ListCloudProject(_ *cobra.Command, _ []string) {
