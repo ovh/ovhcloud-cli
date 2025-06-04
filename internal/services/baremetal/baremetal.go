@@ -40,7 +40,7 @@ type baremetalCustomizations struct {
 }
 
 var (
-	baremetalColumnsToDisplay = []string{"name", "region", "os", "powerState", "state"}
+	baremetalColumnsToDisplay = []string{"name", "region", "iam.displayName displayName", "os", "state"}
 
 	//go:embed templates/baremetal.tmpl
 	baremetalTemplate string

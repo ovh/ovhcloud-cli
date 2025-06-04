@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"text/template"
 
 	"github.com/PaesslerAG/gval"
@@ -88,7 +89,18 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		selectors gval.Evaluables
 	)
 
+	columnsTitles := make([]string, 0, len(columnsToDisplay))
 	for _, col := range columnsToDisplay {
+		// If column to display contains an alias, use it as column title
+		parts := strings.SplitN(col, " ", 2)
+		if len(parts) == 2 {
+			col = parts[0]
+			columnsTitles = append(columnsTitles, parts[1])
+		} else {
+			columnsTitles = append(columnsTitles, col)
+		}
+
+		// Create selector to extract value at given key
 		evaluator, err := gval.Base().NewEvaluable(col)
 		if err != nil {
 			ExitError("invalid column to display %q: %s", col, err)
@@ -137,7 +149,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 				return oddRowStyle
 			}
 		}).
-		Headers(columnsToDisplay...).
+		Headers(columnsTitles...).
 		Rows(rows...)
 
 	fmt.Println(t)
