@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"maps"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -10,6 +11,10 @@ import (
 	"stash.ovh.net/api/ovh-cli/internal/config"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
+)
+
+var (
+	validAPIRegions = []string{"EU", "CA", "US"}
 )
 
 func ShowConfig(_ *cobra.Command, _ []string) {
@@ -26,12 +31,26 @@ func SetConfig(_ *cobra.Command, args []string) {
 	}
 }
 
-func SetRegion(_ *cobra.Command, args []string) {
-	if args[0] != "EU" && args[0] != "CA" && args[0] != "US" {
-		display.ExitError("invalid region %q, valid values are [EU, CA, US]", args[0])
+func SetEndpoint(_ *cobra.Command, args []string) {
+	var endpoint string
+
+	if slices.Contains(validAPIRegions, args[0]) {
+		endpoint = fmt.Sprintf("ovh-%s", strings.ToLower(args[0]))
+	} else {
+		// Check if given value is a valid URL
+		url, err := url.Parse(args[0])
+		if err != nil {
+			display.ExitError("invalid API endpoint %q, valid values are [EU, CA, US] or a valid URL", args[0])
+		}
+
+		if url.Scheme != "https" && url.Scheme != "http" {
+			display.ExitError(`given url has an invalid scheme, only "http" and "https" are allowed`)
+		}
+
+		endpoint = args[0]
 	}
 
-	if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, "", "endpoint", fmt.Sprintf("ovh-%s", strings.ToLower(args[0]))); err != nil {
-		display.ExitError("failed to set region configuration: %s", err)
+	if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, "", "endpoint", endpoint); err != nil {
+		display.ExitError("failed to set API endpoint configuration: %s", err)
 	}
 }

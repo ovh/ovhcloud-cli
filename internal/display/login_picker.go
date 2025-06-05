@@ -89,8 +89,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if m.choice != "" {
-		url := m.authURLs[m.choice]
-		return quitTextStyle.Render(fmt.Sprintf("%s selected. Please visit %s to create credentials.", m.choice, url))
+		if url, ok := m.authURLs[m.choice]; ok {
+			return quitTextStyle.Render(fmt.Sprintf("%s selected. Please visit %s to create credentials.", m.choice, url))
+		}
+		return quitTextStyle.Render("Custom endpoint selected.")
 	}
 	if m.quitting {
 		return quitTextStyle.Render("Nothing selected.")

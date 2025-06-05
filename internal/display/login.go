@@ -8,37 +8,64 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func RunLoginInput() map[string]string {
-	var inputs []textinput.Model = make([]textinput.Model, 3)
-	inputs[0] = textinput.New()
-	inputs[0].Placeholder = "aaaaaaaaaaaaaaaa"
-	inputs[0].Focus()
-	inputs[0].CharLimit = 16
-	inputs[0].Width = 30
-	inputs[0].Prompt = ""
+func RunLoginInput(customEndpoint bool) map[string]string {
+	var inputs []textinput.Model
 
-	inputs[1] = textinput.New()
-	inputs[1].Placeholder = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-	inputs[1].CharLimit = 32
-	inputs[1].Width = 30
-	inputs[1].Prompt = ""
+	if customEndpoint {
+		endpointInput := textinput.New()
 
-	inputs[2] = textinput.New()
-	inputs[2].Placeholder = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
-	inputs[2].CharLimit = 32
-	inputs[2].Width = 30
-	inputs[2].Prompt = ""
+		endpointInput.Placeholder = "https://eu.api.ovh.com/v1"
+		endpointInput.Focus()
+		endpointInput.Width = 60
+		endpointInput.Prompt = ""
+
+		inputs = append(inputs, endpointInput)
+	}
+
+	appKeyInput := textinput.New()
+	appKeyInput.Placeholder = "aaaaaaaaaaaaaaaa"
+	if !customEndpoint {
+		appKeyInput.Focus()
+	}
+	appKeyInput.CharLimit = 16
+	appKeyInput.Width = 30
+	appKeyInput.Prompt = ""
+	inputs = append(inputs, appKeyInput)
+
+	appSecretInput := textinput.New()
+	appSecretInput.Placeholder = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+	appSecretInput.CharLimit = 32
+	appSecretInput.Width = 30
+	appSecretInput.Prompt = ""
+	inputs = append(inputs, appSecretInput)
+
+	consumerKeyInput := textinput.New()
+	consumerKeyInput.Placeholder = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+	consumerKeyInput.CharLimit = 32
+	consumerKeyInput.Width = 30
+	consumerKeyInput.Prompt = ""
+	inputs = append(inputs, consumerKeyInput)
 
 	mod := inputModel{
-		inputs:  inputs,
-		focused: 0,
-		err:     nil,
+		withCustomEndpoint: customEndpoint,
+		inputs:             inputs,
+		focused:            0,
+		err:                nil,
 	}
 
 	p := tea.NewProgram(mod)
 
 	if _, err := p.Run(); err != nil {
 		ExitError(err.Error())
+	}
+
+	if customEndpoint {
+		return map[string]string{
+			"endpoint":           mod.inputs[0].Value(),
+			"application_key":    mod.inputs[1].Value(),
+			"application_secret": mod.inputs[2].Value(),
+			"consumer_key":       mod.inputs[3].Value(),
+		}
 	}
 
 	return map[string]string{
@@ -59,9 +86,10 @@ var (
 )
 
 type inputModel struct {
-	inputs  []textinput.Model
-	focused int
-	err     error
+	withCustomEndpoint bool
+	inputs             []textinput.Model
+	focused            int
+	err                error
 }
 
 func (m inputModel) Init() tea.Cmd {
@@ -105,6 +133,35 @@ func (m inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m inputModel) View() string {
+	if m.withCustomEndpoint {
+		return fmt.Sprintf(
+			`
+ %s
+ %s
+
+ %s
+ %s
+
+ %s
+ %s
+
+ %s
+ %s
+
+ %s
+`,
+			inputStyle.Width(30).Render("API endpoint"),
+			m.inputs[0].View(),
+			inputStyle.Width(30).Render("Application key"),
+			m.inputs[1].View(),
+			inputStyle.Width(30).Render("Application secret"),
+			m.inputs[2].View(),
+			inputStyle.Width(30).Render("Consumer key"),
+			m.inputs[3].View(),
+			continueStyle.Render("Press enter to validate ->"),
+		) + "\n"
+	}
+
 	return fmt.Sprintf(
 		`
  %s
