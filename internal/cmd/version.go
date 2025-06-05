@@ -12,7 +12,7 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(&cobra.Command{
+	versionCmd := &cobra.Command{
 		Use:   "version",
 		Short: "Get ovh-cli version",
 		Run: func(_ *cobra.Command, _ []string) {
@@ -25,5 +25,10 @@ func init() {
 
 			display.RenderTable(data, []string{"version", "last_commit"}, &flags.OutputFormatConfig)
 		},
-	})
+	}
+
+	// Disable parent pre-run that verifies if the API client is correctly initialized
+	versionCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {}
+
+	rootCmd.AddCommand(versionCmd)
 }

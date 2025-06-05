@@ -31,10 +31,10 @@ func init() {
 	})
 
 	configCmd.AddCommand(&cobra.Command{
-		Example:               "ovh-cli config set-region EU",
-		Use:                   "set-region <region>",
-		Short:                 "Configure CLI to use the given API region (EU, CA, US)",
-		Run:                   config.SetRegion,
+		Example:               "ovh-cli config set-endpoint EU",
+		Use:                   "set-endpoint <region>",
+		Short:                 "Configure CLI to use the given API endpoint (EU, CA, US), or a specific URL (e.g. https://eu.api.ovh.com/v1)",
+		Run:                   config.SetEndpoint,
 		Args:                  cobra.ExactArgs(1),
 		DisableFlagsInUseLine: true,
 	})

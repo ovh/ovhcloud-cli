@@ -8,24 +8,23 @@ import (
 	"stash.ovh.net/api/ovh-cli/internal/config"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
+	serviceconfig "stash.ovh.net/api/ovh-cli/internal/services/config"
 )
 
 func Login(_ *cobra.Command, _ []string) {
-	selectedRegion := display.RunLoginPicker("Which OVHcloud API do you want to login to ?", []string{"EU", "CA", "US"})
+	selectedRegion := display.RunLoginPicker("Which OVHcloud API do you want to login to ?", []string{"EU", "CA", "US", "Custom endpoint"})
 
 	if selectedRegion == "" {
 		return
 	}
+	customEndpoint := selectedRegion == "Custom endpoint"
 
-	credentials := display.RunLoginInput()
-
+	credentials := display.RunLoginInput(customEndpoint)
 	for k, v := range credentials {
 		if v == "" {
 			display.ExitWarning("no value provided for %q", k)
 		}
 	}
-
-	regionConfigKey := fmt.Sprintf("ovh-%s", strings.ToLower(selectedRegion))
 
 	// If no configuration file could be loaded, choose the location to write a new one
 	if flags.CliConfigPath == "" {
@@ -47,12 +46,18 @@ func Login(_ *cobra.Command, _ []string) {
 		flags.CliConfigPath = path
 	}
 
-	if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, "", "endpoint", regionConfigKey); err != nil {
-		display.ExitError("failed to write endpoint in configuration: %s", err)
+	// Set API endpoint to use in config
+	if customEndpoint {
+		selectedRegion = credentials["endpoint"]
+		delete(credentials, "endpoint")
+	} else {
+		selectedRegion = fmt.Sprintf("ovh-%s", strings.ToLower(selectedRegion))
 	}
+	serviceconfig.SetEndpoint(nil, []string{selectedRegion})
 
+	// Set credentials in config
 	for k, v := range credentials {
-		if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, regionConfigKey, k, v); err != nil {
+		if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, selectedRegion, k, v); err != nil {
 			display.ExitError("failed to write configuration %q: %s", k, err)
 		}
 	}
