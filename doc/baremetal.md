@@ -5,7 +5,7 @@ Manage dedicated **Bare Metal servers** – perform lifecycle actions, query har
 ### Usage
 
 ```bash
-ovh-cli baremetal [command] [flags]
+ovhcloud baremetal [command] [flags]
 ```
 
 The command inherits all **global flags** (`--debug`, `--json`, `--yaml`, `--format`, `--interactive`, `--filter`) and adds its own `-h/--help` flag at each level.
@@ -35,13 +35,13 @@ The commands `reboot-rescue` and `reinstall` can be used with a `--wait` flag th
 
 | Task                                        | Command                                                                          |
 | ------------------------------------------- | -------------------------------------------------------------------------------- |
-| List all servers                            | `ovh-cli baremetal list`                                                         |
-| Get full details                            | `ovh-cli baremetal get <service_id>`                                             |
-| Get full details (JSON)                     | `ovh-cli baremetal get <service_id> --json`                                      |
-| Reboot a server                             | `ovh-cli baremetal reboot <service_id>`                                          |
-| Reboot into rescue mode and notify by email | `ovh-cli baremetal reboot-rescue <service_id>`                                   |
-| Check compatible OS templates               | `ovh-cli baremetal list-compatible-os <service_id>`                              |
-| Open an IPMI KVM console                    | `ovh-cli baremetal ipmi get-access <service_id> --type serialOverLanURL --ttl 5` |                            |
+| List all servers                            | `ovhcloud baremetal list`                                                         |
+| Get full details                            | `ovhcloud baremetal get <service_id>`                                             |
+| Get full details (JSON)                     | `ovhcloud baremetal get <service_id> --json`                                      |
+| Reboot a server                             | `ovhcloud baremetal reboot <service_id>`                                          |
+| Reboot into rescue mode and notify by email | `ovhcloud baremetal reboot-rescue <service_id>`                                   |
+| Check compatible OS templates               | `ovhcloud baremetal list-compatible-os <service_id>`                              |
+| Open an IPMI KVM console                    | `ovhcloud baremetal ipmi get-access <service_id> --type serialOverLanURL --ttl 5` |                            |
 
 ### Tips
 
@@ -52,4 +52,4 @@ The commands `reboot-rescue` and `reinstall` can be used with a `--wait` flag th
 
 [gval]: https://github.com/PaesslerAG/gval
 
-> For full details on each sub‑command, run `ovh-cli baremetal <sub‑command> --help`.
+> For full details on each sub‑command, run `ovhcloud baremetal <sub‑command> --help`.

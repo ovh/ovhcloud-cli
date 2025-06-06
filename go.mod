@@ -1,6 +1,6 @@
 module stash.ovh.net/api/ovh-cli
 
-go 1.23.3
+go 1.24.4
 
 require (
 	github.com/PaesslerAG/gval v1.2.4
@@ -53,6 +53,8 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/shurcooL/go v0.0.0-20200502201357-93f07166e636 // indirect
+	github.com/shurcooL/go-goon v1.0.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect

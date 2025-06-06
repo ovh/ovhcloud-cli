@@ -4,14 +4,14 @@ on: [push]
 
 jobs:
   build:
-    runs-on: library/go-1-23
+    runs-on: library/go-1-24
     steps:
     - uses: actions/checkout
-    - run: go get
-    - run: go build -v -o ovh-cli
+    - run: go get ./...
+    - run: go build -v -o ovhcloud ./cmd/ovhcloud
     - uses: actions/uploadArtifact
       with:
-        path: ovh-cli
+        path: ovhcloud
         if-no-files-found: error
 
 integrations: [artifactory-digital-core-platform-api]

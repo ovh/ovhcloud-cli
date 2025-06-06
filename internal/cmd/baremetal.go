@@ -79,37 +79,37 @@ There are three ways to define the installation parameters:
 
 1. Using only CLI flags:
 
-  ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --os byolinux_64 --language fr-fr --image-url https://...
+  ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --os byolinux_64 --language fr-fr --image-url https://...
 
 2. Using a configuration file
 
   First you can generate an example of installation file using the following command:
 
-	ovh-cli baremetal reinstall --init-file ./install.json
+	ovhcloud baremetal reinstall --init-file ./install.json
 
   You will be able to choose from several installation examples. Once an example has been selected, the content is written in the given file.
   After editing the file to set the correct installation parameters, run:
 
-	ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json
+	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json
 
   Note that you can also pipe the content of the file to reinstall, like the following:
 
-	cat ./install.json | ovh-cli baremetal reinstall ns1234.ip-11.22.33.net
+	cat ./install.json | ovhcloud baremetal reinstall ns1234.ip-11.22.33.net
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json --hostname new-hostname
+	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json --hostname new-hostname
 
 3. Using your default text editor
 
-  ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --editor
+  ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --editor
 
   You will be able to choose from several installation examples. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the reinstallation will be run.
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovh-cli baremetal reinstall ns1234.ip-11.22.33.net --editor --os debian12_64
+	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --editor --os debian12_64
 
 You can visit https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&branch=v1#post-/dedicated/server/-serviceName-/reinstall
 to see all the available parameters and real life examples.
