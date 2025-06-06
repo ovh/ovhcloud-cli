@@ -22,7 +22,7 @@ func init() {
 	})
 
 	configCmd.AddCommand(&cobra.Command{
-		Example:               "ovh-cli config set default_cloud_project xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		Example:               "ovhcloud config set default_cloud_project xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		Use:                   "set <configuration key> <configuration value>",
 		Short:                 "Set a value in the CLI configuration",
 		Run:                   config.SetConfig,
@@ -31,7 +31,7 @@ func init() {
 	})
 
 	configCmd.AddCommand(&cobra.Command{
-		Example:               "ovh-cli config set-endpoint EU",
+		Example:               "ovhcloud config set-endpoint EU",
 		Use:                   "set-endpoint <region>",
 		Short:                 "Configure CLI to use the given API endpoint (EU, CA, US), or a specific URL (e.g. https://eu.api.ovh.com/v1)",
 		Run:                   config.SetEndpoint,

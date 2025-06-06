@@ -1,10 +1,10 @@
-# OVHcloud CLI (`ovh-cli`) Documentation
+# OVHcloud CLI (`ovhcloud`) Documentation
 
 ---
 
 ## Overview
 
-`ovh-cli` is a single, unified command‑line interface for managing the full range of OVHcloud products and account resources directly from your terminal. Whether you need to automate provisioning, perform quick look‑ups, or integrate OVHcloud operations into CI/CD pipelines, `ovh-cli` offers fine‑grained commands and consistent output formats (table, JSON, YAML, or custom gval expressions).
+`ovhcloud` is a single, unified command‑line interface for managing the full range of OVHcloud products and account resources directly from your terminal. Whether you need to automate provisioning, perform quick look‑ups, or integrate OVHcloud operations into CI/CD pipelines, `ovhcloud` offers fine‑grained commands and consistent output formats (table, JSON, YAML, or custom gval expressions).
 
 ---
 
@@ -12,10 +12,10 @@
 
 ```bash
 # Display the top‑level help
-ovh-cli --help
+ovhcloud --help
 
 # Log in and create API credentials (interactive)
-ovh-cli login
+ovhcloud login
 
 # List your VPS instances as JSON
 ohv-cli vps list --json
@@ -25,13 +25,13 @@ ohv-cli vps list --json
 
 ```bash
 # Bash
-eval "$(ovh-cli completion bash)"
+eval "$(ovhcloud completion bash)"
 # Zsh
-eval "$(ovh-cli completion zsh)"
+eval "$(ovhcloud completion zsh)"
 # Fish
-ovh-cli completion fish | source
+ovhcloud completion fish | source
 # PowerShell
-ovh-cli completion powershell | Out-String | Invoke-Expression
+ovhcloud completion powershell | Out-String | Invoke-Expression
 ```
 
 Add the appropriate line to your shell’s startup file (`~/.bashrc`, `~/.zshrc`, etc.) to enable persistent autocompletion.
@@ -41,7 +41,7 @@ Add the appropriate line to your shell’s startup file (`~/.bashrc`, `~/.zshrc`
 ## Global Usage
 
 ```text
-ovh-cli [command] [flags]
+ovhcloud [command] [flags]
 ```
 
 ### Global Flags
@@ -52,7 +52,7 @@ ovh-cli [command] [flags]
 | `--ignore-errors` | Ignore errors of API calls made when listing items.  |
 | `--format <expr>` | Format output with a [gval] expression.              |
 | `--filter <expr>` | Filter lists output with a [gval] expression.        |
-| `-h`, `--help`    | Display help for `ovh-cli` or a specific command.    |
+| `-h`, `--help`    | Display help for `ovhcloud` or a specific command.    |
 | `--interactive`   | Produce interactive (prompt‑based) output.           |
 | `--json`          | Output data in JSON format.                          |
 | `--yaml`          | Output data in YAML format.                          |
@@ -74,7 +74,7 @@ ovh-cli [command] [flags]
 
 ## Command Reference
 
-Below is the full list of primary sub‑commands available at the time of writing. Each can be explored in depth with `ovh-cli <command> --help`.
+Below is the full list of primary sub‑commands available at the time of writing. Each can be explored in depth with `ovhcloud <command> --help`.
 
 | Command                              | Purpose                                                        |
 | ------------------------------------ | -------------------------------------------------------------- |
@@ -122,7 +122,7 @@ Below is the full list of primary sub‑commands available at the time of writin
 | **webhosting**                       | Manage **Web Hosting** plans.                                  |
 | **xdsl**                             | Manage standalone **xDSL** lines.                              |
 
-> **Tip**  Use `--json`, `--yaml`, or `--format` with a gval expression to integrate `ovh-cli` into scripts and automation pipelines.
+> **Tip**  Use `--json`, `--yaml`, or `--format` with a gval expression to integrate `ovhcloud` into scripts and automation pipelines.
 
 ---
 
@@ -130,17 +130,17 @@ Below is the full list of primary sub‑commands available at the time of writin
 
 | Task                                  | Command                                        |
 | ------------------------------------- | ---------------------------------------------- |
-| Log in and save credentials           | `ovh-cli login`                                |
-| List VPS instances (tabular)          | `ovh-cli vps list`                             |
-| Fetch details of a single VPS in JSON | `ovh-cli vps get <service_id> --json`          |
-| Reinstall a baremetal interactively   | `ovh-cli baremetal reinstall <id> --editor`    |
+| Log in and save credentials           | `ovhcloud login`                                |
+| List VPS instances (tabular)          | `ovhcloud vps list`                             |
+| Fetch details of a single VPS in JSON | `ovhcloud vps get <service_id> --json`          |
+| Reinstall a baremetal interactively   | `ovhcloud baremetal reinstall <id> --editor`    |
 
 ---
 
 ## Troubleshooting
 
 * **Verbose output** — Use `--debug` to inspect raw API calls and responses.
-* **Authentication issues** — Run `ovh-cli login` again to regenerate valid API keys.
+* **Authentication issues** — Run `ovhcloud login` again to regenerate valid API keys.
 * **Rate limits** — OVHcloud APIs impose rate limits; plan retries or exponential backoff in scripts.
 
 ---
@@ -152,4 +152,4 @@ Below is the full list of primary sub‑commands available at the time of writin
 
 ---
 
-*Documentation generated from built‑in `ovh-cli --help` output. Feel free to edit and extend as new commands or flags are released.*
+*Documentation generated from built‑in `ovhcloud --help` output. Feel free to edit and extend as new commands or flags are released.*

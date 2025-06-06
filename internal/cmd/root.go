@@ -15,7 +15,7 @@ import (
 var (
 	// rootCmd represents the base command when called without any subcommands
 	rootCmd = &cobra.Command{
-		Use:   "ovh-cli",
+		Use:   "ovhcloud",
 		Short: "CLI to manage your OVHcloud services",
 	}
 )
@@ -46,7 +46,7 @@ func init() {
 
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 		if http.Client == nil {
-			display.ExitError("API client is not initialized, please run `ovh-cli login` to authenticate")
+			display.ExitError("API client is not initialized, please run `ovhcloud login` to authenticate")
 		}
 	}
 }
