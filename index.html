@@ -14,9 +14,11 @@
       document.addEventListener("DOMContentLoaded", (event) => {
         document.getElementById("cmd").addEventListener("keyup", (e) => {
           if (e.keyCode === 13) {
-            const resCmd = exec(e.target.value);
-            console.log(resCmd);
-            document.getElementById("cmdResult").value += `${resCmd}\n`;
+            exec(e.target.value).then(async (response) => {
+                const message = await response.json();
+                console.log(message);
+                document.getElementById("cmdResult").value += `${message}\n`;
+            });
           }
         });
       });
