@@ -12,21 +12,25 @@ import (
 	"stash.ovh.net/api/ovh-cli/internal/http"
 )
 
-var (
-	// rootCmd represents the base command when called without any subcommands
-	rootCmd = &cobra.Command{
-		Use:   "ovhcloud",
-		Short: "CLI to manage your OVHcloud services",
-	}
-)
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
+	Use:   "ovhcloud",
+	Short: "CLI to manage your OVHcloud services",
+}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
+func Execute(args ...string) {
+	if len(args) != 0 {
+		rootCmd.SetArgs(args)
 	}
+
+	go func() {
+		err := rootCmd.Execute()
+		if err != nil {
+			os.Exit(1)
+		}
+	}()
 }
 
 func init() {

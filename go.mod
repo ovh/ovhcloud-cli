@@ -12,7 +12,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/ovh/go-ovh v1.7.0
+	github.com/ovh/go-ovh v1.7.1-0.20250609140538-4a2eb6d45c10
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	golang.org/x/sync v0.12.0
