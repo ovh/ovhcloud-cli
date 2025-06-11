@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -32,5 +33,7 @@ func GetHostingPrivateDatabase(_ *cobra.Command, args []string) {
 
 func EditHostingPrivateDatabase(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/hosting/privateDatabase/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/hosting/privateDatabase/{serviceName}", endpoint, hostingprivatedatabaseOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/hosting/privateDatabase/{serviceName}", endpoint, hostingprivatedatabaseOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }

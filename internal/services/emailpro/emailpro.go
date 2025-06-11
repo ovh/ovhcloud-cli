@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -32,5 +33,7 @@ func GetEmailPro(_ *cobra.Command, args []string) {
 
 func EditEmailPro(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/email/pro/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/email/pro/{service}", endpoint, emailproOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/email/pro/{service}", endpoint, emailproOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }

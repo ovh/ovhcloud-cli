@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -32,5 +33,7 @@ func GetVmwareCloudDirectorOrganization(_ *cobra.Command, args []string) {
 
 func EditVmwareCloudDirectorOrganization(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/v2/vmwareCloudDirector/organization/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/vmwareCloudDirector/organization/{organizationId}", url, vmwareclouddirectororganizationOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/vmwareCloudDirector/organization/{organizationId}", url, vmwareclouddirectororganizationOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }

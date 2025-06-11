@@ -28,12 +28,14 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 		if !replaceParamFile {
 			if _, err := os.Stat(paramFile); !errors.Is(err, os.ErrNotExist) {
 				display.ExitError("file %q already exists", paramFile)
+				return
 			}
 		}
 
 		examples, err := openapi.GetOperationRequestExamples(openapiSchema, path, method, nil)
 		if err != nil {
 			display.ExitError("failed to fetch parameter file examples: %s", err)
+			return
 		}
 
 		var choice string
@@ -41,12 +43,14 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 			_, choice, err = display.RunGenericChoicePicker("Please select a parameter example", examples)
 			if err != nil {
 				display.ExitError(err.Error())
+				return
 			}
 		}
 
 		if choice == "" {
 			if defaultContent == "" {
 				display.ExitWarning("No example selected, exiting...")
+				return
 			} else {
 				log.Print("No example chosen, using default value")
 				choice = defaultContent
@@ -56,11 +60,13 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 		tmplFile, err := os.Create(paramFile)
 		if err != nil {
 			display.ExitError("failed to create parameter file: %s", err)
+			return
 		}
 		defer tmplFile.Close()
 
 		if _, err := tmplFile.WriteString(choice); err != nil {
 			display.ExitError("error writing parameter file: %s", err)
+			return
 		}
 
 		fmt.Printf("\n⚡️ Parameter file written at %s\n", paramFile)

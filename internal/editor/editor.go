@@ -8,7 +8,6 @@ import (
 	"slices"
 
 	"github.com/ovh/go-ovh/ovh"
-	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/openapi"
 )
 
@@ -50,11 +49,11 @@ func EditValueWithEditor(value []byte) ([]byte, error) {
 	return b, nil
 }
 
-func EditResource(client *ovh.Client, path, url string, openapiSpec []byte) {
+func EditResource(client *ovh.Client, path, url string, openapiSpec []byte) error {
 	// Fetch resource
 	var object map[string]any
 	if err := client.Get(url, &object); err != nil {
-		display.ExitError("error fetching resource %s: %s\n", url, err)
+		return fmt.Errorf("error fetching resource %s: %w", url, err)
 	}
 
 	// Filter editable fields
@@ -65,30 +64,32 @@ func EditResource(client *ovh.Client, path, url string, openapiSpec []byte) {
 		object,
 	)
 	if err != nil {
-		display.ExitError("failed to extract writable properties: %s", err)
+		return fmt.Errorf("failed to extract writable properties: %w", err)
 	}
 
 	// Format editable body
 	editableOutput, err := json.MarshalIndent(editableBody, "", "  ")
 	if err != nil {
-		display.ExitError("failed to marshal writable body: %s", err)
+		return fmt.Errorf("failed to marshal writable body: %w", err)
 	}
 
 	// Edit value
 	updatedBody, err := EditValueWithEditor(editableOutput)
 	if err != nil {
-		display.ExitError("failed to edit properties: %s", err)
+		return fmt.Errorf("failed to edit properties: %w", err)
 	}
 
 	if slices.Equal(updatedBody, editableOutput) {
 		fmt.Println("\n🟠 Resource not updated, exiting")
-		return
+		return nil
 	}
 
 	// Update API call
 	if err := client.Put(url, json.RawMessage(updatedBody), nil); err != nil {
-		display.ExitError("failed to update resource: %s", err)
+		return fmt.Errorf("failed to update resource: %w", err)
 	}
 
 	fmt.Println("\n✅ Resource updated succesfully ...")
+
+	return nil
 }

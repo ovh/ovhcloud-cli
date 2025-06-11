@@ -27,7 +27,7 @@ func Execute(args ...string) (string, error) {
 
 	err := rootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		return display.ResultString, err
 	}
 
 	return display.ResultString, display.ResultError
@@ -51,6 +51,7 @@ func init() {
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 		if http.Client == nil {
 			display.ExitError("API client is not initialized, please run `ovhcloud login` to authenticate")
+			os.Exit(1) // Force os.Exit even in WASM mode
 		}
 	}
 }

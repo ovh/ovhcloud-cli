@@ -20,7 +20,9 @@ func execCLI() js.Func {
 			go func() {
 				out, err := cmd.Execute(cmdLine...)
 				if err != nil {
-					reject.Invoke(err)
+					errorConstructor := js.Global().Get("Error")
+					errorObject := errorConstructor.New(err.Error())
+					reject.Invoke(errorObject)
 					return
 				}
 
@@ -35,6 +37,7 @@ func execCLI() js.Func {
 			}()
 			return nil
 		})
+
 		promiseConstructor := js.Global().Get("Promise")
 		return promiseConstructor.New(handler)
 	})

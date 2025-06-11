@@ -33,7 +33,9 @@ func GetIp(_ *cobra.Command, args []string) {
 
 func EditIp(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/ip/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/ip/{ip}", url, ipOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/ip/{ip}", url, ipOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }
 
 func IpSetReverse(_ *cobra.Command, args []string) {
@@ -43,6 +45,7 @@ func IpSetReverse(_ *cobra.Command, args []string) {
 		"reverse":   args[2],
 	}, nil); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 
 	fmt.Println("\n⚡️ Reverse correctly set")
@@ -57,6 +60,7 @@ func IpDeleteReverse(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/ip/%s/reverse/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(url, nil); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 
 	fmt.Println("\n⚡️ Reverse correctly deleted")

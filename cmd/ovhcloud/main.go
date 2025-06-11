@@ -3,9 +3,13 @@
 package main
 
 import (
+	"os"
+
 	"stash.ovh.net/api/ovh-cli/internal/cmd"
 )
 
 func main() {
-	cmd.Execute()
+	if _, err := cmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }

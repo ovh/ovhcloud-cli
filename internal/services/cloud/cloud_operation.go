@@ -3,7 +3,6 @@ package cloud
 import (
 	_ "embed"
 	"fmt"
-	"net/url"
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
@@ -21,23 +20,34 @@ var (
 )
 
 func ListCloudOperations(_ *cobra.Command, _ []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
 
 	var operations []map[string]any
-	err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/operation", projectID), &operations)
+	err = httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/operation", projectID), &operations)
 	if err != nil {
 		display.ExitError("failed to fetch results: %s", err)
+		return
 	}
 
 	operations, err = filtersLib.FilterLines(operations, flags.GenericFilters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(operations, cloudprojectOperationColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
 func GetCloudOperation(_ *cobra.Command, args []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
 	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/operation", projectID), args[0], cloudOperationTemplate)
 }

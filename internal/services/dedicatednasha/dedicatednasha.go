@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -32,5 +33,7 @@ func GetDedicatedNasHA(_ *cobra.Command, args []string) {
 
 func EditDedicatedNasHA(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/dedicated/nasha/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/dedicated/nasha/{serviceName}", endpoint, dedicatednashaOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/dedicated/nasha/{serviceName}", endpoint, dedicatednashaOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }
