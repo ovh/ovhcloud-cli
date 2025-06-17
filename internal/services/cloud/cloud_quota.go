@@ -17,12 +17,17 @@ var (
 )
 
 func GetCloudQuota(_ *cobra.Command, args []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
 	url := fmt.Sprintf("/cloud/project/%s/region/%s/quota", projectID, url.PathEscape(args[0]))
 
 	var object map[string]any
 	if err := httpLib.Client.Get(url, &object); err != nil {
 		display.ExitError("error fetching quotas for region %s: %s", args[0], err)
+		return
 	}
 
 	display.OutputObject(object, args[0], cloudQuotaTemplate, &flags.OutputFormatConfig)

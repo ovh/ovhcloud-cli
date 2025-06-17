@@ -84,6 +84,7 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := httpLib.Client.Get(path, &object); err != nil {
 		display.ExitError("error fetching %s: %s\n", path, err)
+		return
 	}
 
 	// Fetch running tasks
@@ -91,6 +92,7 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 	tasks, err := httpLib.FetchExpandedArray(path, "")
 	if err != nil {
 		display.ExitError("error fetching tasks for %s: %s", args[0], err)
+		return
 	}
 	object["tasks"] = tasks
 
@@ -99,6 +101,7 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 	var network map[string]any
 	if err := httpLib.Client.Get(path, &network); err != nil {
 		display.ExitError("error fetching network specifications for %s: %s\n", args[0], err)
+		return
 	}
 	object["network"] = network
 
@@ -106,6 +109,7 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 	var serviceInfo map[string]any
 	if err := httpLib.Client.Get(path, &serviceInfo); err != nil {
 		display.ExitError("error fetching billing information for %s: %s\n", args[0], err)
+		return
 	}
 	object["serviceInfo"] = serviceInfo
 
@@ -114,7 +118,9 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 
 func EditBaremetal(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/dedicated/server/{serviceName}", url, BaremetalOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/dedicated/server/{serviceName}", url, BaremetalOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }
 
 func RebootBaremetal(_ *cobra.Command, args []string) {
@@ -122,6 +128,7 @@ func RebootBaremetal(_ *cobra.Command, args []string) {
 
 	if err := httpLib.Client.Post(url, nil, nil); err != nil {
 		display.ExitError("error rebooting server %s: %s\n", args[0], err)
+		return
 	}
 
 	fmt.Println("\n⚡️ Reboot launched ...")
@@ -133,10 +140,12 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 	var boots []int
 	if err := httpLib.Client.Get(endpoint, &boots); err != nil {
 		display.ExitError("failed to fetch boot options: %s", err)
+		return
 	}
 
 	if len(boots) == 0 {
 		display.ExitError("no boot found for rescue mode")
+		return
 	}
 
 	// Update server with boot ID
@@ -145,6 +154,7 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 		"bootId": boots[0],
 	}, nil); err != nil {
 		display.ExitError("failed to set boot ID %d for server: %s", boots[0], err)
+		return
 	}
 
 	// Reboot server
@@ -153,6 +163,7 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 	var task map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &task); err != nil {
 		display.ExitError("failed to reboot server: %s", err)
+		return
 	}
 
 	if !flags.WaitForTask {
@@ -162,6 +173,7 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 
 	if err := waitForDedicatedServerTask(args[0], task["taskId"]); err != nil {
 		display.ExitError("failed to wait for server to be rebooted: %s", err)
+		return
 	}
 
 	fmt.Println("\n⚡️ Reboot done, fetching new authentication secrets...")
@@ -211,10 +223,12 @@ func BaremetalGetIPMIAccess(_ *cobra.Command, args []string) {
 	var task map[string]any
 	if err := httpLib.Client.Post(path, parameters, &task); err != nil {
 		display.ExitError("failed to request IMPI access: %s", err)
+		return
 	}
 
 	if err := waitForDedicatedServerTask(args[0], task["taskId"]); err != nil {
 		display.ExitError("failed waiting for task: %s", err)
+		return
 	}
 
 	path += "?type=" + url.QueryEscape(BaremetalIpmiAccessType)
@@ -222,6 +236,7 @@ func BaremetalGetIPMIAccess(_ *cobra.Command, args []string) {
 	var accessDetails map[string]any
 	if err := httpLib.Client.Get(path, &accessDetails); err != nil {
 		display.ExitError("failed to fetch IPMI access information: %s", err)
+		return
 	}
 
 	output := fmt.Sprintf("\n⚡️ IPMI access: %s", accessDetails["value"])
@@ -238,6 +253,7 @@ func ListBaremetalInterventions(_ *cobra.Command, args []string) {
 	interventions, err := httpLib.FetchExpandedArray(path, "")
 	if err != nil {
 		display.ExitError("failed to fetch past interventions: %s", err)
+		return
 	}
 
 	for _, inter := range interventions {
@@ -248,6 +264,7 @@ func ListBaremetalInterventions(_ *cobra.Command, args []string) {
 	plannedInterventions, err := httpLib.FetchExpandedArray(path, "")
 	if err != nil {
 		display.ExitError("failed to fetch planned interventions: %s", err)
+		return
 	}
 
 	for _, inter := range plannedInterventions {
@@ -259,6 +276,7 @@ func ListBaremetalInterventions(_ *cobra.Command, args []string) {
 	plannedInterventions, err = filtersLib.FilterLines(plannedInterventions, flags.GenericFilters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(plannedInterventions, []string{"type", "date", "status"}, &flags.OutputFormatConfig)
@@ -270,6 +288,7 @@ func ListBaremetalBoots(_ *cobra.Command, args []string) {
 	boots, err := httpLib.FetchExpandedArray(path, "")
 	if err != nil {
 		display.ExitError("error fetching boot options for server %q: %s", args[0], err)
+		return
 	}
 
 	for _, boot := range boots {
@@ -278,6 +297,7 @@ func ListBaremetalBoots(_ *cobra.Command, args []string) {
 		options, err := httpLib.FetchExpandedArray(path, "")
 		if err != nil {
 			display.ExitError("error fetching options of boot %d for server %s: %s", boot["bootId"], args[0], err)
+			return
 		}
 
 		boot["options"] = options
@@ -286,6 +306,7 @@ func ListBaremetalBoots(_ *cobra.Command, args []string) {
 	boots, err = filtersLib.FilterLines(boots, flags.GenericFilters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(boots, []string{"bootId", "bootType", "description", "kernel"}, &flags.OutputFormatConfig)
@@ -295,6 +316,7 @@ func SetBaremetalBootId(_ *cobra.Command, args []string) {
 	bootID, err := strconv.Atoi(args[1])
 	if err != nil {
 		display.ExitError("invalid boot ID given, expected a number")
+		return
 	}
 
 	url := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
@@ -302,6 +324,7 @@ func SetBaremetalBootId(_ *cobra.Command, args []string) {
 		"bootId": bootID,
 	}, nil); err != nil {
 		display.ExitError("error setting boot ID: %s", err)
+		return
 	}
 
 	fmt.Printf("\n✅ Boot ID %d correctly configured\n", bootID)
@@ -317,17 +340,20 @@ func SetBaremetalBootScript(_ *cobra.Command, args []string) {
 		script, err = editor.EditValueWithEditor(nil)
 		if err != nil {
 			display.ExitError("failed to edit installation parameters using editor: %s", err)
+			return
 		}
 	} else {
 		fd, err := os.Open(InstallationFile)
 		if err != nil {
 			display.ExitError("failed to open given file: %s", err)
+			return
 		}
 		defer fd.Close()
 
 		script, err = io.ReadAll(fd)
 		if err != nil {
 			display.ExitError("failed to read installation file: %s", err)
+			return
 		}
 	}
 
@@ -336,6 +362,7 @@ func SetBaremetalBootScript(_ *cobra.Command, args []string) {
 		"bootScript": string(script),
 	}, nil); err != nil {
 		display.ExitError("error setting boot script: %s", err)
+		return
 	}
 
 	fmt.Println("\n✅ Boot script correctly configured")
@@ -364,6 +391,7 @@ func ResetBaremetalOLAAggregation(_ *cobra.Command, args []string) {
 			"virtualNetworkInterface": itf,
 		}, nil); err != nil {
 			display.ExitError("failed to reset interface %s: %s", itf, err)
+			return
 		}
 		fmt.Printf("✅ Interface %s reset to default configuration ...\n", itf)
 	}
@@ -386,10 +414,12 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	})
 	if err != nil {
 		display.ExitError("failed to prepare arguments from command line: %s", err)
+		return
 	}
 	var cliParameters map[string]any
 	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
 		display.ExitError("failed to parse arguments from command line: %s", err)
+		return
 	}
 
 	var parameters map[string]any
@@ -402,10 +432,12 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		}
 		if err := scanner.Err(); err != nil {
 			display.ExitError(err.Error())
+			return
 		}
 
 		if err := json.Unmarshal(stdin, &parameters); err != nil {
 			display.ExitError("failed to parse given installation data: %s", err)
+			return
 		}
 	} else if InstallViaEditor {
 		log.Print("Flag --editor used, all other flags will override the example values")
@@ -413,24 +445,29 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		examples, err := openapi.GetOperationRequestExamples(BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", cliParameters)
 		if err != nil {
 			display.ExitError("failed to fetch API call examples: %s", err)
+			return
 		}
 
 		_, choice, err := display.RunGenericChoicePicker("Please select an installation example", examples)
 		if err != nil {
 			display.ExitError(err.Error())
+			return
 		}
 
 		if choice == "" {
 			display.ExitWarning("No installation example selected, exiting...")
+			return
 		}
 
 		newValue, err := editor.EditValueWithEditor([]byte(choice))
 		if err != nil {
 			display.ExitError("failed to edit installation parameters using editor: %s", err)
+			return
 		}
 
 		if err := json.Unmarshal(newValue, &parameters); err != nil {
 			display.ExitError("failed to parse given installation parameters: %s", err)
+			return
 		}
 	} else if InstallationFile != "" { // Install data given in a file
 		log.Print("Flag --installation-file used, all other flags will override the file values")
@@ -438,16 +475,19 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		fd, err := os.Open(InstallationFile)
 		if err != nil {
 			display.ExitError("failed to open given file: %s", err)
+			return
 		}
 		defer fd.Close()
 
 		content, err := io.ReadAll(fd)
 		if err != nil {
 			display.ExitError("failed to read installation file: %s", err)
+			return
 		}
 
 		if err := json.Unmarshal(content, &parameters); err != nil {
 			display.ExitError("failed to parse given installation file: %s", err)
+			return
 		}
 	}
 
@@ -461,11 +501,13 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	// Check if at least an OS was provided as it is mandatory
 	if os, ok := parameters["operatingSystem"]; !ok || os == "" {
 		display.ExitError("operating system parameter is mandatory to trigger a reinstallation")
+		return
 	}
 
 	out, err := json.MarshalIndent(parameters, "", " ")
 	if err != nil {
 		display.ExitError("installation parameters cannot be marshalled: %s", err)
+		return
 	}
 
 	log.Println("Installation parameters: \n" + string(out))
@@ -474,6 +516,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	url := fmt.Sprintf("/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(url, parameters, &task); err != nil {
 		display.ExitError("error reinstalling server %s: %s\n", args[0], err)
+		return
 	}
 
 	fmt.Println("\n⚡️ Reinstallation started ...")
@@ -484,6 +527,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 
 	if err := waitForDedicatedServerTask(args[0], task["taskId"]); err != nil {
 		display.ExitError("failed to wait for server to be reinstalled: %s", err)
+		return
 	}
 
 	fmt.Println("\n⚡️ Reinstall done, fetching new authentication secrets...")
@@ -498,16 +542,19 @@ func GetBaremetalRelatedIPs(_ *cobra.Command, args []string) {
 	var ips []any
 	if err := httpLib.Client.Get(path, &ips); err != nil {
 		display.ExitError("failed to fetch IPs related to baremetal %s: %s", args[0], err)
+		return
 	}
 
 	ipsExpanded, err := httpLib.FetchObjectsParallel[map[string]any]("/ip/%s", ips, flags.IgnoreErrors)
 	if err != nil {
 		display.ExitError("failed to fetch objects for each IP: %s", err)
+		return
 	}
 
 	ipsExpanded, err = filtersLib.FilterLines(ipsExpanded, flags.GenericFilters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(ipsExpanded, []string{"ip", "type", "description", "campus"}, &flags.OutputFormatConfig)
@@ -519,6 +566,7 @@ func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
 	var allSecrets []map[string]any
 	if err := httpLib.Client.Post(path, nil, &allSecrets); err != nil {
 		display.ExitError("failed to fetch secrets IDs: %s", err)
+		return
 	}
 
 	for _, secret := range allSecrets {
@@ -528,6 +576,7 @@ func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
 				"id": secretID,
 			}, &secretValue); err != nil {
 				display.ExitError("failed to retrieve secret value: %s", err)
+				return
 			}
 			maps.Copy(secret, secretValue)
 		}
@@ -536,6 +585,7 @@ func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
 	allSecrets, err := filtersLib.FilterLines(allSecrets, flags.GenericFilters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(allSecrets, []string{"type", "url", "user", "secret", "expiration"}, &flags.OutputFormatConfig)
@@ -547,6 +597,7 @@ func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
 	var oses map[string]any
 	if err := httpLib.Client.Get(path, &oses); err != nil {
 		display.ExitError("failed to fetch compatible OSes: %s", err)
+		return
 	}
 
 	var formattedValues []map[string]any
@@ -566,6 +617,7 @@ func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
 	formattedValues, err := filtersLib.FilterLines(formattedValues, flags.GenericFilters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(formattedValues, []string{"source", "name"}, &flags.OutputFormatConfig)

@@ -45,6 +45,7 @@ func GetIAMPolicy(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := httpLib.Client.Get(path, &object); err != nil {
 		display.ExitError("error fetching IAM policy %s: %s", args[0], err)
+		return
 	}
 
 	display.OutputObject(object, args[0], iamPolicyTemplate, &flags.OutputFormatConfig)
@@ -52,7 +53,9 @@ func GetIAMPolicy(_ *cobra.Command, args []string) {
 
 func EditIAMPolicy(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/v2/iam/policy/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/iam/policy/{policyId}", url, iamOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/iam/policy/{policyId}", url, iamOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }
 
 func ListIAMPermissionsGroups(_ *cobra.Command, _ []string) {
@@ -65,7 +68,9 @@ func GetIAMPermissionsGroup(_ *cobra.Command, args []string) {
 
 func EditIAMPermissionsGroup(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/v2/iam/permissionsGroup/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/iam/permissionsGroup/{permissionsGroupURN}", url, iamOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/iam/permissionsGroup/{permissionsGroupURN}", url, iamOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }
 
 func ListIAMResources(_ *cobra.Command, _ []string) {
@@ -78,7 +83,9 @@ func GetIAMResource(_ *cobra.Command, args []string) {
 
 func EditIAMResource(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/v2/iam/resource/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/iam/resource/{resourceURN}", url, iamOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/iam/resource/{resourceURN}", url, iamOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }
 
 func ListIAMResourceGroups(_ *cobra.Command, _ []string) {
@@ -91,6 +98,7 @@ func GetIAMResourceGroup(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := httpLib.Client.Get(path, &object); err != nil {
 		display.ExitError("error fetching IAM resource group %s: %s", args[0], err)
+		return
 	}
 
 	display.OutputObject(object, args[0], iamResourceGroupTemplate, &flags.OutputFormatConfig)
@@ -98,5 +106,7 @@ func GetIAMResourceGroup(_ *cobra.Command, args []string) {
 
 func EditIAMResourceGroup(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/v2/iam/resourceGroup/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/iam/resourceGroup/{groupId}", url, iamOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/iam/resourceGroup/{groupId}", url, iamOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }

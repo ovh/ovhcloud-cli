@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -32,5 +33,7 @@ func GetWebHosting(_ *cobra.Command, args []string) {
 
 func EditWebHosting(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/hosting/web/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/hosting/web/{serviceName}", url, webhostingOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/hosting/web/{serviceName}", url, webhostingOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }

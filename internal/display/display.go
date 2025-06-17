@@ -1,3 +1,5 @@
+//go:build !(js && wasm)
+
 package display
 
 import (
@@ -11,6 +13,7 @@ import (
 	"text/template"
 
 	"github.com/PaesslerAG/gval"
+	fxdisplay "github.com/amstuta/fx/display"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -18,12 +21,6 @@ import (
 	"gopkg.in/ini.v1"
 	"stash.ovh.net/api/ovh-cli/internal/filters"
 )
-
-// Common flags used by all subcommands to control output format (json, yaml)
-type OutputFormat struct {
-	JsonOutput, YamlOutput, InteractiveOutput bool
-	CustomFormat                              string
-}
 
 func renderCustomFormat(value any, format string) {
 	ev, err := gval.Full(filters.AdditionalEvaluators...).NewEvaluable(format)
@@ -269,6 +266,14 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 		}
 		fmt.Print(out)
 	}
+}
+
+func displayInteractive(value any) {
+	bytes, err := json.Marshal(value)
+	if err != nil {
+		ExitError("error preparing interactive output: %s", err)
+	}
+	fxdisplay.Display(bytes, "")
 }
 
 func ExitError(message string, params ...any) {

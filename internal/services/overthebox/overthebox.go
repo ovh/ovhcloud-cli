@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -32,5 +33,7 @@ func GetOverTheBox(_ *cobra.Command, args []string) {
 
 func EditOverTheBox(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/overTheBox/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/overTheBox/{serviceName}", url, overtheboxOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/overTheBox/{serviceName}", url, overtheboxOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }

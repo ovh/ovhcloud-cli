@@ -30,6 +30,7 @@ func GetDomainZone(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := httpLib.Client.Get(path, &object); err != nil {
 		display.ExitError("error fetching %s: %s\n", path, err)
+		return
 	}
 
 	// Fetch running tasks
@@ -37,6 +38,7 @@ func GetDomainZone(_ *cobra.Command, args []string) {
 	records, err := httpLib.FetchExpandedArray(path, "")
 	if err != nil {
 		display.ExitError("error fetching records for %s: %s", args[0], err)
+		return
 	}
 	object["records"] = records
 

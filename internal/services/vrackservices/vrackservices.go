@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -32,5 +33,7 @@ func GetVrackServices(_ *cobra.Command, args []string) {
 
 func EditVrackServices(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/v2/vrackServices/resource/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/vrackServices/resource/{vrackServicesId}", endpoint, vrackservicesOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/vrackServices/resource/{vrackServicesId}", endpoint, vrackservicesOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }

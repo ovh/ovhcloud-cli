@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -23,7 +24,7 @@ var (
 )
 
 func ListStorageNetApp(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/storage/netapp", "", storagenetappColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequestNoExpand("/storage/netapp", storagenetappColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetStorageNetApp(_ *cobra.Command, args []string) {
@@ -32,5 +33,7 @@ func GetStorageNetApp(_ *cobra.Command, args []string) {
 
 func EditStorageNetApp(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/storage/netapp/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/storage/netapp/{serviceName}", endpoint, storagenetappOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/storage/netapp/{serviceName}", endpoint, storagenetappOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }

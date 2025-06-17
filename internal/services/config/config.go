@@ -25,9 +25,11 @@ func SetConfig(_ *cobra.Command, args []string) {
 	if _, ok := config.ConfigurableFields[args[0]]; !ok {
 		allowedKeys := slices.Collect(maps.Keys(config.ConfigurableFields))
 		display.ExitError("unknown configuration field %q, customizable fields are: %s", args[0], allowedKeys)
+		return
 	}
 	if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, "", args[0], args[1]); err != nil {
 		display.ExitError("failed to set configuration: %s", err)
+		return
 	}
 }
 
@@ -41,10 +43,12 @@ func SetEndpoint(_ *cobra.Command, args []string) {
 		url, err := url.Parse(args[0])
 		if err != nil {
 			display.ExitError("invalid API endpoint %q, valid values are [EU, CA, US] or a valid URL", args[0])
+			return
 		}
 
 		if url.Scheme != "https" && url.Scheme != "http" {
 			display.ExitError(`given url has an invalid scheme, only "http" and "https" are allowed`)
+			return
 		}
 
 		endpoint = args[0]
@@ -52,5 +56,6 @@ func SetEndpoint(_ *cobra.Command, args []string) {
 
 	if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, "", "endpoint", endpoint); err != nil {
 		display.ExitError("failed to set API endpoint configuration: %s", err)
+		return
 	}
 }

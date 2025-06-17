@@ -28,11 +28,16 @@ var (
 )
 
 func ListCloudPrivateNetworks(_ *cobra.Command, _ []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
 
 	body, err := httpLib.FetchExpandedArray(fmt.Sprintf("/cloud/project/%s/network/private", projectID), "id")
 	if err != nil {
 		display.ExitError("failed to fetch results: %s", err)
+		return
 	}
 
 	flattenedBody := []map[string]any{}
@@ -58,18 +63,24 @@ func ListCloudPrivateNetworks(_ *cobra.Command, _ []string) {
 	body, err = filtersLib.FilterLines(flattenedBody, flags.GenericFilters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(body, cloudprojectNetworkColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
 func GetCloudPrivateNetwork(_ *cobra.Command, args []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
 	path := fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
 
 	var object map[string]any
 	if err := httpLib.Client.Get(path, &object); err != nil {
 		display.ExitError("error fetching %s: %s", path, err)
+		return
 	}
 
 	for _, region := range object["regions"].([]any) {
@@ -84,6 +95,7 @@ func GetCloudPrivateNetwork(_ *cobra.Command, args []string) {
 		var subnets []map[string]any
 		if err := httpLib.Client.Get(path, &subnets); err != nil {
 			display.ExitError("error fetching %s: %s", path, err)
+			return
 		}
 
 		region["subnets"] = subnets
@@ -93,18 +105,30 @@ func GetCloudPrivateNetwork(_ *cobra.Command, args []string) {
 }
 
 func EditCloudPrivateNetwork(_ *cobra.Command, args []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
 	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/network/private/{networkId}", endpoint, cloudOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/network/private/{networkId}", endpoint, cloudOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }
 
 func ListCloudPublicNetworks(_ *cobra.Command, _ []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
 
 	var body []map[string]any
-	err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/public", projectID), &body)
+	err = httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/public", projectID), &body)
 	if err != nil {
 		display.ExitError("failed to fetch results: %s", err)
+		return
 	}
 
 	flattenedBody := []map[string]any{}
@@ -130,18 +154,24 @@ func ListCloudPublicNetworks(_ *cobra.Command, _ []string) {
 	body, err = filtersLib.FilterLines(flattenedBody, flags.GenericFilters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(body, cloudprojectNetworkColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
 func GetCloudPublicNetwork(_ *cobra.Command, args []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
 
 	var allNetworks []map[string]any
-	err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/public", projectID), &allNetworks)
+	err = httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/public", projectID), &allNetworks)
 	if err != nil {
 		display.ExitError("failed to fetch public networks: %s", err)
+		return
 	}
 
 	var object map[string]any
@@ -155,6 +185,7 @@ func GetCloudPublicNetwork(_ *cobra.Command, args []string) {
 
 	if object == nil {
 		display.ExitError("no public network found with ID %q", args[0])
+		return
 	}
 
 	for _, region := range object["regions"].([]any) {
@@ -169,6 +200,7 @@ func GetCloudPublicNetwork(_ *cobra.Command, args []string) {
 		var subnets []map[string]any
 		if err := httpLib.Client.Get(path, &subnets); err != nil {
 			display.ExitError("error fetching %s: %s", path, err)
+			return
 		}
 
 		region["subnets"] = subnets
@@ -178,12 +210,17 @@ func GetCloudPublicNetwork(_ *cobra.Command, args []string) {
 }
 
 func ListCloudGateways(_ *cobra.Command, _ []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
 
 	// Fetch regions with network feature available
 	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
 	if err != nil {
 		display.ExitError("failed to fetch regions with network feature available: %s", err)
+		return
 	}
 
 	// Fetch gateways in all regions
@@ -191,6 +228,7 @@ func ListCloudGateways(_ *cobra.Command, _ []string) {
 	gateways, err := httpLib.FetchObjectsParallel[[]map[string]any](url+"/%s/gateway", regions, true)
 	if err != nil {
 		display.ExitError("failed to fetch gateways: %s", err)
+		return
 	}
 
 	// Flatten gateways in a single array
@@ -203,18 +241,24 @@ func ListCloudGateways(_ *cobra.Command, _ []string) {
 	allGateways, err = filtersLib.FilterLines(allGateways, flags.GenericFilters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(allGateways, cloudprojectGatewayColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
 func GetCloudGateway(_ *cobra.Command, args []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
 
 	// Fetch regions with network feature available
 	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
 	if err != nil {
 		display.ExitError("failed to fetch regions with network feature available: %s", err)
+		return
 	}
 
 	// Search for the given gateway in all regions
@@ -231,18 +275,24 @@ func GetCloudGateway(_ *cobra.Command, args []string) {
 
 	if foundGateway == nil {
 		display.ExitError("no gateway found with given ID")
+		return
 	}
 
 	display.OutputObject(foundGateway, args[0], cloudGatewayTemplate, &flags.OutputFormatConfig)
 }
 
 func EditCloudGateway(_ *cobra.Command, args []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
 
 	// Fetch regions with network feature available
 	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
 	if err != nil {
 		display.ExitError("failed to fetch regions with network feature available: %s", err)
+		return
 	}
 
 	// Search for the given gateway in all regions
@@ -259,7 +309,10 @@ func EditCloudGateway(_ *cobra.Command, args []string) {
 
 	if foundURL == "" {
 		display.ExitError("no gateway found with given ID")
+		return
 	}
 
-	editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/region/{regionName}/gateway/{id}", foundURL, cloudOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/region/{regionName}/gateway/{id}", foundURL, cloudOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }

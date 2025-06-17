@@ -3,9 +3,9 @@ package cloud
 import (
 	_ "embed"
 	"fmt"
-	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
@@ -18,11 +18,21 @@ var (
 )
 
 func ListCloudRegions(_ *cobra.Command, _ []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
 	common.ManageListRequest(fmt.Sprintf("/cloud/project/%s/region", projectID), "", cloudprojectRegionColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudRegion(_ *cobra.Command, args []string) {
-	projectID := url.PathEscape(getConfiguredCloudProject())
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
 	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/region", projectID), args[0], cloudRegionTemplate)
 }

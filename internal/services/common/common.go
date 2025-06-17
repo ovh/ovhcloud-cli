@@ -14,11 +14,13 @@ func ManageListRequest(path, idField string, columnsToDisplay, filters []string)
 	body, err := httpLib.FetchExpandedArray(path, idField)
 	if err != nil {
 		display.ExitError("failed to fetch results: %s", err)
+		return
 	}
 
 	body, err = filtersLib.FilterLines(body, filters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(body, columnsToDisplay, &flags.OutputFormatConfig)
@@ -28,6 +30,7 @@ func ManageListRequestNoExpand(path string, columnsToDisplay, filters []string) 
 	body, err := httpLib.FetchArray(path, "")
 	if err != nil {
 		display.ExitError("failed to fetch results: %s", err)
+		return
 	}
 
 	var objects []map[string]any
@@ -38,6 +41,7 @@ func ManageListRequestNoExpand(path string, columnsToDisplay, filters []string) 
 	objects, err = filtersLib.FilterLines(objects, filters)
 	if err != nil {
 		display.ExitError("failed to filter results: %s", err)
+		return
 	}
 
 	display.RenderTable(objects, columnsToDisplay, &flags.OutputFormatConfig)
@@ -49,6 +53,7 @@ func ManageObjectRequest(path, objectID, templateContent string) {
 	var object map[string]any
 	if err := httpLib.Client.Get(url, &object); err != nil {
 		display.ExitError("error fetching %s: %s", url, err)
+		return
 	}
 
 	display.OutputObject(object, objectID, templateContent, &flags.OutputFormatConfig)

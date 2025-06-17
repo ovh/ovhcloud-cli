@@ -12,21 +12,25 @@ import (
 	"stash.ovh.net/api/ovh-cli/internal/http"
 )
 
-var (
-	// rootCmd represents the base command when called without any subcommands
-	rootCmd = &cobra.Command{
-		Use:   "ovhcloud",
-		Short: "CLI to manage your OVHcloud services",
-	}
-)
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
+	Use:   "ovhcloud",
+	Short: "CLI to manage your OVHcloud services",
+}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func Execute(args ...string) (string, error) {
+	if len(args) != 0 {
+		rootCmd.SetArgs(args)
+	}
+
 	err := rootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		return display.ResultString, err
 	}
+
+	return display.ResultString, display.ResultError
 }
 
 func init() {
@@ -47,6 +51,7 @@ func init() {
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 		if http.Client == nil {
 			display.ExitError("API client is not initialized, please run `ovhcloud login` to authenticate")
+			os.Exit(1) // Force os.Exit even in WASM mode
 		}
 	}
 }

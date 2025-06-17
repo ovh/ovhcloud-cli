@@ -23,6 +23,7 @@ func Login(_ *cobra.Command, _ []string) {
 	for k, v := range credentials {
 		if v == "" {
 			display.ExitWarning("no value provided for %q", k)
+			return
 		}
 	}
 
@@ -37,10 +38,12 @@ func Login(_ *cobra.Command, _ []string) {
 		_, path, err := display.RunGenericChoicePicker("Please choose a location to store your configuration", choices)
 		if err != nil {
 			display.ExitError("failed to select a config path: %s", err)
+			return
 		}
 
 		if path == "" {
 			display.ExitWarning("no config path selected, configuration not saved")
+			return
 		}
 
 		flags.CliConfigPath = path
@@ -59,6 +62,7 @@ func Login(_ *cobra.Command, _ []string) {
 	for k, v := range credentials {
 		if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, selectedRegion, k, v); err != nil {
 			display.ExitError("failed to write configuration %q: %s", k, err)
+			return
 		}
 	}
 }

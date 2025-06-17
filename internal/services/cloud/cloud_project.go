@@ -42,23 +42,25 @@ func GetCloudProject(_ *cobra.Command, args []string) {
 
 func EditCloudProject(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/cloud/project/%s", url.PathEscape(args[0]))
-	editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}", endpoint, cloudOpenapiSchema)
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}", endpoint, cloudOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
 }
 
-func getConfiguredCloudProject() string {
+func getConfiguredCloudProject() (string, error) {
 	if CloudProject != "" {
-		return CloudProject
+		return url.PathEscape(CloudProject), nil
 	}
 
 	projectID, err := config.GetConfigValue(flags.CliConfig, "", "default_cloud_project")
 	if err != nil {
-		display.ExitError("failed to fetch default cloud project: %s", err)
+		return "", fmt.Errorf("failed to fetch default cloud project: %w", err)
 	}
 	if projectID == "" {
-		display.ExitError("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration")
+		return "", fmt.Errorf("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration")
 	}
 
-	return projectID
+	return url.PathEscape(projectID), nil
 }
 
 func getCloudRegionsWithFeatureAvailable(projectID string, features ...string) ([]any, error) {
