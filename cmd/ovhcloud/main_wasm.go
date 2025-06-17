@@ -48,7 +48,6 @@ func registerCallbacks() {
 }
 
 func main() {
-	c := make(chan struct{})
 	registerCallbacks()
-	<-c
+	select {}
 }
