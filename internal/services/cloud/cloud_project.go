@@ -26,7 +26,7 @@ var (
 	cloudProjectTemplate string
 
 	//go:embed api-schemas/cloud.json
-	cloudOpenapiSchema []byte
+	CloudOpenapiSchema []byte
 
 	//go:embed api-schemas/cloud_v2.json
 	cloudV2OpenapiSchema []byte
@@ -42,7 +42,7 @@ func GetCloudProject(_ *cobra.Command, args []string) {
 
 func EditCloudProject(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/cloud/project/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}", endpoint, cloudOpenapiSchema); err != nil {
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}", endpoint, CloudOpenapiSchema); err != nil {
 		display.ExitError(err.Error())
 	}
 }

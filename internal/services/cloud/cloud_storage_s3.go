@@ -123,7 +123,7 @@ func EditStorageS3(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}", foundURL, cloudOpenapiSchema); err != nil {
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}", foundURL, CloudOpenapiSchema); err != nil {
 		display.ExitError(err.Error())
 	}
 }

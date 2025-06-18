@@ -68,14 +68,18 @@ func (m genericModel) View() string {
 	return listAndValue + currentValue
 }
 
-func RunGenericChoicePicker(question string, choices map[string]string) (string, string, error) {
+func RunGenericChoicePicker(question string, choices map[string]string, overrideHeight int) (string, string, error) {
 	var items []list.Item
 	for _, key := range slices.Sorted(maps.Keys(choices)) {
 		items = append(items, item(key))
 	}
 
 	const defaultWidth = 20
-	const listHeight = 10
+
+	listHeight := 10
+	if overrideHeight > 0 {
+		listHeight = overrideHeight
+	}
 
 	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
 	l.Title = question

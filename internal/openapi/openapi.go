@@ -72,6 +72,11 @@ func getRequestBodyFromSpec(spec []byte, path, method string) (*openapi3.MediaTy
 		pathItem = doc.Paths.Find(path)
 		op       *openapi3.Operation
 	)
+
+	if pathItem == nil {
+		return nil, fmt.Errorf("path %s not found in spec", path)
+	}
+
 	switch method {
 	case "put":
 		op = pathItem.Put

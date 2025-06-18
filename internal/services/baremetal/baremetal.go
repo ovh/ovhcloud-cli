@@ -401,7 +401,8 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	// No server ID given, print usage and exit
 	if len(args) == 0 {
 		cmd.Help()
-		os.Exit(1)
+		display.ExitError("reinstall command requires a server ID as the first argument.\nUsage:\n%s", cmd.UsageString())
+		return
 	}
 
 	// Create object from parameters given on command line
@@ -448,7 +449,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		_, choice, err := display.RunGenericChoicePicker("Please select an installation example", examples)
+		_, choice, err := display.RunGenericChoicePicker("Please select an installation example", examples, 0)
 		if err != nil {
 			display.ExitError(err.Error())
 			return

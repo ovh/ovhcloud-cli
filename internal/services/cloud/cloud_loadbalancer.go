@@ -48,7 +48,7 @@ func EditCloudLoadbalancer(_ *cobra.Command, args []string) {
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/loadbalancer/%s", projectID, url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/loadbalancer/{loadBalancerId}", endpoint, cloudOpenapiSchema); err != nil {
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/loadbalancer/{loadBalancerId}", endpoint, CloudOpenapiSchema); err != nil {
 		display.ExitError(err.Error())
 	}
 }

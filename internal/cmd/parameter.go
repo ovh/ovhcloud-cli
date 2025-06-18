@@ -40,7 +40,7 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 
 		var choice string
 		if len(examples) > 0 {
-			_, choice, err = display.RunGenericChoicePicker("Please select a parameter example", examples)
+			_, choice, err = display.RunGenericChoicePicker("Please select a parameter example", examples, 0)
 			if err != nil {
 				display.ExitError(err.Error())
 				return

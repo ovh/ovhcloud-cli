@@ -48,7 +48,7 @@ func EditKube(_ *cobra.Command, args []string) {
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/kube/{kubeId}", endpoint, cloudOpenapiSchema); err != nil {
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/kube/{kubeId}", endpoint, CloudOpenapiSchema); err != nil {
 		display.ExitError(err.Error())
 	}
 }

@@ -46,7 +46,7 @@ func EditContainerRegistry(_ *cobra.Command, args []string) {
 	}
 
 	url := fmt.Sprintf("/cloud/project/%s/containerRegistry/%s", projectID, url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/containerRegistry/{registryID}", url, cloudOpenapiSchema); err != nil {
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/containerRegistry/{registryID}", url, CloudOpenapiSchema); err != nil {
 		display.ExitError(err.Error())
 	}
 }
