@@ -1,0 +1,2 @@
+workflows:
+- API/stash_ovh_net/api/ovh-cli/Go
