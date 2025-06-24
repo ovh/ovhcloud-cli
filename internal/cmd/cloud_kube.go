@@ -33,5 +33,12 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.EditKube,
 	})
 
+	kubeCmd.AddCommand(&cobra.Command{
+		Use:   "delete <cluster_id>",
+		Short: "Delete the given Kubernetes cluster",
+		Run:   cloud.DeleteKube,
+		Args:  cobra.ExactArgs(1),
+	})
+
 	cloudCmd.AddCommand(kubeCmd)
 }

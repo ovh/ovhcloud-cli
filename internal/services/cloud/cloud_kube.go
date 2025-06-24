@@ -52,3 +52,19 @@ func EditKube(_ *cobra.Command, args []string) {
 		display.ExitError(err.Error())
 	}
 }
+
+func DeleteKube(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.ExitError("failed to delete MKS cluster: %s", err)
+		return
+	}
+
+	fmt.Println("\n✅ MKS cluster deleted successfully")
+}

@@ -480,13 +480,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		}
 		defer fd.Close()
 
-		content, err := io.ReadAll(fd)
-		if err != nil {
-			display.ExitError("failed to read installation file: %s", err)
-			return
-		}
-
-		if err := json.Unmarshal(content, &parameters); err != nil {
+		if err := json.NewDecoder(fd).Decode(&parameters); err != nil {
 			display.ExitError("failed to parse given installation file: %s", err)
 			return
 		}

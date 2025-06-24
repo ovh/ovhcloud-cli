@@ -14,7 +14,7 @@ func TestFilterLines_NoFilters(t *testing.T) {
 	}
 	result, err := FilterLines(values, nil)
 
-	td.Require(t).CmpNoError(err)
+	td.CmpNoError(t, err)
 	td.Cmp(t, result, values)
 }
 
@@ -25,9 +25,8 @@ func TestFilterLines_SimpleEquality(t *testing.T) {
 	}
 	result, err := FilterLines(values, []string{`name == "foo"`})
 
-	td.Require(t).CmpNoError(err)
-	td.Require(t).Len(result, 1)
-	td.Cmp(t, "foo", result[0]["name"])
+	td.CmpNoError(t, err)
+	td.Cmp(t, result, values[0:1])
 }
 
 func TestFilterLines_MultipleFilters(t *testing.T) {
@@ -38,9 +37,8 @@ func TestFilterLines_MultipleFilters(t *testing.T) {
 	}
 	result, err := FilterLines(values, []string{`name == "foo"`, `active == true`})
 
-	td.Require(t).CmpNoError(err)
-	td.Require(t).Len(result, 1)
-	td.Cmp(t, 1, result[0]["id"])
+	td.CmpNoError(t, err)
+	td.Cmp(t, result, values[0:1])
 }
 
 func TestFilterLines_JsonNumberComparison(t *testing.T) {
@@ -50,18 +48,18 @@ func TestFilterLines_JsonNumberComparison(t *testing.T) {
 	}
 	result, err := FilterLines(values, []string{`score > 6`})
 
-	td.Require(t).CmpNoError(err)
-	td.Require(t).Len(result, 1)
-	td.Cmp(t, json.Number("1"), result[0]["id"])
+	td.CmpNoError(t, err)
+	td.Cmp(t, result, values[0:1])
 }
 
 func TestFilterLines_OperatorError(t *testing.T) {
 	values := []map[string]any{
 		{"id": 1, "name": "foo"},
 	}
-	_, err := FilterLines(values, []string{`name >`})
+	result, err := FilterLines(values, []string{`name >`})
 
-	td.CmpError(t, err, "failed to parse filter `name >`: syntax error at position 5: unexpected end of input")
+	td.CmpEmpty(t, result)
+	td.CmpContains(t, err, `failed to parse filter "name >": parsing error`)
 }
 
 func TestFilterLines_IntAndStringComparison(t *testing.T) {
@@ -69,14 +67,15 @@ func TestFilterLines_IntAndStringComparison(t *testing.T) {
 		{"id": 1, "name": "foo"},
 	}
 
-	_, err := FilterLines(values, []string{`name > 1`})
+	result, err := FilterLines(values, []string{`name > 1`})
 
 	td.CmpNoError(t, err)
+	td.CmpEmpty(t, result)
 }
 
 func TestFilterLines_EmptyValues(t *testing.T) {
 	result, err := FilterLines([]map[string]any{}, []string{`id == 1`})
 
-	td.Require(t).CmpNoError(err)
+	td.CmpNoError(t, err)
 	td.CmpEmpty(t, result)
 }

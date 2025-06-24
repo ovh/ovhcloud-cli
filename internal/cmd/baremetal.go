@@ -81,7 +81,7 @@ There are three ways to define the installation parameters:
 
   ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --os byolinux_64 --language fr-fr --image-url https://...
 
-2. Using a configuration file
+2. Using a configuration file:
 
   First you can generate an example of installation file using the following command:
 
@@ -100,7 +100,7 @@ There are three ways to define the installation parameters:
 
 	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json --hostname new-hostname
 
-3. Using your default text editor
+3. Using your default text editor:
 
   ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --editor
 
@@ -121,7 +121,7 @@ Please note that all parameters are not compatible with all OSes.
 		Run:        baremetal.ReinstallBaremetal,
 	}
 
-	addInitParameterFileFlag(reinstallBaremetalCmd, baremetal.BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetal.BaremetalInstallationExample)
+	addInitParameterFileFlag(reinstallBaremetalCmd, baremetal.BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetal.BaremetalInstallationExample, nil)
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.InstallationFile, "from-file", "", "File containing installation parameters")
 	reinstallBaremetalCmd.Flags().BoolVar(&baremetal.InstallViaEditor, "editor", false, "Use a text editor to define installation parameters")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.OperatingSystem, "os", "", "Operating system to install")

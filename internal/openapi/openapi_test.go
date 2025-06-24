@@ -56,29 +56,21 @@ func TestGetOperationRequestExamples(t *testing.T) {
 	})
 
 	t.Run("returns error for invalid path", func(t *testing.T) {
-		require := td.Require(t)
-
 		_, err := GetOperationRequestExamples(spec, "/notfound", "post", nil)
-		require.String(err, "path /notfound not found in spec")
+		td.CmpString(t, err, `path "/notfound" not found in spec`)
 	})
 
 	t.Run("returns error for invalid method", func(t *testing.T) {
-		require := td.Require(t)
-
 		_, err := GetOperationRequestExamples(spec, "/test", "put", nil)
-		require.String(err, "operation put /test not found")
+		td.CmpString(t, err, "operation put /test not found")
 	})
 
 	t.Run("returns error for invalid spec", func(t *testing.T) {
-		require := td.Require(t)
-
 		_, err := GetOperationRequestExamples([]byte("not json"), "/test", "post", nil)
-		require.Contains(err, "cannot unmarshal string into Go value of type openapi3.TBis")
+		td.CmpContains(t, err, "cannot unmarshal string into Go value of type openapi3.TBis")
 	})
 
 	t.Run("returns no error if example is not marshalable", func(t *testing.T) {
-		require := td.Require(t)
-
 		// Spec with an example that cannot be marshaled (function value)
 		specWithBadExample := []byte(`{
 		  "openapi": "3.0.0",
@@ -107,7 +99,7 @@ func TestGetOperationRequestExamples(t *testing.T) {
 		}`)
 
 		examples, err := GetOperationRequestExamples(specWithBadExample, "/test", "post", nil)
-		require.CmpNoError(err)
-		require.ContainsKey(examples, "bad")
+		td.CmpNoError(t, err)
+		td.CmpContainsKey(t, examples, "bad")
 	})
 }

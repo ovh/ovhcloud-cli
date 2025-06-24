@@ -6,6 +6,134 @@ import (
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
 
+func getInstanceCreationCmd() *cobra.Command {
+	instanceCreateCmd := &cobra.Command{
+		Use:   "create <region (e.g. GRA, BHS, SBG)>",
+		Short: "Create a new instance",
+		Long: `Use this command to create an instance in the given public cloud project.
+There are three ways to define the creation parameters:
+
+1. Using only CLI flags:
+
+  ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.image <image_id> --flavor <flavor_id> ...
+
+2. Using a configuration file:
+
+  First you can generate an example of installation file using the following command:
+
+	ovhcloud cloud instance create BHS5 --init-file ./params.json
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud instance create BHS5 --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file, like the following:
+
+	cat ./params.json | ovhcloud cloud instance create BHS5
+
+  In both cases, you can override the parameters in the given file using command line flags, for example:
+
+	ovhcloud cloud instance create GRA11 --from-file ./params.json --name NameOverriden
+
+  It is also possible to use the interactive image and flavor selector to define the image and flavor parameters, like the following:
+
+  	ovhcloud cloud instance create BHS5 --init-file ./params.json --image-selector --flavor-selector
+
+3. Using your default text editor:
+
+  ovhcloud cloud instance create GRA11 --editor
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
+  default text editor to update the parameters. When saving the file, the creation will start.
+
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
+
+	ovhcloud cloud instance create RBX8 --editor --flavor <flavor_id>
+
+  You can also use the interactive image and flavor selector to define the image and flavor parameters, like the following:
+
+  	ovhcloud cloud instance create RBX8 --editor --image-selector --flavor-selector
+`,
+		Run:  cloud.CreateInstance,
+		Args: cobra.MaximumNArgs(1),
+	}
+
+	// Add flags for instance creation parameters
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.AvailabilityZone, "availability-zone", "", "Availability zone")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BillingPeriod, "billing-period", "hourly", "Billing period (hourly, monthly), default is hourly")
+	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Bulk, "bulk", 0, "Number of instances to create")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Flavor.ID, "flavor", "", "Flavor ID")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Group.ID, "group", "", "Group ID")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Name, "name", "", "Instance name")
+
+	// Boot options
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.ImageID, "boot-from.image", "", "Image ID to boot from")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.VolumeID, "boot-from.volume", "", "Volume ID to boot from")
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("boot-from.image", "boot-from.volume")
+
+	// Private Network - Floating IP
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.FloatingIp.ID, "network.private.floating-ip.id", "", "ID of an existing floating IP")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.FloatingIpCreate.Description, "network.private.floating-ip.create.description", "", "Description for the floating IP to create")
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.floating-ip.id", "network.private.floating-ip.create.description")
+
+	// Private Network - Gateway
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.Gateway.ID, "network.private.gateway.id", "", "ID of the existing gateway to attach to the private network")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.GatewayCreate.Model, "network.private.gateway.create.model", "", "Model for the gateway to create (s, m, l)")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.GatewayCreate.Name, "network.private.gateway.create.name", "", "Name for the gateway to create")
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.gateway.id", "network.private.gateway.create.model")
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.gateway.id", "network.private.gateway.create.name")
+
+	// Private network - IP
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.IP, "network.private.ip", "", "Instance IP in the private network")
+
+	// Private Network - Existing network information
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.Network.ID, "network.private.id", "", "ID of the existing private network")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.Network.SubnetID, "network.private.subnet-id", "", "Existing subnet ID")
+
+	// Private Network - Create network
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.Name, "network.private.create.name", "", "Name for the private network to create")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.Subnet.CIDR, "network.private.create.subnet-cidr", "", "CIDR for the subnet to create")
+	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.Subnet.EnableDhcp, "network.private.create.subnet-enable-dhcp", false, "Enable DHCP for the subnet to create")
+	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.Subnet.IPVersion, "network.private.create.subnet-ip-version", 0, "IP version for the subnet to create")
+	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.VlanID, "network.private.create.vlan-id", 0, "VLAN ID for the private network to create")
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.id", "network.private.create.name")
+
+	// Network - Public
+	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceCreationParameters.Network.Public, "network.public", false, "Set the new instance as public")
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.id", "network.public")
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.create.name", "network.public")
+
+	// Autobackup
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Autobackup.Cron, "backup-cron", "", "Autobackup Unix Cron pattern (eg: '0 0 * * *')")
+	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Autobackup.Rotation, "backup-rotation", 0, "Number of backups to keep")
+
+	// SSH Key
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.SshKey.Name, "ssh-key.name", "", "Existing SSH key name")
+
+	// SSH Key Creation
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.SshKeyCreate.Name, "ssh-key.create.name", "", "Name for the SSH key to create")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.SshKeyCreate.PublicKey, "ssh-key.create.public-key", "", "Public key for the SSH key to create")
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("ssh-key.name", "ssh-key.create.name")
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("ssh-key.name", "ssh-key.create.public-key")
+
+	// User Data
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.UserData, "user-data", "", "Configuration information or scripts to use upon launch")
+
+	// Common flags for other mean to define parameters
+	addInitParameterFileFlag(instanceCreateCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance", "post", "", cloud.GetInstanceFlavorAndImageInteractiveSelector)
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceParametersFile, "from-file", "", "File containing creation parameters")
+	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+	instanceCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for instance creation to be done before exiting")
+	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
+	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
+
+	removeRootFlagsFromCommand(instanceCreateCmd)
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+
+	return instanceCreateCmd
+}
+
 func initInstanceCommand(cloudCmd *cobra.Command) {
 	instanceCmd := &cobra.Command{
 		Use:   "instance",
@@ -24,6 +152,15 @@ func initInstanceCommand(cloudCmd *cobra.Command) {
 		Use:   "get <instance_id>",
 		Short: "Get a specific instance",
 		Run:   cloud.GetInstance,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	instanceCmd.AddCommand(getInstanceCreationCmd())
+
+	instanceCmd.AddCommand(&cobra.Command{
+		Use:   "delete <instance_id>",
+		Short: "Delete the given instance",
+		Run:   cloud.DeleteInstance,
 		Args:  cobra.ExactArgs(1),
 	})
 
@@ -94,7 +231,7 @@ There are three ways to define the installation parameters:
 
   ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --image-selector
 
-2. Using a configuration file
+3. Using a configuration file:
 
   First you can generate an example of installation file using the following command:
 
@@ -113,7 +250,7 @@ There are three ways to define the installation parameters:
 
 	ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --from-file ./install.json --image <image_id>
 
-3. Using your default text editor
+4. Using your default text editor:
 
   ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --editor
 
@@ -127,10 +264,10 @@ There are three ways to define the installation parameters:
 		Run:  cloud.ReinstallInstance,
 		Args: cobra.MaximumNArgs(1),
 	}
-	addInitParameterFileFlag(reinstallCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "")
-	reinstallCmd.Flags().StringVar(&cloud.InstanceInstallationFile, "from-file", "", "File containing installation parameters")
-	reinstallCmd.Flags().BoolVar(&cloud.InstanceInstallViaEditor, "editor", false, "Use a text editor to define installation parameters")
-	reinstallCmd.Flags().BoolVar(&cloud.InstanceInstallationViaInteractiveSelector, "image-selector", false, "Use the interactive image selector to define installation parameters")
+	addInitParameterFileFlag(reinstallCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", nil)
+	reinstallCmd.Flags().StringVar(&cloud.InstanceParametersFile, "from-file", "", "File containing installation parameters")
+	reinstallCmd.Flags().BoolVar(&cloud.InstanceParametersViaEditor, "editor", false, "Use a text editor to define installation parameters")
+	reinstallCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector to define installation parameters")
 	reinstallCmd.Flags().StringVar(&cloud.InstanceImageID, "image", "", "Image to use for reinstallation")
 	reinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
 	removeRootFlagsFromCommand(reinstallCmd)
@@ -206,6 +343,26 @@ There are three ways to define the installation parameters:
 	setFlavorCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for instance to run with the desired flavor before exiting")
 	setFlavorCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
 	instanceCmd.AddCommand(setFlavorCmd)
+
+	snapshotCmd := &cobra.Command{
+		Use:   "snapshot",
+		Short: "Manage snapshots of the given instance",
+	}
+	instanceCmd.AddCommand(snapshotCmd)
+
+	snapshotCmd.AddCommand(&cobra.Command{
+		Use:   "create <instance_id> <snapshot_name>",
+		Short: "Create a snapshot of the given instance",
+		Run:   cloud.CreateInstanceSnapshot,
+		Args:  cobra.ExactArgs(2),
+	})
+
+	snapshotCmd.AddCommand(&cobra.Command{
+		Use:   "abort <instance_id>",
+		Short: "Abort the snapshot creation of the given instance",
+		Run:   cloud.AbortInstanceSnapshot,
+		Args:  cobra.ExactArgs(1),
+	})
 
 	cloudCmd.AddCommand(instanceCmd)
 }

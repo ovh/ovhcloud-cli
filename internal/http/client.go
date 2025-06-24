@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"runtime"
 
 	"github.com/ovh/go-ovh/ovh"
 	"golang.org/x/sync/errgroup"
@@ -20,7 +22,16 @@ func InitClient() {
 	var err error
 
 	// Init API client
-	Client, err = ovh.NewDefaultClient()
+	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
+		// In WASM mode, we use an unauthenticated client
+		Client = &ovh.Client{
+			Client: &http.Client{},
+		}
+		Client.UserAgent = os.Getenv("OVH_USER_AGENT")
+		Client.SetEndpoint(os.Getenv("OVH_ENDPOINT"))
+	} else {
+		Client, err = ovh.NewDefaultClient()
+	}
 	if err != nil {
 		log.Printf(`OVHcloud API client not initialized, please run "ovh-cli login" to authenticate (%s)`, err)
 	} else {

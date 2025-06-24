@@ -74,7 +74,7 @@ func getRequestBodyFromSpec(spec []byte, path, method string) (*openapi3.MediaTy
 	)
 
 	if pathItem == nil {
-		return nil, fmt.Errorf("path %s not found in spec", path)
+		return nil, fmt.Errorf("path %q not found in spec", path)
 	}
 
 	switch method {
