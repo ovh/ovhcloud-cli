@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
+	"stash.ovh.net/api/ovh-cli/internal/version"
 )
 
 // OVH API client
@@ -36,6 +37,7 @@ func InitClient() {
 		log.Printf(`OVHcloud API client not initialized, please run "ovh-cli login" to authenticate (%s)`, err)
 	} else {
 		Client.Client.Transport = NewTransport("OVH", http.DefaultTransport)
+		Client.UserAgent = "ovh-cli/" + version.Version
 	}
 }
 

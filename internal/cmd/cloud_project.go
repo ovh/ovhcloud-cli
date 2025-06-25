@@ -52,6 +52,7 @@ func init() {
 	initCloudStorageSwiftCommand(cloudCmd)
 	initCloudVolumeCommand(cloudCmd)
 	initCloudRancherCommand(cloudCmd)
+	initCloudReferenceCmd(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
 	rootCmd.AddCommand(cloudCmd)

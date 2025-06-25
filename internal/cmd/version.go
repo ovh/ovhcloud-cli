@@ -6,10 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-)
-
-var (
-	version = "undefined"
+	"stash.ovh.net/api/ovh-cli/internal/version"
 )
 
 func init() {
@@ -18,7 +15,7 @@ func init() {
 		Short: "Get OVHcloud CLI version",
 		Run: func(_ *cobra.Command, _ []string) {
 			data := map[string]any{
-				"version": version,
+				"version": version.Version,
 			}
 
 			// Retrieve last commit information

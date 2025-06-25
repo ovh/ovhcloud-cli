@@ -71,7 +71,11 @@ func runImageSelector(projectID string, region string) (string, string, error) {
 
 func getAvailableFlavors(projectID string, region string) (map[string]string, error) {
 	// Fetch available flavors for the project
-	endpoint := fmt.Sprintf("/cloud/project/%s/flavor?region=%s", projectID, url.QueryEscape(region))
+	endpoint := fmt.Sprintf("/cloud/project/%s/flavor", projectID)
+	if region != "" {
+		endpoint += "?region=" + url.QueryEscape(region)
+	}
+
 	var flavors []map[string]any
 	if err := httpLib.Client.Get(endpoint, &flavors); err != nil {
 		return nil, fmt.Errorf("failed to fetch available flavors: %w", err)
