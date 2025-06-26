@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -46,7 +45,7 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 		}
 
 		// Get examples from OpenAPI schema and replace values with provided replacements
-		examples, err := openapi.GetOperationRequestExamples(openapiSchema, path, method, replaceValues)
+		examples, err := openapi.GetOperationRequestExamples(openapiSchema, path, method, defaultContent, replaceValues)
 		if err != nil {
 			display.ExitError("failed to fetch parameter file examples: %s", err)
 			return
@@ -63,13 +62,8 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 		}
 
 		if choice == "" {
-			if defaultContent == "" {
-				display.ExitWarning("No example selected, exiting...")
-				return
-			} else {
-				log.Print("No example chosen, using default value")
-				choice = defaultContent
-			}
+			display.ExitWarning("No example selected, exiting...")
+			return
 		}
 
 		// Write the selected example to the parameter file

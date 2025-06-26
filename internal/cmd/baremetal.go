@@ -122,8 +122,8 @@ Please note that all parameters are not compatible with all OSes.
 	}
 
 	addInitParameterFileFlag(reinstallBaremetalCmd, baremetal.BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetal.BaremetalInstallationExample, nil)
-	reinstallBaremetalCmd.Flags().StringVar(&baremetal.InstallationFile, "from-file", "", "File containing installation parameters")
-	reinstallBaremetalCmd.Flags().BoolVar(&baremetal.InstallViaEditor, "editor", false, "Use a text editor to define installation parameters")
+	reinstallBaremetalCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing installation parameters")
+	reinstallBaremetalCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define installation parameters")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.OperatingSystem, "os", "", "Operating system to install")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.ConfigDriveUserData, "config-drive-user-data", "", "Config Drive UserData")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.EfiBootloaderPath, "efi-bootloader-path", "", "Path of the EFI bootloader from the OS installed on the server")
@@ -168,8 +168,8 @@ Please note that all parameters are not compatible with all OSes.
 		Args:  cobra.ExactArgs(1),
 		Run:   baremetal.SetBaremetalBootScript,
 	}
-	baremetalBootSetScriptCmd.Flags().StringVar(&baremetal.InstallationFile, "from-file", "", "File containing boot script")
-	baremetalBootSetScriptCmd.Flags().BoolVar(&baremetal.InstallViaEditor, "editor", false, "Use a text editor to define the boot script")
+	baremetalBootSetScriptCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing boot script")
+	baremetalBootSetScriptCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define the boot script")
 	baremetalBootSetScriptCmd.MarkFlagsOneRequired("from-file", "editor")
 	baremetalBootSetScriptCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	baremetalBootCmd.AddCommand(baremetalBootSetScriptCmd)

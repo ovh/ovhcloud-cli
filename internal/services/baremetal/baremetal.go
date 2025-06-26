@@ -52,10 +52,8 @@ var (
 	BaremetalOpenapiSchema []byte
 
 	// Installation flags
-	InstallationFile string
-	InstallViaEditor bool
-	OperatingSystem  string
-	Customizations   baremetalCustomizations
+	OperatingSystem string
+	Customizations  baremetalCustomizations
 
 	// Virtual Network Interfaces Aggregation flags
 	BaremetalOLAInterfaces []string
@@ -336,14 +334,14 @@ func SetBaremetalBootScript(_ *cobra.Command, args []string) {
 		err    error
 	)
 
-	if InstallViaEditor {
+	if flags.ParametersViaEditor {
 		script, err = editor.EditValueWithEditor(nil)
 		if err != nil {
 			display.ExitError("failed to edit installation parameters using editor: %s", err)
 			return
 		}
 	} else {
-		fd, err := os.Open(InstallationFile)
+		fd, err := os.Open(flags.ParametersFile)
 		if err != nil {
 			display.ExitError("failed to open given file: %s", err)
 			return
@@ -440,10 +438,10 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 			display.ExitError("failed to parse given installation data: %s", err)
 			return
 		}
-	} else if InstallViaEditor {
+	} else if flags.ParametersViaEditor {
 		log.Print("Flag --editor used, all other flags will override the example values")
 
-		examples, err := openapi.GetOperationRequestExamples(BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", cliParameters)
+		examples, err := openapi.GetOperationRequestExamples(BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", BaremetalInstallationExample, cliParameters)
 		if err != nil {
 			display.ExitError("failed to fetch API call examples: %s", err)
 			return
@@ -470,10 +468,10 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 			display.ExitError("failed to parse given installation parameters: %s", err)
 			return
 		}
-	} else if InstallationFile != "" { // Install data given in a file
+	} else if flags.ParametersFile != "" { // Install data given in a file
 		log.Print("Flag --installation-file used, all other flags will override the file values")
 
-		fd, err := os.Open(InstallationFile)
+		fd, err := os.Open(flags.ParametersFile)
 		if err != nil {
 			display.ExitError("failed to open given file: %s", err)
 			return
@@ -489,7 +487,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	// Only merge CLI parameters with other ones if not in --editor mode.
 	// In this case, the CLI parameters have already been merged with the
 	// request examples coming from API schemas.
-	if !InstallViaEditor {
+	if !flags.ParametersViaEditor {
 		parameters = utils.MergeMaps(cliParameters, parameters)
 	}
 

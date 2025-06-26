@@ -32,7 +32,11 @@ type CloudProjectSubOperation struct {
 
 func getAvailableImages(projectID string, region string) (map[string]string, error) {
 	// Fetch available images for the project
-	endpoint := fmt.Sprintf("/cloud/project/%s/image?region=%s", projectID, url.QueryEscape(region))
+	endpoint := fmt.Sprintf("/cloud/project/%s/image", projectID)
+	if region != "" {
+		endpoint += "?region=" + url.QueryEscape(region)
+	}
+
 	var images []map[string]any
 	if err := httpLib.Client.Get(endpoint, &images); err != nil {
 		return nil, fmt.Errorf("failed to fetch available images: %w", err)

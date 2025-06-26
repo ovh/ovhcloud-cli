@@ -30,17 +30,12 @@ var (
 	//go:embed templates/cloud_instance_interface.tmpl
 	cloudInstanceInterfaceTemplate string
 
+	//go:embed parameter-samples/instance-create.json
+	CloudInstanceCreationExample string
+
 	// InstanceRebootType defines the type of reboot to perform on an instance.
 	// It is set with a CLI flag.
 	InstanceRebootType string
-
-	// InstanceParametersFile is the path to the file that contains creation/installation parameters for the instance.
-	// It is set with a CLI flag.
-	InstanceParametersFile string
-
-	// InstanceParametersViaEditor indicates whether to use an editor to define creation/installation parameters.
-	// It is set with a CLI flag.
-	InstanceParametersViaEditor bool
 
 	// InstanceImageViaInteractiveSelector indicates whether to use an interactive image selector for installation.
 	// It is set with a CLI flag.
@@ -289,7 +284,7 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 			return
 		}
 
-	case InstanceParametersViaEditor: // Creation data given through an editor
+	case flags.ParametersViaEditor: // Creation data given through an editor
 		log.Print("Flag --editor used, all other flags will override the example values")
 
 		// Run interactive image & flavor selectors if the flags are set
@@ -300,7 +295,7 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		}
 		cliParameters := utils.MergeMaps(interactiveParams, cliParameters)
 
-		examples, err := openapi.GetOperationRequestExamples(CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/instance", "post", cliParameters)
+		examples, err := openapi.GetOperationRequestExamples(CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/instance", "post", CloudInstanceCreationExample, cliParameters)
 		if err != nil {
 			display.ExitError("failed to fetch API call examples: %s", err)
 			return
@@ -328,10 +323,10 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 			return
 		}
 
-	case InstanceParametersFile != "": // Creation data given in a file
+	case flags.ParametersFile != "": // Creation data given in a file
 		log.Print("Flag --from-file used, all other flags will override the file values")
 
-		fd, err := os.Open(InstanceParametersFile)
+		fd, err := os.Open(flags.ParametersFile)
 		if err != nil {
 			display.ExitError("failed to open given file: %s", err)
 			return
@@ -347,7 +342,7 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 	// Only merge CLI parameters with other ones if not in --editor mode.
 	// In this case, the CLI parameters have already been merged with the
 	// request examples coming from API schemas.
-	if !InstanceParametersViaEditor {
+	if !flags.ParametersViaEditor {
 		parameters = utils.MergeMaps(cliParameters, parameters)
 	}
 
@@ -371,7 +366,7 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 
 	out, err := json.MarshalIndent(parameters, "", " ")
 	if err != nil {
-		display.ExitError("installation parameters cannot be marshalled: %s", err)
+		display.ExitError("creation parameters cannot be marshalled: %s", err)
 		return
 	}
 
@@ -541,10 +536,10 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 		}
 
 		log.Printf("Selected image %s with ID: %s", selectedImage, selectedID)
-	} else if InstanceParametersViaEditor { // Install data given through an editor
+	} else if flags.ParametersViaEditor { // Install data given through an editor
 		log.Print("Flag --editor used, all other flags will override the example values")
 
-		examples, err := openapi.GetOperationRequestExamples(CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", cliParameters)
+		examples, err := openapi.GetOperationRequestExamples(CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", cliParameters)
 		if err != nil {
 			display.ExitError("failed to fetch API call examples: %s", err)
 			return
@@ -571,10 +566,10 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 			display.ExitError("failed to parse given installation parameters: %s", err)
 			return
 		}
-	} else if InstanceParametersFile != "" { // Install data given in a file
+	} else if flags.ParametersFile != "" { // Install data given in a file
 		log.Print("Flag --from-file used, all other flags will override the file values")
 
-		fd, err := os.Open(InstanceParametersFile)
+		fd, err := os.Open(flags.ParametersFile)
 		if err != nil {
 			display.ExitError("failed to open given file: %s", err)
 			return
@@ -590,7 +585,7 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 	// Only merge CLI parameters with other ones if not in --editor mode.
 	// In this case, the CLI parameters have already been merged with the
 	// request examples coming from API schemas.
-	if !InstanceParametersViaEditor {
+	if !flags.ParametersViaEditor {
 		parameters = utils.MergeMaps(cliParameters, parameters)
 	}
 

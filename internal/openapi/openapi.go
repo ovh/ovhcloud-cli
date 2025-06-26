@@ -21,14 +21,13 @@ func FilterEditableFields(spec []byte, path, method string, body map[string]any)
 	return pruned, nil
 }
 
-func GetOperationRequestExamples(spec []byte, path, method string, replaceValues map[string]any) (map[string]string, error) {
+func GetOperationRequestExamples(spec []byte, path, method, defaultExample string, replaceValues map[string]any) (map[string]string, error) {
 	content, err := getRequestBodyFromSpec(spec, path, method)
 	if err != nil {
 		return nil, err
 	}
 
-	examples := make(map[string]string, len(content.Examples))
-
+	jsonExamples := make(map[string][]byte, len(content.Examples)+1)
 	for k, v := range content.Examples {
 		// Marshal & unmarshal example to get the request
 		// body example as a map[string]any
@@ -36,8 +35,17 @@ func GetOperationRequestExamples(spec []byte, path, method string, replaceValues
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request example: %s", err)
 		}
+		jsonExamples[k] = jsonExample
+	}
+	if defaultExample != "" {
+		jsonExamples["default"] = []byte(defaultExample)
+	}
+
+	examples := make(map[string]string, len(content.Examples))
+
+	for k, v := range jsonExamples {
 		var objectExample map[string]any
-		if err := json.Unmarshal(jsonExample, &objectExample); err != nil {
+		if err := json.Unmarshal(v, &objectExample); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal request example: %s", err)
 		}
 
