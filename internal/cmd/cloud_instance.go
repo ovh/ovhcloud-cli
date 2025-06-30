@@ -121,9 +121,9 @@ There are three ways to define the creation parameters:
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.UserData, "user-data", "", "Configuration information or scripts to use upon launch")
 
 	// Common flags for other mean to define parameters
-	addInitParameterFileFlag(instanceCreateCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance", "post", "", cloud.GetInstanceFlavorAndImageInteractiveSelector)
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceParametersFile, "from-file", "", "File containing creation parameters")
-	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+	addInitParameterFileFlag(instanceCreateCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance", "post", cloud.CloudInstanceCreationExample, cloud.GetInstanceFlavorAndImageInteractiveSelector)
+	instanceCreateCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
+	instanceCreateCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
 	instanceCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for instance creation to be done before exiting")
 	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
 	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
@@ -265,8 +265,8 @@ There are three ways to define the installation parameters:
 		Args: cobra.MaximumNArgs(1),
 	}
 	addInitParameterFileFlag(reinstallCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", nil)
-	reinstallCmd.Flags().StringVar(&cloud.InstanceParametersFile, "from-file", "", "File containing installation parameters")
-	reinstallCmd.Flags().BoolVar(&cloud.InstanceParametersViaEditor, "editor", false, "Use a text editor to define installation parameters")
+	reinstallCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing installation parameters")
+	reinstallCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define installation parameters")
 	reinstallCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector to define installation parameters")
 	reinstallCmd.Flags().StringVar(&cloud.InstanceImageID, "image", "", "Image to use for reinstallation")
 	reinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")

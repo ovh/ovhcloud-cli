@@ -1,6 +1,9 @@
 package utils
 
-import "os"
+import (
+	"os"
+	"runtime"
+)
 
 func MergeMaps(left, right map[string]any) map[string]any {
 	if left == nil {
@@ -50,6 +53,10 @@ func MergeMaps(left, right map[string]any) map[string]any {
 }
 
 func IsInputFromPipe() bool {
+	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
+		return false
+	}
+
 	fileInfo, _ := os.Stdin.Stat()
 	return fileInfo.Mode()&os.ModeCharDevice == 0
 }

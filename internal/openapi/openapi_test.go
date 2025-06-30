@@ -49,24 +49,24 @@ func TestGetOperationRequestExamples(t *testing.T) {
 		require := td.Require(t)
 
 		replace := map[string]any{"foo": "replaced"}
-		examples, err := GetOperationRequestExamples(spec, "/test", "post", replace)
+		examples, err := GetOperationRequestExamples(spec, "/test", "post", "", replace)
 		require.CmpNoError(err)
 		require.ContainsKey(examples, "default")
 		require.Cmp(json.RawMessage(examples["default"]), td.JSON(`{"foo":"replaced","bar":123}`))
 	})
 
 	t.Run("returns error for invalid path", func(t *testing.T) {
-		_, err := GetOperationRequestExamples(spec, "/notfound", "post", nil)
+		_, err := GetOperationRequestExamples(spec, "/notfound", "post", "", nil)
 		td.CmpString(t, err, `path "/notfound" not found in spec`)
 	})
 
 	t.Run("returns error for invalid method", func(t *testing.T) {
-		_, err := GetOperationRequestExamples(spec, "/test", "put", nil)
+		_, err := GetOperationRequestExamples(spec, "/test", "put", "", nil)
 		td.CmpString(t, err, "operation put /test not found")
 	})
 
 	t.Run("returns error for invalid spec", func(t *testing.T) {
-		_, err := GetOperationRequestExamples([]byte("not json"), "/test", "post", nil)
+		_, err := GetOperationRequestExamples([]byte("not json"), "/test", "post", "", nil)
 		td.CmpContains(t, err, "cannot unmarshal string into Go value of type openapi3.TBis")
 	})
 
@@ -98,7 +98,7 @@ func TestGetOperationRequestExamples(t *testing.T) {
 		  }
 		}`)
 
-		examples, err := GetOperationRequestExamples(specWithBadExample, "/test", "post", nil)
+		examples, err := GetOperationRequestExamples(specWithBadExample, "/test", "post", "", nil)
 		td.CmpNoError(t, err)
 		td.CmpContainsKey(t, examples, "bad")
 	})

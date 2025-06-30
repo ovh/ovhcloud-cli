@@ -1,0 +1,58 @@
+🚀 Managed Kubernetes Node Pool {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Status**:             {{index .Result "status"}}
+**Project ID**:         {{index .Result "projectId"}}
+**Availability Zones**: {{join (index .Result "availabilityZones")}}
+**Monthly Billed**:     {{index .Result "monthlyBilled"}}
+**Flavor**:             {{index .Result "flavor"}}
+**Creation date**:      {{index .Result "createdAt"}}
+**Update date**:        {{index .Result "updatedAt"}}
+
+**Anti Affinity**:      {{index .Result "antiAffinity"}}
+**Autoscale**:          {{index .Result "autoscale"}}
+**Autoscaling**:
+    - Scale Down Unneeded Time (s): {{index .Result "autoscaling" "scaleDownUnneededTimeSeconds"}}
+    - Scale Down Unready Time (s):  {{index .Result "autoscaling" "scaleDownUnreadyTimeSeconds"}}
+    - Scale Down Utilization Threshold*: {{index .Result "autoscaling" "scaleDownUtilizationThreshold"}}
+
+\* Sum of CPU or memory of all pods running on the node divided by node's corresponding allocatable resource.
+
+## Node pool state
+
+**Ready nodes**:        {{index .Result "availableNodes"}}
+**Current Nodes**:      {{index .Result "currentNodes"}}
+**Desired Nodes**:      {{index .Result "desiredNodes"}}
+**Max Nodes**:          {{index .Result "maxNodes"}}
+**Min Nodes**:          {{index .Result "minNodes"}}
+**Size Status**:        {{index .Result "sizeStatus"}}
+**Up To Date Nodes**:   {{index .Result "upToDateNodes"}}
+
+## Template
+
+### Metadata
+
+**Annotations**:
+{{- range $k, $v := index .Result "template" "metadata" "annotations" }}
+    - {{$k}}: {{$v}}
+{{- end}}
+**Finalizers**: {{join (index .Result "template" "metadata" "finalizers")}}
+**Labels**:
+{{- range $k, $v := index .Result "template" "metadata" "labels" }}
+    - {{$k}}: {{$v}}
+{{- end}}
+
+### Spec
+
+**Taints**:
+{{- range $t := index .Result "template" "spec" "taints" }}
+    - Effect: {{index $t "effect"}}, Key: {{index $t "key"}}, Value: {{index $t "value"}}
+{{- end}}
+**Unschedulable**: {{index .Result "template" "spec" "unschedulable"}}
+
+
+💡 Use option --json or --yaml to get the raw output with all information

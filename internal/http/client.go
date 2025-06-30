@@ -32,12 +32,14 @@ func InitClient() {
 		Client.SetEndpoint(os.Getenv("OVH_ENDPOINT"))
 	} else {
 		Client, err = ovh.NewDefaultClient()
+		if Client != nil {
+			Client.UserAgent = "ovh-cli/" + version.Version
+		}
 	}
 	if err != nil {
 		log.Printf(`OVHcloud API client not initialized, please run "ovh-cli login" to authenticate (%s)`, err)
 	} else {
 		Client.Client.Transport = NewTransport("OVH", http.DefaultTransport)
-		Client.UserAgent = "ovh-cli/" + version.Version
 	}
 }
 
