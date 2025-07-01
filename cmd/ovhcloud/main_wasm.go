@@ -3,15 +3,23 @@
 package main
 
 import (
-	"strings"
 	"syscall/js"
 
+	shellwords "github.com/mattn/go-shellwords"
 	"stash.ovh.net/api/ovh-cli/internal/cmd"
 )
 
 func execCLI() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) any {
-		cmdLine := strings.Split(args[0].String(), " ")
+		cmdLine, err := shellwords.Parse(args[0].String())
+		if err != nil {
+			errorConstructor := js.Global().Get("Error")
+			errorObject := errorConstructor.New(err.Error())
+			return js.Global().Get("Promise").New(js.FuncOf(func(_ js.Value, args []js.Value) any {
+				args[1].Invoke(errorObject)
+				return nil
+			}))
+		}
 
 		handler := js.FuncOf(func(this js.Value, args []js.Value) any {
 			resolve := args[0]

@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -17,10 +16,10 @@ var (
 	replaceParamFile bool
 )
 
-func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, method, defaultContent string) {
+func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, method, defaultContent string, replaceValueFn func(*cobra.Command, []string) (map[string]any, error)) {
 	cmd.Flags().StringVar(&paramFile, "init-file", "", "Create a file with example parameters")
 	cmd.Flags().BoolVar(&replaceParamFile, "replace", false, "Replace parameters file if it already exists")
-	cmd.PreRun = func(_ *cobra.Command, _ []string) {
+	cmd.PreRun = func(_ *cobra.Command, args []string) {
 		if paramFile == "" {
 			return
 		}
@@ -32,15 +31,30 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 			}
 		}
 
-		examples, err := openapi.GetOperationRequestExamples(openapiSchema, path, method, nil)
+		// Run given func to get replacement values, if not nil
+		var (
+			replaceValues map[string]any
+			err           error
+		)
+		if replaceValueFn != nil {
+			replaceValues, err = replaceValueFn(cmd, args)
+			if err != nil {
+				display.ExitError("failed to get replacement values: %s", err)
+				return
+			}
+		}
+
+		// Get examples from OpenAPI schema and replace values with provided replacements
+		examples, err := openapi.GetOperationRequestExamples(openapiSchema, path, method, defaultContent, replaceValues)
 		if err != nil {
 			display.ExitError("failed to fetch parameter file examples: %s", err)
 			return
 		}
 
+		// Run choice picker to select an example
 		var choice string
 		if len(examples) > 0 {
-			_, choice, err = display.RunGenericChoicePicker("Please select a parameter example", examples)
+			_, choice, err = display.RunGenericChoicePicker("Please select a parameter example", examples, 0)
 			if err != nil {
 				display.ExitError(err.Error())
 				return
@@ -48,15 +62,11 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 		}
 
 		if choice == "" {
-			if defaultContent == "" {
-				display.ExitWarning("No example selected, exiting...")
-				return
-			} else {
-				log.Print("No example chosen, using default value")
-				choice = defaultContent
-			}
+			display.ExitWarning("No example selected, exiting...")
+			return
 		}
 
+		// Write the selected example to the parameter file
 		tmplFile, err := os.Create(paramFile)
 		if err != nil {
 			display.ExitError("failed to create parameter file: %s", err)

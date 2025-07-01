@@ -112,7 +112,7 @@ func EditCloudPrivateNetwork(_ *cobra.Command, args []string) {
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/network/private/{networkId}", endpoint, cloudOpenapiSchema); err != nil {
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/network/private/{networkId}", endpoint, CloudOpenapiSchema); err != nil {
 		display.ExitError(err.Error())
 	}
 }
@@ -312,7 +312,7 @@ func EditCloudGateway(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/region/{regionName}/gateway/{id}", foundURL, cloudOpenapiSchema); err != nil {
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/region/{regionName}/gateway/{id}", foundURL, CloudOpenapiSchema); err != nil {
 		display.ExitError(err.Error())
 	}
 }

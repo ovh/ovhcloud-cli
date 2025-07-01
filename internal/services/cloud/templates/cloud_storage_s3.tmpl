@@ -11,11 +11,13 @@
 
 [Container virtual host]({{index .Result "virtualHost"}})
 
+{{if index .Result "tags"}}
 **Tags**:
 
 | Name | Value |
 | --- | --- |
 {{ range $key, $value := index .Result "tags" }}| {{$key}} | {{$value}} |
+{{end}}
 {{end}}
 
 {{if and (index .Result "replication") (index .Result "replication" "rules")}}

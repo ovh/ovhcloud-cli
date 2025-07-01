@@ -48,7 +48,7 @@ func EditStorageSwift(_ *cobra.Command, args []string) {
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/storage/%s", projectID, url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/storage/{containerId}", endpoint, cloudOpenapiSchema); err != nil {
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/storage/{containerId}", endpoint, CloudOpenapiSchema); err != nil {
 		display.ExitError(err.Error())
 	}
 }

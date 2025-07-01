@@ -1,0 +1,21 @@
+🚀 Managed Kubernetes Node {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Flavor**:         {{index .Result "flavor"}}
+**Instance ID**:    {{index .Result "instanceId"}}
+**Nodepool ID**:    {{index .Result "nodePoolId"}}
+**Deployment date** {{index .Result "deployedAt"}}
+**Creation date**:  {{index .Result "createdAt"}}
+**Update date**:    {{index .Result "updatedAt"}}
+
+## Node state
+
+**Version**:    {{index .Result "version"}}
+**Status**:     {{index .Result "status"}}
+**Up to date**: {{index .Result "isUpToDate"}}
+
+💡 Use option --json or --yaml to get the raw output with all information

@@ -35,7 +35,7 @@ func Login(_ *cobra.Command, _ []string) {
 			choices[cfg] = expandedPaths[idx]
 		}
 
-		_, path, err := display.RunGenericChoicePicker("Please choose a location to store your configuration", choices)
+		_, path, err := display.RunGenericChoicePicker("Please choose a location to store your configuration", choices, 0)
 		if err != nil {
 			display.ExitError("failed to select a config path: %s", err)
 			return

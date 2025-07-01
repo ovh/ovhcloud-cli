@@ -8,6 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout
     - run: go get ./...
+    - run: go test -v ./...
     - run: go build -v -o ovhcloud ./cmd/ovhcloud
     - uses: actions/uploadArtifact
       with:

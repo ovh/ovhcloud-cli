@@ -26,4 +26,10 @@ var (
 	// INI configuration file and its path
 	CliConfig     *ini.File
 	CliConfigPath string
+
+	// Flag to indicate whether the command should use the editor for input parameters
+	ParametersViaEditor bool
+
+	// Flag to indicate whether the command should use a file for input parameters
+	ParametersFile string
 )
