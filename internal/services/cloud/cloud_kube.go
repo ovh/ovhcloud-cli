@@ -1,14 +1,11 @@
 package cloud
 
 import (
-	"bufio"
 	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
-	"os"
 	"slices"
 	"strings"
 
@@ -17,9 +14,7 @@ import (
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
-	"stash.ovh.net/api/ovh-cli/internal/openapi"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
-	"stash.ovh.net/api/ovh-cli/internal/utils"
 )
 
 var (
@@ -37,11 +32,17 @@ var (
 	//go:embed templates/cloud_kube_nodepool.tmpl
 	cloudKubeNodepoolTemplate string
 
+	//go:embed templates/cloud_kube_oidc.tmpl
+	cloudKubeOIDCTemplate string
+
 	//go:embed parameter-samples/kube-create.json
 	CloudKubeCreationExample string
 
 	//go:embed parameter-samples/kube-nodepool-create.json
 	CloudKubeNodePoolCreationExample string
+
+	//go:embed parameter-samples/kube-oidc-create.json
+	CloudKubeOIDCCreationExample string
 
 	// KubeSpec defines the structure for a Kubernetes cluster specification
 	KubeSpec struct {
@@ -83,6 +84,19 @@ var (
 
 	// KubeNodepoolSpec defines the structure for a Kubernetes node pool specification
 	KubeNodepoolSpec kubeNodepoolSpec
+
+	// KubeOIDCConfig defines the structure for OpenID Connect configuration in Kubernetes
+	KubeOIDCConfig struct {
+		CaContent         string   `json:"caContent,omitempty"`
+		ClientId          string   `json:"clientId,omitempty"`
+		GroupsClaim       []string `json:"groupsClaim,omitempty"`
+		GroupsPrefix      string   `json:"groupsPrefix,omitempty"`
+		IssuerUrl         string   `json:"issuerUrl,omitempty"`
+		RequiredClaim     []string `json:"requiredClaim,omitempty"`
+		SigningAlgorithms []string `json:"signingAlgorithms,omitempty"`
+		UsernameClaim     string   `json:"usernameClaim,omitempty"`
+		UsernamePrefix    string   `json:"usernamePrefix,omitempty"`
+	}
 )
 
 type kubeNodepoolSpec struct {
@@ -147,113 +161,19 @@ func CreateKube(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Create object from parameters given on command line
-	jsonCliParameters, err := json.Marshal(KubeSpec)
-	if err != nil {
-		display.ExitError("failed to prepare arguments from command line: %s", err)
-		return
-	}
-	var cliParameters map[string]any
-	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
-		display.ExitError("failed to parse arguments from command line: %s", err)
-		return
-	}
-
-	var parameters map[string]any
-
-	switch {
-	case utils.IsInputFromPipe(): // Creation data given through a pipe
-		var stdin []byte
-		scanner := bufio.NewScanner(os.Stdin)
-		for scanner.Scan() {
-			stdin = append(stdin, scanner.Bytes()...)
-		}
-		if err := scanner.Err(); err != nil {
-			display.ExitError(err.Error())
-			return
-		}
-
-		if err := json.Unmarshal(stdin, &parameters); err != nil {
-			display.ExitError("failed to parse given creation data: %s", err)
-			return
-		}
-
-	case flags.ParametersViaEditor: // Creation data given through an editor
-		log.Print("Flag --editor used, all other flags will override the example values")
-
-		examples, err := openapi.GetOperationRequestExamples(CloudOpenapiSchema, "/cloud/project/{serviceName}/kube", "post", CloudKubeCreationExample, cliParameters)
-		if err != nil {
-			display.ExitError("failed to fetch API call examples: %s", err)
-			return
-		}
-
-		_, choice, err := display.RunGenericChoicePicker("Please select a creation example", examples, 0)
-		if err != nil {
-			display.ExitError(err.Error())
-			return
-		}
-
-		if choice == "" {
-			display.ExitWarning("No creation example selected, exiting...")
-			return
-		}
-
-		newValue, err := editor.EditValueWithEditor([]byte(choice))
-		if err != nil {
-			display.ExitError("failed to edit creation parameters using editor: %s", err)
-			return
-		}
-
-		if err := json.Unmarshal(newValue, &parameters); err != nil {
-			display.ExitError("failed to parse given creation parameters: %s", err)
-			return
-		}
-
-	case flags.ParametersFile != "": // Creation data given in a file
-		log.Print("Flag --from-file used, all other flags will override the file values")
-
-		fd, err := os.Open(flags.ParametersFile)
-		if err != nil {
-			display.ExitError("failed to open given file: %s", err)
-			return
-		}
-		defer fd.Close()
-
-		if err := json.NewDecoder(fd).Decode(&parameters); err != nil {
-			display.ExitError("failed to parse given creation file: %s", err)
-			return
-		}
-	}
-
-	// Only merge CLI parameters with other ones if not in --editor mode.
-	// In this case, the CLI parameters have already been merged with the
-	// request examples coming from API schemas.
-	if !flags.ParametersViaEditor {
-		parameters = utils.MergeMaps(cliParameters, parameters)
-	}
-
-	// Check if mandatory parameters are set
-	if name, ok := parameters["region"]; !ok || name == "" {
-		display.ExitError("region parameter is mandatory to create a Kubernetes cluster")
-		return
-	}
-
-	out, err := json.MarshalIndent(parameters, "", " ")
-	if err != nil {
-		display.ExitError("creation parameters cannot be marshalled: %s", err)
-		return
-	}
-
-	log.Println("Creation parameters: \n" + string(out))
-
-	var createdCluster map[string]any
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube", projectID)
-	if err := httpLib.Client.Post(endpoint, parameters, &createdCluster); err != nil {
-		display.ExitError("error creating cluster: %s\n", err)
+	cluster, err := common.CreateResource("/cloud/project/{serviceName}/kube",
+		endpoint,
+		CloudKubeCreationExample,
+		KubeSpec,
+		CloudOpenapiSchema,
+		[]string{"region"})
+	if err != nil {
+		display.ExitError("failed to create Kubernetes cluster: %s", err)
 		return
 	}
 
-	fmt.Printf("\n✅ Cluster %s created successfully (id: %s)\n", createdCluster["name"], createdCluster["id"])
+	fmt.Printf("\n✅ Cluster %s created successfully (id: %s)\n", cluster["name"], cluster["id"])
 }
 
 func EditKube(_ *cobra.Command, args []string) {
@@ -554,121 +474,29 @@ func CreateKubeNodepool(cmd *cobra.Command, args []string) {
 		)
 	}
 
-	// Create object from parameters given on command line
-	jsonCliParameters, err := json.Marshal(KubeNodepoolSpec)
-	if err != nil {
-		display.ExitError("failed to prepare arguments from command line: %s", err)
-		return
-	}
-	var cliParameters map[string]any
-	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
-		display.ExitError("failed to parse arguments from command line: %s", err)
-		return
-	}
-
 	// Run interactive flavor selector if the flag is set
 	flavor, err := GetKubeFlavorInteractiveSelector(cmd, args)
 	if err != nil {
 		display.ExitError("failed to get flavor from interactive selector: %s", err)
 		return
 	}
-	cliParameters = utils.MergeMaps(flavor, cliParameters)
-
-	var parameters map[string]any
-
-	switch {
-	case utils.IsInputFromPipe(): // Creation data given through a pipe
-		var stdin []byte
-		scanner := bufio.NewScanner(os.Stdin)
-		for scanner.Scan() {
-			stdin = append(stdin, scanner.Bytes()...)
-		}
-		if err := scanner.Err(); err != nil {
-			display.ExitError(err.Error())
-			return
-		}
-
-		if err := json.Unmarshal(stdin, &parameters); err != nil {
-			display.ExitError("failed to parse given creation data: %s", err)
-			return
-		}
-
-	case flags.ParametersViaEditor: // Creation data given through an editor
-		log.Print("Flag --editor used, all other flags will override the example values")
-
-		examples, err := openapi.GetOperationRequestExamples(CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/nodepool", "post", CloudKubeNodePoolCreationExample, cliParameters)
-		if err != nil {
-			display.ExitError("failed to fetch API call examples: %s", err)
-			return
-		}
-
-		_, choice, err := display.RunGenericChoicePicker("Please select a creation example", examples, 0)
-		if err != nil {
-			display.ExitError(err.Error())
-			return
-		}
-
-		if choice == "" {
-			display.ExitWarning("No creation example selected, exiting...")
-			return
-		}
-
-		newValue, err := editor.EditValueWithEditor([]byte(choice))
-		if err != nil {
-			display.ExitError("failed to edit creation parameters using editor: %s", err)
-			return
-		}
-
-		if err := json.Unmarshal(newValue, &parameters); err != nil {
-			display.ExitError("failed to parse given creation parameters: %s", err)
-			return
-		}
-
-	case flags.ParametersFile != "": // Creation data given in a file
-		log.Print("Flag --from-file used, all other flags will override the file values")
-
-		fd, err := os.Open(flags.ParametersFile)
-		if err != nil {
-			display.ExitError("failed to open given file: %s", err)
-			return
-		}
-		defer fd.Close()
-
-		if err := json.NewDecoder(fd).Decode(&parameters); err != nil {
-			display.ExitError("failed to parse given creation file: %s", err)
-			return
-		}
+	if flavor != nil {
+		KubeNodepoolSpec.FlavorName = flavor["flavorName"].(string)
 	}
 
-	// Only merge CLI parameters with other ones if not in --editor mode.
-	// In this case, the CLI parameters have already been merged with the
-	// request examples coming from API schemas.
-	if !flags.ParametersViaEditor {
-		parameters = utils.MergeMaps(cliParameters, parameters)
-	}
-
-	// Check if mandatory parameters are set
-	if name, ok := parameters["flavorName"]; !ok || name == "" {
-		display.ExitError("flavorName parameter is mandatory to create a node pool")
-		return
-	}
-
-	out, err := json.MarshalIndent(parameters, "", " ")
-	if err != nil {
-		display.ExitError("creation parameters cannot be marshalled: %s", err)
-		return
-	}
-
-	log.Println("Creation parameters: \n" + string(out))
-
-	var createdNodepool map[string]any
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
-	if err := httpLib.Client.Post(endpoint, parameters, &createdNodepool); err != nil {
-		display.ExitError("error creating nodepool: %s\n", err)
+	nodepool, err := common.CreateResource("/cloud/project/{serviceName}/kube/{kubeId}/nodepool",
+		endpoint,
+		CloudKubeNodePoolCreationExample,
+		KubeNodepoolSpec,
+		CloudOpenapiSchema,
+		[]string{"flavorName"})
+	if err != nil {
+		display.ExitError("failed to create Kubernetes node pool: %s", err)
 		return
 	}
 
-	fmt.Printf("\n✅ Node pool %s created successfully\n", createdNodepool["id"])
+	fmt.Printf("\n✅ Node pool %s created successfully\n", nodepool["id"])
 }
 
 func GetKubeFlavorInteractiveSelector(cmd *cobra.Command, args []string) (map[string]any, error) {
@@ -706,4 +534,74 @@ func GetKubeFlavorInteractiveSelector(cmd *cobra.Command, args []string) (map[st
 	return map[string]any{
 		"flavorName": selectedFlavor,
 	}, nil
+}
+
+func GetKubeOIDCIntegration(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
+
+	var oidcConfig map[string]any
+	if err := httpLib.Client.Get(endpoint, &oidcConfig); err != nil {
+		display.ExitError("failed to fetch OIDC configuration: %s", err)
+		return
+	}
+
+	display.OutputObject(oidcConfig, args[0], cloudKubeOIDCTemplate, &flags.OutputFormatConfig)
+}
+
+func EditKubeOIDCIntegration(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
+
+	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect", endpoint, CloudOpenapiSchema); err != nil {
+		display.ExitError(err.Error())
+	}
+}
+
+func CreateKubeOIDCIntegration(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
+	if _, err := common.CreateResource("/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect",
+		endpoint,
+		CloudKubeOIDCCreationExample,
+		KubeOIDCConfig,
+		CloudOpenapiSchema,
+		[]string{"clientId", "issuerUrl"}); err != nil {
+		display.ExitError("failed to create OIDC integration: %s", err)
+		return
+	}
+
+	fmt.Println("\n✅ OIDC integration created successfully")
+}
+
+func DeleteKubeOIDCIntegration(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
+
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.ExitError("failed to delete OIDC integration: %s", err)
+		return
+	}
+
+	fmt.Println("\n✅ OIDC integration deleted successfully")
 }

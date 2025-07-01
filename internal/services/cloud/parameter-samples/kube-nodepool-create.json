@@ -2,7 +2,7 @@
     "antiAffinity": false,
     "autoscale": false,
     "flavorName": "b3-16",
-    "name": "NewNodePool",
+    "name": "newnodepool",
     "desiredNodes": 2,
     "monthlyBilled": false
 }

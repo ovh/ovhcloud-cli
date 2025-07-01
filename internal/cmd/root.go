@@ -33,6 +33,11 @@ func Execute(args ...string) (string, error) {
 	return display.ResultString, display.ResultError
 }
 
+func PostExecute() {
+	display.ResultString = ""
+	display.ResultError = nil
+}
+
 func init() {
 	http.InitClient()
 

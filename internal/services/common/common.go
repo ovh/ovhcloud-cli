@@ -1,13 +1,21 @@
 package common
 
 import (
+	"bufio"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/url"
+	"os"
 
 	"stash.ovh.net/api/ovh-cli/internal/display"
+	"stash.ovh.net/api/ovh-cli/internal/editor"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
+	"stash.ovh.net/api/ovh-cli/internal/openapi"
+	"stash.ovh.net/api/ovh-cli/internal/utils"
 )
 
 func ManageListRequest(path, idField string, columnsToDisplay, filters []string) {
@@ -57,4 +65,101 @@ func ManageObjectRequest(path, objectID, templateContent string) {
 	}
 
 	display.OutputObject(object, objectID, templateContent, &flags.OutputFormatConfig)
+}
+
+func CreateResource(path, endpoint, defaultExample string, cliParams any, openapiSpec []byte, mandatoryFields []string) (map[string]any, error) {
+	// Create object from parameters given on command line
+	jsonCliParameters, err := json.Marshal(cliParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare arguments from command line: %w", err)
+	}
+	var cliParameters map[string]any
+	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments from command line: %w", err)
+	}
+
+	var parameters map[string]any
+
+	switch {
+	case utils.IsInputFromPipe(): // Data given through a pipe
+		var stdin []byte
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			stdin = append(stdin, scanner.Bytes()...)
+		}
+		if err := scanner.Err(); err != nil {
+			return nil, err
+		}
+
+		if err := json.Unmarshal(stdin, &parameters); err != nil {
+			return nil, fmt.Errorf("failed to parse given data: %w", err)
+		}
+
+	case flags.ParametersViaEditor: // Data given through an editor
+		log.Print("Flag --editor used, all other flags will override the example values")
+
+		examples, err := openapi.GetOperationRequestExamples(openapiSpec, path, "post", defaultExample, cliParameters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch API call examples: %w", err)
+		}
+
+		_, choice, err := display.RunGenericChoicePicker("Please select a creation example", examples, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		if choice == "" {
+			return nil, errors.New("No example selected, exiting...")
+		}
+
+		newValue, err := editor.EditValueWithEditor([]byte(choice))
+		if err != nil {
+			return nil, fmt.Errorf("failed to edit parameters using editor: %w", err)
+		}
+
+		if err := json.Unmarshal(newValue, &parameters); err != nil {
+			return nil, fmt.Errorf("failed to parse given parameters: %w", err)
+		}
+
+	case flags.ParametersFile != "": // Data given in a file
+		log.Print("Flag --from-file used, all other flags will override the file values")
+
+		fd, err := os.Open(flags.ParametersFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open given file: %w", err)
+		}
+		defer fd.Close()
+
+		if err := json.NewDecoder(fd).Decode(&parameters); err != nil {
+			return nil, fmt.Errorf("failed to parse given file: %w", err)
+		}
+	}
+
+	// Only merge CLI parameters with other ones if not in --editor mode.
+	// In this case, the CLI parameters have already been merged with the
+	// request examples coming from API schemas.
+	if !flags.ParametersViaEditor {
+		parameters = utils.MergeMaps(cliParameters, parameters)
+	}
+
+	// Check if mandatory fields are present
+	for _, field := range mandatoryFields {
+		if _, ok := parameters[field]; !ok {
+			return nil, fmt.Errorf("mandatory field %q is missing in the parameters", field)
+		}
+	}
+
+	out, err := json.MarshalIndent(parameters, "", " ")
+	if err != nil {
+		return nil, fmt.Errorf("parameters cannot be marshalled: %w", err)
+	}
+
+	log.Println("Final parameters: \n" + string(out))
+
+	var createdResource map[string]any
+	if err := httpLib.Client.Post(endpoint, parameters, &createdResource); err != nil {
+		return nil, fmt.Errorf("error creating resource: %w", err)
+	}
+
+	return createdResource, nil
 }

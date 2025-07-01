@@ -1,9 +1,7 @@
 package baremetal
 
 import (
-	"bufio"
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -19,9 +17,7 @@ import (
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
-	"stash.ovh.net/api/ovh-cli/internal/openapi"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
-	"stash.ovh.net/api/ovh-cli/internal/utils"
 )
 
 type baremetalCustomizations struct {
@@ -399,120 +395,30 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	// No server ID given, print usage and exit
 	if len(args) == 0 {
 		cmd.Help()
-		display.ExitError("reinstall command requires a server ID as the first argument.\nUsage:\n%s", cmd.UsageString())
+		display.ExitError("reinstall command requires a server ID as the first argument")
 		return
 	}
 
-	// Create object from parameters given on command line
-	jsonCliParameters, err := json.Marshal(struct {
-		OS             string                  `json:"operatingSystem,omitempty"`
-		Customizations baremetalCustomizations `json:"customizations"`
-	}{
-		OS:             OperatingSystem,
-		Customizations: Customizations,
-	})
+	endpoint := fmt.Sprintf("/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
+	task, err := common.CreateResource(
+		"/dedicated/server/{serviceName}/reinstall",
+		endpoint,
+		BaremetalInstallationExample,
+		struct {
+			OS             string                  `json:"operatingSystem,omitempty"`
+			Customizations baremetalCustomizations `json:"customizations,omitzero"`
+		}{
+			OS:             OperatingSystem,
+			Customizations: Customizations,
+		},
+		BaremetalOpenapiSchema,
+		[]string{"operatingSystem"})
 	if err != nil {
-		display.ExitError("failed to prepare arguments from command line: %s", err)
-		return
-	}
-	var cliParameters map[string]any
-	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
-		display.ExitError("failed to parse arguments from command line: %s", err)
+		display.ExitError("error reinstalling server: %s", err)
 		return
 	}
 
-	var parameters map[string]any
-
-	if utils.IsInputFromPipe() { // Install data given through a pipe
-		var stdin []byte
-		scanner := bufio.NewScanner(os.Stdin)
-		for scanner.Scan() {
-			stdin = append(stdin, scanner.Bytes()...)
-		}
-		if err := scanner.Err(); err != nil {
-			display.ExitError(err.Error())
-			return
-		}
-
-		if err := json.Unmarshal(stdin, &parameters); err != nil {
-			display.ExitError("failed to parse given installation data: %s", err)
-			return
-		}
-	} else if flags.ParametersViaEditor {
-		log.Print("Flag --editor used, all other flags will override the example values")
-
-		examples, err := openapi.GetOperationRequestExamples(BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", BaremetalInstallationExample, cliParameters)
-		if err != nil {
-			display.ExitError("failed to fetch API call examples: %s", err)
-			return
-		}
-
-		_, choice, err := display.RunGenericChoicePicker("Please select an installation example", examples, 0)
-		if err != nil {
-			display.ExitError(err.Error())
-			return
-		}
-
-		if choice == "" {
-			display.ExitWarning("No installation example selected, exiting...")
-			return
-		}
-
-		newValue, err := editor.EditValueWithEditor([]byte(choice))
-		if err != nil {
-			display.ExitError("failed to edit installation parameters using editor: %s", err)
-			return
-		}
-
-		if err := json.Unmarshal(newValue, &parameters); err != nil {
-			display.ExitError("failed to parse given installation parameters: %s", err)
-			return
-		}
-	} else if flags.ParametersFile != "" { // Install data given in a file
-		log.Print("Flag --installation-file used, all other flags will override the file values")
-
-		fd, err := os.Open(flags.ParametersFile)
-		if err != nil {
-			display.ExitError("failed to open given file: %s", err)
-			return
-		}
-		defer fd.Close()
-
-		if err := json.NewDecoder(fd).Decode(&parameters); err != nil {
-			display.ExitError("failed to parse given installation file: %s", err)
-			return
-		}
-	}
-
-	// Only merge CLI parameters with other ones if not in --editor mode.
-	// In this case, the CLI parameters have already been merged with the
-	// request examples coming from API schemas.
-	if !flags.ParametersViaEditor {
-		parameters = utils.MergeMaps(cliParameters, parameters)
-	}
-
-	// Check if at least an OS was provided as it is mandatory
-	if os, ok := parameters["operatingSystem"]; !ok || os == "" {
-		display.ExitError("operating system parameter is mandatory to trigger a reinstallation")
-		return
-	}
-
-	out, err := json.MarshalIndent(parameters, "", " ")
-	if err != nil {
-		display.ExitError("installation parameters cannot be marshalled: %s", err)
-		return
-	}
-
-	log.Println("Installation parameters: \n" + string(out))
-
-	var task map[string]any
-	url := fmt.Sprintf("/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
-	if err := httpLib.Client.Post(url, parameters, &task); err != nil {
-		display.ExitError("error reinstalling server %s: %s\n", args[0], err)
-		return
-	}
-
-	fmt.Println("\n⚡️ Reinstallation started ...")
+	fmt.Println("\n⚡️ Reinstallation started…")
 
 	if !flags.WaitForTask {
 		return
@@ -523,7 +429,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n⚡️ Reinstall done, fetching new authentication secrets...")
+	fmt.Println("\n⚡️ Reinstall done, fetching new authentication secrets…")
 
 	// Fetch new secrets
 	GetBaremetalAuthenticationSecrets(cmd, args)

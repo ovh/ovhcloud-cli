@@ -166,6 +166,35 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 
 	nodepoolCmd.AddCommand(getKubeNodePoolCreateCmd())
 
+	oidcCmd := &cobra.Command{
+		Use:   "oidc",
+		Short: "Manage OpenID Connect (OIDC) integration for Kubernetes clusters",
+	}
+	kubeCmd.AddCommand(oidcCmd)
+
+	oidcCmd.AddCommand(&cobra.Command{
+		Use:   "get <cluster_id>",
+		Short: "Get the OIDC configuration for the given Kubernetes cluster",
+		Run:   cloud.GetKubeOIDCIntegration,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	oidcCmd.AddCommand(&cobra.Command{
+		Use:   "edit <cluster_id>",
+		Short: "Edit the OIDC configuration for the given Kubernetes cluster",
+		Run:   cloud.EditKubeOIDCIntegration,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	oidcCmd.AddCommand(getKubeOIDCCreateCmd())
+
+	oidcCmd.AddCommand(&cobra.Command{
+		Use:   "delete <cluster_id>",
+		Short: "Delete the OIDC integration for the given Kubernetes cluster",
+		Run:   cloud.DeleteKubeOIDCIntegration,
+		Args:  cobra.ExactArgs(1),
+	})
+
 	cloudCmd.AddCommand(kubeCmd)
 }
 
@@ -173,7 +202,44 @@ func getKubeCreateCmd() *cobra.Command {
 	kubeCreateCmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new Kubernetes cluster",
-		Run:   cloud.CreateKube,
+		Long: `Use this command to create a managed Kubernetes cluster in the given public cloud project.
+There are three ways to define the creation parameters:
+
+1. Using only CLI flags:
+
+  ovhcloud cloud kube create --name MyNewCluster --region SBG5 --version 1.32 …
+
+2. Using a configuration file:
+
+  First you can generate an example of installation file using the following command:
+
+	ovhcloud cloud kube create --init-file ./params.json
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud kube create --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file, like the following:
+
+	cat ./params.json | ovhcloud cloud kube create
+
+  In both cases, you can override the parameters in the given file using command line flags, for example:
+
+	ovhcloud cloud kube create --from-file ./params.json --name NameOverriden
+
+3. Using your default text editor:
+
+  ovhcloud cloud kube create --editor
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
+  default text editor to update the parameters. When saving the file, the creation will start.
+
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
+
+	ovhcloud cloud kube create --editor --region BHS5
+`,
+		Run: cloud.CreateKube,
 	}
 
 	// All flags for Kubernetes cluster creation
@@ -218,8 +284,53 @@ func getKubeNodePoolCreateCmd() *cobra.Command {
 	nodepoolCreateCmd := &cobra.Command{
 		Use:   "create <cluster_id>",
 		Short: "Create a new Kubernetes node pool",
-		Run:   cloud.CreateKubeNodepool,
-		Args:  cobra.ExactArgs(1),
+		Long: `Use this command to create a node pool in the given managed Kubernetes cluster.
+There are three ways to define the creation parameters:
+
+1. Using only CLI flags:
+
+  ovhcloud cloud kube nodepool create <cluster_id> --flavor-name b3-16 --desired-nodes 3 --name newnodepool …
+
+2. Using a configuration file:
+
+  First you can generate an example of installation file using the following command:
+
+	ovhcloud cloud kube nodepool create <cluster_id> --init-file ./params.json
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud kube nodepool create <cluster_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file, like the following:
+
+	cat ./params.json | ovhcloud cloud kube nodepool create <cluster_id>
+
+  In both cases, you can override the parameters in the given file using command line flags, for example:
+
+	ovhcloud cloud kube nodepool create <cluster_id> --from-file ./params.json --name NameOverriden
+
+  It is also possible to use the interactive flavor selector to define the flavor-name parameter, like the following:
+
+	ovhcloud cloud kube nodepool create <cluster_id> --init-file ./params.json --flavor-selector
+
+3. Using your default text editor:
+
+  ovhcloud cloud kube nodepool create <cluster_id> --editor
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
+  default text editor to update the parameters. When saving the file, the creation will start.
+
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
+
+	ovhcloud cloud kube nodepool create <cluster_id> --editor --flavor-name b3-16
+
+  You can also use the interactive flavor selector to define the flavor-name parameter, like the following:
+
+	ovhcloud cloud kube nodepool create <cluster_id> --editor --flavor-selector
+`,
+		Run:  cloud.CreateKubeNodepool,
+		Args: cobra.ExactArgs(1),
 	}
 
 	// All flags for node pool creation
@@ -252,4 +363,68 @@ func getKubeNodePoolCreateCmd() *cobra.Command {
 	nodepoolCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
 
 	return nodepoolCreateCmd
+}
+
+func getKubeOIDCCreateCmd() *cobra.Command {
+	createCmd := &cobra.Command{
+		Use:   "create <cluster_id>",
+		Short: "Create a new OIDC integration for the given Kubernetes cluster",
+		Long: `Use this command to create a new OIDC integration for the given Kubernetes cluster.
+There are three ways to define the parameters:
+
+1. Using only CLI flags:
+
+  ovhcloud cloud kube oidc create <cluster_id> --issuer-url <url> …
+
+2. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud kube oidc create <cluster_id> --init-file ./params.json
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud kube oidc create <cluster_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file, like the following:
+
+	cat ./params.json | ovhcloud cloud kube oidc create <cluster_id>
+
+  In both cases, you can override the parameters in the given file using command line flags, for example:
+
+	ovhcloud cloud kube oidc create <cluster_id> --from-file ./params.json --client-id <client_id>
+
+3. Using your default text editor:
+
+  ovhcloud cloud kube oidc create <cluster_id> --editor
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
+  default text editor to update the parameters. When saving the file, the creation will start.
+
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
+
+	ovhcloud cloud kube oidc create <cluster_id> --editor --client-id <client_id>
+`,
+		Run:  cloud.CreateKubeOIDCIntegration,
+		Args: cobra.ExactArgs(1),
+	}
+
+	// All flags for OIDC integration creation
+	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.CaContent, "ca-content", "", "CA certificate content for the OIDC provider")
+	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.ClientId, "client-id", "", "OIDC client ID")
+	createCmd.Flags().StringSliceVar(&cloud.KubeOIDCConfig.GroupsClaim, "groups-claim", nil, "OIDC groups claim(s)")
+	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.GroupsPrefix, "groups-prefix", "", "Prefix prepended to group claims")
+	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.IssuerUrl, "issuer-url", "", "OIDC issuer URL")
+	createCmd.Flags().StringSliceVar(&cloud.KubeOIDCConfig.RequiredClaim, "required-claim", nil, "OIDC required claim(s)")
+	createCmd.Flags().StringSliceVar(&cloud.KubeOIDCConfig.SigningAlgorithms, "signing-algorithms", nil, "OIDC signing algorithm(s) (e.g. ES256)")
+	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.UsernameClaim, "username-claim", "", "OIDC username claim")
+	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.UsernamePrefix, "username-prefix", "", "Prefix prepended to username claims")
+
+	// Common flags for other means to define parameters
+	addInitParameterFileFlag(createCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect", "post", cloud.CloudKubeOIDCCreationExample, nil)
+	createCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
+	createCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+
+	return createCmd
 }
