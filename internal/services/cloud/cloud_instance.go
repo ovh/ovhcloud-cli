@@ -253,139 +253,42 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 	}
 	region := args[0]
 
-	// Create object from parameters given on command line
-	jsonCliParameters, err := json.Marshal(InstanceCreationParameters)
+	// Run interactive image & flavor selectors if the flags are set
+	interactiveParams, err := GetInstanceFlavorAndImageInteractiveSelector(cmd, args)
 	if err != nil {
-		display.ExitError("failed to prepare arguments from command line: %s", err)
+		display.ExitError("failed to get interactive parameters: %s", err)
 		return
 	}
-	var cliParameters map[string]any
-	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
-		display.ExitError("failed to parse arguments from command line: %s", err)
-		return
-	}
-
-	var parameters map[string]any
-
-	switch {
-	case utils.IsInputFromPipe(): // Creation data given through a pipe
-		var stdin []byte
-		scanner := bufio.NewScanner(os.Stdin)
-		for scanner.Scan() {
-			stdin = append(stdin, scanner.Bytes()...)
+	if interactiveParams != nil {
+		if boot, ok := interactiveParams["bootFrom"]; ok {
+			InstanceCreationParameters.BootFrom.ImageID = boot.(map[string]any)["imageId"].(string)
 		}
-		if err := scanner.Err(); err != nil {
-			display.ExitError(err.Error())
-			return
-		}
-
-		if err := json.Unmarshal(stdin, &parameters); err != nil {
-			display.ExitError("failed to parse given creation data: %s", err)
-			return
-		}
-
-	case flags.ParametersViaEditor: // Creation data given through an editor
-		log.Print("Flag --editor used, all other flags will override the example values")
-
-		// Run interactive image & flavor selectors if the flags are set
-		interactiveParams, err := GetInstanceFlavorAndImageInteractiveSelector(cmd, args)
-		if err != nil {
-			display.ExitError("failed to get interactive parameters: %s", err)
-			return
-		}
-		cliParameters := utils.MergeMaps(interactiveParams, cliParameters)
-
-		examples, err := openapi.GetOperationRequestExamples(CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/instance", "post", CloudInstanceCreationExample, cliParameters)
-		if err != nil {
-			display.ExitError("failed to fetch API call examples: %s", err)
-			return
-		}
-
-		_, choice, err := display.RunGenericChoicePicker("Please select a creation example", examples, 0)
-		if err != nil {
-			display.ExitError(err.Error())
-			return
-		}
-
-		if choice == "" {
-			display.ExitWarning("No creation example selected, exiting...")
-			return
-		}
-
-		newValue, err := editor.EditValueWithEditor([]byte(choice))
-		if err != nil {
-			display.ExitError("failed to edit creation parameters using editor: %s", err)
-			return
-		}
-
-		if err := json.Unmarshal(newValue, &parameters); err != nil {
-			display.ExitError("failed to parse given creation parameters: %s", err)
-			return
-		}
-
-	case flags.ParametersFile != "": // Creation data given in a file
-		log.Print("Flag --from-file used, all other flags will override the file values")
-
-		fd, err := os.Open(flags.ParametersFile)
-		if err != nil {
-			display.ExitError("failed to open given file: %s", err)
-			return
-		}
-		defer fd.Close()
-
-		if err := json.NewDecoder(fd).Decode(&parameters); err != nil {
-			display.ExitError("failed to parse given creation file: %s", err)
-			return
+		if flavor, ok := interactiveParams["flavor"]; ok {
+			InstanceCreationParameters.Flavor.ID = flavor.(map[string]any)["id"].(string)
 		}
 	}
 
-	// Only merge CLI parameters with other ones if not in --editor mode.
-	// In this case, the CLI parameters have already been merged with the
-	// request examples coming from API schemas.
-	if !flags.ParametersViaEditor {
-		parameters = utils.MergeMaps(cliParameters, parameters)
-	}
-
-	// Check if mandatory parameters are set
-	if name, ok := parameters["name"]; !ok || name == "" {
-		display.ExitError("name parameter is mandatory to create an instance")
-		return
-	}
-	if _, ok := parameters["flavor"]; !ok {
-		display.ExitError("flavor parameter is mandatory to create an instance")
-		return
-	}
-	if _, ok := parameters["bootFrom"]; !ok {
-		display.ExitError("either 'boot-from.image-id' or 'boot-from.volume-id' parameter is mandatory to create an instance")
-		return
-	}
-	if _, ok := parameters["network"]; !ok {
-		display.ExitError("network parameter is mandatory to create an instance")
-		return
-	}
-
-	out, err := json.MarshalIndent(parameters, "", " ")
-	if err != nil {
-		display.ExitError("creation parameters cannot be marshalled: %s", err)
-		return
-	}
-
-	log.Println("Creation parameters: \n" + string(out))
-
-	var operation CloudProjectOperation
 	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/instance", projectID, region)
-	if err := httpLib.Client.Post(endpoint, parameters, &operation); err != nil {
-		display.ExitError("error creating instance: %s\n", err)
+	operation, err := common.CreateResource(
+		"/cloud/project/{serviceName}/region/{regionName}/instance",
+		endpoint,
+		CloudInstanceCreationExample,
+		InstanceCreationParameters,
+		CloudOpenapiSchema,
+		[]string{"name", "flavor", "bootFrom", "network"})
+	if err != nil {
+		display.ExitError("failed to create instance: %s", err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Instance creation started ...")
+	fmt.Println("\n⚡️ Instance creation started…")
 
 	if !flags.WaitForTask {
 		return
 	}
 
-	instanceID, err := waitForCloudOperation(projectID, operation.Id, "instance#create", time.Hour)
+	operationID := operation["id"].(string)
+	instanceID, err := waitForCloudOperation(projectID, operationID, "instance#create", time.Hour)
 	if err != nil {
 		display.ExitError("failed to wait for instance creation: %s", err)
 		return

@@ -26,6 +26,8 @@ func execCLI() js.Func {
 			reject := args[1]
 
 			go func() {
+				defer cmd.PostExecute()
+
 				out, err := cmd.Execute(cmdLine...)
 				if err != nil {
 					errorConstructor := js.Global().Get("Error")

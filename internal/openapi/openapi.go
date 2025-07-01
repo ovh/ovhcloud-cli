@@ -122,6 +122,10 @@ func pruneUnknownFields(data map[string]interface{}, schema *openapi3.Schema) ma
 					cleaned[propName] = val
 				}
 			} else if propSchema.Value.Type.Is("array") {
+				if val == nil {
+					cleaned[propName] = nil
+					continue
+				}
 				arrayVal := val.([]any)
 				prunedArray := make([]any, 0, len(arrayVal))
 				for _, arrayValue := range arrayVal {
