@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/vmwareclouddirectorbackup"
 )
 
@@ -28,11 +29,18 @@ func init() {
 	})
 
 	// Command to update a single VmwareCloudDirectorBackup
-	vmwareclouddirectorbackupCmd.AddCommand(&cobra.Command{
+	vmwareclouddirectorbackupEditCmd := &cobra.Command{
 		Use:   "edit <service_name>",
 		Short: "Edit the given VmwareCloudDirector Backup",
+		Args:  cobra.ExactArgs(1),
 		Run:   vmwareclouddirectorbackup.EditVmwareCloudDirectorBackup,
-	})
+	}
+	vmwareclouddirectorbackupEditCmd.Flags().StringSliceVar(
+		&vmwareclouddirectorbackup.VmwareCloudDirectorBackupSpec.TargetSpec.CliOffers,
+		"offers", nil, "List of your VMware Cloud Director backup offers formatted as '<name>:<quotaInTB>' (available names: BRONZE, GOLD, SILVER)",
+	)
+	vmwareclouddirectorbackupEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	vmwareclouddirectorbackupCmd.AddCommand(vmwareclouddirectorbackupEditCmd)
 
 	rootCmd.AddCommand(vmwareclouddirectorbackupCmd)
 }

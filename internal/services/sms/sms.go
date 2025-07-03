@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,29 @@ var (
 
 	//go:embed api-schemas/sms.json
 	smsOpenapiSchema []byte
+
+	SmsSpec struct {
+		AutomaticRecreditAmount             int    `json:"automaticRecreditAmount,omitempty"`
+		CallBack                            string `json:"callBack,omitempty"`
+		CreditThresholdForAutomaticRecredit int    `json:"creditThresholdForAutomaticRecredit,omitempty"`
+		Description                         string `json:"description,omitempty"`
+		SmsResponse                         struct {
+			CgiUrl                   string `json:"cgiUrl,omitempty"`
+			ResponseType             string `json:"responseType,omitempty"`
+			Text                     string `json:"text,omitempty"`
+			TrackingDefaultSmsSender string `json:"trackingDefaultSmsSender,omitempty"`
+		} `json:"smsResponse,omitzero"`
+		StopCallBack string `json:"stopCallBack,omitempty"`
+		Templates    struct {
+			CustomizedEmailMode        bool   `json:"customizedEmailMode,omitempty"`
+			CustomizedSmsMode          bool   `json:"customizedSmsMode,omitempty"`
+			EmailBody                  string `json:"emailBody,omitempty"`
+			EmailFrom                  string `json:"emailFrom,omitempty"`
+			EmailSubject               string `json:"emailSubject,omitempty"`
+			SmsBody                    string `json:"smsBody,omitempty"`
+			Time2chatAutomaticResponse string `json:"time2chatAutomaticResponse,omitempty"`
+		} `json:"templates,omitzero"`
+	}
 )
 
 func ListSms(_ *cobra.Command, _ []string) {
@@ -31,9 +52,15 @@ func GetSms(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/sms", args[0], smsTemplate)
 }
 
-func EditSms(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/sms/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/sms/{serviceName}", endpoint, smsOpenapiSchema); err != nil {
+func EditSms(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/sms/{serviceName}",
+		fmt.Sprintf("/sms/%s", url.PathEscape(args[0])),
+		SmsSpec,
+		smsOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

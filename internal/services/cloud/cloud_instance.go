@@ -393,7 +393,7 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var parameters map[string]any
+	parameters := make(map[string]any)
 
 	if utils.IsInputFromPipe() { // Install data given through a pipe
 		var stdin []byte
@@ -489,7 +489,10 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 	// In this case, the CLI parameters have already been merged with the
 	// request examples coming from API schemas.
 	if !flags.ParametersViaEditor {
-		parameters = utils.MergeMaps(cliParameters, parameters)
+		if err := utils.MergeMaps(parameters, cliParameters); err != nil {
+			display.ExitError("failed to merge replace values into example: %w", err)
+			return
+		}
 	}
 
 	// Check if at least an image ID was provided as it is mandatory

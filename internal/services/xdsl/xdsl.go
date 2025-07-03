@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,12 @@ var (
 
 	//go:embed api-schemas/xdsl.json
 	xdslOpenapiSchema []byte
+
+	XdslSpec struct {
+		Description  string `json:"description,omitempty"`
+		LnsRateLimit int    `json:"lnsRateLimit,omitempty"`
+		Monitoring   bool   `json:"monitoring,omitempty"`
+	}
 )
 
 func ListXdsl(_ *cobra.Command, _ []string) {
@@ -31,9 +35,15 @@ func GetXdsl(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/xdsl", args[0], xdslTemplate)
 }
 
-func EditXdsl(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/xdsl/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/xdsl/{serviceName}", url, xdslOpenapiSchema); err != nil {
+func EditXdsl(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/xdsl/{serviceName}",
+		fmt.Sprintf("/xdsl/%s", url.PathEscape(args[0])),
+		XdslSpec,
+		xdslOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

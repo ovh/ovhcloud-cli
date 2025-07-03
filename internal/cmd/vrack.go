@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/vrack"
 )
 
@@ -28,11 +29,16 @@ func init() {
 	})
 
 	// Command to update a single Vrack
-	vrackCmd.AddCommand(&cobra.Command{
+	vrackEditCmd := &cobra.Command{
 		Use:   "edit <service_name>",
 		Short: "Edit the given vRack",
+		Args:  cobra.ExactArgs(1),
 		Run:   vrack.EditVrack,
-	})
+	}
+	vrackEditCmd.Flags().StringVar(&vrack.VrackSpec.Name, "name", "", "Name of the vRack")
+	vrackEditCmd.Flags().StringVar(&vrack.VrackSpec.Description, "description", "", "Description of the vRack")
+	vrackEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	vrackCmd.AddCommand(vrackEditCmd)
 
 	rootCmd.AddCommand(vrackCmd)
 }

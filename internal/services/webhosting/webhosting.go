@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,10 @@ var (
 
 	//go:embed api-schemas/webhosting.json
 	webhostingOpenapiSchema []byte
+
+	WebHostingSpec struct {
+		DisplayName string `json:"displayName,omitempty"`
+	}
 )
 
 func ListWebHosting(_ *cobra.Command, _ []string) {
@@ -31,9 +33,15 @@ func GetWebHosting(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/hosting/web", args[0], webhostingTemplate)
 }
 
-func EditWebHosting(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/hosting/web/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/hosting/web/{serviceName}", url, webhostingOpenapiSchema); err != nil {
+func EditWebHosting(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/hosting/web/{serviceName}",
+		fmt.Sprintf("/hosting/web/%s", url.PathEscape(args[0])),
+		WebHostingSpec,
+		webhostingOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

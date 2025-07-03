@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,11 @@ var (
 
 	//go:embed api-schemas/ldp.json
 	ldpOpenapiSchema []byte
+
+	LdpSpec struct {
+		DisplayName string `json:"displayName,omitempty"`
+		EnableIAM   bool   `json:"enableIam"`
+	}
 )
 
 func ListLdp(_ *cobra.Command, _ []string) {
@@ -31,9 +34,15 @@ func GetLdp(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/dbaas/logs", args[0], ldpTemplate)
 }
 
-func EditLdp(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/dbaas/logs/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/dbaas/logs/{serviceName}", url, ldpOpenapiSchema); err != nil {
+func EditLdp(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/dbaas/logs/{serviceName}",
+		fmt.Sprintf("/dbaas/logs/%s", url.PathEscape(args[0])),
+		LdpSpec,
+		ldpOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

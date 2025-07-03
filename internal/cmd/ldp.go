@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/ldp"
 )
 
@@ -28,11 +29,16 @@ func init() {
 	})
 
 	// Command to update a single Ldp
-	ldpCmd.AddCommand(&cobra.Command{
+	ldpEditCmd := &cobra.Command{
 		Use:   "edit <service_name>",
 		Short: "Edit the given Ldp",
+		Args:  cobra.ExactArgs(1),
 		Run:   ldp.EditLdp,
-	})
+	}
+	ldpEditCmd.Flags().StringVar(&ldp.LdpSpec.DisplayName, "display-name", "", "Display name of the LDP")
+	ldpEditCmd.Flags().BoolVar(&ldp.LdpSpec.EnableIAM, "enable-iam", false, "Enable IAM for the LDP")
+	ldpEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	ldpCmd.AddCommand(ldpEditCmd)
 
 	rootCmd.AddCommand(ldpCmd)
 }

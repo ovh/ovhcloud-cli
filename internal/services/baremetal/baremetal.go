@@ -60,6 +60,18 @@ var (
 	BaremetalIpmiAccessType string
 	BaremetalIpmiIP         string
 	BaremetalIpmiSshKey     string
+
+	EditBaremetalParams struct {
+		BootId            int    `json:"bootId,omitempty"`
+		BootScript        string `json:"bootScript,omitempty"`
+		EfiBootloaderPath string `json:"efiBootloaderPath,omitempty"`
+		Monitoring        bool   `json:"monitoring,omitempty"`
+		NoIntervention    bool   `json:"noIntervention,omitempty"`
+		RescueMail        string `json:"rescueMail,omitempty"`
+		RescueSshKey      string `json:"rescueSshKey,omitempty"`
+		RootDevice        string `json:"rootDevice,omitempty"`
+		State             string `json:"state,omitempty"`
+	}
 )
 
 func ListBaremetal(_ *cobra.Command, _ []string) {
@@ -110,10 +122,16 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 	display.OutputObject(object, args[0], baremetalTemplate, &flags.OutputFormatConfig)
 }
 
-func EditBaremetal(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/dedicated/server/{serviceName}", url, BaremetalOpenapiSchema); err != nil {
+func EditBaremetal(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/dedicated/server/{serviceName}",
+		fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0])),
+		&EditBaremetalParams,
+		BaremetalOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }
 

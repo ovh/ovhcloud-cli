@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/emailpro"
 )
 
@@ -28,11 +29,31 @@ func init() {
 	})
 
 	// Command to update a single EmailPro
-	emailproCmd.AddCommand(&cobra.Command{
+	editEmailProCmd := &cobra.Command{
 		Use:   "edit <service_name>",
 		Short: "Edit the given EmailPro",
+		Args:  cobra.ExactArgs(1),
 		Run:   emailpro.EditEmailPro,
-	})
+	}
+	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.ComplexityEnabled, "complexity-enabled", false, "Enable policy for strong and secure passwords")
+	emailproCmd.Flags().StringVar(&emailpro.EmailProSpec.DisplayName, "display-name", "", "Service displayName")
+	emailproCmd.Flags().IntVar(&emailpro.EmailProSpec.LockoutDuration, "lockout-duration", 0, "Number of minutes account will remain locked if it occurs")
+	emailproCmd.Flags().IntVar(&emailpro.EmailProSpec.LockoutObservationWindow, "lockout-observation-window", 0, "Number of minutes that must elapse after a failed logon to reset lockout trigger")
+	emailproCmd.Flags().IntVar(&emailpro.EmailProSpec.LockoutThreshold, "lockout-threshold", 0, "Number of attempts before account to be locked")
+	emailproCmd.Flags().IntVar(&emailpro.EmailProSpec.MaxPasswordAge, "max-password-age", 0, "Maximum number of days that account's password is valid before expiration")
+	emailproCmd.Flags().IntVar(&emailpro.EmailProSpec.MaxReceiveSize, "max-receive-size", 0, "Maximum message size that you can receive in MB")
+	emailproCmd.Flags().IntVar(&emailpro.EmailProSpec.MaxSendSize, "max-send-size", 0, "Maximum message size that you can send in MB")
+	emailproCmd.Flags().IntVar(&emailpro.EmailProSpec.MinPasswordAge, "min-password-age", 0, "Minimum number of days before able to change account's password")
+	emailproCmd.Flags().IntVar(&emailpro.EmailProSpec.MinPasswordLength, "min-password-length", 0, "Minimum number of characters password must contain")
+	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.SpamAndVirusConfiguration.CheckDKIM, "spam-check-dkim", false, "Check DKIM of message")
+	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.SpamAndVirusConfiguration.CheckSPF, "spam-check-spf", false, "Check SPF of message")
+	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.SpamAndVirusConfiguration.DeleteSpam, "spam-delete-spam", false, "If message is a spam delete it")
+	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.SpamAndVirusConfiguration.DeleteVirus, "spam-delete-virus", false, "If message is a virus delete it")
+	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.SpamAndVirusConfiguration.PutInJunk, "spam-put-in-junk", false, "If message is a spam or virus put in junk. Overridden by deleteSpam or deleteVirus")
+	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.SpamAndVirusConfiguration.TagSpam, "spam-tag-spam", false, "If message is a spam change its subject")
+	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.SpamAndVirusConfiguration.TagVirus, "spam-tag-virus", false, "If message is a virus change its subject")
+	emailproCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	emailproCmd.AddCommand(editEmailProCmd)
 
 	rootCmd.AddCommand(emailproCmd)
 }

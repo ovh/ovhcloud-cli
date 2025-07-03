@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/dedicatedceph"
 )
 
@@ -28,11 +29,16 @@ func init() {
 	})
 
 	// Command to update a single DedicatedCeph
-	dedicatedcephCmd.AddCommand(&cobra.Command{
+	editCmd := &cobra.Command{
 		Use:   "edit <service_name>",
 		Short: "Edit the given Dedicated Ceph",
+		Args:  cobra.ExactArgs(1),
 		Run:   dedicatedceph.EditDedicatedCeph,
-	})
+	}
+	editCmd.Flags().StringVar(&dedicatedceph.DedicatedCephSpec.CrushTunables, "crush-tunables", "", "Tunables of cluster (ARGONAUT, BOBTAIL, DEFAULT, FIREFLY, HAMMER, JEWEL, LEGACY, OPTIMAL)")
+	editCmd.Flags().StringVar(&dedicatedceph.DedicatedCephSpec.Label, "label", "", "Name of the cluster")
+	editCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	dedicatedcephCmd.AddCommand(editCmd)
 
 	rootCmd.AddCommand(dedicatedcephCmd)
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -33,7 +32,40 @@ var (
 
 	//go:embed api-schemas/iam.json
 	iamOpenapiSchema []byte
+
+	IAMPolicySpec struct {
+		Name        string   `json:"name,omitempty"`
+		Description string   `json:"description,omitempty"`
+		ExpiredAt   string   `json:"expiredAt,omitempty"`
+		Identities  []string `json:"identities,omitempty"`
+		Permissions struct {
+			Allow  []iamPermission `json:"allow,omitempty"`
+			Deny   []iamPermission `json:"deny,omitempty"`
+			Except []iamPermission `json:"except,omitempty"`
+		} `json:"permissions,omitzero"`
+		PermissionsGroups []iamResourceURN `json:"permissionsGroups,omitempty"`
+		Resources         []iamResourceURN `json:"resources,omitempty"`
+
+		// Fields used for edition through the CLI
+		PermissionsAllowed    []string `json:"-"`
+		PermissionsDenied     []string `json:"-"`
+		PermissionsExcept     []string `json:"-"`
+		PermissionsGroupsURNs []string `json:"-"`
+		ResourcesURNs         []string `json:"-"`
+	}
+
+	IAMResourceSpec struct {
+		Tags map[string]string `json:"tags,omitempty"`
+	}
 )
+
+type iamPermission struct {
+	Action string `json:"action"`
+}
+
+type iamResourceURN struct {
+	URN string `json:"urn"`
+}
 
 func ListIAMPolicies(_ *cobra.Command, _ []string) {
 	common.ManageListRequestNoExpand("/v2/iam/policy", iamPolicyColumnsToDisplay, flags.GenericFilters)
@@ -51,10 +83,17 @@ func GetIAMPolicy(_ *cobra.Command, args []string) {
 	display.OutputObject(object, args[0], iamPolicyTemplate, &flags.OutputFormatConfig)
 }
 
-func EditIAMPolicy(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/v2/iam/policy/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/iam/policy/{policyId}", url, iamOpenapiSchema); err != nil {
+func EditIAMPolicy(cmd *cobra.Command, args []string) {
+	prepareIAMPermissionsFromCLI()
+	if err := common.EditResource(
+		cmd,
+		"/iam/policy/{policyId}",
+		fmt.Sprintf("/v2/iam/policy/%s", url.PathEscape(args[0])),
+		IAMPolicySpec,
+		iamOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }
 
@@ -66,10 +105,17 @@ func GetIAMPermissionsGroup(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/v2/iam/permissionsGroup", args[0], iamPermissionsGroupTemplate)
 }
 
-func EditIAMPermissionsGroup(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/v2/iam/permissionsGroup/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/iam/permissionsGroup/{permissionsGroupURN}", url, iamOpenapiSchema); err != nil {
+func EditIAMPermissionsGroup(cmd *cobra.Command, args []string) {
+	prepareIAMPermissionsFromCLI()
+	if err := common.EditResource(
+		cmd,
+		"/iam/permissionsGroup/{permissionsGroupURN}",
+		fmt.Sprintf("/v2/iam/permissionsGroup/%s", url.PathEscape(args[0])),
+		IAMPolicySpec,
+		iamOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }
 
@@ -81,10 +127,16 @@ func GetIAMResource(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/v2/iam/resource", args[0], iamResourceTemplate)
 }
 
-func EditIAMResource(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/v2/iam/resource/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/iam/resource/{resourceURN}", url, iamOpenapiSchema); err != nil {
+func EditIAMResource(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/iam/resource/{resourceURN}",
+		fmt.Sprintf("/v2/iam/resource/%s", url.PathEscape(args[0])),
+		IAMResourceSpec,
+		iamOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }
 
@@ -104,9 +156,35 @@ func GetIAMResourceGroup(_ *cobra.Command, args []string) {
 	display.OutputObject(object, args[0], iamResourceGroupTemplate, &flags.OutputFormatConfig)
 }
 
-func EditIAMResourceGroup(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/v2/iam/resourceGroup/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/iam/resourceGroup/{groupId}", url, iamOpenapiSchema); err != nil {
+func EditIAMResourceGroup(cmd *cobra.Command, args []string) {
+	prepareIAMPermissionsFromCLI()
+	if err := common.EditResource(
+		cmd,
+		"/iam/resourceGroup/{groupId}",
+		fmt.Sprintf("/v2/iam/resourceGroup/%s", url.PathEscape(args[0])),
+		IAMPolicySpec,
+		iamOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
+	}
+}
+
+// prepareIAMPermissionsFromCLI transforms the CLI parameters into the IAMPolicySpec structure
+func prepareIAMPermissionsFromCLI() {
+	for _, action := range IAMPolicySpec.PermissionsAllowed {
+		IAMPolicySpec.Permissions.Allow = append(IAMPolicySpec.Permissions.Allow, iamPermission{Action: action})
+	}
+	for _, action := range IAMPolicySpec.PermissionsDenied {
+		IAMPolicySpec.Permissions.Deny = append(IAMPolicySpec.Permissions.Deny, iamPermission{Action: action})
+	}
+	for _, action := range IAMPolicySpec.PermissionsExcept {
+		IAMPolicySpec.Permissions.Except = append(IAMPolicySpec.Permissions.Except, iamPermission{Action: action})
+	}
+	for _, urn := range IAMPolicySpec.PermissionsGroupsURNs {
+		IAMPolicySpec.PermissionsGroups = append(IAMPolicySpec.PermissionsGroups, iamResourceURN{URN: urn})
+	}
+	for _, urn := range IAMPolicySpec.ResourcesURNs {
+		IAMPolicySpec.Resources = append(IAMPolicySpec.Resources, iamResourceURN{URN: urn})
 	}
 }

@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,16 @@ var (
 
 	//go:embed api-schemas/sslgateway.json
 	sslgatewayOpenapiSchema []byte
+
+	SSLGatewaySpec struct {
+		AllowedSource    []string `json:"allowedSource,omitempty"`
+		DisplayName      string   `json:"displayName,omitempty"`
+		Hsts             bool     `json:"hsts,omitempty"`
+		HttpsRedirect    bool     `json:"httpsRedirect,omitempty"`
+		Reverse          string   `json:"reverse,omitempty"`
+		ServerHttps      bool     `json:"serverHttps,omitempty"`
+		SslConfiguration string   `json:"sslConfiguration,omitempty"`
+	}
 )
 
 func ListSslGateway(_ *cobra.Command, _ []string) {
@@ -31,9 +39,15 @@ func GetSslGateway(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/sslGateway", args[0], sslgatewayTemplate)
 }
 
-func EditSslGateway(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/sslGateway/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/sslGateway/{serviceName}", endpoint, sslgatewayOpenapiSchema); err != nil {
+func EditSslGateway(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/sslGateway/{serviceName}",
+		fmt.Sprintf("/sslGateway/%s", url.PathEscape(args[0])),
+		SSLGatewaySpec,
+		sslgatewayOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

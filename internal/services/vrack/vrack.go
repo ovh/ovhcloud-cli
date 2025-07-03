@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,11 @@ var (
 
 	//go:embed api-schemas/vrack.json
 	vrackOpenapiSchema []byte
+
+	VrackSpec struct {
+		Name        string `json:"name,omitempty"`
+		Description string `json:"description,omitempty"`
+	}
 )
 
 func ListVrack(_ *cobra.Command, _ []string) {
@@ -31,9 +34,15 @@ func GetVrack(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/vrack", args[0], vrackTemplate)
 }
 
-func EditVrack(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/vrack/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/vrack/{serviceName}", url, vrackOpenapiSchema); err != nil {
+func EditVrack(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/vrack/{serviceName}",
+		fmt.Sprintf("/vrack/%s", url.PathEscape(args[0])),
+		VrackSpec,
+		vrackOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

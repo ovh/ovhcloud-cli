@@ -31,6 +31,7 @@ func init() {
 	vrackservicesCmd.AddCommand(&cobra.Command{
 		Use:   "edit <service_name>",
 		Short: "Edit the given vRackServices",
+		Args:  cobra.ExactArgs(1),
 		Run:   vrackservices.EditVrackServices,
 	})
 

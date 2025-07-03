@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,12 @@ var (
 
 	//go:embed api-schemas/overthebox.json
 	overtheboxOpenapiSchema []byte
+
+	OverTheBoxSpec struct {
+		AutoUpgrade         bool   `json:"autoUpgrade,omitempty"`
+		CustomerDescription string `json:"customerDescription,omitempty"`
+		ReleaseChannel      string `json:"releaseChannel,omitempty"`
+	}
 )
 
 func ListOverTheBox(_ *cobra.Command, _ []string) {
@@ -31,9 +35,15 @@ func GetOverTheBox(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/overTheBox", args[0], overtheboxTemplate)
 }
 
-func EditOverTheBox(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/overTheBox/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/overTheBox/{serviceName}", url, overtheboxOpenapiSchema); err != nil {
+func EditOverTheBox(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/overTheBox/{serviceName}",
+		fmt.Sprintf("/overTheBox/%s", url.PathEscape(args[0])),
+		OverTheBoxSpec,
+		overtheboxOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -18,6 +16,12 @@ var (
 
 	//go:embed templates/cloud_loadbalancer.tmpl
 	cloudLoadbalancerTemplate string
+
+	CloudLoadbalancerUpdateFields struct {
+		Description string `json:"description,omitempty"`
+		Name        string `json:"name,omitempty"`
+		Size        string `json:"size,omitempty"`
+	}
 )
 
 func ListCloudLoadbalancers(_ *cobra.Command, _ []string) {
@@ -40,15 +44,21 @@ func GetCloudLoadbalancer(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/loadbalancer", projectID), args[0], cloudLoadbalancerTemplate)
 }
 
-func EditCloudLoadbalancer(_ *cobra.Command, args []string) {
+func EditCloudLoadbalancer(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/loadbalancer/%s", projectID, url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/loadbalancer/{loadBalancerId}", endpoint, CloudOpenapiSchema); err != nil {
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/loadbalancer/{loadBalancerId}",
+		fmt.Sprintf("/cloud/project/%s/loadbalancer/%s", projectID, url.PathEscape(args[0])),
+		CloudLoadbalancerUpdateFields,
+		CloudOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

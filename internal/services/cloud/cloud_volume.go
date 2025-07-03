@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -18,6 +16,20 @@ var (
 
 	//go:embed templates/cloud_volume.tmpl
 	cloudVolumeTemplate string
+
+	CloudVolume struct {
+		AttachedTo       []string `json:"attachedTo,omitempty"`
+		AvailabilityZone string   `json:"availabilityZone,omitempty"`
+		Bootable         bool     `json:"bootable,omitempty"`
+		CreationDate     string   `json:"creationDate,omitempty"`
+		Description      string   `json:"description,omitempty"`
+		Name             string   `json:"name,omitempty"`
+		PlanCode         string   `json:"planCode,omitempty"`
+		Region           string   `json:"region,omitempty"`
+		Size             int      `json:"size,omitempty"`
+		Status           string   `json:"status,omitempty"`
+		Type             string   `json:"type,omitempty"`
+	}
 )
 
 func ListCloudVolumes(_ *cobra.Command, _ []string) {
@@ -40,15 +52,21 @@ func GetVolume(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/volume", projectID), args[0], cloudVolumeTemplate)
 }
 
-func EditVolume(_ *cobra.Command, args []string) {
+func EditVolume(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/volume/{volumeId}", endpoint, CloudOpenapiSchema); err != nil {
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/volume/{volumeId}",
+		fmt.Sprintf("/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
+		CloudVolume,
+		CloudOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

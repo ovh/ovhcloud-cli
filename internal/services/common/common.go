@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
@@ -78,7 +79,7 @@ func CreateResource(path, endpoint, defaultExample string, cliParams any, openap
 		return nil, fmt.Errorf("failed to parse arguments from command line: %w", err)
 	}
 
-	var parameters map[string]any
+	parameters := make(map[string]any)
 
 	switch {
 	case utils.IsInputFromPipe(): // Data given through a pipe
@@ -139,7 +140,9 @@ func CreateResource(path, endpoint, defaultExample string, cliParams any, openap
 	// In this case, the CLI parameters have already been merged with the
 	// request examples coming from API schemas.
 	if !flags.ParametersViaEditor {
-		parameters = utils.MergeMaps(cliParameters, parameters)
+		if err := utils.MergeMaps(parameters, cliParameters); err != nil {
+			return nil, fmt.Errorf("failed to merge replace values into example: %w", err)
+		}
 	}
 
 	// Check if mandatory fields are present
@@ -162,4 +165,75 @@ func CreateResource(path, endpoint, defaultExample string, cliParams any, openap
 	}
 
 	return createdResource, nil
+}
+
+func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte) error {
+	if cmd.Flags().NFlag() == 0 {
+		fmt.Println("🟠 No parameters given, nothing to edit")
+		return nil
+	}
+
+	// Create object from parameters given on command line
+	jsonCliParameters, err := json.Marshal(cliParams)
+	if err != nil {
+		return fmt.Errorf("failed to prepare arguments from command line: %w", err)
+	}
+	var cliParameters map[string]any
+	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
+		return fmt.Errorf("failed to parse arguments from command line: %w", err)
+	}
+
+	// Fetch resource
+	var object map[string]any
+	if err := httpLib.Client.Get(url, &object); err != nil {
+		return fmt.Errorf("error fetching resource %s: %w", url, err)
+	}
+
+	// Merge CLI parameters with the fetched object
+	if err := utils.MergeMaps(object, cliParameters); err != nil {
+		return fmt.Errorf("failed to merge CLI parameters into example: %w", err)
+	}
+
+	// Filter editable fields from OpenAPI spec
+	editableBody, err := openapi.FilterEditableFields(
+		openapiSpec,
+		path,
+		"put",
+		object,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to extract writable properties: %w", err)
+	}
+
+	// If editor not needed, update the resource directly
+	if !flags.ParametersViaEditor {
+		if err := httpLib.Client.Put(url, editableBody, nil); err != nil {
+			return fmt.Errorf("failed to update resource: %w", err)
+		}
+
+		fmt.Println("\n✅ Resource updated succesfully ...")
+
+		return nil
+	}
+
+	// Format editable body
+	editableOutput, err := json.MarshalIndent(editableBody, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal writable body: %w", err)
+	}
+
+	// Edit value
+	updatedBody, err := editor.EditValueWithEditor(editableOutput)
+	if err != nil {
+		return fmt.Errorf("failed to edit properties: %w", err)
+	}
+
+	// Update API call
+	if err := httpLib.Client.Put(url, json.RawMessage(updatedBody), nil); err != nil {
+		return fmt.Errorf("failed to update resource: %w", err)
+	}
+
+	fmt.Println("\n✅ Resource updated succesfully ...")
+
+	return nil
 }

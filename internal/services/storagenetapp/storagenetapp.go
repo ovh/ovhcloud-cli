@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,10 @@ var (
 
 	//go:embed api-schemas/storagenetapp.json
 	storagenetappOpenapiSchema []byte
+
+	StorageNetAppSpec struct {
+		Name string `json:"name,omitempty"`
+	}
 )
 
 func ListStorageNetApp(_ *cobra.Command, _ []string) {
@@ -31,9 +33,15 @@ func GetStorageNetApp(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/storage/netapp", args[0], storagenetappTemplate)
 }
 
-func EditStorageNetApp(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/storage/netapp/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/storage/netapp/{serviceName}", endpoint, storagenetappOpenapiSchema); err != nil {
+func EditStorageNetApp(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/storage/netapp/{serviceName}",
+		fmt.Sprintf("/storage/netapp/%s", url.PathEscape(args[0])),
+		StorageNetAppSpec,
+		storagenetappOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

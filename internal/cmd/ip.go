@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/ip"
 )
 
@@ -28,11 +29,15 @@ func init() {
 	})
 
 	// Command to update a single Ip
-	ipCmd.AddCommand(&cobra.Command{
+	ipEditCmd := &cobra.Command{
 		Use:   "edit <service_name>",
 		Short: "Edit the given IP",
+		Args:  cobra.ExactArgs(1),
 		Run:   ip.EditIp,
-	})
+	}
+	ipEditCmd.Flags().StringVar(&ip.IPSpec.Description, "description", "", "Description of the IP")
+	ipEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	ipCmd.AddCommand(ipEditCmd)
 
 	ipReverseCmd := &cobra.Command{
 		Use:   "reverse",

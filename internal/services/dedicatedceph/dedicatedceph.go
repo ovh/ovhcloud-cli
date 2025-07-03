@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,11 @@ var (
 
 	//go:embed api-schemas/dedicatedceph.json
 	dedicatedcephOpenapiSchema []byte
+
+	DedicatedCephSpec struct {
+		CrushTunables string `json:"crushTunables,omitempty"`
+		Label         string `json:"label,omitempty"`
+	}
 )
 
 func ListDedicatedCeph(_ *cobra.Command, _ []string) {
@@ -31,9 +34,15 @@ func GetDedicatedCeph(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/dedicated/ceph", args[0], dedicatedcephTemplate)
 }
 
-func EditDedicatedCeph(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/domain/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/domain/{serviceName}", endpoint, dedicatedcephOpenapiSchema); err != nil {
+func EditDedicatedCeph(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/dedicated/ceph/{serviceName}",
+		fmt.Sprintf("/dedicated/ceph/%s", url.PathEscape(args[0])),
+		DedicatedCephSpec,
+		dedicatedcephOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }
