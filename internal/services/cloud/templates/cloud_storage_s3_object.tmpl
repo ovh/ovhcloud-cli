@@ -1,0 +1,22 @@
+🚀 Object {{.ServiceName}}
+=======
+
+## General information
+
+**ETag**:              {{index .Result "etag"}}
+**Delete marker**:     {{if index .Result "isDeleteMarker"}}{{index .Result "isDeleteMarker"}}{{else}}-{{end}}
+**Mofification date**: {{index .Result "lastModified"}}
+**Legal hold**:        {{if index .Result "legalHold"}}{{index .Result "legalHold"}}{{else}}-{{end}}
+**Size**:              {{index .Result "size"}} bytes
+**Storage class**:     {{if index .Result "storageClass"}}{{index .Result "storageClass"}}{{else}}-{{end}}
+**Version ID**:        {{if index .Result "versionId"}}{{index .Result "versionId"}}{{else}}-{{end}}
+**Latest version**:    {{if index .Result "isLatest"}}{{index .Result "isLatest"}}{{else}}-{{end}}
+
+{{with index .Result "lock"}}
+## Object lock information
+
+**Object lock mode**: {{if index . "mode"}}{{index . "mode"}}{{else}}-{{end}}
+**Retain until**:     {{if index . "retainUntil"}}{{index . "retainUntil"}}{{else}}-{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

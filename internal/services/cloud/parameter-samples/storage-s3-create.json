@@ -1,0 +1,30 @@
+{
+  "encryption": {
+    "sseAlgorithm": "AES256"
+  },
+  "name": "mynewcontainer",
+  "replication": {
+    "rules": [
+      {
+        "deleteMarkerReplication": "enabled",
+        "destination": {
+          "name": "myreplicatedcontainer",
+          "region": "GRA",
+          "storageClass": "HIGH_PERF"
+        },
+        "filter": {
+          "prefix": "obj-"
+        },
+        "id": "myreplicationrule",
+        "priority": 1,
+        "status": "enabled"
+      }
+    ]
+  },
+  "tags": {
+    "some-tag": "some-value"
+  },
+  "versioning": {
+    "status": "enabled"
+  }
+}
