@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
+	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
 var (
@@ -18,6 +18,40 @@ var (
 
 	//go:embed templates/cloud_storage_s3.tmpl
 	cloudStorageS3Template string
+
+	StorageS3Spec struct {
+		Encryption struct {
+			SSEAlgorithm string `json:"sseAlgorithm,omitempty"`
+		} `json:"encryption,omitzero"`
+		ObjectLock struct {
+			Rule struct {
+				Mode   string `json:"mode,omitempty"`
+				Period string `json:"period,omitempty"`
+			} `json:"rule,omitzero"`
+			Status string `json:"status,omitempty"`
+		} `json:"objectLock,omitzero"`
+		Replication struct {
+			Rules []struct {
+				DeleteMarkerReplication string `json:"deleteMarkerReplication,omitempty"`
+				Destination             struct {
+					Name         string `json:"name,omitempty"`
+					Region       string `json:"region,omitempty"`
+					StorageClass string `json:"storageClass,omitempty"`
+				} `json:"destination,omitzero"`
+				Filter struct {
+					Prefix string            `json:"prefix,omitempty"`
+					Tags   map[string]string `json:"tags,omitempty"`
+				} `json:"filter,omitzero"`
+				ID       string `json:"id,omitempty"`
+				Priority int    `json:"priority,omitempty"`
+				Status   string `json:"status,omitempty"`
+			} `json:"rules,omitempty"`
+		} `json:"replication,omitzero"`
+		Tags       map[string]string `json:"tags,omitempty"`
+		Versioning struct {
+			Status string `json:"status,omitempty"`
+		} `json:"versioning,omitzero"`
+	}
 )
 
 func ListCloudStorageS3(_ *cobra.Command, _ []string) {
@@ -92,7 +126,7 @@ func GetStorageS3(_ *cobra.Command, args []string) {
 	display.OutputObject(foundContainer, args[0], cloudStorageS3Template, &flags.OutputFormatConfig)
 }
 
-func EditStorageS3(_ *cobra.Command, args []string) {
+func EditStorageS3(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
@@ -123,7 +157,14 @@ func EditStorageS3(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}", foundURL, CloudOpenapiSchema); err != nil {
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}",
+		foundURL,
+		StorageS3Spec,
+		CloudOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

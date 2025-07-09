@@ -4,6 +4,7 @@ import (
 	_ "embed"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/xdsl"
 )
 
@@ -30,11 +31,17 @@ func init() {
 	})
 
 	// Command to update a single Xdsl
-	xdslCmd.AddCommand(&cobra.Command{
+	xdslEditCmd := &cobra.Command{
 		Use:   "edit <service_name>",
 		Short: "Edit the given XDSL",
+		Args:  cobra.ExactArgs(1),
 		Run:   xdsl.EditXdsl,
-	})
+	}
+	xdslEditCmd.Flags().StringVar(&xdsl.XdslSpec.Description, "description", "", "Description of the XDSL")
+	xdslEditCmd.Flags().IntVar(&xdsl.XdslSpec.LnsRateLimit, "lns-rate-limit", 0, "Rate limit on the LNS in kbps. Must be a multiple of 64 - Min value 64 / Max value 100032")
+	xdslEditCmd.Flags().BoolVar(&xdsl.XdslSpec.Monitoring, "monitoring", false, "Enable monitoring of the access")
+	xdslEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	xdslCmd.AddCommand(xdslEditCmd)
 
 	rootCmd.AddCommand(xdslCmd)
 }

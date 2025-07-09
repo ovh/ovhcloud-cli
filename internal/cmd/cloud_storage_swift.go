@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
 
@@ -26,11 +27,15 @@ func initCloudStorageSwiftCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	storageSwiftCmd.AddCommand(&cobra.Command{
+	editCmd := &cobra.Command{
 		Use:   "edit <container_id>",
 		Short: "Edit the given SWIFT storage container",
+		Args:  cobra.ExactArgs(1),
 		Run:   cloud.EditStorageSwift,
-	})
+	}
+	editCmd.Flags().StringVar(&cloud.CloudSwiftContainerType, "type", "", "Type of the SWIFT storage container (private, public, static)")
+	editCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	storageSwiftCmd.AddCommand(editCmd)
 
 	cloudCmd.AddCommand(storageSwiftCmd)
 }

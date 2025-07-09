@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,10 @@ var (
 
 	//go:embed api-schemas/packxdsl.json
 	packxdslOpenapiSchema []byte
+
+	PackXDSLSpec struct {
+		Description string `json:"description,omitempty"`
+	}
 )
 
 func ListPackXDSL(_ *cobra.Command, _ []string) {
@@ -31,9 +33,15 @@ func GetPackXDSL(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/pack/xdsl", args[0], packxdslTemplate)
 }
 
-func EditPackXDSL(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/pack/xdsl/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/pack/xdsl/{packName}", url, packxdslOpenapiSchema); err != nil {
+func EditPackXDSL(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/pack/xdsl/{packName}",
+		fmt.Sprintf("/pack/xdsl/%s", url.PathEscape(args[0])),
+		PackXDSLSpec,
+		packxdslOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

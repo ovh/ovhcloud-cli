@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
 
@@ -26,11 +27,18 @@ func initCloudRancherCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	rancherCmd.AddCommand(&cobra.Command{
+	editRancherCmd := &cobra.Command{
 		Use:   "edit <rancher_id>",
 		Short: "Edit the given Rancher service",
 		Run:   cloud.EditRancher,
-	})
+		Args:  cobra.ExactArgs(1),
+	}
+	editRancherCmd.Flags().StringVar(&cloud.RancherTargetSpec.Name, "name", "", "Name of the managed Rancher service")
+	editRancherCmd.Flags().StringVar(&cloud.RancherTargetSpec.Plan, "plan", "", "Plan of the managed Rancher service (OVHCLOUD_EDITION, STANDARD)")
+	editRancherCmd.Flags().StringVar(&cloud.RancherTargetSpec.Version, "version", "", "Version of the managed Rancher service")
+	editRancherCmd.Flags().StringArrayVar(&cloud.RancherTargetSpec.CLIIPRestrictions, "ip-restrictions", nil, "List of IP restrictions (expected format: '<cidrBlock>,<description>')")
+	editRancherCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define private network configuration parameters")
+	rancherCmd.AddCommand(editRancherCmd)
 
 	cloudCmd.AddCommand(rancherCmd)
 }

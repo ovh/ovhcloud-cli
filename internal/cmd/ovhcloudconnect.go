@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/ovhcloudconnect"
 )
 
@@ -28,11 +29,15 @@ func init() {
 	})
 
 	// Command to update a single OvhCloudConnect
-	ovhcloudconnectCmd.AddCommand(&cobra.Command{
+	ovhcloudconnectEditCmd := &cobra.Command{
 		Use:   "edit <service_name>",
 		Short: "Edit the given OvhCloudConnect",
+		Args:  cobra.ExactArgs(1),
 		Run:   ovhcloudconnect.EditOvhCloudConnect,
-	})
+	}
+	ovhcloudconnectEditCmd.Flags().StringVar(&ovhcloudconnect.OvhCloudConnectSpec.Description, "description", "", "Description")
+	ovhcloudconnectEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	ovhcloudconnectCmd.AddCommand(ovhcloudconnectEditCmd)
 
 	rootCmd.AddCommand(ovhcloudconnectCmd)
 }

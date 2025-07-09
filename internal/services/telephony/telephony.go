@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,17 @@ var (
 
 	//go:embed api-schemas/telephony.json
 	telephonyOpenapiSchema []byte
+
+	TelephonySpec struct {
+		CreditThreshold struct {
+			CurrencyCode string `json:"currencyCode,omitempty"`
+			Text         string `json:"text,omitempty"`
+			Value        int    `json:"value,omitempty"`
+		}
+		Description             string `json:"description,omitempty"`
+		HiddenExternalNumber    bool   `json:"hiddenExternalNumber,omitempty"`
+		OverrideDisplayedNumber bool   `json:"overrideDisplayedNumber,omitempty"`
+	}
 )
 
 func ListTelephony(_ *cobra.Command, _ []string) {
@@ -31,9 +40,15 @@ func GetTelephony(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/telephony", args[0], telephonyTemplate)
 }
 
-func EditTelephony(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/telephony/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/telephony/{billingAccount}", url, telephonyOpenapiSchema); err != nil {
+func EditTelephony(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/telephony/{billingAccount}",
+		fmt.Sprintf("/telephony/%s", url.PathEscape(args[0])),
+		TelephonySpec,
+		telephonyOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

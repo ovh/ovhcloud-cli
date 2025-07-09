@@ -22,39 +22,46 @@ func init() {
 
 	// Command to get a single Baremetal
 	baremetalCmd.AddCommand(&cobra.Command{
-		Use:        "get <service_name>",
-		Short:      "Retrieve information of a specific baremetal",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        baremetal.GetBaremetal,
+		Use:   "get <service_name>",
+		Short: "Retrieve information of a specific baremetal",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetal.GetBaremetal,
 	})
 
 	// Command to edit a single Baremetal
-	baremetalCmd.AddCommand(&cobra.Command{
-		Use:        "edit <service_name>",
-		Short:      "Update the given baremetal",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        baremetal.EditBaremetal,
-	})
+	editBaremetalCmd := &cobra.Command{
+		Use:   "edit <service_name>",
+		Short: "Update the given baremetal",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetal.EditBaremetal,
+	}
+	editBaremetalCmd.Flags().IntVar(&baremetal.EditBaremetalParams.BootId, "boot-id", 0, "Boot ID")
+	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.BootScript, "boot-script", "", "Boot script")
+	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.EfiBootloaderPath, "efi-bootloader-path", "", "EFI bootloader path")
+	editBaremetalCmd.Flags().BoolVar(&baremetal.EditBaremetalParams.Monitoring, "monitoring", false, "Enable monitoring")
+	editBaremetalCmd.Flags().BoolVar(&baremetal.EditBaremetalParams.NoIntervention, "no-intervention", false, "Disable interventions")
+	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.RescueMail, "rescue-mail", "", "Rescue mail")
+	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.RescueSshKey, "rescue-ssh-key", "", "Rescue SSH key")
+	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.RootDevice, "root-device", "", "Root device")
+	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.State, "state", "", "State (e.g., error)")
+	editBaremetalCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	baremetalCmd.AddCommand(editBaremetalCmd)
 
 	// Command to list baremetal tasks
 	baremetalListTasksCmd := &cobra.Command{
-		Use:        "list-tasks <service_name>",
-		Short:      "Retrieve tasks of the given baremetal",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        baremetal.ListBaremetalTasks,
+		Use:   "list-tasks <service_name>",
+		Short: "Retrieve tasks of the given baremetal",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetal.ListBaremetalTasks,
 	}
 	baremetalCmd.AddCommand(withFilterFlag(baremetalListTasksCmd))
 
 	// Command to reboot a baremetal
 	baremetalRebootCmd := &cobra.Command{
-		Use:        "reboot <service_name>",
-		Short:      "Reboot the given baremetal",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        baremetal.RebootBaremetal,
+		Use:   "reboot <service_name>",
+		Short: "Reboot the given baremetal",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetal.RebootBaremetal,
 	}
 	removeRootFlagsFromCommand(baremetalRebootCmd)
 	baremetalCmd.AddCommand(baremetalRebootCmd)
@@ -149,18 +156,16 @@ Please note that all parameters are not compatible with all OSes.
 	}
 	baremetalCmd.AddCommand(baremetalBootCmd)
 	baremetalBootCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:        "list <service_name>",
-		Short:      "List boot options for the given baremetal",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        baremetal.ListBaremetalBoots,
+		Use:   "list <service_name>",
+		Short: "List boot options for the given baremetal",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetal.ListBaremetalBoots,
 	}))
 	baremetalBootCmd.AddCommand(&cobra.Command{
-		Use:        "set <service_name> <boot_id>",
-		Short:      "Configure a boot ID on the given baremetal",
-		Args:       cobra.ExactArgs(2),
-		ArgAliases: []string{"service_name", "boot_id"},
-		Run:        baremetal.SetBaremetalBootId,
+		Use:   "set <service_name> <boot_id>",
+		Short: "Configure a boot ID on the given baremetal",
+		Args:  cobra.ExactArgs(2),
+		Run:   baremetal.SetBaremetalBootId,
 	})
 	baremetalBootSetScriptCmd := &cobra.Command{
 		Use:   "set-script <service_name>",
@@ -175,11 +180,10 @@ Please note that all parameters are not compatible with all OSes.
 	baremetalBootCmd.AddCommand(baremetalBootSetScriptCmd)
 
 	baremetalListInterventionsCmd := &cobra.Command{
-		Use:        "list-interventions <service_name>",
-		Short:      "List past and planned interventions for the given baremetal",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        baremetal.ListBaremetalInterventions,
+		Use:   "list-interventions <service_name>",
+		Short: "List past and planned interventions for the given baremetal",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetal.ListBaremetalInterventions,
 	}
 	baremetalCmd.AddCommand(withFilterFlag(baremetalListInterventionsCmd))
 
@@ -211,18 +215,16 @@ Please note that all parameters are not compatible with all OSes.
 	}
 	baremetalCmd.AddCommand(baremetalVNICmd)
 	baremetalVNICmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:        "list <service_name>",
-		Short:      "List Virtual Network Interfaces of the given baremetal",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        baremetal.ListBaremetalVNIs,
+		Use:   "list <service_name>",
+		Short: "List Virtual Network Interfaces of the given baremetal",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetal.ListBaremetalVNIs,
 	}))
 	baremetalVNICreateOLAAggregationCmd := &cobra.Command{
-		Use:        "ola-create-aggregation <service_name> --name <name> --interface <uuid> --interface <uuid>",
-		Short:      "Group interfaces into an aggregation",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        baremetal.CreateBaremetalOLAAggregation,
+		Use:   "ola-create-aggregation <service_name> --name <name> --interface <uuid> --interface <uuid>",
+		Short: "Group interfaces into an aggregation",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetal.CreateBaremetalOLAAggregation,
 	}
 	baremetalVNICreateOLAAggregationCmd.Flags().StringArrayVar(&baremetal.BaremetalOLAInterfaces, "interface", nil, "Interfaces to group")
 	baremetalVNICreateOLAAggregationCmd.MarkFlagRequired("interface")
@@ -231,11 +233,10 @@ Please note that all parameters are not compatible with all OSes.
 	baremetalVNICmd.AddCommand(baremetalVNICreateOLAAggregationCmd)
 
 	baremetalVNIResetOLAAggregationCmd := &cobra.Command{
-		Use:        "ola-reset <service_name> --interface <uuid> --interface <uuid>",
-		Short:      "Reset interfaces to default configuration",
-		Args:       cobra.ExactArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        baremetal.ResetBaremetalOLAAggregation,
+		Use:   "ola-reset <service_name> --interface <uuid> --interface <uuid>",
+		Short: "Reset interfaces to default configuration",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetal.ResetBaremetalOLAAggregation,
 	}
 	baremetalVNIResetOLAAggregationCmd.Flags().StringArrayVar(&baremetal.BaremetalOLAInterfaces, "interface", nil, "Interfaces to group")
 	baremetalVNIResetOLAAggregationCmd.MarkFlagRequired("interface")

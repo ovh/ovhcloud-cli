@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
+	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
 var (
@@ -25,6 +25,15 @@ var (
 
 	//go:embed templates/cloud_network_gateway.tmpl
 	cloudGatewayTemplate string
+
+	// CloudNetworkName is used to store the name of the cloud network
+	CloudNetworkName string
+
+	// CloudGatewaySpec contains the parameters for updating a cloud gateway
+	CloudGatewaySpec struct {
+		Model string `json:"model,omitempty"`
+		Name  string `json:"name,omitempty"`
+	}
 )
 
 func ListCloudPrivateNetworks(_ *cobra.Command, _ []string) {
@@ -104,16 +113,24 @@ func GetCloudPrivateNetwork(_ *cobra.Command, args []string) {
 	display.OutputObject(object, args[0], cloudNetworkPrivateTemplate, &flags.OutputFormatConfig)
 }
 
-func EditCloudPrivateNetwork(_ *cobra.Command, args []string) {
+func EditCloudPrivateNetwork(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/network/private/{networkId}", endpoint, CloudOpenapiSchema); err != nil {
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/network/private/{networkId}",
+		fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0])),
+		map[string]any{
+			"name": CloudNetworkName,
+		},
+		CloudOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }
 
@@ -281,7 +298,7 @@ func GetCloudGateway(_ *cobra.Command, args []string) {
 	display.OutputObject(foundGateway, args[0], cloudGatewayTemplate, &flags.OutputFormatConfig)
 }
 
-func EditCloudGateway(_ *cobra.Command, args []string) {
+func EditCloudGateway(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
@@ -312,7 +329,14 @@ func EditCloudGateway(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/region/{regionName}/gateway/{id}", foundURL, CloudOpenapiSchema); err != nil {
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/region/{regionName}/gateway/{id}",
+		foundURL,
+		CloudGatewaySpec,
+		CloudOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

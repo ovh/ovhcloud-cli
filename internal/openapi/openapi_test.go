@@ -102,4 +102,149 @@ func TestGetOperationRequestExamples(t *testing.T) {
 		td.CmpNoError(t, err)
 		td.CmpContainsKey(t, examples, "bad")
 	})
+
+	t.Run("handles request body with map[string]string property", func(t *testing.T) {
+		specWithMap := []byte(`
+			{
+				"openapi": "3.0.0",
+				"info": { "title": "Test API", "version": "1.0.0" },
+				"paths": {
+					"/maptest": {
+						"post": {
+							"requestBody": {
+								"content": {
+									"application/json": {
+										"schema": {
+											"type": "object",
+											"properties": {
+												"labels": {
+													"type": "object",
+													"additionalProperties": { "type": "string" }
+												},
+												"other": { "type": "string" }
+											}
+										},
+										"examples": {
+											"mapExample": {
+												"value": {
+													"labels": { "foo": "bar", "baz": "qux" },
+													"other": "value"
+												}
+											}
+										}
+									}
+								}
+							},
+							"responses": {
+								"200": { "description": "OK" }
+							}
+						}
+					}
+				}
+			}`,
+		)
+
+		replace := map[string]any{
+			"labels": map[string]any{"foo": "replaced"},
+			"other":  "changed",
+		}
+		examples, err := GetOperationRequestExamples(specWithMap, "/maptest", "post", "", replace)
+		td.Require(t).CmpNoError(err)
+		td.Cmp(t, json.RawMessage(examples["mapExample"]), td.JSON(`{"labels":{"foo":"replaced", "baz": "qux"},"other":"changed"}`))
+	})
+
+	t.Run("handles request body with map[string]$ref property", func(t *testing.T) {
+		specWithMapRef := []byte(`
+			{
+				"openapi": "3.0.0",
+				"info": { "title": "Test API", "version": "1.0.0" },
+				"components": {
+					"schemas": {
+						"SubObj": {
+							"type": "object",
+							"properties": {
+								"subfield": { "type": "string" }
+							}
+						}
+					}
+				},
+				"paths": {
+					"/mapref": {
+						"post": {
+							"requestBody": {
+								"content": {
+									"application/json": {
+										"schema": {
+											"type": "object",
+											"properties": {
+												"refs": {
+													"type": "object",
+													"additionalProperties": { "$ref": "#/components/schemas/SubObj" }
+												},
+												"other": { "type": "string" }
+											}
+										},
+										"examples": {
+											"mapRefExample": {
+												"value": {
+													"refs": { "a": { "subfield": "x" }, "b": { "subfield": "y" } },
+													"other": "value"
+												}
+											}
+										}
+									}
+								}
+							},
+							"responses": {
+								"200": { "description": "OK" }
+							}
+						}
+					}
+				}
+			}`,
+		)
+
+		replace := map[string]any{
+			"refs":  map[string]any{"a": map[string]any{"subfield": "replaced"}},
+			"other": "changed",
+		}
+		examples, err := GetOperationRequestExamples(specWithMapRef, "/mapref", "post", "", replace)
+		td.Require(t).CmpNoError(err)
+		td.Cmp(t, json.RawMessage(examples["mapRefExample"]), td.JSON(`{"refs":{"a":{"subfield":"replaced"}, "b": { "subfield": "y" }},"other":"changed"}`))
+	})
+
+	t.Run("uses defaultExample if provided", func(t *testing.T) {
+		spec := []byte(`
+			{
+				"openapi": "3.0.0",
+				"info": { "title": "Test API", "version": "1.0.0" },
+				"paths": {
+					"/default": {
+						"post": {
+							"requestBody": {
+								"content": {
+									"application/json": {
+										"schema": {
+											"type": "object",
+											"properties": {
+												"foo": { "type": "string" }
+											}
+										}
+									}
+								}
+							},
+							"responses": {
+								"200": { "description": "OK" }
+							}
+						}
+					}
+				}
+			}`,
+		)
+		defaultExample := `{"foo":"fromDefault"}`
+		examples, err := GetOperationRequestExamples(spec, "/default", "post", defaultExample, nil)
+		td.Require(t).CmpNoError(err)
+		td.Require(t).ContainsKey(examples, "default")
+		td.Cmp(t, json.RawMessage(examples["default"]), td.JSON(`{"foo":"fromDefault"}`))
+	})
 }

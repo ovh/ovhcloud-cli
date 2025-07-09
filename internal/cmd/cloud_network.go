@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
 
@@ -33,11 +34,15 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	privateNetworkCmd.AddCommand(&cobra.Command{
+	privateNetworkEditCmd := &cobra.Command{
 		Use:   "edit <network_id>",
 		Short: "Edit the given private network",
+		Args:  cobra.ExactArgs(1),
 		Run:   cloud.EditCloudPrivateNetwork,
-	})
+	}
+	privateNetworkEditCmd.Flags().StringVar(&cloud.CloudNetworkName, "name", "", "Name of the private network")
+	privateNetworkEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	privateNetworkCmd.AddCommand(privateNetworkEditCmd)
 
 	publicNetworkCmd := &cobra.Command{
 		Use:   "public",
@@ -79,9 +84,14 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	gatewayCmd.AddCommand(&cobra.Command{
+	gatewayEditCmd := &cobra.Command{
 		Use:   "edit <gateway_id>",
 		Short: "Edit the given gateway",
 		Run:   cloud.EditCloudGateway,
-	})
+		Args:  cobra.ExactArgs(1),
+	}
+	gatewayEditCmd.Flags().StringVar(&cloud.CloudGatewaySpec.Name, "name", "", "Name of the gateway")
+	gatewayEditCmd.Flags().StringVar(&cloud.CloudGatewaySpec.Model, "model", "", "Model of the gateway (s, m, l, xl, 2xl, 3xl)")
+	gatewayEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define paraxmeters")
+	gatewayCmd.AddCommand(gatewayEditCmd)
 }

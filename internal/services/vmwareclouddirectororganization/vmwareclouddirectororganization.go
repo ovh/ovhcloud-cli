@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,13 @@ var (
 
 	//go:embed api-schemas/vmwareclouddirectororganization.json
 	vmwareclouddirectororganizationOpenapiSchema []byte
+
+	VmwareCloudDirectorOrganizationSpec struct {
+		TargetSpec struct {
+			Description string `json:"description,omitempty"`
+			FullName    string `json:"fullName,omitempty"`
+		} `json:"targetSpec,omitzero"`
+	}
 )
 
 func ListVmwareCloudDirectorOrganization(_ *cobra.Command, _ []string) {
@@ -31,9 +36,15 @@ func GetVmwareCloudDirectorOrganization(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/v2/vmwareCloudDirector/organization", args[0], vmwareclouddirectororganizationTemplate)
 }
 
-func EditVmwareCloudDirectorOrganization(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/v2/vmwareCloudDirector/organization/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/vmwareCloudDirector/organization/{organizationId}", url, vmwareclouddirectororganizationOpenapiSchema); err != nil {
+func EditVmwareCloudDirectorOrganization(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/vmwareCloudDirector/organization/{organizationId}",
+		fmt.Sprintf("/v2/vmwareCloudDirector/organization/%s", url.PathEscape(args[0])),
+		VmwareCloudDirectorOrganizationSpec,
+		vmwareclouddirectororganizationOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

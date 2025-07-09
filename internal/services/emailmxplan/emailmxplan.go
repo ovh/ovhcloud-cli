@@ -7,9 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
@@ -21,6 +19,28 @@ var (
 
 	//go:embed api-schemas/emailmxplan.json
 	emailmxplanOpenapiSchema []byte
+
+	EmailMXPlanSpec struct {
+		ComplexityEnabled         bool   `json:"complexityEnabled,omitempty"`
+		DisplayName               string `json:"displayName,omitempty"`
+		LockoutDuration           int    `json:"lockoutDuration,omitempty"`
+		LockoutObservationWindow  int    `json:"lockoutObservationWindow,omitempty"`
+		LockoutThreshold          int    `json:"lockoutThreshold,omitempty"`
+		MaxPasswordAge            int    `json:"maxPasswordAge,omitempty"`
+		MaxReceiveSize            int    `json:"maxReceiveSize,omitempty"`
+		MaxSendSize               int    `json:"maxSendSize,omitempty"`
+		MinPasswordAge            int    `json:"minPasswordAge,omitempty"`
+		MinPasswordLength         int    `json:"minPasswordLength,omitempty"`
+		SpamAndVirusConfiguration struct {
+			CheckDKIM   bool `json:"checkDKIM,omitempty"`
+			CheckSPF    bool `json:"checkSPF,omitempty"`
+			DeleteSpam  bool `json:"deleteSpam,omitempty"`
+			DeleteVirus bool `json:"deleteVirus,omitempty"`
+			PutInJunk   bool `json:"putInJunk,omitempty"`
+			TagSpam     bool `json:"tagSpam,omitempty"`
+			TagVirus    bool `json:"tagVirus,omitempty"`
+		} `json:"spamAndVirusConfiguration,omitzero"`
+	}
 )
 
 func ListEmailMXPlan(_ *cobra.Command, _ []string) {
@@ -31,9 +51,15 @@ func GetEmailMXPlan(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/email/mxplan", args[0], emailmxplanTemplate)
 }
 
-func EditEmailMXPlan(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/email/mxplan/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/email/mxplan/{service}", endpoint, emailmxplanOpenapiSchema); err != nil {
+func EditEmailMXPlan(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/email/mxplan/{service}",
+		fmt.Sprintf("/email/mxplan/%s", url.PathEscape(args[0])),
+		EmailMXPlanSpec,
+		emailmxplanOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }

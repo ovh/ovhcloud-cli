@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
 
@@ -31,11 +32,16 @@ func init() {
 		Run:   cloud.GetCloudProject,
 	})
 
-	cloudprojectCmd.AddCommand(&cobra.Command{
+	editCloudProjectCmd := &cobra.Command{
 		Use:   "edit <project_id>",
 		Short: "Edit the given cloud project",
+		Args:  cobra.ExactArgs(1),
 		Run:   cloud.EditCloudProject,
-	})
+	}
+	editCloudProjectCmd.Flags().StringVar(&cloud.CloudProjectSpec.Description, "description", "", "Description of the project")
+	editCloudProjectCmd.Flags().BoolVar(&cloud.CloudProjectSpec.ManualQuota, "manual-quota", false, "Prevent automatic quota upgrade")
+	editCloudProjectCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	cloudprojectCmd.AddCommand(editCloudProjectCmd)
 
 	initKubeCommand(cloudCmd)
 	initContainerRegistryCommand(cloudCmd)

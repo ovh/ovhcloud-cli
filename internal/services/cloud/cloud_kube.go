@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -37,6 +36,9 @@ var (
 
 	//go:embed parameter-samples/kube-create.json
 	CloudKubeCreationExample string
+
+	//go:embed parameter-samples/kube-reset.json
+	CloudKubeResetExample string
 
 	//go:embed parameter-samples/kube-nodepool-create.json
 	CloudKubeNodePoolCreationExample string
@@ -70,16 +72,17 @@ var (
 		} `json:"customization,omitzero"`
 		KubeProxyMode               string `json:"kubeProxyMode,omitempty"`
 		LoadBalancersSubnetId       string `json:"loadBalancersSubnetId,omitempty"`
-		Name                        string `json:"name"`
+		Name                        string `json:"name,omitempty"`
 		NodesSubnetId               string `json:"nodesSubnetId,omitempty"`
 		PrivateNetworkConfiguration struct {
 			DefaultVrackGateway            string `json:"defaultVrackGateway,omitempty"`
 			PrivateNetworkRoutingAsDefault bool   `json:"privateNetworkRoutingAsDefault,omitempty"`
 		} `json:"privateNetworkConfiguration,omitzero"`
-		PrivateNetworkId string `json:"privateNetworkId,omitempty"`
-		Region           string `json:"region,omitempty"`
-		UpdatePolicy     string `json:"updatePolicy,omitempty"`
-		Version          string `json:"version,omitempty"`
+		PrivateNetworkId  string `json:"privateNetworkId,omitempty"`
+		Region            string `json:"region,omitempty"`
+		UpdatePolicy      string `json:"updatePolicy,omitempty"`
+		Version           string `json:"version,omitempty"`
+		WorkerNodesPolicy string `json:"workerNodesPolicy,omitempty"`
 	}
 
 	// KubeNodepoolSpec defines the structure for a Kubernetes node pool specification
@@ -97,6 +100,18 @@ var (
 		UsernameClaim     string   `json:"usernameClaim,omitempty"`
 		UsernamePrefix    string   `json:"usernamePrefix,omitempty"`
 	}
+
+	// KubeForceAction indicates whether to force an action
+	// It is set by a command line flag
+	KubeForceAction bool
+
+	// KubeUpdateStrategy defines the strategy for updating Kubernetes clusters
+	// It is set by a command line flag
+	KubeUpdateStrategy string
+
+	// KubeIPRestrictions defines the IP restrictions for Kubernetes clusters
+	// It is set by a command line flag
+	KubeIPRestrictions []string
 )
 
 type kubeNodepoolSpec struct {
@@ -126,6 +141,9 @@ type kubeNodepoolSpec struct {
 			Unschedulable     bool                        `json:"unschedulable,omitempty"`
 		} `json:"spec,omitzero"`
 	} `json:"template,omitzero"`
+
+	// Only used when updating a node pool
+	NodesToRemove []string `json:"nodesToRemove,omitempty"`
 }
 
 type kubeNodepoolSpecTaintType struct {
@@ -176,16 +194,25 @@ func CreateKube(cmd *cobra.Command, args []string) {
 	fmt.Printf("\n✅ Cluster %s created successfully (id: %s)\n", cluster["name"], cluster["id"])
 }
 
-func EditKube(_ *cobra.Command, args []string) {
+func EditKube(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/kube/{kubeId}", endpoint, CloudOpenapiSchema); err != nil {
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/kube/{kubeId}",
+		fmt.Sprintf("/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0])),
+		map[string]any{
+			"name":         KubeSpec.Name,
+			"updatePolicy": KubeSpec.UpdatePolicy,
+		},
+		CloudOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }
 
@@ -229,8 +256,13 @@ func EditKubeCustomization(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/kube/{kubeId}/customization", endpoint, CloudOpenapiSchema); err != nil {
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/kube/{kubeId}/customization",
+		fmt.Sprintf("/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0])),
+		KubeSpec.Customization,
+		CloudOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
 		return
 	}
@@ -262,6 +294,11 @@ func ListKubeIPRestrictions(_ *cobra.Command, args []string) {
 }
 
 func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {
+	if cmd.Flags().NFlag() == 0 {
+		display.ExitWarning("No parameters given, nothing to edit")
+		return
+	}
+
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
@@ -270,40 +307,45 @@ func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/ipRestrictions", projectID, url.PathEscape(args[0]))
 
-	// Fetch current IP restrictions
-	currentRestrictions, err := httpLib.FetchArray(endpoint, "")
-	if err != nil {
-		display.ExitError("failed to fetch IP restrictions: %s", err)
+	if flags.ParametersViaEditor {
+		// Fetch resource
+		var ips []string
+		if err := httpLib.Client.Get(endpoint, &ips); err != nil {
+			display.ExitError("error fetching resource %s", err)
+			return
+		}
+
+		// Format editable body
+		editableOutput, err := json.MarshalIndent(map[string]any{
+			"ips": ips,
+		}, "", "  ")
+		if err != nil {
+			display.ExitError("failed to marshal writable body: %s", err)
+			return
+		}
+
+		// Edit value
+		updatedBody, err := editor.EditValueWithEditor(editableOutput)
+		if err != nil {
+			display.ExitError("failed to edit properties: %s", err)
+			return
+		}
+
+		// Update API call
+		if err := httpLib.Client.Put(endpoint, json.RawMessage(updatedBody), nil); err != nil {
+			display.ExitError("failed to update resource: %s", err)
+			return
+		}
+
+		fmt.Println("\n✅ IP restrictions updated succesfully ...")
 		return
 	}
 
-	// Prepare editable body
-	editableBody := map[string]any{
-		"ips": currentRestrictions,
-	}
-
-	// Format editable body
-	editableOutput, err := json.MarshalIndent(editableBody, "", "  ")
-	if err != nil {
-		display.ExitError("failed to marshal writable body: %s", err)
-		return
-	}
-
-	// Edit value
-	updatedBody, err := editor.EditValueWithEditor(editableOutput)
-	if err != nil {
-		display.ExitError("failed to edit properties: %s", err)
-		return
-	}
-
-	if slices.Equal(updatedBody, editableOutput) {
-		display.ExitWarning("\n🟠 Resource not updated, exiting")
-		return
-	}
-
-	// Update API call
-	if err := httpLib.Client.Put(endpoint, json.RawMessage(updatedBody), nil); err != nil {
-		display.ExitError("failed to update resource: %s", err)
+	// Update API call with IPS set via flags
+	if err := httpLib.Client.Put(endpoint, map[string]any{
+		"ips": KubeIPRestrictions,
+	}, nil); err != nil {
+		display.ExitError("failed to update IP restrictions: %s", err)
 		return
 	}
 
@@ -409,15 +451,20 @@ func GetKubeNodepool(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest(endpoint, args[1], cloudKubeNodepoolTemplate)
 }
 
-func EditKubeNodepool(_ *cobra.Command, args []string) {
+func EditKubeNodepool(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/kube/{kubeId}/nodepool/{nodepoolId}", endpoint, CloudOpenapiSchema); err != nil {
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/kube/{kubeId}/nodepool/{nodepoolId}",
+		fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1])),
+		KubeNodepoolSpec,
+		CloudOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
 		return
 	}
@@ -554,17 +601,22 @@ func GetKubeOIDCIntegration(_ *cobra.Command, args []string) {
 	display.OutputObject(oidcConfig, args[0], cloudKubeOIDCTemplate, &flags.OutputFormatConfig)
 }
 
-func EditKubeOIDCIntegration(_ *cobra.Command, args []string) {
+func EditKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
-
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect", endpoint, CloudOpenapiSchema); err != nil {
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect",
+		fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0])),
+		KubeOIDCConfig,
+		CloudOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }
 
@@ -604,4 +656,124 @@ func DeleteKubeOIDCIntegration(_ *cobra.Command, args []string) {
 	}
 
 	fmt.Println("\n✅ OIDC integration deleted successfully")
+}
+
+func GetKubePrivateNetworkConfiguration(_cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/privateNetworkConfiguration", projectID, url.PathEscape(args[0]))
+
+	var privateNetworkConfig map[string]any
+	if err := httpLib.Client.Get(endpoint, &privateNetworkConfig); err != nil {
+		display.ExitError("failed to fetch private network configuration: %s", err)
+		return
+	}
+
+	display.RenderTable([]map[string]any{privateNetworkConfig}, []string{"defaultVrackGateway", "privateNetworkRoutingAsDefault"}, &flags.OutputFormatConfig)
+}
+
+func EditKubePrivateNetworkConfiguration(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/kube/{kubeId}/privateNetworkConfiguration",
+		fmt.Sprintf("/cloud/project/%s/kube/%s/privateNetworkConfiguration", projectID, url.PathEscape(args[0])),
+		KubeSpec.PrivateNetworkConfiguration,
+		CloudOpenapiSchema,
+	); err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+}
+
+func ResetKubeCluster(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/reset", projectID, url.PathEscape(args[0]))
+	_, err = common.CreateResource("/cloud/project/{serviceName}/kube/{kubeId}/reset",
+		endpoint,
+		CloudKubeResetExample,
+		KubeSpec,
+		CloudOpenapiSchema,
+		nil)
+	if err != nil {
+		display.ExitError("failed to reset Kubernetes cluster: %s", err)
+		return
+	}
+
+	fmt.Println("\n⚡️ Kubernetes cluster is being reset…")
+}
+
+func RestartKubeCluster(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	if err := httpLib.Client.Post(fmt.Sprintf("/cloud/project/%s/kube/%s/restart", projectID, url.PathEscape(args[0])), map[string]any{
+		"force": KubeForceAction,
+	}, nil); err != nil {
+		display.ExitError("failed to restart Kubernetes cluster: %s", err)
+		return
+	}
+
+	fmt.Println("\n⚡️ Kubernetes cluster restarting…")
+}
+
+func UpdateKubeCluster(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/update", projectID, url.PathEscape(args[0]))
+
+	body := map[string]any{
+		"force": KubeForceAction,
+	}
+	if KubeUpdateStrategy != "" {
+		body["strategy"] = KubeUpdateStrategy
+	}
+
+	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
+		display.ExitError("failed to update Kubernetes cluster: %s", err)
+		return
+	}
+
+	fmt.Println("\n⚡️ Kubernetes cluster update in progress…")
+}
+
+func UpdateKubeLoadBalancersSubnet(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/updateLoadBalancersSubnetId", projectID, url.PathEscape(args[0]))
+	body := map[string]any{
+		"loadBalancersSubnetId": args[1],
+	}
+
+	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+		display.ExitError("failed to update load balancers subnet: %s", err)
+		return
+	}
+
+	fmt.Println("\n✅ Load balancers subnet updated successfully")
 }

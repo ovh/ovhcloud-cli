@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/iam"
 )
 
@@ -28,13 +29,26 @@ func init() {
 		Use:   "get <policy_id>",
 		Short: "Get a specific IAM policy",
 		Run:   iam.GetIAMPolicy,
+		Args:  cobra.ExactArgs(1),
 	})
 
-	iamPolicyCmd.AddCommand(&cobra.Command{
+	iamPolicyEditCmd := &cobra.Command{
 		Use:   "edit <policy_id>",
 		Short: "Edit specific IAM policy",
 		Run:   iam.EditIAMPolicy,
-	})
+		Args:  cobra.ExactArgs(1),
+	}
+	iamPolicyEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Name, "name", "", "Name of the policy")
+	iamPolicyEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Description, "description", "", "Description of the policy")
+	iamPolicyEditCmd.Flags().StringVar(&iam.IAMPolicySpec.ExpiredAt, "expiredAt", "", "Expiration date of the policy (RFC3339 format), after this date it will no longer be applied")
+	iamPolicyEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.Identities, "identity", nil, "Identities to which the policy applies")
+	iamPolicyEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsAllowed, "allow", nil, "List of allowed actions")
+	iamPolicyEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsDenied, "deny", nil, "List of denied actions")
+	iamPolicyEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsExcept, "except", nil, "List of actions to filter from the allowed list")
+	iamPolicyEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsGroupsURNs, "permissions-group", nil, "Permissions group URNs")
+	iamPolicyEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.ResourcesURNs, "resource", nil, "Resource URNs")
+	iamPolicyEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	iamPolicyCmd.AddCommand(iamPolicyEditCmd)
 
 	iamPermissionsGroupCmd := &cobra.Command{
 		Use:   "permissions-group",
@@ -52,13 +66,22 @@ func init() {
 		Use:   "get <permissions_group_id>",
 		Short: "Get a specific IAM permissions group",
 		Run:   iam.GetIAMPermissionsGroup,
+		Args:  cobra.ExactArgs(1),
 	})
 
-	iamPermissionsGroupCmd.AddCommand(&cobra.Command{
+	iamPermissionsGroupEditCmd := &cobra.Command{
 		Use:   "edit <permissions_group_id>",
 		Short: "Edit a specific IAM permissions group",
 		Run:   iam.EditIAMPermissionsGroup,
-	})
+		Args:  cobra.ExactArgs(1),
+	}
+	iamPermissionsGroupEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Name, "name", "", "Name of the policy")
+	iamPermissionsGroupEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Description, "description", "", "Description of the policy")
+	iamPermissionsGroupEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsAllowed, "allow", nil, "List of allowed actions")
+	iamPermissionsGroupEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsDenied, "deny", nil, "List of denied actions")
+	iamPermissionsGroupEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsExcept, "except", nil, "List of actions to filter from the allowed list")
+	iamPermissionsGroupEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	iamPermissionsGroupCmd.AddCommand(iamPermissionsGroupEditCmd)
 
 	iamResourceCmd := &cobra.Command{
 		Use:   "resource",
@@ -76,13 +99,18 @@ func init() {
 		Use:   "get <resource_urn>",
 		Short: "Get a specific IAM resource",
 		Run:   iam.GetIAMResource,
+		Args:  cobra.ExactArgs(1),
 	})
 
-	iamResourceCmd.AddCommand(&cobra.Command{
+	iamResourceEditCmd := &cobra.Command{
 		Use:   "edit <resource_urn>",
 		Short: "Edit a specific IAM resource",
 		Run:   iam.EditIAMResource,
-	})
+		Args:  cobra.ExactArgs(1),
+	}
+	iamResourceEditCmd.Flags().StringToStringVar(&iam.IAMResourceSpec.Tags, "tag", nil, "Tags to apply to the resource")
+	iamResourceEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	iamResourceCmd.AddCommand(iamResourceEditCmd)
 
 	iamResourceGroupCmd := &cobra.Command{
 		Use:   "resource-group",
@@ -100,13 +128,19 @@ func init() {
 		Use:   "get <resource_group_id>",
 		Short: "Get a specific IAM resource group",
 		Run:   iam.GetIAMResourceGroup,
+		Args:  cobra.ExactArgs(1),
 	})
 
-	iamResourceGroupCmd.AddCommand(&cobra.Command{
+	iamResourceGroupEditCmd := &cobra.Command{
 		Use:   "edit <resource_group_id>",
 		Short: "Edit a specific IAM resource group",
 		Run:   iam.EditIAMResourceGroup,
-	})
+		Args:  cobra.ExactArgs(1),
+	}
+	iamResourceGroupEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Name, "name", "", "Name of the resource group")
+	iamResourceGroupEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.ResourcesURNs, "resource", nil, "List of resource URNs to include in the group")
+	iamResourceGroupEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	iamResourceGroupCmd.AddCommand(iamResourceGroupEditCmd)
 
 	rootCmd.AddCommand(iamCmd)
 }

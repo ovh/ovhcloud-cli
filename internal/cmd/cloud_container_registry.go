@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
 
@@ -26,11 +27,15 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	registryCmd.AddCommand(&cobra.Command{
+	editCmd := &cobra.Command{
 		Use:   "edit <registry_id>",
 		Short: "Edit the given container registry",
+		Args:  cobra.ExactArgs(1),
 		Run:   cloud.EditContainerRegistry,
-	})
+	}
+	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryName, "name", "", "New name for the container registry")
+	editCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	registryCmd.AddCommand(editCmd)
 
 	cloudCmd.AddCommand(registryCmd)
 }

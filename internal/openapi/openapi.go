@@ -50,7 +50,9 @@ func GetOperationRequestExamples(spec []byte, path, method, defaultExample strin
 		}
 
 		// Merge replace values with the example
-		objectExample = utils.MergeMaps(replaceValues, objectExample)
+		if err := utils.MergeMaps(objectExample, replaceValues); err != nil {
+			return nil, fmt.Errorf("failed to merge replace values into example: %w", err)
+		}
 
 		// Marshal the final merged example
 		example, err := json.MarshalIndent(objectExample, "", "  ")
@@ -105,8 +107,8 @@ func getRequestBodyFromSpec(spec []byte, path, method string) (*openapi3.MediaTy
 }
 
 // pruneUnknownFields recursively removes fields not in the schema
-func pruneUnknownFields(data map[string]interface{}, schema *openapi3.Schema) map[string]interface{} {
-	cleaned := make(map[string]interface{})
+func pruneUnknownFields(data map[string]any, schema *openapi3.Schema) map[string]interface{} {
+	cleaned := make(map[string]any)
 	for propName, propSchema := range schema.Properties {
 
 		if propSchema.Value.ReadOnly {
@@ -116,7 +118,10 @@ func pruneUnknownFields(data map[string]interface{}, schema *openapi3.Schema) ma
 		if val, ok := data[propName]; ok {
 			// If the property is an object, recurse
 			if propSchema.Value.Type.Is("object") {
-				if nestedMap, ok := val.(map[string]interface{}); ok {
+				// Property is a map of base type, just add it
+				if propSchema.Value.AdditionalProperties.Schema != nil {
+					cleaned[propName] = val
+				} else if nestedMap, ok := val.(map[string]any); ok {
 					cleaned[propName] = pruneUnknownFields(nestedMap, propSchema.Value)
 				} else {
 					cleaned[propName] = val

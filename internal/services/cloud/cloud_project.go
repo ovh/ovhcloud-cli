@@ -10,7 +10,6 @@ import (
 
 	"stash.ovh.net/api/ovh-cli/internal/config"
 	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -30,6 +29,11 @@ var (
 
 	//go:embed api-schemas/cloud_v2.json
 	cloudV2OpenapiSchema []byte
+
+	CloudProjectSpec struct {
+		Description string `json:"description,omitempty"`
+		ManualQuota bool   `json:"manualQuota"`
+	}
 )
 
 func ListCloudProject(_ *cobra.Command, _ []string) {
@@ -40,10 +44,16 @@ func GetCloudProject(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/cloud/project", args[0], cloudProjectTemplate)
 }
 
-func EditCloudProject(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/cloud/project/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(httpLib.Client, "/cloud/project/{serviceName}", endpoint, CloudOpenapiSchema); err != nil {
+func EditCloudProject(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}",
+		fmt.Sprintf("/cloud/project/%s", url.PathEscape(args[0])),
+		CloudProjectSpec,
+		CloudOpenapiSchema,
+	); err != nil {
 		display.ExitError(err.Error())
+		return
 	}
 }
 
