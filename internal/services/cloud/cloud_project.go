@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"net/url"
+	"os"
 	"slices"
 
 	"github.com/spf13/cobra"
@@ -62,12 +63,17 @@ func getConfiguredCloudProject() (string, error) {
 		return url.PathEscape(CloudProject), nil
 	}
 
+	// If project defined in ENV, use it
+	if projectID := os.Getenv("OVH_CLOUD_PROJECT_SERVICE"); projectID != "" {
+		return url.PathEscape(projectID), nil
+	}
+
 	projectID, err := config.GetConfigValue(flags.CliConfig, "", "default_cloud_project")
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch default cloud project: %w", err)
 	}
 	if projectID == "" {
-		return "", fmt.Errorf("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration")
+		return "", fmt.Errorf("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration. Alternatively, you can set the OVH_CLOUD_PROJECT_SERVICE environment variable")
 	}
 
 	return url.PathEscape(projectID), nil

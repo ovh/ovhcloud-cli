@@ -165,6 +165,13 @@ func initInstanceCommand(cloudCmd *cobra.Command) {
 	})
 
 	instanceCmd.AddCommand(&cobra.Command{
+		Use:   "set-name <instance_id> <new_name>",
+		Short: "Set the name of the given instance",
+		Run:   cloud.SetInstanceName,
+		Args:  cobra.ExactArgs(2),
+	})
+
+	instanceCmd.AddCommand(&cobra.Command{
 		Use:   "start <instance_id>",
 		Short: "Start the given instance",
 		Run:   cloud.StartInstance,

@@ -2,6 +2,7 @@ package common
 
 import (
 	"bufio"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,21 @@ import (
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 	"stash.ovh.net/api/ovh-cli/internal/openapi"
 	"stash.ovh.net/api/ovh-cli/internal/utils"
+)
+
+var (
+	//go:embed templates/service_info.tmpl
+	ServiceInfoTemplate string
+
+	ServiceInfoSpec struct {
+		Renew struct {
+			Automatic          bool `json:"automatic"`
+			DeleteAtExpiration bool `json:"deleteAtExpiration"`
+			Forced             bool `json:"forced"`
+			ManualPayment      bool `json:"manualPayment"`
+			Period             int  `json:"period"`
+		} `json:"renew"`
+	}
 )
 
 func ManageListRequest(path, idField string, columnsToDisplay, filters []string) {

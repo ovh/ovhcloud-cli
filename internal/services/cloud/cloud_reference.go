@@ -31,13 +31,15 @@ func GetImages(region, osType string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/image", projectID)
+	query := url.Values{}
 	if region != "" {
-		endpoint += "?region=" + url.QueryEscape(region)
+		query.Add("region", region)
 	}
 	if osType != "" {
-		endpoint += "&osType=" + url.QueryEscape(osType)
+		query.Add("osType", osType)
 	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/image?%s", projectID, query.Encode())
 
 	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "region", "type", "status"}, flags.GenericFilters)
 }
