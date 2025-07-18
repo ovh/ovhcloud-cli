@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list AllDom services
 	alldomListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your AllDom services",
-		Run:   alldom.ListAllDom,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your AllDom services",
+		Run:     alldom.ListAllDom,
 	}
 	alldomCmd.AddCommand(withFilterFlag(alldomListCmd))
 

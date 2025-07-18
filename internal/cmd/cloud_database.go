@@ -13,9 +13,10 @@ func initCloudDatabaseCommand(cloudCmd *cobra.Command) {
 	databaseCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	databaseListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your databases",
-		Run:   cloud.ListCloudDatabases,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your databases",
+		Run:     cloud.ListCloudDatabases,
 	}
 	databaseCmd.AddCommand(withFilterFlag(databaseListCmd))
 

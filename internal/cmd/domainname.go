@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list DomainName services
 	domainnameListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your domain names",
-		Run:   domainname.ListDomainName,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your domain names",
+		Run:     domainname.ListDomainName,
 	}
 	domainnameCmd.AddCommand(withFilterFlag(domainnameListCmd))
 

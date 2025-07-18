@@ -19,9 +19,10 @@ func init() {
 	iamCmd.AddCommand(iamPolicyCmd)
 
 	iamPolicyListCmd := withFilterFlag(&cobra.Command{
-		Use:   "list",
-		Short: "List IAM policies",
-		Run:   iam.ListIAMPolicies,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List IAM policies",
+		Run:     iam.ListIAMPolicies,
 	})
 	iamPolicyCmd.AddCommand(iamPolicyListCmd)
 
@@ -57,9 +58,10 @@ func init() {
 	iamCmd.AddCommand(iamPermissionsGroupCmd)
 
 	iamPermissionsGroupCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list",
-		Short: "List IAM permissions groups",
-		Run:   iam.ListIAMPermissionsGroups,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List IAM permissions groups",
+		Run:     iam.ListIAMPermissionsGroups,
 	}))
 
 	iamPermissionsGroupCmd.AddCommand(&cobra.Command{
@@ -90,9 +92,10 @@ func init() {
 	iamCmd.AddCommand(iamResourceCmd)
 
 	iamResourceCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list",
-		Short: "List IAM resources",
-		Run:   iam.ListIAMResources,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List IAM resources",
+		Run:     iam.ListIAMResources,
 	}))
 
 	iamResourceCmd.AddCommand(&cobra.Command{
@@ -119,9 +122,10 @@ func init() {
 	iamCmd.AddCommand(iamResourceGroupCmd)
 
 	iamResourceGroupCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list",
-		Short: "List IAM resource groups",
-		Run:   iam.ListIAMResourceGroups,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List IAM resource groups",
+		Run:     iam.ListIAMResourceGroups,
 	}))
 
 	iamResourceGroupCmd.AddCommand(&cobra.Command{

@@ -14,9 +14,10 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	volumeCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	volumeListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List volumes",
-		Run:   cloud.ListCloudVolumes,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List volumes",
+		Run:     cloud.ListCloudVolumes,
 	}
 	volumeCmd.AddCommand(withFilterFlag(volumeListCmd))
 

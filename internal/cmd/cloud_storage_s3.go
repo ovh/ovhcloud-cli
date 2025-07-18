@@ -15,9 +15,10 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	storageS3Cmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	storageS3ListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
-		Run:   cloud.ListCloudStorageS3,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+		Run:     cloud.ListCloudStorageS3,
 	}
 	storageS3Cmd.AddCommand(withFilterFlag(storageS3ListCmd))
 
@@ -71,10 +72,11 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	storageS3Cmd.AddCommand(objectCmd)
 
 	objectListCmd := &cobra.Command{
-		Use:   "list <container_name>",
-		Short: "List objects in the given storage container",
-		Run:   cloud.ListStorageS3Objects,
-		Args:  cobra.ExactArgs(1),
+		Use:     "list <container_name>",
+		Aliases: []string{"ls"},
+		Short:   "List objects in the given storage container",
+		Run:     cloud.ListStorageS3Objects,
+		Args:    cobra.ExactArgs(1),
 	}
 	objectListCmd.Flags().StringVar(&cloud.StorageS3ListParams.KeyMarker, "key-marker", "", "Key marker for pagination")
 	objectListCmd.Flags().IntVar(&cloud.StorageS3ListParams.Limit, "limit", 1000, "Maximum number of objects to return")
@@ -117,10 +119,11 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	objectCmd.AddCommand(objectVersionCmd)
 
 	objectVersionListCmd := &cobra.Command{
-		Use:   "list <container_name> <object_name>",
-		Short: "List versions of a specific object in the given storage container",
-		Run:   cloud.ListStorageS3ObjectVersions,
-		Args:  cobra.ExactArgs(2),
+		Use:     "list <container_name> <object_name>",
+		Aliases: []string{"ls"},
+		Short:   "List versions of a specific object in the given storage container",
+		Run:     cloud.ListStorageS3ObjectVersions,
+		Args:    cobra.ExactArgs(2),
 	}
 	objectVersionListCmd.Flags().StringVar(&cloud.StorageS3ListParams.VersionIdMarker, "version-id-marker", "", "Version ID marker for pagination")
 	objectVersionListCmd.Flags().IntVar(&cloud.StorageS3ListParams.Limit, "limit", 1000, "Maximum number of versions to return")

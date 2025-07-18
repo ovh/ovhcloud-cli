@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list DedicatedCeph services
 	dedicatedcephListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Dedicated Ceph services",
-		Run:   dedicatedceph.ListDedicatedCeph,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Dedicated Ceph services",
+		Run:     dedicatedceph.ListDedicatedCeph,
 	}
 	dedicatedcephCmd.AddCommand(withFilterFlag(dedicatedcephListCmd))
 

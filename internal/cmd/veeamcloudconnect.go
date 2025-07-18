@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list VeeamCloudConnect services
 	veeamcloudconnectListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your VeeamCloudConnect services",
-		Run:   veeamcloudconnect.ListVeeamCloudConnect,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your VeeamCloudConnect services",
+		Run:     veeamcloudconnect.ListVeeamCloudConnect,
 	}
 	veeamcloudconnectCmd.AddCommand(withFilterFlag(veeamcloudconnectListCmd))
 

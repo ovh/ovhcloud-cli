@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list VeeamEnterprise services
 	veeamenterpriseListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your VeeamEnterprise services",
-		Run:   veeamenterprise.ListVeeamEnterprise,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your VeeamEnterprise services",
+		Run:     veeamenterprise.ListVeeamEnterprise,
 	}
 	veeamenterpriseCmd.AddCommand(withFilterFlag(veeamenterpriseListCmd))
 

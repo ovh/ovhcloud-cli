@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list DedicatedCluster services
 	dedicatedclusterListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your DedicatedCluster services",
-		Run:   dedicatedcluster.ListDedicatedCluster,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your DedicatedCluster services",
+		Run:     dedicatedcluster.ListDedicatedCluster,
 	}
 	dedicatedclusterCmd.AddCommand(withFilterFlag(dedicatedclusterListCmd))
 

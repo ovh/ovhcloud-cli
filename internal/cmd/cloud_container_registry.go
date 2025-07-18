@@ -14,9 +14,10 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 	registryCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	registryListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your container registries",
-		Run:   cloud.ListContainerRegistries,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your container registries",
+		Run:     cloud.ListContainerRegistries,
 	}
 	registryCmd.AddCommand(withFilterFlag(registryListCmd))
 

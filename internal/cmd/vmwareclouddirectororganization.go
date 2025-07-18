@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list VmwareCloudDirector Organizations
 	vmwareclouddirectororganizationListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your VmwareCloudDirector Organizations",
-		Run:   vmwareclouddirectororganization.ListVmwareCloudDirectorOrganization,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your VmwareCloudDirector Organizations",
+		Run:     vmwareclouddirectororganization.ListVmwareCloudDirectorOrganization,
 	}
 	vmwareclouddirectororganizationCmd.AddCommand(withFilterFlag(vmwareclouddirectororganizationListCmd))
 

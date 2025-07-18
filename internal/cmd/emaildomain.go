@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list EmailDomain services
 	emaildomainListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Email Domain services",
-		Run:   emaildomain.ListEmailDomain,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Email Domain services",
+		Run:     emaildomain.ListEmailDomain,
 	}
 	emaildomainCmd.AddCommand(withFilterFlag(emaildomainListCmd))
 

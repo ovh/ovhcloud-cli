@@ -20,9 +20,10 @@ func init() {
 	accountCmd.AddCommand(sshKeysCmd)
 
 	sshKeysCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list",
-		Short: "List your SSH keys",
-		Run:   account.ListSSHKeys,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your SSH keys",
+		Run:     account.ListSSHKeys,
 	}))
 
 	// API commands
@@ -45,9 +46,10 @@ func init() {
 	oauth2Cmd.AddCommand(oauth2ClientCmd)
 
 	oauth2ClientCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list",
-		Short: "List your OAuth2 clients",
-		Run:   account.ListOAuth2Clients,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your OAuth2 clients",
+		Run:     account.ListOAuth2Clients,
 	}))
 
 	oauth2ClientCmd.AddCommand(&cobra.Command{

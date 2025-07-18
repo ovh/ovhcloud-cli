@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list Okms services
 	okmsListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Okms services",
-		Run:   okms.ListOkms,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Okms services",
+		Run:     okms.ListOkms,
 	}
 	okmsCmd.AddCommand(withFilterFlag(okmsListCmd))
 

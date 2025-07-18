@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list OverTheBox services
 	overtheboxListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your OverTheBox services",
-		Run:   overthebox.ListOverTheBox,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your OverTheBox services",
+		Run:     overthebox.ListOverTheBox,
 	}
 	overtheboxCmd.AddCommand(withFilterFlag(overtheboxListCmd))
 

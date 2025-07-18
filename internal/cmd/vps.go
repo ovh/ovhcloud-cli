@@ -17,9 +17,10 @@ func init() {
 
 	// Command to list VPS services
 	vpsListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your VPS services",
-		Run:   vps.ListVps,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your VPS services",
+		Run:     vps.ListVps,
 	}
 	vpsCmd.AddCommand(withFilterFlag(vpsListCmd))
 
@@ -89,7 +90,7 @@ func init() {
 		Use:   "abort <service_name>",
 		Short: "Abort the creation of a VPS snapshot",
 		Args:  cobra.ExactArgs(1),
-		Run:   vps.AbordVpsSnapshot,
+		Run:   vps.AbortVpsSnapshot,
 	})
 
 	vpsSnapshotCmd.AddCommand(&cobra.Command{
@@ -121,10 +122,11 @@ func init() {
 	})
 
 	vpsBackupCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List all automated backups of the given VPS",
-		Args:  cobra.ExactArgs(1),
-		Run:   vps.ListVpsAutomatedBackups,
+		Use:     "list <service_name>",
+		Aliases: []string{"ls"},
+		Short:   "List all automated backups of the given VPS",
+		Args:    cobra.ExactArgs(1),
+		Run:     vps.ListVpsAutomatedBackups,
 	}))
 
 	vpsBackupCmd.AddCommand(&cobra.Command{
@@ -224,10 +226,11 @@ func init() {
 	vpsCmd.AddCommand(vpsDiskCmd)
 
 	vpsDiskCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List disks of the given VPS",
-		Args:  cobra.ExactArgs(1),
-		Run:   vps.ListVpsDisks,
+		Use:     "list <service_name>",
+		Aliases: []string{"ls"},
+		Short:   "List disks of the given VPS",
+		Args:    cobra.ExactArgs(1),
+		Run:     vps.ListVpsDisks,
 	}))
 
 	vpsDiskCmd.AddCommand(&cobra.Command{
@@ -264,10 +267,11 @@ func init() {
 	vpsCmd.AddCommand(vpsImageCmd)
 
 	vpsImageCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List images of the given VPS",
-		Args:  cobra.ExactArgs(1),
-		Run:   vps.GetVpsImages,
+		Use:     "list <service_name>",
+		Aliases: []string{"ls"},
+		Short:   "List images of the given VPS",
+		Args:    cobra.ExactArgs(1),
+		Run:     vps.GetVpsImages,
 	}))
 
 	// IPs commands
@@ -278,10 +282,11 @@ func init() {
 	vpsCmd.AddCommand(vpsIPCmd)
 
 	vpsIPCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List IPs of the given VPS",
-		Args:  cobra.ExactArgs(1),
-		Run:   vps.ListVpsIPs,
+		Use:     "list <service_name>",
+		Aliases: []string{"ls"},
+		Short:   "List IPs of the given VPS",
+		Args:    cobra.ExactArgs(1),
+		Run:     vps.ListVpsIPs,
 	}))
 
 	vpsIPCmd.AddCommand(&cobra.Command{
@@ -364,10 +369,11 @@ func init() {
 	vpsCmd.AddCommand(vpsSecondaryDNSCmd)
 
 	vpsSecondaryDNSCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List secondary DNS domains of the given VPS",
-		Args:  cobra.ExactArgs(1),
-		Run:   vps.ListVpsSecondaryDNSDomains,
+		Use:     "list <service_name>",
+		Aliases: []string{"ls"},
+		Short:   "List secondary DNS domains of the given VPS",
+		Args:    cobra.ExactArgs(1),
+		Run:     vps.ListVpsSecondaryDNSDomains,
 	}))
 
 	vpsSecondaryDnsAddCmd := &cobra.Command{

@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list WebHosting services
 	webhostingListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your WebHosting services",
-		Run:   webhosting.ListWebHosting,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your WebHosting services",
+		Run:     webhosting.ListWebHosting,
 	}
 	webhostingCmd.AddCommand(withFilterFlag(webhostingListCmd))
 

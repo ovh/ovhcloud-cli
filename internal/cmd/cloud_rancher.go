@@ -14,9 +14,10 @@ func initCloudRancherCommand(cloudCmd *cobra.Command) {
 	rancherCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	rancherListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List Rancher services",
-		Run:   cloud.ListCloudRanchers,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List Rancher services",
+		Run:     cloud.ListCloudRanchers,
 	}
 	rancherCmd.AddCommand(withFilterFlag(rancherListCmd))
 

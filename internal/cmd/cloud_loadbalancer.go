@@ -14,9 +14,10 @@ func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
 	loadbalancerCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	loadbalancerListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your loadbalancers",
-		Run:   cloud.ListCloudLoadbalancers,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your loadbalancers",
+		Run:     cloud.ListCloudLoadbalancers,
 	}
 	loadbalancerCmd.AddCommand(withFilterFlag(loadbalancerListCmd))
 

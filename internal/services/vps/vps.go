@@ -169,7 +169,7 @@ func DeleteVpsSnapshot(_ *cobra.Command, args []string) {
 	fmt.Println("\n⚡️ Snapshot deletion started")
 }
 
-func AbordVpsSnapshot(_ *cobra.Command, args []string) {
+func AbortVpsSnapshot(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/abortSnapshot", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {

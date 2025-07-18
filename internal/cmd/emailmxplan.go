@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list EmailMXPlan services
 	emailmxplanListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Email MXPlan services",
-		Run:   emailmxplan.ListEmailMXPlan,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Email MXPlan services",
+		Run:     emailmxplan.ListEmailMXPlan,
 	}
 	emailmxplanCmd.AddCommand(withFilterFlag(emailmxplanListCmd))
 

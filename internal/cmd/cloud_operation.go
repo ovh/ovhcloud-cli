@@ -13,9 +13,10 @@ func initCloudOperationCommand(cloudCmd *cobra.Command) {
 	operationCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	operationListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List operations of the given project",
-		Run:   cloud.ListCloudOperations,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List operations of the given project",
+		Run:     cloud.ListCloudOperations,
 	}
 	operationCmd.AddCommand(withFilterFlag(operationListCmd))
 
