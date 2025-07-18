@@ -15,4 +15,15 @@ jobs:
         path: ovhcloud
         if-no-files-found: error
 
+  build-wasm:
+    runs-on: library/go-1-24
+    steps:
+    - uses: actions/checkout
+    - run: go get ./...
+    - run: GOOS=js GOARCH=wasm go build -v -o ovhcloud.wasm ./cmd/ovhcloud
+    - uses: actions/uploadArtifact
+      with:
+        path: ovhcloud.wasm
+        if-no-files-found: error
+
 integrations: [artifactory-digital-core-platform-api]
