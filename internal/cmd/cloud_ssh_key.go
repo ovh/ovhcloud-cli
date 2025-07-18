@@ -13,9 +13,10 @@ func initCloudSSHKeyCommand(cloudCmd *cobra.Command) {
 	sshKeyCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	sshKeyListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List SSH keys",
-		Run:   cloud.ListCloudSSHKeys,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List SSH keys",
+		Run:     cloud.ListCloudSSHKeys,
 	}
 	sshKeyCmd.AddCommand(withFilterFlag(sshKeyListCmd))
 

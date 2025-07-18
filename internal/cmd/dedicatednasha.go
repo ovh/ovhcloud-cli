@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list DedicatedNasHA services
 	dedicatednashaListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Dedicated NasHA services",
-		Run:   dedicatednasha.ListDedicatedNasHA,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Dedicated NasHA services",
+		Run:     dedicatednasha.ListDedicatedNasHA,
 	}
 	dedicatednashaCmd.AddCommand(withFilterFlag(dedicatednashaListCmd))
 

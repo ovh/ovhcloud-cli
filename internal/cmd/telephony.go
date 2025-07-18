@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list Telephony services
 	telephonyListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Telephony services",
-		Run:   telephony.ListTelephony,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Telephony services",
+		Run:     telephony.ListTelephony,
 	}
 	telephonyCmd.AddCommand(withFilterFlag(telephonyListCmd))
 

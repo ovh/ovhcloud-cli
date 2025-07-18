@@ -15,9 +15,10 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 
 	// Command to list Kuberetes clusters
 	kubeListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Kubernetes clusters",
-		Run:   cloud.ListKubes,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Kubernetes clusters",
+		Run:     cloud.ListKubes,
 	}
 	kubeCmd.AddCommand(withFilterFlag(kubeListCmd))
 
@@ -87,10 +88,11 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(ipRestrictionsCmd)
 
 	ipRestrictionsCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <cluster_id>",
-		Short: "List IP restrictions for the given Kubernetes cluster",
-		Run:   cloud.ListKubeIPRestrictions,
-		Args:  cobra.ExactArgs(1),
+		Use:     "list <cluster_id>",
+		Aliases: []string{"ls"},
+		Short:   "List IP restrictions for the given Kubernetes cluster",
+		Run:     cloud.ListKubeIPRestrictions,
+		Args:    cobra.ExactArgs(1),
 	}))
 
 	ipRestrictionsEditCmd := &cobra.Command{
@@ -131,10 +133,11 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(nodeCmd)
 
 	nodeCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <cluster_id>",
-		Short: "List nodes in the given Kubernetes cluster",
-		Run:   cloud.ListKubeNodes,
-		Args:  cobra.ExactArgs(1),
+		Use:     "list <cluster_id>",
+		Aliases: []string{"ls"},
+		Short:   "List nodes in the given Kubernetes cluster",
+		Run:     cloud.ListKubeNodes,
+		Args:    cobra.ExactArgs(1),
 	}))
 
 	nodeCmd.AddCommand(&cobra.Command{
@@ -158,10 +161,11 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(nodepoolCmd)
 
 	nodepoolCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <cluster_id>",
-		Short: "List node pools in the given Kubernetes cluster",
-		Run:   cloud.ListKubeNodepools,
-		Args:  cobra.ExactArgs(1),
+		Use:     "list <cluster_id>",
+		Aliases: []string{"ls"},
+		Short:   "List node pools in the given Kubernetes cluster",
+		Run:     cloud.ListKubeNodepools,
+		Args:    cobra.ExactArgs(1),
 	}))
 
 	nodepoolCmd.AddCommand(&cobra.Command{

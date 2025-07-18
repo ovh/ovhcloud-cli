@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list OvhCloudConnect services
 	ovhcloudconnectListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your OvhCloudConnect services",
-		Run:   ovhcloudconnect.ListOvhCloudConnect,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your OvhCloudConnect services",
+		Run:     ovhcloudconnect.ListOvhCloudConnect,
 	}
 	ovhcloudconnectCmd.AddCommand(withFilterFlag(ovhcloudconnectListCmd))
 

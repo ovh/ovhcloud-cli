@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list Ip services
 	ipListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Ip services",
-		Run:   ip.ListIp,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Ip services",
+		Run:     ip.ListIp,
 	}
 	ipCmd.AddCommand(withFilterFlag(ipListCmd))
 

@@ -130,6 +130,25 @@ func GetInstance(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/instance", projectID), args[0], cloudInstanceTemplate)
 }
 
+func SetInstanceName(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
+	body := map[string]any{
+		"instanceName": args[1],
+	}
+	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+		display.ExitError("error renaming instance %q: %s\n", args[0], err)
+		return
+	}
+
+	fmt.Printf("\n✅ Instance %s renamed to %s\n", args[0], args[1])
+}
+
 func StartInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {

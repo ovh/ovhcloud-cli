@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list Baremetal services
 	baremetalListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Baremetal services",
-		Run:   baremetal.ListBaremetal,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Baremetal services",
+		Run:     baremetal.ListBaremetal,
 	}
 	baremetalCmd.AddCommand(withFilterFlag(baremetalListCmd))
 
@@ -156,10 +157,11 @@ Please note that all parameters are not compatible with all OSes.
 	}
 	baremetalCmd.AddCommand(baremetalBootCmd)
 	baremetalBootCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List boot options for the given baremetal",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.ListBaremetalBoots,
+		Use:     "list <service_name>",
+		Aliases: []string{"ls"},
+		Short:   "List boot options for the given baremetal",
+		Args:    cobra.ExactArgs(1),
+		Run:     baremetal.ListBaremetalBoots,
 	}))
 	baremetalBootCmd.AddCommand(&cobra.Command{
 		Use:   "set <service_name> <boot_id>",
@@ -215,10 +217,11 @@ Please note that all parameters are not compatible with all OSes.
 	}
 	baremetalCmd.AddCommand(baremetalVNICmd)
 	baremetalVNICmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List Virtual Network Interfaces of the given baremetal",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.ListBaremetalVNIs,
+		Use:     "list <service_name>",
+		Aliases: []string{"ls"},
+		Short:   "List Virtual Network Interfaces of the given baremetal",
+		Args:    cobra.ExactArgs(1),
+		Run:     baremetal.ListBaremetalVNIs,
 	}))
 	baremetalVNICreateOLAAggregationCmd := &cobra.Command{
 		Use:   "ola-create-aggregation <service_name> --name <name> --interface <uuid> --interface <uuid>",

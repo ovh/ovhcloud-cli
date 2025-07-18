@@ -142,9 +142,10 @@ func initInstanceCommand(cloudCmd *cobra.Command) {
 	instanceCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	instanceListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your instances",
-		Run:   cloud.ListInstances,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your instances",
+		Run:     cloud.ListInstances,
 	}
 	instanceCmd.AddCommand(withFilterFlag(instanceListCmd))
 
@@ -162,6 +163,13 @@ func initInstanceCommand(cloudCmd *cobra.Command) {
 		Short: "Delete the given instance",
 		Run:   cloud.DeleteInstance,
 		Args:  cobra.ExactArgs(1),
+	})
+
+	instanceCmd.AddCommand(&cobra.Command{
+		Use:   "set-name <instance_id> <new_name>",
+		Short: "Set the name of the given instance",
+		Run:   cloud.SetInstanceName,
+		Args:  cobra.ExactArgs(2),
 	})
 
 	instanceCmd.AddCommand(&cobra.Command{
@@ -288,10 +296,11 @@ There are three ways to define the installation parameters:
 	instanceCmd.AddCommand(interfacesCommand)
 
 	interfacesCommand.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <instance_id>",
-		Short: "List interfaces of the given instance",
-		Run:   cloud.ListInstanceInterfaces,
-		Args:  cobra.ExactArgs(1),
+		Use:     "list <instance_id>",
+		Aliases: []string{"ls"},
+		Short:   "List interfaces of the given instance",
+		Run:     cloud.ListInstanceInterfaces,
+		Args:    cobra.ExactArgs(1),
 	}))
 
 	interfacesCommand.AddCommand(&cobra.Command{

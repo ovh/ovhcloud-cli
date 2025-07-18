@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list HostingPrivateDatabase services
 	hostingprivatedatabaseListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your HostingPrivateDatabase services",
-		Run:   hostingprivatedatabase.ListHostingPrivateDatabase,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your HostingPrivateDatabase services",
+		Run:     hostingprivatedatabase.ListHostingPrivateDatabase,
 	}
 	hostingprivatedatabaseCmd.AddCommand(withFilterFlag(hostingprivatedatabaseListCmd))
 

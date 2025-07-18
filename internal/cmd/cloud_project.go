@@ -19,9 +19,10 @@ func init() {
 
 	// Command to list CloudProject services
 	cloudprojectCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list",
-		Short: "List your cloud projects",
-		Run:   cloud.ListCloudProject,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your cloud projects",
+		Run:     cloud.ListCloudProject,
 	}))
 
 	// Command to get a single CloudProject

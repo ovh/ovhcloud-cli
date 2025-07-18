@@ -13,9 +13,10 @@ func initCloudUserCommand(cloudCmd *cobra.Command) {
 	userCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	userListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List users",
-		Run:   cloud.ListCloudUsers,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List users",
+		Run:     cloud.ListCloudUsers,
 	}
 	userCmd.AddCommand(withFilterFlag(userListCmd))
 

@@ -14,9 +14,10 @@ func initCloudStorageSwiftCommand(cloudCmd *cobra.Command) {
 	storageSwiftCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	storageSwiftListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List SWIFT storage containers",
-		Run:   cloud.ListCloudStorageSwift,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List SWIFT storage containers",
+		Run:     cloud.ListCloudStorageSwift,
 	}
 	storageSwiftCmd.AddCommand(withFilterFlag(storageSwiftListCmd))
 

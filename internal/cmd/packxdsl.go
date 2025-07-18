@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list PackXDSL services
 	packxdslListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your PackXDSL services",
-		Run:   packxdsl.ListPackXDSL,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your PackXDSL services",
+		Run:     packxdsl.ListPackXDSL,
 	}
 	packxdslCmd.AddCommand(withFilterFlag(packxdslListCmd))
 

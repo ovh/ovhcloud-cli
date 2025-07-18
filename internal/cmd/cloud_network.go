@@ -21,9 +21,10 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 	networkCmd.AddCommand(privateNetworkCmd)
 
 	privateNetworkListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your private networks",
-		Run:   cloud.ListCloudPrivateNetworks,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your private networks",
+		Run:     cloud.ListCloudPrivateNetworks,
 	}
 	privateNetworkCmd.AddCommand(withFilterFlag(privateNetworkListCmd))
 
@@ -51,9 +52,10 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 	networkCmd.AddCommand(publicNetworkCmd)
 
 	publicNetworkListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your public networks",
-		Run:   cloud.ListCloudPublicNetworks,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your public networks",
+		Run:     cloud.ListCloudPublicNetworks,
 	}
 	publicNetworkCmd.AddCommand(withFilterFlag(publicNetworkListCmd))
 
@@ -71,9 +73,10 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 	networkCmd.AddCommand(gatewayCmd)
 
 	gatewayListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your gateways",
-		Run:   cloud.ListCloudGateways,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your gateways",
+		Run:     cloud.ListCloudGateways,
 	}
 	gatewayCmd.AddCommand(withFilterFlag(gatewayListCmd))
 

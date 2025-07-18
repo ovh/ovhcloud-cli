@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list tickets
 	supportticketsListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your support tickets",
-		Run:   supporttickets.ListSupportTickets,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your support tickets",
+		Run:     supporttickets.ListSupportTickets,
 	}
 	supportticketsCmd.AddCommand(withFilterFlag(supportticketsListCmd))
 

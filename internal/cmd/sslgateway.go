@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list SslGateway services
 	sslgatewayListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your SSL Gateway services",
-		Run:   sslgateway.ListSslGateway,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your SSL Gateway services",
+		Run:     sslgateway.ListSslGateway,
 	}
 	sslgatewayCmd.AddCommand(withFilterFlag(sslgatewayListCmd))
 

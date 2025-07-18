@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list DedicatedCloud services
 	dedicatedcloudListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your DedicatedCloud services",
-		Run:   dedicatedcloud.ListDedicatedCloud,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your DedicatedCloud services",
+		Run:     dedicatedcloud.ListDedicatedCloud,
 	}
 	dedicatedcloudCmd.AddCommand(withFilterFlag(dedicatedcloudListCmd))
 

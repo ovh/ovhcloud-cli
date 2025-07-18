@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list Vrack services
 	vrackListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your vRackservices",
-		Run:   vrack.ListVrack,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your vRackservices",
+		Run:     vrack.ListVrack,
 	}
 	vrackCmd.AddCommand(withFilterFlag(vrackListCmd))
 

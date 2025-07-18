@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list VmwareCloudDirectorBackup services
 	vmwareclouddirectorbackupListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your VmwareCloudDirector Backup services",
-		Run:   vmwareclouddirectorbackup.ListVmwareCloudDirectorBackup,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your VmwareCloudDirector Backup services",
+		Run:     vmwareclouddirectorbackup.ListVmwareCloudDirectorBackup,
 	}
 	vmwareclouddirectorbackupCmd.AddCommand(withFilterFlag(vmwareclouddirectorbackupListCmd))
 

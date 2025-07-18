@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list Ldp services
 	ldpListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Ldp services",
-		Run:   ldp.ListLdp,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Ldp services",
+		Run:     ldp.ListLdp,
 	}
 	ldpCmd.AddCommand(withFilterFlag(ldpListCmd))
 

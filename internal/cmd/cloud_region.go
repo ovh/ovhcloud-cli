@@ -13,9 +13,10 @@ func initCloudRegionCommand(cloudCmd *cobra.Command) {
 	regionCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	regionListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List regions",
-		Run:   cloud.ListCloudRegions,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List regions",
+		Run:     cloud.ListCloudRegions,
 	}
 	regionCmd.AddCommand(withFilterFlag(regionListCmd))
 

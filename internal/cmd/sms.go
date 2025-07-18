@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list Sms services
 	smsListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your SMS services",
-		Run:   sms.ListSms,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your SMS services",
+		Run:     sms.ListSms,
 	}
 	smsCmd.AddCommand(withFilterFlag(smsListCmd))
 

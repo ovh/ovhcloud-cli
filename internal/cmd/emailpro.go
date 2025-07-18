@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list EmailPro services
 	emailproListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your EmailPro services",
-		Run:   emailpro.ListEmailPro,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your EmailPro services",
+		Run:     emailpro.ListEmailPro,
 	}
 	emailproCmd.AddCommand(withFilterFlag(emailproListCmd))
 

@@ -16,9 +16,10 @@ func init() {
 
 	// Command to list IpLoadbalancing services
 	iploadbalancingListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your IpLoadbalancing services",
-		Run:   iploadbalancing.ListIpLoadbalancing,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your IpLoadbalancing services",
+		Run:     iploadbalancing.ListIpLoadbalancing,
 	}
 	iploadbalancingCmd.AddCommand(withFilterFlag(iploadbalancingListCmd))
 

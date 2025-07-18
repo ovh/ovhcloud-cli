@@ -14,9 +14,10 @@ func init() {
 
 	// Command to list StorageNetApp services
 	storagenetappListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Storage NetApp services",
-		Run:   storagenetapp.ListStorageNetApp,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Storage NetApp services",
+		Run:     storagenetapp.ListStorageNetApp,
 	}
 	storagenetappCmd.AddCommand(withFilterFlag(storagenetappListCmd))
 

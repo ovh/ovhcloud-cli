@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list Nutanix services
 	nutanixListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Nutanix services",
-		Run:   nutanix.ListNutanix,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Nutanix services",
+		Run:     nutanix.ListNutanix,
 	}
 	nutanixCmd.AddCommand(withFilterFlag(nutanixListCmd))
 

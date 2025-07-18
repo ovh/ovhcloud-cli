@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list Ssl services
 	sslListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your SSL services",
-		Run:   ssl.ListSsl,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your SSL services",
+		Run:     ssl.ListSsl,
 	}
 	sslCmd.AddCommand(withFilterFlag(sslListCmd))
 

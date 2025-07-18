@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list Location services
 	locationListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your Location services",
-		Run:   location.ListLocation,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your Location services",
+		Run:     location.ListLocation,
 	}
 	locationCmd.AddCommand(withFilterFlag(locationListCmd))
 

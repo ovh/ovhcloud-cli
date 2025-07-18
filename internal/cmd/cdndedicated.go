@@ -13,9 +13,10 @@ func init() {
 
 	// Command to list CdnDedicated services
 	cdndedicatedListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List your dedicated CDN services",
-		Run:   cdndedicated.ListCdnDedicated,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your dedicated CDN services",
+		Run:     cdndedicated.ListCdnDedicated,
 	}
 	cdndedicatedCmd.AddCommand(withFilterFlag(cdndedicatedListCmd))
 
