@@ -4,6 +4,7 @@ import (
 	_ "embed"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
 	"stash.ovh.net/api/ovh-cli/internal/services/vps"
@@ -354,7 +355,7 @@ func init() {
 	vpsReinstallCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
 	vpsReinstallCmd.Flags().BoolVar(&vps.VpsImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
 	vpsReinstallCmd.Flags().BoolVar(&vps.VpsSSHKeyViaInteractiveSelector, "ssh-key-selector", false, "Use the interactive SSH key selector")
-	addInitParameterFileFlag(vpsReinstallCmd, vps.VpsOpenapiSchema, "/vps/{serviceName}/rebuild", "post", vps.VpsReinstallExample, nil)
+	addInitParameterFileFlag(vpsReinstallCmd, assets.VpsOpenapiSchema, "/vps/{serviceName}/rebuild", "post", vps.VpsReinstallExample, nil)
 	vpsReinstallCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing installation parameters")
 	vpsReinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
 	removeRootFlagsFromCommand(vpsReinstallCmd)

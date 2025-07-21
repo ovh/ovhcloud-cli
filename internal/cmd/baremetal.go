@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/baremetal"
 )
@@ -129,7 +130,7 @@ Please note that all parameters are not compatible with all OSes.
 		Run:        baremetal.ReinstallBaremetal,
 	}
 
-	addInitParameterFileFlag(reinstallBaremetalCmd, baremetal.BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetal.BaremetalInstallationExample, nil)
+	addInitParameterFileFlag(reinstallBaremetalCmd, assets.BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetal.BaremetalInstallationExample, nil)
 	reinstallBaremetalCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing installation parameters")
 	reinstallBaremetalCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define installation parameters")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.OperatingSystem, "os", "", "Operating system to install")

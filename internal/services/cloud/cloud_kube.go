@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
@@ -184,7 +185,7 @@ func CreateKube(cmd *cobra.Command, args []string) {
 		endpoint,
 		CloudKubeCreationExample,
 		KubeSpec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 		[]string{"region"})
 	if err != nil {
 		display.ExitError("failed to create Kubernetes cluster: %s", err)
@@ -209,7 +210,7 @@ func EditKube(cmd *cobra.Command, args []string) {
 			"name":         KubeSpec.Name,
 			"updatePolicy": KubeSpec.UpdatePolicy,
 		},
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -261,7 +262,7 @@ func EditKubeCustomization(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/kube/{kubeId}/customization",
 		fmt.Sprintf("/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0])),
 		KubeSpec.Customization,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -463,7 +464,7 @@ func EditKubeNodepool(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/kube/{kubeId}/nodepool/{nodepoolId}",
 		fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1])),
 		KubeNodepoolSpec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -536,7 +537,7 @@ func CreateKubeNodepool(cmd *cobra.Command, args []string) {
 		endpoint,
 		CloudKubeNodePoolCreationExample,
 		KubeNodepoolSpec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 		[]string{"flavorName"})
 	if err != nil {
 		display.ExitError("failed to create Kubernetes node pool: %s", err)
@@ -613,7 +614,7 @@ func EditKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect",
 		fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0])),
 		KubeOIDCConfig,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -632,7 +633,7 @@ func CreateKubeOIDCIntegration(_ *cobra.Command, args []string) {
 		endpoint,
 		CloudKubeOIDCCreationExample,
 		KubeOIDCConfig,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 		[]string{"clientId", "issuerUrl"}); err != nil {
 		display.ExitError("failed to create OIDC integration: %s", err)
 		return
@@ -688,7 +689,7 @@ func EditKubePrivateNetworkConfiguration(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/kube/{kubeId}/privateNetworkConfiguration",
 		fmt.Sprintf("/cloud/project/%s/kube/%s/privateNetworkConfiguration", projectID, url.PathEscape(args[0])),
 		KubeSpec.PrivateNetworkConfiguration,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -707,7 +708,7 @@ func ResetKubeCluster(_ *cobra.Command, args []string) {
 		endpoint,
 		CloudKubeResetExample,
 		KubeSpec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 		nil)
 	if err != nil {
 		display.ExitError("failed to reset Kubernetes cluster: %s", err)

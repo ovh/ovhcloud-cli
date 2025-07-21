@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
@@ -121,7 +122,7 @@ There are three ways to define the creation parameters:
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.UserData, "user-data", "", "Configuration information or scripts to use upon launch")
 
 	// Common flags for other mean to define parameters
-	addInitParameterFileFlag(instanceCreateCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance", "post", cloud.CloudInstanceCreationExample, cloud.GetInstanceFlavorAndImageInteractiveSelector)
+	addInitParameterFileFlag(instanceCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance", "post", cloud.CloudInstanceCreationExample, cloud.GetInstanceFlavorAndImageInteractiveSelector)
 	instanceCreateCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
 	instanceCreateCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
 	instanceCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for instance creation to be done before exiting")
@@ -272,7 +273,7 @@ There are three ways to define the installation parameters:
 		Run:  cloud.ReinstallInstance,
 		Args: cobra.MaximumNArgs(1),
 	}
-	addInitParameterFileFlag(reinstallCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", nil)
+	addInitParameterFileFlag(reinstallCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", nil)
 	reinstallCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing installation parameters")
 	reinstallCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define installation parameters")
 	reinstallCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector to define installation parameters")

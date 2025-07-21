@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -56,7 +57,7 @@ func EditCloudLoadbalancer(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/loadbalancer/{loadBalancerId}",
 		fmt.Sprintf("/cloud/project/%s/loadbalancer/%s", projectID, url.PathEscape(args[0])),
 		CloudLoadbalancerUpdateFields,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

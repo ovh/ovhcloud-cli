@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/dedicatednasha.tmpl
 	dedicatednashaTemplate string
-
-	//go:embed api-schemas/dedicatednasha.json
-	dedicatednashaOpenapiSchema []byte
 
 	DedicatedNasHASpec struct {
 		CustomName string `json:"customName,omitempty"`
@@ -40,7 +38,7 @@ func EditDedicatedNasHA(cmd *cobra.Command, args []string) {
 		"/dedicated/nasha/{serviceName}",
 		fmt.Sprintf("/dedicated/nasha/%s", url.PathEscape(args[0])),
 		DedicatedNasHASpec,
-		dedicatednashaOpenapiSchema,
+		assets.DedicatednashaOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

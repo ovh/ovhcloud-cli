@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -18,9 +19,6 @@ var (
 
 	//go:embed templates/vmwareclouddirectorbackup.tmpl
 	vmwareclouddirectorbackupTemplate string
-
-	//go:embed api-schemas/vmwareclouddirectorbackup.json
-	vmwareclouddirectorbackupOpenapiSchema []byte
 
 	VmwareCloudDirectorBackupSpec struct {
 		TargetSpec struct {
@@ -70,7 +68,7 @@ func EditVmwareCloudDirectorBackup(cmd *cobra.Command, args []string) {
 		"/vmwareCloudDirector/backup/{backupId}",
 		fmt.Sprintf("/v2/vmwareCloudDirector/backup/%s", url.PathEscape(args[0])),
 		VmwareCloudDirectorBackupSpec,
-		vmwareclouddirectorbackupOpenapiSchema,
+		assets.VmwareclouddirectorbackupOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

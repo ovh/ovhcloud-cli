@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/emailpro.tmpl
 	emailproTemplate string
-
-	//go:embed api-schemas/emailpro.json
-	emailproOpenapiSchema []byte
 
 	EmailProSpec struct {
 		ComplexityEnabled         bool   `json:"complexityEnabled,omitempty"`
@@ -57,7 +55,7 @@ func EditEmailPro(cmd *cobra.Command, args []string) {
 		"/email/pro/{service}",
 		fmt.Sprintf("/email/pro/%s", url.PathEscape(args[0])),
 		EmailProSpec,
-		emailproOpenapiSchema,
+		assets.EmailproOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

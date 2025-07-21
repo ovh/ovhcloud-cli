@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -17,9 +18,6 @@ var (
 
 	//go:embed templates/ip.tmpl
 	ipTemplate string
-
-	//go:embed api-schemas/ip.json
-	ipOpenapiSchema []byte
 
 	IPSpec struct {
 		Description string `json:"description,omitempty"`
@@ -40,7 +38,7 @@ func EditIp(cmd *cobra.Command, args []string) {
 		"/ip/{ip}",
 		fmt.Sprintf("/ip/%s", url.PathEscape(args[0])),
 		IPSpec,
-		ipOpenapiSchema,
+		assets.IpOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

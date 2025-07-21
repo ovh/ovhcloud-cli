@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/config"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
@@ -24,12 +25,6 @@ var (
 
 	//go:embed templates/cloud_project.tmpl
 	cloudProjectTemplate string
-
-	//go:embed api-schemas/cloud.json
-	CloudOpenapiSchema []byte
-
-	//go:embed api-schemas/cloud_v2.json
-	cloudV2OpenapiSchema []byte
 
 	CloudProjectSpec struct {
 		Description string `json:"description,omitempty"`
@@ -51,7 +46,7 @@ func EditCloudProject(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}",
 		fmt.Sprintf("/cloud/project/%s", url.PathEscape(args[0])),
 		CloudProjectSpec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
@@ -375,7 +376,7 @@ There are three ways to define the creation parameters:
 	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.UDPTimeout, "customization.kube-proxy.ipvs.udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(kubeCreateCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube", "post", cloud.CloudKubeCreationExample, nil)
+	addInitParameterFileFlag(kubeCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube", "post", cloud.CloudKubeCreationExample, nil)
 	kubeCreateCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
 	kubeCreateCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
 	kubeCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
@@ -461,7 +462,7 @@ There are three ways to define the reset parameters:
 	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.UDPTimeout, "customization.kube-proxy.ipvs.udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(kubeResetCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/reset", "post", cloud.CloudKubeResetExample, nil)
+	addInitParameterFileFlag(kubeResetCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/reset", "post", cloud.CloudKubeResetExample, nil)
 	kubeResetCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing reset parameters")
 	kubeResetCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define reset parameters")
 	kubeResetCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
@@ -546,7 +547,7 @@ There are three ways to define the creation parameters:
 	nodepoolCreateCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Template.Spec.Unschedulable, "template-unschedulable", false, "Set the nodes as unschedulable")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(nodepoolCreateCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/nodepool", "post", cloud.CloudKubeNodePoolCreationExample, cloud.GetKubeFlavorInteractiveSelector)
+	addInitParameterFileFlag(nodepoolCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/nodepool", "post", cloud.CloudKubeNodePoolCreationExample, cloud.GetKubeFlavorInteractiveSelector)
 	nodepoolCreateCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
 	nodepoolCreateCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
 	nodepoolCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
@@ -612,7 +613,7 @@ There are three ways to define the parameters:
 	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.UsernamePrefix, "username-prefix", "", "Prefix prepended to username claims")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(createCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect", "post", cloud.CloudKubeOIDCCreationExample, nil)
+	addInitParameterFileFlag(createCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect", "post", cloud.CloudKubeOIDCCreationExample, nil)
 	createCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
 	createCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
 	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")

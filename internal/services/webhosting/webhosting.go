@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/webhosting.tmpl
 	webhostingTemplate string
-
-	//go:embed api-schemas/webhosting.json
-	webhostingOpenapiSchema []byte
 
 	WebHostingSpec struct {
 		DisplayName string `json:"displayName,omitempty"`
@@ -39,7 +37,7 @@ func EditWebHosting(cmd *cobra.Command, args []string) {
 		"/hosting/web/{serviceName}",
 		fmt.Sprintf("/hosting/web/%s", url.PathEscape(args[0])),
 		WebHostingSpec,
-		webhostingOpenapiSchema,
+		assets.WebhostingOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

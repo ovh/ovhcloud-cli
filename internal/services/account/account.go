@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -13,9 +14,6 @@ import (
 )
 
 var (
-	//go:embed api-schemas/me.json
-	MeOpenapiSchema []byte
-
 	//go:embed parameter-samples/oauth2-client-create.json
 	Oauth2ClientCreateSample string
 
@@ -39,7 +37,7 @@ func CreateOAuth2Client(cmd *cobra.Command, args []string) {
 		"/me/api/oauth2/client",
 		Oauth2ClientCreateSample,
 		Oauth2ClientSpec,
-		MeOpenapiSchema,
+		assets.MeOpenapiSchema,
 		[]string{"name", "description", "flow"},
 	)
 	if err != nil {
@@ -78,7 +76,7 @@ func EditOauth2Client(cmd *cobra.Command, args []string) {
 		"/me/api/oauth2/client/{clientId}",
 		fmt.Sprintf("/me/api/oauth2/client/%s", url.PathEscape(args[0])),
 		Oauth2ClientSpec,
-		MeOpenapiSchema,
+		assets.MeOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

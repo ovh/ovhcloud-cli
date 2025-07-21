@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/vrack.tmpl
 	vrackTemplate string
-
-	//go:embed api-schemas/vrack.json
-	vrackOpenapiSchema []byte
 
 	VrackSpec struct {
 		Name        string `json:"name,omitempty"`
@@ -40,7 +38,7 @@ func EditVrack(cmd *cobra.Command, args []string) {
 		"/vrack/{serviceName}",
 		fmt.Sprintf("/vrack/%s", url.PathEscape(args[0])),
 		VrackSpec,
-		vrackOpenapiSchema,
+		assets.VrackOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
