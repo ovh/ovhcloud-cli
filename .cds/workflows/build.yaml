@@ -7,9 +7,10 @@ jobs:
     runs-on: library/go-1-24
     steps:
     - uses: actions/checkout
-    - run: go get ./...
-    - run: go test -v ./...
-    - run: go build -v -o ovhcloud ./cmd/ovhcloud
+    - run: |-
+        go get ./...
+        make test
+        make
     - uses: actions/uploadArtifact
       with:
         path: ovhcloud
@@ -19,8 +20,9 @@ jobs:
     runs-on: library/go-1-24
     steps:
     - uses: actions/checkout
-    - run: go get ./...
-    - run: GOOS=js GOARCH=wasm go build -v -o ovhcloud.wasm ./cmd/ovhcloud
+    - run: |-
+        go get ./...
+        make wasm
     - uses: actions/uploadArtifact
       with:
         path: ovhcloud.wasm
