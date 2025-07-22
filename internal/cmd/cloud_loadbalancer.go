@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
 
@@ -37,7 +36,7 @@ func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
 	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateFields.Name, "name", "", "Name of the loadbalancer")
 	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateFields.Description, "description", "", "Description of the loadbalancer")
 	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateFields.Size, "size", "", "Size of the load balancer (S, M, L)")
-	editLoadbalancerCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define private network configuration parameters")
+	addInteractiveEditorFlag(editLoadbalancerCmd)
 	loadbalancerCmd.AddCommand(editLoadbalancerCmd)
 
 	cloudCmd.AddCommand(loadbalancerCmd)

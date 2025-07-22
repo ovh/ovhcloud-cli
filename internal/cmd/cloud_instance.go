@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"runtime"
+
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
@@ -123,11 +125,13 @@ There are three ways to define the creation parameters:
 
 	// Common flags for other mean to define parameters
 	addInitParameterFileFlag(instanceCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance", "post", cloud.CloudInstanceCreationExample, cloud.GetInstanceFlavorAndImageInteractiveSelector)
-	instanceCreateCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
-	instanceCreateCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+	addInteractiveEditorFlag(instanceCreateCmd)
+	addFromFileFlag(instanceCreateCmd)
 	instanceCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for instance creation to be done before exiting")
-	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
-	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
+	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
+		instanceCreateCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
+		instanceCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
+	}
 
 	removeRootFlagsFromCommand(instanceCreateCmd)
 	instanceCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
@@ -274,8 +278,8 @@ There are three ways to define the installation parameters:
 		Args: cobra.MaximumNArgs(1),
 	}
 	addInitParameterFileFlag(reinstallCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", nil)
-	reinstallCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing installation parameters")
-	reinstallCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define installation parameters")
+	addInteractiveEditorFlag(reinstallCmd)
+	addFromFileFlag(reinstallCmd)
 	reinstallCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector to define installation parameters")
 	reinstallCmd.Flags().StringVar(&cloud.InstanceImageID, "image", "", "Image to use for reinstallation")
 	reinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")

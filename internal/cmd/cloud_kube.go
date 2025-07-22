@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"runtime"
+
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
@@ -79,7 +81,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPFinTimeout, "kube-proxy.ipvs.tcp-fin-timeout", "", "Timeout value used for IPVS TCP sessions after receiving a FIN in RFC3339 duration format (e.g. 'PT60S')")
 	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPTimeout, "kube-proxy.ipvs.tcp-timeout", "", "Timeout value used for idle IPVS TCP sessions in RFC3339 duration format (e.g. 'PT60S')")
 	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.UDPTimeout, "kube-proxy.ipvs.udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
-	customizationEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define customization parameters")
+	addInteractiveEditorFlag(customizationEditCmd)
 	customizationCmd.AddCommand(customizationEditCmd)
 
 	ipRestrictionsCmd := &cobra.Command{
@@ -103,7 +105,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	}
 	ipRestrictionsEditCmd.Flags().StringSliceVar(&cloud.KubeIPRestrictions, "ips", nil, "List of IPs to restrict access to the Kubernetes cluster")
-	ipRestrictionsEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define customization parameters")
+	addInteractiveEditorFlag(ipRestrictionsEditCmd)
 	ipRestrictionsEditCmd.MarkFlagsMutuallyExclusive("ips", "editor")
 	ipRestrictionsCmd.AddCommand(ipRestrictionsEditCmd)
 
@@ -195,7 +197,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	nodepoolEditCmd.Flags().StringToStringVar(&cloud.KubeNodepoolSpec.Template.Metadata.Labels, "template-labels", nil, "Labels to apply to each node")
 	nodepoolEditCmd.Flags().StringSliceVar(&cloud.KubeNodepoolSpec.Template.Spec.CommandLineTaints, "template-taints", nil, "Taints to apply to each node in key=value:effect format")
 	nodepoolEditCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Template.Spec.Unschedulable, "template-unschedulable", false, "Set the nodes as unschedulable")
-	nodepoolEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define customization parameters")
+	addInteractiveEditorFlag(nodepoolEditCmd)
 	nodepoolCmd.AddCommand(nodepoolEditCmd)
 
 	nodepoolCmd.AddCommand(&cobra.Command{
@@ -267,7 +269,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	}
 	privateNetworkConfigEditCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkConfiguration.DefaultVrackGateway, "default-vrack-gateway", "", "If defined, all egress traffic will be routed towards this IP address, which should belong to the private network")
 	privateNetworkConfigEditCmd.Flags().BoolVar(&cloud.KubeSpec.PrivateNetworkConfiguration.PrivateNetworkRoutingAsDefault, "routing-as-default", false, "Set private network routing as default")
-	privateNetworkConfigEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define private network configuration parameters")
+	addInteractiveEditorFlag(privateNetworkConfigEditCmd)
 	privateNetworkConfigCmd.AddCommand(privateNetworkConfigEditCmd)
 
 	kubeCmd.AddCommand(getKubeResetCmd())
@@ -377,8 +379,8 @@ There are three ways to define the creation parameters:
 
 	// Common flags for other means to define parameters
 	addInitParameterFileFlag(kubeCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube", "post", cloud.CloudKubeCreationExample, nil)
-	kubeCreateCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
-	kubeCreateCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+	addInteractiveEditorFlag(kubeCreateCmd)
+	addFromFileFlag(kubeCreateCmd)
 	kubeCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return kubeCreateCmd
@@ -463,8 +465,8 @@ There are three ways to define the reset parameters:
 
 	// Common flags for other means to define parameters
 	addInitParameterFileFlag(kubeResetCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/reset", "post", cloud.CloudKubeResetExample, nil)
-	kubeResetCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing reset parameters")
-	kubeResetCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define reset parameters")
+	addInteractiveEditorFlag(kubeResetCmd)
+	addFromFileFlag(kubeResetCmd)
 	kubeResetCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return kubeResetCmd
@@ -548,10 +550,12 @@ There are three ways to define the creation parameters:
 
 	// Common flags for other means to define parameters
 	addInitParameterFileFlag(nodepoolCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/nodepool", "post", cloud.CloudKubeNodePoolCreationExample, cloud.GetKubeFlavorInteractiveSelector)
-	nodepoolCreateCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
-	nodepoolCreateCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
-	nodepoolCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
-	nodepoolCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	addInteractiveEditorFlag(nodepoolCreateCmd)
+	addFromFileFlag(nodepoolCreateCmd)
+	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
+		nodepoolCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
+		nodepoolCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	}
 
 	return nodepoolCreateCmd
 }
@@ -614,8 +618,8 @@ There are three ways to define the parameters:
 
 	// Common flags for other means to define parameters
 	addInitParameterFileFlag(createCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect", "post", cloud.CloudKubeOIDCCreationExample, nil)
-	createCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
-	createCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+	addInteractiveEditorFlag(createCmd)
+	addFromFileFlag(createCmd)
 	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return createCmd

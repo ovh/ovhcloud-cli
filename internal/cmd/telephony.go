@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/telephony"
 )
 
@@ -42,7 +41,7 @@ func init() {
 	telephonyEditCmd.Flags().StringVar(&telephony.TelephonySpec.CreditThreshold.CurrencyCode, "credit-threshold-currency", "", "Currency code (AUD, CAD, CZK, EUR, GBP, INR, LTL, MAD, N/A, PLN, SGD, TND, USD, XOF, points)")
 	telephonyEditCmd.Flags().StringVar(&telephony.TelephonySpec.CreditThreshold.Text, "credit-threshold-text", "", "Text for credit threshold")
 	telephonyEditCmd.Flags().IntVar(&telephony.TelephonySpec.CreditThreshold.Value, "credit-threshold-value", 0, "Value for credit threshold")
-	telephonyEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(telephonyEditCmd)
 	telephonyCmd.AddCommand(telephonyEditCmd)
 
 	rootCmd.AddCommand(telephonyCmd)

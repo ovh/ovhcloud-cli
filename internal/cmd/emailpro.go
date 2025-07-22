@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/emailpro"
 )
 
@@ -53,7 +52,7 @@ func init() {
 	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.SpamAndVirusConfiguration.PutInJunk, "spam-put-in-junk", false, "If message is a spam or virus put in junk. Overridden by deleteSpam or deleteVirus")
 	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.SpamAndVirusConfiguration.TagSpam, "spam-tag-spam", false, "If message is a spam change its subject")
 	emailproCmd.Flags().BoolVar(&emailpro.EmailProSpec.SpamAndVirusConfiguration.TagVirus, "spam-tag-virus", false, "If message is a virus change its subject")
-	emailproCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(editEmailProCmd)
 	emailproCmd.AddCommand(editEmailProCmd)
 
 	rootCmd.AddCommand(emailproCmd)

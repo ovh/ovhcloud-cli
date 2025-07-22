@@ -2,6 +2,7 @@ package cmd
 
 import (
 	_ "embed"
+	"runtime"
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/assets"
@@ -44,7 +45,7 @@ func init() {
 	vpsEditCmd.Flags().StringVar(&vps.VpsSpec.Keymap, "keymap", "", "Keymap of the VPS (fr, us)")
 	vpsEditCmd.Flags().StringVar(&vps.VpsSpec.NetbootMode, "netboot-mode", "", "Netboot mode of the VPS (local, rescue)")
 	vpsEditCmd.Flags().BoolVar(&vps.VpsSpec.SlaMonitoring, "sla-monitoring", false, "Enable or disable SLA monitoring for the VPS")
-	vpsEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(vpsEditCmd)
 	vpsCmd.AddCommand(vpsEditCmd)
 
 	// Snapshot commands
@@ -77,7 +78,7 @@ func init() {
 		Run:   vps.EditVpsSnapshot,
 	}
 	vpsSnapshotEditCmd.Flags().StringVar(&vps.VpsSnapshotSpec.Description, "description", "", "Description of the snapshot")
-	vpsSnapshotEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(vpsSnapshotEditCmd)
 	vpsSnapshotCmd.AddCommand(vpsSnapshotEditCmd)
 
 	vpsSnapshotCmd.AddCommand(&cobra.Command{
@@ -202,7 +203,7 @@ func init() {
 	serviceInfoEditCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
 	serviceInfoEditCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
 	serviceInfoEditCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period (in months)")
-	serviceInfoEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(serviceInfoEditCmd)
 	serviceInfoCmd.AddCommand(serviceInfoEditCmd)
 
 	vpsCmd.AddCommand(&cobra.Command{
@@ -249,7 +250,7 @@ func init() {
 	}
 	vpsDiskEditCmd.Flags().IntVar(&vps.VpsDiskSpec.LowFreeSpaceThreshold, "low-free-space-threshold", 0, "Low free space threshold for the disk")
 	vpsDiskEditCmd.Flags().BoolVar(&vps.VpsDiskSpec.Monitoring, "monitoring", false, "Enable or disable monitoring for the disk")
-	vpsDiskEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(vpsDiskEditCmd)
 	vpsDiskCmd.AddCommand(vpsDiskEditCmd)
 
 	// VNC Console command
@@ -352,14 +353,16 @@ func init() {
 	vpsReinstallCmd.Flags().BoolVar(&vps.VpsReinstallSpec.InstallRTM, "install-rtm", false, "Install RTM during reinstallation")
 	vpsReinstallCmd.Flags().StringVar(&vps.VpsReinstallSpec.PublicSshKey, "public-ssh-key", "", "Public SSH key to pre-install on your VPS")
 	vpsReinstallCmd.Flags().StringVar(&vps.VpsReinstallSpec.SshKey, "ssh-key", "", "SSH key name to pre-install on your VPS (name can be found running `ovh-cli account ssh-key list`)")
-	vpsReinstallCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
-	vpsReinstallCmd.Flags().BoolVar(&vps.VpsImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
-	vpsReinstallCmd.Flags().BoolVar(&vps.VpsSSHKeyViaInteractiveSelector, "ssh-key-selector", false, "Use the interactive SSH key selector")
 	addInitParameterFileFlag(vpsReinstallCmd, assets.VpsOpenapiSchema, "/vps/{serviceName}/rebuild", "post", vps.VpsReinstallExample, nil)
-	vpsReinstallCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing installation parameters")
+	addInteractiveEditorFlag(vpsReinstallCmd)
+	addFromFileFlag(vpsReinstallCmd)
+	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
+		vpsReinstallCmd.Flags().BoolVar(&vps.VpsImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
+		vpsReinstallCmd.Flags().BoolVar(&vps.VpsSSHKeyViaInteractiveSelector, "ssh-key-selector", false, "Use the interactive SSH key selector")
+		vpsReinstallCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	}
 	vpsReinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
 	removeRootFlagsFromCommand(vpsReinstallCmd)
-	vpsReinstallCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	vpsCmd.AddCommand(vpsReinstallCmd)
 
 	// Secondary DNS Domains commands
@@ -385,7 +388,7 @@ func init() {
 	}
 	vpsSecondaryDnsAddCmd.Flags().StringVar(&vps.VpsSecondaryDNSDomainSpec.Domain, "domain", "", "Domain name for the secondary DNS")
 	vpsSecondaryDnsAddCmd.Flags().StringVar(&vps.VpsSecondaryDNSDomainSpec.IP, "ip", "", "IP address for the secondary DNS")
-	vpsSecondaryDnsAddCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(vpsSecondaryDnsAddCmd)
 	vpsSecondaryDNSCmd.AddCommand(vpsSecondaryDnsAddCmd)
 
 	vpsSecondaryDnsEditCmd := &cobra.Command{
@@ -395,7 +398,7 @@ func init() {
 		Run:   vps.EditVpsSecondaryDNSDomain,
 	}
 	vpsSecondaryDnsEditCmd.Flags().StringVar(&vps.VpsSecondaryDNSDomainSpec.IPMaster, "ip-master", "", "IP address of the master server for the secondary DNS")
-	vpsSecondaryDnsEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(vpsSecondaryDnsEditCmd)
 	vpsSecondaryDNSCmd.AddCommand(vpsSecondaryDnsEditCmd)
 
 	vpsSecondaryDNSCmd.AddCommand(&cobra.Command{

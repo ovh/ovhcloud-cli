@@ -346,7 +346,9 @@ func SetBaremetalBootScript(_ *cobra.Command, args []string) {
 		err    error
 	)
 
-	if flags.ParametersViaEditor {
+	if EditBaremetalParams.BootScript != "" {
+		script = []byte(EditBaremetalParams.BootScript)
+	} else if flags.ParametersViaEditor {
 		script, err = editor.EditValueWithEditor(nil)
 		if err != nil {
 			display.ExitError("failed to edit installation parameters using editor: %s", err)

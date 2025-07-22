@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/emailmxplan"
 )
 
@@ -53,7 +52,7 @@ func init() {
 	emailmxplanEditCmd.Flags().BoolVar(&emailmxplan.EmailMXPlanSpec.SpamAndVirusConfiguration.PutInJunk, "spam-put-in-junk", false, "If message is a spam or virus put in junk. Overridden by deleteSpam or deleteVirus")
 	emailmxplanEditCmd.Flags().BoolVar(&emailmxplan.EmailMXPlanSpec.SpamAndVirusConfiguration.TagSpam, "spam-tag-spam", false, "If message is a spam change its subject")
 	emailmxplanEditCmd.Flags().BoolVar(&emailmxplan.EmailMXPlanSpec.SpamAndVirusConfiguration.TagVirus, "spam-tag-virus", false, "If message is a virus change its subject")
-	emailmxplanEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(emailmxplanEditCmd)
 	emailmxplanCmd.AddCommand(emailmxplanEditCmd)
 
 	rootCmd.AddCommand(emailmxplanCmd)

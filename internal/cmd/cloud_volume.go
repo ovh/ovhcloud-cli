@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
 
@@ -45,7 +44,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	volumeEditCmd.Flags().IntVar(&cloud.CloudVolume.Size, "size", 0, "Volume size (in GB)")
 	volumeEditCmd.Flags().StringVar(&cloud.CloudVolume.Status, "status", "", "Volume status (attaching, available, awaiting-transfer, backing-up, creating, deleting, detaching, downloading, error, error_backing-up, error_deleting, error_extending, error_restoring, extending, in-use, maintenance, reserved, restoring-backup, retyping, uploading)")
 	volumeEditCmd.Flags().StringVar(&cloud.CloudVolume.Type, "type", "", "Volume type (classic, classic-luks, classic-multiattach, high-speed, high-speed-gen2, high-speed-gen2-luks, high-speed-luks)")
-	volumeEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(volumeEditCmd)
 	volumeCmd.AddCommand(volumeEditCmd)
 
 	cloudCmd.AddCommand(volumeCmd)

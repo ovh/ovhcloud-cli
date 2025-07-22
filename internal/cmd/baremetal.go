@@ -46,7 +46,7 @@ func init() {
 	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.RescueSshKey, "rescue-ssh-key", "", "Rescue SSH key")
 	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.RootDevice, "root-device", "", "Root device")
 	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.State, "state", "", "State (e.g., error)")
-	editBaremetalCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(editBaremetalCmd)
 	baremetalCmd.AddCommand(editBaremetalCmd)
 
 	// Command to list baremetal tasks
@@ -131,8 +131,8 @@ Please note that all parameters are not compatible with all OSes.
 	}
 
 	addInitParameterFileFlag(reinstallBaremetalCmd, assets.BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetal.BaremetalInstallationExample, nil)
-	reinstallBaremetalCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing installation parameters")
-	reinstallBaremetalCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define installation parameters")
+	addInteractiveEditorFlag(reinstallBaremetalCmd)
+	addFromFileFlag(reinstallBaremetalCmd)
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.OperatingSystem, "os", "", "Operating system to install")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.ConfigDriveUserData, "config-drive-user-data", "", "Config Drive UserData")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.EfiBootloaderPath, "efi-bootloader-path", "", "Path of the EFI bootloader from the OS installed on the server")
@@ -170,16 +170,18 @@ Please note that all parameters are not compatible with all OSes.
 		Args:  cobra.ExactArgs(2),
 		Run:   baremetal.SetBaremetalBootId,
 	})
+
 	baremetalBootSetScriptCmd := &cobra.Command{
 		Use:   "set-script <service_name>",
 		Short: "Configure a boot script on the given baremetal",
 		Args:  cobra.ExactArgs(1),
 		Run:   baremetal.SetBaremetalBootScript,
 	}
-	baremetalBootSetScriptCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing boot script")
-	baremetalBootSetScriptCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define the boot script")
-	baremetalBootSetScriptCmd.MarkFlagsOneRequired("from-file", "editor")
-	baremetalBootSetScriptCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	baremetalBootSetScriptCmd.Flags().StringVar(&baremetal.EditBaremetalParams.BootScript, "script", "", "Boot script to set on the baremetal")
+	addInteractiveEditorFlag(baremetalBootSetScriptCmd)
+	addFromFileFlag(baremetalBootSetScriptCmd)
+	baremetalBootSetScriptCmd.MarkFlagsOneRequired("script", "from-file", "editor")
+	baremetalBootSetScriptCmd.MarkFlagsMutuallyExclusive("script", "from-file", "editor")
 	baremetalBootCmd.AddCommand(baremetalBootSetScriptCmd)
 
 	baremetalListInterventionsCmd := &cobra.Command{

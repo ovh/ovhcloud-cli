@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/spf13/cobra"
 	"stash.ovh.net/api/ovh-cli/internal/display"
+	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/openapi"
 )
 
@@ -16,7 +18,23 @@ var (
 	replaceParamFile bool
 )
 
+func addInteractiveEditorFlag(cmd *cobra.Command) {
+	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
+		cmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	}
+}
+
+func addFromFileFlag(cmd *cobra.Command) {
+	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
+		cmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing parameters")
+	}
+}
+
 func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, method, defaultContent string, replaceValueFn func(*cobra.Command, []string) (map[string]any, error)) {
+	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
+		return
+	}
+
 	cmd.Flags().StringVar(&paramFile, "init-file", "", "Create a file with example parameters")
 	cmd.Flags().BoolVar(&replaceParamFile, "replace", false, "Replace parameters file if it already exists")
 	cmd.PreRun = func(_ *cobra.Command, args []string) {

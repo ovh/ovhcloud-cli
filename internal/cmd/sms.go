@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/sms"
 )
 
@@ -52,7 +51,7 @@ func init() {
 	smsEditCmd.Flags().StringVar(&sms.SmsSpec.Templates.EmailSubject, "templates-email-subject", "", "Email subject for templates")
 	smsEditCmd.Flags().StringVar(&sms.SmsSpec.Templates.SmsBody, "templates-sms-body", "", "SMS body for templates")
 	smsEditCmd.Flags().StringVar(&sms.SmsSpec.Templates.Time2chatAutomaticResponse, "templates-time2chat-automatic-response", "", "Time2chat automatic response")
-	smsEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(smsEditCmd)
 	smsCmd.AddCommand(smsEditCmd)
 
 	rootCmd.AddCommand(smsCmd)
