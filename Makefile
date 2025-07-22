@@ -15,6 +15,9 @@ wasm:
 test:
 	go test -v ./...
 
+fmt:
+	go fmt ./...
+
 release-snapshot:
 	goreleaser release --snapshot --clean
 
