@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/telephony.tmpl
 	telephonyTemplate string
-
-	//go:embed api-schemas/telephony.json
-	telephonyOpenapiSchema []byte
 
 	TelephonySpec struct {
 		CreditThreshold struct {
@@ -46,7 +44,7 @@ func EditTelephony(cmd *cobra.Command, args []string) {
 		"/telephony/{billingAccount}",
 		fmt.Sprintf("/telephony/%s", url.PathEscape(args[0])),
 		TelephonySpec,
-		telephonyOpenapiSchema,
+		assets.TelephonyOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

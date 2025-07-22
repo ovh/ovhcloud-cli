@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/vmwareclouddirectororganization"
 )
 
@@ -38,7 +37,7 @@ func init() {
 	}
 	vmwareclouddirectororganizationEditCmd.Flags().StringVar(&vmwareclouddirectororganization.VmwareCloudDirectorOrganizationSpec.TargetSpec.Description, "description", "", "Description of the organization")
 	vmwareclouddirectororganizationEditCmd.Flags().StringVar(&vmwareclouddirectororganization.VmwareCloudDirectorOrganizationSpec.TargetSpec.FullName, "full-name", "", "Full name of the organization")
-	vmwareclouddirectororganizationEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(vmwareclouddirectororganizationEditCmd)
 	vmwareclouddirectororganizationCmd.AddCommand(vmwareclouddirectororganizationEditCmd)
 
 	rootCmd.AddCommand(vmwareclouddirectororganizationCmd)

@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/xdsl.tmpl
 	xdslTemplate string
-
-	//go:embed api-schemas/xdsl.json
-	xdslOpenapiSchema []byte
 
 	XdslSpec struct {
 		Description  string `json:"description,omitempty"`
@@ -41,7 +39,7 @@ func EditXdsl(cmd *cobra.Command, args []string) {
 		"/xdsl/{serviceName}",
 		fmt.Sprintf("/xdsl/%s", url.PathEscape(args[0])),
 		XdslSpec,
-		xdslOpenapiSchema,
+		assets.XdslOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

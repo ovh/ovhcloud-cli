@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/overthebox.tmpl
 	overtheboxTemplate string
-
-	//go:embed api-schemas/overthebox.json
-	overtheboxOpenapiSchema []byte
 
 	OverTheBoxSpec struct {
 		AutoUpgrade         bool   `json:"autoUpgrade,omitempty"`
@@ -41,7 +39,7 @@ func EditOverTheBox(cmd *cobra.Command, args []string) {
 		"/overTheBox/{serviceName}",
 		fmt.Sprintf("/overTheBox/%s", url.PathEscape(args[0])),
 		OverTheBoxSpec,
-		overtheboxOpenapiSchema,
+		assets.OvertheboxOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

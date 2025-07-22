@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/packxdsl"
 )
 
@@ -37,7 +36,7 @@ func init() {
 		Run:   packxdsl.EditPackXDSL,
 	}
 	packxdslEditCmd.Flags().StringVar(&packxdsl.PackXDSLSpec.Description, "description", "", "Description of the PackXDSL")
-	packxdslEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(packxdslEditCmd)
 	packxdslCmd.AddCommand(packxdslEditCmd)
 
 	rootCmd.AddCommand(packxdslCmd)

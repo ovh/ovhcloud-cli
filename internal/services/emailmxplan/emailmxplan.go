@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/emailmxplan.tmpl
 	emailmxplanTemplate string
-
-	//go:embed api-schemas/emailmxplan.json
-	emailmxplanOpenapiSchema []byte
 
 	EmailMXPlanSpec struct {
 		ComplexityEnabled         bool   `json:"complexityEnabled,omitempty"`
@@ -57,7 +55,7 @@ func EditEmailMXPlan(cmd *cobra.Command, args []string) {
 		"/email/mxplan/{service}",
 		fmt.Sprintf("/email/mxplan/%s", url.PathEscape(args[0])),
 		EmailMXPlanSpec,
-		emailmxplanOpenapiSchema,
+		assets.EmailmxplanOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

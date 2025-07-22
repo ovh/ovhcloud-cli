@@ -8,6 +8,7 @@ import (
 
 	"github.com/ovh/go-ovh/ovh"
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
@@ -23,9 +24,6 @@ var (
 
 	//go:embed templates/vps-snapshot.tmpl
 	vpsSnapshotTemplate string
-
-	//go:embed api-schemas/vps.json
-	VpsOpenapiSchema []byte
 
 	//go:embed parameter-samples/reinstall.json
 	VpsReinstallExample string
@@ -111,7 +109,7 @@ func EditVps(cmd *cobra.Command, args []string) {
 		"/vps/{serviceName}",
 		fmt.Sprintf("/vps/%s", url.PathEscape(args[0])),
 		VpsSpec,
-		VpsOpenapiSchema,
+		assets.VpsOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -140,7 +138,7 @@ func EditVpsSnapshot(cmd *cobra.Command, args []string) {
 		"/vps/{serviceName}/snapshot",
 		fmt.Sprintf("/vps/%s/snapshot", url.PathEscape(args[0])),
 		VpsSnapshotSpec,
-		VpsOpenapiSchema,
+		assets.VpsOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -315,7 +313,7 @@ func EditVpsServiceInfo(cmd *cobra.Command, args []string) {
 		"/vps/{serviceName}/serviceInfos",
 		fmt.Sprintf("/vps/%s/serviceInfos", url.PathEscape(args[0])),
 		common.ServiceInfoSpec,
-		VpsOpenapiSchema,
+		assets.VpsOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -364,7 +362,7 @@ func EditVpsDisk(cmd *cobra.Command, args []string) {
 		"/vps/{serviceName}/disks/{id}",
 		fmt.Sprintf("/vps/%s/disks/%s", url.PathEscape(args[0]), url.PathEscape(args[1])),
 		VpsDiskSpec,
-		VpsOpenapiSchema,
+		assets.VpsOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -551,7 +549,7 @@ func ReinstallVps(cmd *cobra.Command, args []string) {
 		endpoint,
 		VpsReinstallExample,
 		VpsReinstallSpec,
-		VpsOpenapiSchema,
+		assets.VpsOpenapiSchema,
 		[]string{"imageId"},
 	)
 	if err != nil {
@@ -587,7 +585,7 @@ func EditVpsSecondaryDNSDomain(cmd *cobra.Command, args []string) {
 		"/vps/{serviceName}/secondaryDnsDomains/{domain}",
 		endpoint,
 		VpsSecondaryDNSDomainSpec,
-		VpsOpenapiSchema,
+		assets.VpsOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -602,7 +600,7 @@ func AddVpsSecondaryDNSDomain(_ *cobra.Command, args []string) {
 		endpoint,
 		"",
 		VpsSecondaryDNSDomainSpec,
-		VpsOpenapiSchema,
+		assets.VpsOpenapiSchema,
 		[]string{"domain", "ip"},
 	); err != nil {
 		display.ExitError("error creating secondary DNS domain for %s: %s", args[0], err)

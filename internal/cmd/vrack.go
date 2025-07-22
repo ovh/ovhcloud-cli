@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/vrack"
 )
 
@@ -38,7 +37,7 @@ func init() {
 	}
 	vrackEditCmd.Flags().StringVar(&vrack.VrackSpec.Name, "name", "", "Name of the vRack")
 	vrackEditCmd.Flags().StringVar(&vrack.VrackSpec.Description, "description", "", "Description of the vRack")
-	vrackEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(vrackEditCmd)
 	vrackCmd.AddCommand(vrackEditCmd)
 
 	rootCmd.AddCommand(vrackCmd)

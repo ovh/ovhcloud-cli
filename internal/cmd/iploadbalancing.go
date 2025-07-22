@@ -4,7 +4,6 @@ import (
 	_ "embed"
 
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/iploadbalancing"
 )
 
@@ -40,7 +39,7 @@ func init() {
 	}
 	iploadbalancingEditCmd.Flags().StringVar(&iploadbalancing.IPLoadbalancingSpec.DisplayName, "display-name", "", "Display name of the load balancer")
 	iploadbalancingEditCmd.Flags().StringVar(&iploadbalancing.IPLoadbalancingSpec.SSLConfiguration, "ssl-configuration", "", "SSL configuration of the load balancer (intermediate, modern)")
-	iploadbalancingEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(iploadbalancingEditCmd)
 	iploadbalancingCmd.AddCommand(iploadbalancingEditCmd)
 
 	rootCmd.AddCommand(iploadbalancingCmd)

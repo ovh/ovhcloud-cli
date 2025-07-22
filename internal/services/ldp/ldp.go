@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/ldp.tmpl
 	ldpTemplate string
-
-	//go:embed api-schemas/ldp.json
-	ldpOpenapiSchema []byte
 
 	LdpSpec struct {
 		DisplayName string `json:"displayName,omitempty"`
@@ -40,7 +38,7 @@ func EditLdp(cmd *cobra.Command, args []string) {
 		"/dbaas/logs/{serviceName}",
 		fmt.Sprintf("/dbaas/logs/%s", url.PathEscape(args[0])),
 		LdpSpec,
-		ldpOpenapiSchema,
+		assets.LdpOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

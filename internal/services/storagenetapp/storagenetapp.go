@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/storagenetapp.tmpl
 	storagenetappTemplate string
-
-	//go:embed api-schemas/storagenetapp.json
-	storagenetappOpenapiSchema []byte
 
 	StorageNetAppSpec struct {
 		Name string `json:"name,omitempty"`
@@ -39,7 +37,7 @@ func EditStorageNetApp(cmd *cobra.Command, args []string) {
 		"/storage/netapp/{serviceName}",
 		fmt.Sprintf("/storage/netapp/%s", url.PathEscape(args[0])),
 		StorageNetAppSpec,
-		storagenetappOpenapiSchema,
+		assets.SmsOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

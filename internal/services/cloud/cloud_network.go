@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
@@ -127,7 +128,7 @@ func EditCloudPrivateNetwork(cmd *cobra.Command, args []string) {
 		map[string]any{
 			"name": CloudNetworkName,
 		},
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -334,7 +335,7 @@ func EditCloudGateway(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/region/{regionName}/gateway/{id}",
 		foundURL,
 		CloudGatewaySpec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

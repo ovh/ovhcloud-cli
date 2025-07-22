@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/dedicatednasha"
 )
 
@@ -38,7 +37,7 @@ func init() {
 	}
 	editDedicatednashaCmd.Flags().StringVar(&dedicatednasha.DedicatedNasHASpec.CustomName, "custom-name", "", "Custom name for the Dedicated NasHA")
 	editDedicatednashaCmd.Flags().BoolVar(&dedicatednasha.DedicatedNasHASpec.Monitored, "monitored", false, "Send an email to customer if any issue is detected")
-	editDedicatednashaCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(editDedicatednashaCmd)
 	dedicatednashaCmd.AddCommand(editDedicatednashaCmd)
 
 	rootCmd.AddCommand(dedicatednashaCmd)

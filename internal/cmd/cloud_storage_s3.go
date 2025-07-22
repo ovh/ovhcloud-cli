@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
 
@@ -42,7 +42,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	editStorageS3Cmd.Flags().StringVar(&cloud.StorageS3Spec.ObjectLock.Status, "object-lock-status", "", "Object lock status (disabled, enabled)")
 	editStorageS3Cmd.Flags().StringToStringVar(&cloud.StorageS3Spec.Tags, "tag", nil, "Container tags as key=value pairs")
 	editStorageS3Cmd.Flags().StringVar(&cloud.StorageS3Spec.Versioning.Status, "versioning-status", "", "Versioning status (disabled, enabled, suspended)")
-	editStorageS3Cmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(editStorageS3Cmd)
 	storageS3Cmd.AddCommand(editStorageS3Cmd)
 
 	storageS3Cmd.AddCommand(getCloudStorageS3CreateCmd())
@@ -101,7 +101,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	objectEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.LegalHold, "legal-hold", "", "Legal hold status (on, off)")
 	objectEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.Lock.Mode, "lock-mode", "", "Lock mode (compliance, governance)")
 	objectEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.Lock.RetainUntil, "lock-retain-until", "", "Lock retain until date (e.g., 2024-12-31T23:59:59Z)")
-	objectEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(objectEditCmd)
 	objectCmd.AddCommand(objectEditCmd)
 
 	objectCmd.AddCommand(&cobra.Command{
@@ -145,7 +145,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	objectVersionEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.LegalHold, "legal-hold", "", "Legal hold status (on, off)")
 	objectVersionEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.Lock.Mode, "lock-mode", "", "Lock mode (compliance, governance)")
 	objectVersionEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.Lock.RetainUntil, "lock-retain-until", "", "Lock retain until date (e.g., 2024-12-31T23:59:59Z)")
-	objectVersionEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(objectVersionEditCmd)
 	objectVersionCmd.AddCommand(objectVersionEditCmd)
 
 	objectVersionCmd.AddCommand(&cobra.Command{
@@ -167,9 +167,9 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	presignedURLCmd.Flags().IntVar(&cloud.StorageS3PresignedURLParams.Expire, "expire", 60, "Expiration time in seconds for the presigned URL")
 	presignedURLCmd.Flags().StringVar(&cloud.StorageS3PresignedURLParams.VersionId, "version-id", "", "Version ID of the object (if applicable)")
 	presignedURLCmd.Flags().StringVar(&cloud.StorageS3PresignedURLParams.StorageClass, "storage-class", "", "Storage class for the object (HIGH_PERF, STANDARD, STANDARD_IA)")
-	addInitParameterFileFlag(presignedURLCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/presign", "post", cloud.CloudStorageS3PresignedURLExample, nil)
-	presignedURLCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
-	presignedURLCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+	addInitParameterFileFlag(presignedURLCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/presign", "post", cloud.CloudStorageS3PresignedURLExample, nil)
+	addInteractiveEditorFlag(presignedURLCmd)
+	addFromFileFlag(presignedURLCmd)
 	presignedURLCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	storageS3Cmd.AddCommand(presignedURLCmd)
 
@@ -182,9 +182,9 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	}
 	policyCmd.Flags().StringVar(&cloud.StorageS3ContainerPolicySpec.ObjectKey, "object-key", "", "Object key for the policy")
 	policyCmd.Flags().StringVar(&cloud.StorageS3ContainerPolicySpec.RoleName, "role", "admin", "Role name for the policy (admin, deny, readOnly, readWrite). Default is 'admin'")
-	addInitParameterFileFlag(policyCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/policy/{userId}", "post", cloud.CloudStorageS3ContainerPolicyExample, nil)
-	policyCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
-	policyCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+	addInitParameterFileFlag(policyCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/policy/{userId}", "post", cloud.CloudStorageS3ContainerPolicyExample, nil)
+	addInteractiveEditorFlag(policyCmd)
+	addFromFileFlag(policyCmd)
 	policyCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	storageS3Cmd.AddCommand(policyCmd)
 
@@ -248,9 +248,9 @@ There are three ways to define the creation parameters:
 	s3CreateCmd.Flags().StringVar(&cloud.StorageS3Spec.Versioning.Status, "versioning-status", "", "Versioning status (disabled, enabled, suspended)")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(s3CreateCmd, cloud.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage", "post", cloud.CloudStorageS3CreationExample, nil)
-	s3CreateCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
-	s3CreateCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+	addInitParameterFileFlag(s3CreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage", "post", cloud.CloudStorageS3CreationExample, nil)
+	addInteractiveEditorFlag(s3CreateCmd)
+	addFromFileFlag(s3CreateCmd)
 	s3CreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return s3CreateCmd

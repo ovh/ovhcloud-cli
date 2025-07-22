@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -55,7 +56,7 @@ func EditStorageSwift(cmd *cobra.Command, args []string) {
 		map[string]any{
 			"containerType": CloudSwiftContainerType,
 		},
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

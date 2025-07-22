@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/hostingprivatedatabase"
 )
 
@@ -37,7 +36,7 @@ func init() {
 		Run:   hostingprivatedatabase.EditHostingPrivateDatabase,
 	}
 	hostingprivatedatabaseEditCmd.Flags().StringVar(&hostingprivatedatabase.HostingPrivateDatabaseDisplayName, "display-name", "", "Display name of the HostingPrivateDatabase")
-	hostingprivatedatabaseEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(hostingprivatedatabaseEditCmd)
 	hostingprivatedatabaseCmd.AddCommand(hostingprivatedatabaseEditCmd)
 
 	rootCmd.AddCommand(hostingprivatedatabaseCmd)

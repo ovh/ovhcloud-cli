@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/domainname.tmpl
 	domainnameTemplate string
-
-	//go:embed api-schemas/domain.json
-	domainOpenapiSchema []byte
 
 	DomainSpec struct {
 		NameServerType    string `json:"nameServerType,omitempty"`
@@ -40,7 +38,7 @@ func EditDomainName(cmd *cobra.Command, args []string) {
 		"/domain/{serviceName}",
 		fmt.Sprintf("/domain/%s", url.PathEscape(args[0])),
 		DomainSpec,
-		domainOpenapiSchema,
+		assets.DomainOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

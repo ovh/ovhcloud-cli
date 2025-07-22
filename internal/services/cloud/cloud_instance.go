@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
@@ -293,7 +294,7 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		endpoint,
 		CloudInstanceCreationExample,
 		InstanceCreationParameters,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 		[]string{"name", "flavor", "bootFrom", "network"})
 	if err != nil {
 		display.ExitError("failed to create instance: %s", err)
@@ -461,7 +462,7 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 	} else if flags.ParametersViaEditor { // Install data given through an editor
 		log.Print("Flag --editor used, all other flags will override the example values")
 
-		examples, err := openapi.GetOperationRequestExamples(CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", cliParameters)
+		examples, err := openapi.GetOperationRequestExamples(assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", cliParameters)
 		if err != nil {
 			display.ExitError("failed to fetch API call examples: %s", err)
 			return

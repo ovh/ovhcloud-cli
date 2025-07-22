@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/iploadbalancing.tmpl
 	iploadbalancingTemplate string
-
-	//go:embed api-schemas/iploadbalancing.json
-	iploadbalancingOpenapiSchema []byte
 
 	IPLoadbalancingSpec struct {
 		DisplayName      string `json:"displayName,omitempty"`
@@ -40,7 +38,7 @@ func EditIpLoadbalancing(cmd *cobra.Command, args []string) {
 		"/ipLoadbalancing/{serviceName}",
 		fmt.Sprintf("/ipLoadbalancing/%s", url.PathEscape(args[0])),
 		IPLoadbalancingSpec,
-		iploadbalancingOpenapiSchema,
+		assets.IploadbalancingOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

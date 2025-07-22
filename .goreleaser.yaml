@@ -14,12 +14,29 @@ before:
     - go mod tidy
 
 builds:
-  - env:
+  - id: ovh-cli
+    binary: ovhcloud
+    env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w -extldflags -static -X stash.ovh.net/api/ovh-cli/internal/version.Version={{.Version}}
     goos:
       - linux
       - windows
       - darwin
+    main: ./cmd/ovhcloud
+
+  - id: ovh-cli-wasm
+    binary: ovhcloud
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -extldflags -static -X stash.ovh.net/api/ovh-cli/internal/version.Version={{.Version}}
+    goos:
+      - js
+    goarch:
+      - wasm
+    main: ./cmd/ovhcloud
 
 archives:
   - formats: [tar.gz]

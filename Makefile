@@ -12,4 +12,13 @@ all:
 wasm:
 	GOOS=js GOARCH=wasm ${BUILD_CMD} -ldflags "${LD_FLAGS}" -o ovhcloud.wasm ./cmd/ovhcloud
 
+test:
+	go test -v ./...
+
+release-snapshot:
+	goreleaser release --snapshot --clean
+
+release:
+	goreleaser release --clean
+
 .PHONY: all wasm

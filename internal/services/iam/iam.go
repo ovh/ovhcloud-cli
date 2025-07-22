@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
@@ -29,9 +30,6 @@ var (
 
 	//go:embed templates/iam_resource_group.tmpl
 	iamResourceGroupTemplate string
-
-	//go:embed api-schemas/iam.json
-	iamOpenapiSchema []byte
 
 	IAMPolicySpec struct {
 		Name        string   `json:"name,omitempty"`
@@ -90,7 +88,7 @@ func EditIAMPolicy(cmd *cobra.Command, args []string) {
 		"/iam/policy/{policyId}",
 		fmt.Sprintf("/v2/iam/policy/%s", url.PathEscape(args[0])),
 		IAMPolicySpec,
-		iamOpenapiSchema,
+		assets.IamOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -112,7 +110,7 @@ func EditIAMPermissionsGroup(cmd *cobra.Command, args []string) {
 		"/iam/permissionsGroup/{permissionsGroupURN}",
 		fmt.Sprintf("/v2/iam/permissionsGroup/%s", url.PathEscape(args[0])),
 		IAMPolicySpec,
-		iamOpenapiSchema,
+		assets.IamOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -133,7 +131,7 @@ func EditIAMResource(cmd *cobra.Command, args []string) {
 		"/iam/resource/{resourceURN}",
 		fmt.Sprintf("/v2/iam/resource/%s", url.PathEscape(args[0])),
 		IAMResourceSpec,
-		iamOpenapiSchema,
+		assets.IamOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -163,7 +161,7 @@ func EditIAMResourceGroup(cmd *cobra.Command, args []string) {
 		"/iam/resourceGroup/{groupId}",
 		fmt.Sprintf("/v2/iam/resourceGroup/%s", url.PathEscape(args[0])),
 		IAMPolicySpec,
-		iamOpenapiSchema,
+		assets.IamOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

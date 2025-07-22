@@ -7,12 +7,25 @@ jobs:
     runs-on: library/go-1-24
     steps:
     - uses: actions/checkout
-    - run: go get ./...
-    - run: go test -v ./...
-    - run: go build -v -o ovhcloud ./cmd/ovhcloud
+    - run: |-
+        go get ./...
+        make test
+        make
     - uses: actions/uploadArtifact
       with:
         path: ovhcloud
+        if-no-files-found: error
+
+  build-wasm:
+    runs-on: library/go-1-24
+    steps:
+    - uses: actions/checkout
+    - run: |-
+        go get ./...
+        make wasm
+    - uses: actions/uploadArtifact
+      with:
+        path: ovhcloud.wasm
         if-no-files-found: error
 
 integrations: [artifactory-digital-core-platform-api]

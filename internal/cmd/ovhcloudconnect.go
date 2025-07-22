@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/ovhcloudconnect"
 )
 
@@ -37,7 +36,7 @@ func init() {
 		Run:   ovhcloudconnect.EditOvhCloudConnect,
 	}
 	ovhcloudconnectEditCmd.Flags().StringVar(&ovhcloudconnect.OvhCloudConnectSpec.Description, "description", "", "Description")
-	ovhcloudconnectEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(ovhcloudconnectEditCmd)
 	ovhcloudconnectCmd.AddCommand(ovhcloudconnectEditCmd)
 
 	rootCmd.AddCommand(ovhcloudconnectCmd)

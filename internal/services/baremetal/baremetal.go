@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/editor"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
@@ -43,9 +44,6 @@ var (
 
 	//go:embed parameter-samples/baremetal.json
 	BaremetalInstallationExample string
-
-	//go:embed api-schemas/baremetal.json
-	BaremetalOpenapiSchema []byte
 
 	// Installation flags
 	OperatingSystem string
@@ -128,7 +126,7 @@ func EditBaremetal(cmd *cobra.Command, args []string) {
 		"/dedicated/server/{serviceName}",
 		fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0])),
 		&EditBaremetalParams,
-		BaremetalOpenapiSchema,
+		assets.BaremetalOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -348,7 +346,9 @@ func SetBaremetalBootScript(_ *cobra.Command, args []string) {
 		err    error
 	)
 
-	if flags.ParametersViaEditor {
+	if EditBaremetalParams.BootScript != "" {
+		script = []byte(EditBaremetalParams.BootScript)
+	} else if flags.ParametersViaEditor {
 		script, err = editor.EditValueWithEditor(nil)
 		if err != nil {
 			display.ExitError("failed to edit installation parameters using editor: %s", err)
@@ -429,7 +429,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 			OS:             OperatingSystem,
 			Customizations: Customizations,
 		},
-		BaremetalOpenapiSchema,
+		assets.BaremetalOpenapiSchema,
 		[]string{"operatingSystem"})
 	if err != nil {
 		display.ExitError("error reinstalling server: %s", err)

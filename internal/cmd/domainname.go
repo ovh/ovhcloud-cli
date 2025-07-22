@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/domainname"
 )
 
@@ -38,7 +37,7 @@ func init() {
 	}
 	editDomainNameCmd.Flags().StringVar(&domainname.DomainSpec.NameServerType, "name-server-type", "", "Type of name server (anycast, dedicated, empty, external, hold, hosted, hosting, mixed, parking)")
 	editDomainNameCmd.Flags().StringVar(&domainname.DomainSpec.TranferLockStatus, "transfer-lock-status", "", "Transfer lock status (locked, locking, unavailable, unlocked, unlocking)")
-	editDomainNameCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(editDomainNameCmd)
 	domainnameCmd.AddCommand(editDomainNameCmd)
 
 	rootCmd.AddCommand(domainnameCmd)

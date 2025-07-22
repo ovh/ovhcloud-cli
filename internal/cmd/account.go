@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/services/account"
 )
 
@@ -68,10 +68,11 @@ func init() {
 	oauth2CreateCmd.Flags().StringVar(&account.Oauth2ClientSpec.Description, "description", "", "Description of the OAuth2 client")
 	oauth2CreateCmd.Flags().StringVar(&account.Oauth2ClientSpec.Flow, "flow", "AUTHORIZATION_CODE", "OAuth2 flow type (default: AUTHORIZATION_CODE)")
 	oauth2CreateCmd.Flags().StringVar(&account.Oauth2ClientSpec.Name, "name", "", "Name of the OAuth2 client")
-	addInitParameterFileFlag(oauth2CreateCmd, account.MeOpenapiSchema, "/me/api/oauth2/client", "post", account.Oauth2ClientCreateSample, nil)
-	oauth2CreateCmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing creation parameters")
-	oauth2CreateCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+	addInitParameterFileFlag(oauth2CreateCmd, assets.MeOpenapiSchema, "/me/api/oauth2/client", "post", account.Oauth2ClientCreateSample, nil)
+	addInteractiveEditorFlag(oauth2CreateCmd)
+	addFromFileFlag(oauth2CreateCmd)
 	oauth2CreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+
 	oauth2ClientCmd.AddCommand(oauth2CreateCmd)
 
 	oauth2ClientCmd.AddCommand(&cobra.Command{
@@ -90,7 +91,7 @@ func init() {
 	oauth2ClientEditCmd.Flags().StringArrayVar(&account.Oauth2ClientSpec.CallbackUrls, "callback-urls", nil, "Callback URLs for the OAuth2 client")
 	oauth2ClientEditCmd.Flags().StringVar(&account.Oauth2ClientSpec.Description, "description", "", "Description of the OAuth2 client")
 	oauth2ClientEditCmd.Flags().StringVar(&account.Oauth2ClientSpec.Name, "name", "", "Name of the OAuth2 client")
-	oauth2ClientEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define creation parameters")
+	addInteractiveEditorFlag(oauth2ClientEditCmd)
 	oauth2ClientCmd.AddCommand(oauth2ClientEditCmd)
 
 	rootCmd.AddCommand(accountCmd)

@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/sslgateway.tmpl
 	sslgatewayTemplate string
-
-	//go:embed api-schemas/sslgateway.json
-	sslgatewayOpenapiSchema []byte
 
 	SSLGatewaySpec struct {
 		AllowedSource    []string `json:"allowedSource,omitempty"`
@@ -45,7 +43,7 @@ func EditSslGateway(cmd *cobra.Command, args []string) {
 		"/sslGateway/{serviceName}",
 		fmt.Sprintf("/sslGateway/%s", url.PathEscape(args[0])),
 		SSLGatewaySpec,
-		sslgatewayOpenapiSchema,
+		assets.SslgatewayOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

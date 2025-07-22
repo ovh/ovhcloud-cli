@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/iam"
 )
 
@@ -48,7 +47,7 @@ func init() {
 	iamPolicyEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsExcept, "except", nil, "List of actions to filter from the allowed list")
 	iamPolicyEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsGroupsURNs, "permissions-group", nil, "Permissions group URNs")
 	iamPolicyEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.ResourcesURNs, "resource", nil, "Resource URNs")
-	iamPolicyEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(iamPolicyEditCmd)
 	iamPolicyCmd.AddCommand(iamPolicyEditCmd)
 
 	iamPermissionsGroupCmd := &cobra.Command{
@@ -82,7 +81,7 @@ func init() {
 	iamPermissionsGroupEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsAllowed, "allow", nil, "List of allowed actions")
 	iamPermissionsGroupEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsDenied, "deny", nil, "List of denied actions")
 	iamPermissionsGroupEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsExcept, "except", nil, "List of actions to filter from the allowed list")
-	iamPermissionsGroupEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(iamPermissionsGroupEditCmd)
 	iamPermissionsGroupCmd.AddCommand(iamPermissionsGroupEditCmd)
 
 	iamResourceCmd := &cobra.Command{
@@ -112,7 +111,7 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 	}
 	iamResourceEditCmd.Flags().StringToStringVar(&iam.IAMResourceSpec.Tags, "tag", nil, "Tags to apply to the resource")
-	iamResourceEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(iamResourceEditCmd)
 	iamResourceCmd.AddCommand(iamResourceEditCmd)
 
 	iamResourceGroupCmd := &cobra.Command{
@@ -143,7 +142,7 @@ func init() {
 	}
 	iamResourceGroupEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Name, "name", "", "Name of the resource group")
 	iamResourceGroupEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.ResourcesURNs, "resource", nil, "List of resource URNs to include in the group")
-	iamResourceGroupEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(iamResourceGroupEditCmd)
 	iamResourceGroupCmd.AddCommand(iamResourceGroupEditCmd)
 
 	rootCmd.AddCommand(iamCmd)

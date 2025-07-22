@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/common"
@@ -16,9 +17,6 @@ var (
 
 	//go:embed templates/hostingprivatedatabase.tmpl
 	hostingprivatedatabaseTemplate string
-
-	//go:embed api-schemas/hostingprivatedatabase.json
-	hostingprivatedatabaseOpenapiSchema []byte
 
 	// HostingPrivateDatabaseDisplayName is the display name of the HostingPrivateDatabase
 	HostingPrivateDatabaseDisplayName string
@@ -40,7 +38,7 @@ func EditHostingPrivateDatabase(cmd *cobra.Command, args []string) {
 		map[string]any{
 			"displayName": HostingPrivateDatabaseDisplayName,
 		},
-		hostingprivatedatabaseOpenapiSchema,
+		assets.HostingprivatedatabaseOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return

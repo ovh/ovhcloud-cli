@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/cloud"
 )
 
@@ -41,7 +40,7 @@ func init() {
 	}
 	editCloudProjectCmd.Flags().StringVar(&cloud.CloudProjectSpec.Description, "description", "", "Description of the project")
 	editCloudProjectCmd.Flags().BoolVar(&cloud.CloudProjectSpec.ManualQuota, "manual-quota", false, "Prevent automatic quota upgrade")
-	editCloudProjectCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(editCloudProjectCmd)
 	cloudprojectCmd.AddCommand(editCloudProjectCmd)
 
 	initKubeCommand(cloudCmd)

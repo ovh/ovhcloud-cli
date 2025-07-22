@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 	"stash.ovh.net/api/ovh-cli/internal/services/sslgateway"
 )
 
@@ -43,7 +42,7 @@ func init() {
 	sslgatewayEditCmd.Flags().StringVar(&sslgateway.SSLGatewaySpec.Reverse, "reverse", "", "Custom reverse for your SSL Gateway")
 	sslgatewayEditCmd.Flags().BoolVar(&sslgateway.SSLGatewaySpec.ServerHttps, "server-https", false, "Contact backend servers over HTTPS")
 	sslgatewayEditCmd.Flags().StringVar(&sslgateway.SSLGatewaySpec.SslConfiguration, "ssl-configuration", "", "SSL configuration (intermediate, internal, modern)")
-	sslgatewayEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	addInteractiveEditorFlag(sslgatewayEditCmd)
 	sslgatewayCmd.AddCommand(sslgatewayEditCmd)
 
 	rootCmd.AddCommand(sslgatewayCmd)

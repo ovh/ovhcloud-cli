@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"stash.ovh.net/api/ovh-cli/internal/assets"
 	"stash.ovh.net/api/ovh-cli/internal/display"
 	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
 	"stash.ovh.net/api/ovh-cli/internal/flags"
@@ -194,7 +195,7 @@ func EditStorageS3(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}",
 		foundURL,
 		StorageS3Spec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -218,7 +219,7 @@ func CreateStorageS3(cmd *cobra.Command, args []string) {
 		endpoint,
 		CloudStorageS3CreationExample,
 		StorageS3Spec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 		[]string{"name"})
 	if err != nil {
 		display.ExitError("failed to create s3 storage container: %s", err)
@@ -363,7 +364,7 @@ func EditStorageS3Object(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}",
 		foundURL+"/object/"+url.PathEscape(args[1]),
 		StorageS3ObjectSpec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -453,7 +454,7 @@ func EditStorageS3ObjectVersion(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/version/{versionId}",
 		foundURL+"/object/"+url.PathEscape(args[1])+"/version/"+url.PathEscape(args[2]),
 		StorageS3ObjectSpec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
@@ -499,7 +500,7 @@ func StorageS3GeneratePresignedURL(_ *cobra.Command, args []string) {
 		foundURL+"/presign",
 		CloudStorageS3PresignedURLExample,
 		StorageS3PresignedURLParams,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 		nil)
 	if err != nil {
 		display.ExitError("failed to generate presigned URL: %s", err)
@@ -534,7 +535,7 @@ func StorageS3CreateContainerPolicy(cmd *cobra.Command, args []string) {
 		foundURL+"/policy/"+url.PathEscape(args[1]),
 		CloudStorageS3ContainerPolicyExample,
 		StorageS3ContainerPolicySpec,
-		CloudOpenapiSchema,
+		assets.CloudOpenapiSchema,
 		nil)
 	if err != nil {
 		display.ExitError("failed to create policy for user %s: %s", args[0], err)
