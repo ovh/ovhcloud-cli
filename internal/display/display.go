@@ -18,8 +18,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/ghodss/yaml"
+	"github.com/ovh/ovhcloud-cli/internal/filters"
 	"gopkg.in/ini.v1"
-	"stash.ovh.net/api/ovh-cli/internal/filters"
 )
 
 func renderCustomFormat(value any, format string) {

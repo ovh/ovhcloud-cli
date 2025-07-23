@@ -1,8 +1,8 @@
 package flags
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/display"
 	"gopkg.in/ini.v1"
-	"stash.ovh.net/api/ovh-cli/internal/display"
 )
 
 // Flag set from command line

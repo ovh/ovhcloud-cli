@@ -11,15 +11,15 @@ import (
 	"os"
 	"time"
 
+	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/editor"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/openapi"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
+	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/assets"
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
-	"stash.ovh.net/api/ovh-cli/internal/openapi"
-	"stash.ovh.net/api/ovh-cli/internal/services/common"
-	"stash.ovh.net/api/ovh-cli/internal/utils"
 )
 
 var (

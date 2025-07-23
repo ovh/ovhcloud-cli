@@ -10,10 +10,10 @@ import (
 	"runtime"
 
 	"github.com/ovh/go-ovh/ovh"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	"github.com/ovh/ovhcloud-cli/internal/version"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	"stash.ovh.net/api/ovh-cli/internal/version"
 )
 
 // OVH API client

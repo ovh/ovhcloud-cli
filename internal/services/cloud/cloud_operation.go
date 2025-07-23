@@ -4,12 +4,12 @@ import (
 	_ "embed"
 	"fmt"
 
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
-	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
 var (

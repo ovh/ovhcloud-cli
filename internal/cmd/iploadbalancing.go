@@ -3,8 +3,8 @@ package cmd
 import (
 	_ "embed"
 
+	"github.com/ovh/ovhcloud-cli/internal/services/iploadbalancing"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/services/iploadbalancing"
 )
 
 func init() {

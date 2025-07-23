@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"time"
 
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
 
 func waitForVpsTask(serviceName string, taskInput map[string]any, retryDuration time.Duration) (map[string]any, error) {

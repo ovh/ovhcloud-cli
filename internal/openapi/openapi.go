@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"stash.ovh.net/api/ovh-cli/internal/utils"
+	"github.com/ovh/ovhcloud-cli/internal/utils"
 )
 
 func FilterEditableFields(spec []byte, path, method string, body map[string]any) (map[string]any, error) {

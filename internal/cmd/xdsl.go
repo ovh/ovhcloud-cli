@@ -3,8 +3,8 @@ package cmd
 import (
 	_ "embed"
 
+	"github.com/ovh/ovhcloud-cli/internal/services/xdsl"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/services/xdsl"
 )
 
 func init() {

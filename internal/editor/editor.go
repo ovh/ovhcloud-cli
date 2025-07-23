@@ -8,7 +8,7 @@ import (
 	"slices"
 
 	"github.com/ovh/go-ovh/ovh"
-	"stash.ovh.net/api/ovh-cli/internal/openapi"
+	"github.com/ovh/ovhcloud-cli/internal/openapi"
 )
 
 const defaultEditor = "vi"
