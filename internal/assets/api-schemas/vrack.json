@@ -1067,25 +1067,6 @@
           }
         }
       }
-    },
-    "securitySchemes": {
-      "oAuth2AuthCode": {
-        "type": "oauth2",
-        "description": "Oauth2",
-        "x-client-id": "1bb9c7df371741c0",
-        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
-        "flows": {
-          "authorizationCode": {
-            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
-            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
-            "scopes": {
-              "account/all": "Manage your account",
-              "all": "Manage your whole account and all your services",
-              "services/all": "Manage your services lifecycle and billing"
-            }
-          }
-        }
-      }
     }
   },
   "paths": {
