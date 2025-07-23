@@ -21,6 +21,8 @@ ovhcloud login
 ohvcloud vps list --json
 ```
 
+Check out the [authentication page](authentication.md) for further information about the authentication means.
+
 ### Generate Shell Completion
 
 ```bash
