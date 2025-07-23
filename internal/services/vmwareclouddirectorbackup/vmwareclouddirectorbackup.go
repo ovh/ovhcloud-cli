@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/assets"
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
 var (

@@ -6,10 +6,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"stash.ovh.net/api/ovh-cli/internal/config"
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	"stash.ovh.net/api/ovh-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/config"
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	"github.com/ovh/ovhcloud-cli/internal/http"
 )
 
 // rootCmd represents the base command when called without any subcommands

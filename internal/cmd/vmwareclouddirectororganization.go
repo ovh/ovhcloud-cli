@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/services/vmwareclouddirectororganization"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/services/vmwareclouddirectororganization"
 )
 
 func init() {

@@ -4,11 +4,11 @@ import (
 	_ "embed"
 	"runtime"
 
+	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
+	"github.com/ovh/ovhcloud-cli/internal/services/vps"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/assets"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	"stash.ovh.net/api/ovh-cli/internal/services/common"
-	"stash.ovh.net/api/ovh-cli/internal/services/vps"
 )
 
 func init() {

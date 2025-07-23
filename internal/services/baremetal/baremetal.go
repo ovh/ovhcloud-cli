@@ -11,14 +11,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/editor"
+	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/assets"
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/editor"
-	filtersLib "stash.ovh.net/api/ovh-cli/internal/filters"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
-	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
 type baremetalCustomizations struct {

@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/services/cdndedicated"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/services/cdndedicated"
 )
 
 func init() {

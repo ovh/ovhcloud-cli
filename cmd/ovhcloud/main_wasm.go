@@ -6,7 +6,7 @@ import (
 	"syscall/js"
 
 	shellwords "github.com/mattn/go-shellwords"
-	"stash.ovh.net/api/ovh-cli/internal/cmd"
+	"github.com/ovh/ovhcloud-cli/internal/cmd"
 )
 
 func execCLI() js.Func {

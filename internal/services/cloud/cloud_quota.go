@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	httpLib "stash.ovh.net/api/ovh-cli/internal/http"
 )
 
 var (

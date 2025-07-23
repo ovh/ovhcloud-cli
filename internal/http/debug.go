@@ -11,7 +11,7 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	"stash.ovh.net/api/ovh-cli/internal/flags"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
 )
 
 type transport struct {

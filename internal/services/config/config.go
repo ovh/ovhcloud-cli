@@ -7,10 +7,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/ovh/ovhcloud-cli/internal/config"
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/config"
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
 )
 
 var (

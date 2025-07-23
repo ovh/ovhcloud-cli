@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	"stash.ovh.net/api/ovh-cli/internal/services/common"
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 )
 
 func GetFlavors(region string) {

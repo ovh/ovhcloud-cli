@@ -9,8 +9,8 @@ import (
 	"reflect"
 
 	"github.com/PaesslerAG/gval"
+	"github.com/ovh/ovhcloud-cli/internal/filters"
 	"gopkg.in/ini.v1"
-	"stash.ovh.net/api/ovh-cli/internal/filters"
 )
 
 func renderCustomFormat(value any, format string) {

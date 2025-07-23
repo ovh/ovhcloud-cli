@@ -3,9 +3,9 @@ package ssl
 import (
 	_ "embed"
 
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	"stash.ovh.net/api/ovh-cli/internal/services/common"
 )
 
 var (

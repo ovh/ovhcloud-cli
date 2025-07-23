@@ -3,10 +3,10 @@ package cmd
 import (
 	"runtime/debug"
 
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	"github.com/ovh/ovhcloud-cli/internal/version"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	"stash.ovh.net/api/ovh-cli/internal/version"
 )
 
 func init() {

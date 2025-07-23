@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/services/account"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/assets"
-	"stash.ovh.net/api/ovh-cli/internal/services/account"
 )
 
 func init() {

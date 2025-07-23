@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ovh/ovhcloud-cli/internal/config"
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
+	serviceconfig "github.com/ovh/ovhcloud-cli/internal/services/config"
 	"github.com/spf13/cobra"
-	"stash.ovh.net/api/ovh-cli/internal/config"
-	"stash.ovh.net/api/ovh-cli/internal/display"
-	"stash.ovh.net/api/ovh-cli/internal/flags"
-	serviceconfig "stash.ovh.net/api/ovh-cli/internal/services/config"
 )
 
 func Login(_ *cobra.Command, _ []string) {
