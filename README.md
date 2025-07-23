@@ -114,6 +114,8 @@ Use "ovhcloud [command] --help" for more information about a command.
 $ ovhcloud login
 ```
 
+Check out the [authentication page](./doc/authentication.md) for further information about the authentication means.
+
 ## Configuration
 
 Default settings can be set using a configuration file named `.ovh.conf` and located in your `${HOME}` directory.
