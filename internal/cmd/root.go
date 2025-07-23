@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"runtime"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -62,6 +63,14 @@ func init() {
 			display.ExitError("API client is not initialized, please run `ovhcloud login` to authenticate")
 			os.Exit(1) // Force os.Exit even in WASM mode
 		}
+	}
+
+	// If running in a WASM binary, make the help command return the
+	// usage string instead of outputting the help message to stderr.
+	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
+		rootCmd.SetHelpFunc(func(cmd *cobra.Command, _ []string) {
+			display.ResultString = cmd.UsageString()
+		})
 	}
 }
 
