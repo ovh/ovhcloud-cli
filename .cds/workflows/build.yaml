@@ -28,21 +28,29 @@ jobs:
         path: ovhcloud.wasm
         if-no-files-found: error
 
-  release:
-    needs:
-      - build
-      - build-wasm
-    if: git.ref_name == 'master'
-    runs-on: library/default-container
+  package:
+    runs-on: library/go-1-24
     steps:
       - uses: actions/checkout
       - run: |-
           go get ./...
+          go install github.com/goreleaser/goreleaser/v2@latest
           make release-snapshot
       - uses: actions/uploadArtifact
         with:
-          path: dist/ovh-cli*.tag.gz
+          path: dist/*.tar.gz
           if-no-files-found: error
+
+  release:
+    needs:
+      - build
+      - build-wasm
+      - package
+    if: git.ref_name == 'master'
+    runs-on:
+      model: library/default-container
+      flavor: b2-30
+    steps:
       - uses: actions/artifactoryRelease
         with:
           artifacts: ovh-cli*.tar.gz

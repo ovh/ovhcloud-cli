@@ -19,7 +19,7 @@ fmt:
 	go fmt ./...
 
 release-snapshot:
-	goreleaser release --snapshot --clean
+	goreleaser release --snapshot --clean --parallelism 1
 
 release:
 	goreleaser release --clean
