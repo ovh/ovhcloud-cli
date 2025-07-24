@@ -35,8 +35,16 @@ jobs:
     if: git.ref_name == 'master'
     runs-on: library/default-container
     steps:
+      - uses: actions/checkout
+      - run: |-
+          go get ./...
+          make release-snapshot
+      - uses: actions/uploadArtifact
+        with:
+          path: dist/ovh-cli*.tag.gz
+          if-no-files-found: error
       - uses: actions/artifactoryRelease
         with:
-          artifacts: ovhcloud*
+          artifacts: ovh-cli*.tar.gz
 
 integrations: [artifactory-digital-core-platform-api]
