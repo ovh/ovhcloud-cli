@@ -28,4 +28,15 @@ jobs:
         path: ovhcloud.wasm
         if-no-files-found: error
 
+  release:
+    needs:
+      - build
+      - build-wasm
+    if: git.ref_name == 'master'
+    runs-on: library/default-container
+    steps:
+      - uses: actions/artifactoryRelease
+        with:
+          artifacts: ovhcloud*
+
 integrations: [artifactory-digital-core-platform-api]
