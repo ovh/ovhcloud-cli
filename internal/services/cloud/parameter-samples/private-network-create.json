@@ -1,0 +1,31 @@
+{
+  "gateway": {
+    "model": "s",
+    "name": "mygateway"
+  },
+  "name": "mynetwork",
+  "subnet": {
+    "allocationPools": [
+      {
+        "end": "10.0.2.0",
+        "start": "10.0.2.0"
+      }
+    ],
+    "cidr": "10.0.2.0/24",
+    "dnsNameServers": [
+      "10.0.2.0"
+    ],
+    "enableDhcp": false,
+    "enableGatewayIp": true,
+    "gatewayIp": "10.0.2.0",
+    "hostRoutes": [
+      {
+        "destination": "10.0.2.0/24",
+        "nextHop": "10.0.2.0"
+      }
+    ],
+    "ipVersion": 4,
+    "name": "mysubnet",
+    "useDefaultPublicDNSResolver": false
+  }
+}
