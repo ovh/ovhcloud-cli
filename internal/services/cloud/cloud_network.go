@@ -2,6 +2,7 @@ package cloud
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -35,10 +36,33 @@ var (
 	//go:embed parameter-samples/private-network-create.json
 	PrivateNetworkCreationExample string
 
+	//go:embed parameter-samples/gateway-create.json
+	GatewayCreationExample string
+
 	// CloudGatewaySpec contains the parameters for updating a cloud gateway
 	CloudGatewaySpec struct {
-		Model string `json:"model,omitempty"`
-		Name  string `json:"name,omitempty"`
+		Model             string `json:"model,omitempty"`
+		Name              string `json:"name,omitempty"`
+		ExistingNetworkID string `json:"-"`
+		ExistingSubnetID  string `json:"-"`
+		Network           struct {
+			Name   string `json:"name,omitempty"`
+			VlanId int    `json:"vlanId,omitempty"`
+			Subnet struct {
+				Name                        string                         `json:"name,omitempty"`
+				Cidr                        string                         `json:"cidr,omitempty"`
+				EnableDhcp                  bool                           `json:"enableDhcp,omitempty"`
+				GatewayIp                   string                         `json:"gatewayIp,omitempty"`
+				DnsNameServers              []string                       `json:"dnsNameServers,omitempty"`
+				UseDefaultPublicDNSResolver bool                           `json:"useDefaultPublicDNSResolver,omitempty"`
+				IPVersion                   int                            `json:"ipVersion,omitempty"`
+				AllocationPools             []PrivateNetworkAllocationPool `json:"allocationPools,omitempty"`
+				HostRoutes                  []PrivateNetworkHostRoute      `json:"hostRoutes,omitempty"`
+
+				CliAllocationPools []string `json:"-"`
+				CliHostRoutes      []string `json:"-"`
+			} `json:"subnet,omitzero"`
+		} `json:"network,omitzero"`
 	}
 
 	CloudNetworkSpec struct {
@@ -69,6 +93,10 @@ var (
 		Dhcp           bool   `json:"dhcp,omitempty"`
 		DisableGateway bool   `json:"disableGateway,omitempty"`
 		GatewayIp      string `json:"gatewayIp,omitempty"`
+	}
+
+	GatewayInterfaceSpec struct {
+		SubnetID string `json:"subnetId,omitempty"`
 	}
 )
 
@@ -512,34 +540,38 @@ func ListGateways(_ *cobra.Command, _ []string) {
 	display.RenderTable(allGateways, cloudprojectGatewayColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
-func GetGateway(_ *cobra.Command, args []string) {
+func findGateway(gatewayId string) (string, map[string]any, error) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
-		return
+		return "", nil, err
 	}
 
 	// Fetch regions with network feature available
 	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
 	if err != nil {
-		display.ExitError("failed to fetch regions with network feature available: %s", err)
-		return
+		return "", nil, fmt.Errorf("failed to fetch regions with network feature available: %w", err)
 	}
 
 	// Search for the given gateway in all regions
 	// TODO: speed up with parallel search or by adding a required region argument
-	var foundGateway map[string]any
 	for _, region := range regions {
-		url := fmt.Sprintf("/cloud/project/%s/region/%s/gateway/%s",
-			projectID, url.PathEscape(region.(string)), url.PathEscape(args[0]))
-		if err := httpLib.Client.Get(url, &foundGateway); err == nil {
-			break
+		var (
+			gateway  map[string]any
+			endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/gateway/%s",
+				projectID, url.PathEscape(region.(string)), url.PathEscape(gatewayId))
+		)
+		if err := httpLib.Client.Get(endpoint, &gateway); err == nil {
+			return endpoint, gateway, nil
 		}
-		foundGateway = nil
 	}
 
-	if foundGateway == nil {
-		display.ExitError("no gateway found with given ID")
+	return "", nil, errors.New("no gateway found with given ID")
+}
+
+func GetGateway(_ *cobra.Command, args []string) {
+	_, foundGateway, err := findGateway(args[0])
+	if err != nil {
+		display.ExitError(err.Error())
 		return
 	}
 
@@ -547,33 +579,9 @@ func GetGateway(_ *cobra.Command, args []string) {
 }
 
 func EditGateway(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	foundURL, _, err := findGateway(args[0])
 	if err != nil {
 		display.ExitError(err.Error())
-		return
-	}
-
-	// Fetch regions with network feature available
-	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
-	if err != nil {
-		display.ExitError("failed to fetch regions with network feature available: %s", err)
-		return
-	}
-
-	// Search for the given gateway in all regions
-	// TODO: speed up with parallel search or by adding a required region argument
-	var foundURL string
-	for _, region := range regions {
-		endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/gateway/%s",
-			projectID, url.PathEscape(region.(string)), url.PathEscape(args[0]))
-		if err := httpLib.Client.Get(endpoint, nil); err == nil {
-			foundURL = endpoint
-			break
-		}
-	}
-
-	if foundURL == "" {
-		display.ExitError("no gateway found with given ID")
 		return
 	}
 
@@ -587,4 +595,171 @@ func EditGateway(cmd *cobra.Command, args []string) {
 		display.ExitError(err.Error())
 		return
 	}
+}
+
+func CreateGateway(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	// Transform CLI flags into the CloudGatewaySpec structure
+	for _, allocationPool := range CloudGatewaySpec.Network.Subnet.CliAllocationPools {
+		parts := strings.Split(allocationPool, ":")
+		if len(parts) != 2 {
+			display.ExitError("invalid allocation pool format, expected start:end, got %s", allocationPool)
+			return
+		}
+		CloudGatewaySpec.Network.Subnet.AllocationPools = append(CloudGatewaySpec.Network.Subnet.AllocationPools, PrivateNetworkAllocationPool{
+			Start: parts[0],
+			End:   parts[1],
+		})
+	}
+	for _, hostRoute := range CloudGatewaySpec.Network.Subnet.CliHostRoutes {
+		parts := strings.Split(hostRoute, ":")
+		if len(parts) != 2 {
+			display.ExitError("invalid host route format, expected destination:nextHop, got %s", hostRoute)
+			return
+		}
+		CloudGatewaySpec.Network.Subnet.HostRoutes = append(CloudGatewaySpec.Network.Subnet.HostRoutes, PrivateNetworkHostRoute{
+			Destination: parts[0],
+			NextHop:     parts[1],
+		})
+	}
+
+	var (
+		endpoint, path string
+		region         = args[0]
+	)
+	if CloudGatewaySpec.ExistingNetworkID != "" {
+		path = "/cloud/project/{serviceName}/region/{regionName}/network/{networkId}/subnet/{subnetId}/gateway"
+		endpoint = fmt.Sprintf(
+			"/cloud/project/%s/region/%s/network/%s/subnet/%s/gateway",
+			projectID, url.PathEscape(region), url.PathEscape(CloudGatewaySpec.ExistingNetworkID),
+			url.PathEscape(CloudGatewaySpec.ExistingSubnetID))
+	} else {
+		path = "/cloud/project/{serviceName}/region/{regionName}/gateway"
+		endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/gateway", projectID, url.PathEscape(region))
+	}
+
+	// Create resource
+	task, err := common.CreateResource(
+		path,
+		endpoint,
+		GatewayCreationExample,
+		CloudGatewaySpec,
+		assets.CloudOpenapiSchema,
+		[]string{"name", "model"})
+	if err != nil {
+		display.ExitError("failed to create gateway: %s", err)
+		return
+	}
+
+	// Wait for task to complete if --wait flag is set
+	if !flags.WaitForTask {
+		fmt.Printf("\n⚡️ Gateway creation started successfully (operation ID: %s)\n", task["id"])
+		fmt.Printf("You can check the status of the operation with: `ovhcloud cloud operation get %s`\n", task["id"])
+		return
+	}
+
+	gatewayID, err := waitForCloudOperation(projectID, task["id"].(string), "gateway#create", 30*time.Minute)
+	if err != nil {
+		display.ExitError("failed to wait for gateway creation: %s", err)
+		return
+	}
+
+	fmt.Printf("\n✅ Gateway %s created successfully\n", gatewayID)
+}
+
+func DeleteGateway(_ *cobra.Command, args []string) {
+	foundURL, _, err := findGateway(args[0])
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	if err := httpLib.Client.Delete(foundURL, nil); err != nil {
+		display.ExitError("failed to delete gateway: %s", err)
+		return
+	}
+
+	fmt.Printf("✅ Gateway %s deleted successfully\n", args[0])
+}
+
+func ExposeGateway(_ *cobra.Command, args []string) {
+	foundURL, _, err := findGateway(args[0])
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	if err := httpLib.Client.Post(foundURL+"/expose", nil, nil); err != nil {
+		display.ExitError("failed to expose gateway: %s", err)
+		return
+	}
+
+	fmt.Printf("✅ Gateway %s exposed successfully\n", args[0])
+
+	// Display updated gateway information
+	var object map[string]any
+	if err := httpLib.Client.Get(foundURL, &object); err != nil {
+		display.ExitError("error fetching %s: %s", foundURL, err)
+		return
+	}
+	display.OutputObject(object, args[0], cloudGatewayTemplate, &flags.OutputFormatConfig)
+}
+
+func ListGatewayInterfaces(_ *cobra.Command, args []string) {
+	foundURL, _, err := findGateway(args[0])
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	common.ManageListRequestNoExpand(foundURL+"/interface", []string{"id", "ip", "networkId", "subnetId"}, flags.GenericFilters)
+}
+
+func GetGatewayInterface(_ *cobra.Command, args []string) {
+	foundURL, _, err := findGateway(args[0])
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	common.ManageObjectRequest(foundURL+"/interface", args[1], "")
+}
+
+func CreateGatewayInterface(_ *cobra.Command, args []string) {
+	foundURL, _, err := findGateway(args[0])
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	if err := httpLib.Client.Post(
+		foundURL+"/interface",
+		GatewayInterfaceSpec,
+		nil,
+	); err != nil {
+		display.ExitError("failed to create gateway interface: %s", err)
+		return
+	}
+
+	fmt.Printf("✅ Gateway %s interface created successfully\n", args[0])
+}
+
+func DeleteGatewayInterface(_ *cobra.Command, args []string) {
+	foundURL, _, err := findGateway(args[0])
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	if err := httpLib.Client.Delete(foundURL+"/interface/"+url.PathEscape(args[1]), nil); err != nil {
+		display.ExitError("failed to delete gateway interface: %s", err)
+		return
+	}
+
+	fmt.Printf("✅ Gateway %s interface %s deleted successfully\n", args[0], args[1])
 }
