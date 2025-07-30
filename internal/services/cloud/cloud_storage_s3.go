@@ -226,7 +226,7 @@ func CreateStorageS3(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Container %s created successfully\n", container["name"])
+	fmt.Printf("✅ Container %s created successfully\n", container["name"])
 }
 
 func DeleteStorageS3(_ *cobra.Command, args []string) {
@@ -247,7 +247,7 @@ func DeleteStorageS3(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Storage container %s deleted successfully\n", args[0])
+	fmt.Printf("✅ Storage container %s deleted successfully\n", args[0])
 }
 
 func StorageS3BulkDeleteObjects(_ *cobra.Command, args []string) {
@@ -292,7 +292,7 @@ func StorageS3BulkDeleteObjects(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Objects deleted successfully")
+	fmt.Println("✅ Objects deleted successfully")
 }
 
 func ListStorageS3Objects(_ *cobra.Command, args []string) {
@@ -389,7 +389,7 @@ func DeleteStorageS3Object(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Object %s deleted successfully\n", args[1])
+	fmt.Printf("✅ Object %s deleted successfully\n", args[1])
 }
 
 func ListStorageS3ObjectVersions(_ *cobra.Command, args []string) {
@@ -479,7 +479,7 @@ func DeleteStorageS3ObjectVersion(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Object version %s deleted successfully\n", args[2])
+	fmt.Printf("✅ Object version %s deleted successfully\n", args[2])
 }
 
 func StorageS3GeneratePresignedURL(_ *cobra.Command, args []string) {
@@ -507,7 +507,7 @@ func StorageS3GeneratePresignedURL(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Presigned URL generated successfully:")
+	fmt.Println("✅ Presigned URL generated successfully:")
 	fmt.Printf("-> %s %s\n", response["method"], response["url"])
 	if headers, ok := response["signedHeaders"].(map[string]any); ok {
 		fmt.Println("-> Headers:")
@@ -542,5 +542,5 @@ func StorageS3CreateContainerPolicy(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Policy for user %s created successfully\n", args[1])
+	fmt.Printf("✅ Policy for user %s created successfully\n", args[1])
 }

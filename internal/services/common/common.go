@@ -227,7 +227,7 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 			return fmt.Errorf("failed to update resource: %w", err)
 		}
 
-		fmt.Println("\n✅ Resource updated succesfully ...")
+		fmt.Println("✅ Resource updated succesfully ...")
 
 		return nil
 	}
@@ -249,7 +249,7 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 		return fmt.Errorf("failed to update resource: %w", err)
 	}
 
-	fmt.Println("\n✅ Resource updated succesfully ...")
+	fmt.Println("✅ Resource updated succesfully ...")
 
 	return nil
 }

@@ -175,7 +175,7 @@ func AbortVpsSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Snapshot aborted")
+	fmt.Println("✅ Snapshot aborted")
 }
 
 func RestoreVpsSnapshot(_ *cobra.Command, args []string) {
@@ -198,7 +198,7 @@ func DownloadVpsSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Snapshot download URL: %s (size: %s bytes)\n", response["url"], response["size"])
+	fmt.Printf("✅ Snapshot download URL: %s (size: %s bytes)\n", response["url"], response["size"])
 }
 
 func GetVpsAutomatedBackup(_ *cobra.Command, args []string) {
@@ -233,7 +233,7 @@ func DetachVpsAutomatedBackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Automated backup detached")
+	fmt.Println("✅ Automated backup detached")
 }
 
 func RescheduleVpsAutomatedBackup(_ *cobra.Command, args []string) {
@@ -247,7 +247,7 @@ func RescheduleVpsAutomatedBackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Automated backup schedule updated")
+	fmt.Println("✅ Automated backup schedule updated")
 }
 
 func RestoreVpsAutomatedBackup(_ *cobra.Command, args []string) {
@@ -292,7 +292,7 @@ func ChangeVpsContacts(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Contacts updated")
+	fmt.Println("✅ Contacts updated")
 }
 
 func GetVpsServiceInfo(_ *cobra.Command, args []string) {
@@ -329,7 +329,7 @@ func TerminateVps(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ VPS %s termination started: %s\n", args[0], response)
+	fmt.Printf("✅ VPS %s termination started: %s\n", args[0], response)
 }
 
 func ConfirmVpsTermination(_ *cobra.Command, args []string) {
@@ -344,7 +344,7 @@ func ConfirmVpsTermination(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ VPS %s termination confirmed\n", args[0])
+	fmt.Printf("✅ VPS %s termination confirmed\n", args[0])
 }
 
 func ListVpsDisks(_ *cobra.Command, args []string) {
@@ -378,7 +378,7 @@ func VpsGetConsoleURL(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Console URL for VPS %s: %s\n", args[0], consoleURL)
+	fmt.Printf("✅ Console URL for VPS %s: %s\n", args[0], consoleURL)
 }
 
 func GetVpsImages(_ *cobra.Command, args []string) {
@@ -432,7 +432,7 @@ func SetVpsIPReverse(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Reverse for IP %s on VPS %s set to '%s'\n", args[1], args[0], args[2])
+	fmt.Printf("✅ Reverse for IP %s on VPS %s set to '%s'\n", args[1], args[0], args[2])
 }
 
 func ReleaseVpsIP(_ *cobra.Command, args []string) {
@@ -443,7 +443,7 @@ func ReleaseVpsIP(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ IP %s released from VPS %s\n", args[1], args[0])
+	fmt.Printf("✅ IP %s released from VPS %s\n", args[1], args[0])
 }
 
 func ListVPSOptions(_ *cobra.Command, args []string) {
@@ -472,7 +472,7 @@ func StartVps(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ VPS %s started successfully\n", args[0])
+	fmt.Printf("✅ VPS %s started successfully\n", args[0])
 }
 
 func StopVps(_ *cobra.Command, args []string) {
@@ -496,7 +496,7 @@ func StopVps(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ VPS %s stopped successfully\n", args[0])
+	fmt.Printf("✅ VPS %s stopped successfully\n", args[0])
 }
 
 func RebootVps(_ *cobra.Command, args []string) {
@@ -520,7 +520,7 @@ func RebootVps(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ VPS %s reboot completed successfully\n", args[0])
+	fmt.Printf("✅ VPS %s reboot completed successfully\n", args[0])
 }
 
 func ReinstallVps(cmd *cobra.Command, args []string) {
@@ -569,7 +569,7 @@ func ReinstallVps(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ VPS %s reinstalled successfully\n", args[0])
+	fmt.Printf("✅ VPS %s reinstalled successfully\n", args[0])
 }
 
 func ListVpsSecondaryDNSDomains(_ *cobra.Command, args []string) {
@@ -607,7 +607,7 @@ func AddVpsSecondaryDNSDomain(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Secondary DNS domain %s created for VPS %s\n", VpsSecondaryDNSDomainSpec.Domain, args[0])
+	fmt.Printf("✅ Secondary DNS domain %s created for VPS %s\n", VpsSecondaryDNSDomainSpec.Domain, args[0])
 }
 
 func DeleteVpsSecondaryDNSDomain(_ *cobra.Command, args []string) {
@@ -618,7 +618,7 @@ func DeleteVpsSecondaryDNSDomain(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Secondary DNS domain %s deleted from VPS %s\n", args[1], args[0])
+	fmt.Printf("✅ Secondary DNS domain %s deleted from VPS %s\n", args[1], args[0])
 }
 
 func ChangeVpsPassword(_ *cobra.Command, args []string) {
@@ -642,7 +642,7 @@ func ChangeVpsPassword(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ VPS %s process to set the root password completed successfully\n", args[0])
+	fmt.Printf("✅ VPS %s process to set the root password completed successfully\n", args[0])
 }
 
 func ListVpsTasks(_ *cobra.Command, args []string) {

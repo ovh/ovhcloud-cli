@@ -147,7 +147,7 @@ func SetInstanceName(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Instance %s renamed to %s\n", args[0], args[1])
+	fmt.Printf("✅ Instance %s renamed to %s\n", args[0], args[1])
 }
 
 func StartInstance(_ *cobra.Command, args []string) {
@@ -314,7 +314,7 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Instance %s created successfully\n", instanceID)
+	fmt.Printf("✅ Instance %s created successfully\n", instanceID)
 }
 
 func DeleteInstance(_ *cobra.Command, args []string) {
@@ -331,7 +331,7 @@ func DeleteInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Instance successfully deleted")
+	fmt.Println("✅ Instance successfully deleted")
 }
 
 func GetInstanceFlavorAndImageInteractiveSelector(cmd *cobra.Command, args []string) (map[string]any, error) {
@@ -547,7 +547,7 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Reinstallation done")
+	fmt.Println("✅ Reinstallation done")
 }
 
 func waitForInstanceStatus(cloudProject, instanceID, targetStatus string) error {
@@ -588,7 +588,7 @@ func ActivateMonthlyBilling(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Monthly billing activated for instance")
+	fmt.Println("✅ Monthly billing activated for instance")
 }
 
 func ListInstanceInterfaces(_ *cobra.Command, args []string) {
@@ -637,7 +637,7 @@ func CreateInstanceInterface(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Interface created successfully")
+	fmt.Println("✅ Interface created successfully")
 }
 
 func DeleteInstanceInterface(_ *cobra.Command, args []string) {
@@ -654,7 +654,7 @@ func DeleteInstanceInterface(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Interface deleted successfully")
+	fmt.Println("✅ Interface deleted successfully")
 }
 
 func EnableInstanceInRescueMode(_ *cobra.Command, args []string) {
@@ -689,7 +689,7 @@ func EnableInstanceInRescueMode(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Instance is now in rescue mode")
+	fmt.Println("✅ Instance is now in rescue mode")
 }
 
 func DisableInstanceRescueMode(_ *cobra.Command, args []string) {
@@ -720,7 +720,7 @@ func DisableInstanceRescueMode(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Instance is no longer in rescue mode")
+	fmt.Println("✅ Instance is no longer in rescue mode")
 }
 
 func SetInstanceFlavor(_ *cobra.Command, args []string) {
@@ -787,7 +787,7 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Instance correctly migrated to the desired flavor")
+	fmt.Println("✅ Instance correctly migrated to the desired flavor")
 }
 
 func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
@@ -809,7 +809,7 @@ func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Snapshot created successfully with ID: %s\n", response["snapshotId"])
+	fmt.Printf("✅ Snapshot created successfully with ID: %s\n", response["snapshotId"])
 }
 
 func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
@@ -835,5 +835,5 @@ func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Snapshot aborted successfully")
+	fmt.Println("✅ Snapshot aborted successfully")
 }
