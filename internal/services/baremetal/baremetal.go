@@ -337,7 +337,7 @@ func SetBaremetalBootId(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Boot ID %d correctly configured\n", bootID)
+	fmt.Printf("✅ Boot ID %d correctly configured\n", bootID)
 }
 
 func SetBaremetalBootScript(_ *cobra.Command, args []string) {
@@ -377,7 +377,7 @@ func SetBaremetalBootScript(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Boot script correctly configured")
+	fmt.Println("✅ Boot script correctly configured")
 }
 
 func ListBaremetalVNIs(_ *cobra.Command, args []string) {

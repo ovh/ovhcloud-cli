@@ -45,7 +45,7 @@ func CreateOAuth2Client(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ OAuth2 client created successfully")
+	fmt.Println("✅ OAuth2 client created successfully")
 	fmt.Printf("Client ID: %s\n", client["clientId"].(string))
 	fmt.Printf("Client Secret: %s\n", client["clientSecret"].(string))
 }

@@ -293,7 +293,7 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 	for _, network := range networks {
 		for _, regionDetails := range network.Regions {
 			if regionDetails.OpenstackID == networkID && regionDetails.Region == region {
-				fmt.Printf("\n✅ Network %s created successfully (Openstack ID: %s)\n", network.ID, regionDetails.OpenstackID)
+				fmt.Printf("✅ Network %s created successfully (Openstack ID: %s)\n", network.ID, regionDetails.OpenstackID)
 				return
 			}
 		}
@@ -669,7 +669,7 @@ func CreateGateway(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Gateway %s created successfully\n", gatewayID)
+	fmt.Printf("✅ Gateway %s created successfully\n", gatewayID)
 }
 
 func DeleteGateway(_ *cobra.Command, args []string) {

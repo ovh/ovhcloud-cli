@@ -192,7 +192,7 @@ func CreateKube(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Cluster %s created successfully (id: %s)\n", cluster["name"], cluster["id"])
+	fmt.Printf("✅ Cluster %s created successfully (id: %s)\n", cluster["name"], cluster["id"])
 }
 
 func EditKube(cmd *cobra.Command, args []string) {
@@ -230,7 +230,7 @@ func DeleteKube(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ MKS cluster deleted successfully")
+	fmt.Println("✅ MKS cluster deleted successfully")
 }
 
 func GetKubeCustomization(cmd *cobra.Command, args []string) {
@@ -338,7 +338,7 @@ func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		fmt.Println("\n✅ IP restrictions updated succesfully ...")
+		fmt.Println("✅ IP restrictions updated succesfully ...")
 		return
 	}
 
@@ -350,7 +350,7 @@ func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ IP restrictions updated succesfully ...")
+	fmt.Println("✅ IP restrictions updated succesfully ...")
 }
 
 func GenerateKubeConfig(cmd *cobra.Command, args []string) {
@@ -385,7 +385,7 @@ func ResetKubeConfig(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Kube config reset successfully")
+	fmt.Println("✅ Kube config reset successfully")
 }
 
 func ListKubeNodes(_ *cobra.Command, args []string) {
@@ -425,7 +425,7 @@ func DeleteKubeNode(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ MKS node deleted successfully")
+	fmt.Println("✅ MKS node deleted successfully")
 }
 
 func ListKubeNodepools(_ *cobra.Command, args []string) {
@@ -484,7 +484,7 @@ func DeleteKubeNodepool(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ MKS node pool deleted successfully")
+	fmt.Println("✅ MKS node pool deleted successfully")
 }
 
 func CreateKubeNodepool(cmd *cobra.Command, args []string) {
@@ -544,7 +544,7 @@ func CreateKubeNodepool(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("\n✅ Node pool %s created successfully\n", nodepool["id"])
+	fmt.Printf("✅ Node pool %s created successfully\n", nodepool["id"])
 }
 
 func GetKubeFlavorInteractiveSelector(cmd *cobra.Command, args []string) (map[string]any, error) {
@@ -639,7 +639,7 @@ func CreateKubeOIDCIntegration(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ OIDC integration created successfully")
+	fmt.Println("✅ OIDC integration created successfully")
 }
 
 func DeleteKubeOIDCIntegration(_ *cobra.Command, args []string) {
@@ -656,7 +656,7 @@ func DeleteKubeOIDCIntegration(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ OIDC integration deleted successfully")
+	fmt.Println("✅ OIDC integration deleted successfully")
 }
 
 func GetKubePrivateNetworkConfiguration(_cmd *cobra.Command, args []string) {
@@ -776,5 +776,5 @@ func UpdateKubeLoadBalancersSubnet(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("\n✅ Load balancers subnet updated successfully")
+	fmt.Println("✅ Load balancers subnet updated successfully")
 }

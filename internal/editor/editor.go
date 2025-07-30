@@ -89,7 +89,7 @@ func EditResource(client *ovh.Client, path, url string, openapiSpec []byte) erro
 		return fmt.Errorf("failed to update resource: %w", err)
 	}
 
-	fmt.Println("\n✅ Resource updated succesfully ...")
+	fmt.Println("✅ Resource updated succesfully ...")
 
 	return nil
 }
