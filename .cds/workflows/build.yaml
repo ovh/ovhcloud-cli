@@ -40,6 +40,10 @@ jobs:
         with:
           path: dist/*.tar.gz
           if-no-files-found: error
+      - uses: actions/uploadArtifact
+        with:
+          path: dist/*.zip
+          if-no-files-found: error
 
   release:
     needs:
@@ -49,7 +53,6 @@ jobs:
     if: git.ref_name == 'master'
     runs-on:
       model: library/default-container
-      flavor: b2-30
     steps:
       - uses: actions/artifactoryRelease
         with:
