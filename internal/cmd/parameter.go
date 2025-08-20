@@ -19,15 +19,11 @@ var (
 )
 
 func addInteractiveEditorFlag(cmd *cobra.Command) {
-	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
-		cmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
-	}
+	cmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
 }
 
 func addFromFileFlag(cmd *cobra.Command) {
-	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
-		cmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing parameters")
-	}
+	cmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing parameters")
 }
 
 func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, method, defaultContent string, replaceValueFn func(*cobra.Command, []string) (map[string]any, error)) {

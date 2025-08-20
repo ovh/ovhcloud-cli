@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
-	"runtime"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"golang.org/x/exp/slices"
 
 	"github.com/ovh/ovhcloud-cli/internal/config"
 	"github.com/ovh/ovhcloud-cli/internal/display"
@@ -14,10 +16,21 @@ import (
 )
 
 // rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "ovhcloud",
-	Short: "CLI to manage your OVHcloud services",
-}
+var (
+	rootCmd = &cobra.Command{
+		Use:   "ovhcloud",
+		Short: "CLI to manage your OVHcloud services",
+	}
+
+	// wasmHiddenFlags are flags that should be hidden in WASM mode
+	wasmHiddenFlags = []string{
+		"editor",
+		"from-file",
+		"init-file",
+		"replace",
+		"interactive",
+	}
+)
 
 func GetRootCommand() *cobra.Command {
 	return rootCmd
@@ -64,25 +77,32 @@ func init() {
 			os.Exit(1) // Force os.Exit even in WASM mode
 		}
 	}
-
-	// If running in a WASM binary, make the help command return the
-	// usage string instead of outputting the help message to stderr.
-	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
-		rootCmd.SetHelpFunc(func(cmd *cobra.Command, _ []string) {
-			display.ResultString = cmd.UsageString()
-		})
-	}
 }
 
-func removeRootFlagsFromCommand(subCommand *cobra.Command) {
-	subCommand.SetHelpFunc(func(command *cobra.Command, strings []string) {
-		rootCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
-			if flag.Name != "debug" {
+func InitWasmHelpCommands(cmd *cobra.Command) {
+	cmd.SetHelpFunc(func(command *cobra.Command, _ []string) {
+		// Hide flags that are not relevant in WASM mode
+		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+			if slices.Contains(wasmHiddenFlags, flag.Name) {
 				flag.Hidden = true
 			}
 		})
-		command.Parent().HelpFunc()(command, strings)
+
+		// Return help string as JSON
+		help, err := json.Marshal(map[string]string{
+			"help": command.UsageString(),
+		})
+		if err != nil {
+			display.ResultError = fmt.Errorf("failed to marshal help: %w", err)
+			return
+		}
+
+		display.ResultString = string(help)
 	})
+
+	for _, child := range cmd.Commands() {
+		InitWasmHelpCommands(child)
+	}
 }
 
 func withFilterFlag(c *cobra.Command) *cobra.Command {
