@@ -51,7 +51,6 @@ func init() {
 		Args:  cobra.ExactArgs(3),
 		Run:   ip.IpSetReverse,
 	}
-	removeRootFlagsFromCommand(ipReverseSetCmd)
 	ipReverseCmd.AddCommand(ipReverseSetCmd)
 
 	ipReverseGetCmd := &cobra.Command{
@@ -60,7 +59,6 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run:   ip.IpGetReverse,
 	}
-	removeRootFlagsFromCommand(ipReverseGetCmd)
 	ipReverseCmd.AddCommand(ipReverseGetCmd)
 
 	ipReverseDeleteCmd := &cobra.Command{
@@ -69,7 +67,6 @@ func init() {
 		Args:  cobra.ExactArgs(2),
 		Run:   ip.IpDeleteReverse,
 	}
-	removeRootFlagsFromCommand(ipReverseDeleteCmd)
 	ipReverseCmd.AddCommand(ipReverseDeleteCmd)
 
 	rootCmd.AddCommand(ipCmd)

@@ -362,7 +362,6 @@ func init() {
 		vpsReinstallCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	}
 	vpsReinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
-	removeRootFlagsFromCommand(vpsReinstallCmd)
 	vpsCmd.AddCommand(vpsReinstallCmd)
 
 	// Secondary DNS Domains commands

@@ -65,7 +65,6 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run:   baremetal.RebootBaremetal,
 	}
-	removeRootFlagsFromCommand(baremetalRebootCmd)
 	baremetalCmd.AddCommand(baremetalRebootCmd)
 
 	// Command to reboot a baremetal in rescue mode
@@ -75,7 +74,6 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run:   baremetal.RebootRescueBaremetal,
 	}
-	removeRootFlagsFromCommand(baremetalRebootRescueCmd)
 	baremetalRebootRescueCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reboot to be done before exiting")
 	baremetalCmd.AddCommand(baremetalRebootRescueCmd)
 
@@ -147,7 +145,6 @@ Please note that all parameters are not compatible with all OSes.
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.SshKey, "ssh-key", "", "SSH public key")
 	reinstallBaremetalCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
-	removeRootFlagsFromCommand(reinstallBaremetalCmd)
 	reinstallBaremetalCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
 

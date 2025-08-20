@@ -132,8 +132,6 @@ There are three ways to define the creation parameters:
 		instanceCreateCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
 		instanceCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
 	}
-
-	removeRootFlagsFromCommand(instanceCreateCmd)
 	instanceCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return instanceCreateCmd
@@ -280,11 +278,12 @@ There are three ways to define the installation parameters:
 	addInitParameterFileFlag(reinstallCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", nil)
 	addInteractiveEditorFlag(reinstallCmd)
 	addFromFileFlag(reinstallCmd)
-	reinstallCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector to define installation parameters")
 	reinstallCmd.Flags().StringVar(&cloud.InstanceImageID, "image", "", "Image to use for reinstallation")
 	reinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
-	removeRootFlagsFromCommand(reinstallCmd)
-	reinstallCmd.MarkFlagsMutuallyExclusive("from-file", "editor", "image-selector")
+	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
+		reinstallCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector to define installation parameters")
+		reinstallCmd.MarkFlagsMutuallyExclusive("from-file", "editor", "image-selector")
+	}
 	instanceCmd.AddCommand(reinstallCmd)
 
 	instanceCmd.AddCommand(&cobra.Command{
