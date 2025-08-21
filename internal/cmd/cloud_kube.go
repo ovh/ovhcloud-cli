@@ -433,7 +433,7 @@ There are three ways to define the reset parameters:
 		Args: cobra.ExactArgs(1),
 	}
 
-	// All flags for Kubernetes cluster creation
+	// All flags for Kubernetes cluster reset
 	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Name, "name", "", "Name of the Kubernetes cluster")
 	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Version, "version", "", "Kubernetes version")
 	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.KubeProxyMode, "kube-proxy-mode", "", "Kube-proxy mode (iptables or ipvs)")
@@ -441,7 +441,7 @@ There are three ways to define the reset parameters:
 	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.NodesSubnetId, "nodes-subnet-id", "", "OpenStack subnet ID that the cluster nodes will use")
 	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkId, "private-network-id", "", "OpenStack private network ID that the cluster will use")
 	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.UpdatePolicy, "update-policy", "", "Update policy for the cluster (ALWAYS_UPDATE, MINIMAL_DOWNTIME, NEVER_UPDATE)")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.WorkerNodesPolicy, "worker-nodes-policy", "delete", "Worker nodes reset policy (delete, reinstall), default is delete")
+	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.WorkerNodesPolicy, "worker-nodes-policy", "", "Worker nodes reset policy (delete, reinstall)")
 
 	// Private network configuration
 	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkConfiguration.DefaultVrackGateway, "private-network.default-vrack-gateway", "", "If defined, all egress traffic will be routed towards this IP address, which should belong to the private network")
