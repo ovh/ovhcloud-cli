@@ -181,7 +181,9 @@ func CreateKube(cmd *cobra.Command, args []string) {
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube", projectID)
-	cluster, err := common.CreateResource("/cloud/project/{serviceName}/kube",
+	cluster, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/kube",
 		endpoint,
 		CloudKubeCreationExample,
 		KubeSpec,
@@ -533,7 +535,9 @@ func CreateKubeNodepool(cmd *cobra.Command, args []string) {
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
-	nodepool, err := common.CreateResource("/cloud/project/{serviceName}/kube/{kubeId}/nodepool",
+	nodepool, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/kube/{kubeId}/nodepool",
 		endpoint,
 		CloudKubeNodePoolCreationExample,
 		KubeNodepoolSpec,
@@ -621,7 +625,7 @@ func EditKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 	}
 }
 
-func CreateKubeOIDCIntegration(_ *cobra.Command, args []string) {
+func CreateKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
@@ -629,7 +633,9 @@ func CreateKubeOIDCIntegration(_ *cobra.Command, args []string) {
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
-	if _, err := common.CreateResource("/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect",
+	if _, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect",
 		endpoint,
 		CloudKubeOIDCCreationExample,
 		KubeOIDCConfig,
@@ -696,7 +702,7 @@ func EditKubePrivateNetworkConfiguration(cmd *cobra.Command, args []string) {
 	}
 }
 
-func ResetKubeCluster(_ *cobra.Command, args []string) {
+func ResetKubeCluster(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
@@ -704,7 +710,9 @@ func ResetKubeCluster(_ *cobra.Command, args []string) {
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/reset", projectID, url.PathEscape(args[0]))
-	_, err = common.CreateResource("/cloud/project/{serviceName}/kube/{kubeId}/reset",
+	_, err = common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/kube/{kubeId}/reset",
 		endpoint,
 		CloudKubeResetExample,
 		KubeSpec,

@@ -290,6 +290,7 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/instance", projectID, region)
 	operation, err := common.CreateResource(
+		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/instance",
 		endpoint,
 		CloudInstanceCreationExample,

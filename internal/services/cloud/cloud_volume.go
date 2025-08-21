@@ -92,6 +92,7 @@ func CreateVolume(cmd *cobra.Command, args []string) {
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/volume", projectID, url.PathEscape(args[0]))
 	task, err := common.CreateResource(
+		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/volume",
 		endpoint,
 		VolumeCreateExample,

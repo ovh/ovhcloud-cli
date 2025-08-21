@@ -419,6 +419,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 
 	endpoint := fmt.Sprintf("/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
 	task, err := common.CreateResource(
+		cmd,
 		"/dedicated/server/{serviceName}/reinstall",
 		endpoint,
 		BaremetalInstallationExample,

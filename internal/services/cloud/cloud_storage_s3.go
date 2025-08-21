@@ -215,7 +215,9 @@ func CreateStorageS3(cmd *cobra.Command, args []string) {
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/storage", projectID, url.PathEscape(args[0]))
-	container, err := common.CreateResource("/cloud/project/{serviceName}/region/{regionName}/storage",
+	container, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/region/{regionName}/storage",
 		endpoint,
 		CloudStorageS3CreationExample,
 		StorageS3Spec,
@@ -482,7 +484,7 @@ func DeleteStorageS3ObjectVersion(_ *cobra.Command, args []string) {
 	fmt.Printf("✅ Object version %s deleted successfully\n", args[2])
 }
 
-func StorageS3GeneratePresignedURL(_ *cobra.Command, args []string) {
+func StorageS3GeneratePresignedURL(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
@@ -496,6 +498,7 @@ func StorageS3GeneratePresignedURL(_ *cobra.Command, args []string) {
 	}
 
 	response, err := common.CreateResource(
+		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/presign",
 		foundURL+"/presign",
 		CloudStorageS3PresignedURLExample,
@@ -531,6 +534,7 @@ func StorageS3CreateContainerPolicy(cmd *cobra.Command, args []string) {
 	}
 
 	_, err = common.CreateResource(
+		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/policy/{userId}",
 		foundURL+"/policy/"+url.PathEscape(args[1]),
 		CloudStorageS3ContainerPolicyExample,
