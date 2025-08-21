@@ -33,6 +33,7 @@ func ListSSHKeys(_ *cobra.Command, _ []string) {
 
 func CreateOAuth2Client(cmd *cobra.Command, args []string) {
 	client, err := common.CreateResource(
+		cmd,
 		"/me/api/oauth2/client",
 		"/me/api/oauth2/client",
 		Oauth2ClientCreateSample,

@@ -545,6 +545,7 @@ func ReinstallVps(cmd *cobra.Command, args []string) {
 	}
 
 	response, err := common.CreateResource(
+		cmd,
 		"/vps/{serviceName}/rebuild",
 		endpoint,
 		VpsReinstallExample,
@@ -592,10 +593,11 @@ func EditVpsSecondaryDNSDomain(cmd *cobra.Command, args []string) {
 	}
 }
 
-func AddVpsSecondaryDNSDomain(_ *cobra.Command, args []string) {
+func AddVpsSecondaryDNSDomain(cmd *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/secondaryDnsDomains", url.PathEscape(args[0]))
 
 	if _, err := common.CreateResource(
+		cmd,
 		"/vps/{serviceName}/secondaryDnsDomains",
 		endpoint,
 		"",

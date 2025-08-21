@@ -84,7 +84,8 @@ func ManageObjectRequest(path, objectID, templateContent string) {
 	display.OutputObject(object, objectID, templateContent, &flags.OutputFormatConfig)
 }
 
-func CreateResource(path, endpoint, defaultExample string, cliParams any, openapiSpec []byte, mandatoryFields []string) (map[string]any, error) {
+func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
+	cliParams any, openapiSpec []byte, mandatoryFields []string) (map[string]any, error) {
 	// Create object from parameters given on command line
 	jsonCliParameters, err := json.Marshal(cliParams)
 	if err != nil {
@@ -164,7 +165,7 @@ func CreateResource(path, endpoint, defaultExample string, cliParams any, openap
 	// Check if mandatory fields are present
 	for _, field := range mandatoryFields {
 		if _, ok := parameters[field]; !ok {
-			return nil, fmt.Errorf("mandatory field %q is missing in the parameters", field)
+			return nil, fmt.Errorf("mandatory field %q is missing in the parameters\n\n%s", field, cmd.UsageString())
 		}
 	}
 

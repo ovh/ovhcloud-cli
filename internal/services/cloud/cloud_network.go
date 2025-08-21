@@ -252,6 +252,7 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 	region := args[0]
 	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/network", projectID, url.PathEscape(region))
 	task, err := common.CreateResource(
+		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/network",
 		endpoint,
 		PrivateNetworkCreationExample,
@@ -645,6 +646,7 @@ func CreateGateway(cmd *cobra.Command, args []string) {
 
 	// Create resource
 	task, err := common.CreateResource(
+		cmd,
 		path,
 		endpoint,
 		GatewayCreationExample,
