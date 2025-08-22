@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
@@ -170,7 +171,33 @@ func GetKube(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/kube", projectID), args[0], cloudKubeTemplate)
+	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
+
+	var object map[string]any
+	if err := httpLib.Client.Get(endpoint, &object); err != nil {
+		display.ExitError("error fetching %s: %s", endpoint, err)
+		return
+	}
+
+	// Fetch etcd usage, ignore potential errors
+	var etcdUsage map[string]any
+	if err := httpLib.Client.Get(fmt.Sprintf("%s/metrics/etcdUsage", endpoint), &etcdUsage); err != nil {
+		log.Printf("failed to fetch etcd usage: %s", err)
+	} else {
+		etcdUsage["usage"], err = etcdUsage["usage"].(json.Number).Float64()
+		if err != nil {
+			display.ExitError("failed to parse etcd usage 'usage' value: %s", err)
+			return
+		}
+		etcdUsage["quota"], err = etcdUsage["quota"].(json.Number).Float64()
+		if err != nil {
+			display.ExitError("failed to parse etcd usage 'quota' value: %s", err)
+			return
+		}
+		object["etcdUsage"] = etcdUsage
+	}
+
+	display.OutputObject(object, args[0], cloudKubeTemplate, &flags.OutputFormatConfig)
 }
 
 func CreateKube(cmd *cobra.Command, args []string) {
