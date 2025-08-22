@@ -173,20 +173,13 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	presignedURLCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	storageS3Cmd.AddCommand(presignedURLCmd)
 
-	// Policy command
-	policyCmd := &cobra.Command{
-		Use:   "create-policy <container_name> <user_id>",
-		Short: "Create a policy for the given storage container and user ID",
-		Run:   cloud.StorageS3CreateContainerPolicy,
-		Args:  cobra.ExactArgs(2),
-	}
-	policyCmd.Flags().StringVar(&cloud.StorageS3ContainerPolicySpec.ObjectKey, "object-key", "", "Object key for the policy")
-	policyCmd.Flags().StringVar(&cloud.StorageS3ContainerPolicySpec.RoleName, "role", "admin", "Role name for the policy (admin, deny, readOnly, readWrite). Default is 'admin'")
-	addInitParameterFileFlag(policyCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/policy/{userId}", "post", cloud.CloudStorageS3ContainerPolicyExample, nil)
-	addInteractiveEditorFlag(policyCmd)
-	addFromFileFlag(policyCmd)
-	policyCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
-	storageS3Cmd.AddCommand(policyCmd)
+	// Add user to bucket command
+	storageS3Cmd.AddCommand(&cobra.Command{
+		Use:   "add-user <container_name> <user_id> <role (admin, deny, readOnly, readWrite)>",
+		Short: "Add a user to the given storage container with the specified role (admin, deny, readOnly, readWrite)",
+		Run:   cloud.StorageS3AddUser,
+		Args:  cobra.ExactArgs(3),
+	})
 
 	// Credentials command
 	credentialsCmd := &cobra.Command{
