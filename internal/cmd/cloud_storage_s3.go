@@ -188,6 +188,42 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	policyCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	storageS3Cmd.AddCommand(policyCmd)
 
+	// Credentials command
+	credentialsCmd := &cobra.Command{
+		Use:   "credentials",
+		Short: "Manage storage containers credentials",
+	}
+	storageS3Cmd.AddCommand(credentialsCmd)
+
+	credentialsCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list <user_id>",
+		Aliases: []string{"ls"},
+		Short:   "List credentials for the given user ID",
+		Run:     cloud.ListStorageS3Credentials,
+		Args:    cobra.ExactArgs(1),
+	}))
+
+	credentialsCmd.AddCommand(&cobra.Command{
+		Use:   "create <user_id>",
+		Short: "Create credentials for the given user ID",
+		Run:   cloud.CreateStorageS3Credentials,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	credentialsCmd.AddCommand(&cobra.Command{
+		Use:   "delete <user_id> <access_id>",
+		Short: "Delete credentials for the given user ID and access ID",
+		Run:   cloud.DeleteStorageS3Credentials,
+		Args:  cobra.ExactArgs(2),
+	})
+
+	credentialsCmd.AddCommand(&cobra.Command{
+		Use:   "get <user_id> <access_id>",
+		Short: "Get credentials for the given user ID and access ID",
+		Run:   cloud.GetStorageS3Credentials,
+		Args:  cobra.ExactArgs(2),
+	})
+
 	cloudCmd.AddCommand(storageS3Cmd)
 }
 
