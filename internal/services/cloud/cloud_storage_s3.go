@@ -548,3 +548,71 @@ func StorageS3CreateContainerPolicy(cmd *cobra.Command, args []string) {
 
 	fmt.Printf("✅ Policy for user %s created successfully\n", args[1])
 }
+
+func ListStorageS3Credentials(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials", projectID, url.PathEscape(args[0]))
+	common.ManageListRequestNoExpand(endpoint, []string{"access", "userId", "tenantId"}, flags.GenericFilters)
+}
+
+func CreateStorageS3Credentials(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	user := map[string]any{}
+	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Post(endpoint, nil, &user); err != nil {
+		display.ExitError("failed to create S3 credentials: %s", err)
+		return
+	}
+
+	display.OutputObject(user, args[0], "", &flags.OutputFormatConfig)
+}
+
+func DeleteStorageS3Credentials(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.ExitError("failed to delete S3 credentials: %s", err)
+		return
+	}
+
+	fmt.Printf("✅ S3 credentials %s for user %s deleted successfully\n", args[1], args[0])
+}
+
+func GetStorageS3Credentials(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	var credentials map[string]any
+	if err := httpLib.Client.Get(endpoint, &credentials); err != nil {
+		display.ExitError("failed to get S3 credentials: %s", err)
+		return
+	}
+
+	// Fetch credentials secret
+	secretEndpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials/%s/secret", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	if err := httpLib.Client.Post(secretEndpoint, nil, &credentials); err != nil {
+		display.ExitError("failed to get S3 credentials secret: %s", err)
+		return
+	}
+
+	display.OutputObject(credentials, args[1], "", &flags.OutputFormatConfig)
+}

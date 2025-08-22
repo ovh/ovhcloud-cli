@@ -3,7 +3,9 @@ package cloud
 import (
 	_ "embed"
 	"fmt"
+	"net/url"
 
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -17,6 +19,14 @@ var (
 
 	//go:embed templates/cloud_user.tmpl
 	cloudUserTemplate string
+
+	//go:embed parameter-samples/user-create.json
+	UserCreateExample string
+
+	UserSpec struct {
+		Description string   `json:"description,omitempty"`
+		Roles       []string `json:"roles,omitempty"`
+	}
 )
 
 func ListCloudUsers(_ *cobra.Command, _ []string) {
@@ -50,4 +60,45 @@ func GetCloudUser(_ *cobra.Command, args []string) {
 	}
 
 	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/user", projectID), args[0], cloudUserTemplate)
+}
+
+func CreateCloudUser(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	client, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/user",
+		fmt.Sprintf("/cloud/project/%s/user", projectID),
+		UserCreateExample,
+		UserSpec,
+		assets.CloudOpenapiSchema,
+		nil,
+	)
+	if err != nil {
+		display.ExitError("failed to create user: %s", err)
+		return
+	}
+
+	fmt.Printf("✅ User '%s' created successfully\n", client["id"])
+}
+
+func DeleteCloudUser(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s", projectID, url.PathEscape(args[0]))
+
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.ExitError("failed to delete user: %s", err)
+		return
+	}
+
+	fmt.Printf("✅ User '%s' deleted successfully\n", args[0])
 }
