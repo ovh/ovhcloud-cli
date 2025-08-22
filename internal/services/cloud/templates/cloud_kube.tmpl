@@ -16,6 +16,7 @@ _{{index .Result "name"}}_
 **Up to date**:      {{index .Result "isUpToDate"}}
 **Update policy**:   {{index .Result "updatePolicy"}}
 **Kube proxy mode**: {{index .Result "kubeProxyMode"}}
+**ETCD usage**:      {{if index .Result "etcdUsage"}}{{formatByteSize (index .Result "etcdUsage" "usage") 0 1024}} / {{formatByteSize (index .Result "etcdUsage" "quota") 0 1024}}{{else}}N/A{{end}}
 
 [Management URL]({{index .Result "url"}})
 [Nodes URL]({{index .Result "nodesUrl"}})
