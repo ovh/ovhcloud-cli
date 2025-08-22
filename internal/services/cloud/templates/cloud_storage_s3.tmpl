@@ -32,7 +32,7 @@
 ## Objects
 
 **Objects count**: {{index .Result "objectsCount"}}
-**Total size**:    {{index .Result "objectsSize"}} bytes
+**Space used**:    {{formatByteSize (index .Result "objectsSize") 2 1024}}
 
 {{if index .Result "objects"}}
 | Key | Size (bytes) | Storage class |

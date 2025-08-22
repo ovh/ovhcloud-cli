@@ -38,5 +38,19 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 	imageListCmd.Flags().StringVarP(&osType, "os-type", "o", "", "OS type to filter images (baremetal-linux, bsd, linux, windows)")
 	referenceCmd.AddCommand(imageListCmd)
 
+	// Container registry reference commands
+	containerRegistryReferenceCmd := &cobra.Command{
+		Use:   "container-registry",
+		Short: "Fetch container registry reference data in the given cloud project",
+	}
+	referenceCmd.AddCommand(containerRegistryReferenceCmd)
+
+	containerRegistryReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-plans",
+		Short: "List available container registry plans in the given cloud project",
+		Run:   cloud.ListContainerRegistryPlans,
+		Args:  cobra.NoArgs,
+	}))
+
 	cloudCmd.AddCommand(referenceCmd)
 }

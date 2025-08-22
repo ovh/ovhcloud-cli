@@ -2,6 +2,7 @@ package cloud
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -173,6 +174,14 @@ func GetStorageS3(_ *cobra.Command, args []string) {
 		display.ExitError(err.Error())
 		return
 	}
+
+	// Convert used space to float
+	usedFloat, err := foundContainer["objectsSize"].(json.Number).Float64()
+	if err != nil {
+		display.ExitError("error parsing used storage: %s", err)
+		return
+	}
+	foundContainer["objectsSize"] = usedFloat
 
 	display.OutputObject(foundContainer, args[0], cloudStorageS3Template, &flags.OutputFormatConfig)
 }
@@ -567,14 +576,14 @@ func CreateStorageS3Credentials(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	user := map[string]any{}
+	credentials := map[string]any{}
 	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials", projectID, url.PathEscape(args[0]))
-	if err := httpLib.Client.Post(endpoint, nil, &user); err != nil {
+	if err := httpLib.Client.Post(endpoint, nil, &credentials); err != nil {
 		display.ExitError("failed to create S3 credentials: %s", err)
 		return
 	}
 
-	display.OutputObject(user, args[0], "", &flags.OutputFormatConfig)
+	display.OutputObject(credentials, args[0], "", &flags.OutputFormatConfig)
 }
 
 func DeleteStorageS3Credentials(_ *cobra.Command, args []string) {

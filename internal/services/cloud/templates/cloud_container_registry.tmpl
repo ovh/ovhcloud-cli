@@ -14,7 +14,7 @@ _{{index .Result "name"}}_
 ## Registry state
 
 **Version**:     {{index .Result "version"}}
-**Size**:        {{index .Result "size"}} bytes
+**Usage**:       {{formatByteSize (index .Result "usage" "used") 2 1024}} / {{formatByteSize (index .Result "usage" "available") 0 1024}}
 **IAM enabled**: {{index .Result "iamEnabled"}}
 
 [Registry URL]({{index .Result "url"}})
