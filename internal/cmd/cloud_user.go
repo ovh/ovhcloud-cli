@@ -48,5 +48,32 @@ func initCloudUserCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	// S3 policy commands
+	s3PolicyCmd := &cobra.Command{
+		Use:   "s3-policy",
+		Short: "Manage policies for users on S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+	}
+	userCmd.AddCommand(s3PolicyCmd)
+
+	s3PolicyCmd.AddCommand(&cobra.Command{
+		Use:   "get <user_id>",
+		Short: "Get the policy for the given user ID",
+		Run:   cloud.GetUserS3Policy,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	s3PolicyCreateCmd := &cobra.Command{
+		Use:   "create <user_id>",
+		Short: "Create a policy for the given user ID",
+		Run:   cloud.CreateUserS3Policy,
+		Args:  cobra.ExactArgs(1),
+	}
+	s3PolicyCreateCmd.Flags().StringVar(&cloud.StorageS3ContainerPolicySpec.Policy, "policy", "", "Policy in JSON format")
+	addInitParameterFileFlag(s3PolicyCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/user/{userId}/policy", "post", cloud.CloudStorageS3ContainerPolicyExample, nil)
+	addInteractiveEditorFlag(s3PolicyCreateCmd)
+	addFromFileFlag(s3PolicyCreateCmd)
+	s3PolicyCreateCmd.MarkFlagsMutuallyExclusive("policy", "from-file", "editor")
+	s3PolicyCmd.AddCommand(s3PolicyCreateCmd)
+
 	cloudCmd.AddCommand(userCmd)
 }

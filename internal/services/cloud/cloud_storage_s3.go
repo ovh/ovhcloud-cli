@@ -32,9 +32,6 @@ var (
 	//go:embed parameter-samples/storage-s3-presigned-url.json
 	CloudStorageS3PresignedURLExample string
 
-	//go:embed parameter-samples/storage-s3-policy.json
-	CloudStorageS3ContainerPolicyExample string
-
 	StorageS3Spec struct {
 		Name       string `json:"name,omitempty"`
 		OwnerId    int    `json:"ownerId,omitempty"`
@@ -95,11 +92,6 @@ var (
 		Object       string `json:"object,omitempty"`
 		StorageClass string `json:"storageClass,omitempty"`
 		VersionId    string `json:"versionId,omitempty"`
-	}
-
-	StorageS3ContainerPolicySpec struct {
-		ObjectKey string `json:"objectKey,omitempty"`
-		RoleName  string `json:"roleName,omitempty"`
 	}
 )
 
@@ -213,7 +205,7 @@ func EditStorageS3(cmd *cobra.Command, args []string) {
 
 func CreateStorageS3(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		display.ExitError("region argument is required")
+		display.ExitError("region argument is required\n\n%s", cmd.UsageString())
 		return
 	}
 
@@ -529,7 +521,7 @@ func StorageS3GeneratePresignedURL(cmd *cobra.Command, args []string) {
 	}
 }
 
-func StorageS3CreateContainerPolicy(cmd *cobra.Command, args []string) {
+func StorageS3AddUser(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.ExitError(err.Error())
@@ -542,20 +534,18 @@ func StorageS3CreateContainerPolicy(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_, err = common.CreateResource(
-		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/policy/{userId}",
-		foundURL+"/policy/"+url.PathEscape(args[1]),
-		CloudStorageS3ContainerPolicyExample,
-		StorageS3ContainerPolicySpec,
-		assets.CloudOpenapiSchema,
-		nil)
-	if err != nil {
-		display.ExitError("failed to create policy for user %s: %s", args[0], err)
+	userID := args[1]
+	userRole := args[2]
+	endpoint := foundURL + "/policy/" + url.PathEscape(userID)
+
+	if err := httpLib.Client.Post(endpoint, map[string]any{
+		"roleName": userRole,
+	}, nil); err != nil {
+		display.ExitError("failed to add user: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Policy for user %s created successfully\n", args[1])
+	fmt.Printf("✅ User %s successfully added to the bucket\n", args[1])
 }
 
 func ListStorageS3Credentials(_ *cobra.Command, args []string) {
