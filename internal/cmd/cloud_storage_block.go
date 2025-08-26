@@ -8,11 +8,11 @@ import (
 )
 
 func initCloudVolumeCommand(cloudCmd *cobra.Command) {
-	volumeCmd := &cobra.Command{
-		Use:   "volume",
-		Short: "Manage volumes in the given cloud project",
+	storageBlockCmd := &cobra.Command{
+		Use:   "storage-block",
+		Short: "Manage block storage volumes in the given cloud project",
 	}
-	volumeCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	storageBlockCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	volumeListCmd := &cobra.Command{
 		Use:     "list",
@@ -20,9 +20,9 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Short:   "List volumes",
 		Run:     cloud.ListCloudVolumes,
 	}
-	volumeCmd.AddCommand(withFilterFlag(volumeListCmd))
+	storageBlockCmd.AddCommand(withFilterFlag(volumeListCmd))
 
-	volumeCmd.AddCommand(&cobra.Command{
+	storageBlockCmd.AddCommand(&cobra.Command{
 		Use:   "get <volume_id>",
 		Short: "Get a specific volume",
 		Run:   cloud.GetVolume,
@@ -38,11 +38,11 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeSpec.Description, "description", "", "Volume description")
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeSpec.Name, "name", "", "Volume name")
 	addInteractiveEditorFlag(volumeEditCmd)
-	volumeCmd.AddCommand(volumeEditCmd)
+	storageBlockCmd.AddCommand(volumeEditCmd)
 
-	volumeCmd.AddCommand(getVolumeCreateCmd())
+	storageBlockCmd.AddCommand(getVolumeCreateCmd())
 
-	volumeCmd.AddCommand(&cobra.Command{
+	storageBlockCmd.AddCommand(&cobra.Command{
 		Use:   "delete <volume_id>",
 		Short: "Delete the given volume",
 		Run:   cloud.DeleteVolume,
@@ -50,21 +50,21 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	})
 
 	// Volume action commands
-	volumeCmd.AddCommand(&cobra.Command{
+	storageBlockCmd.AddCommand(&cobra.Command{
 		Use:   "attach <volume_id> <instance_id>",
 		Short: "Attach the given volume to the given instance",
 		Run:   cloud.AttachVolumeToInstance,
 		Args:  cobra.ExactArgs(2),
 	})
 
-	volumeCmd.AddCommand(&cobra.Command{
+	storageBlockCmd.AddCommand(&cobra.Command{
 		Use:   "detach <volume_id> <instance_id>",
 		Short: "Detach the given volume from the given instance",
 		Run:   cloud.DetachVolumeFromInstance,
 		Args:  cobra.ExactArgs(2),
 	})
 
-	volumeCmd.AddCommand(&cobra.Command{
+	storageBlockCmd.AddCommand(&cobra.Command{
 		Use:   "upsize <volume_id> <new_size (GB)>",
 		Short: "Upsize the given volume",
 		Run:   cloud.UpsizeVolume,
@@ -76,7 +76,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Use:   "snapshot",
 		Short: "Manage snapshots of the given volume",
 	}
-	volumeCmd.AddCommand(volumeSnapshotCmd)
+	storageBlockCmd.AddCommand(volumeSnapshotCmd)
 
 	volumeSnapshotCreateCmd := &cobra.Command{
 		Use:   "create <volume_id>",
@@ -110,7 +110,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Use:   "backup",
 		Short: "Manage volume backups in the given cloud project",
 	}
-	volumeCmd.AddCommand(volumeBackupCmd)
+	storageBlockCmd.AddCommand(volumeBackupCmd)
 
 	volumeBackupCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:     "list",
@@ -147,14 +147,14 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(2),
 	})
 
-	volumeCmd.AddCommand(&cobra.Command{
+	storageBlockCmd.AddCommand(&cobra.Command{
 		Use:   "create-from-backup <backup_id> <volume_name>",
 		Short: "Create a volume from the given backup",
 		Run:   cloud.CreateVolumeFromBackup,
 		Args:  cobra.ExactArgs(2),
 	})
 
-	cloudCmd.AddCommand(volumeCmd)
+	cloudCmd.AddCommand(storageBlockCmd)
 }
 
 func getVolumeCreateCmd() *cobra.Command {
