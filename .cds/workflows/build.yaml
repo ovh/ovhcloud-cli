@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout
       - run: |-
           go get ./...
-          go install github.com/goreleaser/goreleaser/v2@latest
+          go install github.com/goreleaser/goreleaser/v2@v2.11.2
           make release-snapshot
       - uses: actions/uploadArtifact
         with:

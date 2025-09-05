@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 OVH SAS <opensource@ovh.net>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package sms
 
 import (
