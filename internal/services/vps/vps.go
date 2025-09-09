@@ -77,9 +77,6 @@ var (
 		// Creation parameters
 		Domain string `json:"domain,omitempty"`
 		IP     string `json:"ip,omitempty"`
-
-		// Update parameter
-		IPMaster string `json:"ipMaster,omitempty"`
 	}
 )
 
@@ -580,21 +577,6 @@ func ReinstallVps(cmd *cobra.Command, args []string) {
 func ListVpsSecondaryDNSDomains(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/secondaryDnsDomains", url.PathEscape(args[0]))
 	common.ManageListRequest(endpoint, "", []string{"domain", "dns", "ipMaster", "creationDate"}, flags.GenericFilters)
-}
-
-func EditVpsSecondaryDNSDomain(cmd *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/secondaryDnsDomains/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
-
-	if err := common.EditResource(
-		cmd,
-		"/vps/{serviceName}/secondaryDnsDomains/{domain}",
-		endpoint,
-		VpsSecondaryDNSDomainSpec,
-		assets.VpsOpenapiSchema,
-	); err != nil {
-		display.ExitError(err.Error())
-		return
-	}
 }
 
 func AddVpsSecondaryDNSDomain(cmd *cobra.Command, args []string) {

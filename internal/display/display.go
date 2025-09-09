@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -44,7 +45,7 @@ func renderCustomFormat(value any, format string) {
 			if err != nil {
 				ExitError("error marshalling result")
 			}
-			fmt.Println(string(outBytes))
+			Output(string(outBytes))
 		}
 	default:
 		out, err := ev(context.Background(), value)
@@ -56,6 +57,7 @@ func renderCustomFormat(value any, format string) {
 		if err != nil {
 			ExitError("error marshalling result")
 		}
+		ResultString = string(outBytes)
 		fmt.Print(string(outBytes))
 	}
 }
@@ -148,8 +150,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		Headers(columnsTitles...).
 		Rows(rows...)
 
-	fmt.Println(t)
-	fmt.Println("💡 Use option --json or --yaml to get the raw output with all information")
+	Output(t.String() + "\n💡 Use option --json or --yaml to get the raw output with all information")
 }
 
 func RenderConfigTable(cfg *ini.File) {
@@ -196,7 +197,7 @@ func RenderConfigTable(cfg *ini.File) {
 		Headers(columns...).
 		Rows(rows...)
 
-	fmt.Println(t)
+	Output(t.String())
 }
 
 func prettyPrintJSON(value any) error {
@@ -205,7 +206,7 @@ func prettyPrintJSON(value any) error {
 		return err
 	}
 
-	fmt.Println(string(bytesOut))
+	Output(string(bytesOut))
 
 	return nil
 }
@@ -216,7 +217,7 @@ func prettyPrintYAML(value any) error {
 		return err
 	}
 
-	fmt.Println(string(bytesOut))
+	Output(string(bytesOut))
 
 	return nil
 }
@@ -269,6 +270,7 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 			ExitError("execution failed: %s", err)
 		}
 		fmt.Print(out)
+		ResultString = out
 	}
 }
 
@@ -281,11 +283,20 @@ func displayInteractive(value any) {
 }
 
 func ExitError(message string, params ...any) {
-	fmt.Printf("🛑 "+message+"\n", params...)
+	resultString := fmt.Sprintf("🛑 "+message, params...)
+	fmt.Println(resultString)
+	ResultError = errors.New(resultString)
 	os.Exit(1)
 }
 
 func ExitWarning(message string, params ...any) {
-	fmt.Printf("🟠 "+message+"\n", params...)
+	resultString := fmt.Sprintf("🟠 "+message, params...)
+	fmt.Println(resultString)
+	ResultError = errors.New(resultString)
 	os.Exit(0)
+}
+
+func Output(message string) {
+	fmt.Println(message)
+	ResultString = message
 }
