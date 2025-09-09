@@ -54,7 +54,6 @@ func init() {
 	smsEditCmd.Flags().StringVar(&sms.SmsSpec.Templates.EmailFrom, "templates-email-from", "", "Email from for templates")
 	smsEditCmd.Flags().StringVar(&sms.SmsSpec.Templates.EmailSubject, "templates-email-subject", "", "Email subject for templates")
 	smsEditCmd.Flags().StringVar(&sms.SmsSpec.Templates.SmsBody, "templates-sms-body", "", "SMS body for templates")
-	smsEditCmd.Flags().StringVar(&sms.SmsSpec.Templates.Time2chatAutomaticResponse, "templates-time2chat-automatic-response", "", "Time2chat automatic response")
 	addInteractiveEditorFlag(smsEditCmd)
 	smsCmd.AddCommand(smsEditCmd)
 

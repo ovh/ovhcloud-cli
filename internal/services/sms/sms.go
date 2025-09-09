@@ -35,13 +35,12 @@ var (
 		} `json:"smsResponse,omitzero"`
 		StopCallBack string `json:"stopCallBack,omitempty"`
 		Templates    struct {
-			CustomizedEmailMode        bool   `json:"customizedEmailMode,omitempty"`
-			CustomizedSmsMode          bool   `json:"customizedSmsMode,omitempty"`
-			EmailBody                  string `json:"emailBody,omitempty"`
-			EmailFrom                  string `json:"emailFrom,omitempty"`
-			EmailSubject               string `json:"emailSubject,omitempty"`
-			SmsBody                    string `json:"smsBody,omitempty"`
-			Time2chatAutomaticResponse string `json:"time2chatAutomaticResponse,omitempty"`
+			CustomizedEmailMode bool   `json:"customizedEmailMode,omitempty"`
+			CustomizedSmsMode   bool   `json:"customizedSmsMode,omitempty"`
+			EmailBody           string `json:"emailBody,omitempty"`
+			EmailFrom           string `json:"emailFrom,omitempty"`
+			EmailSubject        string `json:"emailSubject,omitempty"`
+			SmsBody             string `json:"smsBody,omitempty"`
 		} `json:"templates,omitzero"`
 	}
 )
