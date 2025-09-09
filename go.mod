@@ -13,11 +13,13 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/jarcoal/httpmock v1.4.1
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/maxatome/go-testdeep v1.14.0
 	github.com/ovh/go-ovh v1.9.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
+	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561
 	golang.org/x/sync v0.16.0
 	gopkg.in/ini.v1 v1.67.0
 )

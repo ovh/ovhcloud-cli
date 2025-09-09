@@ -394,16 +394,6 @@ func init() {
 	addInteractiveEditorFlag(vpsSecondaryDnsAddCmd)
 	vpsSecondaryDNSCmd.AddCommand(vpsSecondaryDnsAddCmd)
 
-	vpsSecondaryDnsEditCmd := &cobra.Command{
-		Use:   "edit <service_name> <domain>",
-		Short: "Edit a secondary DNS domain of the given VPS",
-		Args:  cobra.ExactArgs(2),
-		Run:   vps.EditVpsSecondaryDNSDomain,
-	}
-	vpsSecondaryDnsEditCmd.Flags().StringVar(&vps.VpsSecondaryDNSDomainSpec.IPMaster, "ip-master", "", "IP address of the master server for the secondary DNS")
-	addInteractiveEditorFlag(vpsSecondaryDnsEditCmd)
-	vpsSecondaryDNSCmd.AddCommand(vpsSecondaryDnsEditCmd)
-
 	vpsSecondaryDNSCmd.AddCommand(&cobra.Command{
 		Use:   "delete <service_name> <domain>",
 		Short: "Remove a secondary DNS domain from the given VPS",
