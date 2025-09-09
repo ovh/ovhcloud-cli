@@ -56,6 +56,6 @@ jobs:
     steps:
       - uses: actions/artifactoryRelease
         with:
-          artifacts: ovh-cli*.tar.gz
+          artifacts: ovh-cli*
 
 integrations: [artifactory-digital-core-platform-api]
