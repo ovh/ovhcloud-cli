@@ -54,17 +54,17 @@ func Login(_ *cobra.Command, _ []string) {
 	}
 
 	// Set API endpoint to use in config
+	configSection := fmt.Sprintf("ovh-%s", strings.ToLower(selectedRegion))
 	if customEndpoint {
 		selectedRegion = credentials["endpoint"]
 		delete(credentials, "endpoint")
-	} else {
-		selectedRegion = fmt.Sprintf("ovh-%s", strings.ToLower(selectedRegion))
+		configSection = selectedRegion
 	}
 	serviceconfig.SetEndpoint(nil, []string{selectedRegion})
 
 	// Set credentials in config
 	for k, v := range credentials {
-		if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, selectedRegion, k, v); err != nil {
+		if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, configSection, k, v); err != nil {
 			display.ExitError("failed to write configuration %q: %s", k, err)
 			return
 		}
