@@ -62,7 +62,7 @@ func registerCallbacks() {
 }
 
 func main() {
-	cmd.InitWasmHelpCommands(cmd.GetRootCommand())
+	cmd.WasmCleanCommands()
 	registerCallbacks()
 	select {}
 }

@@ -33,6 +33,13 @@ var (
 		"init-file",
 		"replace",
 		"interactive",
+		"format",
+		"debug",
+	}
+
+	wasmHiddenCommands = []string{
+		"login",
+		"config",
 	}
 )
 
@@ -83,7 +90,22 @@ func init() {
 	}
 }
 
-func InitWasmHelpCommands(cmd *cobra.Command) {
+func WasmCleanCommands() {
+	// Remove commands that are not relevant in WASM mode
+	for _, child := range rootCmd.Commands() {
+		if slices.Contains(wasmHiddenCommands, child.Name()) {
+			rootCmd.RemoveCommand(child)
+		}
+	}
+
+	// Hide "completion" command
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
+	// Recursively clean flags that are not relevant in WASM mode
+	wasmCleanHelpCommands(rootCmd)
+}
+
+func wasmCleanHelpCommands(cmd *cobra.Command) {
 	cmd.SetHelpFunc(func(command *cobra.Command, _ []string) {
 		// Hide flags that are not relevant in WASM mode
 		cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -105,7 +127,7 @@ func InitWasmHelpCommands(cmd *cobra.Command) {
 	})
 
 	for _, child := range cmd.Commands() {
-		InitWasmHelpCommands(child)
+		wasmCleanHelpCommands(child)
 	}
 }
 
