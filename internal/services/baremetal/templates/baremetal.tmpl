@@ -1,0 +1,51 @@
+🚀 Dedicated server {{.ServiceName}}
+=======
+
+_{{index .Result "iam" "displayName"}}_
+
+## Location
+
+**Region**:            {{index .Result "region"}}
+**Availability zone**: {{index .Result "availabilityZone"}}
+**Datacenter**:        {{index .Result "datacenter"}}
+**Rack**:              {{index .Result "rack"}}
+
+## Server state
+
+| | |
+| --- | --- |
+| State | {{index .Result "state"}} |
+| Operating system | {{index .Result "os"}} |
+| IPv4 | {{index .Result "ip"}} |
+{{if index .Result "network" "routing" "ipv6"}}| IPv6 | {{index .Result "network" "routing" "ipv6" "ip"}} |{{end}}
+| Reverse | {{index .Result "reverse"}} |
+| Power state | {{index .Result "powerState"}} |
+
+
+{{if index .Result "tasks"}}
+## Tasks
+
+| ID | Function | Status | Done date |
+| --- | --- | --- | --- |
+{{ range index .Result "tasks" }}| {{.taskId}} | {{.function}} | {{.status}} | {{.doneDate}} |
+{{end}}
+{{end}}
+
+## Billing information
+
+Expiration:        {{index .Result "serviceInfo" "expiration"}}
+Automatic renewal: {{index .Result "serviceInfo" "renew" "automatic"}}
+{{if index .Result "serviceInfo" "engagedUpTo"}}Engaged up to:     {{index .Result "serviceInfo" "engagedUpTo"}}{{end}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

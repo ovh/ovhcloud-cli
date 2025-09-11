@@ -1,0 +1,47 @@
+🚀 Web Hosting {{.ServiceName}}
+=======
+
+{{if index .Result "displayName"}}_{{index .Result "displayName"}}_{{end}}
+
+## General information
+
+**Offer**:                   {{index .Result "offer"}}
+**Boost offer**:             {{index .Result "boostOffer"}}
+**State**:                   {{index .Result "state"}}
+**Type**:                    {{index .Result "resourceType"}}
+**Datacenter**:              {{index .Result "datacenter"}}
+**Default attached domain**: {{index .Result "defaultAttachedDomain"}}
+**Operating system**:        {{index .Result "operatingSystem"}}
+
+**Cluster**:
+- Name: {{index .Result "cluster"}}
+- IP:   {{index .Result "clusterIp"}}
+- IPv6: {{index .Result "clusterIpv6"}}
+
+**Hosting**:
+- IP:   {{index .Result "hostingIp"}}
+- IPv6: {{index .Result "hostingIpv6"}}
+
+## Management access
+
+[HTTP]({{index .Result "serviceManagementAccess" "http" "url"}}:{{index .Result "serviceManagementAccess" "http" "port"}})
+[FTP]({{index .Result "serviceManagementAccess" "ftp" "url"}}:{{index .Result "serviceManagementAccess" "ftp" "port"}})
+[SSH]({{index .Result "serviceManagementAccess" "ssh" "url"}}:{{index .Result "serviceManagementAccess" "ssh" "port"}})
+
+## Quotas (used / size)
+
+**Space**:   {{index .Result "quotaUsed" "value"}}{{index .Result "quotaUsed" "unit"}} / {{index .Result "quotaSize" "value"}}{{index .Result "quotaSize" "unit"}}
+{{if index .Result "trafficQuotaUsed"}}**Traffic**: {{index .Result "trafficQuotaUsed" "value"}}{{index .Result "trafficQuotaUsed" "unit"}} / {{index .Result "trafficQuotaSize" "value"}}{{index .Result "trafficQuotaSize" "unit"}}{{end}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

@@ -1,0 +1,34 @@
+🚀 Web Cloud Database {{.ServiceName}}
+=======
+
+{{if index .Result "displayName"}}_{{index .Result "displayName"}}_{{end}}
+
+## General information
+
+**Type**:       {{index .Result "type"}}
+**Version**:    {{index .Result "versionLabel"}}
+**State**:      {{index .Result "state"}}
+**Datacenter**: {{index .Result "datacenter"}}
+**Offer**:      {{index .Result "offer"}}
+
+## Technical details
+
+**IP**:                {{index .Result "ip"}}
+**CPU**:               {{index .Result "cpu"}}
+**RAM**:               {{index .Result "ram" "value"}} {{index .Result "ram" "unit"}}
+**Quota used / size**: {{index .Result "quotaUsed" "value"}} / {{index .Result "quotaSize" "value"}} {{index .Result "quotaSize" "unit"}}
+**Access**:            {{index .Result "hostname"}}:{{index .Result "port"}}
+**FTP access**:        {{index .Result "hostnameFtp"}}:{{index .Result "portFtp"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

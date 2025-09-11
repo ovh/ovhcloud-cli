@@ -1,0 +1,3139 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/v2"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "common.CurrentTask": {
+        "type": "object",
+        "description": "Asynchronous operation currently running",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of the current task",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "link": {
+            "type": "string",
+            "description": "Link to the task details",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.CurrentTaskStatusEnum"
+              }
+            ],
+            "description": "Current global status of the current task",
+            "nullable": true,
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the current task",
+            "readOnly": true
+          }
+        }
+      },
+      "common.CurrentTaskStatusEnum": {
+        "type": "string",
+        "description": "Current status of a task. A task in ERROR cannot be retried without your inputs. PENDING tasks will be executed as soon as possible. A RUNNING task is currently executing your original request. SCHEDULED is used for tasks that will be executed in the future",
+        "enum": [
+          "ERROR",
+          "PENDING",
+          "RUNNING",
+          "SCHEDULED"
+        ]
+      },
+      "common.Event": {
+        "type": "object",
+        "description": "Represents an event for an async envelope",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the event",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "kind": {
+            "type": "string",
+            "description": "Nature of the event",
+            "readOnly": true
+          },
+          "link": {
+            "type": "string",
+            "description": "Link to the event related resource",
+            "nullable": true,
+            "readOnly": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Description of what happened on the event",
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.EventTypeEnum"
+              }
+            ],
+            "description": "Type of the event",
+            "readOnly": true
+          }
+        }
+      },
+      "common.EventTypeEnum": {
+        "type": "string",
+        "description": "List all defined values for an event type field",
+        "enum": [
+          "TARGET_SPEC_UPDATE",
+          "TASK_ERROR",
+          "TASK_START",
+          "TASK_SUCCESS"
+        ]
+      },
+      "common.ResourceStatusEnum": {
+        "type": "string",
+        "description": "ResourceStatusEnum",
+        "enum": [
+          "CREATING",
+          "DELETING",
+          "ERROR",
+          "READY",
+          "SUSPENDED",
+          "UPDATING"
+        ]
+      },
+      "common.Task": {
+        "type": "object",
+        "description": "Asynchronous operation",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the task",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "errors": {
+            "type": "array",
+            "description": "Errors that occured on the task",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.TaskError"
+            },
+            "readOnly": true
+          },
+          "finishedAt": {
+            "type": "string",
+            "description": "Ending date of the task",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Identifier of the task",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "link": {
+            "type": "string",
+            "description": "Link to the related resource",
+            "readOnly": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Description of the task",
+            "readOnly": true
+          },
+          "progress": {
+            "type": "array",
+            "description": "Progress steps of the asynchronous operation",
+            "items": {
+              "$ref": "#/components/schemas/common.TaskProgress"
+            },
+            "readOnly": true
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "Starting date of the task",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.TaskStatusEnum"
+              }
+            ],
+            "description": "Current global status of the task",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the task",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update of the task",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "common.TaskError": {
+        "type": "object",
+        "description": "Errors that occured on the task",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error description",
+            "readOnly": true
+          }
+        }
+      },
+      "common.TaskProgress": {
+        "type": "object",
+        "description": "Detailed information about an asynchronous operation progress steps",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Progress step name",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.TaskStatusEnum"
+              }
+            ],
+            "description": "Current status of the progress step",
+            "readOnly": true
+          }
+        }
+      },
+      "common.TaskStatusEnum": {
+        "type": "string",
+        "description": "TaskStatusEnum",
+        "enum": [
+          "DONE",
+          "ERROR",
+          "PENDING",
+          "RUNNING",
+          "SCHEDULED"
+        ]
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "publicCloud.project.ModeEnum": {
+        "type": "string",
+        "description": "Possible values for cloud project mode",
+        "enum": [
+          "CLASSIC",
+          "DISCOVERY"
+        ]
+      },
+      "publicCloud.project.ProjectAsync": {
+        "type": "object",
+        "description": "A Public Cloud project",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Date of project creation",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.project.ProjectCurrentState"
+              }
+            ],
+            "description": "Current configuration applied to the cloud project",
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Asynchronous operations ongoing on the cloud project",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Project ID",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Project name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Reflects the readiness of the cloud project. A new target specification request will be accepted only in `READY` status",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.project.ProjectTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the cloud project",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Date of the last cloud project update",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.project.ProjectAsyncWithIAM": {
+        "type": "object",
+        "description": "A Public Cloud project",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Date of project creation",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.project.ProjectCurrentState"
+              }
+            ],
+            "description": "Current configuration applied to the cloud project",
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Asynchronous operations ongoing on the cloud project",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Project ID",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Project name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Reflects the readiness of the cloud project. A new target specification request will be accepted only in `READY` status",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.project.ProjectTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the cloud project",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Date of the last cloud project update",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.project.ProjectCreation": {
+        "type": "object",
+        "description": "Input parameters for creating a cloud project.",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.project.ProjectTargetSpec"
+              }
+            ],
+            "description": "Target specification for the cloud project"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.project.ProjectCurrentState": {
+        "type": "object",
+        "description": "Current state of the cloud project",
+        "properties": {
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.project.ModeEnum"
+              }
+            ],
+            "description": "Project mode",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the cloud project",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.project.ProjectTargetSpec": {
+        "type": "object",
+        "description": "Target specification of the cloud project",
+        "properties": {
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.project.ModeEnum"
+              }
+            ],
+            "description": "Project type. Discovery mode allows to display UI in read only without adding any payment mean."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the public cloud project"
+          }
+        },
+        "required": [
+          "mode",
+          "name"
+        ]
+      },
+      "publicCloud.rancher.Credentials": {
+        "type": "object",
+        "description": "Represents a username/password couple for a managed Rancher user",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "Password of the user",
+            "format": "password",
+            "readOnly": true
+          },
+          "username": {
+            "type": "string",
+            "description": "Name of the user",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.rancher.IpRestriction": {
+        "type": "object",
+        "description": "Allowed CIDR block for a managed Rancher service's IP restrictions",
+        "properties": {
+          "cidrBlock": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "Allowed CIDR block (/subnet is optional, if unspecified then /32 will be used)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the allowed CIDR block"
+          }
+        },
+        "required": [
+          "cidrBlock",
+          "description"
+        ]
+      },
+      "publicCloud.rancher.Networking": {
+        "type": "object",
+        "description": "Networking properties of a managed Rancher service",
+        "properties": {
+          "egressCidrBlocks": {
+            "type": "array",
+            "description": "Specifies the CIDR ranges for egress IP addresses used by Rancher. Ensure these ranges are allowed in any IP restrictions for services that Rancher will access.",
+            "items": {
+              "$ref": "#/components/schemas/ipBlock"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.rancher.PlanCapability": {
+        "type": "object",
+        "description": "A managed Rancher service plan capability, applicable to an existing managed Rancher",
+        "properties": {
+          "cause": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.PlanUnavailabilityCauseEnum"
+              }
+            ],
+            "description": "Cause for an unavailability",
+            "nullable": true,
+            "readOnly": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable description of the unavailability cause",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.PlanEnum"
+              }
+            ],
+            "description": "Name of the plan",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.PlanCapabilityStatusEnum"
+              }
+            ],
+            "description": "Status of the plan",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.rancher.PlanCapabilityStatusEnum": {
+        "type": "string",
+        "description": "Possible statuses for a managed Rancher plan capability, applicable to an existing managed Rancher",
+        "enum": [
+          "AVAILABLE",
+          "CURRENT",
+          "UNAVAILABLE"
+        ]
+      },
+      "publicCloud.rancher.PlanEnum": {
+        "type": "string",
+        "description": "Possible values for managed Rancher plans",
+        "enum": [
+          "OVHCLOUD_EDITION",
+          "STANDARD"
+        ]
+      },
+      "publicCloud.rancher.PlanReference": {
+        "type": "object",
+        "description": "A managed Rancher service plan reference, applicable to service creations",
+        "properties": {
+          "cause": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.PlanUnavailabilityCauseEnum"
+              }
+            ],
+            "description": "Cause for an unavailability",
+            "nullable": true,
+            "readOnly": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable description of the unavailability cause",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.PlanEnum"
+              }
+            ],
+            "description": "Name of the plan",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.PlanReferenceStatusEnum"
+              }
+            ],
+            "description": "Status of the plan",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.rancher.PlanReferenceStatusEnum": {
+        "type": "string",
+        "description": "Possible statuses for a managed Rancher plan reference",
+        "enum": [
+          "AVAILABLE",
+          "UNAVAILABLE"
+        ]
+      },
+      "publicCloud.rancher.PlanUnavailabilityCauseEnum": {
+        "type": "string",
+        "description": "Possible causes for a managed Rancher plan being unavailable",
+        "enum": [
+          "CANNOT_DOWNGRADE_USING_HIGHER_FEATURES",
+          "CANNOT_SWITCH_PLAN_FOR_ALPHA",
+          "NOT_IMPLEMENTED"
+        ]
+      },
+      "publicCloud.rancher.Rancher": {
+        "type": "object",
+        "description": "A managed Rancher service object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Date of the managed Rancher service creation",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.RancherCurrentState"
+              }
+            ],
+            "description": "Current configuration applied to the managed Rancher service",
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Asynchronous operations ongoing on the managed Rancher service",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Reflects the readiness of the managed Rancher service. A new target specification request will be accepted only in `READY` status",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.RancherTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the managed Rancher service",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Date of the last managed Rancher service update",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.rancher.RancherCreation": {
+        "type": "object",
+        "description": "Input parameters for creating a managed Rancher service.",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.RancherCreationTargetSpec"
+              }
+            ],
+            "description": "Target specification for the managed Rancher service"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.rancher.RancherCreationTargetSpec": {
+        "type": "object",
+        "description": "Target specification of the managed Rancher service",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the managed Rancher service"
+          },
+          "plan": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.PlanEnum"
+              }
+            ],
+            "description": "Plan of the managed Rancher service. Available plans for an existing managed Rancher can be retrieved using GET /rancher/rancherID/capabilities/plan"
+          },
+          "version": {
+            "type": "string",
+            "description": "Version of the managed Rancher service. Available versions for an existing managed Rancher can be retrieved using GET /rancher/rancherID/capabilities/version. Default is the latest version."
+          }
+        },
+        "required": [
+          "name",
+          "plan"
+        ]
+      },
+      "publicCloud.rancher.RancherCurrentState": {
+        "type": "object",
+        "description": "Current state of the managed Rancher service",
+        "properties": {
+          "bootstrapPassword": {
+            "type": "string",
+            "description": "Bootstrap password of the managed Rancher service, returned only on creation",
+            "nullable": true,
+            "format": "password",
+            "readOnly": true
+          },
+          "ipRestrictions": {
+            "type": "array",
+            "description": "List of allowed CIDR blocks for a managed Rancher service's IP restrictions. When empty, any IP is allowed",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.rancher.IpRestriction"
+            },
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the managed Rancher service",
+            "readOnly": true
+          },
+          "networking": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.Networking"
+              }
+            ],
+            "description": "Networking properties of a managed Rancher service",
+            "nullable": true,
+            "readOnly": true
+          },
+          "plan": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.PlanEnum"
+              }
+            ],
+            "description": "Plan of the managed Rancher service",
+            "readOnly": true
+          },
+          "region": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.RegionEnum"
+              }
+            ],
+            "description": "Region of the managed Rancher service",
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "description": "URL of the managed Rancher service",
+            "nullable": true,
+            "readOnly": true
+          },
+          "usage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.Usage"
+              }
+            ],
+            "description": "Latest metrics regarding the usage of the managed Rancher service",
+            "nullable": true,
+            "readOnly": true
+          },
+          "version": {
+            "type": "string",
+            "description": "Version of the managed Rancher service",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.rancher.RancherTargetSpec": {
+        "type": "object",
+        "description": "Target specification of the managed Rancher service",
+        "properties": {
+          "ipRestrictions": {
+            "type": "array",
+            "description": "List of allowed CIDR blocks for a managed Rancher service's IP restrictions. When empty, any IP is allowed",
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.rancher.IpRestriction"
+            }
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the managed Rancher service"
+          },
+          "plan": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.PlanEnum"
+              }
+            ],
+            "description": "Plan of the managed Rancher service. Available plans for an existing managed Rancher can be retrieved using GET /rancher/rancherID/capabilities/plan"
+          },
+          "version": {
+            "type": "string",
+            "description": "Version of the managed Rancher service. Available versions for an existing managed Rancher can be retrieved using GET /rancher/rancherID/capabilities/version"
+          }
+        },
+        "required": [
+          "name",
+          "plan",
+          "version"
+        ]
+      },
+      "publicCloud.rancher.RancherUpdate": {
+        "type": "object",
+        "description": "Input for managed Rancher service update.",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.RancherTargetSpec"
+              }
+            ],
+            "description": "New target specification for the managed Rancher service"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.rancher.RegionEnum": {
+        "type": "string",
+        "description": "Possible values for managed Rancher regions",
+        "enum": [
+          "EU_WEST_GRA",
+          "EU_WEST_RBX",
+          "EU_WEST_SBG"
+        ]
+      },
+      "publicCloud.rancher.Usage": {
+        "type": "object",
+        "description": "A metric sample about a managed Rancher usage",
+        "properties": {
+          "datetime": {
+            "type": "string",
+            "description": "Date of the sample",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "orchestratedVcpus": {
+            "type": "integer",
+            "description": "Total number of vCPUs orchestrated by the managed Rancher service through the downstream clusters",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.rancher.VersionCapability": {
+        "type": "object",
+        "description": "A managed Rancher service version capability, applicable to an existing managed Rancher",
+        "properties": {
+          "cause": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.VersionUnavailabilityCauseEnum"
+              }
+            ],
+            "description": "Cause for an unavailability",
+            "nullable": true,
+            "readOnly": true
+          },
+          "changelogUrl": {
+            "type": "string",
+            "description": "Changelog URL of the version",
+            "readOnly": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable description of the unavailability cause",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the version",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.VersionCapabilityStatusEnum"
+              }
+            ],
+            "description": "Status of the version",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.rancher.VersionCapabilityStatusEnum": {
+        "type": "string",
+        "description": "Possible statuses for a managed Rancher version capability, applicable to an existing managed Rancher",
+        "enum": [
+          "AVAILABLE",
+          "UNAVAILABLE"
+        ]
+      },
+      "publicCloud.rancher.VersionReference": {
+        "type": "object",
+        "description": "A managed Rancher service version reference, applicable to service creations",
+        "properties": {
+          "cause": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.VersionUnavailabilityCauseEnum"
+              }
+            ],
+            "description": "Cause for an unavailability",
+            "nullable": true,
+            "readOnly": true
+          },
+          "changelogUrl": {
+            "type": "string",
+            "description": "Changelog URL of the version",
+            "readOnly": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable description of the unavailability cause",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the version",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.rancher.VersionReferenceStatusEnum"
+              }
+            ],
+            "description": "Status of the version",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.rancher.VersionReferenceStatusEnum": {
+        "type": "string",
+        "description": "Possible statuses for a managed Rancher version reference",
+        "enum": [
+          "AVAILABLE",
+          "UNAVAILABLE"
+        ]
+      },
+      "publicCloud.rancher.VersionUnavailabilityCauseEnum": {
+        "type": "string",
+        "description": "Possible causes for a managed Rancher version being unavailable",
+        "enum": [
+          "CANNOT_UPGRADE_MULTIPLE_VERSIONS",
+          "DEPRECATED",
+          "DISABLED",
+          "END_OF_LIFE",
+          "END_OF_SALE",
+          "END_OF_SUPPORT"
+        ]
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      }
+    }
+  },
+  "paths": {
+    "/publicCloud/project": {
+      "get": {
+        "summary": "List all Public Cloud projects",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.project.ProjectAsyncWithIAM"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "PublicCloudProjectProjectAsyncWithIAM"
+      },
+      "post": {
+        "summary": "Create a new cloud project",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.project.ProjectCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.project.ProjectAsync"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:create",
+            "required": true
+          },
+          {
+            "name": "billingAccount:apiovh:subscription/publicCloudProject/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}": {
+      "get": {
+        "summary": "Get details on a Public Cloud project",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.project.ProjectAsyncWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update an existing cloud project",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.project.ProjectCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.project.ProjectAsync"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/rancher": {
+      "get": {
+        "summary": "List managed Rancher services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.rancher.Rancher"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      {
+                        "createdAt": "2020-12-31T07:39:19Z",
+                        "currentState": {
+                          "ipRestrictions": [
+                            {
+                              "cidrBlock": "198.51.100.1/32",
+                              "description": "My IP restriction"
+                            }
+                          ],
+                          "name": "my_rancher",
+                          "networking": {
+                            "egressCidrBlocks": [
+                              "203.0.113.0/24"
+                            ]
+                          },
+                          "plan": "OVHCLOUD_EDITION",
+                          "region": "EU_WEST_RBX",
+                          "url": "https://aaaaaa.bbbb.rancher.ovhcloud.example",
+                          "usage": {
+                            "datetime": "2020-12-31T13:00:00Z",
+                            "orchestratedVcpus": 16
+                          },
+                          "version": "1.0.0"
+                        },
+                        "currentTasks": [],
+                        "id": "d6b6579e-8d60-4487-bf08-8b4ddf98f7d3",
+                        "resourceStatus": "READY",
+                        "targetSpec": {
+                          "ipRestrictions": [
+                            {
+                              "cidrBlock": "198.51.100.1/32",
+                              "description": "My IP restriction"
+                            }
+                          ],
+                          "name": "my_rancher",
+                          "plan": "OVHCLOUD_EDITION",
+                          "version": "1.0.0"
+                        },
+                        "updatedAt": "2020-12-31T07:39:19Z"
+                      },
+                      {
+                        "createdAt": "2020-12-31T13:37:46Z",
+                        "currentState": {
+                          "ipRestrictions": [],
+                          "name": "rancher2",
+                          "plan": "STANDARD",
+                          "region": "EU_WEST_RBX",
+                          "url": "https://cccccc.bbbb.rancher.ovhcloud.example",
+                          "version": "1.0.0"
+                        },
+                        "currentTasks": [
+                          {
+                            "id": "30017036-ddb2-40a8-ad56-6d765b059aab",
+                            "link": "/v2/publicCloud/project/a755273a123456788da6d6fcc71a95f3/rancher/222ce105-a3f7-44c4-a7d3-dbb5983c045d/task/30017036-ddb2-40a8-ad56-6d765b059aab",
+                            "type": "RANCHER_UPDATE"
+                          }
+                        ],
+                        "id": "222ce105-a3f7-44c4-a7d3-dbb5983c045d",
+                        "resourceStatus": "UPDATING",
+                        "targetSpec": {
+                          "ipRestrictions": [],
+                          "name": "rancher2",
+                          "plan": "STANDARD",
+                          "version": "1.1.0"
+                        },
+                        "updatedAt": "2020-12-31T13:40:46Z"
+                      }
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudRancherRancher"
+      },
+      "post": {
+        "summary": "Create a new managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.rancher.RancherCreation"
+              },
+              "examples": {
+                "Create a STANDARD managed Rancher on the latest version": {
+                  "value": {
+                    "targetSpec": {
+                      "name": "my_rancher",
+                      "plan": "STANDARD"
+                    }
+                  },
+                  "summary": "Request body for creating a managed Rancher on plan STANDARD"
+                },
+                "Create an OVHCLOUD_EDITION managed Rancher on a specific version": {
+                  "value": {
+                    "targetSpec": {
+                      "name": "my_rancher",
+                      "plan": "OVHCLOUD_EDITION",
+                      "version": "1.0.0"
+                    }
+                  },
+                  "summary": "Request body for creating a managed Rancher on plan OVHCLOUD_EDITION with a specific version"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.rancher.Rancher"
+                },
+                "examples": {
+                  "Example": {
+                    "value": {
+                      "createdAt": "2020-12-31T07:39:19Z",
+                      "currentState": {
+                        "bootstrapPassword": "jL%IctBOu)-$D@wa",
+                        "ipRestrictions": [],
+                        "name": "my_rancher",
+                        "plan": "OVHCLOUD_EDITION",
+                        "region": "EU_WEST_RBX",
+                        "version": "1.0.0"
+                      },
+                      "currentTasks": [
+                        {
+                          "id": "aad7c39d-ed0e-44c3-9624-096a0ef569f2",
+                          "link": "/v2/publicCloud/project/a755273a123456788da6d6fcc71a95f3/rancher/d6b6579e-8d60-4487-bf08-8b4ddf98f7d3/task/aad7c39d-ed0e-44c3-9624-096a0ef569f2",
+                          "type": "RANCHER_CREATE"
+                        }
+                      ],
+                      "id": "d6b6579e-8d60-4487-bf08-8b4ddf98f7d3",
+                      "resourceStatus": "CREATING",
+                      "targetSpec": {
+                        "ipRestrictions": [],
+                        "name": "my_rancher",
+                        "plan": "OVHCLOUD_EDITION",
+                        "version": "1.0.0"
+                      },
+                      "updatedAt": "2020-12-31T07:39:19Z"
+                    },
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/rancher/{rancherId}": {
+      "delete": {
+        "summary": "Delete a managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rancherId",
+            "description": "Rancher ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.rancher.Rancher"
+                },
+                "examples": {
+                  "Example": {
+                    "value": {
+                      "createdAt": "2020-12-31T07:39:19Z",
+                      "currentState": {
+                        "ipRestrictions": [],
+                        "name": "my_rancher",
+                        "networking": {
+                          "egressCidrBlocks": [
+                            "203.0.113.0/24"
+                          ]
+                        },
+                        "plan": "OVHCLOUD_EDITION",
+                        "region": "EU_WEST_RBX",
+                        "url": "https://aaaaaa.bbbb.rancher.ovhcloud.example",
+                        "usage": {
+                          "datetime": "2020-12-31T09:00:00Z",
+                          "orchestratedVcpus": 16
+                        },
+                        "version": "1.0.0"
+                      },
+                      "currentTasks": [
+                        {
+                          "id": "aad7c39d-ed0e-44c3-9624-096a0ef569f2",
+                          "link": "/v2/publicCloud/project/a755273a123456788da6d6fcc71a95f3/rancher/d6b6579e-8d60-4487-bf08-8b4ddf98f7d3/task/aad7c39d-ed0e-44c3-9624-096a0ef569f2",
+                          "type": "RANCHER_DELETE"
+                        }
+                      ],
+                      "id": "d6b6579e-8d60-4487-bf08-8b4ddf98f7d3",
+                      "resourceStatus": "DELETING",
+                      "targetSpec": {
+                        "ipRestrictions": [],
+                        "name": "my_rancher",
+                        "plan": "OVHCLOUD_EDITION",
+                        "version": "1.0.0"
+                      },
+                      "updatedAt": "2020-12-31T09:10:19Z"
+                    },
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rancherId",
+            "description": "Rancher ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.rancher.Rancher"
+                },
+                "examples": {
+                  "Example": {
+                    "value": {
+                      "createdAt": "2020-12-31T07:39:19Z",
+                      "currentState": {
+                        "ipRestrictions": [
+                          {
+                            "cidrBlock": "198.51.100.1/32",
+                            "description": "My IP restriction"
+                          }
+                        ],
+                        "name": "my_rancher",
+                        "networking": {
+                          "egressCidrBlocks": [
+                            "203.0.113.0/24"
+                          ]
+                        },
+                        "plan": "OVHCLOUD_EDITION",
+                        "region": "EU_WEST_RBX",
+                        "url": "https://aaaaaa.bbbb.rancher.ovhcloud.example",
+                        "usage": {
+                          "datetime": "2020-12-31T20:00:00Z",
+                          "orchestratedVcpus": 16
+                        },
+                        "version": "1.0.0"
+                      },
+                      "id": "d6b6579e-8d60-4487-bf08-8b4ddf98f7d3",
+                      "resourceStatus": "READY",
+                      "targetSpec": {
+                        "ipRestrictions": [
+                          {
+                            "cidrBlock": "198.51.100.1/32",
+                            "description": "My IP restriction"
+                          }
+                        ],
+                        "name": "my_rancher",
+                        "plan": "OVHCLOUD_EDITION",
+                        "version": "1.0.0"
+                      },
+                      "updatedAt": "2020-12-31T07:39:19Z"
+                    },
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update an existing managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rancherId",
+            "description": "Rancher ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.rancher.RancherUpdate"
+              },
+              "examples": {
+                "Update rancher to plan STANDARD": {
+                  "value": {
+                    "targetSpec": {
+                      "name": "my_rancher",
+                      "plan": "STANDARD",
+                      "version": "1.0.0"
+                    }
+                  },
+                  "summary": "Request body when updating plan to STANDARD"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.rancher.Rancher"
+                },
+                "examples": {
+                  "Update the version of a managed Rancher version": {
+                    "value": {
+                      "createdAt": "2020-12-31T07:39:19Z",
+                      "currentState": {
+                        "ipRestrictions": [],
+                        "name": "my_rancher",
+                        "networking": {
+                          "egressCidrBlocks": [
+                            "203.0.113.0/24"
+                          ]
+                        },
+                        "plan": "OVHCLOUD_EDITION",
+                        "region": "EU_WEST_RBX",
+                        "url": "https://aaaaaa.bbbb.rancher.ovhcloud.example",
+                        "usage": {
+                          "datetime": "2020-12-31T09:00:00Z",
+                          "orchestratedVcpus": 16
+                        },
+                        "version": "1.0.0"
+                      },
+                      "currentTasks": [
+                        {
+                          "id": "aad7c39d-ed0e-44c3-9624-096a0ef569f2",
+                          "link": "/v2/publicCloud/project/a755273a123456788da6d6fcc71a95f3/rancher/d6b6579e-8d60-4487-bf08-8b4ddf98f7d3/task/aad7c39d-ed0e-44c3-9624-096a0ef569f2",
+                          "type": "RANCHER_UPDATE"
+                        }
+                      ],
+                      "id": "d6b6579e-8d60-4487-bf08-8b4ddf98f7d3",
+                      "resourceStatus": "UPDATING",
+                      "targetSpec": {
+                        "ipRestrictions": [],
+                        "name": "my_rancher",
+                        "plan": "OVHCLOUD_EDITION",
+                        "version": "1.1.0"
+                      },
+                      "updatedAt": "2020-12-31T09:14:19Z"
+                    },
+                    "summary": "Response body when updating the version of a managed Rancher"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/rancher/{rancherId}/adminCredentials": {
+      "post": {
+        "summary": "Reset the admin password",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rancherId",
+            "description": "Rancher ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.rancher.Credentials"
+                },
+                "examples": {
+                  "Example": {
+                    "value": {
+                      "password": "u}m.ZBA'>g?!D3DD",
+                      "username": "admin"
+                    },
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/adminCredentials/reset",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/rancher/{rancherId}/capabilities/plan": {
+      "get": {
+        "summary": "List available and current plans for the given managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rancherId",
+            "description": "Rancher ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.rancher.PlanCapability"
+                  }
+                },
+                "examples": {
+                  "Get plans - can switch to another plan": {
+                    "value": [
+                      {
+                        "name": "OVHCLOUD_EDITION",
+                        "status": "CURRENT"
+                      },
+                      {
+                        "name": "STANDARD",
+                        "status": "AVAILABLE"
+                      }
+                    ],
+                    "summary": "Response body when listing plans for a specific rancher that can switch to another plan"
+                  },
+                  "Get plans - cannot switch to another plan": {
+                    "value": [
+                      {
+                        "cause": "CANNOT_DOWNGRADE_USING_HIGHER_FEATURES",
+                        "message": "You are currently using STANDARD plan features and cannot downgrade to OVHCLOUD_EDITION plan.",
+                        "name": "OVHCLOUD_EDITION",
+                        "status": "UNAVAILABLE"
+                      },
+                      {
+                        "name": "STANDARD",
+                        "status": "CURRENT"
+                      }
+                    ],
+                    "summary": "Response body when listing plans for a specific rancher that cannot switch to another plan"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/capabilities/plan/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/rancher/{rancherId}/capabilities/version": {
+      "get": {
+        "summary": "List available and current versions for the given managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rancherId",
+            "description": "Rancher ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.rancher.VersionCapability"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      {
+                        "changelogUrl": "https://github.com/rancher/rancher/releases/tag/v1.0.0",
+                        "name": "1.0.0",
+                        "status": "AVAILABLE"
+                      },
+                      {
+                        "changelogUrl": "https://github.com/rancher/rancher/releases/tag/v1.1.0",
+                        "name": "1.1.0",
+                        "status": "AVAILABLE"
+                      },
+                      {
+                        "cause": "CANNOT_UPGRADE_MULTIPLE_VERSIONS",
+                        "changelogUrl": "https://github.com/rancher/rancher/releases/tag/v1.2.0",
+                        "message": "You cannot upgrade directly to this version, please upgrade to the next minor first.",
+                        "name": "1.2.0",
+                        "status": "UNAVAILABLE"
+                      }
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/capabilities/version/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/rancher/{rancherId}/event": {
+      "get": {
+        "summary": "List all events related to the managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rancherId",
+            "description": "Rancher ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/common.Event"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      {
+                        "createdAt": "2020-12-31T20:10:01Z",
+                        "kind": "RANCHER_UPDATE",
+                        "link": "/v2/publicCloud/project/a755273a123456788da6d6fcc71a95f3/rancher/132645az-9c16-4021-b920-dfd22d8848c4/task/8e2478fa-af3b-4576-b344-af3546f52b5b",
+                        "message": "Task started to update Rancher",
+                        "type": "TASK_START"
+                      },
+                      {
+                        "createdAt": "2020-12-01T20:10:00Z",
+                        "kind": "RANCHER_UPDATE",
+                        "message": "Rancher target spec updated",
+                        "type": "TARGET_SPEC_UPDATE"
+                      }
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/event/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/rancher/{rancherId}/task": {
+      "get": {
+        "summary": "List all asynchronous operations related to the managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rancherId",
+            "description": "Rancher ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/common.Task"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      {
+                        "createdAt": "2020-12-01T20:00:00Z",
+                        "errors": [],
+                        "id": "6ffe3c08-3b65-4ede-a0e6-8b137e333e54",
+                        "link": "/v2/publicCloud/project/a755273a123456788da6d6fcc71a95f3/rancher/132645az-9c16-4021-b920-dfd22d8848c4",
+                        "message": "Cloud project a755273a123456788da6d6fcc71a95f3: update rancher 132645az-9c16-4021-b920-dfd22d8848c4",
+                        "progress": [
+                          {
+                            "name": "test",
+                            "status": "RUNNING"
+                          },
+                          {
+                            "name": "another step",
+                            "status": "DONE"
+                          },
+                          {
+                            "name": "yet another step",
+                            "status": "PENDING"
+                          }
+                        ],
+                        "startedAt": "2020-12-01T20:01:00Z",
+                        "status": "RUNNING",
+                        "type": "PlanUpdate",
+                        "updatedAt": "2020-12-01T20:02:00Z"
+                      }
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/task/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "CommonTask"
+      }
+    },
+    "/publicCloud/project/{projectId}/rancher/{rancherId}/task/{taskId}": {
+      "get": {
+        "summary": "Get a specific task related to the managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rancherId",
+            "description": "Rancher ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "taskId",
+            "description": "Task ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/common.Task"
+                },
+                "examples": {
+                  "Example": {
+                    "value": {
+                      "createdAt": "2020-12-01T20:00:00Z",
+                      "errors": [],
+                      "id": "6ffe3c08-3b65-4ede-a0e6-8b137e333e54",
+                      "link": "/v2/publicCloud/project/a755273a123456788da6d6fcc71a95f3/rancher/132645az-9c16-4021-b920-dfd22d8848c4",
+                      "message": "Cloud project a755273a123456788da6d6fcc71a95f3: update rancher 132645az-9c16-4021-b920-dfd22d8848c4",
+                      "progress": [
+                        {
+                          "name": "test",
+                          "status": "RUNNING"
+                        },
+                        {
+                          "name": "another step",
+                          "status": "DONE"
+                        },
+                        {
+                          "name": "yet another step",
+                          "status": "PENDING"
+                        }
+                      ],
+                      "startedAt": "2020-12-01T20:01:00Z",
+                      "status": "RUNNING",
+                      "type": "RANCHER_UPDATE",
+                      "updatedAt": "2020-12-01T20:02:00Z"
+                    },
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Server::InternalServerError::Maintenance": {
+                    "value": {
+                      "class": "Server::InternalServerError::Maintenance",
+                      "message": "The Managed Rancher Service API is in maintenance mode. Only GET endpoints are available."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:rancher/task/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/publicCloud/project/{projectId}/reference/rancher/plan": {
+      "get": {
+        "summary": "List available plans for creating a managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.rancher.PlanReference"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      {
+                        "name": "OVHCLOUD_EDITION",
+                        "status": "AVAILABLE"
+                      },
+                      {
+                        "name": "STANDARD",
+                        "status": "AVAILABLE"
+                      }
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher",
+          "Reference"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:reference/rancher/plan/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/reference/rancher/version": {
+      "get": {
+        "summary": "List available versions for creating a managed Rancher service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.rancher.VersionReference"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      {
+                        "changelogUrl": "https://github.com/rancher/rancher/releases/tag/v1.0.0",
+                        "name": "1.0.0",
+                        "status": "AVAILABLE"
+                      },
+                      {
+                        "changelogUrl": "https://github.com/rancher/rancher/releases/tag/v1.1.0",
+                        "name": "1.1.0",
+                        "status": "AVAILABLE"
+                      }
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rancher",
+          "Reference"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:reference/rancher/version/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/reference/rancher/plan": {
+      "get": {
+        "summary": "List available plans for creating a managed Rancher service",
+        "deprecated": true,
+        "x-deprecation-date": "2024-05-20T00:00:00Z",
+        "x-deletion-date": "2024-09-01T00:00:00Z",
+        "x-replacement-route": "/v2/publicCloud/project/{projectId}/reference/rancher",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.rancher.PlanReference"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      {
+                        "name": "OVHCLOUD_EDITION",
+                        "status": "AVAILABLE"
+                      },
+                      {
+                        "name": "STANDARD",
+                        "status": "AVAILABLE"
+                      }
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reference"
+        ],
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ]
+      }
+    },
+    "/publicCloud/reference/rancher/version": {
+      "get": {
+        "summary": "List available versions for creating a managed Rancher service",
+        "deprecated": true,
+        "x-deprecation-date": "2024-05-20T00:00:00Z",
+        "x-deletion-date": "2024-09-01T00:00:00Z",
+        "x-replacement-route": "/v2/publicCloud/project/{projectId}/reference/rancher",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.rancher.VersionReference"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      {
+                        "changelogUrl": "https://github.com/rancher/rancher/releases/tag/v1.0.0",
+                        "name": "1.0.0",
+                        "status": "AVAILABLE"
+                      },
+                      {
+                        "changelogUrl": "https://github.com/rancher/rancher/releases/tag/v1.1.0",
+                        "name": "1.1.0",
+                        "status": "AVAILABLE"
+                      }
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reference"
+        ],
+        "x-badges": [
+          {
+            "color": "red",
+            "label": "Deprecated, will be removed"
+          }
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Rancher",
+      "x-tag-expanded": false,
+      "description": "Missing description"
+    },
+    {
+      "name": "Reference",
+      "x-tag-expanded": false,
+      "description": "Missing description"
+    }
+  ]
+}

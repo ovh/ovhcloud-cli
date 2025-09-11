@@ -1,0 +1,24 @@
+🚀 Operation {{.ServiceName}}
+=======
+
+## Operation information
+
+**Action**:   {{index .Result "action"}}
+**Regions**:  {{index .Result "regions"}}
+**Status**:   {{index .Result "status"}}
+**Resource**: {{index .Result "resourceId"}}
+
+**Creation time**:   {{index .Result "createdAt"}}
+**Start time**:      {{index .Result "startedAt"}}
+**Completion time**: {{index .Result "startedAt"}}
+
+{{if index .Result "subOperations"}}
+## Sub operations
+
+| ID | Action | Status |
+| --- | --- | --- |
+{{ range index .Result "subOperations" }}| {{.id}} | {{.action}} | {{.status}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

@@ -1,0 +1,21 @@
+🚀 User {{.ServiceName}}
+=======
+
+_{{index .Result "description"}}_
+
+## General information
+
+**Username**:      {{index .Result "username"}}
+**Status**:        {{index .Result "status"}}
+**Openstack ID**:  {{index .Result "openstackId"}}
+**Creation time**: {{index .Result "creationDate"}}
+
+## Roles
+
+| Name | Description | Permissions |
+| --- | --- | --- |
+{{ range index .Result "roles" }}| {{.name}} | {{.description}} | {{.description}} |
+{{end}}
+
+
+💡 Use option --json or --yaml to get the raw output with all information

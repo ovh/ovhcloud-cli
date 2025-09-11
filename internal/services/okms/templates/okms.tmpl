@@ -1,0 +1,32 @@
+🚀 OVHcloud KMS {{.ServiceName}}
+=======
+
+{{if index .Result "iam" "displayName"}}_{{index .Result "iam" "displayName"}}_{{end}}
+
+## General information
+
+**Region**:        {{index .Result "region"}}
+
+[Swagger      ]({{index .Result "swaggerEndpoint"}})
+[REST endpoint]({{index .Result "restEndpoint"}})
+
+## KMIP
+
+**Endpoint**:      {{index .Result "kmipEndpoint"}}
+**RSA Endpoint**:  {{index .Result "kmipRsaEndpoint"}}
+**Object count**:  {{index .Result "kmipObjectCount"}}
+**Public CA**:     {{index .Result "publicCA"}}
+**Public RSA CA**: {{index .Result "publicRsaCA"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

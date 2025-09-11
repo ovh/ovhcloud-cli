@@ -1,0 +1,21 @@
+🚀 Region {{.ServiceName}}
+=======
+
+## General information
+
+**Name**:                {{index .Result "name"}}
+**Type**:                {{index .Result "type"}}
+**Status**:              {{index .Result "status"}}
+**Availability zones**:  {{index .Result "availabilityZones"}}
+**Continent code**:      {{index .Result "continentCode"}}
+**Country code**:        {{index .Result "countryCode"}}
+**Datacenter location**: {{index .Result "datacenterLocation"}}
+
+## Services
+
+| Name | Link | Status |
+| --- | --- | --- |
+{{ range index .Result "services" }}| {{.name}} | [url]({{.endpoint}}) | {{.status}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

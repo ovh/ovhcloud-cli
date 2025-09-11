@@ -1,0 +1,25 @@
+🚀 Storage SWIFT container {{.ServiceName}}
+=======
+
+## General information
+
+**Name**:       {{index .Result "name"}}
+**Region**:     {{index .Result "region"}}
+**Type**:       {{index .Result "containerType"}}
+**Is archive**: {{index .Result "archive"}}
+
+[Container static URL]({{index .Result "staticUrl"}})
+
+## Objects
+
+**Objects count**: {{index .Result "storedObjects"}}
+**Total size**:    {{index .Result "storedBytes"}} bytes
+
+{{if index .Result "objects"}}
+| Name | Size (bytes) | State |
+| --- | --- | --- |
+{{ range index .Result "objects" }}| {{.name}} | {{.size}} | {{.retrievalState}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

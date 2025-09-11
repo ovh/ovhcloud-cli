@@ -1,0 +1,36 @@
+🚀 Email MX plan {{.ServiceName}}
+=======
+
+{{if index .Result "displayName"}}_{{index .Result "displayName"}}_{{end}}
+
+## General information
+
+**Offer**:          {{index .Result "offer"}}
+**State**:          {{index .Result "state"}}
+**Zimbra backend**: {{index .Result "isZimbra"}}
+**Interface URL**:  {{index .Result "webUrl"}}
+
+## Security configuration
+
+| Parameter | Value |
+| --- | --- |
+| Check DKIM | {{index .Result "spamAndVirusConfiguration" "checkDKIM"}} |
+| Check SPF | {{index .Result "spamAndVirusConfiguration" "checkSPF"}} |
+| Delete spams | {{index .Result "spamAndVirusConfiguration" "deleteSpam"}} |
+| Delete virus | {{index .Result "spamAndVirusConfiguration" "deleteVirus"}} |
+| Put in junk spam or virus | {{index .Result "spamAndVirusConfiguration" "putInJunk"}} |
+| Tag spams | {{index .Result "spamAndVirusConfiguration" "tagSpam"}} |
+| Tag virus | {{index .Result "spamAndVirusConfiguration" "tagVirus"}} |
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

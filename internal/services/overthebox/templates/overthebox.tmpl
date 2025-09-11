@@ -1,0 +1,34 @@
+🚀 OverTheBox {{.ServiceName}}
+=======
+
+{{if index .Result "iam" "displayName"}}_{{index .Result "iam" "displayName"}}_{{end}}
+{{if index .Result "customerDescription"}}_{{index .Result "customerDescription"}}_{{end}}
+
+## General information
+
+**Offer**:              {{index .Result "prettyOfferName"}}
+**Status**:             {{index .Result "status"}}
+**Auto upgrade**:       {{index .Result "autoUpgrade"}}
+**Configuration mode**: {{index .Result "configurationMode"}}
+
+## Technical details
+
+**Bandwidth**:           {{index .Result "bandwidth"}}
+**Auto MTU**:            {{index .Result "autoMTU"}}
+**SOCKS proxy enabled**: {{index .Result "SOCKSProxyEnabled"}}
+**Tunnel mode**:         {{index .Result "tunnelMode"}}
+**Release channel**:     {{index .Result "releaseChannel"}}
+**IPv6 enabled**:        {{index .Result "ipv6Enabled"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

@@ -1,0 +1,21 @@
+🚀 IAM Resource {{.ServiceName}}
+=======
+
+_{{index .Result "displayName"}}_
+
+## General information
+
+**ID**:            {{index .Result "id"}}
+**Name**:          {{index .Result "name"}}
+**Type**:          {{index .Result "type"}}
+**Owner**:         {{index .Result "owner"}}
+
+{{if index .Result "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

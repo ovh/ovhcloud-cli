@@ -1,0 +1,30 @@
+🚀 DNS zone {{.ServiceName}}
+=======
+
+## General information
+
+**DNSSEC supported**: {{index .Result "dnssecSupported"}}
+**Has DNS anycast**:  {{index .Result "hasDnsAnycast"}}
+
+**Name servers**:{{range index .Result "nameServers"}}
+- {{.}}{{end}}
+
+### Records
+
+| Domain | TTL | Type | Target |
+| --- | --- | --- | --- |
+{{ range index .Result "records" }}| {{.subDomain}}{{if .subDomain}}<area>.{{end}}{{.zone}} | {{.ttl}} | {{.fieldType}} | {{replace .target "|" "\\|"}} |
+{{end}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

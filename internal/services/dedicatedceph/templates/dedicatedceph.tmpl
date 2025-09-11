@@ -1,0 +1,34 @@
+🚀 Ceph Cluster {{.ServiceName}}
+=======
+
+_{{index .Result "iam"  "displayName"}}_
+
+## General information
+
+**Region**:        {{index .Result "region"}}
+**Label**:         {{index .Result "label"}}
+**State**:         {{index .Result "state"}}
+**Status**:        {{index .Result "status"}}
+**Creation date**: {{index .Result "createDate"}}
+
+## Technical information
+
+**Ceph Version**:        {{index .Result "cephVersion"}}
+**Size**:                {{index .Result "size"}}
+**Tunables of cluster**: {{index .Result "crushTunables"}}
+**Monitor IPs**:{{ range index .Result "cephMons" }}
+- {{.}}
+{{end}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information
