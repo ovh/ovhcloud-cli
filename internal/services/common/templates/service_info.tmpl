@@ -1,0 +1,28 @@
+🚀 Information of service {{.ServiceName}}
+=======
+
+## Service details
+
+**Domain**:                   {{index .Result "domain"}}
+**Service ID**:               {{index .Result "serviceId"}}
+**Status**:                   {{index .Result "status"}}
+**Creation date**:            {{index .Result "creation"}}
+**Expiration date**:          {{index .Result "expiration"}}
+**Engaged up to**:            {{index .Result "engagedUpTo"}}
+**Can delete at expiration**: {{index .Result "canDeleteAtExpiration"}}
+
+**Contacts**:
+- Admin:   {{index .Result "contactAdmin"}}
+- Billing: {{index .Result "contactBilling"}}
+- Tech:    {{index .Result "contactTech"}}
+
+### Renewal details
+
+**Renewal type**:           {{index .Result "renewalType"}}
+**Possible renew periods**: {{range index .Result "possibleRenewPeriod"}}{{.}} {{end}}
+
+| Automatic | Forced | Manual Payment | Delete at Expiration | Period |
+| --- | --- | --- | --- | --- |
+| {{index .Result "renew" "automatic"}} | {{index .Result "renew" "forced"}} | {{index .Result "renew" "manualPayment"}} | {{index .Result "renew" "deleteAtExpiration"}} | {{index .Result "renew" "period"}} |
+
+💡 Use option --json or --yaml to get the raw output with all information

@@ -1,0 +1,35 @@
+{
+  "billingPeriod": "hourly",
+  "bootFrom": {
+    "imageId": "197ac530-c830-4000-82b2-2f4bfeead801"
+  },
+  "flavor": {
+    "id": "197ac530-c840-4000-8b5d-f691165b9601"
+  },
+  "name": "NewInstance",
+  "network": {
+    "private": {
+      "floatingIpCreate": {
+        "description": "NewFloatingIP"
+      },
+      "gatewayCreate": {
+        "model": "s",
+        "name": "NewGateway"
+      },
+      "networkCreate": {
+        "name": "NewPrivateNetwork",
+        "subnet": {
+          "cidr": "10.0.2.0/24",
+          "enableDhcp": true,
+          "ipVersion": 4
+        },
+        "vlanId": 0
+      }
+    },
+    "public": false
+  },
+  "sshKeyCreate": {
+    "name": "NewSSHKey",
+    "publicKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAQQCo9+BpMRYQ/dL3DS2CyJxRF+j6ctbT3/Qp84+KeFhnii7NT7fELilKUSnxS30WAvQCCo2yU1orfgqr41mM70MB example-key"
+  }
+}

@@ -1,0 +1,63 @@
+Licences:
+Apache-2.0
+BSD-3-Clause
+MIT
+Unknown
+
+Packages:
+dario.cat/mergo; BSD-3-Clause
+github.com/PaesslerAG/gval; BSD-3-Clause
+github.com/PaesslerAG/jsonpath; BSD-3-Clause
+github.com/alecthomas/chroma/v2; MIT
+github.com/amstuta/fx; MIT
+github.com/atotto/clipboard; BSD-3-Clause
+github.com/aymanbagabas/go-osc52/v2; MIT
+github.com/aymerick/douceur; MIT
+github.com/charmbracelet/bubbles; MIT
+github.com/charmbracelet/bubbletea; MIT
+github.com/charmbracelet/colorprofile; MIT
+github.com/charmbracelet/glamour; MIT
+github.com/charmbracelet/lipgloss; MIT
+github.com/charmbracelet/x/ansi; MIT
+github.com/charmbracelet/x/cellbuf; MIT
+github.com/charmbracelet/x/term; MIT
+github.com/dlclark/regexp2; MIT
+github.com/getkin/kin-openapi; MIT
+github.com/ghodss/yaml; BSD-3-Clause
+github.com/go-openapi/jsonpointer; Apache-2.0
+github.com/go-openapi/swag; Apache-2.0
+github.com/golang/go; BSD-3-Clause
+github.com/gorilla/css; BSD-3-Clause
+github.com/josharian/intern; MIT
+github.com/lucasb-eyer/go-colorful; MIT
+github.com/mailru/easyjson; MIT
+github.com/mattn/go-isatty; MIT
+github.com/mattn/go-runewidth; MIT
+github.com/microcosm-cc/bluemonday; BSD-3-Clause
+github.com/mohae/deepcopy; MIT
+github.com/muesli/ansi; MIT
+github.com/muesli/cancelreader; MIT
+github.com/muesli/reflow; MIT
+github.com/muesli/termenv; MIT
+github.com/oasdiff/yaml3; Apache-2.0
+github.com/oasdiff/yaml; BSD-3-Clause
+github.com/ovh/go-ovh; BSD-3-Clause
+github.com/ovh/ovhcloud-cli; Unknown. See go/github.com/ovh/ovhcloud-cli/LICENSE file
+github.com/perimeterx/marshmallow; MIT
+github.com/rivo/uniseg; MIT
+github.com/sahilm/fuzzy; MIT
+github.com/shopspring/decimal; MIT
+github.com/spf13/cobra; Apache-2.0
+github.com/spf13/pflag; BSD-3-Clause
+github.com/xo/terminfo; MIT
+github.com/yuin/goldmark-emoji; MIT
+github.com/yuin/goldmark; MIT
+golang.org/x/net; BSD-3-Clause
+golang.org/x/oauth2; BSD-3-Clause
+golang.org/x/sync; BSD-3-Clause
+golang.org/x/sys; BSD-3-Clause
+golang.org/x/term; BSD-3-Clause
+golang.org/x/text; BSD-3-Clause
+gopkg.in/ini.v1; Apache-2.0
+gopkg.in/yaml.v2; Apache-2.0
+gopkg.in/yaml.v3; Apache-2.0

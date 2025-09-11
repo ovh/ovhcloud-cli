@@ -1,0 +1,41 @@
+🚀 Managed Database {{.ServiceName}}
+=======
+
+_{{index .Result "description"}}_
+
+## Service configuration
+
+**Plan**:          {{index .Result "plan"}}
+**Flavor**:        {{index .Result "flavor"}}
+**Engine**:        {{index .Result "engine"}} {{index .Result "version"}}
+**Creation date**: {{index .Result "createdAt"}}
+
+## Cluster state
+
+**Status**:         {{index .Result "status"}}
+**Usable storage**: {{index .Result "storage" "size" "value"}}{{index .Result "storage" "size" "unit"}}
+**Network type**:   {{index .Result "networkType"}}
+
+Endpoints: {{range index .Result "endpoints"}}
+- {{.uri}}
+{{end}}
+
+### Nodes
+
+| ID | Flavor | Region | Status |
+| --- | --- | --- | --- |
+{{ range index .Result "nodes" }}| {{.id}} | {{.flavor}} | {{.region}} | {{.status}} |
+{{end}}
+
+{{if index .Result "backups"}}
+## Backups
+
+**Backup time**:    {{index .Result "backups" "time"}}
+**Retention days**: {{index .Result "backups" "retentionDays"}}
+
+Regions: {{range index .Result "backups" "regions"}}
+- {{.}}
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

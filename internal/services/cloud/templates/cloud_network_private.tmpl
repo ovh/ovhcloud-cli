@@ -1,0 +1,28 @@
+🚀 Private network {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Status**:  {{index .Result "status"}}
+**Type**:    {{index .Result "type"}}
+**vlan ID**: {{index .Result "vlanId"}}
+
+## Regional networks information
+
+{{range index .Result "regions"}}
+### Network {{.openstackId}}
+
+**Region**: {{.region}}
+**Status**: {{.status}}
+
+{{if .subnets}}**Subnets**
+| Name | CIDR | Gateway IP |
+| --- | --- | --- |
+{{ range .subnets }}| {{.name}} | {{.cidr}} | {{.gatewayIp}} |
+{{end}}
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

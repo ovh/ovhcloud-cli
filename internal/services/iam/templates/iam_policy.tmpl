@@ -1,0 +1,42 @@
+🚀 IAM Policy {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Owner**:         {{index .Result "owner"}}
+**Read-only**:     {{index .Result "readOnly"}}
+**Creation time**: {{index .Result "createdAt"}}
+**Update time**:   {{index .Result "updatedAt"}}
+
+## Identities
+
+{{ range index .Result "identities" }}- {{.}}
+{{end}}
+
+## Resources
+
+| URN | Type | Display name |
+| --- | --- | --- |
+{{ range index .Result "resources" }}| {{.urn}}  | {{if .resource}} {{index .resource "type"}} {{else if .group}} resourceGroup {{else}} - {{end}} | {{if .resource}} {{index .resource "displayName"}} {{else if .group}} {{index .group "name"}} {{else}} - {{end}} |
+{{end}}
+
+## Permissions
+
+| Effect | Action |
+| --- | --- |
+{{if index .Result "permissions" "allow"}}{{range index .Result "permissions" "allow"}}| Allow | {{.action}} |
+{{end}}{{end}}{{if index .Result "permissions" "except"}}{{range index .Result "permissions" "except"}}| Except | {{.action}} |
+{{end}}{{end}}{{if index .Result "permissions" "deny"}}{{range index .Result "permissions" "deny"}}| Deny | {{.action}} |
+{{end}}{{end}}
+
+{{if index .Result "permissionsGroups"}}
+## Permission groups
+| URN | Name |
+| --- | --- |
+{{range index .Result "permissionsGroups"}}| {{.urn}} | {{.name}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

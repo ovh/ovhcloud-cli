@@ -1,0 +1,30 @@
+🚀 Dedicated NAS-HA {{.ServiceName}}
+=======
+
+_{{index .Result "customName"}}_
+
+## General information
+
+**Datacenter**: {{index .Result "datacenter"}}
+**IP**:         {{index .Result "ip"}}
+**Monitored**:  {{index .Result "monitored"}}
+
+## Technical information
+
+**Disk type**:            {{index .Result "diskType"}}
+**Zpool size**:           {{index .Result "zpoolSize"}}
+**Zpool capacity**:       {{index .Result "zpoolCapacity"}}
+**Can create partition**: {{index .Result "canCreatePartition "}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

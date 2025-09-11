@@ -1,0 +1,31 @@
+🚀 SSL {{.ServiceName}}
+=======
+
+{{if index .Result "name"}}_{{index .Result "name"}}_{{end}}
+{{if index .Result "description"}}_{{index .Result "description"}}_{{end}}
+
+## General information
+
+**Type**:      {{index .Result "type"}}
+**Authority**: {{index .Result "authority"}}
+**Status**:    {{index .Result "status"}}
+
+**Validity**:
+- Start: {{index .Result "validityStart"}}
+- End:   {{index .Result "validityEnd"}}
+
+**CN**:  {{index .Result "commonName"}}
+**CSR**: {{index .Result "csr"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

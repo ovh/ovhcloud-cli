@@ -1,0 +1,25 @@
+🚀 Enterprise file storage (NetApp) {{.ServiceName}}
+=======
+
+{{if index .Result "name"}}_{{index .Result "name"}}_{{end}}
+
+## General information
+
+**Product**: {{index .Result "product"}}
+**Region**:  {{index .Result "region"}}
+**Status**:  {{index .Result "status"}}
+**Quota**:   {{index .Result "quota"}}
+**Performance level**: {{index .Result "performanceLevel"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

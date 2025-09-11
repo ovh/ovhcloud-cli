@@ -1,0 +1,21 @@
+🚀 IAM Resource Group {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**URN**:           {{index .Result "urn"}}
+**Owner**:         {{index .Result "owner"}}
+**Read-only**:     {{index .Result "readOnly"}}
+**Creation time**: {{index .Result "createdAt"}}
+**Update time**:   {{index .Result "updatedAt"}}
+
+## Resources
+
+| URN | Type | Display name |
+| --- | --- | --- |
+{{ range index .Result "resources" }}| {{.urn}}  | {{.type}} | {{.displayName}} |
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

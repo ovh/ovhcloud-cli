@@ -1,0 +1,26 @@
+name: Build and test
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [ '1.24.x', '1.25.x' ]
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Install dependencies
+        run: go get ./...
+      - name: Build binary
+        run: make
+      - name: Build WASM binary
+        run: make wasm
+      - name: Test with Go
+        run: make test

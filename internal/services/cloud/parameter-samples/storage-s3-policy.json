@@ -1,0 +1,13 @@
+{
+  "Statement": [
+    {
+      "Action": ["s3:*"],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:s3:::${ovh_cloud_project_storage.s3_bucket.name}",
+        "arn:aws:s3:::${ovh_cloud_project_storage.s3_bucket.name}/*"
+      ],
+      "Sid": "AdminContainer"
+    }
+  ]
+}

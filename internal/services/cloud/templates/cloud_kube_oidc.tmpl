@@ -1,0 +1,19 @@
+🚀 OpenID Connect (OIDC) integration parameters
+=======
+
+_Cluster: {{.ServiceName}}_
+
+## OIDC Configuration
+
+**Client ID**:          {{index .Result "clientId"}}
+**CA Content**:         {{if index .Result "caContent"}}{{index .Result "caContent"}}{{else}}(default){{end}}
+**Username claim**:     {{index .Result "usernameClaim"}}
+**Username prefix**:    {{index .Result "usernamePrefix"}}
+**Groups claim**:       {{join (index .Result "groupsClaim")}}
+**Groups prefix**:      {{index .Result "groupsPrefix"}}
+**Signing algorithms**: {{join (index .Result "signingAlgorithms")}}
+**Required claims**:    {{join (index .Result "requiredClaim")}}
+
+[Issuer URL]({{index .Result "issuerUrl"}})
+
+💡 Use option --json or --yaml to get the raw output with all information

@@ -1,0 +1,45 @@
+🚀 Managed Rancher Service {{.ServiceName}}
+=======
+
+_{{index .Result "currentState" "name"}}_
+
+## General information
+
+**Status**:        {{index .Result "resourceStatus"}}
+**Creation date**: {{index .Result "createdAt"}}
+**Update date**:   {{index .Result "updatedAt"}}
+
+## Current state
+
+**Plan**:         {{index .Result "currentState" "plan"}}
+**Region**:       {{index .Result "currentState" "region"}}
+**Version**:      {{index .Result "currentState" "version"}}
+{{if index .Result "currentState" "networking"}}**Egress CIDRs**: {{index .Result "currentState" "networking" "egressCidrBlocks"}}{{end}}
+
+{{if index .Result "currentState" "url"}}[URL]({{index .Result "currentState" "url"}}){{end}}
+
+{{if index .Result "currentState" "ipRestrictions"}}
+### IP restrictions
+
+| CIDR | Description |
+| --- | --- |
+{{range index .Result "currentState" "ipRestrictions"}}| {{.cidrBlock}} | {{.description}} |
+{{end}}
+{{end}}
+
+## Target state
+
+**Name**:         {{index .Result "targetSpec" "name"}}
+**Plan**:         {{index .Result "targetSpec" "plan"}}
+**Version**:      {{index .Result "targetSpec" "version"}}
+
+{{if index .Result "targetSpec" "ipRestrictions"}}
+### IP restrictions
+
+| CIDR | Description |
+| --- | --- |
+{{range index .Result "targetSpec" "ipRestrictions"}}| {{.cidrBlock}} | {{.description}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

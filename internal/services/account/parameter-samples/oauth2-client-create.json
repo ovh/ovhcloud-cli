@@ -1,0 +1,8 @@
+{
+    "callbackUrls": [
+        "https://example.com/callback1"
+    ],
+    "description": "OAuth2 Client example",
+    "flow": "AUTHORIZATION_CODE",
+    "name": "MyNewOAuth2Client"
+}

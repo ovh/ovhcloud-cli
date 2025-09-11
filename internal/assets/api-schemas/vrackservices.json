@@ -1,0 +1,2277 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/v2"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "common.CurrentTask": {
+        "type": "object",
+        "description": "Asynchronous operation currently running",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of the current task",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "link": {
+            "type": "string",
+            "description": "Link to the task details",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.CurrentTaskStatusEnum"
+              }
+            ],
+            "description": "Current global status of the current task",
+            "nullable": true,
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the current task",
+            "readOnly": true
+          }
+        }
+      },
+      "common.CurrentTaskStatusEnum": {
+        "type": "string",
+        "description": "Current status of a task. A task in ERROR cannot be retried without your inputs. PENDING tasks will be executed as soon as possible. A RUNNING task is currently executing your original request. SCHEDULED is used for tasks that will be executed in the future",
+        "enum": [
+          "ERROR",
+          "PENDING",
+          "RUNNING",
+          "SCHEDULED"
+        ]
+      },
+      "common.Task": {
+        "type": "object",
+        "description": "Asynchronous operation",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the task",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "errors": {
+            "type": "array",
+            "description": "Errors that occured on the task",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.TaskError"
+            },
+            "readOnly": true
+          },
+          "finishedAt": {
+            "type": "string",
+            "description": "Ending date of the task",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Identifier of the task",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "link": {
+            "type": "string",
+            "description": "Link to the related resource",
+            "readOnly": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Description of the task",
+            "readOnly": true
+          },
+          "progress": {
+            "type": "array",
+            "description": "Progress steps of the asynchronous operation",
+            "items": {
+              "$ref": "#/components/schemas/common.TaskProgress"
+            },
+            "readOnly": true
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "Starting date of the task",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.TaskStatusEnum"
+              }
+            ],
+            "description": "Current global status of the task",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the task",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update of the task",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "common.TaskError": {
+        "type": "object",
+        "description": "Errors that occured on the task",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error description",
+            "readOnly": true
+          }
+        }
+      },
+      "common.TaskProgress": {
+        "type": "object",
+        "description": "Detailed information about an asynchronous operation progress steps",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Progress step name",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.TaskStatusEnum"
+              }
+            ],
+            "description": "Current status of the progress step",
+            "readOnly": true
+          }
+        }
+      },
+      "common.TaskStatusEnum": {
+        "type": "string",
+        "description": "TaskStatusEnum",
+        "enum": [
+          "DONE",
+          "ERROR",
+          "PENDING",
+          "RUNNING",
+          "SCHEDULED"
+        ]
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      },
+      "vrackServices.EligibleManagedService": {
+        "type": "object",
+        "description": "List of managed services eligible to the requested vRack Services",
+        "properties": {
+          "managedServiceType": {
+            "type": "string",
+            "description": "IAM resource type. Compatible managed service types are listed by /reference/compatibleManagedServiceType call.",
+            "readOnly": true
+          },
+          "managedServiceURNs": {
+            "type": "array",
+            "description": "List of IAM resource URNs",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "vrackServices.Endpoint": {
+        "type": "object",
+        "description": "Endpoint holding a managed service IP",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "IP description defined in the managed service",
+            "readOnly": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4"
+              }
+            ],
+            "description": "IP address assigned by OVHcloud",
+            "readOnly": true
+          }
+        }
+      },
+      "vrackServices.ProductStatusEnum": {
+        "type": "string",
+        "description": "ProductStatusEnum",
+        "enum": [
+          "ACTIVE",
+          "DRAFT",
+          "SUSPENDED"
+        ]
+      },
+      "vrackServices.Region": {
+        "type": "object",
+        "description": "A vRack Services compatible localization",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Region name",
+            "readOnly": true
+          }
+        }
+      },
+      "vrackServices.ResourceStatusEnum": {
+        "type": "string",
+        "description": "It reflects the readiness of the vRack Services resource. The status `READY` indicates that the vRack Services state is stable. It guarantees that the `currentState` is fully aligned with the `targetSpec`. A new target specification request will be accepted only in this status.",
+        "enum": [
+          "CREATING",
+          "DELETING",
+          "ERROR",
+          "READY",
+          "UPDATING"
+        ]
+      },
+      "vrackServices.ServiceEndpoint": {
+        "type": "object",
+        "description": "A Service Endpoint provides an access to managed services directly from one or several private IPs in the associated vRack",
+        "properties": {
+          "endpoints": {
+            "type": "array",
+            "description": "Endpoints representing the IPs assigned to the managed services",
+            "items": {
+              "$ref": "#/components/schemas/vrackServices.Endpoint"
+            },
+            "readOnly": true
+          },
+          "managedServiceURN": {
+            "type": "string",
+            "description": "IAM Resource URN of the managed service. Compatible managed service types are listed by /reference/compatibleManagedServiceType call.",
+            "readOnly": true
+          }
+        }
+      },
+      "vrackServices.ServiceRange": {
+        "type": "object",
+        "description": "Definition of the range dedicated to the subnet's services",
+        "properties": {
+          "cidr": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4Block"
+              }
+            ],
+            "description": "CIDR dedicated to the subnet's services",
+            "readOnly": true
+          },
+          "remainingIps": {
+            "type": "integer",
+            "description": "Number of remaining IPs in the service range",
+            "readOnly": true
+          },
+          "reservedIps": {
+            "type": "integer",
+            "description": "Number of service range IPs reserved by OVHcloud",
+            "readOnly": true
+          },
+          "usedIps": {
+            "type": "integer",
+            "description": "Number of service range IPs assigned to the managed services",
+            "readOnly": true
+          }
+        }
+      },
+      "vrackServices.Subnet": {
+        "type": "object",
+        "description": "A network segment of the associated vRack. It represents an IP addressing scheme inside the private network",
+        "properties": {
+          "cidr": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4Block"
+              }
+            ],
+            "description": "IP address range of the subnet in CIDR format",
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name of the subnet",
+            "nullable": true,
+            "readOnly": true
+          },
+          "serviceEndpoints": {
+            "type": "array",
+            "description": "Service endpoints of the subnet",
+            "items": {
+              "$ref": "#/components/schemas/vrackServices.ServiceEndpoint"
+            },
+            "readOnly": true
+          },
+          "serviceRange": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrackServices.ServiceRange"
+              }
+            ],
+            "description": "Defines a smaller subnet dedicated to the managed services IPs",
+            "readOnly": true
+          },
+          "vlan": {
+            "type": "integer",
+            "description": "Unique inner VLAN that allows subnets segregation",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "vrackServices.TargetServiceEndpoint": {
+        "type": "object",
+        "description": "Target specification of a Service Endpoint. A Service Endpoint provides an access to a managed service directly from one or several private IPs in the associated vRack",
+        "properties": {
+          "managedServiceURN": {
+            "type": "string",
+            "description": "IAM Resource URN of the managed service. Managed service Region must match vRack Services Region. Compatible managed service types are listed by /reference/compatibleManagedServiceType call"
+          }
+        },
+        "required": [
+          "managedServiceURN"
+        ]
+      },
+      "vrackServices.TargetServiceRange": {
+        "type": "object",
+        "description": "Target specification of the range dedicated to the subnet's services",
+        "properties": {
+          "cidr": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4Block"
+              }
+            ],
+            "description": "IP address range dedicated to the subnet's services in CIDR format. Must be a private network address (RFC1918). Must be a sub-network of the subnet. Authorized range for prefix length: /27 to /29"
+          }
+        },
+        "required": [
+          "cidr"
+        ]
+      },
+      "vrackServices.TargetSubnet": {
+        "type": "object",
+        "description": "Target specification of a subnet",
+        "properties": {
+          "cidr": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4Block"
+              }
+            ],
+            "description": "IP address range of the subnet in CIDR format. Must be a private network address (RFC1918). Authorized range for prefix length: /16 to /24"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name of the subnet. Format must follow `^[ a-zA-Z0-9-_.]{0,40}$`",
+            "nullable": true
+          },
+          "serviceEndpoints": {
+            "type": "array",
+            "description": "Target specification of the Service Endpoints",
+            "items": {
+              "$ref": "#/components/schemas/vrackServices.TargetServiceEndpoint"
+            }
+          },
+          "serviceRange": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrackServices.TargetServiceRange"
+              }
+            ],
+            "description": "Defines a smaller subnet dedicated to the managed service IPs"
+          },
+          "vlan": {
+            "type": "integer",
+            "description": "Unique inner VLAN that allows subnets segregation. Authorized values: [2 - 4094] and `null` (untagged traffic)",
+            "nullable": true
+          }
+        },
+        "required": [
+          "cidr",
+          "serviceEndpoints",
+          "serviceRange"
+        ]
+      },
+      "vrackServices.VrackServices": {
+        "type": "object",
+        "description": "A vRack Services",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash used to control concurrent modification requests. Here, it represents the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Date of the vRack Services delivery",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrackServices.VrackServicesCurrentState"
+              }
+            ],
+            "description": "Current configuration applied to the vRack Services",
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Asynchronous operations ongoing on the vRack Services",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrackServices.ResourceStatusEnum"
+              }
+            ],
+            "description": "Reflects the readiness of the vRack Services. A new target specification request will be accepted only in `READY` status",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrackServices.VrackServicesTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the vRack Services",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Date of the Last vRack Services update",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "vrackServices.VrackServicesCurrentState": {
+        "type": "object",
+        "description": "Current state of the vRack Services",
+        "properties": {
+          "productStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrackServices.ProductStatusEnum"
+              }
+            ],
+            "description": "Product status of the vRack Services",
+            "readOnly": true
+          },
+          "region": {
+            "type": "string",
+            "description": "Region of the vRack Services. List of compatible regions can be retrieved from /reference/region",
+            "readOnly": true
+          },
+          "subnets": {
+            "type": "array",
+            "description": "Subnets of the current vRack Services",
+            "items": {
+              "$ref": "#/components/schemas/vrackServices.Subnet"
+            },
+            "readOnly": true
+          },
+          "vrackId": {
+            "type": "string",
+            "description": "vRack associated to the vRack Services",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "vrackServices.VrackServicesInput": {
+        "type": "object",
+        "description": "A vRack Services input payload",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash used to control concurrent modification requests. Here, it represents the target specification value the request is based on"
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrackServices.VrackServicesTargetSpec"
+              }
+            ],
+            "description": "Requested target specification"
+          }
+        },
+        "required": [
+          "checksum",
+          "targetSpec"
+        ]
+      },
+      "vrackServices.VrackServicesTargetSpec": {
+        "type": "object",
+        "description": "Target specification of the vRack Services",
+        "properties": {
+          "subnets": {
+            "type": "array",
+            "description": "Target specification of the subnets. Maximum one subnet per vRack Services",
+            "items": {
+              "$ref": "#/components/schemas/vrackServices.TargetSubnet"
+            }
+          }
+        },
+        "required": [
+          "subnets"
+        ]
+      },
+      "vrackServices.VrackServicesWithIAM": {
+        "type": "object",
+        "description": "A vRack Services",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash used to control concurrent modification requests. Here, it represents the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Date of the vRack Services delivery",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrackServices.VrackServicesCurrentState"
+              }
+            ],
+            "description": "Current configuration applied to the vRack Services",
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Asynchronous operations ongoing on the vRack Services",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrackServices.ResourceStatusEnum"
+              }
+            ],
+            "description": "Reflects the readiness of the vRack Services. A new target specification request will be accepted only in `READY` status",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/vrackServices.VrackServicesTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the vRack Services",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Date of the Last vRack Services update",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/vrackServices/reference/compatibleManagedServiceType": {
+      "get": {
+        "summary": "List all managed service types that are compatible with vRack Services (IAM resource types)",
+        "description": "The compatible managed service types are represented here by their IAM resource types.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      "storageNetApp",
+                      "anotherManagedService"
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reference"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ]
+      }
+    },
+    "/vrackServices/reference/region": {
+      "get": {
+        "summary": "List all vRack Services regions",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vrackServices.Region"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      {
+                        "name": "eu-west-rbx"
+                      },
+                      {
+                        "name": "eu-west-lim"
+                      },
+                      {
+                        "name": "eu-west-gra"
+                      }
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Reference"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ]
+      }
+    },
+    "/vrackServices/resource": {
+      "get": {
+        "summary": "List all vRack Services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vrackServices.VrackServicesWithIAM"
+                  }
+                },
+                "examples": {
+                  "1-OneVrackServices": {
+                    "value": [
+                      {
+                        "checksum": "d41d8cd98f00b204e9800998ecf8427e",
+                        "createdAt": "2023-03-10T12:00:00Z",
+                        "currentState": {
+                          "productStatus": "DRAFT",
+                          "region": "eu-west-lim",
+                          "subnets": [],
+                          "vrackId": null
+                        },
+                        "currentTasks": [],
+                        "id": "vrs-ahc-fw4-od1-efq",
+                        "resourceStatus": "READY",
+                        "targetSpec": {
+                          "subnets": []
+                        },
+                        "updatedAt": "2023-03-10T12:00:00Z"
+                      }
+                    ],
+                    "summary": "One vRack Services"
+                  },
+                  "2-TwoVrackServices": {
+                    "value": [
+                      {
+                        "checksum": "d41d8cd98f00b204e9800998ecf8427e",
+                        "createdAt": "2023-03-10T12:00:00Z",
+                        "currentState": {
+                          "productStatus": "DRAFT",
+                          "region": "eu-west-lim",
+                          "subnets": [],
+                          "vrackId": null
+                        },
+                        "currentTasks": [],
+                        "id": "vrs-ahc-fw4-od1-efq",
+                        "resourceStatus": "READY",
+                        "targetSpec": {
+                          "subnets": []
+                        },
+                        "updatedAt": "2023-03-10T12:00:00Z"
+                      },
+                      {
+                        "checksum": "4c5d68ea2231e90db7495406018a0f5e",
+                        "createdAt": "2023-03-10T10:00:00Z",
+                        "currentState": {
+                          "productStatus": "DRAFT",
+                          "region": "eu-west-gra",
+                          "subnets": [
+                            {
+                              "cidr": "192.168.0.0/24",
+                              "displayName": "My.Subnet",
+                              "serviceEndpoints": [
+                                {
+                                  "endpoints": [
+                                    {
+                                      "description": "Nominal",
+                                      "ip": "192.168.0.5"
+                                    }
+                                  ],
+                                  "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-00e1-4a3d-ae89-ac145675c8bb"
+                                },
+                                {
+                                  "endpoints": [
+                                    {
+                                      "description": "",
+                                      "ip": "192.168.0.2"
+                                    }
+                                  ],
+                                  "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-a77c-478e-93ce-06aa94cbd9d1"
+                                }
+                              ],
+                              "serviceRange": {
+                                "cidr": "192.168.0.0/29",
+                                "remainingIps": 1,
+                                "reservedIps": 5,
+                                "usedIps": 2
+                              },
+                              "vlan": 30
+                            }
+                          ],
+                          "vrackId": null
+                        },
+                        "currentTasks": [],
+                        "id": "vrs-ar7-72w-poh-3qe",
+                        "resourceStatus": "READY",
+                        "targetSpec": {
+                          "subnets": [
+                            {
+                              "cidr": "192.168.0.0/24",
+                              "displayName": "My.Subnet",
+                              "serviceEndpoints": [
+                                {
+                                  "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-00e1-4a3d-ae89-ac145675c8bb"
+                                },
+                                {
+                                  "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-a77c-478e-93ce-06aa94cbd9d1"
+                                }
+                              ],
+                              "serviceRange": {
+                                "cidr": "192.168.0.0/29"
+                              },
+                              "vlan": 30
+                            }
+                          ]
+                        },
+                        "updatedAt": "2023-03-10T10:10:00Z"
+                      }
+                    ],
+                    "summary": "Two vRack Services"
+                  },
+                  "3-NoVrackServices": {
+                    "value": [],
+                    "summary": "No vRack Services"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resource"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrackServices:apiovh:resource/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "VrackServicesVrackServicesWithIAM"
+      }
+    },
+    "/vrackServices/resource/{vrackServicesId}": {
+      "get": {
+        "summary": "Retrieve a vRack Services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vrackServicesId",
+            "description": "Vrack services ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrackServices.VrackServicesWithIAM"
+                },
+                "examples": {
+                  "1-JustDelivered": {
+                    "value": {
+                      "checksum": "d41d8cd98f00b204e9800998ecf8427e",
+                      "createdAt": "2023-03-10T12:00:00Z",
+                      "currentState": {
+                        "productStatus": "DRAFT",
+                        "region": "eu-west-lim",
+                        "subnets": [],
+                        "vrackId": null
+                      },
+                      "currentTasks": [],
+                      "id": "vrs-ahc-fw4-od1-efq",
+                      "resourceStatus": "READY",
+                      "targetSpec": {
+                        "subnets": []
+                      },
+                      "updatedAt": "2023-03-10T12:00:00Z"
+                    },
+                    "summary": "A vRack Services that is just delivered"
+                  },
+                  "2-EmptySubnet": {
+                    "value": {
+                      "checksum": "1aabac6d068eef6a7bad3fdf50a05cc8",
+                      "createdAt": "2023-03-10T11:00:00Z",
+                      "currentState": {
+                        "productStatus": "DRAFT",
+                        "region": "eu-west-rbx",
+                        "subnets": [
+                          {
+                            "cidr": "10.120.0.0/24",
+                            "serviceEndpoints": [],
+                            "serviceRange": {
+                              "cidr": "10.120.0.0/29",
+                              "remainingIps": 3,
+                              "reservedIps": 5,
+                              "usedIps": 0
+                            },
+                            "vlan": 2
+                          }
+                        ],
+                        "vrackId": null
+                      },
+                      "currentTasks": [],
+                      "id": "vrs-ak0-ok0-sy5-8py",
+                      "resourceStatus": "READY",
+                      "targetSpec": {
+                        "subnets": [
+                          {
+                            "cidr": "10.120.0.0/24",
+                            "serviceEndpoints": [],
+                            "serviceRange": {
+                              "cidr": "10.120.0.0/29"
+                            },
+                            "vlan": 2
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-03-10T11:10:00Z"
+                    },
+                    "summary": "A vRack Services with an empty Subnet"
+                  },
+                  "3-TwoServiceEndpoints": {
+                    "value": {
+                      "checksum": "4c5d68ea2231e90db7495406018a0f5e",
+                      "createdAt": "2023-03-10T10:00:00Z",
+                      "currentState": {
+                        "productStatus": "DRAFT",
+                        "region": "eu-west-gra",
+                        "subnets": [
+                          {
+                            "cidr": "192.168.0.0/24",
+                            "displayName": "My.Subnet",
+                            "serviceEndpoints": [
+                              {
+                                "endpoints": [
+                                  {
+                                    "description": "Nominal",
+                                    "ip": "192.168.0.5"
+                                  }
+                                ],
+                                "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-00e1-4a3d-ae89-ac145675c8bb"
+                              },
+                              {
+                                "endpoints": [
+                                  {
+                                    "description": "",
+                                    "ip": "192.168.0.2"
+                                  }
+                                ],
+                                "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-a77c-478e-93ce-06aa94cbd9d1"
+                              }
+                            ],
+                            "serviceRange": {
+                              "cidr": "192.168.0.0/29",
+                              "remainingIps": 1,
+                              "reservedIps": 5,
+                              "usedIps": 2
+                            },
+                            "vlan": 30
+                          }
+                        ],
+                        "vrackId": null
+                      },
+                      "currentTasks": [],
+                      "id": "vrs-ar7-72w-poh-3qe",
+                      "resourceStatus": "READY",
+                      "targetSpec": {
+                        "subnets": [
+                          {
+                            "cidr": "192.168.0.0/24",
+                            "displayName": "My.Subnet",
+                            "serviceEndpoints": [
+                              {
+                                "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-00e1-4a3d-ae89-ac145675c8bb"
+                              },
+                              {
+                                "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-a77c-478e-93ce-06aa94cbd9d1"
+                              }
+                            ],
+                            "serviceRange": {
+                              "cidr": "192.168.0.0/29"
+                            },
+                            "vlan": 30
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-03-10T10:10:00Z"
+                    },
+                    "summary": "A vRack Services with two Service Endpoints"
+                  },
+                  "4-ManagedServicesReachableFromVrack": {
+                    "value": {
+                      "checksum": "8b70a21702a41638e32778c6400e1848",
+                      "createdAt": "2023-03-10T08:00:00Z",
+                      "currentState": {
+                        "productStatus": "ACTIVE",
+                        "region": "eu-west-rbx",
+                        "subnets": [
+                          {
+                            "cidr": "172.16.0.0/24",
+                            "displayName": "MySub",
+                            "serviceEndpoints": [
+                              {
+                                "endpoints": [
+                                  {
+                                    "description": "",
+                                    "ip": "172.16.0.51"
+                                  }
+                                ],
+                                "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-00e1-4a3d-ae89-ac145675c8bb"
+                              }
+                            ],
+                            "serviceRange": {
+                              "cidr": "172.16.0.32/27",
+                              "remainingIps": 27,
+                              "reservedIps": 4,
+                              "usedIps": 1
+                            },
+                            "vlan": 30
+                          }
+                        ],
+                        "vrackId": "pn-1234567"
+                      },
+                      "currentTasks": [],
+                      "id": "vrs-anb-dic-dsi-raw",
+                      "resourceStatus": "READY",
+                      "targetSpec": {
+                        "subnets": [
+                          {
+                            "cidr": "172.16.0.0/24",
+                            "displayName": "MySub",
+                            "serviceEndpoints": [
+                              {
+                                "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-00e1-4a3d-ae89-ac145675c8bb"
+                              }
+                            ],
+                            "serviceRange": {
+                              "cidr": "172.16.0.32/27"
+                            },
+                            "vlan": 30
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-06-10T08:10:00Z"
+                    },
+                    "summary": "A vRack Services with a managed service reachable from a vRack"
+                  },
+                  "5-BeingUpdated": {
+                    "value": {
+                      "checksum": "003df9f0d644a36164a7de26ab20bf6c",
+                      "createdAt": "2023-03-10T09:00:00Z",
+                      "currentState": {
+                        "productStatus": "DRAFT",
+                        "region": "eu-west-rbx",
+                        "subnets": [],
+                        "vrackId": null
+                      },
+                      "currentTasks": [
+                        {
+                          "id": "84b8c9cd-499c-4875-9504-26a82d5115af",
+                          "link": "/v2/vrackServices/resource/vrs-ahz-9t0-7lb-b5l",
+                          "status": "RUNNING",
+                          "type": "VrackServicesUpdate"
+                        }
+                      ],
+                      "id": "vrs-ahz-9t0-7lb-b5l",
+                      "resourceStatus": "UPDATING",
+                      "targetSpec": {
+                        "subnets": [
+                          {
+                            "cidr": "172.21.0.0/24",
+                            "serviceEndpoints": [],
+                            "serviceRange": {
+                              "cidr": "172.21.0.0/29"
+                            },
+                            "vlan": null
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-03-10T09:10:00Z"
+                    },
+                    "summary": "A vRack Services being updated"
+                  },
+                  "6-ErrorState": {
+                    "value": {
+                      "checksum": "fdd6a7a50286fd969102e319ef6b8545",
+                      "createdAt": "2023-03-10T07:00:00Z",
+                      "currentState": {
+                        "productStatus": "DRAFT",
+                        "region": "eu-west-rbx",
+                        "subnets": [],
+                        "vrackId": null
+                      },
+                      "currentTasks": [
+                        {
+                          "id": "9a45931c-a3ba-4ea4-a91d-67d3ef296c8b",
+                          "link": "/v2/vrackServices/resource/vrs-asp-dtl-lym-wza",
+                          "status": "ERROR",
+                          "type": "VrackServicesUpdate"
+                        }
+                      ],
+                      "id": "vrs-asp-dtl-lym-wza",
+                      "resourceStatus": "ERROR",
+                      "targetSpec": {
+                        "subnets": [
+                          {
+                            "cidr": "172.21.0.0/24",
+                            "serviceEndpoints": [],
+                            "serviceRange": {
+                              "cidr": "172.21.0.0/29"
+                            },
+                            "vlan": null
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-03-10T07:10:00Z"
+                    },
+                    "summary": "A vRack Services in ERROR state"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::VrackServicesNotFound": {
+                    "value": {
+                      "class": "Client::NotFound::VrackServicesNotFound",
+                      "message": "VrackServices '{{.vrackServicesID}}' not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resource"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrackServices:apiovh:resource/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Request updates on the vRack Services configuration",
+        "description": "It is the unique route handling any update on the vRack Services configuration. It works as following:\n1. You define a new target specification in the request payload,\n2. If this specification is validated, you get the resource with updated `targetSpec` and `checksum` values in return,\n3. The request is processed by one or several **asynchronous** tasks that aims to reconciliate the `currentState` with the `targetSpec`\n\n### Asynchronous processing\n* To follow this processing, the VrackServices resource can be polled with `GET /vrackServices/resource/{vrackServicesId}`<br>As soon as its `resourceStatus` is *READY*, the requested specification can be considered as applied to the vRack Services.\n* The `checksum` helps on detecting concurrency cases on update requests. If the polled `checksum` value differs from the one returned in response of your initial request, it means that processing of your request is completed and another request is being processed.\n* In case of processing error (i.e. `resourceStatus` in *ERROR*), the current vRack Services configuration is still active, but modification requests will be refused until the intervention of the support.\n* An overview on the asynchronous task(s) is available via the `currentTasks` attribute.<br>More details on a task are provided by the route `GET /vrackServices/resource/{vrackServicesId}/task/{taskId}`\n\n### Seamless configuration actions\nThe request can combine any of the following seamless actions (meaning there won't be any cut of the service while updating):\n* create a Subnet\n* delete a Subnet without any Service Endpoint\n* update a Subnet:\n  * create one or several Service Endpoints\n\n**Note** that a Subnet with several Service Endpoints can be created in the same payload\n\n### Not seamless configuration actions\nThe modification of the Subnet characteristics listed below **WILL** result in a service cut while processing the update as they are interpreted as the deletion of the existing Subnet and creation of a new Subnet with provided characteristics. The IPs that were given to the Managed Services will be reelected and may as a result change:\n* modifications on the Subnet `ServiceRange`\n* modifications on the Subnet `Vlan`\n* modifications on the Subnet `CIDR` \n\nThe embedded Service Endpoints will be also deleted and re-created which implies a flapping accessibility in the vRack for every related managed services.  \n**Note** that deleting a Subnet will also delete embedded Service Endpoints\n\nThe `vrackId` is a read-only attribute as the association vRack/vRackServices is handled by the [vRack API](console-preview/?section=%2Fvrack&branch=v1)",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vrackServicesId",
+            "description": "Vrack services ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/vrackServices.VrackServicesInput"
+              },
+              "examples": {
+                "1-CreateEmptySubnet": {
+                  "value": {
+                    "checksum": "fa7cda24e4e94031fb70956edfdfb33a",
+                    "targetSpec": {
+                      "subnets": [
+                        {
+                          "cidr": "10.120.0.0/24",
+                          "serviceEndpoints": [],
+                          "serviceRange": {
+                            "cidr": "10.120.0.0/29"
+                          },
+                          "vlan": 2
+                        }
+                      ]
+                    }
+                  },
+                  "summary": "1. Create an empty Subnet"
+                },
+                "2-CreateServiceEndpointInSubnet": {
+                  "value": {
+                    "checksum": "4c5d68ea2231e90db7495406018a0f5e",
+                    "targetSpec": {
+                      "subnets": [
+                        {
+                          "cidr": "192.168.0.0/24",
+                          "displayName": "My.Subnet",
+                          "serviceEndpoints": [
+                            {
+                              "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-00e1-4a3d-ae89-ac145675c8bb"
+                            }
+                          ],
+                          "serviceRange": {
+                            "cidr": "192.168.0.0/29"
+                          },
+                          "vlan": 30
+                        }
+                      ]
+                    }
+                  },
+                  "summary": "2. Create a Service Endpoint in an existing Subnet"
+                },
+                "3-CreateSubnetWithTwoServiceEndpoints": {
+                  "value": {
+                    "checksum": "af41611d8156aca52740fbb4347a02d0",
+                    "targetSpec": {
+                      "subnets": [
+                        {
+                          "cidr": "10.120.0.0/24",
+                          "serviceEndpoints": [
+                            {
+                              "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-26ba-4fa4-aa3e-79c2d0948a45"
+                            },
+                            {
+                              "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-973b-4319-8908-c7a71ac7e58f"
+                            }
+                          ],
+                          "serviceRange": {
+                            "cidr": "10.120.0.0/29"
+                          },
+                          "vlan": 35
+                        }
+                      ]
+                    }
+                  },
+                  "summary": "3. Create a Subnet with two Service Endpoints"
+                },
+                "4-DeleteASubnetWithItsServiceEndpoints": {
+                  "value": {
+                    "checksum": "8b70a21702a41638e32778c6400e1848",
+                    "targetSpec": {
+                      "subnets": []
+                    }
+                  },
+                  "summary": "4. Delete a Subnet with its Service Endpoints"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/vrackServices.VrackServices"
+                },
+                "examples": {
+                  "1-CreateSubnetWithTwoServiceEndpoints": {
+                    "value": {
+                      "checksum": "af41611d8156aca52740fbb4347a02d0",
+                      "createdAt": "2023-03-10T11:00:00Z",
+                      "currentState": {
+                        "productStatus": "DRAFT",
+                        "region": "eu-west-rbx",
+                        "subnets": [],
+                        "vrackId": null
+                      },
+                      "currentTasks": [
+                        {
+                          "id": "25ef4fba-6ca6-4848-858e-5ddb93aed760",
+                          "link": "/v2/vrackServices/resource/vrs-asw-dtl-lym-wza",
+                          "status": "PENDING",
+                          "type": "VrackServicesUpdate"
+                        }
+                      ],
+                      "id": "vrs-asw-dtl-lym-wza",
+                      "resourceStatus": "UPDATING",
+                      "targetSpec": {
+                        "subnets": [
+                          {
+                            "cidr": "10.120.0.0/24",
+                            "serviceEndpoints": [
+                              {
+                                "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-26ba-4fa4-aa3e-79c2d0948a45"
+                              },
+                              {
+                                "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-973b-4319-8908-c7a71ac7e58f"
+                              }
+                            ],
+                            "serviceRange": {
+                              "cidr": "10.120.0.0/29"
+                            },
+                            "vlan": 35
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-03-10T12:42:00Z"
+                    },
+                    "summary": "1. Create a Subnet with two Service Endpoints"
+                  },
+                  "2-CreateEmptySubnet": {
+                    "value": {
+                      "checksum": "1aabac6d068eef6a7bad3fdf50a05cc8",
+                      "createdAt": "2023-03-10T11:00:00Z",
+                      "currentState": {
+                        "productStatus": "DRAFT",
+                        "region": "eu-west-rbx",
+                        "subnets": [],
+                        "vrackId": null
+                      },
+                      "currentTasks": [
+                        {
+                          "id": "e368bc10-6e20-46d5-a31e-57fc3f38f98f",
+                          "link": "/v2/vrackServices/resource/vrs-ak0-ok0-sy5-8py",
+                          "status": "PENDING",
+                          "type": "VrackServicesUpdate"
+                        }
+                      ],
+                      "id": "vrs-ak0-ok0-sy5-8py",
+                      "resourceStatus": "UPDATING",
+                      "targetSpec": {
+                        "subnets": [
+                          {
+                            "cidr": "10.120.0.0/24",
+                            "serviceEndpoints": [],
+                            "serviceRange": {
+                              "cidr": "10.120.0.0/29"
+                            },
+                            "vlan": 2
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-03-10T12:42:00Z"
+                    },
+                    "summary": "2. Create an empty Subnet"
+                  },
+                  "3-CreateServiceEndpointInSubnet": {
+                    "value": {
+                      "checksum": "b2ca678b4c936f905fb82f2733f5297f",
+                      "createdAt": "2023-03-10T10:00:00Z",
+                      "currentState": {
+                        "productStatus": "DRAFT",
+                        "region": "eu-west-gra",
+                        "subnets": [
+                          {
+                            "cidr": "192.168.0.0/24",
+                            "displayName": "My.Subnet",
+                            "serviceEndpoints": [],
+                            "serviceRange": {
+                              "cidr": "192.168.0.0/29",
+                              "remainingIps": 3,
+                              "reservedIps": 5,
+                              "usedIps": 0
+                            },
+                            "vlan": 30
+                          }
+                        ],
+                        "vrackId": null
+                      },
+                      "currentTasks": [
+                        {
+                          "id": "3e4026f8-157e-49b4-a9fc-42433bb0ba27",
+                          "link": "/v2/vrackServices/resource/vrs-ar7-72w-poh-3qe",
+                          "status": "PENDING",
+                          "type": "VrackServicesUpdate"
+                        }
+                      ],
+                      "id": "vrs-ar7-72w-poh-3qe",
+                      "resourceStatus": "UPDATING",
+                      "targetSpec": {
+                        "subnets": [
+                          {
+                            "cidr": "192.168.0.0/24",
+                            "displayName": "My.Subnet",
+                            "serviceEndpoints": [
+                              {
+                                "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-00e1-4a3d-ae89-ac145675c8bb"
+                              }
+                            ],
+                            "serviceRange": {
+                              "cidr": "192.168.0.0/29"
+                            },
+                            "vlan": 30
+                          }
+                        ]
+                      },
+                      "updatedAt": "2023-03-10T11:22:00Z"
+                    },
+                    "summary": "3. Create a Service Endpoint in an existing Subnet"
+                  },
+                  "4-DeleteASubnetWithItsServiceEndpoints": {
+                    "value": {
+                      "checksum": "597f4f9ccfbd5f73bc5e6d53a9d8f4b4",
+                      "createdAt": "2023-03-10T08:00:00Z",
+                      "currentState": {
+                        "productStatus": "ACTIVE",
+                        "region": "eu-west-rbx",
+                        "subnets": [
+                          {
+                            "cidr": "172.16.0.0/24",
+                            "displayName": "MySub",
+                            "serviceEndpoints": [
+                              {
+                                "endpoints": [
+                                  {
+                                    "description": "",
+                                    "ip": "172.16.0.51"
+                                  }
+                                ],
+                                "managedServiceURN": "urn:v1:eu:resource:storageNetApp:examples-00e1-4a3d-ae89-ac145675c8bb"
+                              }
+                            ],
+                            "serviceRange": {
+                              "cidr": "172.16.0.32/27",
+                              "remainingIps": 27,
+                              "reservedIps": 4,
+                              "usedIps": 1
+                            },
+                            "vlan": 30
+                          }
+                        ],
+                        "vrackId": "pn-1234567"
+                      },
+                      "currentTasks": [
+                        {
+                          "id": "a23654a5-cec7-4c49-8c37-ba5311f0f2e8",
+                          "link": "/v2/vrackServices/resource/vrs-anb-dic-dsi-raw",
+                          "status": "PENDING",
+                          "type": "VrackServicesUpdate"
+                        }
+                      ],
+                      "id": "vrs-anb-dic-dsi-raw",
+                      "resourceStatus": "UPDATING",
+                      "targetSpec": {
+                        "subnets": []
+                      },
+                      "updatedAt": "2023-06-10T08:10:00Z"
+                    },
+                    "summary": "4. Delete a Subnet with its Service Endpoints"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::ChecksumBadFormat": {
+                    "value": {
+                      "class": "Client::BadRequest::ChecksumBadFormat",
+                      "message": "Invalid Checksum format: checksum '{{.providedChecksum}}' is not a valid MD5 hash"
+                    }
+                  },
+                  "Client::BadRequest::InvalidJSON": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidJSON",
+                      "message": "The input that you provided isn't valid JSON or not well formatted"
+                    }
+                  },
+                  "Client::BadRequest::ManagedServiceAlreadyAttached": {
+                    "value": {
+                      "class": "Client::BadRequest::ManagedServiceAlreadyAttached",
+                      "message": "Managed Service '{{.managedServiceURN}}' is already attached to VrackServices {{.vrackServicesID}}, a Managed Service can be attached to only one vRackServices at a time"
+                    }
+                  },
+                  "Client::BadRequest::ManagedServiceDuplicated": {
+                    "value": {
+                      "class": "Client::BadRequest::ManagedServiceDuplicated",
+                      "message": "Managed Service '{{.managedServiceURN}}' is requested multiple times, a Managed Service can be referenced only once in a vRackServices specification"
+                    }
+                  },
+                  "Client::BadRequest::ManagedServiceIncompatibleType": {
+                    "value": {
+                      "class": "Client::BadRequest::ManagedServiceIncompatibleType",
+                      "message": "Managed Service type '{{.managedServiceType}}' must be a compatible type for vRackServices"
+                    }
+                  },
+                  "Client::BadRequest::ManagedServiceNotAvailable": {
+                    "value": {
+                      "class": "Client::BadRequest::ManagedServiceNotAvailable",
+                      "message": "Managed Service '{{.managedServiceURN}}' is not available due to state '{{.managedServiceState}}'. It should be reopened or renewed to be attached to the vRackServices"
+                    }
+                  },
+                  "Client::BadRequest::ManagedServiceRegionMismatch": {
+                    "value": {
+                      "class": "Client::BadRequest::ManagedServiceRegionMismatch",
+                      "message": "Managed Service '{{.managedServiceURN}}' is in region '{{.managedServiceRegion}}', it cannot be attached to this VrackServices in region '{{.vrackServicesRegion}}'"
+                    }
+                  },
+                  "Client::BadRequest::ManagedServiceURNBadFormat": {
+                    "value": {
+                      "class": "Client::BadRequest::ManagedServiceURNBadFormat",
+                      "message": "Invalid Managed Service '{{.managedServiceURN}}': managedServiceURN must be a valid IAM resourceURN"
+                    }
+                  },
+                  "Client::BadRequest::ServiceRangeCIDRNotInSubnetCIDR": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceRangeCIDRNotInSubnetCIDR",
+                      "message": "Invalid Subnet '{{.subnetCidr}}': serviceRange CIDR '{{.serviceRange}}' is not a sub-network of the Subnet CIDR"
+                    }
+                  },
+                  "Client::BadRequest::ServiceRangeCIDRNotNetworkIP": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceRangeCIDRNotNetworkIP",
+                      "message": "invalid ServiceRange '{{.serviceRangeCidr}}': CIDR is not a base IP (network address)"
+                    }
+                  },
+                  "Client::BadRequest::ServiceRangeCIDRNotPrivateNetwork": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceRangeCIDRNotPrivateNetwork",
+                      "message": "invalid ServiceRange '{{.serviceRangeCidr}}': CIDR must be a private network address (see RFC1918)"
+                    }
+                  },
+                  "Client::BadRequest::ServiceRangeCIDRPrefixLengthOutOfRange": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceRangeCIDRPrefixLengthOutOfRange",
+                      "message": "invalid ServiceRange '{{.serviceRangeCidr}}': CIDR prefix length is out of range [{{.serviceRangeCidrPrefixLengthMin}}, {{.serviceRangeCidrPrefixLengthMax}}]"
+                    }
+                  },
+                  "Client::BadRequest::ServiceRangeIPsCapacityExceeded": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceRangeIPsCapacityExceeded",
+                      "message": "invalid ServiceRange '{{.serviceRangeCidr}}': requested ServiceEndpoints require {{.serviceEndpointsRequiredIPsCount}} IPs, it exceeds the ServiceRange IPs capacity ({{.serviceRangeIPsCapacity}})"
+                    }
+                  },
+                  "Client::BadRequest::SubnetCIDRNotNetworkIP": {
+                    "value": {
+                      "class": "Client::BadRequest::SubnetCIDRNotNetworkIP",
+                      "message": "Invalid Subnet '{{.subnetCidr}}': CIDR is not a base IP (network address)"
+                    }
+                  },
+                  "Client::BadRequest::SubnetCIDRNotPrivateNetwork": {
+                    "value": {
+                      "class": "Client::BadRequest::SubnetCIDRNotPrivateNetwork",
+                      "message": "Invalid Subnet '{{.subnetCidr}}': CIDR must be a private network address (see RFC1918)"
+                    }
+                  },
+                  "Client::BadRequest::SubnetCIDROverlap": {
+                    "value": {
+                      "class": "Client::BadRequest::SubnetCIDROverlap",
+                      "message": "Subnet CIDR '{{.subnetCidr}}' overlaps '{{.subnetCidr2}}', Subnet CIDRs must not overlap each other"
+                    }
+                  },
+                  "Client::BadRequest::SubnetCIDRPrefixLengthIncorrect": {
+                    "value": {
+                      "class": "Client::BadRequest::SubnetCIDRPrefixLengthIncorrect",
+                      "message": "Invalid Subnet '{{.subnetCidr}}': CIDR prefix length must be {{.subnetCidrPrefixLength}}"
+                    }
+                  },
+                  "Client::BadRequest::SubnetDisplayNameBadFormat": {
+                    "value": {
+                      "class": "Client::BadRequest::SubnetDisplayNameBadFormat",
+                      "message": "Invalid TargetSpec: invalid displayName, expected pattern ^[ a-zA-Z0-9-_.]{0,40}$"
+                    }
+                  },
+                  "Client::BadRequest::SubnetLimitExceeded": {
+                    "value": {
+                      "class": "Client::BadRequest::SubnetLimitExceeded",
+                      "message": "Limit of '{{.subnetLimit}}' Subnets exceeded"
+                    }
+                  },
+                  "Client::BadRequest::SubnetVLANOutOfRange": {
+                    "value": {
+                      "class": "Client::BadRequest::SubnetVLANOutOfRange",
+                      "message": "Invalid Subnet '{{.subnetCidr}}': VLAN {{.subnetVlan}} is out of range [{{.subnetVlanMin}}, {{.subnetVlanMax}}]"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ManagedServiceNotFound": {
+                    "value": {
+                      "class": "Client::NotFound::ManagedServiceNotFound",
+                      "message": "Managed Service '{{.managedServiceURN}}' not found"
+                    }
+                  },
+                  "Client::NotFound::VrackServicesNotFound": {
+                    "value": {
+                      "class": "Client::NotFound::VrackServicesNotFound",
+                      "message": "VrackServices '{{.vrackServicesID}}' not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Error 412 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::PreconditionFailed::ChecksumMismatch": {
+                    "value": {
+                      "class": "Client::PreconditionFailed::ChecksumMismatch",
+                      "message": "Provided checksum '{{.providedChecksum}}' does not match the current one '{{.currentChecksum}}'. Please check the last state of the vRackServices with `GET /vrackServices/resource/{vrackServicesId}` endpoint, it may have been updated"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Error 423 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Locked::ManagedServiceLocked": {
+                    "value": {
+                      "class": "Client::Locked::ManagedServiceLocked",
+                      "message": "Managed Service '{{.managedServiceURN}}' is already locked"
+                    }
+                  },
+                  "Client::Locked::VrackServicesLocked": {
+                    "value": {
+                      "class": "Client::Locked::VrackServicesLocked",
+                      "message": "VrackServices '{{.vrackServicesID}}' is already locked"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resource"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrackServices:apiovh:resource/edit",
+            "description": "Update the vRack Services configuration",
+            "required": true
+          },
+          {
+            "name": "vrackServices:apiovh:storageNetApp/attach",
+            "description": "Required to add an Enterprise File Storage into the vRack Services",
+            "required": false
+          },
+          {
+            "name": "vrackServices:apiovh:storageNetApp/detach",
+            "description": "Required to remove an Enterprise File Storage from the vRack Services",
+            "required": false
+          },
+          {
+            "name": "storageNetApp:apiovh:vrackServices/attach",
+            "description": "Attach an Enterprise File Storage service to a vRack Services",
+            "required": false
+          }
+        ]
+      }
+    },
+    "/vrackServices/resource/{vrackServicesId}/eligibleManagedService": {
+      "get": {
+        "summary": "List every managed service eligible to the requested vRack Services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vrackServicesId",
+            "description": "Vrack services ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/vrackServices.EligibleManagedService"
+                  }
+                },
+                "examples": {
+                  "Example": {
+                    "value": [
+                      {
+                        "managedServiceType": "storageNetApp",
+                        "managedServiceURNs": [
+                          "urn:v1:eu:resource:storageNetApp:examples-00e1-4a3d-ae89-ac145675c8bb",
+                          "urn:v1:eu:resource:storageNetApp:examples-a77c-478e-93ce-06aa94cbd9d1"
+                        ]
+                      },
+                      {
+                        "managedServiceType": "anotherManagedService",
+                        "managedServiceURNs": [
+                          "urn:v1:eu:resource:anotherManagedService:examples-4011-496d-881a-bea1867b5626"
+                        ]
+                      }
+                    ],
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resource"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrackServices:apiovh:resource/eligibleManagedService/get",
+            "required": true
+          },
+          {
+            "name": "vrackServices:apiovh:storageNetApp/attach",
+            "description": "Action required on a vrack Services to add an Enterprise File Storage in it",
+            "required": false
+          },
+          {
+            "name": "storageNetApp:apiovh:vrackServices/attach",
+            "description": "Action required on an Enterprise File Storage service to be added into a vRack Services",
+            "required": false
+          }
+        ]
+      }
+    },
+    "/vrackServices/resource/{vrackServicesId}/task": {
+      "get": {
+        "summary": "List all asynchronous operations related to the vRack Services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vrackServicesId",
+            "description": "Vrack services ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/common.Task"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resource"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrackServices:apiovh:resource/task/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "CommonTask"
+      }
+    },
+    "/vrackServices/resource/{vrackServicesId}/task/{taskId}": {
+      "get": {
+        "summary": "Get the task",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "description": "Task ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vrackServicesId",
+            "description": "Vrack services ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/common.Task"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::VrackServicesNotFound": {
+                    "value": {
+                      "class": "Client::BadRequest::VrackServicesNotFound",
+                      "message": "Task '{{.taskID}}' linked to VrackServices '{{.vrackServicesID}}' does not exist"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Resource"
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "vrackServices:apiovh:resource/task/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Reference",
+      "x-tag-expanded": false,
+      "description": "This section contains reference data used across the vRack Services."
+    },
+    {
+      "name": "Resource",
+      "x-tag-expanded": false,
+      "description": "A <b>resource</b> represents an available vRack Services."
+    }
+  ]
+}

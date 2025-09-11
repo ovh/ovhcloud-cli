@@ -1,0 +1,15 @@
+{
+ "customization": {
+  "apiServer": {
+   "admissionPlugins": {
+    "enabled": [
+     "AlwaysPullImages"
+    ]
+   }
+  }
+ },
+ "name": "NewMKSCluster",
+ "region": "SBG5",
+ "updatePolicy": "ALWAYS_UPDATE",
+ "version": "1.32"
+}

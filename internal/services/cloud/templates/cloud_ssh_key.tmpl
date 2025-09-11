@@ -1,0 +1,16 @@
+🚀 SSH key {{.ServiceName}}
+=======
+
+## General information
+
+**Name**:        {{index .Result "name"}}
+**Fingerprint**: {{index .Result "fingerPrint"}}
+
+**Regions**:{{range index .Result "regions"}}
+- {{.}}{{end}}
+
+## Public key
+
+{{index .Result "publicKey"}}
+
+💡 Use option --json or --yaml to get the raw output with all information

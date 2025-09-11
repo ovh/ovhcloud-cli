@@ -1,0 +1,32 @@
+🚀 Dedicated CDN {{.ServiceName}}
+=======
+
+_{{index .Result "iam"  "displayName"}}_
+
+## General information
+
+**Anycast**: {{index .Result "anycast"}}
+**Offer**:   {{index .Result "offer"}}
+**Service**: {{index .Result "service"}}
+**Log URL**: {{index .Result "logUrl"}}
+
+## Technical information
+
+**Quota**:                       {{index .Result "quota"}}
+**Last quota order**:            {{index .Result "anycast"}}
+**Backend limit**:               {{index .Result "backendLimit"}}
+**Backend use**:                 {{index .Result "backendUse"}}
+**Cache rule limit per domain**: {{index .Result "cacheRuleLimitPerDomain "}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

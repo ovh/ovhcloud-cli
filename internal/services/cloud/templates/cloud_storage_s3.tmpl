@@ -1,0 +1,44 @@
+🚀 Storage container {{.ServiceName}}
+=======
+
+## General information
+
+**Region**:        {{index .Result "region"}}
+**Creation time**: {{index .Result "createdAt"}}
+**Owner user ID**: {{index .Result "ownerId"}}
+{{if index .Result "versioning"}}**Versioning**:    {{index .Result "versioning" "status"}}{{end}}
+{{if index .Result "encryption"}}**Encryption**:    {{index .Result "encryption" "sseAlgorithm"}}{{end}}
+
+[Container virtual host]({{index .Result "virtualHost"}})
+
+{{if index .Result "tags"}}
+**Tags**:
+
+| Name | Value |
+| --- | --- |
+{{ range $key, $value := index .Result "tags" }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+{{if and (index .Result "replication") (index .Result "replication" "rules")}}
+## Replication rules
+
+| ID | Priority | Status | Replication region |
+| --- | --- | --- | --- |
+{{range index .Result "replication" "rules"}}| {{.id}} | {{.priority}} | {{.status}} | {{if and (.destination) (index .destination "region")}} {{index .destination "region"}} {{else}} - {{end}} |
+{{end}}
+{{end}}
+
+## Objects
+
+**Objects count**: {{index .Result "objectsCount"}}
+**Space used**:    {{formatByteSize (index .Result "objectsSize") 2 1024}}
+
+{{if index .Result "objects"}}
+| Key | Size (bytes) | Storage class |
+| --- | --- | --- |
+{{ range index .Result "objects" }}| {{.key}} | {{.size}} | {{.storageClass}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

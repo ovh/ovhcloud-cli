@@ -1,0 +1,39 @@
+🚀 Managed Kubernetes cluster customization
+=======
+
+_Cluster ID: {{.ServiceName}}_
+
+## API server
+
+### Admission Plugins
+
+**Admission Plugins Enabled**:
+{{- range index .Result "apiServer" "admissionPlugins" "enabled"}}
+- {{.}}
+{{- end}}
+
+**Admission Plugins Disabled**:
+{{- range index .Result "apiServer" "admissionPlugins" "disabled"}}
+- {{.}}
+{{- end}}
+
+{{if index .Result "kubeProxy"}}
+## Kube proxy
+
+### iptables
+
+**Refresh period**:         {{index .Result "kubeProxy" "iptables" "syncPeriod"}}
+**Minimum refresh period**: {{index .Result "kubeProxy" "iptables" "minSyncPeriod"}}
+
+### ipvs
+
+**Minimum refresh period**: {{index .Result "kubeProxy" "ipvs" "minSyncPeriod"}}
+**Refresh period**:         {{index .Result "kubeProxy" "ipvs" "syncPeriod"}}
+**Scheduler**:              {{index .Result "kubeProxy" "ipvs" "scheduler"}}
+
+**Timeout for IPVS TCP sessions after FIN**: {{index .Result "kubeProxy" "ipvs" "tcpFinTimeout"}}
+**Timeout for idle IPVS TCP sessions**:      {{index .Result "kubeProxy" "ipvs" "tcpTimeout"}}
+**Timeout for IPVS UDP packets**:            {{index .Result "kubeProxy" "ipvs" "udpTimeout"}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

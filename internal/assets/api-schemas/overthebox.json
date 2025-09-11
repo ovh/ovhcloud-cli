@@ -1,0 +1,3660 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/1.0"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "order.CurrencyCodeEnum": {
+        "type": "string",
+        "enum": [
+          "AUD",
+          "CAD",
+          "CZK",
+          "EUR",
+          "GBP",
+          "INR",
+          "LTL",
+          "MAD",
+          "N/A",
+          "PLN",
+          "SGD",
+          "TND",
+          "USD",
+          "XOF",
+          "points"
+        ]
+      },
+      "order.Price": {
+        "type": "object",
+        "description": "Price with it's currency and textual representation",
+        "properties": {
+          "currencyCode": {
+            "$ref": "#/components/schemas/order.CurrencyCodeEnum"
+          },
+          "text": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      },
+      "otb.DeviceStatisticsPeriodEnum": {
+        "type": "string",
+        "description": "Statistics Period",
+        "enum": [
+          "daily",
+          "hourly",
+          "monthly",
+          "weekly"
+        ]
+      },
+      "otb.DeviceStatisticsTypeEnum": {
+        "type": "string",
+        "description": "Serie Name",
+        "enum": [
+          "load",
+          "memory_free",
+          "traffic"
+        ]
+      },
+      "otb.DeviceStatisticsUnitEnum": {
+        "type": "string",
+        "description": "Serie Unit",
+        "enum": [
+          "bps",
+          "byte",
+          "n/a"
+        ]
+      },
+      "otb.device.statistics": {
+        "type": "object",
+        "description": "Device Statistics Datapoints",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the serie",
+            "readOnly": true
+          },
+          "points": {
+            "type": "array",
+            "description": "List of point",
+            "items": {
+              "$ref": "#/components/schemas/otb.device.statistics.point"
+            },
+            "readOnly": true
+          },
+          "tags": {
+            "type": "array",
+            "description": "List of tags",
+            "items": {
+              "$ref": "#/components/schemas/otb.device.statistics.tag"
+            },
+            "readOnly": true
+          },
+          "unit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/otb.DeviceStatisticsUnitEnum"
+              }
+            ],
+            "description": "Unit of the serie",
+            "readOnly": true
+          }
+        }
+      },
+      "otb.device.statistics.point": {
+        "type": "object",
+        "description": "Statistics Datapoint",
+        "properties": {
+          "timestamp": {
+            "type": "integer",
+            "description": "Timestamp",
+            "readOnly": true
+          },
+          "value": {
+            "type": "number",
+            "description": "Datapoint value",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "otb.device.statistics.tag": {
+        "type": "object",
+        "description": "Tags for the metrics",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of tag",
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value of tag",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "otb.service.ip": {
+        "type": "object",
+        "description": "Service IP details",
+        "properties": {
+          "geolocation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/otb.service.ip.geolocationEnum"
+              }
+            ],
+            "description": "IP geolocation",
+            "readOnly": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "IP address",
+            "readOnly": true
+          },
+          "range": {
+            "type": "integer",
+            "description": "IP cidr prefix",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/otb.service.ip.statusEnum"
+              }
+            ],
+            "description": "IP status",
+            "readOnly": true
+          },
+          "version": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/otb.service.ip.versionEnum"
+              }
+            ],
+            "description": "IP version",
+            "readOnly": true
+          }
+        }
+      },
+      "otb.service.ip.geolocationEnum": {
+        "type": "string",
+        "description": "IP geolocation",
+        "enum": [
+          "fr"
+        ]
+      },
+      "otb.service.ip.statusEnum": {
+        "type": "string",
+        "description": "IP status",
+        "enum": [
+          "active",
+          "free",
+          "pendingRelease",
+          "released",
+          "reserved"
+        ]
+      },
+      "otb.service.ip.versionEnum": {
+        "type": "string",
+        "description": "IP version",
+        "enum": [
+          "v4",
+          "v6"
+        ]
+      },
+      "overTheBox.ActionStatusEnum": {
+        "type": "string",
+        "description": "Status of a task.",
+        "enum": [
+          "doing",
+          "done",
+          "error",
+          "todo"
+        ]
+      },
+      "overTheBox.AvailableDeviceAction": {
+        "type": "object",
+        "description": "Device action",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the action"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the action"
+          }
+        }
+      },
+      "overTheBox.AvailableMigrationOffer": {
+        "type": "object",
+        "description": "Migration offer",
+        "properties": {
+          "currentOfferPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Monthly price of the current offer"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the offer"
+          },
+          "engagementMonths": {
+            "type": "integer",
+            "description": "Number of months of engagement"
+          },
+          "hardwareAvailable": {
+            "type": "boolean",
+            "description": "Specify if a hardware is available"
+          },
+          "hardwareName": {
+            "type": "string",
+            "description": "Name of the hardware",
+            "nullable": true
+          },
+          "hardwarePrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Hardware purchase price",
+            "nullable": true
+          },
+          "hardwares": {
+            "type": "array",
+            "description": "Details of available hardwares",
+            "items": {
+              "$ref": "#/components/schemas/overTheBox.HardwareDetails"
+            }
+          },
+          "offer": {
+            "type": "string",
+            "description": "Name of the offer"
+          },
+          "price": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Monthly price of the new offer"
+          }
+        }
+      },
+      "overTheBox.AvailableStatusEnum": {
+        "type": "string",
+        "description": "Status of the service",
+        "enum": [
+          "disabled",
+          "enabled"
+        ]
+      },
+      "overTheBox.Backup": {
+        "type": "object",
+        "description": "Backup",
+        "properties": {
+          "backupId": {
+            "type": "string",
+            "description": "The id of the backup",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Date of the creation of the backup",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "deviceActionId": {
+            "type": "string",
+            "description": "The id of the device action that triggered the backup",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "overTheBox.Device": {
+        "type": "object",
+        "description": "Device",
+        "properties": {
+          "activated": {
+            "type": "boolean",
+            "description": "Whether or not this device is associated to a service",
+            "readOnly": true
+          },
+          "availableUpdate": {
+            "type": "boolean",
+            "description": "Whether or not an upate is available for this device",
+            "readOnly": true
+          },
+          "deviceId": {
+            "type": "string",
+            "description": "The id of the device",
+            "readOnly": true
+          },
+          "lastSeen": {
+            "type": "string",
+            "description": "Last time the device has been seen on the provisionning servers",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "networkInterfaces": {
+            "type": "array",
+            "description": "Network interfaces of the device",
+            "items": {
+              "$ref": "#/components/schemas/overTheBox.DeviceInterface"
+            },
+            "readOnly": true
+          },
+          "publicIp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "The public IP of the device",
+            "readOnly": true
+          },
+          "system": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.DeviceSystem"
+              }
+            ],
+            "description": "Device system information",
+            "nullable": true,
+            "readOnly": true
+          },
+          "systemVersion": {
+            "type": "string",
+            "description": "System version of the device",
+            "readOnly": true
+          },
+          "version": {
+            "type": "string",
+            "description": "Version of the device",
+            "readOnly": true
+          }
+        }
+      },
+      "overTheBox.DeviceAction": {
+        "type": "object",
+        "description": "Device action",
+        "properties": {
+          "actionId": {
+            "type": "string",
+            "description": "The id of the action",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Date of creation of the action",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "details": {
+            "type": "string",
+            "description": "The details of the action",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the action",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.ActionStatusEnum"
+              }
+            ],
+            "description": "The status of the action",
+            "readOnly": true
+          },
+          "todoDate": {
+            "type": "string",
+            "description": "Date of execution of the action",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last time the action was updated",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "overTheBox.DeviceForRegistration": {
+        "type": "object",
+        "description": "A device for registration",
+        "properties": {
+          "activated": {
+            "type": "boolean",
+            "description": "Whether or not this device is actived"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "lastSeen": {
+            "type": "string",
+            "description": "The last time this device was seen on the provisionning servers",
+            "format": "date-time"
+          }
+        }
+      },
+      "overTheBox.DeviceInterface": {
+        "type": "object",
+        "description": "Infos about a network interface",
+        "properties": {
+          "device": {
+            "type": "string",
+            "description": "Device of the interface",
+            "nullable": true
+          },
+          "dnsServers": {
+            "type": "array",
+            "description": "The DNS servers of this interface",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ip"
+            }
+          },
+          "gateway": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Gateway of the interface",
+            "nullable": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "IP of the interface",
+            "nullable": true
+          },
+          "multipathStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.MultipathStatusEnum"
+              }
+            ],
+            "description": "Status of MPTCP on this interface"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the interface"
+          },
+          "netmask": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Netmask of the interface",
+            "nullable": true
+          },
+          "publicIp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Public IP of the interface",
+            "nullable": true
+          }
+        }
+      },
+      "overTheBox.DeviceSystem": {
+        "type": "object",
+        "description": "Infos about a device system",
+        "properties": {
+          "cpu": {
+            "type": "string",
+            "description": "Device CPU",
+            "nullable": true
+          },
+          "hostname": {
+            "type": "string",
+            "description": "Device hostname",
+            "nullable": true
+          },
+          "kernel": {
+            "type": "string",
+            "description": "Device linux kernel version",
+            "nullable": true
+          },
+          "mac": {
+            "type": "string",
+            "description": "Device mac address (first interface mac)",
+            "nullable": true
+          },
+          "model": {
+            "type": "string",
+            "description": "Device model",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the device board",
+            "nullable": true
+          },
+          "offerName": {
+            "type": "string",
+            "description": "OVH offer name of the device board",
+            "nullable": true
+          },
+          "ovhName": {
+            "type": "string",
+            "description": "OVH name of the device board",
+            "nullable": true
+          }
+        }
+      },
+      "overTheBox.GraphEndpoint": {
+        "type": "object",
+        "description": "Parameters required to query metrics from OpenTSDB",
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "The OpenTSDB host"
+          },
+          "readToken": {
+            "type": "string",
+            "description": "A read-only token"
+          },
+          "readTokenID": {
+            "type": "string",
+            "description": "The read-only token ID"
+          }
+        }
+      },
+      "overTheBox.Hardware": {
+        "type": "object",
+        "description": "Hardware properties",
+        "properties": {
+          "canBeLinkedToService": {
+            "type": "boolean",
+            "description": "True if hardware can be linked to a service without deviceID",
+            "readOnly": true
+          },
+          "mac": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/macAddress"
+              }
+            ],
+            "description": "Hardware MAC address",
+            "nullable": true,
+            "readOnly": true
+          },
+          "model": {
+            "type": "string",
+            "description": "Hardware model",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Hardware name",
+            "readOnly": true
+          },
+          "prettyModelName": {
+            "type": "string",
+            "description": "The hardware pretty model name",
+            "readOnly": true
+          },
+          "serial": {
+            "type": "string",
+            "description": "Hardware serial",
+            "readOnly": true
+          }
+        }
+      },
+      "overTheBox.HardwareDetails": {
+        "type": "object",
+        "description": "Details of available hardwares",
+        "properties": {
+          "hardwareDisplayName": {
+            "type": "string",
+            "description": "Pretty hardware model name",
+            "nullable": true
+          },
+          "hardwareName": {
+            "type": "string",
+            "description": "Name of the hardware",
+            "nullable": true
+          },
+          "hardwarePrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Hardware purchase price",
+            "nullable": true
+          }
+        }
+      },
+      "overTheBox.HardwareWithIAM": {
+        "type": "object",
+        "description": "Hardware properties",
+        "properties": {
+          "canBeLinkedToService": {
+            "type": "boolean",
+            "description": "True if hardware can be linked to a service without deviceID",
+            "readOnly": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "mac": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/macAddress"
+              }
+            ],
+            "description": "Hardware MAC address",
+            "nullable": true,
+            "readOnly": true
+          },
+          "model": {
+            "type": "string",
+            "description": "Hardware model",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Hardware name",
+            "readOnly": true
+          },
+          "prettyModelName": {
+            "type": "string",
+            "description": "The hardware pretty model name",
+            "readOnly": true
+          },
+          "serial": {
+            "type": "string",
+            "description": "Hardware serial",
+            "readOnly": true
+          }
+        }
+      },
+      "overTheBox.MultipathStatusEnum": {
+        "type": "string",
+        "description": "Status of a MPTCP Interface.",
+        "enum": [
+          "backup",
+          "handover",
+          "master",
+          "off",
+          "on"
+        ]
+      },
+      "overTheBox.OrderMigration": {
+        "type": "object",
+        "description": "Migration order",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "description": "Id of the migration order"
+          },
+          "orderUrl": {
+            "type": "string",
+            "description": "URL of the migration order"
+          }
+        }
+      },
+      "overTheBox.RemoteAccess": {
+        "type": "object",
+        "description": "If authorized, a remote access will expose a port, allowing an access to the device remotely",
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "description": "If the remote access was accepted by the remote user",
+            "readOnly": true
+          },
+          "askDate": {
+            "type": "string",
+            "description": "The date of the remote access demand",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "authorizedBy": {
+            "type": "string",
+            "description": "The user that authorized the remote access",
+            "nullable": true,
+            "readOnly": true
+          },
+          "connectionInfos": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.RemoteAccessConnectionInfos"
+              }
+            ],
+            "description": "All the infos needed to connect yourself to your OTB",
+            "readOnly": true
+          },
+          "deletedAt": {
+            "type": "string",
+            "description": "When the remote access was deleted",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "dockerVersion": {
+            "type": "string",
+            "description": "Info about the docker version",
+            "readOnly": true
+          },
+          "expirationDate": {
+            "type": "string",
+            "description": "When the remote access will be automatically deleted",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "exposedPort": {
+            "type": "integer",
+            "description": "The device's port which will be exposed",
+            "readOnly": true
+          },
+          "remoteAccessId": {
+            "type": "string",
+            "description": "The id of the remote access",
+            "readOnly": true
+          },
+          "remoteUserInfos": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.RemoteAccessUserInfos"
+              }
+            ],
+            "description": "Infos about the remote user",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.RemoteAccessStatusEnum"
+              }
+            ],
+            "description": "Status of the remote access",
+            "readOnly": true
+          }
+        }
+      },
+      "overTheBox.RemoteAccessConnectionInfos": {
+        "type": "object",
+        "description": "All the infos needed to connect yourself to your OTB",
+        "properties": {
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "IP to connect to when accessing the device remotely",
+            "nullable": true
+          },
+          "port": {
+            "type": "integer",
+            "description": "Port to connect to when accessing the device remotely",
+            "nullable": true
+          }
+        }
+      },
+      "overTheBox.RemoteAccessStatusEnum": {
+        "type": "string",
+        "description": "Status of the remote access.",
+        "enum": [
+          "active",
+          "creating",
+          "deleted",
+          "deleting",
+          "pendingValidation",
+          "recreating",
+          "toDelete",
+          "toRecreate"
+        ]
+      },
+      "overTheBox.RemoteAccessUserInfos": {
+        "type": "object",
+        "description": "Infos about the remote user",
+        "properties": {
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "IP from which the remote access will be allowed"
+          },
+          "publicKey": {
+            "type": "string",
+            "description": "The public key authorized on the device (for SSH purpose)",
+            "nullable": true
+          },
+          "user": {
+            "type": "string",
+            "description": "The user that will access the device remotely"
+          }
+        }
+      },
+      "overTheBox.Service": {
+        "type": "object",
+        "description": "Service",
+        "properties": {
+          "SOCKSProxyEnabled": {
+            "type": "boolean",
+            "description": "If the socks proxy is enabled",
+            "readOnly": true
+          },
+          "autoMTU": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.AvailableStatusEnum"
+              }
+            ],
+            "description": "The status of the autoMTU",
+            "readOnly": true
+          },
+          "autoUpgrade": {
+            "type": "boolean",
+            "description": "Enable device auto upgrade"
+          },
+          "bandwidth": {
+            "type": "integer",
+            "description": "The service maximum bandwidth in bits",
+            "readOnly": true
+          },
+          "configurationMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.ServiceConfigurationModeEnum"
+              }
+            ],
+            "description": "Configuration mode of the service",
+            "readOnly": true
+          },
+          "customerDescription": {
+            "type": "string",
+            "description": "Editable field for customer",
+            "nullable": true
+          },
+          "graphEndpoint": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.GraphEndpoint"
+              }
+            ],
+            "description": "Parameters needed to fetch metrics",
+            "nullable": true,
+            "readOnly": true
+          },
+          "ipv6Enabled": {
+            "type": "boolean",
+            "description": "Indicates if IPv6 is enabled",
+            "readOnly": true
+          },
+          "offer": {
+            "type": "string",
+            "description": "The service offer",
+            "readOnly": true
+          },
+          "prettyOfferName": {
+            "type": "string",
+            "description": "The service pretty offer name",
+            "readOnly": true
+          },
+          "releaseChannel": {
+            "type": "string",
+            "description": "Release channel of the service"
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "The name of the service",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.ServiceStatusEnum"
+              }
+            ],
+            "description": "The status of the service",
+            "readOnly": true
+          },
+          "tunnelMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.TunnelModeEnum"
+              }
+            ],
+            "description": "The tunnel mode of the service",
+            "readOnly": true
+          }
+        }
+      },
+      "overTheBox.ServiceConfigurationModeEnum": {
+        "type": "string",
+        "description": "Configuration mode of the service",
+        "enum": [
+          "autoconfigure",
+          "local"
+        ]
+      },
+      "overTheBox.ServiceStatusEnum": {
+        "type": "string",
+        "description": "Status of the service.",
+        "enum": [
+          "active",
+          "creating",
+          "deleted",
+          "suspended",
+          "toCreate",
+          "toDelete"
+        ]
+      },
+      "overTheBox.ServiceWithIAM": {
+        "type": "object",
+        "description": "Service",
+        "properties": {
+          "SOCKSProxyEnabled": {
+            "type": "boolean",
+            "description": "If the socks proxy is enabled",
+            "readOnly": true
+          },
+          "autoMTU": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.AvailableStatusEnum"
+              }
+            ],
+            "description": "The status of the autoMTU",
+            "readOnly": true
+          },
+          "autoUpgrade": {
+            "type": "boolean",
+            "description": "Enable device auto upgrade"
+          },
+          "bandwidth": {
+            "type": "integer",
+            "description": "The service maximum bandwidth in bits",
+            "readOnly": true
+          },
+          "configurationMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.ServiceConfigurationModeEnum"
+              }
+            ],
+            "description": "Configuration mode of the service",
+            "readOnly": true
+          },
+          "customerDescription": {
+            "type": "string",
+            "description": "Editable field for customer",
+            "nullable": true
+          },
+          "graphEndpoint": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.GraphEndpoint"
+              }
+            ],
+            "description": "Parameters needed to fetch metrics",
+            "nullable": true,
+            "readOnly": true
+          },
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "ipv6Enabled": {
+            "type": "boolean",
+            "description": "Indicates if IPv6 is enabled",
+            "readOnly": true
+          },
+          "offer": {
+            "type": "string",
+            "description": "The service offer",
+            "readOnly": true
+          },
+          "prettyOfferName": {
+            "type": "string",
+            "description": "The service pretty offer name",
+            "readOnly": true
+          },
+          "releaseChannel": {
+            "type": "string",
+            "description": "Release channel of the service"
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "The name of the service",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.ServiceStatusEnum"
+              }
+            ],
+            "description": "The status of the service",
+            "readOnly": true
+          },
+          "tunnelMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.TunnelModeEnum"
+              }
+            ],
+            "description": "The tunnel mode of the service",
+            "readOnly": true
+          }
+        }
+      },
+      "overTheBox.Task": {
+        "type": "object",
+        "description": "Task",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the task",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/overTheBox.TaskStatusEnum"
+              }
+            ],
+            "description": "The status of the task",
+            "readOnly": true
+          },
+          "taskId": {
+            "type": "string",
+            "description": "The id of the task",
+            "readOnly": true
+          }
+        }
+      },
+      "overTheBox.TaskStatusEnum": {
+        "type": "string",
+        "description": "Status of a task.",
+        "enum": [
+          "doing",
+          "done",
+          "error",
+          "todo"
+        ]
+      },
+      "overTheBox.TemporaryLogsLink": {
+        "type": "object",
+        "description": "Temporary url informations",
+        "properties": {
+          "expirationDate": {
+            "type": "string",
+            "description": "Temporary url expiration date",
+            "format": "date-time"
+          },
+          "url": {
+            "type": "string",
+            "description": "Temporary url"
+          }
+        }
+      },
+      "overTheBox.TunnelModeEnum": {
+        "type": "string",
+        "description": "Tunnel mode of the service.",
+        "enum": [
+          "glorytun",
+          "glorytun_hybrid",
+          "glorytun_mud"
+        ]
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "price.OverTheBox.OfferEnum": {
+        "type": "string",
+        "description": "Enum of Offers",
+        "enum": [
+          "business.v1",
+          "plus.v1",
+          "starter.v1"
+        ]
+      },
+      "service.RenewType": {
+        "type": "object",
+        "description": "Map a possible renew for a specific service",
+        "properties": {
+          "automatic": {
+            "type": "boolean",
+            "description": "The service is automatically renewed"
+          },
+          "deleteAtExpiration": {
+            "type": "boolean",
+            "description": "The service will be deleted at expiration"
+          },
+          "forced": {
+            "type": "boolean",
+            "description": "The service forced to be renewed"
+          },
+          "manualPayment": {
+            "type": "boolean",
+            "description": "The service needs to be manually renewed and paid",
+            "nullable": true
+          },
+          "period": {
+            "type": "integer",
+            "description": "period of renew in month",
+            "nullable": true
+          }
+        }
+      },
+      "service.RenewalTypeEnum": {
+        "type": "string",
+        "description": "Detailed renewal type of a service",
+        "enum": [
+          "automaticForcedProduct",
+          "automaticV2012",
+          "automaticV2014",
+          "automaticV2016",
+          "automaticV2024",
+          "manual",
+          "oneShot",
+          "option"
+        ]
+      },
+      "service.StateEnum": {
+        "type": "string",
+        "enum": [
+          "autorenewInProgress",
+          "expired",
+          "inCreation",
+          "ok",
+          "pendingDebt",
+          "unPaid"
+        ]
+      },
+      "services.Service": {
+        "type": "object",
+        "description": "Details about a Service",
+        "properties": {
+          "canDeleteAtExpiration": {
+            "type": "boolean",
+            "description": "Indicates that the service can be set up to be deleted at expiration",
+            "readOnly": true
+          },
+          "contactAdmin": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactBilling": {
+            "type": "string",
+            "readOnly": true
+          },
+          "contactTech": {
+            "type": "string",
+            "readOnly": true
+          },
+          "creation": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "engagedUpTo": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+          },
+          "possibleRenewPeriod": {
+            "type": "array",
+            "description": "All the possible renew period of your service in month",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            },
+            "readOnly": true
+          },
+          "renew": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewType"
+              }
+            ],
+            "description": "Way of handling the renew",
+            "nullable": true
+          },
+          "renewalType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.RenewalTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "serviceId": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/service.StateEnum"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      }
+    }
+  },
+  "paths": {
+    "/overTheBox": {
+      "get": {
+        "summary": "List available services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OverTheBoxServiceWithIAM"
+      }
+    },
+    "/overTheBox/availableOffers": {
+      "get": {
+        "summary": "List the available offers for the new call",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/price.OverTheBox.OfferEnum"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:overTheBox/availableOffers/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/devices": {
+      "post": {
+        "summary": "Get the list of devices connected from the same IP address",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/overTheBox.DeviceForRegistration"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:overTheBox/devices/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/hardware": {
+      "get": {
+        "summary": "List available services",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBoxHardware:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OverTheBoxHardwareWithIAM"
+      }
+    },
+    "/overTheBox/hardware/available": {
+      "get": {
+        "summary": "List hardware that can be linked to a service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:overTheBoxHardware/available/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/hardware/{hardwareName}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hardwareName",
+            "description": "The internal name of your hardware",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.HardwareWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBoxHardware:apiovh:get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}": {
+      "delete": {
+        "summary": "Resiliate a service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.ServiceWithIAM"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Alter this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/overTheBox.Service"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:put",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/autoMTU": {
+      "put": {
+        "summary": "Change the value of autoMTU",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mtuAuto": {
+                    "description": "Enable or disable autoMTU",
+                    "$ref": "#/components/schemas/overTheBox.AvailableStatusEnum"
+                  }
+                },
+                "required": [
+                  "mtuAuto"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:autoMTU/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/availableReleaseChannels": {
+      "get": {
+        "summary": "List available release channels for this service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:availableReleaseChannels/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/backups": {
+      "get": {
+        "summary": "List of backups for this service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:backups/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OverTheBoxBackup"
+      }
+    },
+    "/overTheBox/{serviceName}/backups/{backupId}": {
+      "delete": {
+        "summary": "Delete a backup",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "backupId",
+            "description": "The id of the backup",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:backups/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "backupId",
+            "description": "The id of the backup",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.Backup"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:backups/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/cancelResiliation": {
+      "post": {
+        "summary": "Cancel the resiliation of the Service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:cancelResiliation",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/changeContact": {
+      "post": {
+        "summary": "Launch a contact change procedure",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactAdmin": {
+                    "type": "string",
+                    "description": "The contact to set as admin contact"
+                  },
+                  "contactBilling": {
+                    "type": "string",
+                    "description": "The contact to set as billing contact"
+                  },
+                  "contactTech": {
+                    "type": "string",
+                    "description": "The contact to set as tech contact"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:changeContact",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/device": {
+      "delete": {
+        "summary": "Unlink a device from a service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:device/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.Device"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:device/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/device/actions": {
+      "get": {
+        "summary": "List of actions scheduled for this device",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "name",
+            "description": "Filter the value of name property (=)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "description": "Filter the value of status property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/overTheBox.ActionStatusEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:device/actions/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OverTheBoxDeviceAction"
+      },
+      "post": {
+        "summary": "Create a device action on the device",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the action"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.DeviceAction"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:device/actions/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/device/actions/{actionId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "actionId",
+            "description": "The id of the action",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.DeviceAction"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:device/actions/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/device/availableActions": {
+      "get": {
+        "summary": "List the available device actions",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/overTheBox.AvailableDeviceAction"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:device/availableActions/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/device/backup": {
+      "post": {
+        "summary": "Create an action to generate a backup",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.DeviceAction"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:device/backup/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/device/hardware": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.Hardware"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:device/hardware/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/device/logs": {
+      "post": {
+        "summary": "Generate a temporary url to retrieve device logs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.TemporaryLogsLink"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:device/logs/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/device/restoreBackup": {
+      "post": {
+        "summary": "Create a group of actions to restore a given backup",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "backupId": {
+                    "type": "string",
+                    "description": "The id of the backup to restore"
+                  }
+                },
+                "required": [
+                  "backupId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/overTheBox.DeviceAction"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:device/restoreBackup",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/ips": {
+      "get": {
+        "summary": "List IP assigned to an OverTheBox service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ip"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:ips/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OtbServiceIp"
+      }
+    },
+    "/overTheBox/{serviceName}/ips/{ip}": {
+      "get": {
+        "summary": "Get details IP assigned to an OverTheBox service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ip",
+            "description": "Ip",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ip"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/otb.service.ip"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:ips/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "ip"
+      }
+    },
+    "/overTheBox/{serviceName}/ipv6": {
+      "put": {
+        "summary": "Change the status of IPv6 on this service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Enabled/disabled IPv6"
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:ipv6/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/linkDevice": {
+      "post": {
+        "summary": "Link a device to this service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "deviceId": {
+                    "type": "string",
+                    "description": "The id of the device"
+                  }
+                },
+                "required": [
+                  "deviceId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:linkDevice",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/linkHardware": {
+      "post": {
+        "summary": "Link an available hardware to this service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hardwareName": {
+                    "type": "string",
+                    "description": "The internal name of your hardware"
+                  }
+                },
+                "required": [
+                  "hardwareName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:linkHardware",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/migration/changeOffers": {
+      "post": {
+        "summary": "Migrate to the selected overTheBox offer",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hardwareName": {
+                    "type": "string",
+                    "description": "Name of the hardware"
+                  },
+                  "offer": {
+                    "type": "string",
+                    "description": "Offer name to migrate to"
+                  },
+                  "shippingContactID": {
+                    "type": "string",
+                    "description": "In case of hardware and if a shipping custom address is desired"
+                  }
+                },
+                "required": [
+                  "offer"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.OrderMigration"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:migration/changeOffers",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/migration/offers": {
+      "get": {
+        "summary": "List all available offers one can migrate to",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/overTheBox.AvailableMigrationOffer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:migration/offers/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/remoteAccesses": {
+      "get": {
+        "summary": "List of remote accesses for the service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:remoteAccesses/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OverTheBoxRemoteAccess"
+      },
+      "post": {
+        "summary": "Create a new remote access for the service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "allowedIp": {
+                    "description": "IP block from which the remote access will be allowed (the default value is the IP from which the call is made)",
+                    "$ref": "#/components/schemas/ipBlock"
+                  },
+                  "expirationDate": {
+                    "type": "string",
+                    "description": "The expirationDate of the remote access (default 1 day)",
+                    "format": "date-time"
+                  },
+                  "exposedPort": {
+                    "type": "integer",
+                    "description": "The port that the device will expose"
+                  },
+                  "publicKey": {
+                    "type": "string",
+                    "description": "The remote user public key authorized on the device (for SSH purpose)"
+                  }
+                },
+                "required": [
+                  "exposedPort"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.RemoteAccess"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:remoteAccesses/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/remoteAccesses/{remoteAccessId}": {
+      "delete": {
+        "summary": "Delete a remote access",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "remoteAccessId",
+            "description": "The id of the remote access",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:remoteAccesses/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "remoteAccessId",
+            "description": "The id of the remote access",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.RemoteAccess"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:remoteAccesses/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/remoteAccesses/{remoteAccessId}/authorize": {
+      "post": {
+        "summary": "Authorize the remote access",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "remoteAccessId",
+            "description": "The id of the remote access",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:remoteAccesses/authorize",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/serviceInfos": {
+      "get": {
+        "summary": "Get service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/services.Service"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:serviceInfos/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update service information",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/services.Service"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:serviceInfos/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/statistics": {
+      "get": {
+        "summary": "Get statistics for an OTB device",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "metricsType",
+            "description": "Type of metrics you want to retrieve",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/otb.DeviceStatisticsTypeEnum"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "description": "Period (default is daily)",
+            "schema": {
+              "$ref": "#/components/schemas/otb.DeviceStatisticsPeriodEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/otb.device.statistics"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:statistics/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/overTheBox/{serviceName}/tasks": {
+      "get": {
+        "summary": "List of tasks scheduled for this service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "name",
+            "description": "Filter the value of name property (=)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "description": "Filter the value of status property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/overTheBox.TaskStatusEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:tasks/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "OverTheBoxTask"
+      }
+    },
+    "/overTheBox/{serviceName}/tasks/{taskId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "The internal name of your overTheBox offer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "taskId",
+            "description": "The id of the task",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/overTheBox.Task"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "overTheBox:apiovh:tasks/get",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}

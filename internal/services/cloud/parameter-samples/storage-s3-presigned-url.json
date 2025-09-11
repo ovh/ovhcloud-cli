@@ -1,0 +1,7 @@
+{
+  "expire": 60,
+  "method": "GET",
+  "object": "",
+  "storageClass": "HIGH_PERF",
+  "versionId": ""
+}

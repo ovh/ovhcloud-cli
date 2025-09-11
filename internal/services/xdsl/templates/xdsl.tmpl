@@ -1,0 +1,32 @@
+🚀 XDSL access {{.ServiceName}}
+=======
+
+{{if index .Result "description"}}_{{index .Result "description"}}_{{end}}
+
+## General information
+
+**Name**:                     {{index .Result "accessName"}}
+**Type**:                     {{index .Result "accessType"}}
+**Status**:                   {{index .Result "status"}}
+**Pack name**:                {{index .Result "packName"}}
+**Provider**:                 {{index .Result "provider"}}
+**Infrastructure provider**:  {{index .Result "providerInfra"}}
+
+## Address
+
+{{index .Result "address" "firstName"}} {{index .Result "address" "lastName"}}
+{{index .Result "address" "numberStreet"}} {{index .Result "address" "street"}}
+{{index .Result "address" "zipCode"}} {{index .Result "address" "city"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

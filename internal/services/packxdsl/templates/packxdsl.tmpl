@@ -1,0 +1,29 @@
+🚀 Pack XDSL {{.ServiceName}}
+=======
+
+{{if index .Result "iam" "displayName"}}_{{index .Result "iam" "displayName"}}_{{end}}
+{{if index .Result "description"}}_{{index .Result "description"}}_{{end}}
+
+## General information
+
+**Offer**: {{index .Result "offerDescription"}}
+**Price**: {{index .Result "offerPrice" "text"}}
+
+## Capabilities
+
+**Can move address**: {{index .Result "capabilities" "canMoveAddress"}}
+**Legacy offer**:     {{index .Result "capabilities" "isLegacyOffer"}}
+**Reseller offer**:   {{index .Result "capabilities" "isResellerOffer"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

@@ -1,0 +1,40 @@
+🚀 Managed VMware {{.ServiceName}}
+=======
+
+_{{index .Result "iam"  "displayName"}}_
+{{if index .Result "description"}}_{{index .Result "description"}}_{{end}}
+
+## General information
+
+**Location**:         {{index .Result "location"}}
+**State**:            {{index .Result "state"}}
+**Generation**:       {{index .Result "generation"}}
+**Version**:          {{index .Result "version" "major"}}.{{index .Result "version" "minor"}}.{{index .Result "version" "build"}}
+**Commercial range**: {{index .Result "commercialRange"}}
+**Billing type**:     {{index .Result "billingType"}}
+
+[Web interface]({{index .Result "webInterfaceUrl"}})
+[vScope URL]({{index .Result "vScopeUrl"}})
+
+## Technical information
+
+| Parameter | Value |
+| ---       | ---   |
+| Advanced security | {{index .Result "advancedSecurity"}} |
+| Bandwidth | {{index .Result "bandwidth"}} |
+| SPLA | {{index .Result "spla"}} |
+| SSLv3 | {{index .Result "sslV3"}} |
+| User access policy | {{index .Result "userAccessPolicy"}} |
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

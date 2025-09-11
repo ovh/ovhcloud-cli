@@ -1,0 +1,25 @@
+🚀 Email domain {{.ServiceName}}
+=======
+
+## General information
+
+**Status**:         {{index .Result "status"}}
+**Offer**:          {{index .Result "offer"}}
+**SPF check**:      {{index .Result "isSPFValid"}}
+**MX check**:       {{index .Result "isMXValid"}}
+**MX check**:       {{index .Result "isMXValid"}}
+**Service linked**: {{index .Result "linkTo"}}
+**Filerz**:         {{index .Result "filerz"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

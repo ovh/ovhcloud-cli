@@ -1,0 +1,29 @@
+🚀 Telephony account {{.ServiceName}}
+=======
+
+{{if index .Result "description"}}_{{index .Result "description"}}_{{end}}
+
+## General information
+
+**Status**:  {{index .Result "status"}}
+**Trusted**:  {{index .Result "trusted"}}
+
+## Billing information
+
+**Current outplan**:          {{index .Result "currentOutplan" "text"}}
+**Allowed outplan**:          {{index .Result "allowedOutplan" "text"}}
+**Allowed credit threshold**: {{index .Result "creditThreshold" "text"}}
+**Security deposit**:         {{index .Result "securityDeposit" "text"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

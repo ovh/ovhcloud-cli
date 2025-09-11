@@ -1,0 +1,14 @@
+{
+ "customization": {
+  "apiServer": {
+   "admissionPlugins": {
+    "enabled": [
+     "AlwaysPullImages"
+    ]
+   }
+  }
+ },
+ "name": "NewMKSCluster",
+ "updatePolicy": "ALWAYS_UPDATE",
+ "version": "1.32"
+}

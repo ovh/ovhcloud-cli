@@ -1,0 +1,38 @@
+🚀 Nutanix cluster {{.ServiceName}}
+=======
+
+{{if index .Result "iam" "displayName"}}_{{index .Result "iam" "displayName"}}_{{end}}
+
+## General information
+
+**Status**: {{index .Result "status"}}
+
+## Target specification
+
+**Name**:           {{index .Result "targetSpec" "name"}}
+**Version**:        {{index .Result "targetSpec" "version"}}
+**Control panel**:  {{index .Result "targetSpec" "controlPanelURL"}}
+**Erasure coding**: {{index .Result "targetSpec" "erasureCoding"}}
+**Gateway CIDR**:   {{index .Result "targetSpec" "gatewayCidr"}}
+**IPFO**:           {{index .Result "targetSpec" "ipfo"}}
+**IPLB**:           {{index .Result "targetSpec" "iplb"}}
+
+### Nodes
+
+| Server | Status | Hypervisor IP | Controler VM IP |
+| --- | --- | --- | --- |
+{{range index .Result "targetSpec" "nodes"}}| {{.server}} | {{.status}} | {{.ahvIp}} | {{.cvmIp}} |
+{{end}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

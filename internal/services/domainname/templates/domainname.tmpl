@@ -1,0 +1,49 @@
+🚀 Domain name {{.ServiceName}}
+=======
+
+## General information
+
+**Expiration**:           {{index .Result "expirationDate"}}
+**Renewal**:              {{index .Result "renewalDate"}} - {{index .Result "renewalState"}}
+**Transfer lock status**: {{index .Result "transferLockStatus"}}
+
+## Technical information
+
+**DNSSEC**:
+- Supported: {{index .Result "dnssecSupported"}}
+- State: {{index .Result "dnssecState"}}
+
+**Glue record**:
+- IPv6 supported: {{index .Result "glueRecordIpv6Supported"}}
+- Multi-IP supported: {{index .Result "glueRecordMultiIpSupported"}}
+
+**Host supported**: {{index .Result "hostSupported"}}
+**OWO supported**: {{index .Result "owoSupported"}}
+
+### Name servers
+
+| Nameserver | Type |
+| --- | --- |
+{{ range index .Result "nameServers" }}| {{.nameServer}} | {{.nameServerType}} |
+{{end}}
+
+## Contacts
+
+| Contact type | Account |
+| --- | --- |
+| Admin | {{index .Result "contactAdmin" "id"}} |
+| Billing | {{index .Result "contactBilling" "id"}} |
+| Tech | {{index .Result "contactTech" "id"}} |
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

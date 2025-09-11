@@ -1,0 +1,11 @@
+{
+  "availabilityZone": "eu-west-par",
+  "backupId": "198569d2-ec40-4000-82b5-c963c9a94501",
+  "description": "This is a new volume",
+  "imageId": "198569d2-ec40-4000-8ee9-db51a7ed9301",
+  "instanceId": "198569d2-ec40-4000-8e4a-cb84368a0180",
+  "name": "myvolume",
+  "size": 0,
+  "snapshotId": "198569d2-ec40-4000-865d-b3497694a180",
+  "type": "classic-multiattach"
+}

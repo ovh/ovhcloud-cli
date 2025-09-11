@@ -1,0 +1,36 @@
+🚀 Load balancer {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+{{if index .Result "description"}}_{{index .Result "description"}}_{{end}}
+
+## General information
+
+**Size**:            {{index .Result "size"}}
+**Region**:          {{index .Result "region"}}
+**OpenStackRegion**: {{index .Result "openstackRegion"}}
+**Status**:          {{index .Result "status"}}
+**Creation date**:   {{index .Result "createdAt"}}
+
+## Network information
+
+### Ingress
+
+**Kind**:         {{index .Result "networking" "ingress" "kind"}}
+**IPv4 address**: {{index .Result "address" "ipv4"}}
+**IPv6 address**: {{index .Result "address" "ipv6"}}
+
+### Egress
+
+**Kind**:  {{index .Result "networking" "egress" "kind"}}
+
+**IPv4 addresses**:
+{{range index .Result "egressAddress" "ipv4"}}- {{.}}
+{{end}}
+
+{{if index .Result "egressAddress" "ipv6"}}**IPv6 addresses**:
+{{range index .Result "egressAddress" "ipv6"}}- {{.}}
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

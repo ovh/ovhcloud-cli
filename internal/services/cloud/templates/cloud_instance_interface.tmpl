@@ -1,0 +1,17 @@
+🚀 Instance Interface {{.ServiceName}}
+=======
+
+## General information
+
+**Type**:         {{index .Result "type"}}
+**State**:        {{index .Result "state" }}
+**MAC address**:  {{index .Result "macAddress" }}
+**Network ID**:   {{index .Result "networkId" }}
+
+IP Addresses:
+| IP | Subnet ID |
+| --- | --- |
+{{ range index .Result "fixedIps" }}| {{.ip}} | {{.subnetId}} |
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

@@ -1,0 +1,21 @@
+🚀 Support ticket {{.ServiceName}}
+=======
+
+{{if index .Result "subject"}}_{{index .Result "subject"}}_{{end}}
+
+## General information
+
+**Type**:              {{index .Result "type"}}
+**State**:             {{index .Result "state"}}
+**Category**:          {{index .Result "category"}}
+**Account**:           {{index .Result "accountId"}}
+**Creation date**:     {{index .Result "creationDate"}}
+**Update date**:       {{index .Result "creationDate"}}
+**Last message from**: {{index .Result "lastMessageFrom"}}
+
+## Related service
+
+**Product**:      {{index .Result "product"}}
+**Service name**: {{index .Result "serviceName"}}
+
+💡 Use option --json or --yaml to get the raw output with all information

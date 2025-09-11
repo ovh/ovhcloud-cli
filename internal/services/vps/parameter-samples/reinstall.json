@@ -1,0 +1,6 @@
+{
+  "doNotSendPassword": false,
+  "imageId": "7e202220-97f9-42b2-8037-9098abf6f38f",
+  "installRTM": false,
+  "sshKey": "some-ssh-key"
+}

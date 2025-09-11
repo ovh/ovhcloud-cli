@@ -1,0 +1,23 @@
+🚀 IAM Permissions Group {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+_{{index .Result "description"}}_
+
+## General information
+
+**URN**:           {{index .Result "urn"}}
+**Owner**:         {{index .Result "owner"}}
+**Creation time**: {{index .Result "createdAt"}}
+**Update time**:   {{index .Result "updatedAt"}}
+
+## Permissions
+
+| Effect | Action |
+| --- | --- |
+{{if index .Result "permissions" "allow"}}{{range index .Result "permissions" "allow"}}| Allow | {{.action}} |
+{{end}}{{end}}{{if index .Result "permissions" "except"}}{{range index .Result "permissions" "except"}}| Except | {{.action}} |
+{{end}}{{end}}{{if index .Result "permissions" "deny"}}{{range index .Result "permissions" "deny"}}| Deny | {{.action}} |
+{{end}}{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

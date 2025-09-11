@@ -1,0 +1,43 @@
+🚀 vRack services {{.ServiceName}}
+=======
+
+## General information
+
+**Status**:        {{index .Result "resourceStatus"}}
+**Creation date**: {{index .Result "createdAt"}}
+**Update date**:   {{index .Result "updatedAt"}}
+
+## Current state
+
+**Product status**:   {{index .Result "currentState" "productStatus"}}
+**Region**:           {{index .Result "currentState" "region"}}
+**Associated vRack**: {{index .Result "currentState" "vrackId"}}
+
+### Subnets
+
+| Name | CIDR | VLAN |
+| --- | --- | --- |
+{{ range index .Result "currentState" "subnets" }}| {{.displayName}} | {{.cidr}} | {{.vlan}} |
+{{end}}
+
+{{if index .Result "currentTasks"}}
+## Current tasks
+
+| ID | Type | Status |
+| --- | --- | --- |
+{{ range index .Result "currentTasks" }}| {{.id}} | {{.type}} | {{.status}} |
+{{end}}
+{{end}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

@@ -1,0 +1,42 @@
+🚀 IP {{.ServiceName}}
+=======
+
+_{{index .Result "description"}}_
+
+## Location
+
+**Country**: {{index .Result "country"}}
+**Campus**:  {{index .Result "campus"}}
+**RIR**:     {{index .Result "rir"}}
+
+### Regions
+{{ range index .Result "regions" }}
+- {{.}}
+{{ end }}
+
+## Routing
+
+**Routed to**: {{index .Result "routedTo" "serviceName" }}
+
+## General information
+
+| Key | Value |
+| --- | --- |
+| Type | {{index .Result "type"}} |
+| Version | {{index .Result "version"}} |
+| Can be terminated | {{index .Result "canBeTerminated"}} |
+| Additional IP | {{index .Result "isAdditionalIp"}} |
+| Bring your own IP | {{index .Result "bringYourOwnIp"}} |
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

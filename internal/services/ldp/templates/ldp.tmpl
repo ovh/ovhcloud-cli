@@ -1,0 +1,25 @@
+🚀 Logs Data Platform {{.ServiceName}}
+=======
+
+{{if index .Result "displayName"}}_{{index .Result "displayName"}}_{{end}}
+
+## General information
+
+**Plan**:          {{index .Result "plan"}}
+**State**:         {{index .Result "state"}}
+**Username**:      {{index .Result "username"}}
+**Cluster owner**: {{index .Result "isClusterOwner"}}
+**IAM enabled**:   {{index .Result "isIamEnabled"}}
+
+## IAM information
+
+**URN**: {{index .Result "iam" "urn"}}
+{{if index .Result "iam" "tags"}}
+**Tags**:
+| Key | Value |
+| --- | --- |
+{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information
