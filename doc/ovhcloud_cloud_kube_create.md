@@ -67,6 +67,7 @@ ovhcloud cloud kube create [flags]
       --load-balancers-subnet-id string                               OpenStack subnet ID that the load balancers will use
       --name string                                                   Name of the Kubernetes cluster
       --nodes-subnet-id string                                        OpenStack subnet ID that the cluster nodes will use
+      --plan string                                                   Kubernetes cluster plan (free or standard, default: free)
       --private-network-id string                                     OpenStack private network ID that the cluster will use
       --private-network.default-vrack-gateway string                  If defined, all egress traffic will be routed towards this IP address, which should belong to the private network
       --private-network.routing-as-default                            Set private network routing as default

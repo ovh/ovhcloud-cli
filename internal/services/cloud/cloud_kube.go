@@ -89,6 +89,7 @@ var (
 		UpdatePolicy      string `json:"updatePolicy,omitempty"`
 		Version           string `json:"version,omitempty"`
 		WorkerNodesPolicy string `json:"workerNodesPolicy,omitempty"`
+		Plan              string `json:"plan,omitempty"`
 	}
 
 	// KubeNodepoolSpec defines the structure for a Kubernetes node pool specification
