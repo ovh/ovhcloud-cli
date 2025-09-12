@@ -242,7 +242,7 @@ There are three ways to define the parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud network private create <region> --name MyNetwork …
+  ovhcloud cloud network private create <region> --name MyNetwork
 
 2. Using a configuration file:
 
@@ -325,7 +325,7 @@ There are three ways to define the parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud network gateway create <region> --name MyGateway --model xl …
+  ovhcloud cloud network gateway create <region> --name MyGateway --model xl
 
 2. Using a configuration file:
 
