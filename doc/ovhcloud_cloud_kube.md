@@ -1,6 +1,6 @@
 ## ovhcloud cloud kube
 
-List Kubernetes clusters in the given cloud project
+Manage Kubernetes clusters in the given cloud project
 
 ### Options
 
