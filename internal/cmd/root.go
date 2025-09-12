@@ -74,6 +74,7 @@ func init() {
 	// files are optional. Only load file from user home if home could be resolve
 	flags.CliConfig, flags.CliConfigPath = config.LoadINI()
 
+	rootCmd.DisableAutoGenTag = true
 	rootCmd.PersistentFlags().BoolVarP(&flags.Debug, "debug", "d", false, "Activate debug mode (will log all HTTP requests details)")
 	rootCmd.PersistentFlags().BoolVarP(&flags.IgnoreErrors, "ignore-errors", "e", false, "Ignore errors in API calls when it is not fatal to the execution")
 	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.JsonOutput, "json", "j", false, "Output in JSON")

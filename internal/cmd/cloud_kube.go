@@ -316,7 +316,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud kube create --name MyNewCluster --region SBG5 --version 1.32 …
+  ovhcloud cloud kube create --name MyNewCluster --region SBG5 --version 1.32
 
 2. Using a configuration file:
 
@@ -401,7 +401,7 @@ There are three ways to define the reset parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud kube reset <cluster_id> --name MyNewCluster --version 1.32 …
+  ovhcloud cloud kube reset <cluster_id> --name MyNewCluster --version 1.32
 
 2. Using a configuration file:
 
@@ -485,7 +485,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud kube nodepool create <cluster_id> --flavor-name b3-16 --desired-nodes 3 --name newnodepool …
+  ovhcloud cloud kube nodepool create <cluster_id> --flavor-name b3-16 --desired-nodes 3 --name newnodepool
 
 2. Using a configuration file:
 
@@ -573,7 +573,7 @@ There are three ways to define the parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud kube oidc create <cluster_id> --issuer-url <url> …
+  ovhcloud cloud kube oidc create <cluster_id> --issuer-url <url>
 
 2. Using a configuration file:
 

@@ -18,10 +18,13 @@ test:
 fmt:
 	go fmt ./...
 
+doc:
+	go run cmd/docgen/main.go
+
 release-snapshot:
 	goreleaser release --snapshot --clean --parallelism 1
 
 release:
 	goreleaser release --clean
 
-.PHONY: all wasm
+.PHONY: all wasm doc
