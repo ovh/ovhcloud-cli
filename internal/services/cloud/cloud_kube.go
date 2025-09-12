@@ -263,7 +263,7 @@ func DeleteKube(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Println("✅ MKS cluster deleted successfully")
+	fmt.Println("✅ MKS cluster is being deleted…")
 }
 
 func GetKubeCustomization(cmd *cobra.Command, args []string) {
