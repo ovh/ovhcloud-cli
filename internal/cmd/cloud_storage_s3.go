@@ -233,7 +233,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud storage-s3 create BHS --name mynewContainer …
+  ovhcloud cloud storage-s3 create BHS --name mynewContainer
 
 2. Using a configuration file:
 
