@@ -16,7 +16,7 @@ import (
 func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd := &cobra.Command{
 		Use:   "kube",
-		Short: "List Kubernetes clusters in the given cloud project",
+		Short: "Manage Kubernetes clusters in the given cloud project",
 	}
 	kubeCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
