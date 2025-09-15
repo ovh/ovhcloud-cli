@@ -1,0 +1,7 @@
+{
+  "targetSpec": {
+    "name": "myrancher",
+    "plan": "OVHCLOUD_EDITION",
+    "version": "2.11.3"
+  }
+}
