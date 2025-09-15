@@ -13,6 +13,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
 )
@@ -23,12 +24,18 @@ var (
 	//go:embed templates/cloud_rancher.tmpl
 	cloudRancherTemplate string
 
-	RancherTargetSpec struct {
-		Name              string                 `json:"name,omitempty"`
-		Plan              string                 `json:"plan,omitempty"`
-		Version           string                 `json:"version,omitempty"`
-		IPRestrictions    []rancherIPRestriction `json:"ipRestrictions,omitempty"`
-		CLIIPRestrictions []string               `json:"-"`
+	//go:embed parameter-samples/rancher_create.json
+	CloudRancherCreationExample string
+
+	RancherSpec struct {
+		TargetSpec struct {
+			IAMAuthEnabled    bool                   `json:"iamAuthEnabled,omitempty"`
+			Name              string                 `json:"name,omitempty"`
+			Plan              string                 `json:"plan,omitempty"`
+			Version           string                 `json:"version,omitempty"`
+			IPRestrictions    []rancherIPRestriction `json:"ipRestrictions,omitempty"`
+			CLIIPRestrictions []string               `json:"-"`
+		} `json:"targetSpec"`
 	}
 )
 
@@ -58,13 +65,13 @@ func GetRancher(_ *cobra.Command, args []string) {
 }
 
 func EditRancher(cmd *cobra.Command, args []string) {
-	for _, ipRestriction := range RancherTargetSpec.CLIIPRestrictions {
+	for _, ipRestriction := range RancherSpec.TargetSpec.CLIIPRestrictions {
 		parts := strings.Split(ipRestriction, ",")
 		if len(parts) != 2 {
 			display.ExitError("Invalid IP restriction format: %s. Expected format: '<cidrBlock>,<description>'", ipRestriction)
 			return
 		}
-		RancherTargetSpec.IPRestrictions = append(RancherTargetSpec.IPRestrictions, rancherIPRestriction{
+		RancherSpec.TargetSpec.IPRestrictions = append(RancherSpec.TargetSpec.IPRestrictions, rancherIPRestriction{
 			CIDRBlock:   parts[0],
 			Description: parts[1],
 		})
@@ -80,12 +87,50 @@ func EditRancher(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/rancher/{rancherId}",
 		fmt.Sprintf("/v2/publicCloud/project/%s/rancher/%s", projectID, url.PathEscape(args[0])),
-		map[string]any{
-			"targetSpec": RancherTargetSpec,
-		},
+		RancherSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.ExitError(err.Error())
 		return
 	}
+}
+
+func CreateRancher(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/rancher", projectID)
+	rancher, err := common.CreateResource(
+		cmd,
+		"/publicCloud/project/{projectId}/rancher",
+		endpoint,
+		CloudRancherCreationExample,
+		RancherSpec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec"})
+	if err != nil {
+		display.ExitError("failed to create Rancher service: %s", err)
+		return
+	}
+
+	display.Outputf("✅ Rancher %s created successfully (id: %s)", RancherSpec.TargetSpec.Name, rancher["id"])
+}
+
+func DeleteRancher(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/rancher/%s", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.ExitError("failed to delete Rancher service: %s", err)
+		return
+	}
+
+	display.Outputf("✅ Rancher service is being deleted…")
 }

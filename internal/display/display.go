@@ -35,6 +35,7 @@ func renderCustomFormat(value any, format string) {
 
 	switch reflect.TypeOf(value).Kind() {
 	case reflect.Slice:
+		var output strings.Builder
 		for _, val := range value.([]map[string]any) {
 			out, err := ev(context.Background(), val)
 			if err != nil {
@@ -45,8 +46,11 @@ func renderCustomFormat(value any, format string) {
 			if err != nil {
 				ExitError("error marshalling result")
 			}
-			Output(string(outBytes))
+			output.Write(outBytes)
+			output.WriteString("\n")
 		}
+		ResultString = output.String()
+		fmt.Print(ResultString)
 	default:
 		out, err := ev(context.Background(), value)
 		if err != nil {
@@ -150,7 +154,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		Headers(columnsTitles...).
 		Rows(rows...)
 
-	Output(t.String() + "\n💡 Use option --json or --yaml to get the raw output with all information")
+	Outputf("%s%s", t, "\n💡 Use option --json or --yaml to get the raw output with all information")
 }
 
 func RenderConfigTable(cfg *ini.File) {
@@ -197,7 +201,7 @@ func RenderConfigTable(cfg *ini.File) {
 		Headers(columns...).
 		Rows(rows...)
 
-	Output(t.String())
+	Outputf("%s", t)
 }
 
 func prettyPrintJSON(value any) error {
@@ -206,7 +210,7 @@ func prettyPrintJSON(value any) error {
 		return err
 	}
 
-	Output(string(bytesOut))
+	Outputf("%s", bytesOut)
 
 	return nil
 }
@@ -217,7 +221,7 @@ func prettyPrintYAML(value any) error {
 		return err
 	}
 
-	Output(string(bytesOut))
+	Outputf("%s", bytesOut)
 
 	return nil
 }
@@ -296,7 +300,7 @@ func ExitWarning(message string, params ...any) {
 	os.Exit(0)
 }
 
-func Output(message string) {
-	fmt.Println(message)
-	ResultString = message
+func Outputf(message string, params ...any) {
+	ResultString = fmt.Sprintf(message, params...)
+	fmt.Println(ResultString)
 }

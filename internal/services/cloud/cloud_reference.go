@@ -82,3 +82,45 @@ func ListContainerRegistryPlans(_ *cobra.Command, _ []string) {
 
 	display.RenderTable(updatedBody, []string{"region", "id", "name"}, &flags.OutputFormatConfig)
 }
+
+func ListRancherAvailableVersions(cmd *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	serviceID, err := cmd.Flags().GetString("rancher-id")
+	if err != nil {
+		display.ExitError("failed to get 'rancher-id' flag: %s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/reference/rancher/version", projectID)
+	if serviceID != "" {
+		endpoint = fmt.Sprintf("/v2/publicCloud/project/%s/rancher/%s/capabilities/version", projectID, serviceID)
+	}
+
+	common.ManageListRequestNoExpand(endpoint, []string{"name", "status", "message"}, flags.GenericFilters)
+}
+
+func ListRancherAvailablePlans(cmd *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	serviceID, err := cmd.Flags().GetString("rancher-id")
+	if err != nil {
+		display.ExitError("failed to get 'rancher-id' flag: %s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/reference/rancher/plan", projectID)
+	if serviceID != "" {
+		endpoint = fmt.Sprintf("/v2/publicCloud/project/%s/rancher/%s/capabilities/plan", projectID, serviceID)
+	}
+
+	common.ManageListRequestNoExpand(endpoint, []string{"name", "status", "message"}, flags.GenericFilters)
+}
