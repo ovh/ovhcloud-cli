@@ -12,6 +12,7 @@ import (
 	"github.com/maxatome/go-testdeep/helpers/tdsuite"
 	"github.com/maxatome/go-testdeep/td"
 	"github.com/ovh/go-ovh/ovh"
+	"github.com/ovh/ovhcloud-cli/internal/cmd"
 	httplib "github.com/ovh/ovhcloud-cli/internal/http"
 )
 
@@ -43,6 +44,7 @@ func (ms *MockSuite) PreTest(t *td.T, testName string) error {
 
 func (ms *MockSuite) PostTest(_ *td.T, _ string) error {
 	httpmock.Reset()
+	cmd.PostExecute()
 	return nil
 }
 

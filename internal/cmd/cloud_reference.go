@@ -17,6 +17,7 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 
 	referenceCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
+	// Flavors
 	var region string
 	flavorListCmd := withFilterFlag(&cobra.Command{
 		Use:   "list-flavors",
@@ -29,6 +30,7 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 	flavorListCmd.Flags().StringVarP(&region, "region", "r", "", "Region to filter flavors (e.g., GRA9, BHS5)")
 	referenceCmd.AddCommand(flavorListCmd)
 
+	// Images
 	var osType string
 	imageListCmd := withFilterFlag(&cobra.Command{
 		Use:   "list-images",
@@ -55,6 +57,31 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 		Run:   cloud.ListContainerRegistryPlans,
 		Args:  cobra.NoArgs,
 	}))
+
+	// Rancher reference commands
+	rancherReferenceCmd := &cobra.Command{
+		Use:   "rancher",
+		Short: "Fetch Rancher reference data in the given cloud project",
+	}
+	referenceCmd.AddCommand(rancherReferenceCmd)
+
+	rancherVersionsListCmd := withFilterFlag(&cobra.Command{
+		Use:   "list-versions",
+		Short: "List available Rancher versions in the given cloud project",
+		Run:   cloud.ListRancherAvailableVersions,
+		Args:  cobra.NoArgs,
+	})
+	rancherVersionsListCmd.Flags().StringP("rancher-id", "r", "", "Rancher service ID to filter available versions")
+	rancherReferenceCmd.AddCommand(rancherVersionsListCmd)
+
+	rancherPlansListCmd := withFilterFlag(&cobra.Command{
+		Use:   "list-plans",
+		Short: "List available Rancher plans in the given cloud project",
+		Run:   cloud.ListRancherAvailablePlans,
+		Args:  cobra.NoArgs,
+	})
+	rancherPlansListCmd.Flags().StringP("rancher-id", "r", "", "Rancher service ID to filter available plans")
+	rancherReferenceCmd.AddCommand(rancherPlansListCmd)
 
 	cloudCmd.AddCommand(referenceCmd)
 }

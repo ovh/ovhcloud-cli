@@ -63,18 +63,24 @@ func Execute(args ...string) (string, error) {
 }
 
 func PostExecute() {
+	// Reset output variables
 	display.ResultString = ""
 	display.ResultError = nil
+
+	// Reset all flags to default values
+	flags.GenericFilters = nil
+	flags.OutputFormatConfig = display.OutputFormat{}
+	flags.ParametersViaEditor = false
+	flags.ParametersFile = ""
+
+	// Reinit root command to mark persistent flags as not parsed
+	rootCmd.ResetFlags()
+	initRootCmd()
 }
 
-func init() {
-	http.InitClient()
-
-	// Load configuration files by order of increasing priority. All configuration
-	// files are optional. Only load file from user home if home could be resolve
-	flags.CliConfig, flags.CliConfigPath = config.LoadINI()
-
+func initRootCmd() {
 	rootCmd.DisableAutoGenTag = true
+
 	rootCmd.PersistentFlags().BoolVarP(&flags.Debug, "debug", "d", false, "Activate debug mode (will log all HTTP requests details)")
 	rootCmd.PersistentFlags().BoolVarP(&flags.IgnoreErrors, "ignore-errors", "e", false, "Ignore errors in API calls when it is not fatal to the execution")
 	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.JsonOutput, "json", "j", false, "Output in JSON")
@@ -89,6 +95,16 @@ func init() {
 			os.Exit(1) // Force os.Exit even in WASM mode
 		}
 	}
+}
+
+func init() {
+	http.InitClient()
+
+	// Load configuration files by order of increasing priority. All configuration
+	// files are optional. Only load file from user home if home could be resolve
+	flags.CliConfig, flags.CliConfigPath = config.LoadINI()
+
+	initRootCmd()
 }
 
 func WasmCleanCommands() {
