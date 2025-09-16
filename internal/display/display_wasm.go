@@ -112,3 +112,7 @@ func ExitError(message string, params ...any) {
 func ExitWarning(message string, params ...any) {
 	ResultError = fmt.Errorf("🟠 "+message+"\n", params...)
 }
+
+func Outputf(message string, params ...any) {
+	ResultString = fmt.Sprintf(message, params...)
+}
