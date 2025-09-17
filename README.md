@@ -127,7 +127,7 @@ OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID>
 * Interactive login:
 ```bash
 # Log in and create API credentials (interactive)
-$ ovhcloud login
+ovhcloud login
 ```
 
 ## Examples
@@ -164,19 +164,19 @@ Have a look in [CONTRIBUTING.md](https://github.com/ovh/ovhcloud-cli/blob/master
 
 ```bash
 # Build the OVHcloud cli
-$ make build
+make build
 
 # Cross-compile for other targets in ./dist
-$ make release-snapshot
+make release-snapshot
 
 # Optionally, you can compile a WASM binary
-$ make wasm
+make wasm
 ```
 
 ## Run the tests
 
 ```bash
-$ make test
+make test
 ```
 
 ## Our awesome contributors:
