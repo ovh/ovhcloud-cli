@@ -30,7 +30,7 @@ $ ovhcloud [command] {subcommands} {parameters/flags}
 Checkout the [full documentation](./doc/ovhcloud.md).
 
 Available commands:
-```bash
+```
   account                          Manage your account
   alldom                           Retrieve information and manage your AllDom services
   baremetal                        Retrieve information and manage your baremetal services
@@ -80,7 +80,7 @@ Available commands:
 
 Global options:
 
-```bash
+```
   -d, --debug           Activate debug mode (will log all HTTP requests details)
   -f, --format string   Output value according to given format (expression using gval format)
   -h, --help            help for ovhcloud
