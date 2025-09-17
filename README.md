@@ -5,14 +5,14 @@
 # Table of Contents
 
 - [Installation](#installation)
-- [Build](#build)
 - [Usage](#usage)
-    - [Login](#login)
-    - [Configuration](#configuration)
-    - [Generate Shell Completion](#generate-shell-completion)
+    - [Authenticating the CLI](#authenticating-the-cli)
     - [Examples](#examples)
-- [Get the sources](#get-the-sources)
+- [Generate Shell Completion](#generate-shell-completion)
+- [Contributing](#contributing)
+    - [Build](#build)
     - [Run the tests](#run-the-tests)
+    - [Our awesome contributors](#our-awesome-contributors)
 - [Related links](#related-links)
 
 # Installation
@@ -179,12 +179,11 @@ make wasm
 make test
 ```
 
-## Our awesome contributors:
+## Our awesome contributors
 
 <a href="https://github.com/ovh/ovhcloud-cli/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=ovh/ovhcloud-cli" />
 </a>
-
 
 # Related links
  
