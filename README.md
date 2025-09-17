@@ -1,5 +1,11 @@
 # OVHcloud official CLI
 
+[![License](https://img.shields.io/github/license/ovh/ovhcloud-cli)](LICENSE)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/ovh/ovhcloud-cli)](https://github.com/ovh/ovhcloud-cli/releases/latest)
+[![Release Date](https://img.shields.io/github/release-date/ovh/ovhcloud-cli)](https://github.com/ovh/ovhcloud-cli/releases)
+[![Download Count](https://img.shields.io/github/downloads/ovh/ovhcloud-cli/total.svg)](https://github.com/ovh/ovhcloud-cli/releases/latest)
+[![Discord](https://img.shields.io/badge/Discord-ovhcloud-blue.svg)](https://discord.gg/ovhcloud)
+
 `ovhcloud` is a single, unified command‑line interface for managing the full range of OVHcloud products and account resources directly from your terminal. Whether you need to automate provisioning, perform quick look‑ups, or integrate OVHcloud operations into CI/CD pipelines, `ovhcloud` offers fine‑grained commands and consistent output formats (table, JSON, YAML, or custom gval expressions).
 
 # Table of Contents
