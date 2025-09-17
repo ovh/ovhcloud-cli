@@ -20,35 +20,17 @@
 1. Download [latest release](https://github.com/ovh/ovhcloud-cli/releases/latest)
 2. Untar / unzip the archive
 3. Add the containing folder to your `PATH` environment variable
-4. Check the [CLI documentation](./doc/ovhcloud.md)
-
-# Build
-
-```bash
-# Build the OVHcloud cli
-$ make build
-
-# Cross-compile for other targets in ./dist
-$ make release-snapshot
-
-# Optionally, you can compile a WASM binary
-$ make wasm
-```
 
 # Usage
 
-Checkout the [full documentation](./doc/ovhcloud.md)
-
-Invoke the binary `ovhcloud[.exe]` or run `go run ./cmd/ovhcloud`.
-
+```bash
+$ ovhcloud [command] {subcommands} {parameters/flags}
 ```
-$ ovhcloud --help
-CLI to manage your OVHcloud services
 
-Usage:
-  ovhcloud [command]
+Checkout the [full documentation](./doc/ovhcloud.md).
 
-Available Commands:
+Available commands:
+```bash
   account                          Manage your account
   alldom                           Retrieve information and manage your AllDom services
   baremetal                        Retrieve information and manage your baremetal services
@@ -94,8 +76,11 @@ Available Commands:
   vrackservices                    Retrieve information and manage your vRackServices services
   webhosting                       Retrieve information and manage your WebHosting services
   xdsl                             Retrieve information and manage your XDSL services
+```
 
-Flags:
+Global options:
+
+```bash
   -d, --debug           Activate debug mode (will log all HTTP requests details)
   -f, --format string   Output value according to given format (expression using gval format)
   -h, --help            help for ovhcloud
@@ -103,20 +88,15 @@ Flags:
   -i, --interactive     Interactive output
   -j, --json            Output in JSON
   -y, --yaml            Output in YAML
-
-Use "ovhcloud [command] --help" for more information about a command.
 ```
 
-## Login
+## Authenticating the CLI
 
-```bash
-# Log in and create API credentials (interactive)
-$ ovhcloud login
-```
+OVHcloud CLI requires authentication to be able to make API calls. There are several ways to define your credentials.
 
-Check out the [authentication page](./doc/authentication.md) for further information about the authentication means.
+Check out the [authentication page](./doc/authentication.md) for further information about the configuration and the authentication means.
 
-## Configuration
+* Using a configuration file:
 
 Default settings can be set using a configuration file named `.ovh.conf` and located in your `${HOME}` directory.
 
@@ -134,7 +114,32 @@ client_secret = <OAuth 2.0 client secret>
 default_cloud_project = <public cloud project ID>
 ```
 
-## Generate Shell Completion
+* Using environment variables:
+
+```bash
+OVH_ENDPOINT=ovh-eu
+OVH_APPLICATION_KEY=xxx
+OVH_APPLICATION_SECRET=xxx
+OVH_CONSUMER_KEY=xxx
+OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID> 
+```
+
+* Interactive login:
+```bash
+# Log in and create API credentials (interactive)
+$ ovhcloud login
+```
+
+## Examples
+
+| Task                                  | Command                                         |
+| ------------------------------------- | ----------------------------------------------- |
+| Log in and save credentials           | `ovhcloud login`                                |
+| List VPS instances (tabular)          | `ovhcloud vps list`                             |
+| Fetch details of a single VPS in JSON | `ovhcloud vps get <service_id> --json`          |
+| Reinstall a baremetal interactively   | `ovhcloud baremetal reinstall <id> --editor`    |
+
+# Generate Shell Completion
 
 ```bash
 # Bash
@@ -149,24 +154,24 @@ eval "$(./ovhcloud completion zsh)"
 
 Add the appropriate line to your shell’s startup file (`~/.bashrc`, `~/.zshrc`, etc.) to enable persistent autocompletion.
 
-## Examples
+# Contributing
 
-| Task                                  | Command                                         |
-| ------------------------------------- | ----------------------------------------------- |
-| Log in and save credentials           | `ovhcloud login`                                |
-| List VPS instances (tabular)          | `ovhcloud vps list`                             |
-| Fetch details of a single VPS in JSON | `ovhcloud vps get <service_id> --json`          |
-| Reinstall a baremetal interactively   | `ovhcloud baremetal reinstall <id> --editor`    |
-
-# Get the sources
-
-```bash
-$ git clone https://github.com/ovh/ovhcloud-cli.git
-```
- 
-You've developed a new cool feature? Fixed an annoying bug? We'd be happy to hear from you!
+You've developed a new cool feature? Fixed an annoying bug? We'd be happy to hear from you, tehre is no small contribution!
  
 Have a look in [CONTRIBUTING.md](https://github.com/ovh/ovhcloud-cli/blob/master/CONTRIBUTING.md)
+
+## Build
+
+```bash
+# Build the OVHcloud cli
+$ make build
+
+# Cross-compile for other targets in ./dist
+$ make release-snapshot
+
+# Optionally, you can compile a WASM binary
+$ make wasm
+```
 
 ## Run the tests
 
@@ -174,8 +179,14 @@ Have a look in [CONTRIBUTING.md](https://github.com/ovh/ovhcloud-cli/blob/master
 $ make test
 ```
 
+## Our awesome contributors:
+
+<a href="https://github.com/ovh/ovhcloud-cli/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ovh/ovhcloud-cli" />
+</a>
+
+
 # Related links
  
- * Contribute: https://github.com/ovh/ovhcloud-cli/blob/master/CONTRIBUTING.md
  * Report bugs: https://github.com/ovh/ovhcloud-cli/issues
  * Get latest version: https://github.com/ovh/ovhcloud-cli/releases/latest
