@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	cloudprojectKubeColumnsToDisplay = []string{"id", "name", "region", "version", "status"}
+	cloudprojectKubeColumnsToDisplay = []string{"id", "name", "region", "plan", "version", "status"}
 
 	//go:embed templates/cloud_kube.tmpl
 	cloudKubeTemplate string
