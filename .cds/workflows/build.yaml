@@ -1,0 +1,54 @@
+name: OVHcloud-CLI-Build
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: library/go-1-24
+    steps:
+    - uses: actions/checkout
+    - run: |-
+        go get ./...
+        make test
+        make
+    - uses: actions/uploadArtifact
+      with:
+        path: ovhcloud
+        if-no-files-found: error
+
+  build-wasm:
+    runs-on: library/go-1-24
+    steps:
+    - uses: actions/checkout
+    - run: |-
+        go get ./...
+        make wasm
+    - uses: actions/uploadArtifact
+      with:
+        path: ovhcloud.wasm
+        if-no-files-found: error
+
+  push-docker-image:
+    runs-on: library/default-vm
+    steps:
+      - uses: actions/checkout
+      - run: docker build -t ovhcloud-cli/ovhcloud .
+      - uses: actions/dockerPush
+        with:
+          image: ovhcloud-cli/ovhcloud
+          tags: "${{ cds.version }}"
+
+  release:
+    needs:
+      - build
+      - build-wasm
+      - push-docker-image
+    if: git.ref_name == 'main'
+    runs-on:
+      model: library/default-container
+    steps:
+      - uses: actions/artifactoryRelease
+        with:
+          artifacts: '**'
+
+integrations: [artifactory-digital-core-platform-api]
