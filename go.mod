@@ -16,6 +16,7 @@ require (
 	github.com/jarcoal/httpmock v1.4.1
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/maxatome/go-testdeep v1.14.0
+	github.com/maxatome/tdhttpmock v1.0.0
 	github.com/ovh/go-ovh v1.9.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
@@ -47,7 +48,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
-	github.com/maxatome/tdhttpmock v1.0.0 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
