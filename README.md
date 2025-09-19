@@ -11,6 +11,7 @@
 # Table of Contents
 
 - [Installation](#installation)
+    - [Installation command](#installation-command)
     - [Binary download](#binary-download)
     - [Run with Docker](#run-with-docker)
 - [Usage](#usage)
@@ -24,6 +25,14 @@
 - [Related links](#related-links)
 
 # Installation
+
+## Installation command
+
+To install the OVHcloud CLI, you can use the following command:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ovh/ovhcloud-cli/main/install.sh | sh
+```
 
 ## Binary download
 
