@@ -79,12 +79,9 @@ func getConfiguredCloudProject() (string, error) {
 }
 
 func getCloudRegionsWithFeatureAvailable(projectID string, features ...string) ([]any, error) {
-	url := fmt.Sprintf("/cloud/project/%s/region", projectID)
-
-	// List regions available in the cloud project
-	regions, err := httpLib.FetchExpandedArray(url, "")
+	regions, err := fetchProjectRegions(projectID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch regions: %w", err)
+		return nil, err
 	}
 
 	// Filter regions having given feature available
@@ -106,4 +103,29 @@ func getCloudRegionsWithFeatureAvailable(projectID string, features ...string) (
 	}
 
 	return regionIDs, nil
+}
+
+func fetchProjectRegions(projectID string) ([]map[string]any, error) {
+	endpoint := fmt.Sprintf("/cloud/project/%s/region", projectID)
+
+	regions, err := httpLib.FetchExpandedArray(endpoint, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch regions: %w", err)
+	}
+
+	// Convert region type to a more user-friendly format
+	for _, region := range regions {
+		switch region["type"] {
+		case "region":
+			region["deploymentMode"] = "1-AZ"
+		case "region-3-az":
+			region["deploymentMode"] = "3-AZ"
+		case "localzone":
+			region["deploymentMode"] = "Local Zone"
+		default:
+			region["deploymentMode"] = region["type"]
+		}
+	}
+
+	return regions, nil
 }
