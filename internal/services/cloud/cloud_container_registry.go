@@ -12,6 +12,7 @@ import (
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
+	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
@@ -19,7 +20,7 @@ import (
 )
 
 var (
-	cloudprojectContainerRegistryColumnsToDisplay = []string{"id", "name", "region", "status"}
+	cloudprojectContainerRegistryColumnsToDisplay = []string{"id", "name", "region", "plan.name plan", "deploymentMode", "version", "status"}
 
 	//go:embed templates/cloud_container_registry.tmpl
 	cloudContainerRegistryTemplate string
@@ -43,7 +44,52 @@ func ListContainerRegistries(_ *cobra.Command, _ []string) {
 		display.ExitError(err.Error())
 		return
 	}
-	common.ManageListRequest(fmt.Sprintf("/cloud/project/%s/containerRegistry", projectID), "id", cloudprojectContainerRegistryColumnsToDisplay, flags.GenericFilters)
+
+	// Fetch registries
+	endpoint := fmt.Sprintf("/cloud/project/%s/containerRegistry", projectID)
+	body, err := httpLib.FetchArray(endpoint, "")
+	if err != nil {
+		display.ExitError("failed to fetch results: %s", err)
+		return
+	}
+
+	// Fetch cloud project regions
+	regions, err := fetchProjectRegions(projectID)
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	var objects []map[string]any
+	for _, object := range body {
+		objMap := object.(map[string]any)
+
+		// Fetch plan details for each registry
+		var plan map[string]any
+		if err := httpLib.Client.Get(fmt.Sprintf("%s/%s/plan", endpoint, url.PathEscape(objMap["id"].(string))), &plan); err != nil {
+			display.ExitError("error fetching plan details: %s", err)
+			return
+		}
+		objMap["plan"] = plan
+
+		// Find region deployment mode
+		for _, region := range regions {
+			if region["name"] == objMap["region"] {
+				objMap["deploymentMode"] = region["deploymentMode"]
+				break
+			}
+		}
+
+		objects = append(objects, objMap)
+	}
+
+	objects, err = filtersLib.FilterLines(objects, flags.GenericFilters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(objects, cloudprojectContainerRegistryColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
 func GetContainerRegistry(_ *cobra.Command, args []string) {
