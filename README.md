@@ -11,6 +11,8 @@
 # Table of Contents
 
 - [Installation](#installation)
+    - [Binary download](#binary-download)
+    - [Run with Docker](#run-with-docker)
 - [Usage](#usage)
     - [Authenticating the CLI](#authenticating-the-cli)
     - [Examples](#examples)
@@ -23,9 +25,19 @@
 
 # Installation
 
+## Binary download
+
 1. Download [latest release](https://github.com/ovh/ovhcloud-cli/releases/latest)
 2. Untar / unzip the archive
 3. Add the containing folder to your `PATH` environment variable
+
+## Run with Docker
+
+You can also run the CLI using Docker:
+
+```bash
+docker run -it --rm -v ovhcloud-cli-config-files:/config ovhcom/ovhcloud-cli login
+```
 
 # Usage
 
