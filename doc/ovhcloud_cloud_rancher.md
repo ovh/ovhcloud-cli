@@ -23,6 +23,8 @@ Manage Rancher services in the given cloud project
 ### SEE ALSO
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud rancher create](ovhcloud_cloud_rancher_create.md)	 - Create a new Rancher service
+* [ovhcloud cloud rancher delete](ovhcloud_cloud_rancher_delete.md)	 - Delete a specific Rancher service
 * [ovhcloud cloud rancher edit](ovhcloud_cloud_rancher_edit.md)	 - Edit the given Rancher service
 * [ovhcloud cloud rancher get](ovhcloud_cloud_rancher_get.md)	 - Get a specific Rancher service
 * [ovhcloud cloud rancher list](ovhcloud_cloud_rancher_list.md)	 - List Rancher services

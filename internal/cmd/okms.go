@@ -12,7 +12,7 @@ import (
 func init() {
 	okmsCmd := &cobra.Command{
 		Use:   "okms",
-		Short: "Retrieve information and manage your Okms services",
+		Short: "Retrieve information and manage your OKMS (Key Management Services)",
 	}
 
 	// Command to list Okms services
@@ -27,7 +27,7 @@ func init() {
 	// Command to get a single Okms
 	okmsCmd.AddCommand(&cobra.Command{
 		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific Okms",
+		Short: "Retrieve information of a specific OKMS",
 		Args:  cobra.ExactArgs(1),
 		Run:   okms.GetOkms,
 	})
