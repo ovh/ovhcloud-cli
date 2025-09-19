@@ -26,5 +26,5 @@ ovhcloud okms list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud okms](ovhcloud_okms.md)	 - Retrieve information and manage your Okms services
+* [ovhcloud okms](ovhcloud_okms.md)	 - Retrieve information and manage your OKMS (Key Management Services)
 

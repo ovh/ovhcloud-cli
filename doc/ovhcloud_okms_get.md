@@ -1,6 +1,6 @@
 ## ovhcloud okms get
 
-Retrieve information of a specific Okms
+Retrieve information of a specific OKMS
 
 ```
 ovhcloud okms get <service_name> [flags]
@@ -25,5 +25,5 @@ ovhcloud okms get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud okms](ovhcloud_okms.md)	 - Retrieve information and manage your Okms services
+* [ovhcloud okms](ovhcloud_okms.md)	 - Retrieve information and manage your OKMS (Key Management Services)
 
