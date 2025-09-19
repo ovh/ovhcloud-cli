@@ -1,6 +1,6 @@
 ## ovhcloud okms
 
-Retrieve information and manage your Okms services
+Retrieve information and manage your OKMS (Key Management Services)
 
 ### Options
 
@@ -22,6 +22,6 @@ Retrieve information and manage your Okms services
 ### SEE ALSO
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud okms get](ovhcloud_okms_get.md)	 - Retrieve information of a specific Okms
+* [ovhcloud okms get](ovhcloud_okms_get.md)	 - Retrieve information of a specific OKMS
 * [ovhcloud okms list](ovhcloud_okms_list.md)	 - List your Okms services
 

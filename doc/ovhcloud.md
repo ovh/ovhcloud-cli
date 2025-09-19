@@ -101,7 +101,7 @@ Below is the full list of primary sub‑commands available at the time of writin
 * [ovhcloud location](ovhcloud_location.md)	 - Retrieve information and manage your Location services
 * [ovhcloud login](ovhcloud_login.md)	 - Login to your OVHcloud account to create API credentials
 * [ovhcloud nutanix](ovhcloud_nutanix.md)	 - Retrieve information and manage your Nutanix services
-* [ovhcloud okms](ovhcloud_okms.md)	 - Retrieve information and manage your Okms services
+* [ovhcloud okms](ovhcloud_okms.md)	 - Retrieve information and manage your OKMS (Key Management Services)
 * [ovhcloud overthebox](ovhcloud_overthebox.md)	 - Retrieve information and manage your OverTheBox services
 * [ovhcloud ovhcloudconnect](ovhcloud_ovhcloudconnect.md)	 - Retrieve information and manage your OvhCloudConnect services
 * [ovhcloud pack-xdsl](ovhcloud_pack-xdsl.md)	 - Retrieve information and manage your PackXDSL services
