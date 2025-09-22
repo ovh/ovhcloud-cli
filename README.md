@@ -159,12 +159,13 @@ ovhcloud login
 
 ## Examples
 
-| Task                                  | Command                                         |
-| ------------------------------------- | ----------------------------------------------- |
-| Log in and save credentials           | `ovhcloud login`                                |
-| List VPS instances (tabular)          | `ovhcloud vps list`                             |
-| Fetch details of a single VPS in JSON | `ovhcloud vps get <service_id> --json`          |
-| Reinstall a baremetal interactively   | `ovhcloud baremetal reinstall <id> --editor`    |
+| Task                                     | Command                                         |
+| ---------------------------------------- | ----------------------------------------------- |
+| Log in and save credentials              | `ovhcloud login`                                |
+| List VPS instances (tabular)             | `ovhcloud vps list`                             |
+| Fetch details of a single VPS in JSON    | `ovhcloud vps get <service_id> --json`          |
+| Reinstall a baremetal interactively      | `ovhcloud baremetal reinstall <id> --editor`    |
+| List instances and filter on GRA9 region | `ovhcloud cloud instance list --filter 'region=="GRA9"'`|
 
 # Generate Shell Completion
 
