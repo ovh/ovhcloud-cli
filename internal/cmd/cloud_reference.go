@@ -83,5 +83,33 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 	rancherPlansListCmd.Flags().StringP("rancher-id", "r", "", "Rancher service ID to filter available plans")
 	rancherReferenceCmd.AddCommand(rancherPlansListCmd)
 
+	// Databases reference commands
+	databaseReferenceCmd := &cobra.Command{
+		Use:   "database",
+		Short: "Fetch database reference data in the given cloud project",
+	}
+	referenceCmd.AddCommand(databaseReferenceCmd)
+
+	databaseReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-plans",
+		Short: "List available database plans in the given cloud project",
+		Run:   cloud.ListDatabasesPlans,
+		Args:  cobra.NoArgs,
+	}))
+
+	databaseReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-node-flavors",
+		Short: "List available database node flavors in the given cloud project",
+		Run:   cloud.ListDatabasesNodeFlavors,
+		Args:  cobra.NoArgs,
+	}))
+
+	databaseReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-engines",
+		Short: "List available database engines in the given cloud project",
+		Run:   cloud.ListDatabaseEngines,
+		Args:  cobra.NoArgs,
+	}))
+
 	cloudCmd.AddCommand(referenceCmd)
 }

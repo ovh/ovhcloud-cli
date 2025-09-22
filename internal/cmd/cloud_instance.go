@@ -22,7 +22,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.image <image_id> --flavor <flavor_id> ...
+  ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.image <image_id> --flavor <flavor_id>
 
 2. Using a configuration file:
 
@@ -70,12 +70,12 @@ There are three ways to define the creation parameters:
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.AvailabilityZone, "availability-zone", "", "Availability zone")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BillingPeriod, "billing-period", "hourly", "Billing period (hourly, monthly), default is hourly")
 	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Bulk, "bulk", 0, "Number of instances to create")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Flavor.ID, "flavor", "", "Flavor ID")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Flavor.ID, "flavor", "", "Flavor ID (you can use 'ovhcloud cloud reference list-flavors' to get the flavor ID)")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Group.ID, "group", "", "Group ID")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Name, "name", "", "Instance name")
 
 	// Boot options
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.ImageID, "boot-from.image", "", "Image ID to boot from")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.ImageID, "boot-from.image", "", "Image ID to boot from (you can use 'ovhcloud cloud reference list-images' to get the image ID)")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.VolumeID, "boot-from.volume", "", "Volume ID to boot from")
 	instanceCreateCmd.MarkFlagsMutuallyExclusive("boot-from.image", "boot-from.volume")
 
