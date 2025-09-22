@@ -9,7 +9,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.image <image_id> --flavor <flavor_id> ...
+  ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.image <image_id> --flavor <flavor_id>
 
 2. Using a configuration file:
 
@@ -61,11 +61,11 @@ ovhcloud cloud instance create <region (e.g. GRA, BHS, SBG)> [flags]
       --backup-cron string                                      Autobackup Unix Cron pattern (eg: '0 0 * * *')
       --backup-rotation int                                     Number of backups to keep
       --billing-period string                                   Billing period (hourly, monthly), default is hourly (default "hourly")
-      --boot-from.image string                                  Image ID to boot from
+      --boot-from.image string                                  Image ID to boot from (you can use 'ovhcloud cloud reference list-images' to get the image ID)
       --boot-from.volume string                                 Volume ID to boot from
       --bulk int                                                Number of instances to create
       --editor                                                  Use a text editor to define parameters
-      --flavor string                                           Flavor ID
+      --flavor string                                           Flavor ID (you can use 'ovhcloud cloud reference list-flavors' to get the flavor ID)
       --flavor-selector                                         Use the interactive flavor selector
       --from-file string                                        File containing parameters
       --group string                                            Group ID

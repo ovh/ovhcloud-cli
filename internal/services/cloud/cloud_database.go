@@ -7,9 +7,13 @@ package cloud
 import (
 	_ "embed"
 	"fmt"
+	"net/url"
+	"strings"
 
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
 )
@@ -19,6 +23,55 @@ var (
 
 	//go:embed templates/cloud_database.tmpl
 	cloudDatabaseTemplate string
+
+	//go:embed parameter-samples/database-create.json
+	DatabaseCreationExample string
+
+	DatabaseSpec struct {
+		Backups struct {
+			Regions []string `json:"regions,omitempty"`
+			Time    string   `json:"time,omitempty"`
+		} `json:"backups,omitzero"`
+		Description string `json:"description,omitempty"`
+		Disk        struct {
+			Size int `json:"size,omitempty"`
+		} `json:"disk,omitzero"`
+		ForkFrom struct {
+			BackupID    string `json:"backupId,omitempty"`
+			PointInTime string `json:"pointInTime,omitempty"`
+			ServiceID   string `json:"serviceId,omitempty"`
+		} `json:"forkFrom,omitzero"`
+		IPRestrictions  []databaseIPRestriction `json:"ipRestrictions,omitempty"`
+		MaintenanceTime string                  `json:"maintenanceTime,omitempty"`
+		NetworkID       string                  `json:"networkId,omitempty"`
+		NodesList       []databaseNode          `json:"nodesList,omitempty"`
+		NodesPattern    struct {
+			Flavor string `json:"flavor,omitempty"`
+			Number int    `json:"number,omitempty"`
+			Region string `json:"region,omitempty"`
+		} `json:"nodesPattern,omitzero"`
+		Plan     string `json:"plan,omitempty"`
+		SubnetID string `json:"subnetId,omitempty"`
+		Version  string `json:"version,omitempty"`
+
+		// Extra fields for CLI only
+		Engine            string   `json:"-"`
+		CLIIPRestrictions []string `json:"-"`
+		CLINodesList      []string `json:"-"`
+	}
+)
+
+type (
+	databaseIPRestriction struct {
+		Description string `json:"description,omitempty"`
+		IP          string `json:"ip,omitempty"`
+	}
+
+	databaseNode struct {
+		Flavor string `json:"flavor,omitempty"`
+		Region string `json:"region,omitempty"`
+		Role   string `json:"role,omitempty"`
+	}
 )
 
 func ListCloudDatabases(_ *cobra.Command, _ []string) {
@@ -39,4 +92,70 @@ func GetCloudDatabase(_ *cobra.Command, args []string) {
 	}
 
 	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/database/service", projectID), args[0], cloudDatabaseTemplate)
+}
+
+func CreateDatabase(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	// Parse IP restrictions
+	for _, restriction := range DatabaseSpec.CLIIPRestrictions {
+		DatabaseSpec.IPRestrictions = append(DatabaseSpec.IPRestrictions, databaseIPRestriction{IP: restriction})
+	}
+
+	// Parse nodes list
+	for _, node := range DatabaseSpec.CLINodesList {
+		parts := strings.Split(node, ":")
+		if len(parts) != 2 {
+			display.ExitError("invalid node format: %s (expected format: flavor1:region1,flavor2:region2...)", node)
+			return
+		}
+		DatabaseSpec.NodesList = append(DatabaseSpec.NodesList, databaseNode{
+			Flavor: parts[0],
+			Region: parts[1],
+		})
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/database/%s", projectID, url.PathEscape(DatabaseSpec.Engine))
+	database, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/database/"+DatabaseSpec.Engine,
+		endpoint,
+		DatabaseCreationExample,
+		DatabaseSpec,
+		assets.CloudOpenapiSchema,
+		[]string{"version", "plan"})
+	if err != nil {
+		display.ExitError("failed to create database: %s", err)
+		return
+	}
+
+	display.Outputf("✅ Database created successfully (id: %s)", database["id"])
+}
+
+func DeleteDatabase(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	// Fetch database service to retrieve the engine
+	var databaseService map[string]any
+	if err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+		display.ExitError("failed to fetch database service: %s", err)
+		return
+	}
+
+	// Delete the database
+	endpoint := fmt.Sprintf("/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.ExitError("failed to delete database: %s", err)
+		return
+	}
+
+	display.Outputf("✅ Database deleted successfully")
 }

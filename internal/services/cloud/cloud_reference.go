@@ -7,6 +7,7 @@ package cloud
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
@@ -123,4 +124,109 @@ func ListRancherAvailablePlans(cmd *cobra.Command, _ []string) {
 	}
 
 	common.ManageListRequestNoExpand(endpoint, []string{"name", "status", "message"}, flags.GenericFilters)
+}
+
+func ListDatabasesPlans(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/database/capabilities", projectID)
+	var body map[string]any
+	if err := httpLib.Client.Get(endpoint, &body); err != nil {
+		display.ExitError("failed to fetch database plans: %s", err)
+		return
+	}
+
+	var plans []map[string]any
+	for _, plan := range body["plans"].([]any) {
+		plans = append(plans, plan.(map[string]any))
+	}
+
+	plans, err = filtersLib.FilterLines(plans, flags.GenericFilters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(plans, []string{"name", "description", "lifecycle.status status", "backupRetention"}, &flags.OutputFormatConfig)
+}
+
+func ListDatabasesNodeFlavors(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/database/capabilities", projectID)
+	var body map[string]any
+	if err := httpLib.Client.Get(endpoint, &body); err != nil {
+		display.ExitError("failed to fetch database plans: %s", err)
+		return
+	}
+
+	var flavors []map[string]any
+	for _, flavor := range body["flavors"].([]any) {
+		flavorMap := flavor.(map[string]any)
+
+		// Transform specifications map into human readable strings
+		specs := flavorMap["specifications"].(map[string]any)
+		memorySpec := specs["memory"].(map[string]any)
+		storageSpec := specs["storage"].(map[string]any)
+		flavorMap["memory"] = fmt.Sprintf("%s %s", memorySpec["value"], memorySpec["unit"])
+		flavorMap["storage"] = fmt.Sprintf("%s %s", storageSpec["value"], storageSpec["unit"])
+
+		flavors = append(flavors, flavorMap)
+	}
+
+	flavors, err = filtersLib.FilterLines(flavors, flags.GenericFilters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(flavors, []string{"name", "core", "memory", "storage"}, &flags.OutputFormatConfig)
+}
+
+func ListDatabaseEngines(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.ExitError(err.Error())
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/database/capabilities", projectID)
+	var body map[string]any
+	if err := httpLib.Client.Get(endpoint, &body); err != nil {
+		display.ExitError("failed to fetch database engines: %s", err)
+		return
+	}
+
+	var engines []map[string]any
+	for _, engine := range body["engines"].([]any) {
+		engineMap := engine.(map[string]any)
+
+		// Reformat description
+		engineMap["description"] = strings.Title(engineMap["description"].(string))
+
+		// Transform versions array into human readable string
+		var versions []string
+		for _, v := range engineMap["versions"].([]any) {
+			versions = append(versions, v.(string))
+		}
+		engineMap["versions"] = strings.Join(versions, " | ")
+
+		engines = append(engines, engineMap)
+	}
+
+	engines, err = filtersLib.FilterLines(engines, flags.GenericFilters)
+	if err != nil {
+		display.ExitError("failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(engines, []string{"name", "description", "category", "versions", "defaultVersion"}, &flags.OutputFormatConfig)
 }

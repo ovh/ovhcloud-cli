@@ -24,6 +24,7 @@ Fetch reference data in the given cloud project
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
 * [ovhcloud cloud reference container-registry](ovhcloud_cloud_reference_container-registry.md)	 - Fetch container registry reference data in the given cloud project
+* [ovhcloud cloud reference database](ovhcloud_cloud_reference_database.md)	 - Fetch database reference data in the given cloud project
 * [ovhcloud cloud reference list-flavors](ovhcloud_cloud_reference_list-flavors.md)	 - List available flavors in the given cloud project
 * [ovhcloud cloud reference list-images](ovhcloud_cloud_reference_list-images.md)	 - List available images in the given cloud project
 * [ovhcloud cloud reference rancher](ovhcloud_cloud_reference_rancher.md)	 - Fetch Rancher reference data in the given cloud project

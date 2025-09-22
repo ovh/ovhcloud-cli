@@ -1,0 +1,11 @@
+{
+  "description": "Example mysql database",
+  "nodesList": [
+    {
+      "flavor": "db1-4",
+      "region": "DE"
+    }
+  ],
+  "plan": "essential",
+  "version": "8"
+}
