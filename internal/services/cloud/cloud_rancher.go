@@ -24,7 +24,7 @@ var (
 	//go:embed templates/cloud_rancher.tmpl
 	cloudRancherTemplate string
 
-	//go:embed parameter-samples/rancher_create.json
+	//go:embed parameter-samples/rancher-create.json
 	CloudRancherCreationExample string
 
 	RancherSpec struct {
