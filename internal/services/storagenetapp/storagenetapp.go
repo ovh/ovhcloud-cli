@@ -43,7 +43,7 @@ func EditStorageNetApp(cmd *cobra.Command, args []string) {
 		StorageNetAppSpec,
 		assets.SmsOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

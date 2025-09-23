@@ -77,7 +77,7 @@ type (
 func ListCloudDatabases(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -87,7 +87,7 @@ func ListCloudDatabases(_ *cobra.Command, _ []string) {
 func GetCloudDatabase(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -97,7 +97,7 @@ func GetCloudDatabase(_ *cobra.Command, args []string) {
 func CreateDatabase(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -110,7 +110,7 @@ func CreateDatabase(cmd *cobra.Command, args []string) {
 	for _, node := range DatabaseSpec.CLINodesList {
 		parts := strings.Split(node, ":")
 		if len(parts) != 2 {
-			display.ExitError("invalid node format: %s (expected format: flavor1:region1,flavor2:region2...)", node)
+			display.OutputError(&flags.OutputFormatConfig, "invalid node format: %s (expected format: flavor1:region1,flavor2:region2...)", node)
 			return
 		}
 		DatabaseSpec.NodesList = append(DatabaseSpec.NodesList, databaseNode{
@@ -129,33 +129,33 @@ func CreateDatabase(cmd *cobra.Command, args []string) {
 		assets.CloudOpenapiSchema,
 		[]string{"version", "plan"})
 	if err != nil {
-		display.ExitError("failed to create database: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create database: %s", err)
 		return
 	}
 
-	display.Outputf("✅ Database created successfully (id: %s)", database["id"])
+	display.OutputInfo(&flags.OutputFormatConfig, database, "✅ Database created successfully (id: %s)", database["id"])
 }
 
 func DeleteDatabase(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	// Fetch database service to retrieve the engine
 	var databaseService map[string]any
 	if err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.ExitError("failed to fetch database service: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
 		return
 	}
 
 	// Delete the database
 	endpoint := fmt.Sprintf("/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete database: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete database: %s", err)
 		return
 	}
 
-	display.Outputf("✅ Database deleted successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Database deleted successfully")
 }

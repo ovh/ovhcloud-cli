@@ -18,8 +18,8 @@ require (
 	github.com/maxatome/go-testdeep v1.14.0
 	github.com/maxatome/tdhttpmock v1.0.0
 	github.com/ovh/go-ovh v1.9.0
-	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/cobra v1.10.1
+	github.com/spf13/pflag v1.0.9
 	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561
 	golang.org/x/sync v0.16.0
 	gopkg.in/ini.v1 v1.67.0

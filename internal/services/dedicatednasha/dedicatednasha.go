@@ -44,7 +44,7 @@ func EditDedicatedNasHA(cmd *cobra.Command, args []string) {
 		DedicatedNasHASpec,
 		assets.DedicatednashaOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

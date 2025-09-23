@@ -45,7 +45,7 @@ func EditXdsl(cmd *cobra.Command, args []string) {
 		XdslSpec,
 		assets.XdslOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

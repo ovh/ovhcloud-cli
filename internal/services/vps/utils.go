@@ -53,7 +53,7 @@ func waitForVpsTask(serviceName string, taskInput map[string]any, retryDuration 
 		case <-ctx.Done():
 			return nil, errors.New("timeout waiting for task to complete")
 		case <-ticker.C:
-			log.Printf("Still waiting for task to complete (status=%s) ...", task["state"])
+			log.Printf("Still waiting for task to complete (status=%s)…", task["state"])
 			continue
 		}
 	}

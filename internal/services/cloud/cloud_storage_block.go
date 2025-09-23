@@ -51,7 +51,7 @@ var (
 func ListCloudVolumes(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -61,7 +61,7 @@ func ListCloudVolumes(_ *cobra.Command, _ []string) {
 func GetVolume(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -71,7 +71,7 @@ func GetVolume(_ *cobra.Command, args []string) {
 func EditVolume(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -82,7 +82,7 @@ func EditVolume(cmd *cobra.Command, args []string) {
 		VolumeSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -90,7 +90,7 @@ func EditVolume(cmd *cobra.Command, args []string) {
 func CreateVolume(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -105,45 +105,45 @@ func CreateVolume(cmd *cobra.Command, args []string) {
 		[]string{"name", "size", "type"},
 	)
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	if !flags.WaitForTask {
-		fmt.Printf("\n⚡️ Volume creation started successfully (operation ID: %s)\n", task["id"])
-		fmt.Printf("You can check the status of the operation with: `ovhcloud cloud operation get %s`\n", task["id"])
+		display.OutputInfo(&flags.OutputFormatConfig, task, `⚡️ Volume creation started successfully (operation ID: %s)
+You can check the status of the operation with: 'ovhcloud cloud operation get %[1]s'`, task["id"])
 		return
 	}
 
 	volumeID, err := waitForCloudOperation(projectID, task["id"].(string), "ablockstorage.CreateVolume", 10*time.Minute)
 	if err != nil {
-		display.ExitError("failed to wait for volume creation: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for volume creation: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Volume %s created successfully\n", volumeID)
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s created successfully", volumeID)
 }
 
 func DeleteVolume(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete volume: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete volume: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Volume %s deleted successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s deleted successfully", args[0])
 }
 
 func AttachVolumeToInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -152,17 +152,17 @@ func AttachVolumeToInstance(_ *cobra.Command, args []string) {
 		map[string]string{"instanceId": args[1]},
 		nil,
 	); err != nil {
-		display.ExitError("failed to attach volume: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to attach volume: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Volume %s attached to instance %s successfully\n", args[0], args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s attached to instance %s successfully", args[0], args[1])
 }
 
 func DetachVolumeFromInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -171,17 +171,17 @@ func DetachVolumeFromInstance(_ *cobra.Command, args []string) {
 		map[string]string{"instanceId": args[1]},
 		nil,
 	); err != nil {
-		display.ExitError("failed to detach volume: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to detach volume: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Volume %s detached from instance %s successfully\n", args[0], args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s detached from instance %s successfully", args[0], args[1])
 }
 
 func CreateVolumeSnapshot(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -191,17 +191,17 @@ func CreateVolumeSnapshot(_ *cobra.Command, args []string) {
 	)
 
 	if err := httpLib.Client.Post(endpoint, VolumeSnapShotSpec, &response); err != nil {
-		display.ExitError("failed to create snapshot: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create snapshot: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Snapshot for volume %s created successfully, id : %s\n", args[0], response["id"])
+	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot for volume %s created successfully, id : %s", args[0], response["id"])
 }
 
 func ListVolumeSnapshots(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -209,7 +209,7 @@ func ListVolumeSnapshots(cmd *cobra.Command, args []string) {
 
 	volume, err := cmd.Flags().GetString("volume-id")
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 	if volume != "" {
@@ -222,33 +222,33 @@ func ListVolumeSnapshots(cmd *cobra.Command, args []string) {
 func DeleteVolumeSnapshot(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/volume/snapshot/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete snapshot: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete snapshot: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Snapshot %s deleted successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot %s deleted successfully", args[0])
 }
 
 func UpsizeVolume(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	size, err := strconv.Atoi(args[1])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 	if size <= 0 {
-		display.ExitError("size must be a positive integer")
+		display.OutputError(&flags.OutputFormatConfig, "size must be a positive integer")
 		return
 	}
 
@@ -258,11 +258,11 @@ func UpsizeVolume(cmd *cobra.Command, args []string) {
 		map[string]int{"size": size},
 		nil,
 	); err != nil {
-		display.ExitError("failed to upsize volume: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to upsize volume: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Volume %s upsized successfully to %dGB\n", args[0], size)
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s upscaled successfully to %dGB", args[0], size)
 }
 
 func findVolumeBackup(backupId string) (string, map[string]any, error) {
@@ -296,14 +296,14 @@ func findVolumeBackup(backupId string) (string, map[string]any, error) {
 func ListVolumeBackups(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	// Fetch regions with volume feature available
 	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "volume")
 	if err != nil {
-		display.ExitError("failed to fetch regions with volume feature available: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch regions with volume feature available: %s", err)
 		return
 	}
 
@@ -311,7 +311,7 @@ func ListVolumeBackups(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/cloud/project/%s/region", projectID)
 	volumeBackups, err := httpLib.FetchObjectsParallel[[]map[string]any](endpoint+"/%s/volumeBackup", regions, true)
 	if err != nil {
-		display.ExitError("failed to fetch volume backups: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume backups: %s", err)
 		return
 	}
 
@@ -324,7 +324,7 @@ func ListVolumeBackups(_ *cobra.Command, args []string) {
 	// Filter results
 	allVolumeBackups, err = filtersLib.FilterLines(allVolumeBackups, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -334,7 +334,7 @@ func ListVolumeBackups(_ *cobra.Command, args []string) {
 func GetVolumeBackup(_ *cobra.Command, args []string) {
 	_, backup, err := findVolumeBackup(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -344,22 +344,22 @@ func GetVolumeBackup(_ *cobra.Command, args []string) {
 func DeleteVolumeBackup(_ *cobra.Command, args []string) {
 	endpoint, _, err := findVolumeBackup(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete volume backup: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete volume backup: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Volume backup %s deleted successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume backup %s deleted successfully", args[0])
 }
 
 func CreateVolumeBackup(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -369,7 +369,7 @@ func CreateVolumeBackup(cmd *cobra.Command, args []string) {
 		fmt.Sprintf("/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
 		&volume,
 	); err != nil {
-		display.ExitError("failed to fetch volume: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume: %s", err)
 		return
 	}
 
@@ -383,17 +383,17 @@ func CreateVolumeBackup(cmd *cobra.Command, args []string) {
 		}
 	)
 	if err := httpLib.Client.Post(endpoint, body, &response); err != nil {
-		display.ExitError("failed to create volume backup: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create volume backup: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Volume backup for volume %s created successfully, id : %s\n", args[0], response["id"])
+	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Volume backup for volume %s created successfully (id: %s)", args[0], response["id"])
 }
 
 func RestoreVolumeBackup(_ *cobra.Command, args []string) {
 	endpoint, _, err := findVolumeBackup(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -402,17 +402,17 @@ func RestoreVolumeBackup(_ *cobra.Command, args []string) {
 		map[string]string{"volumeId": args[1]},
 		nil,
 	); err != nil {
-		display.ExitError("failed to restore volume backup: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to restore volume backup: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Volume backup %s is being restored to volume %s\n", args[0], args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume backup %s is being restored to volume %s", args[0], args[1])
 }
 
 func CreateVolumeFromBackup(cmd *cobra.Command, args []string) {
 	endpoint, _, err := findVolumeBackup(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -426,9 +426,9 @@ func CreateVolumeFromBackup(cmd *cobra.Command, args []string) {
 		body,
 		&response,
 	); err != nil {
-		display.ExitError("failed to create volume from backup: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create volume from backup: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Volume %s created successfully from backup %s\n", response["id"], args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Volume %s created successfully from backup %s", response["id"], args[0])
 }

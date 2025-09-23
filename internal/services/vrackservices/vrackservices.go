@@ -11,9 +11,7 @@ import (
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
-	"github.com/ovh/ovhcloud-cli/internal/editor"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
-	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
 )
@@ -33,14 +31,15 @@ func GetVrackServices(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/v2/vrackServices/resource", args[0], vrackservicesTemplate)
 }
 
-func EditVrackServices(_ *cobra.Command, args []string) {
+func EditVrackServices(cmd *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/v2/vrackServices/resource/%s", url.PathEscape(args[0]))
-	if err := editor.EditResource(
-		httpLib.Client,
+	if err := common.EditResource(
+		cmd,
 		"/vrackServices/resource/{vrackServicesId}",
 		endpoint,
+		nil,
 		assets.VrackservicesOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 	}
 }

@@ -26,20 +26,20 @@ var (
 func ListCloudSSHKeys(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 	path := fmt.Sprintf("/cloud/project/%s/sshkey", projectID)
 
 	var body []map[string]any
 	if err := httpLib.Client.Get(path, &body); err != nil {
-		display.ExitError("failed to fetch SSH keys: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch SSH keys: %s", err)
 		return
 	}
 
 	body, err = filtersLib.FilterLines(body, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -49,7 +49,7 @@ func ListCloudSSHKeys(_ *cobra.Command, _ []string) {
 func GetCloudSSHKey(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 

@@ -20,7 +20,7 @@ import (
 func GetFlavors(region string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -35,7 +35,7 @@ func GetFlavors(region string) {
 func GetImages(region, osType string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -55,14 +55,14 @@ func GetImages(region, osType string) {
 func ListContainerRegistryPlans(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 	path := fmt.Sprintf("/cloud/project/%s/capabilities/containerRegistry", projectID)
 
 	var body []map[string]any
 	if err := httpLib.Client.Get(path, &body); err != nil {
-		display.ExitError("failed to fetch container registry plans: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch container registry plans: %s", err)
 		return
 	}
 
@@ -77,7 +77,7 @@ func ListContainerRegistryPlans(_ *cobra.Command, _ []string) {
 
 	updatedBody, err = filtersLib.FilterLines(updatedBody, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -87,13 +87,13 @@ func ListContainerRegistryPlans(_ *cobra.Command, _ []string) {
 func ListRancherAvailableVersions(cmd *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	serviceID, err := cmd.Flags().GetString("rancher-id")
 	if err != nil {
-		display.ExitError("failed to get 'rancher-id' flag: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to get 'rancher-id' flag: %s", err)
 		return
 	}
 
@@ -108,13 +108,13 @@ func ListRancherAvailableVersions(cmd *cobra.Command, _ []string) {
 func ListRancherAvailablePlans(cmd *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	serviceID, err := cmd.Flags().GetString("rancher-id")
 	if err != nil {
-		display.ExitError("failed to get 'rancher-id' flag: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to get 'rancher-id' flag: %s", err)
 		return
 	}
 
@@ -129,14 +129,14 @@ func ListRancherAvailablePlans(cmd *cobra.Command, _ []string) {
 func ListDatabasesPlans(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/database/capabilities", projectID)
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.ExitError("failed to fetch database plans: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database plans: %s", err)
 		return
 	}
 
@@ -147,7 +147,7 @@ func ListDatabasesPlans(_ *cobra.Command, _ []string) {
 
 	plans, err = filtersLib.FilterLines(plans, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -157,14 +157,14 @@ func ListDatabasesPlans(_ *cobra.Command, _ []string) {
 func ListDatabasesNodeFlavors(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/database/capabilities", projectID)
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.ExitError("failed to fetch database plans: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database plans: %s", err)
 		return
 	}
 
@@ -184,7 +184,7 @@ func ListDatabasesNodeFlavors(_ *cobra.Command, _ []string) {
 
 	flavors, err = filtersLib.FilterLines(flavors, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -194,14 +194,14 @@ func ListDatabasesNodeFlavors(_ *cobra.Command, _ []string) {
 func ListDatabaseEngines(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/database/capabilities", projectID)
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.ExitError("failed to fetch database engines: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database engines: %s", err)
 		return
 	}
 
@@ -224,7 +224,7 @@ func ListDatabaseEngines(_ *cobra.Command, _ []string) {
 
 	engines, err = filtersLib.FilterLines(engines, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 

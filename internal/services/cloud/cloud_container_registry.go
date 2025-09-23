@@ -41,7 +41,7 @@ var (
 func ListContainerRegistries(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -49,14 +49,14 @@ func ListContainerRegistries(_ *cobra.Command, _ []string) {
 	endpoint := fmt.Sprintf("/cloud/project/%s/containerRegistry", projectID)
 	body, err := httpLib.FetchArray(endpoint, "")
 	if err != nil {
-		display.ExitError("failed to fetch results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
 		return
 	}
 
 	// Fetch cloud project regions
 	regions, err := fetchProjectRegions(projectID)
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -67,7 +67,7 @@ func ListContainerRegistries(_ *cobra.Command, _ []string) {
 		// Fetch plan details for each registry
 		var plan map[string]any
 		if err := httpLib.Client.Get(fmt.Sprintf("%s/%s/plan", endpoint, url.PathEscape(objMap["id"].(string))), &plan); err != nil {
-			display.ExitError("error fetching plan details: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "error fetching plan details: %s", err)
 			return
 		}
 		objMap["plan"] = plan
@@ -85,7 +85,7 @@ func ListContainerRegistries(_ *cobra.Command, _ []string) {
 
 	objects, err = filtersLib.FilterLines(objects, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -95,7 +95,7 @@ func ListContainerRegistries(_ *cobra.Command, _ []string) {
 func GetContainerRegistry(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -103,14 +103,14 @@ func GetContainerRegistry(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/cloud/project/%s/containerRegistry/%s", projectID, url.PathEscape(args[0]))
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
-		display.ExitError("error fetching %s: %s", endpoint, err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", endpoint, err)
 		return
 	}
 
 	// Fetch plan details
 	var plan map[string]any
 	if err := httpLib.Client.Get(endpoint+"/plan", &plan); err != nil {
-		display.ExitError("error fetching plan details: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching plan details: %s", err)
 		return
 	}
 	object["plan"] = plan
@@ -120,12 +120,12 @@ func GetContainerRegistry(_ *cobra.Command, args []string) {
 
 	usedFloat, err := object["size"].(json.Number).Float64()
 	if err != nil {
-		display.ExitError("error parsing used storage: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error parsing used storage: %s", err)
 		return
 	}
 	availableFloat, err := planLimits["imageStorage"].(json.Number).Float64()
 	if err != nil {
-		display.ExitError("error parsing available storage: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error parsing available storage: %s", err)
 		return
 	}
 	object["usage"] = map[string]any{
@@ -139,7 +139,7 @@ func GetContainerRegistry(_ *cobra.Command, args []string) {
 func EditContainerRegistry(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -150,7 +150,7 @@ func EditContainerRegistry(cmd *cobra.Command, args []string) {
 		map[string]any{"name": CloudContainerRegistryName},
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -158,7 +158,7 @@ func EditContainerRegistry(cmd *cobra.Command, args []string) {
 func CreateContainerRegistry(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -172,25 +172,25 @@ func CreateContainerRegistry(cmd *cobra.Command, args []string) {
 		[]string{"name", "region"},
 	)
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	fmt.Printf("✅ Container registry '%s' created successfully\n", registry["id"])
+	display.OutputInfo(&flags.OutputFormatConfig, registry, "✅ Container registry '%s' created successfully", registry["id"])
 }
 
 func DeleteContainerRegistry(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/containerRegistry/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete container registry: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete container registry: %s", err)
 		return
 	}
 
-	fmt.Println("✅ Container registry deleted successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry deleted successfully")
 }

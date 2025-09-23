@@ -7,6 +7,7 @@ package vps
 import (
 	_ "embed"
 	"fmt"
+	"log"
 	"net/url"
 	"time"
 
@@ -89,14 +90,14 @@ func GetVps(_ *cobra.Command, args []string) {
 
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
-		display.ExitError("error fetching %s: %s", endpoint, err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", endpoint, err)
 		return
 	}
 
 	// Fetch datanceter information
 	var datacenter map[string]any
 	if err := httpLib.Client.Get(endpoint+"/datacenter", &datacenter); err != nil {
-		display.ExitError("error fetching datacenter information for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching datacenter information for %s: %s", args[0], err)
 		return
 	}
 	object["datacenter"] = datacenter
@@ -112,7 +113,7 @@ func EditVps(cmd *cobra.Command, args []string) {
 		VpsSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -123,10 +124,10 @@ func GetVpsSnapshot(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
 		if ovhErr, ok := err.(*ovh.APIError); ok && ovhErr.Code == 404 {
-			display.ExitWarning("VPS %s does not have any snapshot yet", args[0])
+			display.OutputWarning(&flags.OutputFormatConfig, "VPS %s does not have any snapshot yet", args[0])
 			return
 		}
-		display.ExitError("error fetching %s: %s", endpoint, err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", endpoint, err)
 		return
 	}
 
@@ -141,7 +142,7 @@ func EditVpsSnapshot(cmd *cobra.Command, args []string) {
 		VpsSnapshotSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -150,44 +151,44 @@ func CreateVpsSnapshot(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/createSnapshot", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, VpsSnapshotSpec, nil); err != nil {
-		display.ExitError("error creating snapshot for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error creating snapshot for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Snapshot creation started")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Snapshot creation started")
 }
 
 func DeleteVpsSnapshot(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/snapshot", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("error deleting snapshot for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error deleting snapshot for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Snapshot deletion started")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Snapshot deletion started")
 }
 
 func AbortVpsSnapshot(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/abortSnapshot", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.ExitError("error aborting snapshot for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error aborting snapshot for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("✅ Snapshot aborted")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot aborted")
 }
 
 func RestoreVpsSnapshot(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/snapshot/revert", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.ExitError("error restoring snapshot for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error restoring snapshot for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Snapshot restoration started")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Snapshot restoration started")
 }
 
 func DownloadVpsSnapshot(_ *cobra.Command, args []string) {
@@ -195,11 +196,11 @@ func DownloadVpsSnapshot(_ *cobra.Command, args []string) {
 
 	var response map[string]any
 	if err := httpLib.Client.Get(endpoint, &response); err != nil {
-		display.ExitError("error downloading snapshot for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error downloading snapshot for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("✅ Snapshot download URL: %s (size: %s bytes)\n", response["url"], response["size"])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot download URL: %s (size: %s bytes)", response["url"], response["size"])
 }
 
 func GetVpsAutomatedBackup(_ *cobra.Command, args []string) {
@@ -208,10 +209,10 @@ func GetVpsAutomatedBackup(_ *cobra.Command, args []string) {
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
 		if ovhErr, ok := err.(*ovh.APIError); ok && ovhErr.Code == 404 {
-			display.ExitWarning("VPS %s does not have any automated backup yet", args[0])
+			display.OutputWarning(&flags.OutputFormatConfig, "VPS %s does not have any automated backup yet", args[0])
 			return
 		}
-		display.ExitError("error fetching %s: %s", endpoint, err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", endpoint, err)
 		return
 	}
 
@@ -230,11 +231,11 @@ func DetachVpsAutomatedBackup(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.ExitError("error detaching automated backup for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error detaching automated backup for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("✅ Automated backup detached")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Automated backup detached")
 }
 
 func RescheduleVpsAutomatedBackup(_ *cobra.Command, args []string) {
@@ -244,21 +245,21 @@ func RescheduleVpsAutomatedBackup(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.ExitError("error updating automated backup schedule for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error updating automated backup schedule for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("✅ Automated backup schedule updated")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Automated backup schedule updated")
 }
 
 func RestoreVpsAutomatedBackup(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/automatedBackup/restore", url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, VpsSnapshotRestoreSpec, nil); err != nil {
-		display.ExitError("error restoring automated backup for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error restoring automated backup for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Automated backup restoration started")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Automated backup restoration started")
 }
 
 func ListVpsAutomatedBackupRestorePoints(_ *cobra.Command, args []string) {
@@ -266,7 +267,7 @@ func ListVpsAutomatedBackupRestorePoints(_ *cobra.Command, args []string) {
 
 	var restorePoints []string
 	if err := httpLib.Client.Get(endpoint, &restorePoints); err != nil {
-		display.ExitError("error fetching restore points for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching restore points for %s: %s", args[0], err)
 		return
 	}
 
@@ -289,11 +290,11 @@ func ChangeVpsContacts(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/changeContact", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, VpsContacts, nil); err != nil {
-		display.ExitError("error changing contacts for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error changing contacts for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("✅ Contacts updated")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Contacts updated")
 }
 
 func GetVpsServiceInfo(_ *cobra.Command, args []string) {
@@ -301,7 +302,7 @@ func GetVpsServiceInfo(_ *cobra.Command, args []string) {
 
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
-		display.ExitError("error fetching service info for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching service info for %s: %s", args[0], err)
 		return
 	}
 
@@ -316,7 +317,7 @@ func EditVpsServiceInfo(cmd *cobra.Command, args []string) {
 		common.ServiceInfoSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -326,11 +327,11 @@ func TerminateVps(_ *cobra.Command, args []string) {
 
 	var response string
 	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
-		display.ExitError("error terminating VPS %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error terminating VPS %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("✅ VPS %s termination started: %s\n", args[0], response)
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ VPS %s termination started: %s", args[0], response)
 }
 
 func ConfirmVpsTermination(_ *cobra.Command, args []string) {
@@ -341,11 +342,11 @@ func ConfirmVpsTermination(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.ExitError("error confirming termination for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error confirming termination for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("✅ VPS %s termination confirmed\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ VPS %s termination confirmed", args[0])
 }
 
 func ListVpsDisks(_ *cobra.Command, args []string) {
@@ -365,7 +366,7 @@ func EditVpsDisk(cmd *cobra.Command, args []string) {
 		VpsDiskSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -375,11 +376,11 @@ func VpsGetConsoleURL(_ *cobra.Command, args []string) {
 
 	var consoleURL string
 	if err := httpLib.Client.Post(endpoint, nil, &consoleURL); err != nil {
-		display.ExitError("error fetching console URL for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching console URL for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("✅ Console URL for VPS %s: %s\n", args[0], consoleURL)
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Console URL for VPS %s: %s", args[0], consoleURL)
 }
 
 func GetVpsImages(_ *cobra.Command, args []string) {
@@ -388,7 +389,7 @@ func GetVpsImages(_ *cobra.Command, args []string) {
 	// Fetch available images
 	body, err := httpLib.FetchExpandedArray(endpoint, "")
 	if err != nil {
-		display.ExitError("failed to fetch results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
 		return
 	}
 	for _, object := range body {
@@ -397,7 +398,7 @@ func GetVpsImages(_ *cobra.Command, args []string) {
 
 	body, err = filtersLib.FilterLines(body, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -405,7 +406,7 @@ func GetVpsImages(_ *cobra.Command, args []string) {
 	var current map[string]any
 	endpoint = fmt.Sprintf("/vps/%s/images/current", url.PathEscape(args[0]))
 	if err := httpLib.Client.Get(endpoint, &current); err != nil {
-		display.ExitError("failed to fetch current image: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch current image: %s", err)
 		return
 	}
 	current["current"] = true
@@ -429,22 +430,22 @@ func SetVpsIPReverse(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
-		display.ExitError("error setting reverse for IP %s: %s", args[1], err)
+		display.OutputError(&flags.OutputFormatConfig, "error setting reverse for IP %s: %s", args[1], err)
 		return
 	}
 
-	fmt.Printf("✅ Reverse for IP %s on VPS %s set to '%s'\n", args[1], args[0], args[2])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Reverse for IP %s on VPS %s set to '%s'", args[1], args[0], args[2])
 }
 
 func ReleaseVpsIP(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/ips/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("error releasing IP %s: %s", args[1], err)
+		display.OutputError(&flags.OutputFormatConfig, "error releasing IP %s: %s", args[1], err)
 		return
 	}
 
-	fmt.Printf("✅ IP %s released from VPS %s\n", args[1], args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ IP %s released from VPS %s", args[1], args[0])
 }
 
 func ListVPSOptions(_ *cobra.Command, args []string) {
@@ -457,23 +458,24 @@ func StartVps(_ *cobra.Command, args []string) {
 
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
-		display.ExitError("error starting VPS %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error starting VPS %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("\n⚡️ VPS %s starting…\n", args[0])
+	log.Printf("⚡️ VPS %s starting…", args[0])
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ VPS %s starting…", args[0])
 		return
 	}
 
 	// Wait for the task to complete
 	if _, err := waitForVpsTask(args[0], response, 10*time.Minute); err != nil {
-		display.ExitError("error waiting for start task to complete: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error waiting for start task to complete: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ VPS %s started successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ VPS %s started successfully", args[0])
 }
 
 func StopVps(_ *cobra.Command, args []string) {
@@ -481,23 +483,24 @@ func StopVps(_ *cobra.Command, args []string) {
 
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
-		display.ExitError("error stopping VPS %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error stopping VPS %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("\n⚡️ VPS %s stopping\n", args[0])
+	log.Printf("⚡️ VPS %s stopping", args[0])
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ VPS %s stopping", args[0])
 		return
 	}
 
 	// Wait for the task to complete
 	if _, err := waitForVpsTask(args[0], response, 10*time.Minute); err != nil {
-		display.ExitError("error waiting for stop task to complete: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error waiting for stop task to complete: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ VPS %s stopped successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ VPS %s stopped successfully", args[0])
 }
 
 func RebootVps(_ *cobra.Command, args []string) {
@@ -505,23 +508,24 @@ func RebootVps(_ *cobra.Command, args []string) {
 
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
-		display.ExitError("error rebooting VPS %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error rebooting VPS %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("\n⚡️ VPS %s reboot started…\n", args[0])
+	log.Printf("⚡️ VPS %s reboot started…", args[0])
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ VPS %s reboot started…", args[0])
 		return
 	}
 
 	// Wait for the task to complete
 	if _, err := waitForVpsTask(args[0], response, 10*time.Minute); err != nil {
-		display.ExitError("error waiting for reboot task to complete: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error waiting for reboot task to complete: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ VPS %s reboot completed successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ VPS %s reboot completed successfully", args[0])
 }
 
 func ReinstallVps(cmd *cobra.Command, args []string) {
@@ -530,7 +534,7 @@ func ReinstallVps(cmd *cobra.Command, args []string) {
 	if VpsImageViaInteractiveSelector {
 		_, id, err := runImageSelector(args[0])
 		if err != nil {
-			display.ExitError("error selecting image: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "error selecting image: %s", err)
 			return
 		}
 		VpsReinstallSpec.ImageId = id
@@ -539,7 +543,7 @@ func ReinstallVps(cmd *cobra.Command, args []string) {
 	if VpsSSHKeyViaInteractiveSelector {
 		keyName, _, err := runSSHKeySelector()
 		if err != nil {
-			display.ExitError("error selecting SSH key: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "error selecting SSH key: %s", err)
 			return
 		}
 		VpsReinstallSpec.SshKey = keyName
@@ -555,23 +559,24 @@ func ReinstallVps(cmd *cobra.Command, args []string) {
 		[]string{"imageId"},
 	)
 	if err != nil {
-		display.ExitError("error preparing reinstallation: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error preparing reinstallation: %s", err)
 		return
 	}
 
-	fmt.Printf("\n⚡️ VPS %s reinstallation started\n", args[0])
+	log.Printf("⚡️ VPS %s reinstallation started", args[0])
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ VPS %s reinstallation started", args[0])
 		return
 	}
 
 	// Wait for the task to complete
 	if _, err := waitForVpsTask(args[0], response, 20*time.Minute); err != nil {
-		display.ExitError("error waiting for reinstall task to complete: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error waiting for reinstall task to complete: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ VPS %s reinstalled successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ VPS %s reinstalled successfully", args[0])
 }
 
 func ListVpsSecondaryDNSDomains(_ *cobra.Command, args []string) {
@@ -591,22 +596,22 @@ func AddVpsSecondaryDNSDomain(cmd *cobra.Command, args []string) {
 		assets.VpsOpenapiSchema,
 		[]string{"domain", "ip"},
 	); err != nil {
-		display.ExitError("error creating secondary DNS domain for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error creating secondary DNS domain for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("✅ Secondary DNS domain %s created for VPS %s\n", VpsSecondaryDNSDomainSpec.Domain, args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Secondary DNS domain %s created for VPS %s", VpsSecondaryDNSDomainSpec.Domain, args[0])
 }
 
 func DeleteVpsSecondaryDNSDomain(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/vps/%s/secondaryDnsDomains/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("error deleting secondary DNS domain %s: %s", args[1], err)
+		display.OutputError(&flags.OutputFormatConfig, "error deleting secondary DNS domain %s: %s", args[1], err)
 		return
 	}
 
-	fmt.Printf("✅ Secondary DNS domain %s deleted from VPS %s\n", args[1], args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Secondary DNS domain %s deleted from VPS %s", args[1], args[0])
 }
 
 func ChangeVpsPassword(_ *cobra.Command, args []string) {
@@ -614,23 +619,24 @@ func ChangeVpsPassword(_ *cobra.Command, args []string) {
 
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
-		display.ExitError("error changing password for %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error changing password for %s: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("\n⚡️ VPS %s process to set the root password has started\n", args[0])
+	log.Printf("⚡️ VPS %s process to set the root password has started", args[0])
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ VPS %s process to set the root password has started", args[0])
 		return
 	}
 
 	// Wait for the task to complete
 	if _, err := waitForVpsTask(args[0], response, 20*time.Minute); err != nil {
-		display.ExitError("error waiting for task to complete: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error waiting for task to complete: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ VPS %s process to set the root password completed successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ VPS %s process to set the root password completed successfully", args[0])
 }
 
 func ListVpsTasks(_ *cobra.Command, args []string) {

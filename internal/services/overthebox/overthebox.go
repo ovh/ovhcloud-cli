@@ -45,7 +45,7 @@ func EditOverTheBox(cmd *cobra.Command, args []string) {
 		OverTheBoxSpec,
 		assets.OvertheboxOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
