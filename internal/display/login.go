@@ -62,7 +62,7 @@ func RunLoginInput(customEndpoint bool) map[string]string {
 	p := tea.NewProgram(mod)
 
 	if _, err := p.Run(); err != nil {
-		ExitError(err.Error())
+		exitError(err.Error())
 	}
 
 	if customEndpoint {

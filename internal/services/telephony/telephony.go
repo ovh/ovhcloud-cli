@@ -50,7 +50,7 @@ func EditTelephony(cmd *cobra.Command, args []string) {
 		TelephonySpec,
 		assets.TelephonyOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

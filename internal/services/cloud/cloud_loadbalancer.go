@@ -32,7 +32,7 @@ var (
 func ListCloudLoadbalancers(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -42,7 +42,7 @@ func ListCloudLoadbalancers(_ *cobra.Command, _ []string) {
 func GetCloudLoadbalancer(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -52,7 +52,7 @@ func GetCloudLoadbalancer(_ *cobra.Command, args []string) {
 func EditCloudLoadbalancer(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -63,7 +63,7 @@ func EditCloudLoadbalancer(cmd *cobra.Command, args []string) {
 		CloudLoadbalancerUpdateFields,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

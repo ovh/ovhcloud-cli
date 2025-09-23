@@ -162,7 +162,7 @@ type kubeNodepoolSpecTaintType struct {
 func ListKubes(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -172,7 +172,7 @@ func ListKubes(_ *cobra.Command, _ []string) {
 func GetKube(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -180,7 +180,7 @@ func GetKube(_ *cobra.Command, args []string) {
 
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
-		display.ExitError("error fetching %s: %s", endpoint, err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", endpoint, err)
 		return
 	}
 
@@ -191,12 +191,12 @@ func GetKube(_ *cobra.Command, args []string) {
 	} else {
 		etcdUsage["usage"], err = etcdUsage["usage"].(json.Number).Float64()
 		if err != nil {
-			display.ExitError("failed to parse etcd usage 'usage' value: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to parse etcd usage 'usage' value: %s", err)
 			return
 		}
 		etcdUsage["quota"], err = etcdUsage["quota"].(json.Number).Float64()
 		if err != nil {
-			display.ExitError("failed to parse etcd usage 'quota' value: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to parse etcd usage 'quota' value: %s", err)
 			return
 		}
 		object["etcdUsage"] = etcdUsage
@@ -208,7 +208,7 @@ func GetKube(_ *cobra.Command, args []string) {
 func CreateKube(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -222,17 +222,17 @@ func CreateKube(cmd *cobra.Command, args []string) {
 		assets.CloudOpenapiSchema,
 		[]string{"region"})
 	if err != nil {
-		display.ExitError("failed to create Kubernetes cluster: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create Kubernetes cluster: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Cluster %s created successfully (id: %s)\n", cluster["name"], cluster["id"])
+	display.OutputInfo(&flags.OutputFormatConfig, cluster, "✅ Cluster %s created successfully (id: %s)", cluster["name"], cluster["id"])
 }
 
 func EditKube(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -246,7 +246,7 @@ func EditKube(cmd *cobra.Command, args []string) {
 		},
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -254,30 +254,30 @@ func EditKube(cmd *cobra.Command, args []string) {
 func DeleteKube(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete MKS cluster: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete MKS cluster: %s", err)
 		return
 	}
 
-	fmt.Println("✅ MKS cluster is being deleted…")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ MKS cluster is being deleted…")
 }
 
 func GetKubeCustomization(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0]))
 	var customization map[string]any
 	if err := httpLib.Client.Get(endpoint, &customization); err != nil {
-		display.ExitError("failed to fetch MKS cluster customization: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch MKS cluster customization: %s", err)
 		return
 	}
 
@@ -287,7 +287,7 @@ func GetKubeCustomization(cmd *cobra.Command, args []string) {
 func EditKubeCustomization(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -298,7 +298,7 @@ func EditKubeCustomization(cmd *cobra.Command, args []string) {
 		KubeSpec.Customization,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -306,7 +306,7 @@ func EditKubeCustomization(cmd *cobra.Command, args []string) {
 func ListKubeIPRestrictions(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -314,7 +314,7 @@ func ListKubeIPRestrictions(_ *cobra.Command, args []string) {
 
 	body, err := httpLib.FetchArray(endpoint, "")
 	if err != nil {
-		display.ExitError("failed to fetch IP restrictions: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch IP restrictions: %s", err)
 		return
 	}
 
@@ -330,13 +330,13 @@ func ListKubeIPRestrictions(_ *cobra.Command, args []string) {
 
 func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {
 	if cmd.Flags().NFlag() == 0 {
-		display.ExitWarning("No parameters given, nothing to edit")
+		display.OutputWarning(&flags.OutputFormatConfig, "No parameters given, nothing to edit")
 		return
 	}
 
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -346,7 +346,7 @@ func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {
 		// Fetch resource
 		var ips []string
 		if err := httpLib.Client.Get(endpoint, &ips); err != nil {
-			display.ExitError("error fetching resource %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "error fetching resource %s", err)
 			return
 		}
 
@@ -355,24 +355,24 @@ func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {
 			"ips": ips,
 		}, "", "  ")
 		if err != nil {
-			display.ExitError("failed to marshal writable body: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to marshal writable body: %s", err)
 			return
 		}
 
 		// Edit value
 		updatedBody, err := editor.EditValueWithEditor(editableOutput)
 		if err != nil {
-			display.ExitError("failed to edit properties: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to edit properties: %s", err)
 			return
 		}
 
 		// Update API call
 		if err := httpLib.Client.Put(endpoint, json.RawMessage(updatedBody), nil); err != nil {
-			display.ExitError("failed to update resource: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to update resource: %s", err)
 			return
 		}
 
-		fmt.Println("✅ IP restrictions updated succesfully ...")
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ IP restrictions updated successfully…")
 		return
 	}
 
@@ -380,17 +380,17 @@ func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {
 	if err := httpLib.Client.Put(endpoint, map[string]any{
 		"ips": KubeIPRestrictions,
 	}, nil); err != nil {
-		display.ExitError("failed to update IP restrictions: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to update IP restrictions: %s", err)
 		return
 	}
 
-	fmt.Println("✅ IP restrictions updated succesfully ...")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ IP restrictions updated successfully…")
 }
 
 func GenerateKubeConfig(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -398,34 +398,34 @@ func GenerateKubeConfig(cmd *cobra.Command, args []string) {
 
 	var kubeConfig map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &kubeConfig); err != nil {
-		display.ExitError("failed to generate kube config: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to generate kube config: %s", err)
 		return
 	}
 
-	fmt.Println(kubeConfig["content"])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "%s", kubeConfig["content"])
 }
 
 func ResetKubeConfig(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/kubeconfig/reset", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.ExitError("failed to reset kube config: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to reset kube config: %s", err)
 		return
 	}
 
-	fmt.Println("✅ Kube config reset successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Kube config reset successfully")
 }
 
 func ListKubeNodes(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -437,7 +437,7 @@ func ListKubeNodes(_ *cobra.Command, args []string) {
 func GetKubeNode(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -449,23 +449,23 @@ func GetKubeNode(_ *cobra.Command, args []string) {
 func DeleteKubeNode(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/node/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete MKS node: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete MKS node: %s", err)
 		return
 	}
 
-	fmt.Println("✅ MKS node deleted successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ MKS node deleted successfully")
 }
 
 func ListKubeNodepools(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -477,7 +477,7 @@ func ListKubeNodepools(_ *cobra.Command, args []string) {
 func GetKubeNodepool(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -489,7 +489,7 @@ func GetKubeNodepool(_ *cobra.Command, args []string) {
 func EditKubeNodepool(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -500,7 +500,7 @@ func EditKubeNodepool(cmd *cobra.Command, args []string) {
 		KubeNodepoolSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -508,28 +508,28 @@ func EditKubeNodepool(cmd *cobra.Command, args []string) {
 func DeleteKubeNodepool(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete MKS node pool: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete MKS node pool: %s", err)
 		return
 	}
 
-	fmt.Println("✅ MKS node pool deleted successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ MKS node pool deleted successfully")
 }
 
 func CreateKubeNodepool(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		display.ExitError("create command requires the MKS cluster ID as the first argument.\nUsage:\n%s", cmd.UsageString())
+		display.OutputError(&flags.OutputFormatConfig, "create command requires the MKS cluster ID as the first argument.\nUsage:\n%s", cmd.UsageString())
 		return
 	}
 
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -537,13 +537,13 @@ func CreateKubeNodepool(cmd *cobra.Command, args []string) {
 	for _, taint := range KubeNodepoolSpec.Template.Spec.CommandLineTaints {
 		parts := strings.Split(taint, ":")
 		if len(parts) != 2 {
-			display.ExitError("invalid taint format: %q, expected format is key=value:effect", taint)
+			display.OutputError(&flags.OutputFormatConfig, "invalid taint format: %q, expected format is key=value:effect", taint)
 			return
 		}
 
 		kvParts := strings.Split(parts[0], "=")
 		if len(kvParts) != 2 {
-			display.ExitError("invalid taint format: %q, expected format is key=value:effect", taint)
+			display.OutputError(&flags.OutputFormatConfig, "invalid taint format: %q, expected format is key=value:effect", taint)
 			return
 		}
 
@@ -559,7 +559,7 @@ func CreateKubeNodepool(cmd *cobra.Command, args []string) {
 	// Run interactive flavor selector if the flag is set
 	flavor, err := GetKubeFlavorInteractiveSelector(cmd, args)
 	if err != nil {
-		display.ExitError("failed to get flavor from interactive selector: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to get flavor from interactive selector: %s", err)
 		return
 	}
 	if flavor != nil {
@@ -576,11 +576,11 @@ func CreateKubeNodepool(cmd *cobra.Command, args []string) {
 		assets.CloudOpenapiSchema,
 		[]string{"flavorName"})
 	if err != nil {
-		display.ExitError("failed to create Kubernetes node pool: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create Kubernetes node pool: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Node pool %s created successfully\n", nodepool["id"])
+	display.OutputInfo(&flags.OutputFormatConfig, nodepool, "✅ Node pool %s created successfully", nodepool["id"])
 }
 
 func GetKubeFlavorInteractiveSelector(cmd *cobra.Command, args []string) (map[string]any, error) {
@@ -623,7 +623,7 @@ func GetKubeFlavorInteractiveSelector(cmd *cobra.Command, args []string) (map[st
 func GetKubeOIDCIntegration(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -631,7 +631,7 @@ func GetKubeOIDCIntegration(_ *cobra.Command, args []string) {
 
 	var oidcConfig map[string]any
 	if err := httpLib.Client.Get(endpoint, &oidcConfig); err != nil {
-		display.ExitError("failed to fetch OIDC configuration: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch OIDC configuration: %s", err)
 		return
 	}
 
@@ -641,7 +641,7 @@ func GetKubeOIDCIntegration(_ *cobra.Command, args []string) {
 func EditKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -652,7 +652,7 @@ func EditKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 		KubeOIDCConfig,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -660,7 +660,7 @@ func EditKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 func CreateKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -673,34 +673,34 @@ func CreateKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 		KubeOIDCConfig,
 		assets.CloudOpenapiSchema,
 		[]string{"clientId", "issuerUrl"}); err != nil {
-		display.ExitError("failed to create OIDC integration: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create OIDC integration: %s", err)
 		return
 	}
 
-	fmt.Println("✅ OIDC integration created successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ OIDC integration created successfully")
 }
 
 func DeleteKubeOIDCIntegration(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete OIDC integration: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete OIDC integration: %s", err)
 		return
 	}
 
-	fmt.Println("✅ OIDC integration deleted successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ OIDC integration deleted successfully")
 }
 
 func GetKubePrivateNetworkConfiguration(_cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -708,7 +708,7 @@ func GetKubePrivateNetworkConfiguration(_cmd *cobra.Command, args []string) {
 
 	var privateNetworkConfig map[string]any
 	if err := httpLib.Client.Get(endpoint, &privateNetworkConfig); err != nil {
-		display.ExitError("failed to fetch private network configuration: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch private network configuration: %s", err)
 		return
 	}
 
@@ -718,7 +718,7 @@ func GetKubePrivateNetworkConfiguration(_cmd *cobra.Command, args []string) {
 func EditKubePrivateNetworkConfiguration(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -729,7 +729,7 @@ func EditKubePrivateNetworkConfiguration(cmd *cobra.Command, args []string) {
 		KubeSpec.PrivateNetworkConfiguration,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -737,7 +737,7 @@ func EditKubePrivateNetworkConfiguration(cmd *cobra.Command, args []string) {
 func ResetKubeCluster(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -751,34 +751,34 @@ func ResetKubeCluster(cmd *cobra.Command, args []string) {
 		assets.CloudOpenapiSchema,
 		nil)
 	if err != nil {
-		display.ExitError("failed to reset Kubernetes cluster: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to reset Kubernetes cluster: %s", err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Kubernetes cluster is being reset…")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Kubernetes cluster is being reset…")
 }
 
 func RestartKubeCluster(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	if err := httpLib.Client.Post(fmt.Sprintf("/cloud/project/%s/kube/%s/restart", projectID, url.PathEscape(args[0])), map[string]any{
 		"force": KubeForceAction,
 	}, nil); err != nil {
-		display.ExitError("failed to restart Kubernetes cluster: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to restart Kubernetes cluster: %s", err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Kubernetes cluster restarting…")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Kubernetes cluster restarting…")
 }
 
 func UpdateKubeCluster(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -792,17 +792,17 @@ func UpdateKubeCluster(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.ExitError("failed to update Kubernetes cluster: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to update Kubernetes cluster: %s", err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Kubernetes cluster update in progress…")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Kubernetes cluster update in progress…")
 }
 
 func UpdateKubeLoadBalancersSubnet(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -812,9 +812,9 @@ func UpdateKubeLoadBalancersSubnet(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
-		display.ExitError("failed to update load balancers subnet: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to update load balancers subnet: %s", err)
 		return
 	}
 
-	fmt.Println("✅ Load balancers subnet updated successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Load balancers subnet updated successfully")
 }

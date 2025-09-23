@@ -42,13 +42,13 @@ var (
 func ManageListRequest(path, idField string, columnsToDisplay, filters []string) {
 	body, err := httpLib.FetchExpandedArray(path, idField)
 	if err != nil {
-		display.ExitError("failed to fetch results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
 		return
 	}
 
 	body, err = filtersLib.FilterLines(body, filters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -58,7 +58,7 @@ func ManageListRequest(path, idField string, columnsToDisplay, filters []string)
 func ManageListRequestNoExpand(path string, columnsToDisplay, filters []string) {
 	body, err := httpLib.FetchArray(path, "")
 	if err != nil {
-		display.ExitError("failed to fetch results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
 		return
 	}
 
@@ -69,7 +69,7 @@ func ManageListRequestNoExpand(path string, columnsToDisplay, filters []string) 
 
 	objects, err = filtersLib.FilterLines(objects, filters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func ManageObjectRequest(path, objectID, templateContent string) {
 
 	var object map[string]any
 	if err := httpLib.Client.Get(url, &object); err != nil {
-		display.ExitError("error fetching %s: %s", url, err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", url, err)
 		return
 	}
 
@@ -131,7 +131,7 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		}
 
 		if choice == "" {
-			return nil, errors.New("No example selected, exiting...")
+			return nil, errors.New("no example selected, exiting…")
 		}
 
 		newValue, err := editor.EditValueWithEditor([]byte(choice))
@@ -190,7 +190,7 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 
 func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte) error {
 	if cmd.Flags().NFlag() == 0 {
-		fmt.Println("🟠 No parameters given, nothing to edit")
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
 		return nil
 	}
 
@@ -232,7 +232,7 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 			return fmt.Errorf("failed to update resource: %w", err)
 		}
 
-		fmt.Println("✅ Resource updated succesfully ...")
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Resource updated successfully")
 
 		return nil
 	}
@@ -254,7 +254,7 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 		return fmt.Errorf("failed to update resource: %w", err)
 	}
 
-	fmt.Println("✅ Resource updated succesfully ...")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Resource updated successfully")
 
 	return nil
 }

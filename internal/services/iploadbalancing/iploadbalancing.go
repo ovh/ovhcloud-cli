@@ -44,7 +44,7 @@ func EditIpLoadbalancing(cmd *cobra.Command, args []string) {
 		IPLoadbalancingSpec,
 		assets.IploadbalancingOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

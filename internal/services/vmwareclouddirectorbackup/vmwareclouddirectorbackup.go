@@ -49,13 +49,13 @@ func EditVmwareCloudDirectorBackup(cmd *cobra.Command, args []string) {
 	for _, offer := range VmwareCloudDirectorBackupSpec.TargetSpec.CliOffers {
 		offerParts := strings.Split(offer, ":")
 		if len(offerParts) != 2 {
-			display.ExitError("Invalid offer format: %s. Expected format is '<name>:<quotaInTB>'", offer)
+			display.OutputError(&flags.OutputFormatConfig, "Invalid offer format: %s. Expected format is '<name>:<quotaInTB>'", offer)
 			return
 		}
 
 		intQuota, err := strconv.Atoi(offerParts[1])
 		if err != nil {
-			display.ExitError("Invalid quota value '%s' for offer '%s'. It should be an integer.", offerParts[1], offerParts[0])
+			display.OutputError(&flags.OutputFormatConfig, "Invalid quota value '%s' for offer '%s'. It should be an integer.", offerParts[1], offerParts[0])
 			return
 		}
 
@@ -74,7 +74,7 @@ func EditVmwareCloudDirectorBackup(cmd *cobra.Command, args []string) {
 		VmwareCloudDirectorBackupSpec,
 		assets.VmwareclouddirectorbackupOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

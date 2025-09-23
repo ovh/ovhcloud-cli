@@ -43,7 +43,7 @@ func EditWebHosting(cmd *cobra.Command, args []string) {
 		WebHostingSpec,
 		assets.WebhostingOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

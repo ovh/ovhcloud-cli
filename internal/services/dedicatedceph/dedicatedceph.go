@@ -44,7 +44,7 @@ func EditDedicatedCeph(cmd *cobra.Command, args []string) {
 		DedicatedCephSpec,
 		assets.DedicatedcephOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
