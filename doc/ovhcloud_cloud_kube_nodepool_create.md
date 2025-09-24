@@ -9,7 +9,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud kube nodepool create <cluster_id> --flavor-name b3-16 --desired-nodes 3 --name newnodepool
+	ovhcloud cloud kube nodepool create <cluster_id> --flavor-name b3-16 --desired-nodes 3 --name newnodepool
 
 2. Using a configuration file:
 
@@ -36,7 +36,7 @@ There are three ways to define the creation parameters:
 
 3. Using your default text editor:
 
-  ovhcloud cloud kube nodepool create <cluster_id> --editor
+	ovhcloud cloud kube nodepool create <cluster_id> --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.

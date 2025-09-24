@@ -9,7 +9,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.image <image_id> --flavor <flavor_id>
+	ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.image <image_id> --flavor <flavor_id>
 
 2. Using a configuration file:
 
@@ -32,11 +32,11 @@ There are three ways to define the creation parameters:
 
   It is also possible to use the interactive image and flavor selector to define the image and flavor parameters, like the following:
 
-  	ovhcloud cloud instance create BHS5 --init-file ./params.json --image-selector --flavor-selector
+	ovhcloud cloud instance create BHS5 --init-file ./params.json --image-selector --flavor-selector
 
 3. Using your default text editor:
 
-  ovhcloud cloud instance create GRA11 --editor
+	ovhcloud cloud instance create GRA11 --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.
@@ -47,7 +47,7 @@ There are three ways to define the creation parameters:
 
   You can also use the interactive image and flavor selector to define the image and flavor parameters, like the following:
 
-  	ovhcloud cloud instance create RBX8 --editor --image-selector --flavor-selector
+	ovhcloud cloud instance create RBX8 --editor --image-selector --flavor-selector
 
 
 ```

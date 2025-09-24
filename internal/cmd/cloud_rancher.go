@@ -66,7 +66,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud rancher create --name MyNewRancher --plan OVHCLOUD_EDITION --version 2.11.3
+	ovhcloud cloud rancher create --name MyNewRancher --plan OVHCLOUD_EDITION --version 2.11.3
 
 2. Using a configuration file:
 
@@ -89,7 +89,7 @@ There are three ways to define the creation parameters:
 
 3. Using your default text editor:
 
-  ovhcloud cloud rancher create --editor
+	ovhcloud cloud rancher create --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.

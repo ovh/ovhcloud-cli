@@ -11,7 +11,7 @@ There are three ways to define the reset parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud kube reset <cluster_id> --name MyNewCluster --version 1.32
+	ovhcloud cloud kube reset <cluster_id> --name MyNewCluster --version 1.32
 
 2. Using a configuration file:
 
@@ -34,7 +34,7 @@ There are three ways to define the reset parameters:
 
 3. Using your default text editor:
 
-  ovhcloud cloud kube reset <cluster_id> --editor
+	ovhcloud cloud kube reset <cluster_id> --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the reset will start.
