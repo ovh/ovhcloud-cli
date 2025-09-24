@@ -48,23 +48,23 @@ func getDatabaseCreationCmd() *cobra.Command {
 		Use:   "create",
 		Short: "Create a new database",
 		Long: `Use this command to create a database in the given public cloud project.
-		There are two ways to define the creation parameters:
+There are two ways to define the creation parameters:
 
-		1. Using only CLI flags:
+1. Using only CLI flags:
 
-		  ovhcloud cloud database create --engine mysql --version 8 --plan essential  --nodes-list "db1-4:DE"
+	ovhcloud cloud database create --engine mysql --version 8 --plan essential  --nodes-list "db1-4:DE"
 
-		2. Using your default text editor:
+2. Using your default text editor:
 
-		  ovhcloud cloud database create --engine kafka --editor
+	ovhcloud cloud database create --engine kafka --editor
 
-		  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
-		  default text editor to update the parameters. When saving the file, the creation will start.
+  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
+  default text editor to update the parameters. When saving the file, the creation will start.
 
-		  Note that it is also possible to override values in the presented examples using command line flags like the following:
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-			ovhcloud cloud database create --engine mysql --editor --version 8
-		`,
+	ovhcloud cloud database create --engine mysql --editor --version 8
+`,
 		Run:  cloud.CreateDatabase,
 		Args: cobra.NoArgs,
 	}

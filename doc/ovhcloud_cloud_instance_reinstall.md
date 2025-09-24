@@ -11,11 +11,11 @@ There are three ways to define the installation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --image <image_id>
+	ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --image <image_id>
 
 2. Using the interactive image selector:
 
-  ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --image-selector
+	ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --image-selector
 
 3. Using a configuration file:
 
@@ -38,7 +38,7 @@ There are three ways to define the installation parameters:
 
 4. Using your default text editor:
 
-  ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --editor
+	ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --editor
 
   You will be able to choose from several installation examples. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the reinstallation will be run.
