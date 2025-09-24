@@ -82,7 +82,14 @@ func initRootCmd() {
 	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.JsonOutput, "json", "j", false, "Output in JSON")
 	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.YamlOutput, "yaml", "y", false, "Output in YAML")
 	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.InteractiveOutput, "interactive", "i", false, "Interactive output")
-	rootCmd.PersistentFlags().StringVarP(&flags.OutputFormatConfig.CustomFormat, "format", "f", "", "Output value according to given format (expression using gval format)")
+	rootCmd.PersistentFlags().StringVarP(&flags.OutputFormatConfig.CustomFormat, "format", "f", "", `Output value according to given format (expression using https://github.com/PaesslerAG/gval syntax)
+Examples:
+  --format 'id' (to extract a single field)
+  --format 'nested.field.subfield' (to extract a nested field)
+  --format '[id, 'name']' (to extract multiple fields as an array)
+  --format '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
+  --format 'name+","+type' (to extract and concatenate fields in a string)
+  --format '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)`)
 	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml", "interactive", "format")
 
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
@@ -149,8 +156,13 @@ func withFilterFlag(c *cobra.Command) *cobra.Command {
 		&flags.GenericFilters,
 		"filter",
 		nil,
-		"Filter results by any property using https://github.com/PaesslerAG/gval syntax'",
-	)
+		`Filter results by any property using https://github.com/PaesslerAG/gval syntax
+Examples:
+  --filter 'state="running"'
+  --filter 'name=~"^my.*"'
+  --filter 'nested.property.subproperty>10'
+  --filter 'startDate>="2023-12-01"'
+  --filter 'name=~"something" && nbField>10'`)
 
 	return c
 }
