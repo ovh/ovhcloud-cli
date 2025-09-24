@@ -120,7 +120,7 @@ var (
 func ListInstances(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 	common.ManageListRequest(fmt.Sprintf("/cloud/project/%s/instance", projectID), "id", cloudprojectInstanceColumnsToDisplay, flags.GenericFilters)
@@ -129,7 +129,7 @@ func ListInstances(_ *cobra.Command, _ []string) {
 func GetInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/instance", projectID), args[0], cloudInstanceTemplate)
@@ -138,7 +138,7 @@ func GetInstance(_ *cobra.Command, args []string) {
 func SetInstanceName(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -147,107 +147,107 @@ func SetInstanceName(_ *cobra.Command, args []string) {
 		"instanceName": args[1],
 	}
 	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
-		display.ExitError("error renaming instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error renaming instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("✅ Instance %s renamed to %s\n", args[0], args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance %s renamed to %s", args[0], args[1])
 }
 
 func StartInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/start", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.ExitError("error starting instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error starting instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Instance starting ...")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance starting…")
 }
 
 func StopInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/stop", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.ExitError("error stopping instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error stopping instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Instance stopping ...")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance stopping…")
 }
 
 func ShelveInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/shelve", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.ExitError("error shelving instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error shelving instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Instance is being shelved ...")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is being shelved…")
 }
 
 func UnshelveInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/unshelve", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.ExitError("error unshelving instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error unshelving instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Instance is being unshelved ...")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is being unshelved…")
 }
 
 func ResumeInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/resume", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.ExitError("error resuming instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error resuming instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Instance is being resumed ...")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is being resumed…")
 }
 
 func RebootInstance(_ *cobra.Command, args []string) {
 	if InstanceRebootType != "soft" && InstanceRebootType != "hard" {
-		display.ExitError("invalid reboot type: %q. Use 'soft' or 'hard'.\n", InstanceRebootType)
+		display.OutputError(&flags.OutputFormatConfig, "invalid reboot type: %q. Use 'soft' or 'hard'.", InstanceRebootType)
 		return
 	}
 
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -257,22 +257,22 @@ func RebootInstance(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.ExitError("error rebooting instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error rebooting instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Instance is rebooting ...")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is rebooting…")
 }
 
 func CreateInstance(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		display.ExitError("create command requires a region as the first argument.\nUsage:\n%s", cmd.UsageString())
+		display.OutputError(&flags.OutputFormatConfig, "create command requires a region as the first argument.\n\n%s", cmd.UsageString())
 		return
 	}
 
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "failed to get configured cloud project: %s", err)
 		return
 	}
 	region := args[0]
@@ -280,7 +280,7 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 	// Run interactive image & flavor selectors if the flags are set
 	interactiveParams, err := GetInstanceFlavorAndImageInteractiveSelector(cmd, args)
 	if err != nil {
-		display.ExitError("failed to get interactive parameters: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to get interactive parameters: %s", err)
 		return
 	}
 	if interactiveParams != nil {
@@ -302,41 +302,42 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		assets.CloudOpenapiSchema,
 		[]string{"name", "flavor", "bootFrom", "network"})
 	if err != nil {
-		display.ExitError("failed to create instance: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create instance: %s", err)
 		return
 	}
-
-	fmt.Println("\n⚡️ Instance creation started…")
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance creation started")
 		return
 	}
+
+	log.Println("⚡️ Instance creation started…")
 
 	operationID := operation["id"].(string)
 	instanceID, err := waitForCloudOperation(projectID, operationID, "instance#create", time.Hour)
 	if err != nil {
-		display.ExitError("failed to wait for instance creation: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance creation: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Instance %s created successfully\n", instanceID)
+	display.OutputInfo(&flags.OutputFormatConfig, map[string]any{"id": instanceID}, "✅ Instance %s created successfully", instanceID)
 }
 
 func DeleteInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("error deleting instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error deleting instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("✅ Instance successfully deleted")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance successfully deleted")
 }
 
 func GetInstanceFlavorAndImageInteractiveSelector(cmd *cobra.Command, args []string) (map[string]any, error) {
@@ -391,14 +392,14 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 	// No instance ID given, print usage and exit
 	if len(args) == 0 {
 		cmd.Help()
-		display.ExitError("reinstall command requires an instance ID as the first argument.\nUsage:\n%s", cmd.UsageString())
+		display.OutputError(&flags.OutputFormatConfig, "reinstall command requires an instance ID as the first argument.\nUsage:\n%s", cmd.UsageString())
 		return
 	}
 
 	// Get cloud project ID
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -409,12 +410,12 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 		ImageID: InstanceImageID,
 	})
 	if err != nil {
-		display.ExitError("failed to prepare arguments from command line: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to prepare arguments from command line: %s", err)
 		return
 	}
 	var cliParameters map[string]any
 	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
-		display.ExitError("failed to parse arguments from command line: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to parse arguments from command line: %s", err)
 		return
 	}
 
@@ -427,12 +428,12 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 			stdin = append(stdin, scanner.Bytes()...)
 		}
 		if err := scanner.Err(); err != nil {
-			display.ExitError(err.Error())
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
 			return
 		}
 
 		if err := json.Unmarshal(stdin, &parameters); err != nil {
-			display.ExitError("failed to parse given installation data: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to parse given installation data: %s", err)
 			return
 		}
 	} else if InstanceImageViaInteractiveSelector { // Install data given through an interactive image selector
@@ -442,7 +443,7 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 		endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
 		var instance map[string]any
 		if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-			display.ExitError("failed to fetch instance details: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
 			return
 		}
 		region := instance["region"].(string)
@@ -450,12 +451,12 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 		// Run interactive image selector
 		selectedImage, selectedID, err := runImageSelector(projectID, region)
 		if err != nil {
-			display.ExitError("failed to select an image: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to select an image: %s", err)
 			return
 		}
 
 		if selectedImage == "" {
-			display.ExitWarning("No image selected, exiting...")
+			display.OutputWarning(&flags.OutputFormatConfig, "No image selected, exiting…")
 			return
 		}
 
@@ -469,29 +470,29 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 
 		examples, err := openapi.GetOperationRequestExamples(assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", cliParameters)
 		if err != nil {
-			display.ExitError("failed to fetch API call examples: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch API call examples: %s", err)
 			return
 		}
 
 		_, choice, err := display.RunGenericChoicePicker("Please select an installation example", examples, 0)
 		if err != nil {
-			display.ExitError(err.Error())
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
 			return
 		}
 
 		if choice == "" {
-			display.ExitWarning("No installation example selected, exiting...")
+			display.OutputWarning(&flags.OutputFormatConfig, "No installation example selected, exiting…")
 			return
 		}
 
 		newValue, err := editor.EditValueWithEditor([]byte(choice))
 		if err != nil {
-			display.ExitError("failed to edit installation parameters using editor: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to edit installation parameters using editor: %s", err)
 			return
 		}
 
 		if err := json.Unmarshal(newValue, &parameters); err != nil {
-			display.ExitError("failed to parse given installation parameters: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to parse given installation parameters: %s", err)
 			return
 		}
 	} else if flags.ParametersFile != "" { // Install data given in a file
@@ -499,13 +500,13 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 
 		fd, err := os.Open(flags.ParametersFile)
 		if err != nil {
-			display.ExitError("failed to open given file: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to open given file: %s", err)
 			return
 		}
 		defer fd.Close()
 
 		if err := json.NewDecoder(fd).Decode(&parameters); err != nil {
-			display.ExitError("failed to parse given installation file: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to parse given installation file: %s", err)
 			return
 		}
 	}
@@ -515,20 +516,20 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 	// request examples coming from API schemas.
 	if !flags.ParametersViaEditor {
 		if err := utils.MergeMaps(parameters, cliParameters); err != nil {
-			display.ExitError("failed to merge replace values into example: %w", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to merge replace values into example: %s", err)
 			return
 		}
 	}
 
 	// Check if at least an image ID was provided as it is mandatory
 	if imageID, ok := parameters["imageId"]; !ok || imageID == "" {
-		display.ExitError("image ID parameter is mandatory to trigger a reinstallation")
+		display.OutputError(&flags.OutputFormatConfig, "image ID parameter is mandatory to trigger a reinstallation")
 		return
 	}
 
 	out, err := json.MarshalIndent(parameters, "", " ")
 	if err != nil {
-		display.ExitError("installation parameters cannot be marshalled: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "installation parameters cannot be marshalled: %s", err)
 		return
 	}
 
@@ -537,22 +538,23 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 	var task map[string]any
 	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/reinstall", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, parameters, &task); err != nil {
-		display.ExitError("error reinstalling instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error reinstalling instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Reinstallation started ...")
+	log.Println("⚡️ Reinstallation started…")
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Reinstallation started…")
 		return
 	}
 
 	if err := waitForInstanceStatus(projectID, args[0], "ACTIVE"); err != nil {
-		display.ExitError("failed to wait for instance to be reinstalled: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to be reinstalled: %s", err)
 		return
 	}
 
-	fmt.Println("✅ Reinstallation done")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Reinstallation done")
 }
 
 func waitForInstanceStatus(cloudProject, instanceID, targetStatus string) error {
@@ -571,7 +573,7 @@ func waitForInstanceStatus(cloudProject, instanceID, targetStatus string) error 
 		case "ERROR":
 			return fmt.Errorf("invalid state for instance: %s", instance["status"])
 		default:
-			log.Printf("Still waiting for instance to be in state 'ACTIVE' (status=%s) ...", instance["status"])
+			log.Printf("Still waiting for instance to be in state 'ACTIVE' (status=%s)…", instance["status"])
 			time.Sleep(30 * time.Second)
 		}
 	}
@@ -582,24 +584,24 @@ func waitForInstanceStatus(cloudProject, instanceID, targetStatus string) error 
 func ActivateMonthlyBilling(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/activeMonthlyBilling", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.ExitError("error activating monthly billing for instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error activating monthly billing for instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("✅ Monthly billing activated for instance")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Monthly billing activated for instance %q", args[0])
 }
 
 func ListInstanceInterfaces(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -611,7 +613,7 @@ func ListInstanceInterfaces(_ *cobra.Command, args []string) {
 func GetInstanceInterface(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -623,7 +625,7 @@ func GetInstanceInterface(_ *cobra.Command, args []string) {
 func CreateInstanceInterface(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -638,34 +640,34 @@ func CreateInstanceInterface(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.ExitError("error creating interface for instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error creating interface for instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("✅ Interface created successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Interface created successfully")
 }
 
 func DeleteInstanceInterface(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/interface/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("error deleting interface %s for instance %q: %s\n", args[1], args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error deleting interface %s for instance %q: %s", args[1], args[0], err)
 		return
 	}
 
-	fmt.Println("✅ Interface deleted successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Interface deleted successfully")
 }
 
 func EnableInstanceInRescueMode(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -679,28 +681,29 @@ func EnableInstanceInRescueMode(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.ExitError("error setting instance %q in rescue mode: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error setting instance %q in rescue mode: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Instance is being rebooted in rescue mode ...")
+	log.Println("⚡️ Instance is being rebooted in rescue mode…")
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is being rebooted in rescue mode…")
 		return
 	}
 
 	if err := waitForInstanceStatus(projectID, args[0], "RESCUE"); err != nil {
-		display.ExitError("failed to wait for instance to be in rescue mode %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to be in rescue mode %s", err)
 		return
 	}
 
-	fmt.Println("✅ Instance is now in rescue mode")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance is now in rescue mode")
 }
 
 func DisableInstanceRescueMode(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -710,28 +713,29 @@ func DisableInstanceRescueMode(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.ExitError("error unsetting instance %q from rescue mode: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error unsetting instance %q from rescue mode: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Instance is exiting rescue mode ...")
+	log.Println("⚡️ Instance is exiting rescue mode…")
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is exiting rescue mode…")
 		return
 	}
 
 	if err := waitForInstanceStatus(projectID, args[0], "ACTIVE"); err != nil {
-		display.ExitError("failed to wait for instance to exit rescue mode %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to exit rescue mode %s", err)
 		return
 	}
 
-	fmt.Println("✅ Instance is no longer in rescue mode")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance is no longer in rescue mode")
 }
 
 func SetInstanceFlavor(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -744,7 +748,7 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 		endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
 		var instance map[string]any
 		if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-			display.ExitError("failed to fetch instance details: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
 			return
 		}
 		region := instance["region"].(string)
@@ -752,12 +756,12 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 		// Run interactive flavor selector
 		selectedFlavor, selectedID, err := runFlavorSelector(projectID, region)
 		if err != nil {
-			display.ExitError("failed to run flavor selector: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to run flavor selector: %s", err)
 			return
 		}
 
 		if selectedFlavor == "" {
-			display.ExitWarning("No flavor selected, exiting...")
+			display.OutputWarning(&flags.OutputFormatConfig, "No flavor selected, exiting…")
 			return
 		}
 
@@ -765,7 +769,7 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 	} else if len(args) > 1 {
 		flavor = args[1]
 	} else {
-		display.ExitError("Flavor ID is required when not using the --flavor-selector flag")
+		display.OutputError(&flags.OutputFormatConfig, "Flavor ID is required when not using the --flavor-selector flag")
 		return
 	}
 
@@ -777,28 +781,29 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.ExitError("error setting flavor for instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error setting flavor for instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Migrating instance to the desired flavor ...")
+	log.Println("⚡️ Migrating instance to the desired flavor…")
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance migration to the desired flavor started…")
 		return
 	}
 
 	if err := waitForInstanceStatus(projectID, args[0], "ACTIVE"); err != nil {
-		display.ExitError("failed to wait for instance to migrate to the desired flavor %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to migrate to the desired flavor: %s", err)
 		return
 	}
 
-	fmt.Println("✅ Instance correctly migrated to the desired flavor")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance correctly migrated to the desired flavor")
 }
 
 func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -810,17 +815,17 @@ func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, body, &response); err != nil {
-		display.ExitError("error creating snapshot for instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error creating snapshot for instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Printf("✅ Snapshot created successfully with ID: %s\n", response["snapshotId"])
+	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot created successfully with ID: %s", response["snapshotId"])
 }
 
 func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -828,7 +833,7 @@ func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
 	var instance map[string]any
 	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-		display.ExitError("failed to fetch instance details: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
 		return
 	}
 	region := instance["region"].(string)
@@ -836,9 +841,9 @@ func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
 	// Abort the snapshot
 	endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/instance/%s/abortSnapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.ExitError("error aborting snapshot for instance %q: %s\n", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error aborting snapshot for instance %q: %s", args[0], err)
 		return
 	}
 
-	fmt.Println("✅ Snapshot aborted successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot aborted successfully")
 }

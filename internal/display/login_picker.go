@@ -9,7 +9,6 @@ package display
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -132,8 +131,7 @@ func RunLoginPicker(question string, choices []string) string {
 	}
 
 	if _, err := tea.NewProgram(m).Run(); err != nil {
-		fmt.Println("Error running program:", err)
-		os.Exit(1)
+		exitError("Error running program: %s", err)
 	}
 
 	return m.choice

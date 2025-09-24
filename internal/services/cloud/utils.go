@@ -153,7 +153,7 @@ func waitForCloudOperation(projectID, operationID, action string, retryDuration 
 		case <-ctx.Done():
 			return "", errors.New("timeout waiting for operation to complete")
 		case <-ticker.C:
-			log.Printf("Still waiting for operation to complete (status=%s) ...", operation.Status)
+			log.Printf("Still waiting for operation to complete (status=%s)…", operation.Status)
 			continue
 		}
 	}

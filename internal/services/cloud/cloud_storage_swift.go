@@ -29,7 +29,7 @@ var (
 func ListCloudStorageSwift(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -39,7 +39,7 @@ func ListCloudStorageSwift(_ *cobra.Command, _ []string) {
 func GetStorageSwift(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -49,7 +49,7 @@ func GetStorageSwift(_ *cobra.Command, args []string) {
 func EditStorageSwift(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -62,7 +62,7 @@ func EditStorageSwift(cmd *cobra.Command, args []string) {
 		},
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

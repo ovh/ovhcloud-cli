@@ -44,7 +44,7 @@ func EditDomainName(cmd *cobra.Command, args []string) {
 		DomainSpec,
 		assets.DomainOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

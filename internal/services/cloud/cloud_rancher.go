@@ -47,7 +47,7 @@ type rancherIPRestriction struct {
 func ListCloudRanchers(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -57,7 +57,7 @@ func ListCloudRanchers(_ *cobra.Command, _ []string) {
 func GetRancher(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -68,7 +68,7 @@ func EditRancher(cmd *cobra.Command, args []string) {
 	for _, ipRestriction := range RancherSpec.TargetSpec.CLIIPRestrictions {
 		parts := strings.Split(ipRestriction, ",")
 		if len(parts) != 2 {
-			display.ExitError("Invalid IP restriction format: %s. Expected format: '<cidrBlock>,<description>'", ipRestriction)
+			display.OutputError(&flags.OutputFormatConfig, "Invalid IP restriction format: %s. Expected format: '<cidrBlock>,<description>'", ipRestriction)
 			return
 		}
 		RancherSpec.TargetSpec.IPRestrictions = append(RancherSpec.TargetSpec.IPRestrictions, rancherIPRestriction{
@@ -79,7 +79,7 @@ func EditRancher(cmd *cobra.Command, args []string) {
 
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func EditRancher(cmd *cobra.Command, args []string) {
 		RancherSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -98,7 +98,7 @@ func EditRancher(cmd *cobra.Command, args []string) {
 func CreateRancher(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -112,25 +112,25 @@ func CreateRancher(cmd *cobra.Command, args []string) {
 		assets.CloudV2OpenapiSchema,
 		[]string{"targetSpec"})
 	if err != nil {
-		display.ExitError("failed to create Rancher service: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create Rancher service: %s", err)
 		return
 	}
 
-	display.Outputf("✅ Rancher %s created successfully (id: %s)", RancherSpec.TargetSpec.Name, rancher["id"])
+	display.OutputInfo(&flags.OutputFormatConfig, rancher, "✅ Rancher %s created successfully (id: %s)", RancherSpec.TargetSpec.Name, rancher["id"])
 }
 
 func DeleteRancher(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/rancher/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete Rancher service: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete Rancher service: %s", err)
 		return
 	}
 
-	display.Outputf("✅ Rancher service is being deleted…")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Rancher service is being deleted…")
 }

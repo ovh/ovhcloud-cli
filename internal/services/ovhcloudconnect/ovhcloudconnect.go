@@ -43,7 +43,7 @@ func EditOvhCloudConnect(cmd *cobra.Command, args []string) {
 		OvhCloudConnectSpec,
 		assets.OvhcloudconnectOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
