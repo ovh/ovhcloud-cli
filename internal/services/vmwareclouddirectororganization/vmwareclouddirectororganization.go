@@ -46,7 +46,7 @@ func EditVmwareCloudDirectorOrganization(cmd *cobra.Command, args []string) {
 		VmwareCloudDirectorOrganizationSpec,
 		assets.VmwareclouddirectororganizationOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

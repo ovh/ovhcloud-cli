@@ -44,7 +44,7 @@ func EditHostingPrivateDatabase(cmd *cobra.Command, args []string) {
 		},
 		assets.HostingprivatedatabaseOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

@@ -61,7 +61,7 @@ func EditEmailMXPlan(cmd *cobra.Command, args []string) {
 		EmailMXPlanSpec,
 		assets.EmailmxplanOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

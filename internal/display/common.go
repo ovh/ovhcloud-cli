@@ -14,3 +14,10 @@ type OutputFormat struct {
 	JsonOutput, YamlOutput, InteractiveOutput bool
 	CustomFormat                              string
 }
+
+type OutputMessage struct {
+	Message string `json:"message,omitempty"`
+	Error   bool   `json:"error,omitempty"`
+	Warning bool   `json:"warning,omitempty"`
+	Details any    `json:"details,omitempty"`
+}

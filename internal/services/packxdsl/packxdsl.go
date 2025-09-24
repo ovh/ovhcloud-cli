@@ -43,7 +43,7 @@ func EditPackXDSL(cmd *cobra.Command, args []string) {
 		PackXDSLSpec,
 		assets.PackxdslOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

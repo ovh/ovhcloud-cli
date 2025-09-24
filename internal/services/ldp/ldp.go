@@ -44,7 +44,7 @@ func EditLdp(cmd *cobra.Command, args []string) {
 		LdpSpec,
 		assets.LdpOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

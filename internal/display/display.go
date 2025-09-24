@@ -27,10 +27,10 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-func renderCustomFormat(value any, format string) {
+func renderCustomFormat(value any, format string) error {
 	ev, err := gval.Full(filters.AdditionalEvaluators...).NewEvaluable(format)
 	if err != nil {
-		ExitError("invalid format given: %s", err)
+		return fmt.Errorf("invalid format given: %w", err)
 	}
 
 	switch reflect.TypeOf(value).Kind() {
@@ -39,12 +39,12 @@ func renderCustomFormat(value any, format string) {
 		for _, val := range value.([]map[string]any) {
 			out, err := ev(context.Background(), val)
 			if err != nil {
-				ExitError("couldn't extract data according to given format: %s", err)
+				return fmt.Errorf("couldn't extract data according to given format: %w", err)
 			}
 
 			outBytes, err := json.Marshal(out)
 			if err != nil {
-				ExitError("error marshalling result")
+				return fmt.Errorf("error marshalling result: %w", err)
 			}
 			output.Write(outBytes)
 			output.WriteString("\n")
@@ -54,34 +54,38 @@ func renderCustomFormat(value any, format string) {
 	default:
 		out, err := ev(context.Background(), value)
 		if err != nil {
-			ExitError("couldn't extract data according to given format: %s", err)
+			return fmt.Errorf("couldn't extract data according to given format: %w", err)
 		}
 
 		outBytes, err := json.Marshal(out)
 		if err != nil {
-			ExitError("error marshalling result")
+			return fmt.Errorf("error marshalling result: %w", err)
 		}
 		ResultString = string(outBytes)
 		fmt.Print(string(outBytes))
 	}
+
+	return nil
 }
 
 func RenderTable(values []map[string]any, columnsToDisplay []string, outputFormat *OutputFormat) {
 	switch {
 	case outputFormat.CustomFormat != "":
-		renderCustomFormat(values, outputFormat.CustomFormat)
+		if err := renderCustomFormat(values, outputFormat.CustomFormat); err != nil {
+			exitError("error rendering custom format: %s", err)
+		}
 		return
 	case outputFormat.InteractiveOutput:
 		displayInteractive(values)
 		return
 	case outputFormat.YamlOutput:
 		if err := prettyPrintYAML(values); err != nil {
-			ExitError("error displaying YAML results: %s", err)
+			exitError("error displaying YAML results: %s", err)
 		}
 		return
 	case outputFormat.JsonOutput:
 		if err := prettyPrintJSON(values); err != nil {
-			ExitError("error displaying JSON results: %s", err)
+			exitError("error displaying JSON results: %s", err)
 		}
 		return
 	}
@@ -105,7 +109,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		// Create selector to extract value at given key
 		evaluator, err := gval.Base().NewEvaluable(col)
 		if err != nil {
-			ExitError("invalid column to display %q: %s", col, err)
+			exitError("invalid column to display %q: %s", col, err)
 		}
 		selectors = append(selectors, evaluator)
 	}
@@ -116,7 +120,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		for _, selector := range selectors {
 			val, err := selector(context.Background(), value)
 			if err != nil {
-				ExitError("failed to select row field: %s", err)
+				exitError("failed to select row field: %s", err)
 			}
 
 			switch val.(type) {
@@ -154,7 +158,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		Headers(columnsTitles...).
 		Rows(rows...)
 
-	Outputf("%s%s", t, "\n💡 Use option --json or --yaml to get the raw output with all information")
+	outputf("%s%s", t, "\n💡 Use option --json or --yaml to get the raw output with all information")
 }
 
 func RenderConfigTable(cfg *ini.File) {
@@ -201,7 +205,7 @@ func RenderConfigTable(cfg *ini.File) {
 		Headers(columns...).
 		Rows(rows...)
 
-	Outputf("%s", t)
+	outputf("%s", t)
 }
 
 func prettyPrintJSON(value any) error {
@@ -210,7 +214,7 @@ func prettyPrintJSON(value any) error {
 		return err
 	}
 
-	Outputf("%s", bytesOut)
+	outputf("%s", bytesOut)
 
 	return nil
 }
@@ -221,7 +225,7 @@ func prettyPrintYAML(value any) error {
 		return err
 	}
 
-	Outputf("%s", bytesOut)
+	outputf("%s", bytesOut)
 
 	return nil
 }
@@ -235,16 +239,18 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 
 	switch {
 	case outputFormat.CustomFormat != "":
-		renderCustomFormat(value, outputFormat.CustomFormat)
+		if err := renderCustomFormat(value, outputFormat.CustomFormat); err != nil {
+			exitError("error rendering custom format: %s", err)
+		}
 		return
 	case outputFormat.YamlOutput:
 		if err := prettyPrintYAML(value); err != nil {
-			ExitError("error displaying YAML results: %s", err)
+			exitError("error displaying YAML results: %s", err)
 		}
 		return
 	case outputFormat.JsonOutput:
 		if err := prettyPrintJSON(value); err != nil {
-			ExitError("error displaying JSON results: %s", err)
+			exitError("error displaying JSON results: %s", err)
 		}
 		return
 	case outputFormat.InteractiveOutput:
@@ -258,7 +264,7 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 			"Result":      value,
 		})
 		if err != nil {
-			ExitError("failed to execute template: %s", err)
+			exitError("failed to execute template: %s", err)
 		}
 
 		r, err := glamour.NewTermRenderer(
@@ -266,12 +272,12 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 			glamour.WithPreservedNewLines(),
 		)
 		if err != nil {
-			ExitError("failed to init rendered: %s", err)
+			exitError("failed to init rendered: %s", err)
 		}
 
 		out, err := r.Render(tpl.String())
 		if err != nil {
-			ExitError("execution failed: %s", err)
+			exitError("execution failed: %s", err)
 		}
 		fmt.Print(out)
 		ResultString = out
@@ -281,26 +287,84 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 func displayInteractive(value any) {
 	bytes, err := json.Marshal(value)
 	if err != nil {
-		ExitError("error preparing interactive output: %s", err)
+		exitError("error preparing interactive output: %s", err)
 	}
 	fxdisplay.Display(bytes, "")
 }
 
-func ExitError(message string, params ...any) {
+func exitError(message string, params ...any) {
 	resultString := fmt.Sprintf("🛑 "+message, params...)
 	fmt.Println(resultString)
 	ResultError = errors.New(resultString)
 	os.Exit(1)
 }
 
-func ExitWarning(message string, params ...any) {
-	resultString := fmt.Sprintf("🟠 "+message, params...)
-	fmt.Println(resultString)
-	ResultError = errors.New(resultString)
-	os.Exit(0)
-}
-
-func Outputf(message string, params ...any) {
+func outputf(message string, params ...any) {
 	ResultString = fmt.Sprintf(message, params...)
 	fmt.Println(ResultString)
+}
+
+func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
+	switch {
+	case outputFormat.CustomFormat != "":
+		data, err := json.Marshal(msg)
+		if err != nil {
+			exitError("error marshalling message: %s", err)
+		}
+		var m map[string]any
+		if err := json.Unmarshal(data, &m); err != nil {
+			exitError("error unmarshalling message: %s", err)
+		}
+
+		if err := renderCustomFormat(m, outputFormat.CustomFormat); err != nil {
+			exitError("error rendering custom format: %s", err)
+		}
+
+	case outputFormat.YamlOutput:
+		if err := prettyPrintYAML(msg); err != nil {
+			exitError("error displaying YAML results: %s", err)
+		}
+
+	case outputFormat.JsonOutput:
+		if err := prettyPrintJSON(msg); err != nil {
+			exitError(err.Error())
+		}
+
+	case outputFormat.InteractiveOutput:
+		displayInteractive(msg)
+
+	default:
+		outputf("%s", msg.Message)
+	}
+
+	if msg.Error {
+		ResultError = errors.New(msg.Message)
+		os.Exit(1)
+	} else if msg.Warning {
+		ResultError = errors.New(msg.Message)
+		os.Exit(0)
+	}
+}
+
+func OutputInfo(outputFormat *OutputFormat, details any, message string, params ...any) {
+	OutputWithFormat(&OutputMessage{
+		Message: fmt.Sprintf(message, params...),
+		Details: details,
+	}, outputFormat)
+}
+
+func OutputError(outputFormat *OutputFormat, message string, params ...any) {
+	resultString := fmt.Sprintf("🛑 "+message, params...)
+	OutputWithFormat(&OutputMessage{
+		Message: resultString,
+		Error:   true,
+	}, outputFormat)
+}
+
+func OutputWarning(outputFormat *OutputFormat, message string, params ...any) {
+	resultString := fmt.Sprintf("🟠 "+message, params...)
+	OutputWithFormat(&OutputMessage{
+		Message: resultString,
+		Warning: true,
+	}, outputFormat)
 }

@@ -61,7 +61,7 @@ func EditSms(cmd *cobra.Command, args []string) {
 		SmsSpec,
 		assets.SmsOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

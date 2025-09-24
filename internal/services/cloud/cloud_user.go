@@ -50,20 +50,20 @@ var (
 func ListCloudUsers(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 	path := fmt.Sprintf("/cloud/project/%s/user", projectID)
 
 	var body []map[string]any
 	if err := httpLib.Client.Get(path, &body); err != nil {
-		display.ExitError("failed to fetch SSH keys: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch SSH keys: %s", err)
 		return
 	}
 
 	body, err = filtersLib.FilterLines(body, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func ListCloudUsers(_ *cobra.Command, _ []string) {
 func GetCloudUser(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -83,7 +83,7 @@ func GetCloudUser(_ *cobra.Command, args []string) {
 func CreateCloudUser(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -97,34 +97,34 @@ func CreateCloudUser(cmd *cobra.Command, args []string) {
 		nil,
 	)
 	if err != nil {
-		display.ExitError("failed to create user: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create user: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ User '%s' created successfully\n", client["id"])
+	display.OutputInfo(&flags.OutputFormatConfig, client, "✅ User '%s' created successfully", client["id"])
 }
 
 func DeleteCloudUser(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete user: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete user: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ User '%s' deleted successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ User '%s' deleted successfully", args[0])
 }
 
 func CreateUserS3Policy(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -132,11 +132,11 @@ func CreateUserS3Policy(cmd *cobra.Command, args []string) {
 
 	jsonCliParameters, err := json.Marshal(StorageS3ContainerPolicySpec)
 	if err != nil {
-		display.ExitError("failed to prepare arguments from command line: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to prepare arguments from command line: %s", err)
 		return
 	}
 	if err := json.Unmarshal(jsonCliParameters, &parameters); err != nil {
-		display.ExitError("failed to parse arguments from command line: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to parse arguments from command line: %s", err)
 		return
 	}
 
@@ -148,7 +148,7 @@ func CreateUserS3Policy(cmd *cobra.Command, args []string) {
 			stdin = append(stdin, scanner.Bytes()...)
 		}
 		if err := scanner.Err(); err != nil {
-			display.ExitError("failed to read from stdin: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to read from stdin: %s", err)
 			return
 		}
 
@@ -165,24 +165,24 @@ func CreateUserS3Policy(cmd *cobra.Command, args []string) {
 			map[string]any{},
 		)
 		if err != nil {
-			display.ExitError("failed to fetch API call examples: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch API call examples: %s", err)
 			return
 		}
 
 		_, choice, err := display.RunGenericChoicePicker("Please select a creation example", examples, 0)
 		if err != nil {
-			display.ExitError("failed to run choice picker: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to run choice picker: %s", err)
 			return
 		}
 
 		if choice == "" {
-			display.ExitError("no example selected, exiting...")
+			display.OutputError(&flags.OutputFormatConfig, "no example selected, exiting…")
 			return
 		}
 
 		newValue, err := editor.EditValueWithEditor([]byte(choice))
 		if err != nil {
-			display.ExitError("failed to edit parameters using editor: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to edit parameters using editor: %s", err)
 			return
 		}
 
@@ -193,20 +193,20 @@ func CreateUserS3Policy(cmd *cobra.Command, args []string) {
 
 		fileContent, err := os.ReadFile(flags.ParametersFile)
 		if err != nil {
-			display.ExitError("failed to open given file: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to open given file: %s", err)
 			return
 		}
 		parameters["policy"] = string(fileContent)
 	}
 
 	if policy, ok := parameters["policy"]; !ok || policy == "" {
-		display.ExitError("A policy must be provided\n\n%s", cmd.UsageString())
+		display.OutputError(&flags.OutputFormatConfig, "A policy must be provided\n\n%s", cmd.UsageString())
 		return
 	}
 
 	out, err := json.MarshalIndent(parameters, "", " ")
 	if err != nil {
-		display.ExitError("parameters cannot be marshalled: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "parameters cannot be marshalled: %s", err)
 		return
 	}
 
@@ -214,17 +214,17 @@ func CreateUserS3Policy(cmd *cobra.Command, args []string) {
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/policy", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, parameters, nil); err != nil {
-		display.ExitError("error creating resource: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error creating resource: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Policy created successfully for user %s\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Policy created successfully for user %s", args[0])
 }
 
 func GetUserS3Policy(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 

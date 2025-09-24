@@ -123,14 +123,14 @@ func locateStorageS3Container(projectID, containerName string) (string, map[stri
 func ListCloudStorageS3(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	// Fetch regions with storage feature available
 	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "storage-s3-high-perf", "storage-s3-standard")
 	if err != nil {
-		display.ExitError("failed to fetch regions with storage feature available: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch regions with storage feature available: %s", err)
 		return
 	}
 
@@ -138,7 +138,7 @@ func ListCloudStorageS3(_ *cobra.Command, _ []string) {
 	url := fmt.Sprintf("/cloud/project/%s/region", projectID)
 	containers, err := httpLib.FetchObjectsParallel[[]map[string]any](url+"/%s/storage", regions, true)
 	if err != nil {
-		display.ExitError("failed to fetch storage containers: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch storage containers: %s", err)
 		return
 	}
 
@@ -151,7 +151,7 @@ func ListCloudStorageS3(_ *cobra.Command, _ []string) {
 	// Filter results
 	allContainers, err = filtersLib.FilterLines(allContainers, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -161,20 +161,20 @@ func ListCloudStorageS3(_ *cobra.Command, _ []string) {
 func GetStorageS3(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	_, foundContainer, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	// Convert used space to float
 	usedFloat, err := foundContainer["objectsSize"].(json.Number).Float64()
 	if err != nil {
-		display.ExitError("error parsing used storage: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "error parsing used storage: %s", err)
 		return
 	}
 	foundContainer["objectsSize"] = usedFloat
@@ -185,13 +185,13 @@ func GetStorageS3(_ *cobra.Command, args []string) {
 func EditStorageS3(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -202,20 +202,20 @@ func EditStorageS3(cmd *cobra.Command, args []string) {
 		StorageS3Spec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
 
 func CreateStorageS3(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		display.ExitError("region argument is required\n\n%s", cmd.UsageString())
+		display.OutputError(&flags.OutputFormatConfig, "region argument is required\n\n%s", cmd.UsageString())
 		return
 	}
 
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -229,49 +229,49 @@ func CreateStorageS3(cmd *cobra.Command, args []string) {
 		assets.CloudOpenapiSchema,
 		[]string{"name"})
 	if err != nil {
-		display.ExitError("failed to create s3 storage container: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create s3 storage container: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Container %s created successfully\n", container["name"])
+	display.OutputInfo(&flags.OutputFormatConfig, container, "✅ Container %s created successfully", container["name"])
 }
 
 func DeleteStorageS3(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	if err := httpLib.Client.Delete(foundURL, nil); err != nil {
-		display.ExitError("failed to delete storage container: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete storage container: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Storage container %s deleted successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Storage container %s deleted successfully", args[0])
 }
 
 func StorageS3BulkDeleteObjects(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	if len(StorageS3ObjectsToDelete) == 0 {
-		display.ExitWarning("no objects to delete. Use --object flag to specify objects to delete")
+		display.OutputWarning(&flags.OutputFormatConfig, "no objects to delete. Use --object flag to specify objects to delete")
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -287,7 +287,7 @@ func StorageS3BulkDeleteObjects(_ *cobra.Command, args []string) {
 			// Object name with version ID
 			objectsToDelete = append(objectsToDelete, map[string]any{"key": parts[0], "versionId": parts[1]})
 		default:
-			display.ExitError("invalid object format: %s. Use <object_name> or <object_name>:<version_id>", object)
+			display.OutputError(&flags.OutputFormatConfig, "invalid object format: %s. Use <object_name> or <object_name>:<version_id>", object)
 			return
 		}
 	}
@@ -295,23 +295,23 @@ func StorageS3BulkDeleteObjects(_ *cobra.Command, args []string) {
 	if err := httpLib.Client.Post(foundURL+"/bulkDeleteObjects", map[string]any{
 		"objects": objectsToDelete,
 	}, nil); err != nil {
-		display.ExitError("failed to delete objects: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete objects: %s", err)
 		return
 	}
 
-	fmt.Println("✅ Objects deleted successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Objects deleted successfully")
 }
 
 func ListStorageS3Objects(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -340,13 +340,13 @@ func ListStorageS3Objects(_ *cobra.Command, args []string) {
 func GetStorageS3Object(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -356,13 +356,13 @@ func GetStorageS3Object(_ *cobra.Command, args []string) {
 func EditStorageS3Object(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -373,7 +373,7 @@ func EditStorageS3Object(cmd *cobra.Command, args []string) {
 		StorageS3ObjectSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -381,34 +381,34 @@ func EditStorageS3Object(cmd *cobra.Command, args []string) {
 func DeleteStorageS3Object(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	if err := httpLib.Client.Delete(foundURL+"/object/"+url.PathEscape(args[1]), nil); err != nil {
-		display.ExitError("failed to delete object: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete object: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Object %s deleted successfully\n", args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Object %s deleted successfully", args[1])
 }
 
 func ListStorageS3ObjectVersions(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -428,13 +428,13 @@ func ListStorageS3ObjectVersions(_ *cobra.Command, args []string) {
 func GetStorageS3ObjectVersion(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -446,13 +446,13 @@ func GetStorageS3ObjectVersion(_ *cobra.Command, args []string) {
 func EditStorageS3ObjectVersion(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -463,7 +463,7 @@ func EditStorageS3ObjectVersion(cmd *cobra.Command, args []string) {
 		StorageS3ObjectSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -471,34 +471,34 @@ func EditStorageS3ObjectVersion(cmd *cobra.Command, args []string) {
 func DeleteStorageS3ObjectVersion(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	if err := httpLib.Client.Delete(foundURL+"/object/"+url.PathEscape(args[1])+"/version/"+url.PathEscape(args[2]), nil); err != nil {
-		display.ExitError("failed to delete object version: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete object version: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Object version %s deleted successfully\n", args[2])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Object version %s deleted successfully", args[2])
 }
 
 func StorageS3GeneratePresignedURL(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -511,30 +511,33 @@ func StorageS3GeneratePresignedURL(cmd *cobra.Command, args []string) {
 		assets.CloudOpenapiSchema,
 		nil)
 	if err != nil {
-		display.ExitError("failed to generate presigned URL: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to generate presigned URL: %s", err)
 		return
 	}
 
-	fmt.Println("✅ Presigned URL generated successfully:")
-	fmt.Printf("-> %s %s\n", response["method"], response["url"])
+	var sb strings.Builder
+	sb.WriteString("✅ Presigned URL generated successfully:\n")
+	sb.WriteString(fmt.Sprintf("-> %s %s\n", response["method"], response["url"]))
 	if headers, ok := response["signedHeaders"].(map[string]any); ok {
-		fmt.Println("-> Headers:")
+		sb.WriteString("-> Headers:\n")
 		for key, value := range headers {
-			fmt.Printf("   - %s: %s\n", key, value)
+			sb.WriteString(fmt.Sprintf("   - %s: %s\n", key, value))
 		}
 	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, response, "%s", &sb)
 }
 
 func StorageS3AddUser(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -545,17 +548,17 @@ func StorageS3AddUser(cmd *cobra.Command, args []string) {
 	if err := httpLib.Client.Post(endpoint, map[string]any{
 		"roleName": userRole,
 	}, nil); err != nil {
-		display.ExitError("failed to add user: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to add user: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ User %s successfully added to the bucket\n", args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ User %s successfully added to the bucket", args[1])
 }
 
 func ListStorageS3Credentials(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -566,14 +569,14 @@ func ListStorageS3Credentials(_ *cobra.Command, args []string) {
 func CreateStorageS3Credentials(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	credentials := map[string]any{}
 	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, nil, &credentials); err != nil {
-		display.ExitError("failed to create S3 credentials: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create S3 credentials: %s", err)
 		return
 	}
 
@@ -583,37 +586,37 @@ func CreateStorageS3Credentials(cmd *cobra.Command, args []string) {
 func DeleteStorageS3Credentials(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete S3 credentials: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete S3 credentials: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ S3 credentials %s for user %s deleted successfully\n", args[1], args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ S3 credentials %s for user %s deleted successfully", args[1], args[0])
 }
 
 func GetStorageS3Credentials(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	var credentials map[string]any
 	if err := httpLib.Client.Get(endpoint, &credentials); err != nil {
-		display.ExitError("failed to get S3 credentials: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to get S3 credentials: %s", err)
 		return
 	}
 
 	// Fetch credentials secret
 	secretEndpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials/%s/secret", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Post(secretEndpoint, nil, &credentials); err != nil {
-		display.ExitError("failed to get S3 credentials secret: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to get S3 credentials secret: %s", err)
 		return
 	}
 

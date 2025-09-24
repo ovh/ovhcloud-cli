@@ -46,13 +46,17 @@ func CreateOAuth2Client(cmd *cobra.Command, args []string) {
 		[]string{"name", "description", "flow"},
 	)
 	if err != nil {
-		display.ExitError("failed to create OAuth2 client: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create OAuth2 client: %s", err)
 		return
 	}
 
-	fmt.Println("✅ OAuth2 client created successfully")
-	fmt.Printf("Client ID: %s\n", client["clientId"].(string))
-	fmt.Printf("Client Secret: %s\n", client["clientSecret"].(string))
+	display.OutputInfo(
+		&flags.OutputFormatConfig,
+		client,
+		"✅ OAuth2 client created successfully (client ID: %s, client secret: %s)",
+		client["clientId"],
+		client["clientSecret"],
+	)
 }
 
 func ListOAuth2Clients(_ *cobra.Command, _ []string) {
@@ -68,11 +72,11 @@ func DeleteOauth2Client(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/me/api/oauth2/client/%s", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete OAuth2 client: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete OAuth2 client: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ OAuth2 client '%s' deleted successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ OAuth2 client '%s' deleted successfully", args[0])
 }
 
 func EditOauth2Client(cmd *cobra.Command, args []string) {
@@ -83,7 +87,7 @@ func EditOauth2Client(cmd *cobra.Command, args []string) {
 		Oauth2ClientSpec,
 		assets.MeOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

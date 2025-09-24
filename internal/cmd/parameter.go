@@ -7,7 +7,6 @@ package cmd
 import (
 	_ "embed"
 	"errors"
-	"fmt"
 	"os"
 	"runtime"
 
@@ -44,7 +43,7 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 
 		if !replaceParamFile {
 			if _, err := os.Stat(paramFile); !errors.Is(err, os.ErrNotExist) {
-				display.ExitError("file %q already exists", paramFile)
+				display.OutputError(&flags.OutputFormatConfig, "file %q already exists", paramFile)
 				return
 			}
 		}
@@ -57,7 +56,7 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 		if replaceValueFn != nil {
 			replaceValues, err = replaceValueFn(cmd, args)
 			if err != nil {
-				display.ExitError("failed to get replacement values: %s", err)
+				display.OutputError(&flags.OutputFormatConfig, "failed to get replacement values: %s", err)
 				return
 			}
 		}
@@ -65,7 +64,7 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 		// Get examples from OpenAPI schema and replace values with provided replacements
 		examples, err := openapi.GetOperationRequestExamples(openapiSchema, path, method, defaultContent, replaceValues)
 		if err != nil {
-			display.ExitError("failed to fetch parameter file examples: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch parameter file examples: %s", err)
 			return
 		}
 
@@ -74,30 +73,30 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 		if len(examples) > 0 {
 			_, choice, err = display.RunGenericChoicePicker("Please select a parameter example", examples, 0)
 			if err != nil {
-				display.ExitError(err.Error())
+				display.OutputError(&flags.OutputFormatConfig, "%s", err)
 				return
 			}
 		}
 
 		if choice == "" {
-			display.ExitWarning("No example selected, exiting...")
+			display.OutputWarning(&flags.OutputFormatConfig, "No example selected, exiting…")
 			return
 		}
 
 		// Write the selected example to the parameter file
 		tmplFile, err := os.Create(paramFile)
 		if err != nil {
-			display.ExitError("failed to create parameter file: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to create parameter file: %s", err)
 			return
 		}
 		defer tmplFile.Close()
 
 		if _, err := tmplFile.WriteString(choice); err != nil {
-			display.ExitError("error writing parameter file: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "error writing parameter file: %s", err)
 			return
 		}
 
-		fmt.Printf("\n⚡️ Parameter file written at %s\n", paramFile)
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Parameter file written at %s", paramFile)
 		os.Exit(0)
 	}
 }

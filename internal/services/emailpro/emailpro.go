@@ -61,7 +61,7 @@ func EditEmailPro(cmd *cobra.Command, args []string) {
 		EmailProSpec,
 		assets.EmailproOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

@@ -26,20 +26,20 @@ var (
 func ListCloudOperations(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	var operations []map[string]any
 	err = httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/operation", projectID), &operations)
 	if err != nil {
-		display.ExitError("failed to fetch results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
 		return
 	}
 
 	operations, err = filtersLib.FilterLines(operations, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -49,7 +49,7 @@ func ListCloudOperations(_ *cobra.Command, _ []string) {
 func GetCloudOperation(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 

@@ -44,7 +44,7 @@ func EditIp(cmd *cobra.Command, args []string) {
 		IPSpec,
 		assets.IpOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -55,11 +55,11 @@ func IpSetReverse(_ *cobra.Command, args []string) {
 		"ipReverse": args[1],
 		"reverse":   args[2],
 	}, nil); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Reverse correctly set")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Reverse correctly set")
 }
 
 func IpGetReverse(_ *cobra.Command, args []string) {
@@ -70,9 +70,9 @@ func IpGetReverse(_ *cobra.Command, args []string) {
 func IpDeleteReverse(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/ip/%s/reverse/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(url, nil); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	fmt.Println("\n⚡️ Reverse correctly deleted")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Reverse correctly deleted")
 }

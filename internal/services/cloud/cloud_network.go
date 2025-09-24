@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 	"time"
@@ -119,13 +120,13 @@ type (
 func ListPrivateNetworks(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	body, err := httpLib.FetchExpandedArray(fmt.Sprintf("/cloud/project/%s/network/private", projectID), "id")
 	if err != nil {
-		display.ExitError("failed to fetch results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
 		return
 	}
 
@@ -151,7 +152,7 @@ func ListPrivateNetworks(_ *cobra.Command, _ []string) {
 
 	body, err = filtersLib.FilterLines(flattenedBody, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -161,14 +162,14 @@ func ListPrivateNetworks(_ *cobra.Command, _ []string) {
 func GetPrivateNetwork(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 	path := fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
 
 	var object map[string]any
 	if err := httpLib.Client.Get(path, &object); err != nil {
-		display.ExitError("error fetching %s: %s", path, err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", path, err)
 		return
 	}
 
@@ -188,7 +189,7 @@ func GetPrivateNetwork(_ *cobra.Command, args []string) {
 		)
 		var subnets []map[string]any
 		if err := httpLib.Client.Get(path, &subnets); err != nil {
-			display.ExitError("error fetching %s: %s", path, err)
+			display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", path, err)
 			return
 		}
 
@@ -201,7 +202,7 @@ func GetPrivateNetwork(_ *cobra.Command, args []string) {
 func EditPrivateNetwork(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -214,7 +215,7 @@ func EditPrivateNetwork(cmd *cobra.Command, args []string) {
 		},
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -222,7 +223,7 @@ func EditPrivateNetwork(cmd *cobra.Command, args []string) {
 func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -230,7 +231,7 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 	for _, allocationPool := range CloudNetworkSpec.Subnet.CliAllocationPools {
 		parts := strings.Split(allocationPool, ":")
 		if len(parts) != 2 {
-			display.ExitError("invalid allocation pool format, expected start:end, got %s", allocationPool)
+			display.OutputError(&flags.OutputFormatConfig, "invalid allocation pool format, expected start:end, got %s", allocationPool)
 			return
 		}
 
@@ -242,7 +243,7 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 	for _, hostRoute := range CloudNetworkSpec.Subnet.CliHostRoutes {
 		parts := strings.Split(hostRoute, ":")
 		if len(parts) != 2 {
-			display.ExitError("invalid host route format, expected destination:nextHop, got %s", hostRoute)
+			display.OutputError(&flags.OutputFormatConfig, "invalid host route format, expected destination:nextHop, got %s", hostRoute)
 			return
 		}
 
@@ -264,20 +265,20 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 		assets.CloudOpenapiSchema,
 		[]string{"name", "subnet"})
 	if err != nil {
-		display.ExitError("failed to create private network: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create private network: %s", err)
 		return
 	}
 
 	// Wait for task to complete if --wait flag is set
 	if !flags.WaitForTask {
-		fmt.Printf("\n⚡️ Network creation started successfully (operation ID: %s)\n", task["id"].(string))
-		fmt.Printf("You can check the status of the operation with: `ovhcloud cloud operation get %s`\n", task["id"].(string))
+		display.OutputInfo(&flags.OutputFormatConfig, task, `✅ Network creation started successfully (operation ID: %s)
+You can check the status of the operation with: 'ovhcloud cloud operation get %[1]s'`, task["id"])
 		return
 	}
 
 	networkID, err := waitForCloudOperation(projectID, task["id"].(string), "network#create", 10*time.Minute)
 	if err != nil {
-		display.ExitError("failed to wait for network creation: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for network creation: %s", err)
 		return
 	}
 
@@ -290,7 +291,7 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 		} `json:"regions"`
 	}
 	if err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/private", projectID), &networks); err != nil {
-		display.ExitError("failed to fetch private networks: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch private networks: %s", err)
 		return
 	}
 
@@ -298,67 +299,67 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 	for _, network := range networks {
 		for _, regionDetails := range network.Regions {
 			if regionDetails.OpenstackID == networkID && regionDetails.Region == region {
-				fmt.Printf("✅ Network %s created successfully (Openstack ID: %s)\n", network.ID, regionDetails.OpenstackID)
+				display.OutputInfo(&flags.OutputFormatConfig, regionDetails, "✅ Network %s created successfully (Openstack ID: %s)", network.ID, regionDetails.OpenstackID)
 				return
 			}
 		}
 	}
 
-	display.ExitError("created network not found, this is unexpected")
+	display.OutputError(&flags.OutputFormatConfig, "created network not found, this is unexpected")
 }
 
 func DeletePrivateNetwork(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete private network: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete private network: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Private network %s deleted successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Private network %s deleted successfully", args[0])
 }
 
 func DeletePrivateNetworkRegion(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s/region/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete private network region: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete private network region: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Private network %s region %s deleted successfully\n", args[0], args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Private network %s region %s deleted successfully", args[0], args[1])
 }
 
 func AddPrivateNetworkRegion(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s/region", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, map[string]string{"region": args[1]}, nil); err != nil {
-		display.ExitError("failed to add private network region: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to add private network region: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Private network %s region %s added successfully\n", args[0], args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Private network %s region %s added successfully", args[0], args[1])
 }
 
 func ListPrivateNetworkSubnets(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -370,7 +371,7 @@ func ListPrivateNetworkSubnets(_ *cobra.Command, args []string) {
 func GetPrivateNetworkSubnet(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -381,7 +382,7 @@ func GetPrivateNetworkSubnet(_ *cobra.Command, args []string) {
 func EditPrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -394,7 +395,7 @@ func EditPrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 		CloudNetworkSubnetSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -402,30 +403,30 @@ func EditPrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 func DeletePrivateNetworkSubnet(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s/subnet/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.ExitError("failed to delete private network subnet: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete private network subnet: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Private network %s subnet %s deleted successfully\n", args[0], args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Private network %s subnet %s deleted successfully", args[0], args[1])
 }
 
 func ListPublicNetworks(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	var body []map[string]any
 	err = httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/public", projectID), &body)
 	if err != nil {
-		display.ExitError("failed to fetch results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
 		return
 	}
 
@@ -451,7 +452,7 @@ func ListPublicNetworks(_ *cobra.Command, _ []string) {
 
 	body, err = filtersLib.FilterLines(flattenedBody, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -461,14 +462,14 @@ func ListPublicNetworks(_ *cobra.Command, _ []string) {
 func GetPublicNetwork(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	var allNetworks []map[string]any
 	err = httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/public", projectID), &allNetworks)
 	if err != nil {
-		display.ExitError("failed to fetch public networks: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch public networks: %s", err)
 		return
 	}
 
@@ -482,7 +483,7 @@ func GetPublicNetwork(_ *cobra.Command, args []string) {
 	}
 
 	if object == nil {
-		display.ExitError("no public network found with ID %q", args[0])
+		display.OutputError(&flags.OutputFormatConfig, "no public network found with ID %q", args[0])
 		return
 	}
 
@@ -497,7 +498,7 @@ func GetPublicNetwork(_ *cobra.Command, args []string) {
 		)
 		var subnets []map[string]any
 		if err := httpLib.Client.Get(path, &subnets); err != nil {
-			display.ExitError("error fetching %s: %s", path, err)
+			display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", path, err)
 			return
 		}
 
@@ -510,14 +511,14 @@ func GetPublicNetwork(_ *cobra.Command, args []string) {
 func ListGateways(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	// Fetch regions with network feature available
 	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
 	if err != nil {
-		display.ExitError("failed to fetch regions with network feature available: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch regions with network feature available: %s", err)
 		return
 	}
 
@@ -525,7 +526,7 @@ func ListGateways(_ *cobra.Command, _ []string) {
 	url := fmt.Sprintf("/cloud/project/%s/region", projectID)
 	gateways, err := httpLib.FetchObjectsParallel[[]map[string]any](url+"/%s/gateway", regions, true)
 	if err != nil {
-		display.ExitError("failed to fetch gateways: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch gateways: %s", err)
 		return
 	}
 
@@ -538,7 +539,7 @@ func ListGateways(_ *cobra.Command, _ []string) {
 	// Filter results
 	allGateways, err = filtersLib.FilterLines(allGateways, flags.GenericFilters)
 	if err != nil {
-		display.ExitError("failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
@@ -576,7 +577,7 @@ func findGateway(gatewayId string) (string, map[string]any, error) {
 func GetGateway(_ *cobra.Command, args []string) {
 	_, foundGateway, err := findGateway(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -586,7 +587,7 @@ func GetGateway(_ *cobra.Command, args []string) {
 func EditGateway(cmd *cobra.Command, args []string) {
 	foundURL, _, err := findGateway(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -597,7 +598,7 @@ func EditGateway(cmd *cobra.Command, args []string) {
 		CloudGatewaySpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -605,7 +606,7 @@ func EditGateway(cmd *cobra.Command, args []string) {
 func CreateGateway(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -613,7 +614,7 @@ func CreateGateway(cmd *cobra.Command, args []string) {
 	for _, allocationPool := range CloudGatewaySpec.Network.Subnet.CliAllocationPools {
 		parts := strings.Split(allocationPool, ":")
 		if len(parts) != 2 {
-			display.ExitError("invalid allocation pool format, expected start:end, got %s", allocationPool)
+			display.OutputError(&flags.OutputFormatConfig, "invalid allocation pool format, expected start:end, got %s", allocationPool)
 			return
 		}
 		CloudGatewaySpec.Network.Subnet.AllocationPools = append(CloudGatewaySpec.Network.Subnet.AllocationPools, PrivateNetworkAllocationPool{
@@ -624,7 +625,7 @@ func CreateGateway(cmd *cobra.Command, args []string) {
 	for _, hostRoute := range CloudGatewaySpec.Network.Subnet.CliHostRoutes {
 		parts := strings.Split(hostRoute, ":")
 		if len(parts) != 2 {
-			display.ExitError("invalid host route format, expected destination:nextHop, got %s", hostRoute)
+			display.OutputError(&flags.OutputFormatConfig, "invalid host route format, expected destination:nextHop, got %s", hostRoute)
 			return
 		}
 		CloudGatewaySpec.Network.Subnet.HostRoutes = append(CloudGatewaySpec.Network.Subnet.HostRoutes, PrivateNetworkHostRoute{
@@ -658,59 +659,59 @@ func CreateGateway(cmd *cobra.Command, args []string) {
 		assets.CloudOpenapiSchema,
 		[]string{"name", "model"})
 	if err != nil {
-		display.ExitError("failed to create gateway: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create gateway: %s", err)
 		return
 	}
 
 	// Wait for task to complete if --wait flag is set
 	if !flags.WaitForTask {
-		fmt.Printf("\n⚡️ Gateway creation started successfully (operation ID: %s)\n", task["id"])
-		fmt.Printf("You can check the status of the operation with: `ovhcloud cloud operation get %s`\n", task["id"])
+		display.OutputInfo(&flags.OutputFormatConfig, task, `⚡️ Gateway creation started successfully (operation ID: %s)
+You can check the status of the operation with: 'ovhcloud cloud operation get %s'`, task["id"], task["id"])
 		return
 	}
 
 	gatewayID, err := waitForCloudOperation(projectID, task["id"].(string), "gateway#create", 30*time.Minute)
 	if err != nil {
-		display.ExitError("failed to wait for gateway creation: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for gateway creation: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Gateway %s created successfully\n", gatewayID)
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Gateway %s created successfully", gatewayID)
 }
 
 func DeleteGateway(_ *cobra.Command, args []string) {
 	foundURL, _, err := findGateway(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	if err := httpLib.Client.Delete(foundURL, nil); err != nil {
-		display.ExitError("failed to delete gateway: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete gateway: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Gateway %s deleted successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Gateway %s deleted successfully", args[0])
 }
 
 func ExposeGateway(_ *cobra.Command, args []string) {
 	foundURL, _, err := findGateway(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	if err := httpLib.Client.Post(foundURL+"/expose", nil, nil); err != nil {
-		display.ExitError("failed to expose gateway: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to expose gateway: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Gateway %s exposed successfully\n", args[0])
+	log.Printf("✅ Gateway %s exposed successfully", args[0])
 
 	// Display updated gateway information
 	var object map[string]any
 	if err := httpLib.Client.Get(foundURL, &object); err != nil {
-		display.ExitError("error fetching %s: %s", foundURL, err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", foundURL, err)
 		return
 	}
 	display.OutputObject(object, args[0], cloudGatewayTemplate, &flags.OutputFormatConfig)
@@ -719,7 +720,7 @@ func ExposeGateway(_ *cobra.Command, args []string) {
 func ListGatewayInterfaces(_ *cobra.Command, args []string) {
 	foundURL, _, err := findGateway(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -729,7 +730,7 @@ func ListGatewayInterfaces(_ *cobra.Command, args []string) {
 func GetGatewayInterface(_ *cobra.Command, args []string) {
 	foundURL, _, err := findGateway(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -739,7 +740,7 @@ func GetGatewayInterface(_ *cobra.Command, args []string) {
 func CreateGatewayInterface(_ *cobra.Command, args []string) {
 	foundURL, _, err := findGateway(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
@@ -748,24 +749,24 @@ func CreateGatewayInterface(_ *cobra.Command, args []string) {
 		GatewayInterfaceSpec,
 		nil,
 	); err != nil {
-		display.ExitError("failed to create gateway interface: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create gateway interface: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Gateway %s interface created successfully\n", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Gateway %s interface created successfully", args[0])
 }
 
 func DeleteGatewayInterface(_ *cobra.Command, args []string) {
 	foundURL, _, err := findGateway(args[0])
 	if err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	if err := httpLib.Client.Delete(foundURL+"/interface/"+url.PathEscape(args[1]), nil); err != nil {
-		display.ExitError("failed to delete gateway interface: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete gateway interface: %s", err)
 		return
 	}
 
-	fmt.Printf("✅ Gateway %s interface %s deleted successfully\n", args[0], args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Gateway %s interface %s deleted successfully", args[0], args[1])
 }

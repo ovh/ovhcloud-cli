@@ -20,7 +20,7 @@ import (
 func renderCustomFormat(value any, format string) {
 	ev, err := gval.Full(filters.AdditionalEvaluators...).NewEvaluable(format)
 	if err != nil {
-		ExitError("invalid format given: %s", err)
+		exitError("invalid format given: %s", err)
 		return
 	}
 
@@ -29,13 +29,13 @@ func renderCustomFormat(value any, format string) {
 		for _, val := range value.([]map[string]any) {
 			out, err := ev(context.Background(), val)
 			if err != nil {
-				ExitError("couldn't extract data according to given format: %s", err)
+				exitError("couldn't extract data according to given format: %s", err)
 				return
 			}
 
 			outBytes, err := json.Marshal(out)
 			if err != nil {
-				ExitError("error marshalling result")
+				exitError("error marshalling result")
 				return
 			}
 			ResultString = string(outBytes)
@@ -43,13 +43,13 @@ func renderCustomFormat(value any, format string) {
 	default:
 		out, err := ev(context.Background(), value)
 		if err != nil {
-			ExitError("couldn't extract data according to given format: %s", err)
+			exitError("couldn't extract data according to given format: %s", err)
 			return
 		}
 
 		outBytes, err := json.Marshal(out)
 		if err != nil {
-			ExitError("error marshalling result")
+			exitError("error marshalling result")
 			return
 		}
 		ResultString = string(outBytes)
@@ -63,7 +63,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 	}
 
 	if err := prettyPrintJSON(values); err != nil {
-		ExitError("error displaying JSON results: %s", err)
+		exitError("error displaying JSON results: %s", err)
 		return
 	}
 }
@@ -72,12 +72,12 @@ func RenderConfigTable(cfg *ini.File) {
 	// TODO: untested
 	output := map[string]any{}
 	if err := cfg.MapTo(&output); err != nil {
-		ExitError("failed to extract config to map: %s", err)
+		exitError("failed to extract config to map: %s", err)
 		return
 	}
 
 	if err := prettyPrintJSON(output); err != nil {
-		ExitError("error displaying JSON results: %s", err)
+		exitError("error displaying JSON results: %s", err)
 		return
 	}
 }
@@ -100,19 +100,27 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 	}
 
 	if err := prettyPrintJSON(value); err != nil {
-		ExitError("error displaying JSON results: %s", err)
+		exitError("error displaying JSON results: %s", err)
 		return
 	}
 }
 
-func ExitError(message string, params ...any) {
+func exitError(message string, params ...any) {
 	ResultError = fmt.Errorf("🛑 "+message+"\n", params...)
 }
 
-func ExitWarning(message string, params ...any) {
-	ResultError = fmt.Errorf("🟠 "+message+"\n", params...)
+func outputf(message string, params ...any) {
+	ResultString = fmt.Sprintf(message, params...)
 }
 
-func Outputf(message string, params ...any) {
-	ResultString = fmt.Sprintf(message, params...)
+func OutputInfo(outputFormat *OutputFormat, details any, message string, params ...any) {
+	outputf(message, params...)
+}
+
+func OutputError(outputFormat *OutputFormat, message string, params ...any) {
+	exitError(message, params...)
+}
+
+func OutputWarning(outputFormat *OutputFormat, message string, params ...any) {
+	exitError(message, params...)
 }

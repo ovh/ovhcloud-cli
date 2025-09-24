@@ -72,10 +72,6 @@ func PostExecute() {
 	flags.OutputFormatConfig = display.OutputFormat{}
 	flags.ParametersViaEditor = false
 	flags.ParametersFile = ""
-
-	// Reinit root command to mark persistent flags as not parsed
-	rootCmd.ResetFlags()
-	initRootCmd()
 }
 
 func initRootCmd() {
@@ -91,7 +87,7 @@ func initRootCmd() {
 
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 		if http.Client == nil {
-			display.ExitError("API client is not initialized, please run `ovhcloud login` to authenticate")
+			display.OutputError(&flags.OutputFormatConfig, "API client is not initialized, please run `ovhcloud login` to authenticate")
 			os.Exit(1) // Force os.Exit even in WASM mode
 		}
 	}

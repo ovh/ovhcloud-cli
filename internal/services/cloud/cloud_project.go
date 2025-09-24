@@ -52,7 +52,7 @@ func EditCloudProject(cmd *cobra.Command, args []string) {
 		CloudProjectSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }

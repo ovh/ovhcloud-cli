@@ -78,7 +78,7 @@ func GetIAMPolicy(_ *cobra.Command, args []string) {
 
 	var object map[string]any
 	if err := httpLib.Client.Get(path, &object); err != nil {
-		display.ExitError("error fetching IAM policy %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching IAM policy %s: %s", args[0], err)
 		return
 	}
 
@@ -94,7 +94,7 @@ func EditIAMPolicy(cmd *cobra.Command, args []string) {
 		IAMPolicySpec,
 		assets.IamOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -116,7 +116,7 @@ func EditIAMPermissionsGroup(cmd *cobra.Command, args []string) {
 		IAMPolicySpec,
 		assets.IamOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -137,7 +137,7 @@ func EditIAMResource(cmd *cobra.Command, args []string) {
 		IAMResourceSpec,
 		assets.IamOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
@@ -151,7 +151,7 @@ func GetIAMResourceGroup(_ *cobra.Command, args []string) {
 
 	var object map[string]any
 	if err := httpLib.Client.Get(path, &object); err != nil {
-		display.ExitError("error fetching IAM resource group %s: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error fetching IAM resource group %s: %s", args[0], err)
 		return
 	}
 
@@ -167,7 +167,7 @@ func EditIAMResourceGroup(cmd *cobra.Command, args []string) {
 		IAMPolicySpec,
 		assets.IamOpenapiSchema,
 	); err != nil {
-		display.ExitError(err.Error())
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
