@@ -9,7 +9,7 @@ There are three ways to define the installation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --os byolinux_64 --language fr-fr --image-url https://...
+	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --os byolinux_64 --language fr-fr --image-url https://...
 
 2. Using a configuration file:
 
@@ -32,7 +32,7 @@ There are three ways to define the installation parameters:
 
 3. Using your default text editor:
 
-  ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --editor
+	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --editor
 
   You will be able to choose from several installation examples. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the reinstallation will be run.
