@@ -233,7 +233,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-  ovhcloud cloud storage-s3 create BHS --name mynewContainer
+	ovhcloud cloud storage-s3 create BHS --name mynewContainer
 
 2. Using a configuration file:
 
@@ -256,7 +256,7 @@ There are three ways to define the creation parameters:
 
 3. Using your default text editor:
 
-  ovhcloud cloud storage-s3 create GRA --editor
+	ovhcloud cloud storage-s3 create GRA --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.
