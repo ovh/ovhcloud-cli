@@ -41,7 +41,7 @@ func InitClient() {
 		}
 	}
 	if err != nil {
-		log.Printf(`OVHcloud API client not initialized, please run "ovh-cli login" to authenticate (%s)`, err)
+		log.Printf(`OVHcloud API client not initialized, please run "ovhcloud login" to authenticate (%s)`, err)
 	} else {
 		Client.Client.Transport = NewTransport("OVH", http.DefaultTransport)
 	}

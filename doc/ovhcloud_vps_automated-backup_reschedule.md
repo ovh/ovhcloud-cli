@@ -9,7 +9,7 @@ ovhcloud vps automated-backup reschedule <service_name> <time> [flags]
 ### Examples
 
 ```
-ovh-cli vps automated-backup reschedule my-vps 15:04:05
+ovhcloud vps automated-backup reschedule my-vps 15:04:05
 ```
 
 ### Options

@@ -9,19 +9,19 @@ ovhcloud vps reinstall <service_name> [flags]
 ### Options
 
 ```
-      --do-not-send-password                   Do not send the new password after reinstallation (only if sshKey defined)
-      --editor                                 Use a text editor to define parameters
-      --from-file string                       File containing parameters
-  -h, --help                                   help for reinstall
-      --image-id string                        ID of the image to use for reinstallation
-      --image-selector                         Use the interactive image selector
-      --init-file string                       Create a file with example parameters
-      --install-rtm                            Install RTM during reinstallation
-      --public-ssh-key string                  Public SSH key to pre-install on your VPS
-      --replace                                Replace parameters file if it already exists
-      --ssh-key ovh-cli account ssh-key list   SSH key name to pre-install on your VPS (name can be found running ovh-cli account ssh-key list)
-      --ssh-key-selector                       Use the interactive SSH key selector
-      --wait                                   Wait for reinstall to be done before exiting
+      --do-not-send-password    Do not send the new password after reinstallation (only if sshKey defined)
+      --editor                  Use a text editor to define parameters
+      --from-file string        File containing parameters
+  -h, --help                    help for reinstall
+      --image-id string         ID of the image to use for reinstallation
+      --image-selector          Use the interactive image selector
+      --init-file string        Create a file with example parameters
+      --install-rtm             Install RTM during reinstallation
+      --public-ssh-key string   Public SSH key to pre-install on your VPS
+      --replace                 Replace parameters file if it already exists
+      --ssh-key string          SSH key name to pre-install on your VPS (name can be found running 'ovhcloud account ssh-key list')
+      --ssh-key-selector        Use the interactive SSH key selector
+      --wait                    Wait for reinstall to be done before exiting
 ```
 
 ### Options inherited from parent commands
