@@ -66,3 +66,19 @@ release:
     ---
 
     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
+
+homebrew_casks:
+  - name: ovhcloud
+    binary: ovhcloud
+    url:
+      template: "https://github.com/ovh/ovhcloud-cli/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+      using: ":homebrew_curl"
+    repository:
+      owner: ovh
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
+    directory: Casks
+    caveats: "See https://github.com/ovh/ovhcloud-cli for usage."
+    homepage: "https://github.com/ovh/ovhcloud-cli"
+    description: "OVHcloud CLI - Command line interface for OVHcloud."
