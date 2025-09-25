@@ -76,7 +76,6 @@ homebrew_casks:
     repository:
       owner: ovh
       name: homebrew-tap
-      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
     directory: Casks
     caveats: "See https://github.com/ovh/ovhcloud-cli for usage."
