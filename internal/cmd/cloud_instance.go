@@ -15,7 +15,7 @@ import (
 
 func getInstanceCreationCmd() *cobra.Command {
 	instanceCreateCmd := &cobra.Command{
-		Use:   "create <region (e.g. GRA, BHS, SBG)>",
+		Use:   "create <region (e.g. GRA9, BHS5, SBG3)>",
 		Short: "Create a new instance",
 		Long: `Use this command to create an instance in the given public cloud project.
 There are three ways to define the creation parameters:
