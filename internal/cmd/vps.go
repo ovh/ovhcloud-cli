@@ -137,7 +137,7 @@ func init() {
 
 	vpsBackupCmd.AddCommand(&cobra.Command{
 		Use:     "reschedule <service_name> <time>",
-		Example: "ovh-cli vps automated-backup reschedule my-vps 15:04:05",
+		Example: "ovhcloud vps automated-backup reschedule my-vps 15:04:05",
 		Short:   "Reschedule the automated backup of the given VPS",
 		Args:    cobra.ExactArgs(2),
 		Run:     vps.RescheduleVpsAutomatedBackup,
@@ -356,7 +356,7 @@ func init() {
 	vpsReinstallCmd.Flags().StringVar(&vps.VpsReinstallSpec.ImageId, "image-id", "", "ID of the image to use for reinstallation")
 	vpsReinstallCmd.Flags().BoolVar(&vps.VpsReinstallSpec.InstallRTM, "install-rtm", false, "Install RTM during reinstallation")
 	vpsReinstallCmd.Flags().StringVar(&vps.VpsReinstallSpec.PublicSshKey, "public-ssh-key", "", "Public SSH key to pre-install on your VPS")
-	vpsReinstallCmd.Flags().StringVar(&vps.VpsReinstallSpec.SshKey, "ssh-key", "", "SSH key name to pre-install on your VPS (name can be found running `ovh-cli account ssh-key list`)")
+	vpsReinstallCmd.Flags().StringVar(&vps.VpsReinstallSpec.SshKey, "ssh-key", "", "SSH key name to pre-install on your VPS (name can be found running 'ovhcloud account ssh-key list')")
 	addInitParameterFileFlag(vpsReinstallCmd, assets.VpsOpenapiSchema, "/vps/{serviceName}/rebuild", "post", vps.VpsReinstallExample, nil)
 	addInteractiveEditorFlag(vpsReinstallCmd)
 	addFromFileFlag(vpsReinstallCmd)

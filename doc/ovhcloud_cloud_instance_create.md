@@ -51,7 +51,7 @@ There are three ways to define the creation parameters:
 
 
 ```
-ovhcloud cloud instance create <region (e.g. GRA, BHS, SBG)> [flags]
+ovhcloud cloud instance create <region (e.g. GRA9, BHS5, SBG3)> [flags]
 ```
 
 ### Options
