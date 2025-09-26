@@ -14,6 +14,7 @@
     - [Installation command](#installation-command)
     - [Binary download](#binary-download)
     - [Run with Docker](#run-with-docker)
+    - [Install using HomeBrew](#install-using-homebrew)
 - [Usage](#usage)
     - [Authenticating the CLI](#authenticating-the-cli)
     - [Examples](#examples)
@@ -44,13 +45,19 @@ curl -fsSL https://raw.githubusercontent.com/ovh/ovhcloud-cli/main/install.sh | 
 
 You can also run the CLI using Docker:
 
-```bash
+```sh
 docker run -it --rm -v ovhcloud-cli-config-files:/config ovhcom/ovhcloud-cli login
+```
+
+## Install using HomeBrew
+
+```sh
+brew install ovh/tap/ovhcloud-cli
 ```
 
 # Usage
 
-```bash
+```sh
 $ ovhcloud [command] {subcommands} {parameters/flags}
 ```
 
@@ -143,7 +150,7 @@ default_cloud_project = <public cloud project ID>
 
 * Using environment variables:
 
-```bash
+```sh
 OVH_ENDPOINT=ovh-eu
 OVH_APPLICATION_KEY=xxx
 OVH_APPLICATION_SECRET=xxx
@@ -152,7 +159,7 @@ OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID>
 ```
 
 * Interactive login:
-```bash
+```sh
 # Log in and create API credentials (interactive)
 ovhcloud login
 ```
@@ -169,7 +176,7 @@ ovhcloud login
 
 # Generate Shell Completion
 
-```bash
+```sh
 # Bash
 eval "$(./ovhcloud completion bash)"
 # Zsh
@@ -190,7 +197,7 @@ Have a look in [CONTRIBUTING.md](https://github.com/ovh/ovhcloud-cli/blob/master
 
 ## Build
 
-```bash
+```sh
 # Build the OVHcloud cli
 make build
 
@@ -203,7 +210,7 @@ make wasm
 
 ## Run the tests
 
-```bash
+```sh
 make test
 ```
 
