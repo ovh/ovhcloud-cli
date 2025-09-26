@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/maxatome/go-testdeep/td"
 )
 
@@ -250,5 +251,192 @@ func TestGetOperationRequestExamples(t *testing.T) {
 		td.Require(t).CmpNoError(err)
 		td.Require(t).ContainsKey(examples, "default")
 		td.Cmp(t, json.RawMessage(examples["default"]), td.JSON(`{"foo":"fromDefault"}`))
+	})
+
+	t.Run("handles nested object with allOf schema", func(t *testing.T) {
+		specWithAllOf := []byte(`
+			{
+				"openapi": "3.0.0",
+				"info": { "title": "Test API", "version": "1.0.0" },
+				"components": {
+					"schemas": {
+						"BaseObj": {
+							"type": "object",
+							"properties": {
+								"baseField": { "type": "string" }
+							}
+						},
+						"ExtendedObj": {
+							"allOf": [
+								{ "$ref": "#/components/schemas/BaseObj" },
+								{
+									"type": "object",
+									"properties": {
+										"extraField": { "type": "integer" }
+									}
+								}
+							]
+						}
+					}
+				},
+				"paths": {
+					"/allof": {
+						"post": {
+							"requestBody": {
+								"content": {
+									"application/json": {
+										"schema": {
+											"type": "object",
+											"properties": {
+												"nested": { "$ref": "#/components/schemas/ExtendedObj" }
+											}
+										},
+										"examples": {
+											"allOfExample": {
+												"value": {
+													"nested": {
+														"baseField": "base",
+														"extraField": 42
+													}
+												}
+											}
+										}
+									}
+								}
+							},
+							"responses": {
+								"200": { "description": "OK" }
+							}
+						}
+					}
+				}
+			}`,
+		)
+
+		replace := map[string]any{
+			"nested": map[string]any{
+				"baseField":  "replacedBase",
+				"extraField": 99,
+			},
+		}
+		examples, err := GetOperationRequestExamples(specWithAllOf, "/allof", "post", "", replace)
+		td.Require(t).CmpNoError(err)
+		td.Cmp(t, json.RawMessage(examples["allOfExample"]), td.JSON(`{"nested":{"baseField":"replacedBase","extraField":99}}`))
+	})
+}
+func TestPruneUnknownFields(t *testing.T) {
+	// Helper to build openapi3.Schema
+	makeSchema := func(props map[string]*openapi3.SchemaRef) *openapi3.Schema {
+		return &openapi3.Schema{
+			Type:       &openapi3.Types{"object"},
+			Properties: props,
+		}
+	}
+
+	t.Run("removes unknown fields", func(t *testing.T) {
+		schema := makeSchema(map[string]*openapi3.SchemaRef{
+			"foo": {Value: &openapi3.Schema{Type: &openapi3.Types{"string"}}},
+			"bar": {Value: &openapi3.Schema{Type: &openapi3.Types{"integer"}}},
+		})
+		input := map[string]any{
+			"foo": "abc",
+			"bar": 123,
+			"baz": "should be removed",
+		}
+		got := pruneUnknownFields(input, schema)
+		td.Cmp(t, got, map[string]any{"foo": "abc", "bar": 123})
+	})
+
+	t.Run("skips readOnly fields", func(t *testing.T) {
+		schema := makeSchema(map[string]*openapi3.SchemaRef{
+			"foo": {Value: &openapi3.Schema{Type: &openapi3.Types{"string"}, ReadOnly: true}},
+			"bar": {Value: &openapi3.Schema{Type: &openapi3.Types{"integer"}}},
+		})
+		input := map[string]any{"foo": "abc", "bar": 123}
+		got := pruneUnknownFields(input, schema)
+		td.Cmp(t, got, map[string]any{"bar": 123})
+	})
+
+	t.Run("recurses into nested objects", func(t *testing.T) {
+		nestedSchema := makeSchema(map[string]*openapi3.SchemaRef{
+			"baz": {Value: &openapi3.Schema{Type: &openapi3.Types{"string"}}},
+		})
+		schema := makeSchema(map[string]*openapi3.SchemaRef{
+			"foo": {Value: &openapi3.Schema{Type: &openapi3.Types{"object"}, Properties: nestedSchema.Properties}},
+		})
+		input := map[string]any{
+			"foo":   map[string]any{"baz": "ok", "extra": "remove"},
+			"other": "remove",
+		}
+		got := pruneUnknownFields(input, schema)
+		td.Cmp(t, got, map[string]any{"foo": map[string]any{"baz": "ok"}})
+	})
+
+	t.Run("handles arrays of objects", func(t *testing.T) {
+		itemSchema := &openapi3.Schema{Type: &openapi3.Types{"object"}, Properties: map[string]*openapi3.SchemaRef{
+			"name": {Value: &openapi3.Schema{Type: &openapi3.Types{"string"}}},
+		}}
+		schema := makeSchema(map[string]*openapi3.SchemaRef{
+			"items": {Value: &openapi3.Schema{
+				Type:  &openapi3.Types{"array"},
+				Items: &openapi3.SchemaRef{Value: itemSchema},
+			}},
+		})
+		input := map[string]any{
+			"items": []any{
+				map[string]any{"name": "a", "extra": "remove"},
+				map[string]any{"name": "b"},
+			},
+		}
+		got := pruneUnknownFields(input, schema)
+		td.Cmp(t, got, map[string]any{
+			"items": []any{
+				map[string]any{"name": "a"},
+				map[string]any{"name": "b"},
+			},
+		})
+	})
+
+	t.Run("handles nil array value", func(t *testing.T) {
+		itemSchema := &openapi3.Schema{Type: &openapi3.Types{"object"}}
+		schema := makeSchema(map[string]*openapi3.SchemaRef{
+			"items": {Value: &openapi3.Schema{
+				Type:  &openapi3.Types{"array"},
+				Items: &openapi3.SchemaRef{Value: itemSchema},
+			}},
+		})
+		input := map[string]any{"items": nil}
+		got := pruneUnknownFields(input, schema)
+		td.Cmp(t, got, map[string]any{"items": nil})
+	})
+
+	t.Run("handles allOf schema", func(t *testing.T) {
+		base := makeSchema(map[string]*openapi3.SchemaRef{
+			"baseField": {Value: &openapi3.Schema{Type: &openapi3.Types{"string"}}},
+		})
+		extended := &openapi3.Schema{
+			AllOf: []*openapi3.SchemaRef{
+				{Value: base},
+				{Value: &openapi3.Schema{Properties: map[string]*openapi3.SchemaRef{
+					"extraField": {Value: &openapi3.Schema{Type: &openapi3.Types{"integer"}}},
+				}}},
+			},
+		}
+		schema := makeSchema(map[string]*openapi3.SchemaRef{
+			"nested": {Value: extended},
+		})
+		input := map[string]any{
+			"nested": map[string]any{
+				"baseField":  "base",
+				"extraField": 42,
+				"removeMe":   "no",
+			},
+		}
+		got := pruneUnknownFields(input, schema)
+		td.Cmp(t, got, map[string]any{
+			"nested": map[string]any{
+				"baseField": "base",
+			},
+		})
 	})
 }
