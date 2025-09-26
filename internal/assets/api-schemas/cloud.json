@@ -1014,11 +1014,11 @@
       },
       "cloud.ProjectInstanceSnapshotCreation": {
         "type": "object",
-        "description": "Missing description",
+        "description": "Creates instance snapshots in the current region.",
         "properties": {
           "snapshotName": {
             "type": "string",
-            "description": "Snapshot name"
+            "description": "Name for the snapshot that will be created in the current region"
           }
         },
         "required": [
@@ -1099,6 +1099,11 @@
           "nodesSubnetId": {
             "type": "string",
             "description": "OpenStack subnet ID that the cluster nodes will use. Optional, can only be set on cluster creation or reset, can only be set if privateNetworkId is also set. If unspecified, it will be selected automatically when the first node is created."
+          },
+          "plan": {
+            "type": "string",
+            "description": "The cluster plan",
+            "nullable": true
           },
           "privateNetworkConfiguration": {
             "allOf": [
@@ -1722,7 +1727,7 @@
         "properties": {
           "force": {
             "type": "boolean",
-            "description": "Force redeploying the control plane / reinstalling the nodes regardless of their current version",
+            "description": "Deprecated, has no effect",
             "nullable": true
           },
           "strategy": {
@@ -1796,7 +1801,7 @@
           },
           "vlanId": {
             "type": "integer",
-            "description": "Vland id, between 0 and 4000. 0 value means no vlan.",
+            "description": "Vland id, between 0 and 4095. 0 value means no vlan.",
             "nullable": true
           }
         },
@@ -3085,7 +3090,6 @@
           }
         },
         "required": [
-          "name",
           "region"
         ]
       },
@@ -3202,6 +3206,184 @@
             "readOnly": true
           }
         }
+      },
+      "cloud.aggregated.InstanceActionGroupEnum": {
+        "type": "string",
+        "description": "group of the action",
+        "enum": [
+          "boot",
+          "delete",
+          "details",
+          "lifecycle",
+          "shelve"
+        ]
+      },
+      "cloud.alerting.Alert": {
+        "type": "object",
+        "description": "Sent Alert to client",
+        "properties": {
+          "alertDate": {
+            "type": "string",
+            "description": "Send date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "alertId": {
+            "type": "integer",
+            "description": "Alert ID",
+            "readOnly": true
+          },
+          "emails": {
+            "type": "array",
+            "description": "Receivers of the alert",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.alerting.Alerting": {
+        "type": "object",
+        "description": "Billing Alert Configuration",
+        "properties": {
+          "creationDate": {
+            "type": "string",
+            "description": "Creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "delay": {
+            "type": "integer",
+            "description": "Delay of the alert in seconds"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email. DEPRECATED: use emails"
+          },
+          "emails": {
+            "type": "array",
+            "description": "Receiver of the alert",
+            "items": {
+              "type": "string"
+            }
+          },
+          "formattedMonthlyThreshold": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "formatted monthly threshold",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "ID of the alert",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "monthlyThreshold": {
+            "type": "integer",
+            "description": "Monthly threshold"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the alert"
+          },
+          "service": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.alerting.ServiceEnum"
+              }
+            ],
+            "description": "Service of the alert"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.alerting.StatusEnum"
+              }
+            ],
+            "description": "Status of the alert",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "delay",
+          "monthlyThreshold"
+        ]
+      },
+      "cloud.alerting.AlertingUpdate": {
+        "type": "object",
+        "description": "Billing Alert Configuration Update",
+        "properties": {
+          "delay": {
+            "type": "integer",
+            "description": "Delay of the alert in seconds"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email. DEPRECATED: use emails"
+          },
+          "emails": {
+            "type": "array",
+            "description": "Receiver of the alert",
+            "items": {
+              "type": "string"
+            }
+          },
+          "monthlyThreshold": {
+            "type": "integer",
+            "description": "Monthly threshold"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the alert"
+          },
+          "service": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.alerting.ServiceEnum"
+              }
+            ],
+            "description": "Service of the alert"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.alerting.StatusEnum"
+              }
+            ],
+            "description": "Status of the alert"
+          }
+        }
+      },
+      "cloud.alerting.ServiceEnum": {
+        "type": "string",
+        "description": "available services to watch",
+        "enum": [
+          "ai_endpoint",
+          "all",
+          "block_storage",
+          "data_platform",
+          "instances",
+          "instances_gpu",
+          "instances_without_gpu",
+          "objet_storage",
+          "rancher",
+          "snapshot"
+        ]
+      },
+      "cloud.alerting.StatusEnum": {
+        "type": "string",
+        "description": "alert status",
+        "enum": [
+          "deleted",
+          "disabled",
+          "ok"
+        ]
       },
       "cloud.authentication.Catalog": {
         "type": "object",
@@ -3458,6 +3640,35 @@
           }
         }
       },
+      "cloud.billingView.HourlyDetail": {
+        "type": "object",
+        "description": "HourlyDetail",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID",
+            "readOnly": true
+          },
+          "quantity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.billingView.Quantity"
+              }
+            ],
+            "description": "Quantity",
+            "readOnly": true
+          },
+          "totalPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Total price",
+            "readOnly": true
+          }
+        }
+      },
       "cloud.billingView.HourlyInstance": {
         "type": "object",
         "description": "HourlyInstance",
@@ -3487,6 +3698,15 @@
           "region": {
             "type": "string",
             "description": "Instance region",
+            "readOnly": true
+          },
+          "savingsPlanIds": {
+            "type": "array",
+            "description": "Savings Plan IDs",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
             "readOnly": true
           },
           "totalPrice": {
@@ -3620,6 +3840,107 @@
           }
         }
       },
+      "cloud.billingView.HourlyManagedKubernetesService": {
+        "type": "object",
+        "description": "HourlyManagedKubernetesService",
+        "properties": {
+          "details": {
+            "type": "array",
+            "description": "Details about managed kubernetes services",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/cloud.billingView.HourlyDetail"
+            },
+            "readOnly": true
+          },
+          "quantity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.billingView.Quantity"
+              }
+            ],
+            "description": "Total hours of usage",
+            "readOnly": true
+          },
+          "reference": {
+            "type": "string",
+            "description": "Reference",
+            "nullable": true,
+            "readOnly": true
+          },
+          "region": {
+            "type": "string",
+            "description": "Region",
+            "nullable": true,
+            "readOnly": true
+          },
+          "totalPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Total price",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.billingView.HourlyQuantum": {
+        "type": "object",
+        "description": "HourlyQuantum",
+        "properties": {
+          "notebook": {
+            "type": "array",
+            "description": "Details about hourly quantum notebooks",
+            "items": {
+              "$ref": "#/components/schemas/cloud.billingView.HourlyQuantumNotebook"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.billingView.HourlyQuantumNotebook": {
+        "type": "object",
+        "description": "HourlyQuantumNotebook",
+        "properties": {
+          "details": {
+            "type": "array",
+            "description": "Details about quantums",
+            "items": {
+              "$ref": "#/components/schemas/cloud.billingView.HourlyDetail"
+            },
+            "readOnly": true
+          },
+          "quantity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.billingView.Quantity"
+              }
+            ],
+            "description": "Quantum quantity",
+            "readOnly": true
+          },
+          "reference": {
+            "type": "string",
+            "description": "Quantum reference",
+            "readOnly": true
+          },
+          "region": {
+            "type": "string",
+            "description": "Quantum region",
+            "readOnly": true
+          },
+          "totalPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Total price",
+            "readOnly": true
+          }
+        }
+      },
       "cloud.billingView.HourlyRancher": {
         "type": "object",
         "description": "HourlyRancher",
@@ -3649,6 +3970,15 @@
           "region": {
             "type": "string",
             "description": "Instance region",
+            "readOnly": true
+          },
+          "savingsPlanIds": {
+            "type": "array",
+            "description": "Savings Plan IDs",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
             "readOnly": true
           },
           "totalPrice": {
@@ -3719,10 +4049,26 @@
             },
             "readOnly": true
           },
+          "managedKubernetesService": {
+            "type": "array",
+            "description": "Details about managed kubernetes services",
+            "items": {
+              "$ref": "#/components/schemas/cloud.billingView.HourlyManagedKubernetesService"
+            },
+            "readOnly": true
+          },
+          "quantum": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.billingView.HourlyQuantum"
+              }
+            ],
+            "description": "Details about hourly quantums",
+            "readOnly": true
+          },
           "rancher": {
             "type": "array",
             "description": "Details about hourly Rancher",
-            "nullable": true,
             "items": {
               "$ref": "#/components/schemas/cloud.billingView.HourlyRancher"
             },
@@ -4108,7 +4454,6 @@
           "certification": {
             "type": "array",
             "description": "Details about certifications",
-            "nullable": true,
             "items": {
               "$ref": "#/components/schemas/cloud.billingView.MonthlyCertification"
             },
@@ -4128,6 +4473,42 @@
             "items": {
               "$ref": "#/components/schemas/cloud.billingView.MonthlyInstanceOption"
             },
+            "readOnly": true
+          },
+          "savingsPlan": {
+            "type": "array",
+            "description": "Details about savings plan subscriptions",
+            "items": {
+              "$ref": "#/components/schemas/cloud.billingView.MonthlySavingsPlan"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.billingView.MonthlySavingsPlan": {
+        "type": "object",
+        "description": "MonthlySavingsPlan",
+        "properties": {
+          "details": {
+            "type": "array",
+            "description": "Detailed listing of all flat fees",
+            "items": {
+              "$ref": "#/components/schemas/cloud.plan.Detail"
+            },
+            "readOnly": true
+          },
+          "flavor": {
+            "type": "string",
+            "description": "Flavor of the savings plan",
+            "readOnly": true
+          },
+          "totalPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Total price of the flat fee part of associated savings plans",
             "readOnly": true
           }
         }
@@ -4463,6 +4844,15 @@
           "regionName": {
             "type": "string",
             "description": "The region name",
+            "readOnly": true
+          },
+          "regionType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.RegionTypeEnum"
+              }
+            ],
+            "description": "The type of region (\"REGION-1-AZ\" or \"REGION-3-AZ\")",
             "readOnly": true
           }
         }
@@ -5146,6 +5536,26 @@
           }
         }
       },
+      "cloud.instance.Action": {
+        "type": "object",
+        "description": "Action",
+        "properties": {
+          "group": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.aggregated.InstanceActionGroupEnum"
+              }
+            ],
+            "description": "Action group",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Action name",
+            "readOnly": true
+          }
+        }
+      },
       "cloud.instance.ApplicationAccess": {
         "type": "object",
         "description": "ApplicationAccess",
@@ -5378,6 +5788,11 @@
             "description": "Instance image id",
             "nullable": true,
             "format": "uuid"
+          },
+          "imageRegionName": {
+            "type": "string",
+            "description": "Region of the instance image",
+            "nullable": true
           },
           "volumeId": {
             "type": "string",
@@ -5639,6 +6054,35 @@
           }
         }
       },
+      "cloud.instance.CreateSnapshot": {
+        "type": "object",
+        "description": "Creates instance snapshots with support for both local and distant region deployment. Creates a snapshot locally in the current region, and optionally creates an additional snapshot in a distant region when distant region parameters are provided.",
+        "properties": {
+          "distantRegionName": {
+            "type": "string",
+            "description": "Name of the remote region where the distant snapshot will be created (optional)",
+            "nullable": true
+          },
+          "distantSnapshotName": {
+            "type": "string",
+            "description": "Name for the snapshot that will be created in the distant region (optional)",
+            "nullable": true
+          },
+          "snapshotName": {
+            "type": "string",
+            "description": "Name for the snapshot that will be created in the current region"
+          }
+        }
+      },
+      "cloud.instance.IPAddressTypeEnum": {
+        "type": "string",
+        "description": "IPAddressTypeEnum",
+        "enum": [
+          "floating",
+          "private",
+          "public"
+        ]
+      },
       "cloud.instance.Instance": {
         "type": "object",
         "description": "Instance",
@@ -5748,9 +6192,101 @@
             "description": "IP address",
             "readOnly": true
           },
+          "subnet": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceAddressSubnet"
+              }
+            ],
+            "description": "Subnet of the address",
+            "nullable": true,
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.IPAddressTypeEnum"
+              }
+            ],
+            "description": "Address type",
+            "nullable": true,
+            "readOnly": true
+          },
           "version": {
             "type": "integer",
             "description": "IP version",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.InstanceAddressSubnet": {
+        "type": "object",
+        "description": "Subnet of the address",
+        "properties": {
+          "gatewayIP": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Subnet gateway ip",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Subnet id",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Subnet name",
+            "readOnly": true
+          },
+          "network": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceAddressSubnetNetwork"
+              }
+            ],
+            "description": "Subnet network",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.InstanceAddressSubnetNetwork": {
+        "type": "object",
+        "description": "Network of the subnet",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Network id",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Network name",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.InstanceBackup": {
+        "type": "object",
+        "description": "Backups of the instance",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "backup creation date (format RFC3339)",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Backup id",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Backup name",
             "readOnly": true
           }
         }
@@ -5870,86 +6406,135 @@
           }
         }
       },
-      "cloud.instance.InstanceMetrics": {
+      "cloud.instance.InstanceFlavor": {
         "type": "object",
-        "description": "InstanceMetrics",
+        "description": "Flavor of the instance",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Flavor id",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Flavor name",
+            "readOnly": true
+          },
+          "specs": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceFlavorSpecs"
+              }
+            ],
+            "description": "Flavor specs",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.InstanceFlavorSpecBandwidth": {
+        "type": "object",
+        "description": "Bandwidth of the flavor",
+        "properties": {
+          "private": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceFlavorSpecWithUnit"
+              }
+            ],
+            "description": "Private bandwidth",
+            "readOnly": true
+          },
+          "public": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceFlavorSpecWithUnit"
+              }
+            ],
+            "description": "Public bandwidth",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.InstanceFlavorSpecWithUnit": {
+        "type": "object",
+        "description": "Spec with unit",
         "properties": {
           "unit": {
             "type": "string",
-            "readOnly": true
-          },
-          "values": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/cloud.instance.InstanceMetricsValue"
-            },
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.instance.InstanceMetricsValue": {
-        "type": "object",
-        "description": "InstanceMetricsValue",
-        "properties": {
-          "timestamp": {
-            "type": "integer",
+            "description": "Spec unit",
             "readOnly": true
           },
           "value": {
-            "type": "number",
+            "type": "integer",
+            "description": "Spec value",
             "readOnly": true
           }
         }
       },
-      "cloud.instance.InstanceSnapshot": {
+      "cloud.instance.InstanceFlavorSpecs": {
         "type": "object",
-        "description": "InstanceSnapshot",
+        "description": "Specs of the flavor",
         "properties": {
-          "snapshotId": {
-            "type": "string",
-            "description": "Snapshot ID",
+          "bandwidth": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceFlavorSpecBandwidth"
+              }
+            ],
+            "description": "Flavor bandwidth",
+            "readOnly": true
+          },
+          "cpu": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceFlavorSpecWithUnit"
+              }
+            ],
+            "description": "Flavor CPU",
+            "readOnly": true
+          },
+          "ram": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceFlavorSpecWithUnit"
+              }
+            ],
+            "description": "Flavor RAM",
+            "readOnly": true
+          },
+          "storage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceFlavorSpecWithUnit"
+              }
+            ],
+            "description": "Flavor storage",
             "readOnly": true
           }
         }
       },
-      "cloud.instance.InstanceStatusEnum": {
-        "type": "string",
-        "description": "InstanceStatusEnum",
-        "enum": [
-          "ACTIVE",
-          "BUILD",
-          "BUILDING",
-          "DELETED",
-          "DELETING",
-          "ERROR",
-          "HARD_REBOOT",
-          "MIGRATING",
-          "PASSWORD",
-          "PAUSED",
-          "REBOOT",
-          "REBUILD",
-          "RESCUE",
-          "RESCUED",
-          "RESCUING",
-          "RESIZE",
-          "RESIZED",
-          "RESUMING",
-          "REVERT_RESIZE",
-          "SHELVED",
-          "SHELVED_OFFLOADED",
-          "SHELVING",
-          "SHUTOFF",
-          "SNAPSHOTTING",
-          "SOFT_DELETED",
-          "STOPPED",
-          "SUSPENDED",
-          "UNKNOWN",
-          "UNRESCUING",
-          "UNSHELVING",
-          "VERIFY_RESIZE"
-        ]
+      "cloud.instance.InstanceImage": {
+        "type": "object",
+        "description": "Instance Image",
+        "properties": {
+          "deprecated": {
+            "type": "boolean",
+            "description": "Is image deprecated",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Image id",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Image name",
+            "readOnly": true
+          }
+        }
       },
-      "cloud.instance.InstanceSummary": {
+      "cloud.instance.InstanceList": {
         "type": "object",
         "description": "Instance",
         "properties": {
@@ -6033,6 +6618,299 @@
           }
         }
       },
+      "cloud.instance.InstanceMetrics": {
+        "type": "object",
+        "description": "InstanceMetrics",
+        "properties": {
+          "unit": {
+            "type": "string",
+            "readOnly": true
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.InstanceMetricsValue"
+            },
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.InstanceMetricsValue": {
+        "type": "object",
+        "description": "InstanceMetricsValue",
+        "properties": {
+          "timestamp": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "value": {
+            "type": "number",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.InstancePrice": {
+        "type": "object",
+        "description": "Price of the instance",
+        "properties": {
+          "includeVat": {
+            "type": "boolean",
+            "description": "is vat included in price",
+            "readOnly": true
+          },
+          "price": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "description": "Instance price",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstancePriceStatusEnum"
+              }
+            ],
+            "description": "Instance price status",
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstancePriceTypeEnum"
+              }
+            ],
+            "description": "Instance price type",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.InstancePriceStatusEnum": {
+        "type": "string",
+        "description": "Instance price status",
+        "enum": [
+          "available",
+          "enabled"
+        ]
+      },
+      "cloud.instance.InstancePriceTypeEnum": {
+        "type": "string",
+        "description": "Instance price type",
+        "enum": [
+          "hour",
+          "licence",
+          "month"
+        ]
+      },
+      "cloud.instance.InstanceSnapshot": {
+        "type": "object",
+        "description": "InstanceSnapshot",
+        "properties": {
+          "snapshotId": {
+            "type": "string",
+            "description": "Snapshot ID",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.InstanceStatusEnum": {
+        "type": "string",
+        "description": "InstanceStatusEnum",
+        "enum": [
+          "ACTIVE",
+          "BUILD",
+          "BUILDING",
+          "DELETED",
+          "DELETING",
+          "ERROR",
+          "HARD_REBOOT",
+          "MIGRATING",
+          "PASSWORD",
+          "PAUSED",
+          "REBOOT",
+          "REBUILD",
+          "RESCUE",
+          "RESCUED",
+          "RESCUING",
+          "RESIZE",
+          "RESIZED",
+          "RESUMING",
+          "REVERT_RESIZE",
+          "SHELVED",
+          "SHELVED_OFFLOADED",
+          "SHELVING",
+          "SHUTOFF",
+          "SNAPSHOTTING",
+          "SOFT_DELETED",
+          "STOPPED",
+          "SUSPENDED",
+          "UNKNOWN",
+          "UNRESCUING",
+          "UNSHELVING",
+          "VERIFY_RESIZE"
+        ]
+      },
+      "cloud.instance.InstanceSummary": {
+        "type": "object",
+        "description": "Instance",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "description": "Actions that can be done on the instance",
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.Action"
+            },
+            "readOnly": true
+          },
+          "addresses": {
+            "type": "array",
+            "description": "Instance IP addresses",
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.InstanceAddress"
+            },
+            "readOnly": true
+          },
+          "attachedVolumes": {
+            "type": "array",
+            "description": "Volumes attached to the instance",
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.InstanceSummaryVolumeValue"
+            },
+            "readOnly": true
+          },
+          "availabilityZone": {
+            "type": "string",
+            "description": "Availability zone of the instance",
+            "nullable": true,
+            "readOnly": true
+          },
+          "backups": {
+            "type": "array",
+            "description": "Instance Backups",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.InstanceBackup"
+            },
+            "readOnly": true
+          },
+          "flavor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceFlavor"
+              }
+            ],
+            "description": "Instance flavor",
+            "nullable": true,
+            "readOnly": true
+          },
+          "flavorId": {
+            "type": "string",
+            "description": "Flavor id",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "flavorName": {
+            "type": "string",
+            "description": "Flavor name",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Instance id",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "image": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceImage"
+              }
+            ],
+            "description": "Instance image",
+            "nullable": true,
+            "readOnly": true
+          },
+          "imageId": {
+            "type": "string",
+            "description": "Image id",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "login": {
+            "type": "string",
+            "description": "User and address to SSH to your instance",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Instance name",
+            "readOnly": true
+          },
+          "pendingTask": {
+            "type": "boolean",
+            "description": "A task is pending for the instance",
+            "readOnly": true
+          },
+          "pricings": {
+            "type": "array",
+            "description": "Instance Price",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.InstancePrice"
+            },
+            "readOnly": true
+          },
+          "region": {
+            "type": "string",
+            "description": "Instance region",
+            "readOnly": true
+          },
+          "regionType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.RegionTypeEnum"
+              }
+            ],
+            "description": "Type of the region",
+            "readOnly": true
+          },
+          "sshKey": {
+            "type": "string",
+            "description": "Instance SSH key name",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceStatusEnum"
+              }
+            ],
+            "description": "Instance status",
+            "readOnly": true
+          },
+          "taskState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceSummaryTaskStateEnum"
+              }
+            ],
+            "description": "Instance task state",
+            "readOnly": true
+          },
+          "volumes": {
+            "type": "array",
+            "description": "Instance volumes",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.InstanceVolume"
+            },
+            "readOnly": true
+          }
+        }
+      },
       "cloud.instance.InstanceSummaryTaskStateEnum": {
         "type": "string",
         "description": "Enum values for taskState of an instance",
@@ -6112,6 +6990,29 @@
           "url": {
             "type": "string",
             "description": "VNC url",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.InstanceVolume": {
+        "type": "object",
+        "description": "Volumes attached to your instance",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Volume id",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Volume name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "size": {
+            "type": "integer",
+            "description": "Volume size in GB",
+            "nullable": true,
             "readOnly": true
           }
         }
@@ -6256,6 +7157,23 @@
           "soft"
         ]
       },
+      "cloud.instance.Reinstall": {
+        "type": "object",
+        "description": "Instance reinstall input",
+        "properties": {
+          "imageId": {
+            "type": "string",
+            "description": "Image ID"
+          },
+          "imageRegionName": {
+            "type": "string",
+            "description": "Region of the image to reinstall"
+          }
+        },
+        "required": [
+          "imageRegionName"
+        ]
+      },
       "cloud.instance.RescueAdminPassword": {
         "type": "object",
         "description": "RescueAdminPassword",
@@ -6265,6 +7183,22 @@
             "description": "Admin password to connect to your rescue server with",
             "nullable": true,
             "format": "password",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.instance.Snapshot": {
+        "type": "object",
+        "description": "Instance snapshot",
+        "properties": {
+          "imageId": {
+            "type": "string",
+            "description": "Instance image id",
+            "readOnly": true
+          },
+          "operationId": {
+            "type": "string",
+            "description": "Id of pending public cloud operation",
             "readOnly": true
           }
         }
@@ -6675,6 +7609,11 @@
           "nodesUrl": {
             "type": "string",
             "description": "Cluster nodes URL",
+            "readOnly": true
+          },
+          "plan": {
+            "type": "string",
+            "description": "The cluster plan",
             "readOnly": true
           },
           "privateNetworkConfiguration": {
@@ -7413,7 +8352,8 @@
         "enum": [
           "1.30",
           "1.31",
-          "1.32"
+          "1.32",
+          "1.33"
         ]
       },
       "cloud.loadbalancing.AssociateFloatingIp": {
@@ -9151,7 +10091,7 @@
           },
           "vlanId": {
             "type": "integer",
-            "description": "VLAN id, between 1 and 4000"
+            "description": "VLAN id, between 1 and 4095"
           }
         },
         "required": [
@@ -9177,7 +10117,7 @@
           },
           "vlanId": {
             "type": "integer",
-            "description": "VLAN id, between 1 and 4000"
+            "description": "VLAN id, between 1 and 4095"
           }
         },
         "required": [
@@ -9910,6 +10850,21 @@
             "type": "string",
             "description": "The plan id",
             "format": "uuid",
+            "readOnly": true
+          },
+          "period": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.usage.Period"
+              }
+            ],
+            "description": "Plan period",
+            "readOnly": true
+          },
+          "planName": {
+            "type": "string",
+            "description": "Name of the plan",
+            "nullable": true,
             "readOnly": true
           },
           "size": {
@@ -11675,6 +12630,11 @@
           "DATASYNC_FAILED",
           "DATASYNC_INTERRUPTED",
           "DATASYNC_INVALID_CONTAINER",
+          "DATASYNC_PROGRESS_FAILED_FORBIDDEN",
+          "DATASYNC_PROGRESS_FAILED_INVALID_CREDENTIALS",
+          "DATASYNC_PROGRESS_FAILED_NOT_FOUND",
+          "DATASYNC_PROGRESS_FAILED_TRANSIENT_ERROR",
+          "DATASYNC_PROGRESS_FAILED_UNKNOWN_ERROR",
           "DATASYNC_QUEUED",
           "DATASYNC_RETRY_ERROR",
           "DATASYNC_RUNNING",
@@ -11948,7 +12908,9 @@
         "description": "Role granted with an application token",
         "enum": [
           "ai_training_operator",
-          "ai_training_read"
+          "ai_training_read",
+          "quantum_operator",
+          "quantum_reader"
         ]
       },
       "cloud.project.ai.VolumePermissionEnum": {
@@ -12402,6 +13364,72 @@
           }
         }
       },
+      "cloud.project.ai.app.AutomaticScalingStrategyCustomMetrics": {
+        "type": "object",
+        "description": "Scale an AI Deploy App based on a custom metric provided by a customer-exposed API",
+        "properties": {
+          "apiUrl": {
+            "type": "string",
+            "description": "Full URL of the API operation to call to get the metric value. Specific <SELF> placeholder can be given whenever metrics API is served by the deployed app itself. e.g : \"http://<SELF>:6000/metrics\"",
+            "readOnly": true
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.project.ai.app.CustomMetricsFormatEnum"
+              }
+            ],
+            "description": "format of the custom metric used to scaled an AI Deploy App",
+            "readOnly": true
+          },
+          "targetValue": {
+            "type": "number",
+            "description": "Target value to scale on",
+            "readOnly": true
+          },
+          "valueLocation": {
+            "type": "string",
+            "description": "The location of the metric value in the response payload. The value is format specific, see https://keda.sh/docs/2.16/scalers/metrics-api/#trigger-specification for details",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.project.ai.app.AutomaticScalingStrategyCustomMetricsInput": {
+        "type": "object",
+        "description": "Scale an AI Deploy App based on a custom metric provided by a customer-exposed API",
+        "properties": {
+          "apiUrl": {
+            "type": "string",
+            "description": "Full URL of the API operation to call to get the metric value. Specific <SELF> placeholder can be given whenever metrics API is served by the deployed app itself. e.g : \"http://<SELF>:6000/metrics\""
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.project.ai.app.CustomMetricsFormatEnum"
+              }
+            ],
+            "description": "format of the custom metric used to scaled an AI Deploy App"
+          },
+          "targetValue": {
+            "type": "number",
+            "description": "Target value to scale on"
+          },
+          "valueLocation": {
+            "type": "string",
+            "description": "The location of the metric value in the response payload. The value is format specific, see https://keda.sh/docs/2.16/scalers/metrics-api/#trigger-specification for details"
+          }
+        }
+      },
+      "cloud.project.ai.app.CustomMetricsFormatEnum": {
+        "type": "string",
+        "description": "format of the custom metric used to scaled an AI Deploy App",
+        "enum": [
+          "json",
+          "prometheus",
+          "xml",
+          "yaml"
+        ]
+      },
       "cloud.project.ai.app.DeploymentStrategy": {
         "type": "object",
         "description": "AI Solutions AI App deployment strategy object",
@@ -12521,6 +13549,16 @@
             "description": "The average resource usage threshold that the app upscale or downscale will be triggered from, in percent",
             "readOnly": true
           },
+          "customMetrics": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.project.ai.app.AutomaticScalingStrategyCustomMetrics"
+              }
+            ],
+            "description": "parameters to scale the AI Deploy App based on a custom metric provided by a customer-exposed API",
+            "nullable": true,
+            "readOnly": true
+          },
           "replicasMax": {
             "type": "integer",
             "description": "Maximum number of replicas",
@@ -12549,6 +13587,15 @@
           "averageUsageTarget": {
             "type": "integer",
             "description": "The average resource usage threshold that the app upscale or downscale will be triggered from, in percent"
+          },
+          "customMetrics": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.project.ai.app.AutomaticScalingStrategyCustomMetricsInput"
+              }
+            ],
+            "description": "parameters to scale the AI Deploy App based on a custom metric provided by a customer-exposed API",
+            "nullable": true
           },
           "replicasMax": {
             "type": "integer",
@@ -12599,7 +13646,7 @@
       },
       "cloud.project.ai.app.ScalingStrategy": {
         "type": "object",
-        "description": "AI Solutions App Status Object",
+        "description": "AI Solutions App Scaling Strategy Object",
         "properties": {
           "automatic": {
             "allOf": [
@@ -12625,7 +13672,7 @@
       },
       "cloud.project.ai.app.ScalingStrategyInput": {
         "type": "object",
-        "description": "AI Solutions App Status Object",
+        "description": "AI Solutions App Scaling Strategy Object",
         "properties": {
           "automatic": {
             "allOf": [
@@ -14402,6 +15449,27 @@
           }
         }
       },
+      "cloud.project.ai.notebook.NotebookWorkspaceBackupRetentionPolicyInput": {
+        "type": "object",
+        "description": "Representation of an override of a notebook workspace backup retention policy",
+        "properties": {
+          "lifetimeEvictionThreshold": {
+            "type": "integer",
+            "description": "Position in the backup history from which the lifetime-based eviction can be applied to a workspace backup",
+            "nullable": true
+          },
+          "lifetimeInDays": {
+            "type": "integer",
+            "description": "Maximum number of retention days for a given notebook's workspace backups which is at or after lifetime_eviction_threshold index in history",
+            "nullable": true
+          },
+          "retainedNumber": {
+            "type": "integer",
+            "description": "The number of retained workspace backups for a given notebook",
+            "nullable": true
+          }
+        }
+      },
       "cloud.project.ai.partner.Contract": {
         "type": "object",
         "description": "Representation of a partner's contract with logged in user's tenant",
@@ -14729,9 +15797,14 @@
           "DONE",
           "ERROR",
           "FAILED",
+          "FORBIDDEN",
           "INTERRUPTED",
+          "INVALID_CREDENTIALS",
+          "NOT_FOUND",
           "QUEUED",
-          "RUNNING"
+          "RUNNING",
+          "TRANSIENT_ERROR",
+          "UNKNOWN_ERROR"
         ]
       },
       "cloud.project.ai.volume.DataSyncSpec": {
@@ -15193,645 +16266,6 @@
           "URI"
         ]
       },
-      "cloud.project.dataProcessing.AuthorizationStatus": {
-        "type": "object",
-        "description": "Authorization status",
-        "properties": {
-          "authorized": {
-            "type": "boolean",
-            "description": "True is project is authorized to use Data Processing service",
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.CapabilitiesEngineParameter": {
-        "type": "object",
-        "description": "Engine parameters",
-        "properties": {
-          "default": {
-            "type": "string",
-            "description": "Default value of parameter",
-            "nullable": true,
-            "readOnly": true
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of parameter",
-            "readOnly": true
-          },
-          "mandatory": {
-            "type": "boolean",
-            "description": "Parameter is mandatory or not",
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of parameter",
-            "readOnly": true
-          },
-          "type": {
-            "type": "string",
-            "description": "Type of parameter",
-            "readOnly": true
-          },
-          "validator": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.project.dataProcessing.ParameterValidator"
-              }
-            ],
-            "description": "Validator of parameter",
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.CapabilitiesNotebookTemplate": {
-        "type": "object",
-        "description": "Engine Template",
-        "properties": {
-          "driverCores": {
-            "type": "integer",
-            "description": "Number of driver cores of the template",
-            "readOnly": true
-          },
-          "driverMemory": {
-            "type": "integer",
-            "description": "Driver memory in bytes of the template",
-            "readOnly": true
-          },
-          "driverMemoryOverhead": {
-            "type": "integer",
-            "description": "Driver memory overhead in bytes of the template",
-            "readOnly": true
-          },
-          "executorCores": {
-            "type": "integer",
-            "description": "Number of executor cores of the template",
-            "readOnly": true
-          },
-          "executorMemory": {
-            "type": "integer",
-            "description": "Executor memory in bytes of the template",
-            "readOnly": true
-          },
-          "executorMemoryOverhead": {
-            "type": "integer",
-            "description": "Executor memory overhead in bytes of the template",
-            "readOnly": true
-          },
-          "executorNumber": {
-            "type": "integer",
-            "description": "Number of executors of the template",
-            "readOnly": true
-          },
-          "id": {
-            "type": "integer",
-            "description": "ID of the template",
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the template",
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.CapabilitiesTemplate": {
-        "type": "object",
-        "description": "Engine Template",
-        "properties": {
-          "cores": {
-            "type": "integer",
-            "description": "Number of cores of the template",
-            "readOnly": true
-          },
-          "id": {
-            "type": "integer",
-            "description": "ID of the template",
-            "readOnly": true
-          },
-          "memory": {
-            "type": "integer",
-            "description": "Memory in bytes of the template",
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.Capability": {
-        "type": "object",
-        "description": "Capabilities of data processing service",
-        "properties": {
-          "availableVersions": {
-            "type": "array",
-            "description": "Available versions of the engine",
-            "items": {
-              "$ref": "#/components/schemas/cloud.project.dataProcessing.EngineVersion"
-            },
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the engine",
-            "readOnly": true
-          },
-          "parameters": {
-            "type": "array",
-            "description": "Parameters of the engine",
-            "items": {
-              "$ref": "#/components/schemas/cloud.project.dataProcessing.CapabilitiesEngineParameter"
-            },
-            "readOnly": true
-          },
-          "templates": {
-            "type": "array",
-            "description": "Templates of the engine",
-            "items": {
-              "$ref": "#/components/schemas/cloud.project.dataProcessing.CapabilitiesTemplate"
-            },
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.EngineParameter": {
-        "type": "object",
-        "description": "Parameters of the engine",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Name of parameters"
-          },
-          "value": {
-            "type": "string",
-            "description": "Value of parameters"
-          }
-        },
-        "required": [
-          "name",
-          "value"
-        ]
-      },
-      "cloud.project.dataProcessing.EngineVersion": {
-        "type": "object",
-        "description": "Engine version",
-        "properties": {
-          "availableRegions": {
-            "type": "array",
-            "description": "List of region available of the version",
-            "items": {
-              "type": "string"
-            },
-            "readOnly": true
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of the engine",
-            "readOnly": true
-          },
-          "endOfLife": {
-            "type": "string",
-            "description": "End of life of this engine version",
-            "nullable": true,
-            "format": "date",
-            "readOnly": true
-          },
-          "endOfSupport": {
-            "type": "string",
-            "description": "End of support of this engine version",
-            "nullable": true,
-            "format": "date",
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the version",
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.Info": {
-        "type": "object",
-        "description": "Information about the state of this entity",
-        "properties": {
-          "code": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.project.dataProcessing.InfoCodeEnum"
-              }
-            ],
-            "description": "Info code identifier",
-            "readOnly": true
-          },
-          "message": {
-            "type": "string",
-            "description": "Formatted message",
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.InfoCodeEnum": {
-        "type": "string",
-        "description": "Code enum for Info object",
-        "enum": [
-          "APP_CREATE_ERROR",
-          "APP_ERROR",
-          "APP_FAILED",
-          "APP_INITIALIZING",
-          "APP_INTERRUPTED_BY_PLATFORM",
-          "APP_QUEUED",
-          "APP_RUNNING",
-          "APP_SCALING",
-          "APP_STOPPED",
-          "APP_STOPPING",
-          "COMPATIBILITY",
-          "DATASYNC_AUTHENTICATE_FAILED",
-          "DATASYNC_DONE",
-          "DATASYNC_ERROR",
-          "DATASYNC_FAILED",
-          "DATASYNC_INTERRUPTED",
-          "DATASYNC_INVALID_CONTAINER",
-          "DATASYNC_QUEUED",
-          "DATASYNC_RETRY_ERROR",
-          "DATASYNC_RUNNING",
-          "JOB_CREATE_CONTAINER_CONFIG_ERROR",
-          "JOB_CREATE_CONTAINER_ERROR",
-          "JOB_DONE",
-          "JOB_ERROR",
-          "JOB_EVICTED",
-          "JOB_FAILED",
-          "JOB_FAILED_WITH_MESSAGE",
-          "JOB_FINALIZING",
-          "JOB_IMAGE_INSPECT_ERROR",
-          "JOB_IMAGE_PULL",
-          "JOB_IMAGE_PULL_BACKOFF",
-          "JOB_INITIALIZING",
-          "JOB_INTERRUPTED",
-          "JOB_INTERRUPTED_BY_PLATFORM",
-          "JOB_INTERRUPTING",
-          "JOB_INVALID_IMAGE_NAME",
-          "JOB_PENDING",
-          "JOB_QUEUED",
-          "JOB_REGISTRY_UNAVAILABLE",
-          "JOB_RUNNING",
-          "JOB_TIMEOUT",
-          "NOTEBOOK_FAILED",
-          "NOTEBOOK_FAILED_WITH_MESSAGE",
-          "NOTEBOOK_FINALIZING",
-          "NOTEBOOK_INITIALIZING",
-          "NOTEBOOK_PENDING",
-          "NOTEBOOK_RUNNING",
-          "NOTEBOOK_STARTING",
-          "NOTEBOOK_STOPPED",
-          "NOTEBOOK_STOPPING"
-        ]
-      },
-      "cloud.project.dataProcessing.Job": {
-        "type": "object",
-        "description": "Job information",
-        "properties": {
-          "containerName": {
-            "type": "string",
-            "description": "Name of the container where the code and the log of the job is"
-          },
-          "creationDate": {
-            "type": "string",
-            "description": "Creation date of the job",
-            "nullable": true,
-            "format": "date-time",
-            "readOnly": true
-          },
-          "endDate": {
-            "type": "string",
-            "description": "End date of the job",
-            "nullable": true,
-            "format": "date-time",
-            "readOnly": true
-          },
-          "engine": {
-            "type": "string",
-            "description": "Engine of the job"
-          },
-          "engineParameters": {
-            "type": "array",
-            "description": "Parameters of job engine",
-            "items": {
-              "$ref": "#/components/schemas/cloud.project.dataProcessing.EngineParameter"
-            }
-          },
-          "engineVersion": {
-            "type": "string",
-            "description": "Version of the engine"
-          },
-          "id": {
-            "type": "string",
-            "description": "UUID of the job",
-            "format": "uuid",
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Name"
-          },
-          "notebook": {
-            "type": "string",
-            "description": "Notebook associated to the job",
-            "nullable": true,
-            "readOnly": true
-          },
-          "region": {
-            "type": "string",
-            "description": "Openstack region of the job"
-          },
-          "returnCode": {
-            "type": "integer",
-            "description": "Return code of the job",
-            "nullable": true,
-            "readOnly": true
-          },
-          "startDate": {
-            "type": "string",
-            "description": "Start date of the job",
-            "nullable": true,
-            "format": "date-time",
-            "readOnly": true
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.project.dataProcessing.StatusEnum"
-              }
-            ],
-            "description": "Current state of the job",
-            "readOnly": true
-          },
-          "ttl": {
-            "type": "string",
-            "description": "Maximum \"Time To Live\" (in RFC3339 (duration)) of this job, after which it will be automatically terminated",
-            "nullable": true,
-            "format": "duration"
-          }
-        },
-        "required": [
-          "containerName",
-          "engine",
-          "engineParameters",
-          "engineVersion",
-          "region"
-        ]
-      },
-      "cloud.project.dataProcessing.JobLogs": {
-        "type": "object",
-        "description": "Job Logs",
-        "properties": {
-          "logs": {
-            "type": "array",
-            "description": "Logs lines",
-            "items": {
-              "$ref": "#/components/schemas/cloud.project.dataProcessing.LogLine"
-            },
-            "readOnly": true
-          },
-          "logsAddress": {
-            "type": "string",
-            "description": "Address log url",
-            "nullable": true,
-            "readOnly": true
-          },
-          "startDate": {
-            "type": "string",
-            "description": "Start date",
-            "format": "date-time",
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.LogLine": {
-        "type": "object",
-        "description": "Log line",
-        "properties": {
-          "content": {
-            "type": "string",
-            "description": "Content of the log",
-            "readOnly": true
-          },
-          "id": {
-            "type": "integer",
-            "description": "Id of the log",
-            "readOnly": true
-          },
-          "timestamp": {
-            "type": "string",
-            "description": "Datetime of the log",
-            "format": "date-time",
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.ParameterValidator": {
-        "type": "object",
-        "description": "Conditions to which the value of parameter must conform",
-        "properties": {
-          "max": {
-            "type": "number",
-            "description": "Maximal value of parameter",
-            "nullable": true,
-            "readOnly": true
-          },
-          "min": {
-            "type": "number",
-            "description": "Minimal value of parameter",
-            "nullable": true,
-            "readOnly": true
-          },
-          "regex": {
-            "type": "string",
-            "description": "Regex to match value of parameter",
-            "nullable": true,
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.StatusEnum": {
-        "type": "string",
-        "description": "Possible state of the job",
-        "enum": [
-          "CANCELLING",
-          "COMPLETED",
-          "FAILED",
-          "PENDING",
-          "RUNNING",
-          "SUBMITTED",
-          "TERMINATED",
-          "UNKNOWN"
-        ]
-      },
-      "cloud.project.dataProcessing.notebook.Capability": {
-        "type": "object",
-        "description": "Capabilities of data processing service",
-        "properties": {
-          "availableVersions": {
-            "type": "array",
-            "description": "Available versions of the engine",
-            "items": {
-              "$ref": "#/components/schemas/cloud.project.dataProcessing.EngineVersion"
-            },
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the engine",
-            "readOnly": true
-          },
-          "templates": {
-            "type": "array",
-            "description": "Templates of the engine",
-            "items": {
-              "$ref": "#/components/schemas/cloud.project.dataProcessing.CapabilitiesNotebookTemplate"
-            },
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.notebook.Notebook": {
-        "type": "object",
-        "description": "Data Processing Notebook Object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Notebook Id",
-            "format": "uuid",
-            "readOnly": true
-          },
-          "spec": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.project.dataProcessing.notebook.NotebookSpec"
-              }
-            ],
-            "description": "Notebook spec",
-            "readOnly": true
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.project.dataProcessing.notebook.NotebookStatus"
-              }
-            ],
-            "description": "Notebook Container Status",
-            "readOnly": true
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Notebook last update date",
-            "format": "date-time",
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.notebook.NotebookEnv": {
-        "type": "object",
-        "description": "Data Processing Object to create a notebook",
-        "properties": {
-          "engineName": {
-            "type": "string",
-            "description": "Engine name to use",
-            "nullable": true
-          },
-          "engineVersion": {
-            "type": "string",
-            "description": "Engine version to use",
-            "nullable": true
-          }
-        }
-      },
-      "cloud.project.dataProcessing.notebook.NotebookSpec": {
-        "type": "object",
-        "description": "Data Processing Notebook Spec Object to create a notebook",
-        "properties": {
-          "env": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.project.dataProcessing.notebook.NotebookEnv"
-              }
-            ],
-            "description": "Environment to deploy in this notebook"
-          },
-          "name": {
-            "type": "string",
-            "description": "Notebook name"
-          },
-          "region": {
-            "type": "string",
-            "description": "Host region of the notebook"
-          }
-        },
-        "required": [
-          "env",
-          "region"
-        ]
-      },
-      "cloud.project.dataProcessing.notebook.NotebookStateEnum": {
-        "type": "string",
-        "description": "State of the notebook",
-        "enum": [
-          "DELETED",
-          "FAILED",
-          "RUNNING",
-          "STARTING",
-          "STOPPED",
-          "STOPPING"
-        ]
-      },
-      "cloud.project.dataProcessing.notebook.NotebookStatus": {
-        "type": "object",
-        "description": "Data Processing Notebook Status Object",
-        "properties": {
-          "duration": {
-            "type": "integer",
-            "description": "Duration of the notebook in seconds",
-            "nullable": true,
-            "readOnly": true
-          },
-          "info": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.project.dataProcessing.Info"
-              }
-            ],
-            "description": "Information about the notebook",
-            "readOnly": true
-          },
-          "lastStartedAt": {
-            "type": "string",
-            "description": "Date when the notebook was last started",
-            "nullable": true,
-            "format": "date-time",
-            "readOnly": true
-          },
-          "lastStoppedAt": {
-            "type": "string",
-            "description": "Date when the notebook was last stopped",
-            "nullable": true,
-            "format": "date-time",
-            "readOnly": true
-          },
-          "state": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.project.dataProcessing.notebook.NotebookStateEnum"
-              }
-            ],
-            "description": "State of the notebook",
-            "nullable": true,
-            "readOnly": true
-          },
-          "url": {
-            "type": "string",
-            "description": "Notebook access url",
-            "nullable": true,
-            "readOnly": true
-          }
-        }
-      },
       "cloud.project.database.Availability": {
         "type": "object",
         "description": "Availability of databases engines on cloud projects",
@@ -16234,6 +16668,11 @@
             "description": "Date of the creation of the cluster",
             "format": "date-time",
             "readOnly": true
+          },
+          "deletionProtection": {
+            "type": "boolean",
+            "description": "Enable deletion protection",
+            "nullable": true
           },
           "description": {
             "type": "string",
@@ -17305,6 +17744,11 @@
             "description": "Date of the creation of the cluster",
             "format": "date-time",
             "readOnly": true
+          },
+          "deletionProtection": {
+            "type": "boolean",
+            "description": "Enable deletion protection",
+            "nullable": true
           },
           "description": {
             "type": "string",
@@ -18489,6 +18933,11 @@
             "format": "date-time",
             "readOnly": true
           },
+          "deletionProtection": {
+            "type": "boolean",
+            "description": "Enable deletion protection",
+            "nullable": true
+          },
           "description": {
             "type": "string",
             "description": "Description of the cluster"
@@ -19288,6 +19737,7 @@
           "currentQueries",
           "currentQueriesCancel",
           "databases",
+          "deletionProtection",
           "enableWrites",
           "fork",
           "indexes",
@@ -19309,6 +19759,7 @@
           "service",
           "topic",
           "topicAcl",
+          "userAccess",
           "userAcls",
           "userCredentialsReset",
           "users"
@@ -19973,7 +20424,7 @@
           "size": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/complexType.UnitAndValue_long"
+                "$ref": "#/components/schemas/complexType.UnitAndValueWritable_long"
               }
             ],
             "description": "Service storage size"
@@ -22736,6 +23187,14 @@
         "type": "object",
         "description": "Region volume",
         "properties": {
+          "attachedTo": {
+            "type": "array",
+            "description": "Volume attached to list",
+            "items": {
+              "$ref": "#/components/schemas/cloud.region.volume.AttachedTo"
+            },
+            "readOnly": true
+          },
           "availabilityZone": {
             "type": "string",
             "description": "Availability zone of the volume",
@@ -22756,6 +23215,15 @@
           "size": {
             "type": "integer",
             "description": "Volume size",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.volume.VolumeStatusEnum"
+              }
+            ],
+            "description": "Volume status",
             "readOnly": true
           }
         }
@@ -22895,6 +23363,29 @@
             "type": "string",
             "description": "The started date of the sub-operation",
             "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.region.VolumeType": {
+        "type": "object",
+        "description": "Volume type",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the volume type",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.region.volume.AttachedTo": {
+        "type": "object",
+        "description": "Region volume attached to",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Instance ID",
+            "format": "uuid",
             "readOnly": true
           }
         }
@@ -24107,14 +24598,6 @@
           "suspended"
         ]
       },
-      "cloud.usage.PaymentTypeEnum": {
-        "type": "string",
-        "description": "PaymentTypeEnum",
-        "enum": [
-          "post",
-          "pre"
-        ]
-      },
       "cloud.usage.Period": {
         "type": "object",
         "description": "Period",
@@ -24170,41 +24653,6 @@
           }
         }
       },
-      "cloud.usage.UsageBill": {
-        "type": "object",
-        "description": "UsageBill",
-        "properties": {
-          "bill_id": {
-            "type": "string",
-            "description": "ID of the bill",
-            "readOnly": true
-          },
-          "credit": {
-            "type": "number",
-            "description": "Amount of credits used in this bill (not necessarily on part)",
-            "readOnly": true
-          },
-          "part": {
-            "type": "number",
-            "description": "Amount of the bill that accounts for services for the usage period, credits not taken into account",
-            "readOnly": true
-          },
-          "payment_type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.usage.PaymentTypeEnum"
-              }
-            ],
-            "description": "Payment type",
-            "readOnly": true
-          },
-          "total": {
-            "type": "number",
-            "description": "Total amount of the bill, credits not taken into account",
-            "readOnly": true
-          }
-        }
-      },
       "cloud.usage.UsageCurrent": {
         "type": "object",
         "description": "UsageCurrent",
@@ -24250,20 +24698,6 @@
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/cloud.billingView.TypedResources"
-            },
-            "readOnly": true
-          }
-        }
-      },
-      "cloud.usage.UsageCurrentBills": {
-        "type": "object",
-        "description": "UsageCurrentBills",
-        "properties": {
-          "bills": {
-            "type": "array",
-            "description": "Bills related to the current usage",
-            "items": {
-              "$ref": "#/components/schemas/cloud.usage.UsageBill"
             },
             "readOnly": true
           }
@@ -24410,20 +24844,6 @@
           }
         }
       },
-      "cloud.usage.UsageHistoryDetailBills": {
-        "type": "object",
-        "description": "UsageHistoryDetailBills",
-        "properties": {
-          "bills": {
-            "type": "array",
-            "description": "Bills related to the usage",
-            "items": {
-              "$ref": "#/components/schemas/cloud.usage.UsageBill"
-            },
-            "readOnly": true
-          }
-        }
-      },
       "cloud.user.Configuration": {
         "type": "object",
         "description": "Client Cloud Configuration",
@@ -24477,7 +24897,6 @@
         "type": "string",
         "description": "RoleEnum",
         "enum": [
-          "admin",
           "administrator",
           "ai_training_operator",
           "ai_training_read",
@@ -24960,14 +25379,34 @@
           }
         }
       },
-      "complexType.UnitAndValue_double": {
+      "common.RegionTypeEnum": {
+        "type": "string",
+        "description": "Typology of the region",
+        "enum": [
+          "LOCAL-ZONE",
+          "REGION-1-AZ",
+          "REGION-3-AZ"
+        ]
+      },
+      "complexType.UnitAndValueWritable_long": {
         "type": "object",
         "description": "A numeric value tagged with its unit",
         "properties": {
           "unit": {
             "type": "string",
-            "description": "Unit of the value",
-            "readOnly": true
+            "description": "Unit of the value"
+          },
+          "value": {
+            "type": "integer"
+          }
+        }
+      },
+      "complexType.UnitAndValue_double": {
+        "type": "object",
+        "description": "A numeric value tagged with its unit",
+        "properties": {
+          "unit": {
+            "type": "string"
           },
           "value": {
             "type": "number"
@@ -24979,9 +25418,7 @@
         "description": "A numeric value tagged with its unit",
         "properties": {
           "unit": {
-            "type": "string",
-            "description": "Unit of the value",
-            "readOnly": true
+            "type": "string"
           },
           "value": {
             "type": "integer"
@@ -25795,6 +26232,25 @@
         "format": "time",
         "example": "15:04:05"
       }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
+            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
     }
   },
   "paths": {
@@ -25998,7 +26454,8 @@
     },
     "/cloud/project": {
       "get": {
-        "summary": "List available services",
+        "operationId": "getProjects",
+        "summary": "List available public cloud projects",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -26052,7 +26509,8 @@
     },
     "/cloud/project/{serviceName}": {
       "get": {
-        "summary": "Get this object properties",
+        "operationId": "getProject",
+        "summary": "Get a public cloud project properties",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -28093,7 +28551,7 @@
     },
     "/cloud/project/{serviceName}/ai/capabilities/region/{region}/notebook/workspacebackupretentionpolicy": {
       "get": {
-        "summary": "Get the applied notebook backup retention policy for the given region",
+        "summary": "Get the applied notebook backup retention policy for the parent public cloud project and region",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -28140,6 +28598,68 @@
         "x-iam-actions": [
           {
             "name": "publicCloudProject:apiovh:ai/capabilities/region/notebook/workspaceBackupRetentionPolicy/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Override notebook backup retention policy for the parent public cloud project and region",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "region",
+            "description": "Region",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/cloud.project.ai.notebook.NotebookWorkspaceBackupRetentionPolicyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cloud.project.ai.notebook.NotebookWorkspaceBackupRetentionPolicy"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:ai/capabilities/region/notebook/workspaceBackupRetentionPolicy/edit",
             "required": true
           }
         ]
@@ -30479,6 +30999,122 @@
         ]
       }
     },
+    "/cloud/project/{serviceName}/ai/notebook/{notebookId}/workspacebackupretentionpolicy": {
+      "get": {
+        "summary": "Get the applied notebook backup retention policy for the given notebook",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notebookId",
+            "description": "Notebook ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cloud.project.ai.notebook.NotebookWorkspaceBackupRetentionPolicy"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:ai/notebook/workspaceBackupRetentionPolicy/get",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "summary": "Override notebook backup retention policy for the given notebook",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notebookId",
+            "description": "Notebook ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/cloud.project.ai.notebook.NotebookWorkspaceBackupRetentionPolicyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cloud.project.ai.notebook.NotebookWorkspaceBackupRetentionPolicy"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:ai/notebook/workspaceBackupRetentionPolicy/edit",
+            "required": true
+          }
+        ]
+      }
+    },
     "/cloud/project/{serviceName}/ai/partners/region": {
       "get": {
         "summary": "List Region",
@@ -31227,7 +31863,8 @@
     },
     "/cloud/project/{serviceName}/alerting": {
       "get": {
-        "summary": "Manage alerts on your consumption",
+        "operationId": "getAlertingConfigurations",
+        "summary": "List all billing alert configurations for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -31237,7 +31874,7 @@
           {
             "in": "path",
             "name": "serviceName",
-            "description": "The project id",
+            "description": "Service name",
             "required": true,
             "schema": {
               "type": "string"
@@ -31252,7 +31889,8 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -31271,10 +31909,11 @@
             "required": true
           }
         ],
-        "x-expanded-response": "CloudAlerting"
+        "x-expanded-response": "CloudAlertingAlerting"
       },
       "post": {
-        "summary": "Add new alert",
+        "operationId": "addAlerting",
+        "summary": "Create a new alert",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -31284,7 +31923,7 @@
           {
             "in": "path",
             "name": "serviceName",
-            "description": "The project id",
+            "description": "Service name",
             "required": true,
             "schema": {
               "type": "string"
@@ -31296,26 +31935,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "delay": {
-                    "description": "Delay between alerts in seconds",
-                    "$ref": "#/components/schemas/cloud.AlertingDelayEnum"
-                  },
-                  "email": {
-                    "type": "string",
-                    "description": "Email to contact"
-                  },
-                  "monthlyThreshold": {
-                    "type": "integer",
-                    "description": "Monthly threshold for this alerting in currency"
-                  }
-                },
-                "required": [
-                  "delay",
-                  "email",
-                  "monthlyThreshold"
-                ]
+                "$ref": "#/components/schemas/cloud.alerting.Alerting"
               }
             }
           }
@@ -31326,7 +31946,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/cloud.Alerting"
+                  "$ref": "#/components/schemas/cloud.alerting.Alerting"
                 }
               }
             }
@@ -31348,7 +31968,8 @@
     },
     "/cloud/project/{serviceName}/alerting/{id}": {
       "delete": {
-        "summary": "Delete alerting",
+        "operationId": "deleteAlerting",
+        "summary": "Delete an alert",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -31358,16 +31979,17 @@
           {
             "in": "path",
             "name": "id",
-            "description": "Alerting unique UUID",
+            "description": "Id",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "in": "path",
             "name": "serviceName",
-            "description": "The project id",
+            "description": "Service name",
             "required": true,
             "schema": {
               "type": "string"
@@ -31393,7 +32015,8 @@
         ]
       },
       "get": {
-        "summary": "Get this object properties",
+        "operationId": "getAlertingConfiguration",
+        "summary": "Get a specific billing alert configuration for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -31403,16 +32026,17 @@
           {
             "in": "path",
             "name": "id",
-            "description": "Alerting unique UUID",
+            "description": "Id",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "in": "path",
             "name": "serviceName",
-            "description": "The project id",
+            "description": "Service name",
             "required": true,
             "schema": {
               "type": "string"
@@ -31425,7 +32049,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/cloud.Alerting"
+                  "$ref": "#/components/schemas/cloud.alerting.Alerting"
                 }
               }
             }
@@ -31442,10 +32066,12 @@
             "name": "publicCloudProject:apiovh:alerting/get",
             "required": true
           }
-        ]
+        ],
+        "x-response-identifier": "id"
       },
       "put": {
-        "summary": "Alter this object properties",
+        "operationId": "updateAlerting",
+        "summary": "Update an existing alert",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -31455,16 +32081,17 @@
           {
             "in": "path",
             "name": "id",
-            "description": "Alerting unique UUID",
+            "description": "Id",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "in": "path",
             "name": "serviceName",
-            "description": "The project id",
+            "description": "Service name",
             "required": true,
             "schema": {
               "type": "string"
@@ -31476,7 +32103,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/cloud.Alerting"
+                "$ref": "#/components/schemas/cloud.alerting.AlertingUpdate"
               }
             }
           }
@@ -31502,7 +32129,8 @@
     },
     "/cloud/project/{serviceName}/alerting/{id}/alert": {
       "get": {
-        "summary": "See alerts",
+        "operationId": "getAlerts",
+        "summary": "List all billing alert configurations for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -31512,16 +32140,17 @@
           {
             "in": "path",
             "name": "id",
-            "description": "Alerting unique UUID",
+            "description": "Id",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "in": "path",
             "name": "serviceName",
-            "description": "The project id",
+            "description": "Service name",
             "required": true,
             "schema": {
               "type": "string"
@@ -31560,7 +32189,8 @@
     },
     "/cloud/project/{serviceName}/alerting/{id}/alert/{alertId}": {
       "get": {
-        "summary": "Get this object properties",
+        "operationId": "getAlert",
+        "summary": "Get a specific billing alert configuration for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -31570,7 +32200,7 @@
           {
             "in": "path",
             "name": "alertId",
-            "description": "Alert id",
+            "description": "Alert ID",
             "required": true,
             "schema": {
               "type": "integer"
@@ -31579,16 +32209,17 @@
           {
             "in": "path",
             "name": "id",
-            "description": "Alerting unique UUID",
+            "description": "Id",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "in": "path",
             "name": "serviceName",
-            "description": "The project id",
+            "description": "Service name",
             "required": true,
             "schema": {
               "type": "string"
@@ -31601,7 +32232,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/cloud.AlertingAlert"
+                  "$ref": "#/components/schemas/cloud.alerting.Alert"
                 }
               }
             }
@@ -31618,7 +32249,8 @@
             "name": "publicCloudProject:apiovh:alerting/alert/get",
             "required": true
           }
-        ]
+        ],
+        "x-response-identifier": "alertId"
       }
     },
     "/cloud/project/{serviceName}/applicationloadbalancer": {
@@ -34110,6 +34742,10 @@
     "/cloud/project/{serviceName}/consumption": {
       "get": {
         "summary": "Get your project consumption",
+        "deprecated": true,
+        "x-deprecation-date": "2025-09-01T00:00:00+01:00",
+        "x-deletion-date": "2025-10-01T00:00:00+01:00",
+        "x-replacement-route": "/cloud/project/{serviceName}/usage/current",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -34160,8 +34796,8 @@
         },
         "x-badges": [
           {
-            "color": "green",
-            "label": "Stable production version"
+            "color": "red",
+            "label": "Deprecated, will be removed"
           }
         ],
         "x-iam-actions": [
@@ -35605,752 +36241,6 @@
         "x-iam-actions": [
           {
             "name": "publicCloudProject:apiovh:credit/get",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/cloud/project/{serviceName}/dataProcessing/authorization": {
-      "get": {
-        "summary": "Get authorization status",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/cloud.project.dataProcessing.AuthorizationStatus"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/authorization/get",
-            "required": true
-          }
-        ]
-      },
-      "post": {
-        "summary": "Authorization of Data Processing service by allowing access to your object storage containers",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation"
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/authorization/create",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/cloud/project/{serviceName}/dataProcessing/capabilities": {
-      "get": {
-        "summary": "Data processing capabilities",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/cloud.project.dataProcessing.Capability"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/capabilities/get",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/cloud/project/{serviceName}/dataProcessing/jobs": {
-      "get": {
-        "summary": "List all jobs",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/jobs/get",
-            "required": true
-          }
-        ],
-        "x-expanded-response": "CloudProjectDataProcessingJob"
-      },
-      "post": {
-        "summary": "Submit a job",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/cloud.project.dataProcessing.Job"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/cloud.project.dataProcessing.Job"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/jobs/create",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/cloud/project/{serviceName}/dataProcessing/jobs/{jobId}": {
-      "delete": {
-        "summary": "Kill job with given id",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "jobId",
-            "description": "Job ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation"
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/jobs/delete",
-            "required": true
-          }
-        ]
-      },
-      "get": {
-        "summary": "Get jobs information",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "jobId",
-            "description": "Job ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/cloud.project.dataProcessing.Job"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/jobs/get",
-            "required": true
-          }
-        ],
-        "x-response-identifier": "id"
-      }
-    },
-    "/cloud/project/{serviceName}/dataProcessing/jobs/{jobId}/logs": {
-      "get": {
-        "summary": "Get the logs of a job",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "from",
-            "description": "From how long ago we want logs. Example: from=now-2h. Or since when we want the logs. Example: 2019-10-28T12:00:00.000 (must be UTC).",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "jobId",
-            "description": "Job ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/cloud.project.dataProcessing.JobLogs"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/jobs/logs/get",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/cloud/project/{serviceName}/dataProcessing/notebooks": {
-      "get": {
-        "summary": "List all notebooks",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/notebooks/get",
-            "required": true
-          }
-        ],
-        "x-expanded-response": "CloudProjectDataProcessingNotebookNotebook"
-      },
-      "post": {
-        "summary": "Create a notebook",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/cloud.project.dataProcessing.notebook.NotebookSpec"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/cloud.project.dataProcessing.notebook.Notebook"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/notebooks/create",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/cloud/project/{serviceName}/dataProcessing/notebooks/capabilities": {
-      "get": {
-        "summary": "Get notebooks capabilities",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/cloud.project.dataProcessing.notebook.Capability"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/notebooks/capabilities/get",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/cloud/project/{serviceName}/dataProcessing/notebooks/{notebookId}": {
-      "delete": {
-        "summary": "Delete notebook with given id",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "notebookId",
-            "description": "Notebook ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation"
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/notebooks/delete",
-            "required": true
-          }
-        ]
-      },
-      "get": {
-        "summary": "Get notebook information",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "notebookId",
-            "description": "Notebook ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/cloud.project.dataProcessing.notebook.Notebook"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/notebooks/get",
-            "required": true
-          }
-        ],
-        "x-response-identifier": "id"
-      }
-    },
-    "/cloud/project/{serviceName}/dataProcessing/notebooks/{notebookId}/start": {
-      "put": {
-        "summary": "Start a Data Processing notebook",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "notebookId",
-            "description": "Notebook ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation"
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/notebooks/start",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/cloud/project/{serviceName}/dataProcessing/notebooks/{notebookId}/stop": {
-      "put": {
-        "summary": "Stop a Data Processing notebook",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "notebookId",
-            "description": "Notebook ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation"
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:dataProcessing/notebooks/stop",
             "required": true
           }
         ]
@@ -239136,7 +239026,8 @@
     },
     "/cloud/project/{serviceName}/flavor": {
       "get": {
-        "summary": "Get flavors",
+        "operationId": "getFlavors",
+        "summary": "List all flavors for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -239194,7 +239085,8 @@
     },
     "/cloud/project/{serviceName}/flavor/{flavorId}": {
       "get": {
-        "summary": "Get flavor",
+        "operationId": "getFlavor",
+        "summary": "Get a specific flavor for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -247999,7 +247891,8 @@
     },
     "/cloud/project/{serviceName}/quota": {
       "get": {
-        "summary": "List quotas",
+        "operationId": "getQuotas",
+        "summary": "List quotas for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -248215,6 +248108,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/coldArchive": {
       "get": {
+        "operationId": "getColdArchiveContainersOnRegion",
         "summary": "Get cold archive containers",
         "security": [
           {
@@ -248272,6 +248166,7 @@
         "x-expanded-response": "CloudColdArchiveContainer"
       },
       "post": {
+        "operationId": "createColdArchiveContainerOnRegion",
         "summary": "Create S3™* compatible cold archive container",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -248337,6 +248232,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/coldArchive/{name}": {
       "delete": {
+        "operationId": "deleteColdArchiveContainerOnRegion",
         "summary": "Delete S3™* compatible cold archive container",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -248392,6 +248288,7 @@
         ]
       },
       "get": {
+        "operationId": "getColdArchiveContainerOnRegion",
         "summary": "Get S3™* compatible cold archive container",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -248874,7 +248771,8 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/flavor": {
       "get": {
-        "summary": "list flavors",
+        "operationId": "getFlavorsOnRegion",
+        "summary": "List flavors on a specific region on a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -248933,7 +248831,8 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/flavor/{flavorId}": {
       "get": {
-        "summary": "Get a flavor",
+        "operationId": "getFlavorOnRegion",
+        "summary": "Get a specific flavor on a specific region on a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -248998,7 +248897,8 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/floatingip": {
       "get": {
-        "summary": "Get floating ips",
+        "operationId": "getFloatingIpsOnRegion",
+        "summary": "List floating ips on a specific region for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -249057,7 +248957,8 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/floatingip/{floatingIpId}": {
       "delete": {
-        "summary": "Delete a floating ip",
+        "operationId": "deleteFloatingIpOnRegion",
+        "summary": "Delete a floating ip on a specific region for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -249112,7 +249013,8 @@
         ]
       },
       "get": {
-        "summary": "Get a floating ip",
+        "operationId": "getFloatingIpOnRegion",
+        "summary": "Get a floating ip on a specific region for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -250047,7 +249949,8 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/instance": {
       "get": {
-        "summary": "List instances",
+        "operationId": "getInstancesOnRegion",
+        "summary": "List all instances of a specific region for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -250081,7 +249984,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/cloud.instance.InstanceSummary"
+                    "$ref": "#/components/schemas/cloud.instance.InstanceList"
                   }
                 }
               }
@@ -250100,10 +250003,10 @@
             "required": true
           }
         ],
-        "x-response-identifier": "id",
-        "x-expanded-response": "CloudInstanceInstanceSummary"
+        "x-response-identifier": "id"
       },
       "post": {
+        "operationId": "createInstanceOnRegion",
         "summary": "Create an instance with its associated components (ssh key, private network, floating ip)",
         "security": [
           {
@@ -250224,7 +250127,8 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/instance/{instanceId}": {
       "get": {
-        "summary": "Get instance",
+        "operationId": "getInstanceOnRegion",
+        "summary": "Get a specific instance on a specific region for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -250258,6 +250162,38 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "withBackups",
+            "description": "Add backup information in response",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "withImage",
+            "description": "Add image information in response",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "withNetworks",
+            "description": "Add network information in response",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "withVolumes",
+            "description": "Add volume information in response",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -250289,7 +250225,8 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/instance/{instanceId}/abortSnapshot": {
       "post": {
-        "summary": "Abort an instance snapshot creation",
+        "operationId": "abortSnapshotOnRegion",
+        "summary": "Abort an instance snapshot creation for a specific instance on a specific region for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -250353,7 +250290,8 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/instance/{instanceId}/associateFloatingIp": {
       "post": {
-        "summary": "Associate an existing floating IP to an instance",
+        "operationId": "associateFloatingIpOnInstanceOnRegion",
+        "summary": "Associate an existing floating IP to an instance on a specific region for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -250427,7 +250365,8 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/instance/{instanceId}/floatingIp": {
       "post": {
-        "summary": "Create a floating IP and attach it to an instance",
+        "operationId": "createFloatingIpOnInstanceOnRegion",
+        "summary": "Create a floating IP and attach it to an instance on a specific region for a public cloud project",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -250494,6 +250433,156 @@
         "x-iam-actions": [
           {
             "name": "publicCloudProject:apiovh:region/instance/floatingIp/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/cloud/project/{serviceName}/region/{regionName}/instance/{instanceId}/reinstall": {
+      "post": {
+        "operationId": "reinstallOnRegion",
+        "summary": "Reinstall an instance with a new image",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instanceId",
+            "description": "Instance ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/cloud.instance.Reinstall"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cloud.Operation"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/instance/reinstall",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/cloud/project/{serviceName}/region/{regionName}/instance/{instanceId}/snapshot": {
+      "post": {
+        "operationId": "snapshotOnRegion",
+        "summary": "Create an instance snapshot for a specific instance on a specific region for a public cloud project",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instanceId",
+            "description": "Instance ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/cloud.instance.CreateSnapshot"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cloud.instance.Snapshot"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/instance/snapshot",
             "required": true
           }
         ]
@@ -256054,6 +256143,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage": {
       "get": {
+        "operationId": "getStorageContainersOnRegion",
         "summary": "Get S3™* compatible storage containers",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256111,6 +256201,7 @@
         "x-response-identifier": "name"
       },
       "post": {
+        "operationId": "createStorageContainerOnRegion",
         "summary": "Create S3™* compatible storage container",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256176,6 +256267,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}": {
       "delete": {
+        "operationId": "deteteStorageContainerOnRegion",
         "summary": "Delete S3™* compatible storage container",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256231,6 +256323,7 @@
         ]
       },
       "get": {
+        "operationId": "getStorageContainerOnRegion",
         "summary": "Get S3™* compatible storage container",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256318,6 +256411,7 @@
         "x-response-identifier": "name"
       },
       "put": {
+        "operationId": "updateStorageContainerOnRegion",
         "summary": "Update S3™* compatible storage container",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256392,6 +256486,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/bulkDeleteObjects": {
       "post": {
+        "operationId": "bulkDeleteContainerObjectsOnRegion",
         "summary": "Bulk delete container objects",
         "security": [
           {
@@ -256458,6 +256553,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object": {
       "get": {
+        "operationId": "getObjectsInformationOnContainerOnRegion",
         "summary": "Get objects of S3™* compatible storage containers",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256567,6 +256663,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}": {
       "delete": {
+        "operationId": "deleteObjectOnContainerOnRegion",
         "summary": "Delete S3™* compatible storage container object",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256631,6 +256728,7 @@
         ]
       },
       "get": {
+        "operationId": "getObjectInformationOnContainerOnRegion",
         "summary": "Get information about an object in a S3™* compatible storage container",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256703,6 +256801,7 @@
         "x-response-identifier": "key"
       },
       "put": {
+        "operationId": "updateObjectOnContainerOnRegion",
         "summary": "Update S3™* compatible storage container object",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256786,6 +256885,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/version": {
       "get": {
+        "operationId": "getObjectVersionsOnContainerOnRegion",
         "summary": "Get versions of an object in a S3™* compatible storage container",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256880,6 +256980,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/version/{versionId}": {
       "delete": {
+        "operationId": "deleteObjectVersionOnContainerOnRegion",
         "summary": "Delete S3™* compatible storage container object version",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -256953,6 +257054,7 @@
         ]
       },
       "get": {
+        "operationId": "getObjectVersionOnContainerOnRegion",
         "summary": "Get information about an object in a S3™* compatible storage container",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -257034,6 +257136,7 @@
         "x-response-identifier": "versionId"
       },
       "put": {
+        "operationId": "updateObjectVersionOnContainerOnRegion",
         "summary": "Update S3™* compatible storage container object version",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -257126,6 +257229,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/policy/{userId}": {
       "post": {
+        "operationId": "createStorageContainerPolicyOnRegion",
         "summary": "Add S3™* compatible storage container policy",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -257202,6 +257306,7 @@
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/presign": {
       "post": {
+        "operationId": "createPresignedUrlOnRegion",
         "summary": "Generate S3™* compatible presigned URLs to download or upload objects",
         "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
         "security": [
@@ -257847,6 +257952,64 @@
             "required": true
           }
         ]
+      }
+    },
+    "/cloud/project/{serviceName}/region/{regionName}/volumeType": {
+      "get": {
+        "summary": "List the volume types available for a region",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/cloud.region.VolumeType"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/volumeType/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "name"
       }
     },
     "/cloud/project/{serviceName}/region/{regionName}/workflow/backup": {
@@ -259592,51 +259755,6 @@
         ]
       }
     },
-    "/cloud/project/{serviceName}/usage/current/bills": {
-      "get": {
-        "summary": "Bills linked to current usage",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/cloud.usage.UsageCurrentBills"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "orange",
-            "label": "Internal use only"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:usage/current/bills/get",
-            "required": true
-          }
-        ]
-      }
-    },
     "/cloud/project/{serviceName}/usage/forecast": {
       "get": {
         "summary": "Get usage forecast",
@@ -259801,60 +259919,6 @@
           }
         ],
         "x-response-identifier": "id"
-      }
-    },
-    "/cloud/project/{serviceName}/usage/history/{usageId}/bills": {
-      "get": {
-        "summary": "Bills linked to usage information details",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "usageId",
-            "description": "Usage ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/cloud.usage.UsageHistoryDetailBills"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "orange",
-            "label": "Internal use only"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:usage/history/bills/get",
-            "required": true
-          }
-        ]
       }
     },
     "/cloud/project/{serviceName}/usage/plans": {

@@ -32,11 +32,13 @@ var (
 			Regions []string `json:"regions,omitempty"`
 			Time    string   `json:"time,omitempty"`
 		} `json:"backups,omitzero"`
-		Description string `json:"description,omitempty"`
-		Disk        struct {
+		DeletionProtection bool   `json:"deletionProtection,omitempty"`
+		Description        string `json:"description,omitempty"`
+		Disk               struct {
 			Size int `json:"size,omitempty"`
 		} `json:"disk,omitzero"`
-		ForkFrom struct {
+		EnablePrometheus bool `json:"enablePrometheus,omitempty"`
+		ForkFrom         struct {
 			BackupID    string `json:"backupId,omitempty"`
 			PointInTime string `json:"pointInTime,omitempty"`
 			ServiceID   string `json:"serviceId,omitempty"`
@@ -122,7 +124,7 @@ func CreateDatabase(cmd *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/cloud/project/%s/database/%s", projectID, url.PathEscape(DatabaseSpec.Engine))
 	database, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/database/"+DatabaseSpec.Engine,
+		"/cloud/project/{serviceName}/database/"+url.PathEscape(DatabaseSpec.Engine),
 		endpoint,
 		DatabaseCreationExample,
 		DatabaseSpec,
@@ -158,4 +160,36 @@ func DeleteDatabase(cmd *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Database deleted successfully")
+}
+
+func EditDatabase(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Fetch database service to retrieve the engine
+	var databaseService map[string]any
+	if err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+		return
+	}
+
+	// Parse IP restrictions
+	for _, restriction := range DatabaseSpec.CLIIPRestrictions {
+		DatabaseSpec.IPRestrictions = append(DatabaseSpec.IPRestrictions, databaseIPRestriction{IP: restriction})
+	}
+
+	// Edit resource
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/database/"+url.PathEscape(databaseService["engine"].(string))+"/{clusterId}",
+		fmt.Sprintf("/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
+		DatabaseSpec,
+		assets.CloudOpenapiSchema,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
 }

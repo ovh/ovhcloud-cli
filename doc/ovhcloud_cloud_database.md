@@ -32,6 +32,7 @@ Manage databases in the given cloud project
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
 * [ovhcloud cloud database create](ovhcloud_cloud_database_create.md)	 - Create a new database
 * [ovhcloud cloud database delete](ovhcloud_cloud_database_delete.md)	 - Delete a specific database
+* [ovhcloud cloud database edit](ovhcloud_cloud_database_edit.md)	 - Edit a specific database
 * [ovhcloud cloud database get](ovhcloud_cloud_database_get.md)	 - Get a specific database
 * [ovhcloud cloud database list](ovhcloud_cloud_database_list.md)	 - List your databases
 
