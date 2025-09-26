@@ -11,22 +11,23 @@ import (
 
 func initCloudDatabaseCommand(cloudCmd *cobra.Command) {
 	databaseCmd := &cobra.Command{
-		Use:   "database",
-		Short: "Manage databases in the given cloud project",
+		Use:   "database-service",
+		Short: "Manage database services in the given cloud project",
 	}
 	databaseCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
+	// Cluster commands
 	databaseListCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List your databases",
+		Short:   "List your database services",
 		Run:     cloud.ListCloudDatabases,
 	}
 	databaseCmd.AddCommand(withFilterFlag(databaseListCmd))
 
 	databaseCmd.AddCommand(&cobra.Command{
-		Use:   "get <database_id>",
-		Short: "Get a specific database",
+		Use:   "get <cluster_id>",
+		Short: "Get a specific database service",
 		Run:   cloud.GetCloudDatabase,
 		Args:  cobra.ExactArgs(1),
 	})
@@ -35,10 +36,49 @@ func initCloudDatabaseCommand(cloudCmd *cobra.Command) {
 	databaseCmd.AddCommand(getDatabaseEditCmd())
 
 	databaseCmd.AddCommand(&cobra.Command{
-		Use:   "delete <database_id>",
-		Short: "Delete a specific database",
+		Use:   "delete <cluster_id>",
+		Short: "Delete a specific database service",
 		Run:   cloud.DeleteDatabase,
 		Args:  cobra.ExactArgs(1),
+	})
+
+	// Database commands
+	databaseInClusterCmd := &cobra.Command{
+		Use:   "database",
+		Short: "Manage databases in a specific database service",
+	}
+	databaseCmd.AddCommand(databaseInClusterCmd)
+
+	databaseInClusterCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list <cluster_id>",
+		Aliases: []string{"ls"},
+		Short:   "List all databases in the given database service",
+		Run:     cloud.ListDatabasesInDatabase,
+		Args:    cobra.ExactArgs(1),
+	}))
+
+	databaseInClusterCmd.AddCommand(&cobra.Command{
+		Use:   "get <cluster_id> <database_id>",
+		Short: "Get a specific database in the given database service",
+		Run:   cloud.GetDatabaseInDatabase,
+		Args:  cobra.ExactArgs(2),
+	})
+
+	databaseInClusterCreateCmd := &cobra.Command{
+		Use:   "create <cluster_id>",
+		Short: "Create a new database in the given database service",
+		Run:   cloud.CreateDatabaseInDatabase,
+		Args:  cobra.ExactArgs(1),
+	}
+	databaseInClusterCreateCmd.Flags().StringVar(&cloud.DatabaseDatabaseSpec.Name, "name", "", "Name of the database to create")
+	databaseInClusterCreateCmd.MarkFlagRequired("name")
+	databaseInClusterCmd.AddCommand(databaseInClusterCreateCmd)
+
+	databaseInClusterCmd.AddCommand(&cobra.Command{
+		Use:   "delete <cluster_id> <database_id>",
+		Short: "Delete a specific database in the given database service",
+		Run:   cloud.DeleteDatabaseInDatabase,
+		Args:  cobra.ExactArgs(2),
 	})
 
 	cloudCmd.AddCommand(databaseCmd)
@@ -47,24 +87,24 @@ func initCloudDatabaseCommand(cloudCmd *cobra.Command) {
 func getDatabaseCreationCmd() *cobra.Command {
 	databaseCreateCmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create a new database",
-		Long: `Use this command to create a database in the given public cloud project.
+		Short: "Create a new database service",
+		Long: `Use this command to create a database service in the given public cloud project.
 There are two ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud database create --engine mysql --version 8 --plan essential  --nodes-list "db1-4:DE"
+	ovhcloud cloud database-service create --engine mysql --version 8 --plan essential  --nodes-list "db1-4:DE"
 
 2. Using your default text editor:
 
-	ovhcloud cloud database create --engine kafka --editor
+	ovhcloud cloud database-service create --engine kafka --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud database create --engine mysql --editor --version 8
+	ovhcloud cloud database-service create --engine mysql --editor --version 8
 `,
 		Run:  cloud.CreateDatabase,
 		Args: cobra.NoArgs,
@@ -109,24 +149,24 @@ There are two ways to define the creation parameters:
 
 func getDatabaseEditCmd() *cobra.Command {
 	databaseEditCmd := &cobra.Command{
-		Use:   "edit <database_id>",
-		Short: "Edit a specific database",
-		Long: `Use this command to edit a database in the given public cloud project.
+		Use:   "edit <cluster_id>",
+		Short: "Edit a specific database service",
+		Long: `Use this command to edit a database service in the given public cloud project.
 There are two ways to define the edition parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud database edit <database_id> --description "My database"
+	ovhcloud cloud database-service edit <cluster_id> --description "My database"
 
 2. Using your default text editor:
 
-	ovhcloud cloud database edit <database_id> --editor
+	ovhcloud cloud database-service edit <cluster_id> --editor
 
   The CLI will open your default text editor to update the parameters. When saving the file, the edition will be applied.
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud database edit <database_id> --editor --description "My database"
+	ovhcloud cloud database-service edit <cluster_id> --editor --description "My database cluster"
 `,
 		Run:  cloud.EditDatabase,
 		Args: cobra.ExactArgs(1),

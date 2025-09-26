@@ -1,9 +1,9 @@
-## ovhcloud cloud database get
+## ovhcloud cloud database-service get
 
-Get a specific database
+Get a specific database services
 
 ```
-ovhcloud cloud database get <database_id> [flags]
+ovhcloud cloud database-service get <cluster_id> [flags]
 ```
 
 ### Options
@@ -33,5 +33,5 @@ ovhcloud cloud database get <database_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database](ovhcloud_cloud_database.md)	 - Manage databases in the given cloud project
+* [ovhcloud cloud database-service](ovhcloud_cloud_database-service.md)	 - Manage database services in the given cloud project
 

@@ -1,9 +1,9 @@
-## ovhcloud cloud database list
+## ovhcloud cloud database-service list
 
-List your databases
+List your database services
 
 ```
-ovhcloud cloud database list [flags]
+ovhcloud cloud database-service list [flags]
 ```
 
 ### Options
@@ -40,5 +40,5 @@ ovhcloud cloud database list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database](ovhcloud_cloud_database.md)	 - Manage databases in the given cloud project
+* [ovhcloud cloud database-service](ovhcloud_cloud_database-service.md)	 - Manage database services in the given cloud project
 

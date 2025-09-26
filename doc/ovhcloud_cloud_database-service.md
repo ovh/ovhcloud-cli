@@ -1,12 +1,12 @@
-## ovhcloud cloud database
+## ovhcloud cloud database-service
 
-Manage databases in the given cloud project
+Manage database services in the given cloud project
 
 ### Options
 
 ```
       --cloud-project string   Cloud project ID
-  -h, --help                   help for database
+  -h, --help                   help for database-service
 ```
 
 ### Options inherited from parent commands
@@ -30,9 +30,10 @@ Manage databases in the given cloud project
 ### SEE ALSO
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
-* [ovhcloud cloud database create](ovhcloud_cloud_database_create.md)	 - Create a new database
-* [ovhcloud cloud database delete](ovhcloud_cloud_database_delete.md)	 - Delete a specific database
-* [ovhcloud cloud database edit](ovhcloud_cloud_database_edit.md)	 - Edit a specific database
-* [ovhcloud cloud database get](ovhcloud_cloud_database_get.md)	 - Get a specific database
-* [ovhcloud cloud database list](ovhcloud_cloud_database_list.md)	 - List your databases
+* [ovhcloud cloud database-service create](ovhcloud_cloud_database-service_create.md)	 - Create a new database service
+* [ovhcloud cloud database-service database](ovhcloud_cloud_database-service_database.md)	 - Manage databases in a specific database service
+* [ovhcloud cloud database-service delete](ovhcloud_cloud_database-service_delete.md)	 - Delete a specific database service
+* [ovhcloud cloud database-service edit](ovhcloud_cloud_database-service_edit.md)	 - Edit a specific database service
+* [ovhcloud cloud database-service get](ovhcloud_cloud_database-service_get.md)	 - Get a specific database services
+* [ovhcloud cloud database-service list](ovhcloud_cloud_database-service_list.md)	 - List your database services
 
