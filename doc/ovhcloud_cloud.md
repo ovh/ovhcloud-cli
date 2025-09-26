@@ -30,7 +30,7 @@ Manage your projects and services in the Public Cloud universe
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
 * [ovhcloud cloud container-registry](ovhcloud_cloud_container-registry.md)	 - Manage container registries in the given cloud project
-* [ovhcloud cloud database](ovhcloud_cloud_database.md)	 - Manage databases in the given cloud project
+* [ovhcloud cloud database-service](ovhcloud_cloud_database-service.md)	 - Manage database services in the given cloud project
 * [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
 * [ovhcloud cloud kube](ovhcloud_cloud_kube.md)	 - Manage Kubernetes clusters in the given cloud project
 * [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
