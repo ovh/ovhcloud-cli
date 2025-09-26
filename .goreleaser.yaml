@@ -65,7 +65,7 @@ release:
   replace_existing_artifacts: true
 
 homebrew_casks:
-  - name: ovhcloud
+  - name: ovhcloud-cli
     binary: ovhcloud
     url:
       template: "https://github.com/ovh/ovhcloud-cli/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
