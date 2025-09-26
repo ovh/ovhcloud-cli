@@ -1,30 +1,30 @@
-## ovhcloud cloud database create
+## ovhcloud cloud database-service create
 
-Create a new database
+Create a new database service
 
 ### Synopsis
 
-Use this command to create a database in the given public cloud project.
+Use this command to create a database service in the given public cloud project.
 There are two ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud database create --engine mysql --version 8 --plan essential  --nodes-list "db1-4:DE"
+	ovhcloud cloud database-service create --engine mysql --version 8 --plan essential  --nodes-list "db1-4:DE"
 
 2. Using your default text editor:
 
-	ovhcloud cloud database create --engine kafka --editor
+	ovhcloud cloud database-service create --engine kafka --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud database create --engine mysql --editor --version 8
+	ovhcloud cloud database-service create --engine mysql --editor --version 8
 
 
 ```
-ovhcloud cloud database create [flags]
+ovhcloud cloud database-service create [flags]
 ```
 
 ### Options
@@ -73,5 +73,5 @@ ovhcloud cloud database create [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database](ovhcloud_cloud_database.md)	 - Manage databases in the given cloud project
+* [ovhcloud cloud database-service](ovhcloud_cloud_database-service.md)	 - Manage database services in the given cloud project
 
