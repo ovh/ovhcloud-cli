@@ -1,15 +1,22 @@
-## ovhcloud cloud database delete
+## ovhcloud cloud database-service database list
 
-Delete a specific database
+List all databases in the given database service
 
 ```
-ovhcloud cloud database delete <database_id> [flags]
+ovhcloud cloud database-service database list <cluster_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -33,5 +40,5 @@ ovhcloud cloud database delete <database_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database](ovhcloud_cloud_database.md)	 - Manage databases in the given cloud project
+* [ovhcloud cloud database-service database](ovhcloud_cloud_database-service_database.md)	 - Manage databases in a specific database service
 

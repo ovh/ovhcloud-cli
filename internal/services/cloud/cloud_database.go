@@ -61,6 +61,10 @@ var (
 		CLIIPRestrictions []string `json:"-"`
 		CLINodesList      []string `json:"-"`
 	}
+
+	DatabaseDatabaseSpec struct {
+		Name string `json:"name"`
+	}
 )
 
 type (
@@ -192,4 +196,111 @@ func EditDatabase(cmd *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
+}
+
+func CreateDatabaseInDatabase(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Fetch database service to retrieve the engine
+	var databaseService map[string]any
+	if err := httpLib.Client.Get(
+		fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf(
+		"/cloud/project/%s/database/%s/%s/database",
+		projectID,
+		url.PathEscape(databaseService["engine"].(string)),
+		url.PathEscape(args[0]),
+	)
+
+	var responseBody map[string]any
+	if err := httpLib.Client.Post(endpoint, &DatabaseDatabaseSpec, &responseBody); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create database: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, responseBody, "✅ Database created successfully (id: %s)", responseBody["id"])
+}
+
+func DeleteDatabaseInDatabase(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Fetch database service to retrieve the engine
+	var databaseService map[string]any
+	if err := httpLib.Client.Get(
+		fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+		return
+	}
+
+	// Delete the database in the given database cluster
+	endpoint := fmt.Sprintf(
+		"/cloud/project/%s/database/%s/%s/database/%s",
+		projectID,
+		url.PathEscape(databaseService["engine"].(string)),
+		url.PathEscape(args[0]),
+		url.PathEscape(args[1]),
+	)
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete database: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Database deleted successfully")
+}
+
+func ListDatabasesInDatabase(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Fetch database service to retrieve the engine
+	var databaseService map[string]any
+	if err := httpLib.Client.Get(
+		fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+		return
+	}
+
+	common.ManageListRequest(
+		fmt.Sprintf("/cloud/project/%s/database/%s/%s/database", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
+		"",
+		[]string{"id", "name", "default"},
+		flags.GenericFilters,
+	)
+}
+
+func GetDatabaseInDatabase(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Fetch database service to retrieve the engine
+	var databaseService map[string]any
+	if err := httpLib.Client.Get(
+		fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+		return
+	}
+
+	common.ManageObjectRequest(
+		fmt.Sprintf("/cloud/project/%s/database/%s/%s/database", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
+		args[1],
+		"",
+	)
 }
