@@ -61,7 +61,8 @@ changelog:
       - "^test:"
 
 release:
-  disable_changelog: true
+  mode: keep-existing
+  replace_existing_artifacts: true
 
 homebrew_casks:
   - name: ovhcloud
