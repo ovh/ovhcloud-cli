@@ -34,6 +34,6 @@ Manage database services in the given cloud project
 * [ovhcloud cloud database-service database](ovhcloud_cloud_database-service_database.md)	 - Manage databases in a specific database service
 * [ovhcloud cloud database-service delete](ovhcloud_cloud_database-service_delete.md)	 - Delete a specific database service
 * [ovhcloud cloud database-service edit](ovhcloud_cloud_database-service_edit.md)	 - Edit a specific database service
-* [ovhcloud cloud database-service get](ovhcloud_cloud_database-service_get.md)	 - Get a specific database services
+* [ovhcloud cloud database-service get](ovhcloud_cloud_database-service_get.md)	 - Get a specific database service
 * [ovhcloud cloud database-service list](ovhcloud_cloud_database-service_list.md)	 - List your database services
 
