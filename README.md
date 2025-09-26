@@ -49,7 +49,7 @@ You can also run the CLI using Docker:
 docker run -it --rm -v ovhcloud-cli-config-files:/config ovhcom/ovhcloud-cli login
 ```
 
-## Install using HomeBrew
+## Install using Homebrew
 
 ```sh
 brew install ovh/tap/ovhcloud-cli
