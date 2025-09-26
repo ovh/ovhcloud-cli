@@ -111,26 +111,32 @@ func getRequestBodyFromSpec(spec []byte, path, method string) (*openapi3.MediaTy
 }
 
 // pruneUnknownFields recursively removes fields not in the schema
-func pruneUnknownFields(data map[string]any, schema *openapi3.Schema) map[string]interface{} {
+func pruneUnknownFields(data map[string]any, schema *openapi3.Schema) map[string]any {
 	cleaned := make(map[string]any)
 	for propName, propSchema := range schema.Properties {
-
 		if propSchema.Value.ReadOnly {
 			continue
 		}
 
 		if val, ok := data[propName]; ok {
+			// Check if the property is a 'allOf', in which case we take
+			// the first schema as the base schema to recurse into
+			propValue := propSchema.Value
+			if len(propSchema.Value.AllOf) > 0 {
+				propValue = propSchema.Value.AllOf[0].Value
+			}
+
 			// If the property is an object, recurse
-			if propSchema.Value.Type.Is("object") {
+			if propValue.Type.Is("object") {
 				// Property is a map of base type, just add it
 				if propSchema.Value.AdditionalProperties.Schema != nil {
 					cleaned[propName] = val
 				} else if nestedMap, ok := val.(map[string]any); ok {
-					cleaned[propName] = pruneUnknownFields(nestedMap, propSchema.Value)
+					cleaned[propName] = pruneUnknownFields(nestedMap, propValue)
 				} else {
 					cleaned[propName] = val
 				}
-			} else if propSchema.Value.Type.Is("array") {
+			} else if propValue.Type.Is("array") {
 				if val == nil {
 					cleaned[propName] = nil
 					continue
@@ -139,7 +145,7 @@ func pruneUnknownFields(data map[string]any, schema *openapi3.Schema) map[string
 				prunedArray := make([]any, 0, len(arrayVal))
 				for _, arrayValue := range arrayVal {
 					if arrayMapValue, ok := arrayValue.(map[string]any); ok {
-						prunedArray = append(prunedArray, pruneUnknownFields(arrayMapValue, propSchema.Value.Items.Value))
+						prunedArray = append(prunedArray, pruneUnknownFields(arrayMapValue, propValue.Items.Value))
 					} else {
 						prunedArray = append(prunedArray, arrayValue)
 					}
