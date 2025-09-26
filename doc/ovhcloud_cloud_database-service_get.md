@@ -1,6 +1,6 @@
 ## ovhcloud cloud database-service get
 
-Get a specific database services
+Get a specific database service
 
 ```
 ovhcloud cloud database-service get <cluster_id> [flags]
