@@ -32,6 +32,7 @@ func initCloudDatabaseCommand(cloudCmd *cobra.Command) {
 	})
 
 	databaseCmd.AddCommand(getDatabaseCreationCmd())
+	databaseCmd.AddCommand(getDatabaseEditCmd())
 
 	databaseCmd.AddCommand(&cobra.Command{
 		Use:   "delete <database_id>",
@@ -104,4 +105,49 @@ There are two ways to define the creation parameters:
 	addInteractiveEditorFlag(databaseCreateCmd)
 
 	return databaseCreateCmd
+}
+
+func getDatabaseEditCmd() *cobra.Command {
+	databaseEditCmd := &cobra.Command{
+		Use:   "edit <database_id>",
+		Short: "Edit a specific database",
+		Long: `Use this command to edit a database in the given public cloud project.
+There are two ways to define the edition parameters:
+
+1. Using only CLI flags:
+
+	ovhcloud cloud database edit <database_id> --description "My database"
+
+2. Using your default text editor:
+
+	ovhcloud cloud database edit <database_id> --editor
+
+  The CLI will open your default text editor to update the parameters. When saving the file, the edition will be applied.
+
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
+
+	ovhcloud cloud database edit <database_id> --editor --description "My database"
+`,
+		Run:  cloud.EditDatabase,
+		Args: cobra.ExactArgs(1),
+	}
+
+	// Database details
+	databaseEditCmd.Flags().StringSliceVar(&cloud.DatabaseSpec.Backups.Regions, "backups-regions", nil, "Regions on which the backups are stored")
+	databaseEditCmd.Flags().StringVar(&cloud.DatabaseSpec.Backups.Time, "backups-time", "", "Time on which backups start every day")
+	databaseEditCmd.Flags().BoolVar(&cloud.DatabaseSpec.DeletionProtection, "deletion-protection", false, "Enable deletion protection")
+	databaseEditCmd.Flags().StringVar(&cloud.DatabaseSpec.Description, "description", "", "Description of the cluster")
+	databaseEditCmd.Flags().BoolVar(&cloud.DatabaseSpec.EnablePrometheus, "enable-prometheus", false, "Enable Prometheus")
+	databaseEditCmd.Flags().StringVar(&cloud.DatabaseSpec.NodesPattern.Flavor, "flavor", "", "The VM flavor used for this cluster")
+	databaseEditCmd.Flags().StringVar(&cloud.DatabaseSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
+	databaseEditCmd.Flags().StringVar(&cloud.DatabaseSpec.Plan, "plan", "", "Plan of the cluster")
+	databaseEditCmd.Flags().StringVar(&cloud.DatabaseSpec.Version, "version", "", "Version of the engine deployed on the cluster")
+
+	// Network configuration
+	databaseEditCmd.Flags().StringSliceVar(&cloud.DatabaseSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
+
+	// Common flags for other mean to define parameters
+	addInteractiveEditorFlag(databaseEditCmd)
+
+	return databaseEditCmd
 }
