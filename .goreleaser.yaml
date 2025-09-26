@@ -61,11 +61,7 @@ changelog:
       - "^test:"
 
 release:
-  footer: >-
-
-    ---
-
-    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
+  disable_changelog: true
 
 homebrew_casks:
   - name: ovhcloud
@@ -76,6 +72,9 @@ homebrew_casks:
     repository:
       owner: ovh
       name: homebrew-tap
+    commit_author:
+      name: "ovh-cds"
+      email: "ovh-cds@users.noreply.github.com"
     commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
     directory: Casks
     caveats: "See https://github.com/ovh/ovhcloud-cli for usage."
