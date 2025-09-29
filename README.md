@@ -67,9 +67,9 @@ Available commands:
 ```
   account                          Manage your account
   alldom                           Retrieve information and manage your AllDom services
-  baremetal                        Retrieve information and manage your baremetal services
+  baremetal                        Retrieve information and manage your Bare Metal services
   cdn-dedicated                    Retrieve information and manage your dedicated CDN services
-  cloud                            Manage your projects and services in the Public Cloud universe
+  cloud                            Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
   completion                       Generate the autocompletion script for the specified shell
   config                           Manage your CLI configuration
   dedicated-ceph                   Retrieve information and manage your Dedicated Ceph services
@@ -84,15 +84,15 @@ Available commands:
   help                             Help about any command
   hosting-private-database         Retrieve information and manage your HostingPrivateDatabase services
   iam                              Manage IAM resources, permissions and policies
-  ip                               Retrieve information and manage your Ip services
-  iploadbalancing                  Retrieve information and manage your IpLoadbalancing services
-  ldp                              Retrieve information and manage your Ldp services
+  ip                               Retrieve information and manage your IP services
+  iploadbalancing                  Retrieve information and manage your IP LoadBalancing services
+  ldp                              Retrieve information and manage your LDP (Logs Data Platform) services
   location                         Retrieve information and manage your Location services
   login                            Login to your OVHcloud account to create API credentials
   nutanix                          Retrieve information and manage your Nutanix services
   okms                             Retrieve information and manage your OKMS services
   overthebox                       Retrieve information and manage your OverTheBox services
-  ovhcloudconnect                  Retrieve information and manage your OvhCloudConnect services
+  ovhcloudconnect                  Retrieve information and manage your OVHcloud Connect services
   pack-xdsl                        Retrieve information and manage your PackXDSL services
   sms                              Retrieve information and manage your SMS services
   ssl                              Retrieve information and manage your SSL services
@@ -103,8 +103,8 @@ Available commands:
   veeamcloudconnect                Retrieve information and manage your VeeamCloudConnect services
   veeamenterprise                  Retrieve information and manage your VeeamEnterprise services
   version                          Get OVHcloud CLI version
-  vmwareclouddirector-backup       Retrieve information and manage your VmwareCloudDirectorBackup services
-  vmwareclouddirector-organization Retrieve information and manage your VmwareCloudDirector Organizations
+  vmwareclouddirector-backup       Retrieve information and manage your VMware Cloud Director Backup services
+  vmwareclouddirector-organization Retrieve information and manage your VMware Cloud Director Organizations
   vps                              Retrieve information and manage your VPS services
   vrack                            Retrieve information and manage your vRack services
   vrackservices                    Retrieve information and manage your vRackServices services

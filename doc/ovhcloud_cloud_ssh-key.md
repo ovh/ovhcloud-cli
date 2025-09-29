@@ -29,7 +29,7 @@ Manage SSH keys in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud ssh-key get](ovhcloud_cloud_ssh-key_get.md)	 - Get information about a SSH key
 * [ovhcloud cloud ssh-key list](ovhcloud_cloud_ssh-key_list.md)	 - List SSH keys
 

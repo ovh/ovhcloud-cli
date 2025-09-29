@@ -1,6 +1,6 @@
 ## ovhcloud iploadbalancing
 
-Retrieve information and manage your IpLoadbalancing services
+Retrieve information and manage your IP LoadBalancing services
 
 ### Options
 

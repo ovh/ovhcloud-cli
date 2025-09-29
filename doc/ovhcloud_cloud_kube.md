@@ -29,7 +29,7 @@ Manage Kubernetes clusters in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud kube create](ovhcloud_cloud_kube_create.md)	 - Create a new Kubernetes cluster
 * [ovhcloud cloud kube customization](ovhcloud_cloud_kube_customization.md)	 - Manage Kubernetes cluster customizations
 * [ovhcloud cloud kube delete](ovhcloud_cloud_kube_delete.md)	 - Delete the given Kubernetes cluster

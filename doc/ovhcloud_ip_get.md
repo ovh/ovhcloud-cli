@@ -32,5 +32,5 @@ ovhcloud ip get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud ip](ovhcloud_ip.md)	 - Retrieve information and manage your Ip services
+* [ovhcloud ip](ovhcloud_ip.md)	 - Retrieve information and manage your IP services
 

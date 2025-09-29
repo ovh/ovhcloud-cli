@@ -1,6 +1,6 @@
 ## ovhcloud ip
 
-Retrieve information and manage your Ip services
+Retrieve information and manage your IP services
 
 ### Options
 

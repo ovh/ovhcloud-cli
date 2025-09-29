@@ -39,5 +39,5 @@ ovhcloud vmwareclouddirector-organization list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud vmwareclouddirector-organization](ovhcloud_vmwareclouddirector-organization.md)	 - Retrieve information and manage your VmwareCloudDirector Organizations
+* [ovhcloud vmwareclouddirector-organization](ovhcloud_vmwareclouddirector-organization.md)	 - Retrieve information and manage your VMware Cloud Director Organizations
 

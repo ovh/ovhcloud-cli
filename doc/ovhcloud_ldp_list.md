@@ -39,5 +39,5 @@ ovhcloud ldp list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud ldp](ovhcloud_ldp.md)	 - Retrieve information and manage your Ldp services
+* [ovhcloud ldp](ovhcloud_ldp.md)	 - Retrieve information and manage your LDP (Logs Data Platform) services
 
