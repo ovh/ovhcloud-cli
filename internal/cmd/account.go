@@ -16,6 +16,12 @@ func init() {
 		Short: "Manage your account",
 	}
 
+	accountCmd.AddCommand(&cobra.Command{
+		Use:   "get",
+		Short: "Retrieve basic personal information",
+		Run:   account.GetMe,
+	})
+
 	// Commands to manage SSH keys
 	sshKeysCmd := &cobra.Command{
 		Use:   "ssh-key",

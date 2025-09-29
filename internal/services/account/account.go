@@ -21,6 +21,9 @@ var (
 	//go:embed parameter-samples/oauth2-client-create.json
 	Oauth2ClientCreateSample string
 
+	//go:embed templates/me.tmpl
+	meTemplate string
+
 	sshKeysColumnsToDisplay = []string{"keyName name", "key"}
 
 	Oauth2ClientSpec struct {
@@ -30,6 +33,10 @@ var (
 		Name         string   `json:"name,omitempty"`
 	}
 )
+
+func GetMe(_ *cobra.Command, _ []string) {
+	common.ManageObjectRequest("/me", "", meTemplate)
+}
 
 func ListSSHKeys(_ *cobra.Command, _ []string) {
 	common.ManageListRequest("/me/sshKey", "", sshKeysColumnsToDisplay, flags.GenericFilters)
