@@ -1,0 +1,15 @@
+👾 Account details
+=======
+
+## Contact Information
+
+**Name**: {{index .Result "firstname"  | toTitle}} {{index .Result "name"  | toUpper}}
+**Phone**: {{index .Result "phone" }}
+**Email**: {{index .Result "email"}}
+
+## Address
+
+**Street**: {{index .Result "address"}}
+**City**: {{index .Result "city"}}
+**ZipCode**: {{index .Result "zip"}}
+**Country**: {{index .Result "country"}}
