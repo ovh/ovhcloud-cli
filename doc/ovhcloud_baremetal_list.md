@@ -39,5 +39,5 @@ ovhcloud baremetal list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your baremetal services
+* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
 

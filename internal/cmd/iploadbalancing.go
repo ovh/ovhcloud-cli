@@ -14,7 +14,7 @@ import (
 func init() {
 	iploadbalancingCmd := &cobra.Command{
 		Use:   "iploadbalancing",
-		Short: "Retrieve information and manage your IpLoadbalancing services",
+		Short: "Retrieve information and manage your IP LoadBalancing services",
 	}
 
 	// Command to list IpLoadbalancing services

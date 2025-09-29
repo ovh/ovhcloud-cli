@@ -1,6 +1,6 @@
 ## ovhcloud cloud
 
-Manage your projects and services in the Public Cloud universe
+Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 
 ### Options
 

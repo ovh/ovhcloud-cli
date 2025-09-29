@@ -80,9 +80,9 @@ Below is the full list of primary sub‑commands available at the time of writin
 
 * [ovhcloud account](ovhcloud_account.md)	 - Manage your account
 * [ovhcloud alldom](ovhcloud_alldom.md)	 - Retrieve information and manage your AllDom services
-* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your baremetal services
+* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
 * [ovhcloud cdn-dedicated](ovhcloud_cdn-dedicated.md)	 - Retrieve information and manage your dedicated CDN services
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud config](ovhcloud_config.md)	 - Manage your CLI configuration
 * [ovhcloud dedicated-ceph](ovhcloud_dedicated-ceph.md)	 - Retrieve information and manage your Dedicated Ceph services
 * [ovhcloud dedicated-cloud](ovhcloud_dedicated-cloud.md)	 - Retrieve information and manage your DedicatedCloud services
@@ -95,15 +95,15 @@ Below is the full list of primary sub‑commands available at the time of writin
 * [ovhcloud email-pro](ovhcloud_email-pro.md)	 - Retrieve information and manage your EmailPro services
 * [ovhcloud hosting-private-database](ovhcloud_hosting-private-database.md)	 - Retrieve information and manage your HostingPrivateDatabase services
 * [ovhcloud iam](ovhcloud_iam.md)	 - Manage IAM resources, permissions and policies
-* [ovhcloud ip](ovhcloud_ip.md)	 - Retrieve information and manage your Ip services
-* [ovhcloud iploadbalancing](ovhcloud_iploadbalancing.md)	 - Retrieve information and manage your IpLoadbalancing services
-* [ovhcloud ldp](ovhcloud_ldp.md)	 - Retrieve information and manage your Ldp services
+* [ovhcloud ip](ovhcloud_ip.md)	 - Retrieve information and manage your IP services
+* [ovhcloud iploadbalancing](ovhcloud_iploadbalancing.md)	 - Retrieve information and manage your IP LoadBalancing services
+* [ovhcloud ldp](ovhcloud_ldp.md)	 - Retrieve information and manage your LDP (Logs Data Platform) services
 * [ovhcloud location](ovhcloud_location.md)	 - Retrieve information and manage your Location services
 * [ovhcloud login](ovhcloud_login.md)	 - Login to your OVHcloud account to create API credentials
 * [ovhcloud nutanix](ovhcloud_nutanix.md)	 - Retrieve information and manage your Nutanix services
 * [ovhcloud okms](ovhcloud_okms.md)	 - Retrieve information and manage your OKMS (Key Management Services)
 * [ovhcloud overthebox](ovhcloud_overthebox.md)	 - Retrieve information and manage your OverTheBox services
-* [ovhcloud ovhcloudconnect](ovhcloud_ovhcloudconnect.md)	 - Retrieve information and manage your OvhCloudConnect services
+* [ovhcloud ovhcloudconnect](ovhcloud_ovhcloudconnect.md)	 - Retrieve information and manage your OVHcloud Connect services
 * [ovhcloud pack-xdsl](ovhcloud_pack-xdsl.md)	 - Retrieve information and manage your PackXDSL services
 * [ovhcloud sms](ovhcloud_sms.md)	 - Retrieve information and manage your SMS services
 * [ovhcloud ssl](ovhcloud_ssl.md)	 - Retrieve information and manage your SSL services
@@ -114,8 +114,8 @@ Below is the full list of primary sub‑commands available at the time of writin
 * [ovhcloud veeamcloudconnect](ovhcloud_veeamcloudconnect.md)	 - Retrieve information and manage your VeeamCloudConnect services
 * [ovhcloud veeamenterprise](ovhcloud_veeamenterprise.md)	 - Retrieve information and manage your VeeamEnterprise services
 * [ovhcloud version](ovhcloud_version.md)	 - Get OVHcloud CLI version
-* [ovhcloud vmwareclouddirector-backup](ovhcloud_vmwareclouddirector-backup.md)	 - Retrieve information and manage your VmwareCloudDirectorBackup services
-* [ovhcloud vmwareclouddirector-organization](ovhcloud_vmwareclouddirector-organization.md)	 - Retrieve information and manage your VmwareCloudDirector Organizations
+* [ovhcloud vmwareclouddirector-backup](ovhcloud_vmwareclouddirector-backup.md)	 - Retrieve information and manage your VMware Cloud Director Backup services
+* [ovhcloud vmwareclouddirector-organization](ovhcloud_vmwareclouddirector-organization.md)	 - Retrieve information and manage your VMware Cloud Director Organizations
 * [ovhcloud vps](ovhcloud_vps.md)	 - Retrieve information and manage your VPS services
 * [ovhcloud vrack](ovhcloud_vrack.md)	 - Retrieve information and manage your vRack services
 * [ovhcloud vrackservices](ovhcloud_vrackservices.md)	 - Retrieve information and manage your vRackServices services

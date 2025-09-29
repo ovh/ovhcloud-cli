@@ -12,7 +12,7 @@ import (
 func init() {
 	cloudCmd := &cobra.Command{
 		Use:   "cloud",
-		Short: "Manage your projects and services in the Public Cloud universe",
+		Short: "Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)",
 	}
 
 	cloudprojectCmd := &cobra.Command{

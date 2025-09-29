@@ -29,7 +29,7 @@ Fetch reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud reference container-registry](ovhcloud_cloud_reference_container-registry.md)	 - Fetch container registry reference data in the given cloud project
 * [ovhcloud cloud reference database](ovhcloud_cloud_reference_database.md)	 - Fetch database reference data in the given cloud project
 * [ovhcloud cloud reference list-flavors](ovhcloud_cloud_reference_list-flavors.md)	 - List available flavors in the given cloud project

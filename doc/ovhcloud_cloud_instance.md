@@ -29,7 +29,7 @@ Manage instances in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud instance activate-monthly-billing](ovhcloud_cloud_instance_activate-monthly-billing.md)	 - Activate monthly billing for the given instance
 * [ovhcloud cloud instance create](ovhcloud_cloud_instance_create.md)	 - Create a new instance
 * [ovhcloud cloud instance delete](ovhcloud_cloud_instance_delete.md)	 - Delete the given instance
