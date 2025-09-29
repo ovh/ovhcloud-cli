@@ -69,7 +69,6 @@ homebrew_casks:
     binary: ovhcloud
     url:
       template: "https://github.com/ovh/ovhcloud-cli/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-      using: ":homebrew_curl"
     repository:
       owner: ovh
       name: homebrew-tap
