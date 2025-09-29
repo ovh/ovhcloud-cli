@@ -28,6 +28,6 @@ Manage IPMI on your baremetal
 
 ### SEE ALSO
 
-* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your baremetal services
+* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal ipmi get-access](ovhcloud_baremetal_ipmi_get-access.md)	 - Request an acces on KVM IPMI interface
 

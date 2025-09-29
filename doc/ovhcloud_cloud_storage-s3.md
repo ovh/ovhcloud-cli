@@ -29,7 +29,7 @@ Manage S3™* compatible storage containers in the given cloud project (* S3 is 
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud storage-s3 add-user](ovhcloud_cloud_storage-s3_add-user.md)	 - Add a user to the given storage container with the specified role (admin, deny, readOnly, readWrite)
 * [ovhcloud cloud storage-s3 bulk-delete](ovhcloud_cloud_storage-s3_bulk-delete.md)	 - Bulk delete objects in the given storage container
 * [ovhcloud cloud storage-s3 create](ovhcloud_cloud_storage-s3_create.md)	 - Create a new S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)

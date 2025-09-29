@@ -29,7 +29,7 @@ Manage SWIFT storage containers in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud storage-swift edit](ovhcloud_cloud_storage-swift_edit.md)	 - Edit the given SWIFT storage container
 * [ovhcloud cloud storage-swift get](ovhcloud_cloud_storage-swift_get.md)	 - Get a specific SWIFT storage container
 * [ovhcloud cloud storage-swift list](ovhcloud_cloud_storage-swift_list.md)	 - List SWIFT storage containers

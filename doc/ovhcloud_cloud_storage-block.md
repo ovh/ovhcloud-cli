@@ -29,7 +29,7 @@ Manage block storage volumes in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud storage-block attach](ovhcloud_cloud_storage-block_attach.md)	 - Attach the given volume to the given instance
 * [ovhcloud cloud storage-block backup](ovhcloud_cloud_storage-block_backup.md)	 - Manage volume backups in the given cloud project
 * [ovhcloud cloud storage-block create](ovhcloud_cloud_storage-block_create.md)	 - Create a new volume

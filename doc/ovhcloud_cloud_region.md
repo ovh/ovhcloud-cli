@@ -29,7 +29,7 @@ Check regions in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud region get](ovhcloud_cloud_region_get.md)	 - Get information about a region
 * [ovhcloud cloud region list](ovhcloud_cloud_region_list.md)	 - List regions
 

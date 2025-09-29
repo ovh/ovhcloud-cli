@@ -29,7 +29,7 @@ Manage database services in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud database-service create](ovhcloud_cloud_database-service_create.md)	 - Create a new database service
 * [ovhcloud cloud database-service database](ovhcloud_cloud_database-service_database.md)	 - Manage databases in a specific database service
 * [ovhcloud cloud database-service delete](ovhcloud_cloud_database-service_delete.md)	 - Delete a specific database service

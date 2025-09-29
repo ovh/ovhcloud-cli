@@ -1,6 +1,6 @@
 ## ovhcloud baremetal
 
-Retrieve information and manage your baremetal services
+Retrieve information and manage your Bare Metal services
 
 ### Options
 

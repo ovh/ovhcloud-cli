@@ -29,7 +29,7 @@ Manage loadbalancers in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud loadbalancer edit](ovhcloud_cloud_loadbalancer_edit.md)	 - Edit the given loadbalancer
 * [ovhcloud cloud loadbalancer get](ovhcloud_cloud_loadbalancer_get.md)	 - Get a specific loadbalancer
 * [ovhcloud cloud loadbalancer list](ovhcloud_cloud_loadbalancer_list.md)	 - List your loadbalancers

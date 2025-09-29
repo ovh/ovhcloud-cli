@@ -14,7 +14,7 @@ import (
 func init() {
 	baremetalCmd := &cobra.Command{
 		Use:   "baremetal",
-		Short: "Retrieve information and manage your baremetal services",
+		Short: "Retrieve information and manage your Bare Metal services",
 	}
 
 	// Command to list Baremetal services
