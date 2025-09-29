@@ -80,8 +80,8 @@ var (
 		Subnet struct {
 			Name                        string                         `json:"name,omitempty"`
 			Cidr                        string                         `json:"cidr,omitempty"`
-			EnableDhcp                  bool                           `json:"enableDhcp,omitempty"`
-			EnableGatewayIp             bool                           `json:"enableGatewayIp,omitempty"`
+			EnableDhcp                  bool                           `json:"enableDhcp"`
+			EnableGatewayIp             bool                           `json:"enableGatewayIp"`
 			GatewayIp                   string                         `json:"gatewayIp,omitempty"`
 			DnsNameServers              []string                       `json:"dnsNameServers,omitempty"`
 			UseDefaultPublicDNSResolver bool                           `json:"useDefaultPublicDNSResolver,omitempty"`
@@ -114,6 +114,16 @@ type (
 	PrivateNetworkHostRoute struct {
 		Destination string `json:"destination,omitempty"`
 		NextHop     string `json:"nextHop,omitempty"`
+	}
+
+	NetworkRegionDetails struct {
+		OpenstackID string `json:"openstackId"`
+		Region      string `json:"region"`
+	}
+
+	PrivateNetwork struct {
+		ID      string                 `json:"id"`
+		Regions []NetworkRegionDetails `json:"regions"`
 	}
 )
 
@@ -283,29 +293,81 @@ You can check the status of the operation with: 'ovhcloud cloud operation get %[
 	}
 
 	// Fetch all private networks
-	var networks []struct {
-		ID      string `json:"id"`
-		Regions []struct {
-			OpenstackID string `json:"openstackId"`
-			Region      string `json:"region"`
-		} `json:"regions"`
-	}
+	var networks []PrivateNetwork
 	if err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/private", projectID), &networks); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch private networks: %s", err)
 		return
 	}
 
 	// Find the created network
+	var (
+		foundNetwork       *PrivateNetwork
+		foundRegionNetwork *NetworkRegionDetails
+	)
+
+eachNetwork:
 	for _, network := range networks {
 		for _, regionDetails := range network.Regions {
 			if regionDetails.OpenstackID == networkID && regionDetails.Region == region {
-				display.OutputInfo(&flags.OutputFormatConfig, regionDetails, "✅ Network %s created successfully (Openstack ID: %s)", network.ID, regionDetails.OpenstackID)
-				return
+				foundNetwork = &network
+				foundRegionNetwork = &regionDetails
+				break eachNetwork
 			}
 		}
 	}
 
-	display.OutputError(&flags.OutputFormatConfig, "created network not found, this is unexpected")
+	if foundNetwork == nil {
+		display.OutputError(&flags.OutputFormatConfig, "created network not found, this is unexpected")
+		return
+	}
+
+	// Fetch subnets of created network
+	endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/network/%s/subnet", projectID, url.PathEscape(region), url.PathEscape(foundRegionNetwork.OpenstackID))
+	var subnets []map[string]any
+	if err := httpLib.Client.Get(endpoint, &subnets); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch subnets of created network: %s", err)
+		return
+	}
+
+	// Fetch gateway of created subnets and prepare output
+	var outputSubnets []map[string]any
+	for _, subnet := range subnets {
+		endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/gateway?subnetId=%s",
+			projectID,
+			url.PathEscape(region),
+			url.PathEscape(subnet["id"].(string)),
+		)
+
+		var gateways []map[string]any
+		if err := httpLib.Client.Get(endpoint, &gateways); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch gateways of created network: %s", err)
+			return
+		}
+
+		var outputGateways []map[string]any
+		for _, gateway := range gateways {
+			outputGateway := map[string]any{
+				"id":   gateway["id"],
+				"name": gateway["name"],
+			}
+			outputGateways = append(outputGateways, outputGateway)
+		}
+
+		outputSubnets = append(outputSubnets, map[string]any{
+			"id":       subnet["id"],
+			"name":     subnet["name"],
+			"gateways": outputGateways,
+		})
+	}
+
+	networkObject := map[string]any{
+		"id":          foundNetwork.ID,
+		"openstackId": foundRegionNetwork.OpenstackID,
+		"region":      foundRegionNetwork.Region,
+		"subnets":     outputSubnets,
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, networkObject, "✅ Network %s created successfully (Openstack ID: %s)", foundNetwork.ID, foundRegionNetwork.OpenstackID)
 }
 
 func DeletePrivateNetwork(_ *cobra.Command, args []string) {
