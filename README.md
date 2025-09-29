@@ -178,13 +178,13 @@ ovhcloud login
 
 ```sh
 # Bash
-eval "$(./ovhcloud completion bash)"
+eval "$(ovhcloud completion bash)"
 # Zsh
-eval "$(./ovhcloud completion zsh)"
+eval "$(ovhcloud completion zsh)"
 # Fish
-./ovhcloud completion fish | source
+ovhcloud completion fish | source
 # PowerShell
-./ovhcloud completion powershell | Out-String | Invoke-Expression
+ovhcloud completion powershell | Out-String | Invoke-Expression
 ```
 
 Add the appropriate line to your shell’s startup file (`~/.bashrc`, `~/.zshrc`, etc.) to enable persistent autocompletion.
