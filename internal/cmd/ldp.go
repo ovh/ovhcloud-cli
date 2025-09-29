@@ -12,7 +12,7 @@ import (
 func init() {
 	ldpCmd := &cobra.Command{
 		Use:   "ldp",
-		Short: "Retrieve information and manage your Ldp services",
+		Short: "Retrieve information and manage your LDP (Logs Data Platform) services",
 	}
 
 	// Command to list Ldp services

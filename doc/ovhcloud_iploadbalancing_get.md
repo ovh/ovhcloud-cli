@@ -32,5 +32,5 @@ ovhcloud iploadbalancing get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud iploadbalancing](ovhcloud_iploadbalancing.md)	 - Retrieve information and manage your IpLoadbalancing services
+* [ovhcloud iploadbalancing](ovhcloud_iploadbalancing.md)	 - Retrieve information and manage your IP LoadBalancing services
 

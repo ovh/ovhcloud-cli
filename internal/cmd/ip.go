@@ -12,7 +12,7 @@ import (
 func init() {
 	ipCmd := &cobra.Command{
 		Use:   "ip",
-		Short: "Retrieve information and manage your Ip services",
+		Short: "Retrieve information and manage your IP services",
 	}
 
 	// Command to list Ip services

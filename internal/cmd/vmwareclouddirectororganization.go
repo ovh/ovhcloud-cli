@@ -12,7 +12,7 @@ import (
 func init() {
 	vmwareclouddirectororganizationCmd := &cobra.Command{
 		Use:   "vmwareclouddirector-organization",
-		Short: "Retrieve information and manage your VmwareCloudDirector Organizations",
+		Short: "Retrieve information and manage your VMware Cloud Director Organizations",
 	}
 
 	// Command to list VmwareCloudDirector Organizations

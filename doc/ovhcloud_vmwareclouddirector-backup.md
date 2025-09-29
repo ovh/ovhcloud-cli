@@ -1,6 +1,6 @@
 ## ovhcloud vmwareclouddirector-backup
 
-Retrieve information and manage your VmwareCloudDirectorBackup services
+Retrieve information and manage your VMware Cloud Director Backup services
 
 ### Options
 

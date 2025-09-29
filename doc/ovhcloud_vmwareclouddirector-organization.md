@@ -1,6 +1,6 @@
 ## ovhcloud vmwareclouddirector-organization
 
-Retrieve information and manage your VmwareCloudDirector Organizations
+Retrieve information and manage your VMware Cloud Director Organizations
 
 ### Options
 

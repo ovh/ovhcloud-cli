@@ -28,7 +28,7 @@ Manage reverses on the given IP
 
 ### SEE ALSO
 
-* [ovhcloud ip](ovhcloud_ip.md)	 - Retrieve information and manage your Ip services
+* [ovhcloud ip](ovhcloud_ip.md)	 - Retrieve information and manage your IP services
 * [ovhcloud ip reverse delete](ovhcloud_ip_reverse_delete.md)	 - Delete reverse on the given IP
 * [ovhcloud ip reverse get](ovhcloud_ip_reverse_get.md)	 - List reverse on the given IP range
 * [ovhcloud ip reverse set](ovhcloud_ip_reverse_set.md)	 - Set reverse on the given IP

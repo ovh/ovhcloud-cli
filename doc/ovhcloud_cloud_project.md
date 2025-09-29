@@ -28,7 +28,7 @@ Retrieve information and manage your CloudProject services
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud project edit](ovhcloud_cloud_project_edit.md)	 - Edit the given cloud project
 * [ovhcloud cloud project get](ovhcloud_cloud_project_get.md)	 - Retrieve information of a specific cloud project
 * [ovhcloud cloud project list](ovhcloud_cloud_project_list.md)	 - List your cloud projects

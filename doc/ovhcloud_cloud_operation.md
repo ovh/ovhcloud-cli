@@ -29,7 +29,7 @@ List and get operations in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud operation get](ovhcloud_cloud_operation_get.md)	 - Get a specific operation
 * [ovhcloud cloud operation list](ovhcloud_cloud_operation_list.md)	 - List operations of the given project
 

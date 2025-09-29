@@ -34,5 +34,5 @@ ovhcloud ovhcloudconnect edit <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud ovhcloudconnect](ovhcloud_ovhcloudconnect.md)	 - Retrieve information and manage your OvhCloudConnect services
+* [ovhcloud ovhcloudconnect](ovhcloud_ovhcloudconnect.md)	 - Retrieve information and manage your OVHcloud Connect services
 

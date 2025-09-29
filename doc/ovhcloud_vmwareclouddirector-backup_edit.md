@@ -34,5 +34,5 @@ ovhcloud vmwareclouddirector-backup edit <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud vmwareclouddirector-backup](ovhcloud_vmwareclouddirector-backup.md)	 - Retrieve information and manage your VmwareCloudDirectorBackup services
+* [ovhcloud vmwareclouddirector-backup](ovhcloud_vmwareclouddirector-backup.md)	 - Retrieve information and manage your VMware Cloud Director Backup services
 

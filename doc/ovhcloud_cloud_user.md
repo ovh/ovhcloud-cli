@@ -29,7 +29,7 @@ Manage users in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe
+* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud user create](ovhcloud_cloud_user_create.md)	 - Create a new user
 * [ovhcloud cloud user delete](ovhcloud_cloud_user_delete.md)	 - Delete the given user
 * [ovhcloud cloud user get](ovhcloud_cloud_user_get.md)	 - Get information about a user
