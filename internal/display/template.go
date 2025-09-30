@@ -9,6 +9,9 @@ import (
 	"math"
 	"strings"
 	"text/template"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var (
@@ -27,6 +30,9 @@ var (
 			return strings.Join(strElements, ", ")
 		},
 		"formatByteSize": formatByteSize,
+		"toTitle":        cases.Title(language.English).String,
+		"toUpper":        strings.ToUpper,
+		"toLower":        strings.ToLower,
 	}
 
 	// unit holds the units for formatting bytes
