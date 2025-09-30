@@ -18,10 +18,16 @@ EOF
 }
 
 parse_args() {
-  BINDIR=${BINDIR:-./bin}
+  for dir in "${BINDIR}" "${XDG_BIN_HOME}" "${HOME}/.local/bin"; do
+    if [ -n "$dir" ]; then
+      BINDIR="${dir%/}"
+      break
+    fi
+  done
+
   while getopts "b:dh?x" arg; do
     case "$arg" in
-      b) BINDIR="$OPTARG" ;;
+      b) BINDIR="${OPTARG%/}" ;;
       d) log_set_priority 10 ;;
       h | \?) usage "$0" ;;
       x) set -x ;;
@@ -36,11 +42,23 @@ execute() {
   log_debug "downloading files into ${tmpdir}"
   http_download "${tmpdir}/${TARBALL}" "${TARBALL_URL}"
   (cd "${tmpdir}" && untar "${TARBALL}")
-  test ! -d "${BINDIR}" && install -d "${BINDIR}"
+
+  # If we cannot create $BINDIR, fallback to './bin'
+  if [ ! -d "${BINDIR}" ] && ! install -d "${BINDIR}" 2>/dev/null; then
+    log_warn "failed to create directory '${BINDIR}', using './bin' instead."
+    BINDIR="./bin"
+    install -d "${BINDIR}"
+  fi
+
   if [ "$OS" = "windows" ]; then
     BINARY="${BINARY}.exe"
   fi
-  install "${tmpdir}/${BINARY}" "${BINDIR}/"
+
+  if ! install "${tmpdir}/${BINARY}" "${BINDIR}/"; then
+    log_err "could not install ${tmpdir}/${BINARY} to ${BINDIR}/"
+    rm -rf "${tmpdir}"
+    exit 1
+  fi
   log_info "installed ${BINDIR}/${BINARY}"
 
   rm -rf "${tmpdir}"
@@ -115,6 +133,10 @@ log_debug() {
 log_info() {
   log_priority 6 || return 0
   echoerr "$(log_prefix)" "$(log_tag 6)" "$@"
+}
+log_warn() {
+  log_priority 4 || return 0
+  echoerr "$(log_prefix)" "$(log_tag 4)" "$@"
 }
 log_err() {
   log_priority 3 || return 0
