@@ -22,6 +22,7 @@ require (
 	github.com/spf13/pflag v1.0.9
 	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561
 	golang.org/x/sync v0.16.0
+	golang.org/x/text v0.27.0
 	gopkg.in/ini.v1 v1.67.0
 )
 
@@ -69,7 +70,6 @@ require (
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/term v0.33.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -1,11 +1,15 @@
-## ovhcloud account
+## ovhcloud account get
 
-Manage your account
+Retrieve basic personal information
+
+```
+ovhcloud account get [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for account
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -28,8 +32,5 @@ Manage your account
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud account api](ovhcloud_account_api.md)	 - Manage your API credentials
-* [ovhcloud account get](ovhcloud_account_get.md)	 - Retrieve basic personal information
-* [ovhcloud account ssh-key](ovhcloud_account_ssh-key.md)	 - Manage your SSH keys
+* [ovhcloud account](ovhcloud_account.md)	 - Manage your account
 
