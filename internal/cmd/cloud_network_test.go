@@ -5,6 +5,7 @@
 package cmd_test
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/jarcoal/httpmock"
@@ -154,4 +155,57 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
     name: TestFromTheCLI
 message: '✅ Network pn-example created successfully (Openstack ID: 80c1de3e-9b09-11f0-993b-0050568ce122)'
 `)
+}
+
+func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/network/private/pn-123456/subnet",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"dhcp": false,
+				"end": "192.168.1.24",
+				"network": "192.168.1.0/24",
+				"noGateway": false,
+				"region": "BHS5",
+				"start": "192.168.1.12"
+			}`),
+		),
+		httpmock.NewStringResponder(200, `
+			{
+				"cidr": "192.168.1.0/24",
+				"gatewayIp": "192.168.1.1",
+				"id": "5e625f90-9ec3-11f0-9f75-0050568ce122",
+				"ipPools": [
+					{
+						"dhcp": false,
+						"end": "192.168.1.24",
+						"network": "192.168.1.0/24",
+						"region": "BHS5",
+						"start": "192.168.1.12"
+					}
+				]
+			}`,
+		),
+	)
+
+	out, err := cmd.Execute("cloud", "network", "private", "subnet", "create", "pn-123456", "--cloud-project", "fakeProjectID",
+		"--network", "192.168.1.0/24", "--start", "192.168.1.12", "--end", "192.168.1.24", "--region", "BHS5", "--json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Subnet 5e625f90-9ec3-11f0-9f75-0050568ce122 created successfully",
+		"details": {
+			"cidr": "192.168.1.0/24",
+			"gatewayIp": "192.168.1.1",
+			"id": "5e625f90-9ec3-11f0-9f75-0050568ce122",
+			"ipPools": [
+				{
+					"dhcp": false,
+					"end": "192.168.1.24",
+					"network": "192.168.1.0/24",
+					"region": "BHS5",
+					"start": "192.168.1.12"
+				}
+			]
+		}
+	}`))
 }
