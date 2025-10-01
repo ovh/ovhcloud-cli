@@ -30,6 +30,7 @@ Manage subnets in a specific private network
 ### SEE ALSO
 
 * [ovhcloud cloud network private](ovhcloud_cloud_network_private.md)	 - Manage private networks in the given cloud project
+* [ovhcloud cloud network private subnet create](ovhcloud_cloud_network_private_subnet_create.md)	 - Create a subnet in the given private network
 * [ovhcloud cloud network private subnet delete](ovhcloud_cloud_network_private_subnet_delete.md)	 - Delete a specific subnet in a private network
 * [ovhcloud cloud network private subnet edit](ovhcloud_cloud_network_private_subnet_edit.md)	 - Edit a specific subnet in a private network
 * [ovhcloud cloud network private subnet get](ovhcloud_cloud_network_private_subnet_get.md)	 - Get a specific subnet in a private network
