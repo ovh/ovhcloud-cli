@@ -41,6 +41,9 @@ var (
 	//go:embed parameter-samples/private-network-create.json
 	PrivateNetworkCreationExample string
 
+	//go:embed parameter-samples/private-network-subnet-create.json
+	PrivateNetworkSubnetCreationExample string
+
 	//go:embed parameter-samples/gateway-create.json
 	GatewayCreationExample string
 
@@ -94,10 +97,19 @@ var (
 		} `json:"subnet,omitzero"`
 	}
 
-	CloudNetworkSubnetSpec struct {
-		Dhcp           bool   `json:"dhcp,omitempty"`
-		DisableGateway bool   `json:"disableGateway,omitempty"`
+	CloudNetworkSubnetEditSpec struct {
+		Dhcp           bool   `json:"dhcp"`
+		DisableGateway bool   `json:"disableGateway"`
 		GatewayIp      string `json:"gatewayIp,omitempty"`
+	}
+
+	CloudNetworkSubnetSpec struct {
+		DHCP      bool   `json:"dhcp"`
+		NoGateway bool   `json:"noGateway"`
+		Network   string `json:"network"`
+		Start     string `json:"start"`
+		End       string `json:"end"`
+		Region    string `json:"region"`
 	}
 
 	GatewayInterfaceSpec struct {
@@ -441,6 +453,29 @@ func GetPrivateNetworkSubnet(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest(endpoint, args[1], "")
 }
 
+func CreatePrivateNetworkSubnet(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	subnet, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/network/private/{networkId}/subnet",
+		fmt.Sprintf("/cloud/project/%s/network/private/%s/subnet", projectID, url.PathEscape(args[0])),
+		PrivateNetworkSubnetCreationExample,
+		CloudNetworkSubnetSpec,
+		assets.CloudOpenapiSchema,
+		[]string{"dhcp", "network", "start", "end", "region", "noGateway"})
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create subnet: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, subnet, "✅ Subnet %s created successfully", subnet["id"])
+}
+
 func EditPrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -454,7 +489,7 @@ func EditPrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/network/private/{networkId}/subnet/{subnetId}",
 		endpoint,
-		CloudNetworkSubnetSpec,
+		CloudNetworkSubnetEditSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

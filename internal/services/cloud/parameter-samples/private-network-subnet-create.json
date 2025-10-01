@@ -1,0 +1,8 @@
+{
+  "dhcp": false,
+  "end": "192.168.1.24",
+  "network": "192.168.1.0/24",
+  "noGateway": false,
+  "region": "GRA9",
+  "start": "192.168.1.0"
+}
