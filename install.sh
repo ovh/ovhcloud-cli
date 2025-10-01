@@ -262,7 +262,6 @@ End of functions from https://github.com/client9/shlib
 ------------------------------------------------------------------------
 EOF
 
-PROJECT_NAME="ovhcloud"
 OWNER=ovh
 REPO="ovhcloud-cli"
 BINARY=ovhcloud
@@ -276,7 +275,6 @@ log_prefix() {
 	echo "$PREFIX"
 }
 
-PLATFORM="${OS}/${ARCH}"
 GITHUB_DOWNLOAD=https://github.com/${OWNER}/${REPO}/releases/download
 
 uname_os_check "$OS"
