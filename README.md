@@ -2,6 +2,7 @@
 
 [![License](https://img.shields.io/github/license/ovh/ovhcloud-cli)](LICENSE)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/ovh/ovhcloud-cli)](https://github.com/ovh/ovhcloud-cli/releases/latest)
+[![Homebrew](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2Fovh%2Fhomebrew-tap%2Frefs%2Fheads%2Fmain%2FCasks%2Fovhcloud-cli.rb&search=version%20%22%28%3F%3Cversion%3E%5B%5E%22%5D%2B%29%22&replace=%24%3Cversion%3E&label=homebrew)](#install-using-homebrew)
 [![Release Date](https://img.shields.io/github/release-date/ovh/ovhcloud-cli)](https://github.com/ovh/ovhcloud-cli/releases)
 [![Download Count](https://img.shields.io/github/downloads/ovh/ovhcloud-cli/total.svg)](https://github.com/ovh/ovhcloud-cli/releases/latest)
 [![Discord](https://img.shields.io/badge/Discord-ovhcloud-blue.svg)](https://discord.gg/ovhcloud)
@@ -20,6 +21,7 @@
 - [Usage](#usage)
     - [Authenticating the CLI](#authenticating-the-cli)
     - [Examples](#examples)
+- [Available products](#available-products)
 - [Generate Shell Completion](#generate-shell-completion)
 - [Contributing](#contributing)
     - [Build](#build)
@@ -176,22 +178,7 @@ ovhcloud login
 | Reinstall a baremetal interactively      | `ovhcloud baremetal reinstall <id> --editor`    |
 | List instances and filter on GRA9 region | `ovhcloud cloud instance list --filter 'region=="GRA9"'`|
 
-# Generate Shell Completion
-
-```sh
-# Bash
-eval "$(ovhcloud completion bash)"
-# Zsh
-eval "$(ovhcloud completion zsh)"
-# Fish
-ovhcloud completion fish | source
-# PowerShell
-ovhcloud completion powershell | Out-String | Invoke-Expression
-```
-
-Add the appropriate line to your shell’s startup file (`~/.bashrc`, `~/.zshrc`, etc.) to enable persistent autocompletion.
-
-## Available products
+# Available products
 
 | Category                         | Command                         | Covered    |
 |----------------------------------|---------------------------------|------------|
@@ -252,6 +239,21 @@ Add the appropriate line to your shell’s startup file (`~/.bashrc`, `~/.zshrc`
 | **Support**                      | support-tickets                 | Partially  |
 | **VMware**                       | vmwareclouddirector-organization| Partially  |
 |                                  | vmwareclouddirector-backup      | Partially  |
+
+# Generate Shell Completion
+
+```sh
+# Bash
+eval "$(ovhcloud completion bash)"
+# Zsh
+eval "$(ovhcloud completion zsh)"
+# Fish
+ovhcloud completion fish | source
+# PowerShell
+ovhcloud completion powershell | Out-String | Invoke-Expression
+```
+
+Add the appropriate line to your shell’s startup file (`~/.bashrc`, `~/.zshrc`, etc.) to enable persistent autocompletion.
 
 # Contributing
 
