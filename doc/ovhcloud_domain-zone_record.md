@@ -1,11 +1,11 @@
-## ovhcloud domain-zone
+## ovhcloud domain-zone record
 
-Retrieve information and manage your domain zones
+Retrieve information and manage your DNS record within a zone
 
 ### Options
 
 ```
-  -h, --help   help for domain-zone
+  -h, --help   help for record
 ```
 
 ### Options inherited from parent commands
@@ -28,9 +28,7 @@ Retrieve information and manage your domain zones
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud domain-zone get](ovhcloud_domain-zone_get.md)	 - Retrieve information of a specific domain zone
-* [ovhcloud domain-zone list](ovhcloud_domain-zone_list.md)	 - List your domain zones
-* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Retrieve information and manage your DNS record within a zone
-* [ovhcloud domain-zone refresh](ovhcloud_domain-zone_refresh.md)	 - Refresh the given zone
+* [ovhcloud domain-zone](ovhcloud_domain-zone.md)	 - Retrieve information and manage your domain zones
+* [ovhcloud domain-zone record get](ovhcloud_domain-zone_record_get.md)	 - Get a single DNS record from your zone
+* [ovhcloud domain-zone record update](ovhcloud_domain-zone_record_update.md)	 - Update a single DNS record from your zone
 
