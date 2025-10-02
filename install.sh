@@ -18,7 +18,13 @@ EOF
 }
 
 parse_args() {
-  BINDIR=${BINDIR:-./bin}
+  [ "$BINDIR" ] || for dir in "$XDG_BIN_HOME" "$HOME/.local/bin"; do
+    if [ -d "$dir" ]; then
+      BINDIR=$dir
+      break
+    fi
+  done
+  BINDIR=${BINDIR:-bin}
   while getopts "b:dh?x" arg; do
     case "$arg" in
       b) BINDIR="$OPTARG" ;;
@@ -36,12 +42,12 @@ execute() {
   log_debug "downloading files into ${tmpdir}"
   http_download "${tmpdir}/${TARBALL}" "${TARBALL_URL}"
   (cd "${tmpdir}" && untar "${TARBALL}")
-  test ! -d "${BINDIR}" && install -d "${BINDIR}"
+  [ -d "$BINDIR" ] || install -d "$BINDIR"
   if [ "$OS" = "windows" ]; then
     BINARY="${BINARY}.exe"
   fi
-  install "${tmpdir}/${BINARY}" "${BINDIR}/"
-  log_info "installed ${BINDIR}/${BINARY}"
+  install "$tmpdir/$BINARY" "$BINDIR"
+  log_info "installed ${BINDIR%/}/$BINARY"
 
   rm -rf "${tmpdir}"
 }
@@ -240,7 +246,6 @@ End of functions from https://github.com/client9/shlib
 ------------------------------------------------------------------------
 EOF
 
-PROJECT_NAME="ovhcloud"
 OWNER=ovh
 REPO="ovhcloud-cli"
 BINARY=ovhcloud
@@ -254,7 +259,6 @@ log_prefix() {
 	echo "$PREFIX"
 }
 
-PLATFORM="${OS}/${ARCH}"
 GITHUB_DOWNLOAD=https://github.com/${OWNER}/${REPO}/releases/download
 
 uname_os_check "$OS"
