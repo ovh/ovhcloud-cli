@@ -5,8 +5,8 @@
 [![Release Date](https://img.shields.io/github/release-date/ovh/ovhcloud-cli)](https://github.com/ovh/ovhcloud-cli/releases)
 [![Download Count](https://img.shields.io/github/downloads/ovh/ovhcloud-cli/total.svg)](https://github.com/ovh/ovhcloud-cli/releases/latest)
 [![Discord](https://img.shields.io/badge/Discord-ovhcloud-blue.svg)](https://discord.gg/ovhcloud)
-[![Alpine Linux Edge package](https://repology.org/badge/version-for-repo/alpine_edge/ovhcloud-cli.svg)](https://repology.org/project/ovhcloud-cli/versions)
-[![FreeBSD port](https://repology.org/badge/version-for-repo/freebsd/ovhcloud-cli.svg)](https://repology.org/project/ovhcloud-cli/versions)
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/ovhcloud-cli.svg)](https://repology.org/project/ovhcloud-cli/versions)
 
 `ovhcloud` is a single, unified command‑line interface for managing the full range of OVHcloud products and account resources directly from your terminal. Whether you need to automate provisioning, perform quick look‑ups, or integrate OVHcloud operations into CI/CD pipelines, `ovhcloud` offers fine‑grained commands and consistent output formats (table, JSON, YAML, or custom gval expressions).
 
@@ -190,6 +190,68 @@ ovhcloud completion powershell | Out-String | Invoke-Expression
 ```
 
 Add the appropriate line to your shell’s startup file (`~/.bashrc`, `~/.zshrc`, etc.) to enable persistent autocompletion.
+
+## Available products
+
+| Category                         | Command                         | Covered    |
+|----------------------------------|---------------------------------|------------|
+| **Backup**                       | veeamcloudconnect               | Partially  |
+|                                  | veeamenterprise                 | Partially  |
+| **Communication**                | sms                             | Partially  |
+|                                  | telephony                       | Partially  |
+| **Compute / Dedicated / VPS**    | baremetal                       | Yes        |
+|                                  | vps                             | Yes        |
+| **Connectivity**                 | pack-xdsl                       | Partially  |
+|                                  | xdsl                            | Partially  |
+| **Domains / DNS**                | alldom                          | Partially  |
+|                                  | domain-name                     | Partially  |
+|                                  | domain-zone                     | Partially  |
+| **Email**                        | email-domain                    | Partially  |
+|                                  | email-mxplan                    | Partially  |
+|                                  | email-pro                       | Partially  |
+| **Hybrid Cloud**                 | nutanix                         | Partially  |
+| **Hosting**                      | webhosting                      | Partially  |
+|                                  | hosting-private-database        | Partially  |
+| **Identity / Account / Access**  | account                         | Partially  |
+|                                  | iam                             | Yes        |
+|                                  | login                           | Partially  |
+| **Infra Meta**                   | location                        | Partially  |
+| **Network**                      | ip                              | Partially  |
+|                                  | overthebox                      | Partially  |
+|                                  | vrack                           | Partially  |
+|                                  | vrackservices                   | Partially  |
+| **Network / Acceleration**       | cdn-dedicated                   | Partially  |
+| **Network / Connectivity**       | ovhcloudconnect                 | Partially  |
+| **Network / Load Balancing**     | iploadbalancing                 | Partially  |
+| **Observability**                | ldp                             | Partially  |
+| **Private Cloud**                | dedicated-cloud                 | Partially  |
+|                                  | dedicated-cluster               | Partially  |
+| **Public Cloud / Access**        | cloud ssh-key                   | Yes        |
+| **Public Cloud / Compute**       | cloud instance                  | Yes        |
+| **Public Cloud / Containers**    | cloud kube                      | Yes        |
+| **Public Cloud / Databases**     | cloud database-service          | Partially  |
+| **Public Cloud / Dev**           | cloud container-registry        | Yes        |
+| **Public Cloud / Governance**    | cloud quota                     | Yes        |
+| **Public Cloud / Meta**          | cloud reference                 | Yes        |
+|                                  | cloud region                    | Yes        |
+| **Public Cloud / Network**       | cloud loadbalancer              | Partially  |
+|                                  | cloud network                   | Yes        |
+| **Public Cloud / Object Storage**| cloud storage-s3                | Yes        |
+|                                  | cloud storage-swift             | Yes        |
+| **Public Cloud / Ops**           | cloud operation                 | Yes        |
+| **Public Cloud / Orchestration** | cloud rancher                   | Yes        |
+| **Public Cloud / Project**       | cloud project                   | Yes        |
+| **Public Cloud / Storage**       | cloud storage-block             | Yes        |
+| **Public Cloud / Identity**      | cloud user                      | Yes        |
+| **Security**                     | ssl                             | Partially  |
+|                                  | okms                            | Partially  |
+| **Security / Edge**              | ssl-gateway                     | Partially  |
+| **Storage**                      | dedicated-ceph                  | Partially  |
+|                                  | dedicated-nasha                 | Partially  |
+|                                  | storage-netapp                  | Partially  |
+| **Support**                      | support-tickets                 | Partially  |
+| **VMware**                       | vmwareclouddirector-organization| Partially  |
+|                                  | vmwareclouddirector-backup      | Partially  |
 
 # Contributing
 
