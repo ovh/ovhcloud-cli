@@ -259,7 +259,7 @@ Add the appropriate line to your shell’s startup file (`~/.bashrc`, `~/.zshrc`
 
 You've developed a new cool feature? Fixed an annoying bug? We'd be happy to hear from you, there are no small contributions!
  
-Have a look in [CONTRIBUTING.md](https://github.com/ovh/ovhcloud-cli/blob/master/CONTRIBUTING.md)
+Have a look in [CONTRIBUTING.md](https://github.com/ovh/ovhcloud-cli/blob/main/CONTRIBUTING.md)
 
 ## Build
 
