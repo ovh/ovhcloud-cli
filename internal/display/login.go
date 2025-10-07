@@ -34,21 +34,21 @@ func RunLoginInput(customEndpoint bool) map[string]string {
 		appKeyInput.Focus()
 	}
 	appKeyInput.CharLimit = 16
-	appKeyInput.Width = 30
+	appKeyInput.Width = 32
 	appKeyInput.Prompt = ""
 	inputs = append(inputs, appKeyInput)
 
 	appSecretInput := textinput.New()
 	appSecretInput.Placeholder = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 	appSecretInput.CharLimit = 32
-	appSecretInput.Width = 30
+	appSecretInput.Width = 32
 	appSecretInput.Prompt = ""
 	inputs = append(inputs, appSecretInput)
 
 	consumerKeyInput := textinput.New()
 	consumerKeyInput.Placeholder = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
 	consumerKeyInput.CharLimit = 32
-	consumerKeyInput.Width = 30
+	consumerKeyInput.Width = 32
 	consumerKeyInput.Prompt = ""
 	inputs = append(inputs, consumerKeyInput)
 
