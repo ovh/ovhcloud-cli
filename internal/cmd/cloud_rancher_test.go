@@ -96,3 +96,15 @@ func (ms *MockSuite) TestCloudRancherCreateCmdCustomFormat(assert, require *td.T
 	require.CmpNoError(err)
 	assert.String(out, `["rancher-12345"]`)
 }
+func (ms *MockSuite) TestCloudRancherResetAdminCredentialsCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/rancher/fakeRancherID/adminCredentials",
+		httpmock.Matcher{},
+		httpmock.NewStringResponder(200, `{"username":"admin","password":"new-secret"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "rancher", "reset-admin-credentials", "--cloud-project", "fakeProjectID", "fakeRancherID")
+	require.CmpNoError(err)
+
+	assert.String(out, `✅ New Rancher service password for user admin: new-secret`)
+}

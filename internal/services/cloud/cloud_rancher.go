@@ -39,10 +39,17 @@ var (
 	}
 )
 
-type rancherIPRestriction struct {
-	CIDRBlock   string `json:"cidrBlock"`
-	Description string `json:"description"`
-}
+type (
+	rancherIPRestriction struct {
+		CIDRBlock   string `json:"cidrBlock"`
+		Description string `json:"description"`
+	}
+
+	rancherUser struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+)
 
 func ListCloudRanchers(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
@@ -117,6 +124,23 @@ func CreateRancher(cmd *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, rancher, "✅ Rancher %s created successfully (id: %s)", RancherSpec.TargetSpec.Name, rancher["id"])
+}
+
+func ResetRancherAdminCredentials(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	var user rancherUser
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/rancher/%s/adminCredentials", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Post(endpoint, nil, &user); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to reset admin credentials for Rancher service: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, user, "✅ New Rancher service password for user %s: %s", user.Username, user.Password)
 }
 
 func DeleteRancher(_ *cobra.Command, args []string) {
