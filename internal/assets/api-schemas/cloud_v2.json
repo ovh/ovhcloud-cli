@@ -59,7 +59,8 @@
           "ERROR",
           "PENDING",
           "RUNNING",
-          "SCHEDULED"
+          "SCHEDULED",
+          "WAITING_USER_INPUT"
         ]
       },
       "common.Event": {
@@ -239,7 +240,8 @@
           "ERROR",
           "PENDING",
           "RUNNING",
-          "SCHEDULED"
+          "SCHEDULED",
+          "WAITING_USER_INPUT"
         ]
       },
       "duration": {
@@ -831,6 +833,10 @@
         "type": "object",
         "description": "Target specification of the managed Rancher service",
         "properties": {
+          "iamAuthEnabled": {
+            "type": "boolean",
+            "description": "Allows Rancher to use identities managed by OVHcloud IAM (Identity and Access Management) to control access"
+          },
           "name": {
             "type": "string",
             "description": "Name of the managed Rancher service"
@@ -862,6 +868,12 @@
             "description": "Bootstrap password of the managed Rancher service, returned only on creation",
             "nullable": true,
             "format": "password",
+            "readOnly": true
+          },
+          "iamAuthEnabled": {
+            "type": "boolean",
+            "description": "Allows Rancher to use identities managed by OVHcloud IAM (Identity and Access Management) to control access",
+            "nullable": true,
             "readOnly": true
           },
           "ipRestrictions": {
@@ -933,6 +945,10 @@
         "type": "object",
         "description": "Target specification of the managed Rancher service",
         "properties": {
+          "iamAuthEnabled": {
+            "type": "boolean",
+            "description": "Allows Rancher to use identities managed by OVHcloud IAM (Identity and Access Management) to control access"
+          },
           "ipRestrictions": {
             "type": "array",
             "description": "List of allowed CIDR blocks for a managed Rancher service's IP restrictions. When empty, any IP is allowed",
@@ -1121,6 +1137,25 @@
         "description": "Time (e.g., 15:04:05)",
         "format": "time",
         "example": "15:04:05"
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://www.ovh.com/auth/oauth2/authorize",
+            "tokenUrl": "https://www.ovh.com/auth/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
       }
     }
   },
@@ -1391,6 +1426,7 @@
                       {
                         "createdAt": "2020-12-31T07:39:19Z",
                         "currentState": {
+                          "iamAuthEnabled": false,
                           "ipRestrictions": [
                             {
                               "cidrBlock": "198.51.100.1/32",
@@ -1416,6 +1452,7 @@
                         "id": "d6b6579e-8d60-4487-bf08-8b4ddf98f7d3",
                         "resourceStatus": "READY",
                         "targetSpec": {
+                          "iamAuthEnabled": false,
                           "ipRestrictions": [
                             {
                               "cidrBlock": "198.51.100.1/32",
@@ -1431,6 +1468,7 @@
                       {
                         "createdAt": "2020-12-31T13:37:46Z",
                         "currentState": {
+                          "iamAuthEnabled": false,
                           "ipRestrictions": [],
                           "name": "rancher2",
                           "plan": "STANDARD",
@@ -1448,6 +1486,7 @@
                         "id": "222ce105-a3f7-44c4-a7d3-dbb5983c045d",
                         "resourceStatus": "UPDATING",
                         "targetSpec": {
+                          "iamAuthEnabled": false,
                           "ipRestrictions": [],
                           "name": "rancher2",
                           "plan": "STANDARD",
@@ -1539,6 +1578,7 @@
                 "Create a STANDARD managed Rancher on the latest version": {
                   "value": {
                     "targetSpec": {
+                      "iamAuthEnabled": false,
                       "name": "my_rancher",
                       "plan": "STANDARD"
                     }
@@ -1548,6 +1588,7 @@
                 "Create an OVHCLOUD_EDITION managed Rancher on a specific version": {
                   "value": {
                     "targetSpec": {
+                      "iamAuthEnabled": false,
                       "name": "my_rancher",
                       "plan": "OVHCLOUD_EDITION",
                       "version": "1.0.0"
@@ -1573,6 +1614,7 @@
                       "createdAt": "2020-12-31T07:39:19Z",
                       "currentState": {
                         "bootstrapPassword": "jL%IctBOu)-$D@wa",
+                        "iamAuthEnabled": false,
                         "ipRestrictions": [],
                         "name": "my_rancher",
                         "plan": "OVHCLOUD_EDITION",
@@ -1589,6 +1631,7 @@
                       "id": "d6b6579e-8d60-4487-bf08-8b4ddf98f7d3",
                       "resourceStatus": "CREATING",
                       "targetSpec": {
+                        "iamAuthEnabled": false,
                         "ipRestrictions": [],
                         "name": "my_rancher",
                         "plan": "OVHCLOUD_EDITION",
@@ -1691,6 +1734,7 @@
                     "value": {
                       "createdAt": "2020-12-31T07:39:19Z",
                       "currentState": {
+                        "iamAuthEnabled": false,
                         "ipRestrictions": [],
                         "name": "my_rancher",
                         "networking": {
@@ -1717,6 +1761,7 @@
                       "id": "d6b6579e-8d60-4487-bf08-8b4ddf98f7d3",
                       "resourceStatus": "DELETING",
                       "targetSpec": {
+                        "iamAuthEnabled": false,
                         "ipRestrictions": [],
                         "name": "my_rancher",
                         "plan": "OVHCLOUD_EDITION",
@@ -1817,6 +1862,7 @@
                     "value": {
                       "createdAt": "2020-12-31T07:39:19Z",
                       "currentState": {
+                        "iamAuthEnabled": false,
                         "ipRestrictions": [
                           {
                             "cidrBlock": "198.51.100.1/32",
@@ -1841,6 +1887,7 @@
                       "id": "d6b6579e-8d60-4487-bf08-8b4ddf98f7d3",
                       "resourceStatus": "READY",
                       "targetSpec": {
+                        "iamAuthEnabled": false,
                         "ipRestrictions": [
                           {
                             "cidrBlock": "198.51.100.1/32",
@@ -1945,6 +1992,7 @@
                 "Update rancher to plan STANDARD": {
                   "value": {
                     "targetSpec": {
+                      "iamAuthEnabled": false,
                       "name": "my_rancher",
                       "plan": "STANDARD",
                       "version": "1.0.0"
@@ -1969,6 +2017,7 @@
                     "value": {
                       "createdAt": "2020-12-31T07:39:19Z",
                       "currentState": {
+                        "iamAuthEnabled": false,
                         "ipRestrictions": [],
                         "name": "my_rancher",
                         "networking": {
@@ -1995,6 +2044,7 @@
                       "id": "d6b6579e-8d60-4487-bf08-8b4ddf98f7d3",
                       "resourceStatus": "UPDATING",
                       "targetSpec": {
+                        "iamAuthEnabled": false,
                         "ipRestrictions": [],
                         "name": "my_rancher",
                         "plan": "OVHCLOUD_EDITION",
