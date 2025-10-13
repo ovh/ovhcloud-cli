@@ -60,7 +60,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 
 	// Bulk-delete command
 	bulkDeleteCmd := &cobra.Command{
-		Use:   "bulk-delete",
+		Use:   "bulk-delete <container_name>",
 		Short: "Bulk delete objects in the given storage container",
 		Run:   cloud.StorageS3BulkDeleteObjects,
 		Args:  cobra.ExactArgs(1),

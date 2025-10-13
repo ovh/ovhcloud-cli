@@ -3,7 +3,7 @@
 Bulk delete objects in the given storage container
 
 ```
-ovhcloud cloud storage-s3 bulk-delete [flags]
+ovhcloud cloud storage-s3 bulk-delete <container_name> [flags]
 ```
 
 ### Options

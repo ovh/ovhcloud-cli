@@ -1,6 +1,6 @@
 ## ovhcloud domain-zone record
 
-Retrieve information and manage your DNS record within a zone
+Retrieve information and manage your DNS records within a zone
 
 ### Options
 
