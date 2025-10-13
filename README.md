@@ -274,7 +274,7 @@ Have a look in [CONTRIBUTING.md](https://github.com/ovh/ovhcloud-cli/blob/main/C
 
 ```sh
 # Build the OVHcloud cli
-make build
+make all
 
 # Cross-compile for other targets in ./dist
 make release-snapshot
