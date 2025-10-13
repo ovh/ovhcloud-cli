@@ -18,6 +18,7 @@
     - [Binary download](#binary-download)
     - [Run with Docker](#run-with-docker)
     - [Install using HomeBrew](#install-using-homebrew)
+    - [Install from the source](#install-from-the-source)
 - [Usage](#usage)
     - [Authenticating the CLI](#authenticating-the-cli)
     - [Examples](#examples)
@@ -56,7 +57,15 @@ docker run -it --rm -v ovhcloud-cli-config-files:/config ovhcom/ovhcloud-cli log
 ## Install using Homebrew
 
 ```sh
-brew install ovh/tap/ovhcloud-cli
+brew install --cask ovh/tap/ovhcloud-cli
+```
+
+## Install from the source
+
+Requires Go to be installed on your system.
+
+```sh
+go install github.com/ovh/ovhcloud-cli/cmd/ovhcloud@latest
 ```
 
 # Usage
