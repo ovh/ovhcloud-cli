@@ -8,6 +8,8 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -72,7 +74,9 @@ var (
 		} `json:"versioning,omitzero"`
 	}
 
-	StorageS3ObjectsToDelete []string
+	StorageS3ObjectsToDelete  []string
+	StorageS3BulkDeleteAll    bool
+	StorageS3BulkDeletePrefix string
 
 	StorageS3ListParams struct {
 		KeyMarker       string
@@ -264,39 +268,92 @@ func StorageS3BulkDeleteObjects(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if len(StorageS3ObjectsToDelete) == 0 {
-		display.OutputWarning(&flags.OutputFormatConfig, "no objects to delete. Use --objects flag to specify objects to delete")
-		return
-	}
-
 	foundURL, _, err := locateStorageS3Container(projectID, args[0])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var objectsToDelete []map[string]any
-	for _, object := range StorageS3ObjectsToDelete {
-		parts := strings.Split(object, ":")
+	// List of objects to delete given, process them
+	if len(StorageS3ObjectsToDelete) > 0 {
+		var objectsToDelete []map[string]any
+		for _, object := range StorageS3ObjectsToDelete {
+			parts := strings.Split(object, ":")
 
-		switch len(parts) {
-		case 1:
-			// Object name only
-			objectsToDelete = append(objectsToDelete, map[string]any{"key": parts[0]})
-		case 2:
-			// Object name with version ID
-			objectsToDelete = append(objectsToDelete, map[string]any{"key": parts[0], "versionId": parts[1]})
-		default:
-			display.OutputError(&flags.OutputFormatConfig, "invalid object format: %s. Use <object_name> or <object_name>:<version_id>", object)
+			switch len(parts) {
+			case 1:
+				// Object name only
+				objectsToDelete = append(objectsToDelete, map[string]any{"key": parts[0]})
+			case 2:
+				// Object name with version ID
+				objectsToDelete = append(objectsToDelete, map[string]any{"key": parts[0], "versionId": parts[1]})
+			default:
+				display.OutputError(&flags.OutputFormatConfig, "invalid object format: %s. Use <object_name> or <object_name>:<version_id>", object)
+				return
+			}
+		}
+
+		if err := httpLib.Client.Post(foundURL+"/bulkDeleteObjects", map[string]any{
+			"objects": objectsToDelete,
+		}, nil); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to delete objects: %s", err)
 			return
 		}
+
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Objects deleted successfully")
+		return
 	}
 
-	if err := httpLib.Client.Post(foundURL+"/bulkDeleteObjects", map[string]any{
-		"objects": objectsToDelete,
-	}, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete objects: %s", err)
+	var request *http.Request
+	switch {
+	case StorageS3BulkDeletePrefix != "":
+		endpoint := foundURL + "/object?prefix=" + url.QueryEscape(StorageS3BulkDeletePrefix)
+		request, err = httpLib.Client.NewRequest(http.MethodGet, endpoint, nil, true)
+	case StorageS3BulkDeleteAll:
+		request, err = httpLib.Client.NewRequest(http.MethodGet, foundURL+"/object", nil, true)
+	default:
+		display.OutputError(&flags.OutputFormatConfig, "Nothing to delete, either --objects, --prefix or --all must be specified")
 		return
+	}
+
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create objects listing request: %s", err)
+		return
+	}
+
+	for {
+		// Fetch objects in the container (batches of 1000)
+		resp, err := httpLib.Client.Do(request)
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch objects: %s", err)
+			return
+		}
+
+		var objects []map[string]any
+		if err := httpLib.Client.UnmarshalResponse(resp, &objects); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to parse objects response: %s", err)
+			return
+		}
+
+		// No objects found, we are done
+		if len(objects) == 0 {
+			break
+		}
+
+		// Prepare objects to delete
+		var objectsToDelete []map[string]any
+		for _, object := range objects {
+			objectsToDelete = append(objectsToDelete, map[string]any{"key": object["key"]})
+		}
+
+		// Delete objects
+		log.Printf("Deleting %d objects...", len(objectsToDelete))
+		if err := httpLib.Client.Post(foundURL+"/bulkDeleteObjects", map[string]any{
+			"objects": objectsToDelete,
+		}, nil); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to delete objects: %s", err)
+			return
+		}
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Objects deleted successfully")

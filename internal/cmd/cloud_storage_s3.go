@@ -66,6 +66,11 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	}
 	bulkDeleteCmd.Flags().StringSliceVar(&cloud.StorageS3ObjectsToDelete, "objects", nil, "List of objects to delete (format is '<object_name>' or '<object_name>:<version_id>'")
+	bulkDeleteCmd.Flags().BoolVar(&cloud.StorageS3BulkDeleteAll, "all", false, "Delete all objects in the container")
+	bulkDeleteCmd.Flags().StringVar(&cloud.StorageS3BulkDeletePrefix, "prefix", "", "Prefix to filter objects to delete")
+	bulkDeleteCmd.MarkFlagsOneRequired("objects", "all", "prefix")
+	bulkDeleteCmd.MarkFlagsMutuallyExclusive("objects", "all", "prefix")
+
 	storageS3Cmd.AddCommand(bulkDeleteCmd)
 
 	// Object commands
