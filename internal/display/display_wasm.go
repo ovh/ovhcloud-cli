@@ -110,7 +110,14 @@ func exitError(message string, params ...any) {
 }
 
 func outputf(message string, params ...any) {
-	ResultString = fmt.Sprintf(message, params...)
+	valueOut := &OutputMessage{
+		Message: fmt.Sprintf(message, params...),
+	}
+
+	if err := prettyPrintJSON(valueOut); err != nil {
+		exitError("error displaying JSON results: %s", err)
+		return
+	}
 }
 
 func OutputInfo(outputFormat *OutputFormat, details any, message string, params ...any) {
