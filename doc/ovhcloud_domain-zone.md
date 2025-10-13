@@ -31,6 +31,6 @@ Retrieve information and manage your domain zones
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
 * [ovhcloud domain-zone get](ovhcloud_domain-zone_get.md)	 - Retrieve information of a specific domain zone
 * [ovhcloud domain-zone list](ovhcloud_domain-zone_list.md)	 - List your domain zones
-* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Retrieve information and manage your DNS record within a zone
+* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Retrieve information and manage your DNS records within a zone
 * [ovhcloud domain-zone refresh](ovhcloud_domain-zone_refresh.md)	 - Refresh the given zone
 

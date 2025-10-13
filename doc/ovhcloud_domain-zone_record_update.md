@@ -9,7 +9,11 @@ ovhcloud domain-zone record update <zone_name> <record_id> [flags]
 ### Options
 
 ```
+      --editor             Use a text editor to define parameters
+      --from-file string   File containing parameters
   -h, --help               help for update
+      --init-file string   Create a file with example parameters
+      --replace            Replace parameters file if it already exists
       --subdomain string   Subdomain to update
       --target string      New target to apply
       --ttl int            New TTL to apply
@@ -35,5 +39,5 @@ ovhcloud domain-zone record update <zone_name> <record_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Retrieve information and manage your DNS record within a zone
+* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Retrieve information and manage your DNS records within a zone
 

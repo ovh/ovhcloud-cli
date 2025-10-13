@@ -265,7 +265,7 @@ func StorageS3BulkDeleteObjects(_ *cobra.Command, args []string) {
 	}
 
 	if len(StorageS3ObjectsToDelete) == 0 {
-		display.OutputWarning(&flags.OutputFormatConfig, "no objects to delete. Use --object flag to specify objects to delete")
+		display.OutputWarning(&flags.OutputFormatConfig, "no objects to delete. Use --objects flag to specify objects to delete")
 		return
 	}
 
