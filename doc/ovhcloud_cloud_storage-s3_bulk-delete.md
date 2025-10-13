@@ -9,8 +9,10 @@ ovhcloud cloud storage-s3 bulk-delete <container_name> [flags]
 ### Options
 
 ```
+      --all               Delete all objects in the container
   -h, --help              help for bulk-delete
       --objects strings   List of objects to delete (format is '<object_name>' or '<object_name>:<version_id>'
+      --prefix string     Prefix to filter objects to delete
 ```
 
 ### Options inherited from parent commands
