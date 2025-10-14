@@ -72,6 +72,32 @@ func (ms *MockSuite) TestCloudReferenceRancherPlansListCmd(assert, require *td.T
 `)
 }
 
+func (ms *MockSuite) TestCloudReferenceRancherPlansListCmdWithNil(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/rancher/plan",
+		httpmock.NewStringResponder(200, `[
+			{
+				"name": "OVHCLOUD_EDITION",
+				"status": "AVAILABLE"
+			},
+			{
+				"name": "STANDARD",
+				"status": "AVAILABLE"
+			}
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "reference", "rancher", "list-plans", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌──────────────────┬───────────┬─────────┐
+│       name       │  status   │ message │
+├──────────────────┼───────────┼─────────┤
+│ OVHCLOUD_EDITION │ AVAILABLE │         │
+│ STANDARD         │ AVAILABLE │         │
+└──────────────────┴───────────┴─────────┘
+💡 Use option --json or --yaml to get the raw output with all information`[1:])
+}
+
 func (ms *MockSuite) TestCloudReferenceDatabasesPlansListCmd(assert, require *td.T) {
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/database/capabilities",
 		httpmock.NewStringResponder(200, `{
