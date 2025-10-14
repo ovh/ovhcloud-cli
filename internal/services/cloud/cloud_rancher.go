@@ -8,7 +8,6 @@ import (
 	_ "embed"
 	"fmt"
 	"net/url"
-	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
@@ -29,21 +28,21 @@ var (
 
 	RancherSpec struct {
 		TargetSpec struct {
-			IAMAuthEnabled    bool                   `json:"iamAuthEnabled,omitempty"`
-			Name              string                 `json:"name,omitempty"`
-			Plan              string                 `json:"plan,omitempty"`
-			Version           string                 `json:"version,omitempty"`
-			IPRestrictions    []rancherIPRestriction `json:"ipRestrictions,omitempty"`
-			CLIIPRestrictions []string               `json:"-"`
+			IAMAuthEnabled *bool  `json:"iamAuthEnabled,omitempty"`
+			Name           string `json:"name,omitempty"`
+			Plan           string `json:"plan,omitempty"`
+			Version        string `json:"version,omitempty"`
+			// IPRestrictions    []rancherIPRestriction `json:"ipRestrictions,omitempty"`
+			// CLIIPRestrictions []string               `json:"-"`
 		} `json:"targetSpec"`
 	}
 )
 
 type (
-	rancherIPRestriction struct {
-		CIDRBlock   string `json:"cidrBlock"`
-		Description string `json:"description"`
-	}
+	//type rancherIPRestriction struct {
+	//	CIDRBlock   string `json:"cidrBlock"`
+	//	Description string `json:"description"`
+	//}
 
 	rancherUser struct {
 		Username string `json:"username"`
@@ -72,17 +71,17 @@ func GetRancher(_ *cobra.Command, args []string) {
 }
 
 func EditRancher(cmd *cobra.Command, args []string) {
-	for _, ipRestriction := range RancherSpec.TargetSpec.CLIIPRestrictions {
-		parts := strings.Split(ipRestriction, ",")
-		if len(parts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "Invalid IP restriction format: %s. Expected format: '<cidrBlock>,<description>'", ipRestriction)
-			return
-		}
-		RancherSpec.TargetSpec.IPRestrictions = append(RancherSpec.TargetSpec.IPRestrictions, rancherIPRestriction{
-			CIDRBlock:   parts[0],
-			Description: parts[1],
-		})
-	}
+	//for _, ipRestriction := range RancherSpec.TargetSpec.CLIIPRestrictions {
+	//	parts := strings.Split(ipRestriction, ",")
+	//	if len(parts) != 2 {
+	//		display.OutputError(&flags.OutputFormatConfig, "Invalid IP restriction format: %s. Expected format: '<cidrBlock>,<description>'", ipRestriction)
+	//		return
+	//	}
+	//	RancherSpec.TargetSpec.IPRestrictions = append(RancherSpec.TargetSpec.IPRestrictions, rancherIPRestriction{
+	//		CIDRBlock:   parts[0],
+	//		Description: parts[1],
+	//	})
+	//}
 
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {

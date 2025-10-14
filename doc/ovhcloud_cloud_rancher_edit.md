@@ -9,12 +9,11 @@ ovhcloud cloud rancher edit <rancher_id> [flags]
 ### Options
 
 ```
-      --editor                        Use a text editor to define parameters
-  -h, --help                          help for edit
-      --ip-restrictions stringArray   List of IP restrictions (expected format: '<cidrBlock>,<description>')
-      --name string                   Name of the managed Rancher service
-      --plan string                   Plan of the managed Rancher service (OVHCLOUD_EDITION, STANDARD)
-      --version string                Version of the managed Rancher service
+  -h, --help               help for edit
+      --iam-auth-enabled   Allow Rancher to use identities managed by OVHcloud IAM (Identity and Access Management) to control access
+      --name string        Name of the managed Rancher service
+      --plan string        Plan of the managed Rancher service (OVHCLOUD_EDITION, STANDARD)
+      --version string     Version of the managed Rancher service
 ```
 
 ### Options inherited from parent commands

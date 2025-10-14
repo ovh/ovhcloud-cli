@@ -32,18 +32,7 @@ func initCloudRancherCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	editRancherCmd := &cobra.Command{
-		Use:   "edit <rancher_id>",
-		Short: "Edit the given Rancher service",
-		Run:   cloud.EditRancher,
-		Args:  cobra.ExactArgs(1),
-	}
-	editRancherCmd.Flags().StringVar(&cloud.RancherSpec.TargetSpec.Name, "name", "", "Name of the managed Rancher service")
-	editRancherCmd.Flags().StringVar(&cloud.RancherSpec.TargetSpec.Plan, "plan", "", "Plan of the managed Rancher service (OVHCLOUD_EDITION, STANDARD)")
-	editRancherCmd.Flags().StringVar(&cloud.RancherSpec.TargetSpec.Version, "version", "", "Version of the managed Rancher service")
-	editRancherCmd.Flags().StringArrayVar(&cloud.RancherSpec.TargetSpec.CLIIPRestrictions, "ip-restrictions", nil, "List of IP restrictions (expected format: '<cidrBlock>,<description>')")
-	addInteractiveEditorFlag(editRancherCmd)
-	rancherCmd.AddCommand(editRancherCmd)
+	rancherCmd.AddCommand(getRancherEditCmd())
 
 	rancherCmd.AddCommand(getRancherCreateCmd())
 
@@ -62,6 +51,38 @@ func initCloudRancherCommand(cloudCmd *cobra.Command) {
 	})
 
 	cloudCmd.AddCommand(rancherCmd)
+}
+
+func getRancherEditCmd() *cobra.Command {
+	editRancherCmd := &cobra.Command{
+		Use:   "edit <rancher_id>",
+		Short: "Edit the given Rancher service",
+		Run:   cloud.EditRancher,
+		Args:  cobra.ExactArgs(1),
+	}
+
+	editRancherCmd.Flags().StringVar(&cloud.RancherSpec.TargetSpec.Name, "name", "", "Name of the managed Rancher service")
+	editRancherCmd.Flags().StringVar(&cloud.RancherSpec.TargetSpec.Plan, "plan", "", "Plan of the managed Rancher service (OVHCLOUD_EDITION, STANDARD)")
+	editRancherCmd.Flags().StringVar(&cloud.RancherSpec.TargetSpec.Version, "version", "", "Version of the managed Rancher service")
+
+	var iamAuthEnabled bool
+	editRancherCmd.Flags().BoolVar(&iamAuthEnabled, "iam-auth-enabled", false, "Allow Rancher to use identities managed by OVHcloud IAM (Identity and Access Management) to control access")
+	cloud.RancherSpec.TargetSpec.IAMAuthEnabled = &iamAuthEnabled
+
+	// Handle optional iam-auth-enabled boolean
+	editRancherCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		if cmd.Flags().Changed("iam-auth-enabled") {
+			cloud.RancherSpec.TargetSpec.IAMAuthEnabled = &iamAuthEnabled
+		} else {
+			cloud.RancherSpec.TargetSpec.IAMAuthEnabled = nil
+		}
+
+		return nil
+	}
+
+	addInteractiveEditorFlag(editRancherCmd)
+
+	return editRancherCmd
 }
 
 func getRancherCreateCmd() *cobra.Command {
@@ -112,7 +133,7 @@ There are three ways to define the creation parameters:
 	rancherCreateCmd.Flags().StringVar(&cloud.RancherSpec.TargetSpec.Name, "name", "", "Name of the managed Rancher service")
 	rancherCreateCmd.Flags().StringVar(&cloud.RancherSpec.TargetSpec.Plan, "plan", "", "Plan of the managed Rancher service (available plans can be listed using 'cloud reference rancher list-plans' command)")
 	rancherCreateCmd.Flags().StringVar(&cloud.RancherSpec.TargetSpec.Version, "version", "", "Version of the managed Rancher service (available versions can be listed using 'cloud reference rancher list-versions' command)")
-	rancherCreateCmd.Flags().BoolVar(&cloud.RancherSpec.TargetSpec.IAMAuthEnabled, "iam-auth-enabled", false, "Allow Rancher to use identities managed by OVHcloud IAM (Identity and Access Management) to control access")
+	rancherCreateCmd.Flags().BoolVar(cloud.RancherSpec.TargetSpec.IAMAuthEnabled, "iam-auth-enabled", false, "Allow Rancher to use identities managed by OVHcloud IAM (Identity and Access Management) to control access")
 
 	// Common flags for other means to define parameters
 	addInitParameterFileFlag(rancherCreateCmd, assets.CloudV2OpenapiSchema, "/cloud/project/{serviceName}/rancher", "post", cloud.CloudRancherCreationExample, nil)

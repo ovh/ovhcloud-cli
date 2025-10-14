@@ -20,6 +20,7 @@ func (ms *MockSuite) TestCloudRancherCreateCmd(assert, require *td.T) {
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"targetSpec": {
+					"iamAuthEnabled": false,
 					"name": "test-rancher",
 					"plan": "OVHCLOUD_EDITION",
 					"version": "2.11.3"
@@ -40,6 +41,7 @@ func (ms *MockSuite) TestCloudRancherCreateCmdJSONFormat(assert, require *td.T) 
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"targetSpec": {
+					"iamAuthEnabled": false,
 					"name": "test-rancher",
 					"plan": "OVHCLOUD_EDITION",
 					"version": "2.11.3"
@@ -60,6 +62,7 @@ func (ms *MockSuite) TestCloudRancherCreateCmdYAMLFormat(assert, require *td.T) 
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"targetSpec": {
+					"iamAuthEnabled": false,
 					"name": "test-rancher",
 					"plan": "OVHCLOUD_EDITION",
 					"version": "2.11.3"
@@ -83,6 +86,7 @@ func (ms *MockSuite) TestCloudRancherCreateCmdCustomFormat(assert, require *td.T
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"targetSpec": {
+					"iamAuthEnabled": false,
 					"name": "test-rancher",
 					"plan": "OVHCLOUD_EDITION",
 					"version": "2.11.3"
@@ -107,4 +111,46 @@ func (ms *MockSuite) TestCloudRancherResetAdminCredentialsCmd(assert, require *t
 	require.CmpNoError(err)
 
 	assert.String(out, `✅ New Rancher service password for user admin: new-secret`)
+}
+
+func (ms *MockSuite) TestCloudRancherCreateCmdWithIamAuthEnabledTrue(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/rancher",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"iamAuthEnabled": true,
+					"name": "test-rancher",
+					"plan": "OVHCLOUD_EDITION",
+					"version": "2.11.3"
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, `{"id": "rancher-12345"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "rancher", "create", "--cloud-project", "fakeProjectID", "--name", "test-rancher", "--plan", "OVHCLOUD_EDITION", "--version", "2.11.3", "--iam-auth-enabled=true")
+	require.CmpNoError(err)
+	assert.String(out, `✅ Rancher test-rancher created successfully (id: rancher-12345)`)
+}
+
+func (ms *MockSuite) TestCloudRancherCreateCmdWithIamAuthEnabledFalse(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/rancher",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"iamAuthEnabled": false,
+					"name": "test-rancher",
+					"plan": "OVHCLOUD_EDITION",
+					"version": "2.11.3"
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, `{"id": "rancher-12345"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "rancher", "create", "--cloud-project", "fakeProjectID", "--name", "test-rancher", "--plan", "OVHCLOUD_EDITION", "--version", "2.11.3", "--iam-auth-enabled=false")
+	require.CmpNoError(err)
+	assert.String(out, `✅ Rancher test-rancher created successfully (id: rancher-12345)`)
 }
