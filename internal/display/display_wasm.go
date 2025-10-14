@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/PaesslerAG/gval"
 	"github.com/ovh/ovhcloud-cli/internal/filters"
@@ -60,6 +61,49 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 	if outputFormat.CustomFormat != "" {
 		renderCustomFormat(values, outputFormat.CustomFormat)
 		return
+	}
+
+	// If not JSON or YAML output, extract only the columns to display
+	// as the values will be displayed in a table
+	if !outputFormat.JsonOutput && !outputFormat.YamlOutput {
+		var (
+			selectors       gval.Evaluables
+			extractedValues = make([]map[string]any, 0, len(values))
+			columnsTitles   = make([]string, 0, len(columnsToDisplay))
+		)
+
+		for _, col := range columnsToDisplay {
+			// If column to display contains an alias, use it as column title
+			colName, alias, ok := strings.Cut(col, " ")
+			if ok {
+				col = colName
+				columnsTitles = append(columnsTitles, alias)
+			} else {
+				columnsTitles = append(columnsTitles, col)
+			}
+
+			// Create selector to extract value at given key
+			evaluator, err := gval.Base().NewEvaluable(col)
+			if err != nil {
+				exitError("invalid column to display %q: %s", col, err)
+			}
+			selectors = append(selectors, evaluator)
+		}
+
+		// Extract values to display
+		for _, value := range values {
+			row := make(map[string]any)
+			for i, selector := range selectors {
+				val, err := selector(context.Background(), value)
+				if err != nil {
+					exitError("failed to select row field: %s", err)
+				}
+				row[columnsTitles[i]] = val
+			}
+			extractedValues = append(extractedValues, row)
+		}
+
+		values = extractedValues
 	}
 
 	if err := prettyPrintJSON(values); err != nil {
