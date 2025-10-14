@@ -14,8 +14,6 @@ import (
 	"github.com/ovh/go-ovh/ovh"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
 	httplib "github.com/ovh/ovhcloud-cli/internal/http"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 type MockSuite struct{}
@@ -47,31 +45,9 @@ func (ms *MockSuite) PreTest(t *td.T, testName string) error {
 func (ms *MockSuite) PostTest(_ *td.T, _ string) error {
 	httpmock.Reset()
 	cmd.PostExecute()
-	resetSubCommandFlagValues(cmd.GetRootCommand())
 	return nil
 }
 
 func TestMockSuite(t *testing.T) {
 	tdsuite.Run(t, &MockSuite{})
-}
-
-// resetSubCommandFlagValues resets all flags of all subcommands of the given root command to their default values.
-func resetSubCommandFlagValues(root *cobra.Command) {
-	for _, c := range root.Commands() {
-		c.Flags().VisitAll(func(f *pflag.Flag) {
-			if f.Changed {
-				if f.Value.Type() == "stringArray" {
-					// Special handling for stringArray for which we cannot
-					// use DefValue since it is equal to "[]".
-					if r, ok := f.Value.(pflag.SliceValue); ok {
-						r.Replace(nil)
-					}
-				} else {
-					f.Value.Set(f.DefValue)
-				}
-				f.Changed = false
-			}
-		})
-		resetSubCommandFlagValues(c)
-	}
 }
