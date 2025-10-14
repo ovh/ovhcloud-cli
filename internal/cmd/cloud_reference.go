@@ -111,5 +111,19 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 		Args:  cobra.NoArgs,
 	}))
 
+	// Loadbalancer reference commands
+	loadbalancerReferenceCmd := &cobra.Command{
+		Use:   "loadbalancer",
+		Short: "Fetch loadbalancer reference data in the given cloud project",
+	}
+	referenceCmd.AddCommand(loadbalancerReferenceCmd)
+
+	loadbalancerReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-flavors <region (GRA9, BHS5, ...)>",
+		Short: "List available loadbalancer flavors in the given cloud project",
+		Run:   cloud.ListLoadbalancerFlavors,
+		Args:  cobra.ExactArgs(1),
+	}))
+
 	cloudCmd.AddCommand(referenceCmd)
 }

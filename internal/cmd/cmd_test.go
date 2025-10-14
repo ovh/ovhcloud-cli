@@ -6,6 +6,7 @@ package cmd_test
 
 import (
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
@@ -74,4 +75,8 @@ func resetSubCommandFlagValues(root *cobra.Command) {
 		})
 		resetSubCommandFlagValues(c)
 	}
+}
+
+func cleanWhitespacesHelper(s string) string {
+	return regexp.MustCompile(` +\n`).ReplaceAllString(s, "\n")
 }
