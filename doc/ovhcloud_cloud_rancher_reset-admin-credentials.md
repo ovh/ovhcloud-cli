@@ -1,18 +1,15 @@
-## ovhcloud cloud storage-s3 bulk-delete
+## ovhcloud cloud rancher reset-admin-credentials
 
-Bulk delete objects in the given storage container
+Reset admin user credentials
 
 ```
-ovhcloud cloud storage-s3 bulk-delete <container_name> [flags]
+ovhcloud cloud rancher reset-admin-credentials <rancher_id> [flags]
 ```
 
 ### Options
 
 ```
-      --all               Delete all objects in the container
-  -h, --help              help for bulk-delete
-      --objects strings   List of objects to delete (format is '<object_name>' or '<object_name>:<version_id>'
-      --prefix string     Prefix to filter objects to delete
+  -h, --help   help for reset-admin-credentials
 ```
 
 ### Options inherited from parent commands
@@ -36,5 +33,5 @@ ovhcloud cloud storage-s3 bulk-delete <container_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage-s3](ovhcloud_cloud_storage-s3.md)	 - Manage S3™* compatible storage containers in the given cloud project (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+* [ovhcloud cloud rancher](ovhcloud_cloud_rancher.md)	 - Manage Rancher services in the given cloud project
 

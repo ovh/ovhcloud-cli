@@ -98,10 +98,10 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 	columnsTitles := make([]string, 0, len(columnsToDisplay))
 	for _, col := range columnsToDisplay {
 		// If column to display contains an alias, use it as column title
-		parts := strings.SplitN(col, " ", 2)
-		if len(parts) == 2 {
-			col = parts[0]
-			columnsTitles = append(columnsTitles, parts[1])
+		colName, alias, ok := strings.Cut(col, " ")
+		if ok {
+			col = colName
+			columnsTitles = append(columnsTitles, alias)
 		} else {
 			columnsTitles = append(columnsTitles, col)
 		}

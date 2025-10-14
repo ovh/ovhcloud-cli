@@ -72,6 +72,30 @@ func PostExecute() {
 	flags.OutputFormatConfig = display.OutputFormat{}
 	flags.ParametersViaEditor = false
 	flags.ParametersFile = ""
+
+	// Recursively reset all flags of all subcommands to their default values
+	resetSubCommandFlagValues(rootCmd)
+}
+
+// resetSubCommandFlagValues resets all flags of all subcommands of the given root command to their default values.
+func resetSubCommandFlagValues(root *cobra.Command) {
+	for _, c := range root.Commands() {
+		c.Flags().VisitAll(func(f *pflag.Flag) {
+			if f.Changed {
+				if f.Value.Type() == "stringArray" {
+					// Special handling for stringArray for which we cannot
+					// use DefValue since it is equal to "[]".
+					if r, ok := f.Value.(pflag.SliceValue); ok {
+						r.Replace(nil)
+					}
+				} else {
+					f.Value.Set(f.DefValue)
+				}
+				f.Changed = false
+			}
+		})
+		resetSubCommandFlagValues(c)
+	}
 }
 
 func initRootCmd() {

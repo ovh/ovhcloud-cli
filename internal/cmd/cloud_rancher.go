@@ -48,6 +48,13 @@ func initCloudRancherCommand(cloudCmd *cobra.Command) {
 	rancherCmd.AddCommand(getRancherCreateCmd())
 
 	rancherCmd.AddCommand(&cobra.Command{
+		Use:   "reset-admin-credentials <rancher_id>",
+		Short: "Reset admin user credentials",
+		Run:   cloud.ResetRancherAdminCredentials,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	rancherCmd.AddCommand(&cobra.Command{
 		Use:   "delete <rancher_id>",
 		Short: "Delete a specific Rancher service",
 		Run:   cloud.DeleteRancher,
