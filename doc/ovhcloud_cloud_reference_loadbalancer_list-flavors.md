@@ -1,19 +1,22 @@
-## ovhcloud cloud loadbalancer edit
+## ovhcloud cloud reference loadbalancer list-flavors
 
-Edit the given loadbalancer
+List available loadbalancer flavors in the given cloud project
 
 ```
-ovhcloud cloud loadbalancer edit <loadbalancer_id> [flags]
+ovhcloud cloud reference loadbalancer list-flavors <region (GRA9, BHS5, ...)> [flags]
 ```
 
 ### Options
 
 ```
-      --description string   Description of the loadbalancer
-      --editor               Use a text editor to define parameters
-      --flavor string        Flavor ID of the loadbalancer (can be retrieved with 'cloud reference loadbalancer list-flavors <region>')
-  -h, --help                 help for edit
-      --name string          Name of the loadbalancer
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list-flavors
 ```
 
 ### Options inherited from parent commands
@@ -37,5 +40,5 @@ ovhcloud cloud loadbalancer edit <loadbalancer_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud reference loadbalancer](ovhcloud_cloud_reference_loadbalancer.md)	 - Fetch loadbalancer reference data in the given cloud project
 

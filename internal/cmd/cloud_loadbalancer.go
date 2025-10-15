@@ -37,9 +37,9 @@ func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.EditCloudLoadbalancer,
 		Args:  cobra.ExactArgs(1),
 	}
-	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateFields.Name, "name", "", "Name of the loadbalancer")
-	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateFields.Description, "description", "", "Description of the loadbalancer")
-	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateFields.Size, "size", "", "Size of the load balancer (S, M, L)")
+	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Name, "name", "", "Name of the loadbalancer")
+	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Description, "description", "", "Description of the loadbalancer")
+	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.FlavorId, "flavor", "", "Flavor ID of the loadbalancer (can be retrieved with 'cloud reference loadbalancer list-flavors <region>')")
 	addInteractiveEditorFlag(editLoadbalancerCmd)
 	loadbalancerCmd.AddCommand(editLoadbalancerCmd)
 

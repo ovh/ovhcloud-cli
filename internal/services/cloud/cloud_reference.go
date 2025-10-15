@@ -230,3 +230,14 @@ func ListDatabaseEngines(_ *cobra.Command, _ []string) {
 
 	display.RenderTable(engines, []string{"name", "description", "category", "versions", "defaultVersion"}, &flags.OutputFormatConfig)
 }
+
+func ListLoadbalancerFlavors(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/loadbalancing/flavor", projectID, url.PathEscape(args[0]))
+	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "region"}, flags.GenericFilters)
+}

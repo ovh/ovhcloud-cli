@@ -6,6 +6,7 @@ package cmd_test
 
 import (
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
@@ -50,4 +51,8 @@ func (ms *MockSuite) PostTest(_ *td.T, _ string) error {
 
 func TestMockSuite(t *testing.T) {
 	tdsuite.Run(t, &MockSuite{})
+}
+
+func cleanWhitespacesHelper(s string) string {
+	return regexp.MustCompile(` +\n`).ReplaceAllString(s, "\n")
 }
