@@ -123,6 +123,11 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 				exitError("failed to select row field: %s", err)
 			}
 
+			if val == nil {
+				row = append(row, "")
+				continue
+			}
+
 			switch val.(type) {
 			case float32, float64:
 				// TODO: default formatting without decimals, may cause issues at some point
