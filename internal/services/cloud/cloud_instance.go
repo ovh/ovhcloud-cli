@@ -115,6 +115,12 @@ var (
 		} `json:"sshKeyCreate,omitzero"`
 		UserData string `json:"userData,omitempty"`
 	}{}
+
+	InstanceSnapshotSpec struct {
+		SnapshotName        string `json:"snapshotName,omitempty"`
+		DistantSnapshotName string `json:"distantSnapshotName,omitempty"`
+		DistantRegionName   string `json:"distantRegionName,omitempty"`
+	}
 )
 
 func ListInstances(_ *cobra.Command, _ []string) {
@@ -807,19 +813,25 @@ func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	body := map[string]any{
-		"snapshotName": args[1],
+	// Fetch instance details to get its region
+	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
+	var instance map[string]any
+	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
+		return
 	}
+	region := instance["region"].(string)
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/snapshot", projectID, url.PathEscape(args[0]))
+	InstanceSnapshotSpec.SnapshotName = args[1]
 
+	endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/instance/%s/snapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
 	var response map[string]any
-	if err := httpLib.Client.Post(endpoint, body, &response); err != nil {
+	if err := httpLib.Client.Post(endpoint, InstanceSnapshotSpec, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error creating snapshot for instance %q: %s", args[0], err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot created successfully with ID: %s", response["snapshotId"])
+	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot created successfully with ID: %s", response["imageId"])
 }
 
 func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
@@ -846,4 +858,41 @@ func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot aborted successfully")
+}
+
+func ListInstanceSnapshots(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageListRequestNoExpand(fmt.Sprintf("/cloud/project/%s/snapshot", projectID), []string{"id", "name", "type", "status", "region"}, flags.GenericFilters)
+}
+
+func GetInstanceSnapshot(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/snapshot", projectID), args[0], "")
+}
+
+func DeleteInstanceSnapshot(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/cloud/project/%s/snapshot/%s", projectID, url.PathEscape(args[0]))
+
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error deleting snapshot %q: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot successfully deleted")
 }

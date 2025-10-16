@@ -9,7 +9,9 @@ ovhcloud cloud instance snapshot create <instance_id> <snapshot_name> [flags]
 ### Options
 
 ```
-  -h, --help   help for create
+      --distant-region-name string     Name of the distant region (for cross region snapshot)
+      --distant-snapshot-name string   Name of the snapshot in the distant region (for cross region snapshot)
+  -h, --help                           help for create
 ```
 
 ### Options inherited from parent commands

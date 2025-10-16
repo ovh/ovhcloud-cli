@@ -75,7 +75,7 @@ There are three ways to define the creation parameters:
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Name, "name", "", "Instance name")
 
 	// Boot options
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.ImageID, "boot-from.image", "", "Image ID to boot from (you can use 'ovhcloud cloud reference list-images' to get the image ID)")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.ImageID, "boot-from.image", "", "Image ID to boot from (you can use 'ovhcloud cloud reference list-images' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.VolumeID, "boot-from.volume", "", "Volume ID to boot from")
 	instanceCreateCmd.MarkFlagsMutuallyExclusive("boot-from.image", "boot-from.volume")
 
@@ -367,17 +367,43 @@ There are three ways to define the installation parameters:
 	}
 	instanceCmd.AddCommand(snapshotCmd)
 
-	snapshotCmd.AddCommand(&cobra.Command{
+	snapshotCreateCmd := &cobra.Command{
 		Use:   "create <instance_id> <snapshot_name>",
 		Short: "Create a snapshot of the given instance",
 		Run:   cloud.CreateInstanceSnapshot,
 		Args:  cobra.ExactArgs(2),
-	})
+	}
+	snapshotCreateCmd.Flags().StringVar(&cloud.InstanceSnapshotSpec.DistantSnapshotName, "distant-snapshot-name", "", "Name of the snapshot in the distant region (for cross region snapshot)")
+	snapshotCreateCmd.Flags().StringVar(&cloud.InstanceSnapshotSpec.DistantRegionName, "distant-region-name", "", "Name of the distant region (for cross region snapshot)")
+	snapshotCreateCmd.MarkFlagsRequiredTogether("distant-snapshot-name", "distant-region-name")
+	snapshotCmd.AddCommand(snapshotCreateCmd)
 
 	snapshotCmd.AddCommand(&cobra.Command{
 		Use:   "abort <instance_id>",
 		Short: "Abort the snapshot creation of the given instance",
 		Run:   cloud.AbortInstanceSnapshot,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	snapshotCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List all instance snapshots in the current cloud project",
+		Run:     cloud.ListInstanceSnapshots,
+		Args:    cobra.NoArgs,
+	}))
+
+	snapshotCmd.AddCommand(&cobra.Command{
+		Use:   "get <snapshot_id>",
+		Short: "Get a specific instance snapshot in the current cloud project",
+		Run:   cloud.GetInstanceSnapshot,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	snapshotCmd.AddCommand(&cobra.Command{
+		Use:   "delete <snapshot_id>",
+		Short: "Delete a specific instance snapshot in the current cloud project",
+		Run:   cloud.DeleteInstanceSnapshot,
 		Args:  cobra.ExactArgs(1),
 	})
 
