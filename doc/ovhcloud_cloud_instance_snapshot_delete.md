@@ -1,11 +1,15 @@
-## ovhcloud cloud instance snapshot
+## ovhcloud cloud instance snapshot delete
 
-Manage snapshots of the given instance
+Delete a specific instance snapshot in the current cloud project
+
+```
+ovhcloud cloud instance snapshot delete <snapshot_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -29,10 +33,5 @@ Manage snapshots of the given instance
 
 ### SEE ALSO
 
-* [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
-* [ovhcloud cloud instance snapshot abort](ovhcloud_cloud_instance_snapshot_abort.md)	 - Abort the snapshot creation of the given instance
-* [ovhcloud cloud instance snapshot create](ovhcloud_cloud_instance_snapshot_create.md)	 - Create a snapshot of the given instance
-* [ovhcloud cloud instance snapshot delete](ovhcloud_cloud_instance_snapshot_delete.md)	 - Delete a specific instance snapshot in the current cloud project
-* [ovhcloud cloud instance snapshot get](ovhcloud_cloud_instance_snapshot_get.md)	 - Get a specific instance snapshot in the current cloud project
-* [ovhcloud cloud instance snapshot list](ovhcloud_cloud_instance_snapshot_list.md)	 - List all instance snapshots in the current cloud project
+* [ovhcloud cloud instance snapshot](ovhcloud_cloud_instance_snapshot.md)	 - Manage snapshots of the given instance
 

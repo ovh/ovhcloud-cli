@@ -1,11 +1,22 @@
-## ovhcloud cloud instance snapshot
+## ovhcloud cloud instance snapshot list
 
-Manage snapshots of the given instance
+List all instance snapshots in the current cloud project
+
+```
+ovhcloud cloud instance snapshot list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -29,10 +40,5 @@ Manage snapshots of the given instance
 
 ### SEE ALSO
 
-* [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
-* [ovhcloud cloud instance snapshot abort](ovhcloud_cloud_instance_snapshot_abort.md)	 - Abort the snapshot creation of the given instance
-* [ovhcloud cloud instance snapshot create](ovhcloud_cloud_instance_snapshot_create.md)	 - Create a snapshot of the given instance
-* [ovhcloud cloud instance snapshot delete](ovhcloud_cloud_instance_snapshot_delete.md)	 - Delete a specific instance snapshot in the current cloud project
-* [ovhcloud cloud instance snapshot get](ovhcloud_cloud_instance_snapshot_get.md)	 - Get a specific instance snapshot in the current cloud project
-* [ovhcloud cloud instance snapshot list](ovhcloud_cloud_instance_snapshot_list.md)	 - List all instance snapshots in the current cloud project
+* [ovhcloud cloud instance snapshot](ovhcloud_cloud_instance_snapshot.md)	 - Manage snapshots of the given instance
 

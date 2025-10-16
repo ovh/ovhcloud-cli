@@ -9,6 +9,7 @@ ovhcloud cloud rancher edit <rancher_id> [flags]
 ### Options
 
 ```
+      --editor             Use a text editor to define parameters
   -h, --help               help for edit
       --iam-auth-enabled   Allow Rancher to use identities managed by OVHcloud IAM (Identity and Access Management) to control access
       --name string        Name of the managed Rancher service
