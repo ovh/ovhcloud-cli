@@ -26,6 +26,7 @@ IP addresses:
 **Max inbound bandwidth**:  {{index .Result "flavor" "inboundBandwidth"}}Mbit/s
 **Max outbound bandwidth**: {{index .Result "flavor" "outboundBandwidth"}}Mbit/s
 
+{{if index .Result "image" -}}
 ## Image details
 
 **Name**:                   {{index .Result "image" "name"}}
@@ -34,5 +35,6 @@ IP addresses:
 **Minimum RAM required**:   {{index .Result "image" "minRam"}}
 **Size**:                   {{index .Result "image" "size"}}Gib
 **Status**:                 {{index .Result "image" "status"}}
+{{- end}}
 
 💡 Use option --json or --yaml to get the raw output with all information
