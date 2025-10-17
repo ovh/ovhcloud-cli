@@ -7,7 +7,11 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
+	"runtime"
+	"sync/atomic"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -16,7 +20,8 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/config"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
-	"github.com/ovh/ovhcloud-cli/internal/http"
+	httplib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/version"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -116,16 +121,58 @@ Examples:
   --format '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)`)
 	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml", "interactive", "format")
 
+	var newVersionMessage atomic.Pointer[string]
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-		if http.Client == nil {
+		// Check if a new version is available in a separate goroutine
+		// Don't do it when running in WASM binary
+		if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
+			go func() {
+				// Skip version check if version is undefined (development mode)
+				if version.Version == "undefined" {
+					return
+				}
+
+				const latestURL = "https://github.com/ovh/ovhcloud-cli/releases/latest"
+				req, err := http.NewRequest("GET", latestURL, nil)
+				if err != nil {
+					return
+				}
+				req.Header.Set("Accept", "application/json")
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return
+				}
+				defer resp.Body.Close()
+				var data struct {
+					TagName string `json:"tag_name"`
+				}
+				if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+					return
+				}
+				if data.TagName != "" && data.TagName != version.Version {
+					message := fmt.Sprintf("A new version of ovhcloud-cli is available: %s (current: %s)", data.TagName, version.Version)
+					newVersionMessage.Store(&message)
+				}
+			}()
+		}
+
+		// Check if the API client is initialized
+		if httplib.Client == nil {
 			display.OutputError(&flags.OutputFormatConfig, "API client is not initialized, please run `ovhcloud login` to authenticate")
 			os.Exit(1) // Force os.Exit even in WASM mode
+		}
+	}
+
+	// Set PostRun to display the new version message if available
+	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
+		if msg := newVersionMessage.Load(); msg != nil {
+			log.Println(*msg)
 		}
 	}
 }
 
 func init() {
-	http.InitClient()
+	httplib.InitClient()
 
 	// Load configuration files by order of increasing priority. All configuration
 	// files are optional. Only load file from user home if home could be resolve
