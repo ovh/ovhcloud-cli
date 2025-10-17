@@ -67,12 +67,17 @@ func getConfiguredCloudProject() (string, error) {
 		return url.PathEscape(projectID), nil
 	}
 
+	// Use OpenStack standard environment variable if set
+	if projectID := os.Getenv("OS_TENANT_ID"); projectID != "" {
+		return url.PathEscape(projectID), nil
+	}
+
 	projectID, err := config.GetConfigValue(flags.CliConfig, "", "default_cloud_project")
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch default cloud project: %w", err)
 	}
 	if projectID == "" {
-		return "", fmt.Errorf("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration. Alternatively, you can set the OVH_CLOUD_PROJECT_SERVICE environment variable")
+		return "", fmt.Errorf("no project ID configured, please use --cloud-project <id> or set a default cloud project in your configuration. Alternatively, you can set the OVH_CLOUD_PROJECT_SERVICE or OS_TENANT_ID environment variable")
 	}
 
 	return url.PathEscape(projectID), nil
