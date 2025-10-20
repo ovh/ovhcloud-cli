@@ -189,65 +189,66 @@ ovhcloud login
 
 # Available products
 
-| Category                         | Command                         | Covered    |
-|----------------------------------|---------------------------------|------------|
-| **Backup**                       | veeamcloudconnect               | Partially  |
-|                                  | veeamenterprise                 | Partially  |
-| **Communication**                | sms                             | Partially  |
-|                                  | telephony                       | Partially  |
-| **Compute / Dedicated / VPS**    | baremetal                       | Yes        |
-|                                  | vps                             | Yes        |
-| **Connectivity**                 | pack-xdsl                       | Partially  |
-|                                  | xdsl                            | Partially  |
-| **Domains / DNS**                | alldom                          | Partially  |
-|                                  | domain-name                     | Partially  |
-|                                  | domain-zone                     | Partially  |
-| **Email**                        | email-domain                    | Partially  |
-|                                  | email-mxplan                    | Partially  |
-|                                  | email-pro                       | Partially  |
-| **Hybrid Cloud**                 | nutanix                         | Partially  |
-| **Hosting**                      | webhosting                      | Partially  |
-|                                  | hosting-private-database        | Partially  |
-| **Identity / Account / Access**  | account                         | Partially  |
-|                                  | iam                             | Yes        |
-|                                  | login                           | Partially  |
-| **Infra Meta**                   | location                        | Partially  |
-| **Network**                      | ip                              | Partially  |
-|                                  | overthebox                      | Partially  |
-|                                  | vrack                           | Partially  |
-|                                  | vrackservices                   | Partially  |
-| **Network / Acceleration**       | cdn-dedicated                   | Partially  |
-| **Network / Connectivity**       | ovhcloudconnect                 | Partially  |
-| **Network / Load Balancing**     | iploadbalancing                 | Partially  |
-| **Observability**                | ldp                             | Partially  |
-| **Private Cloud**                | dedicated-cloud                 | Partially  |
-|                                  | dedicated-cluster               | Partially  |
-| **Public Cloud / Access**        | cloud ssh-key                   | Yes        |
-| **Public Cloud / Compute**       | cloud instance                  | Yes        |
-| **Public Cloud / Containers**    | cloud kube                      | Yes        |
-| **Public Cloud / Databases**     | cloud database-service          | Partially  |
-| **Public Cloud / Dev**           | cloud container-registry        | Yes        |
-| **Public Cloud / Governance**    | cloud quota                     | Yes        |
-| **Public Cloud / Meta**          | cloud reference                 | Yes        |
-|                                  | cloud region                    | Yes        |
-| **Public Cloud / Network**       | cloud loadbalancer              | Partially  |
-|                                  | cloud network                   | Yes        |
-| **Public Cloud / Object Storage**| cloud storage-s3                | Yes        |
-|                                  | cloud storage-swift             | Yes        |
-| **Public Cloud / Ops**           | cloud operation                 | Yes        |
-| **Public Cloud / Orchestration** | cloud rancher                   | Yes        |
-| **Public Cloud / Project**       | cloud project                   | Yes        |
-| **Public Cloud / Storage**       | cloud storage-block             | Yes        |
-| **Public Cloud / Identity**      | cloud user                      | Yes        |
-| **Security**                     | ssl                             | Partially  |
-|                                  | okms                            | Partially  |
-| **Security / Edge**              | ssl-gateway                     | Partially  |
-| **Storage**                      | dedicated-ceph                  | Partially  |
-|                                  | dedicated-nasha                 | Partially  |
-|                                  | storage-netapp                  | Partially  |
-| **Support**                      | support-tickets                 | Partially  |
-| **VMware**                       | vmwareclouddirector-organization| Partially  |
-|                                  | vmwareclouddirector-backup      | Partially  |
+| Category                              | Command                         | Covered    |
+|---------------------------------------|---------------------------------|------------|
+| **Backup**                            | veeamcloudconnect               | Partially  |
+|                                       | veeamenterprise                 | Partially  |
+| **Communication**                     | sms                             | Partially  |
+|                                       | telephony                       | Partially  |
+| **Compute / Dedicated / VPS**         | baremetal                       | Yes        |
+|                                       | vps                             | Yes        |
+| **Connectivity**                      | pack-xdsl                       | Partially  |
+|                                       | xdsl                            | Partially  |
+| **Domains / DNS**                     | alldom                          | Partially  |
+|                                       | domain-name                     | Partially  |
+|                                       | domain-zone                     | Partially  |
+| **Email**                             | email-domain                    | Partially  |
+|                                       | email-mxplan                    | Partially  |
+|                                       | email-pro                       | Partially  |
+| **Hybrid Cloud**                      | nutanix                         | Partially  |
+| **Hosting**                           | webhosting                      | Partially  |
+|                                       | hosting-private-database        | Partially  |
+| **Identity / Account / Access**       | account                         | Partially  |
+|                                       | iam                             | Yes        |
+|                                       | login                           | Partially  |
+| **Infra Meta**                        | location                        | Partially  |
+| **Network**                           | ip                              | Partially  |
+|                                       | overthebox                      | Partially  |
+|                                       | vrack                           | Partially  |
+|                                       | vrackservices                   | Partially  |
+| **Network / Acceleration**            | cdn-dedicated                   | Partially  |
+| **Network / Connectivity**            | ovhcloudconnect                 | Partially  |
+| **Network / Load Balancing**          | iploadbalancing                 | Partially  |
+| **Observability**                     | ldp                             | Partially  |
+| **Private Cloud**                     | dedicated-cloud                 | Partially  |
+|                                       | dedicated-cluster               | Partially  |
+| **Public Cloud / Access**             | cloud ssh-key                   | Yes        |
+| **Public Cloud / Compute**            | cloud instance                  | Yes        |
+| **Public Cloud / Container Registry** | cloud container-registry        | Yes        |
+| **Public Cloud / Containers**         | cloud kube                      | Yes        |
+| **Public Cloud / Orchestration**      | cloud rancher                   | Yes        |
+| **Public Cloud / Databases**          | cloud database-service          | Partially  |
+| **Public Cloud / Governance**         | cloud quota                     | Yes        |
+| **Public Cloud / Meta**               | cloud reference                 | Yes        |
+|                                       | cloud region                    | Yes        |
+| **Public Cloud / Network**            | cloud loadbalancer              | Partially  |
+|                                       | cloud network                   | Yes        |
+| **Public Cloud / Object Storage**     | cloud storage-s3                | Yes        |
+|                                       | cloud storage-swift             | Yes        |
+| **Public Cloud / Ops**                | cloud operation                 | Yes        |
+| **Public Cloud / Project**            | cloud project                   | Yes        |
+| **Public Cloud / Storage**            | cloud storage-block             | Yes        |
+| **Public Cloud / Identity**           | cloud user                      | Yes        |
+| **Security**                          | ssl                             | Partially  |
+|                                       | okms                            | Partially  |
+| **Security / Edge**                   | ssl-gateway                     | Partially  |
+| **Storage**                           | dedicated-ceph                  | Partially  |
+|                                       | dedicated-nasha                 | Partially  |
+|                                       | storage-netapp                  | Partially  |
+| **Support**                           | support-tickets                 | Partially  |
+| **VMware**                            | vmwareclouddirector-organization| Partially  |
+|                                       | vmwareclouddirector-backup      | Partially  |
+|---------------------------------------|---------------------------------|------------|
 
 # Generate Shell Completion
 
