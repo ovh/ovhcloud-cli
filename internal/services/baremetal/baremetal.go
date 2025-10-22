@@ -532,11 +532,14 @@ func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
 			"name":   os,
 		})
 	}
-	for _, os := range oses["personal"].([]any) {
-		formattedValues = append(formattedValues, map[string]any{
-			"source": "personal",
-			"name":   os,
-		})
+
+	if personalOSes, ok := oses["personal"]; ok {
+		for _, os := range personalOSes.([]any) {
+			formattedValues = append(formattedValues, map[string]any{
+				"source": "personal",
+				"name":   os,
+			})
+		}
 	}
 
 	formattedValues, err := filtersLib.FilterLines(formattedValues, flags.GenericFilters)
