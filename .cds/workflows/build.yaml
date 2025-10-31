@@ -47,7 +47,7 @@ jobs:
   release:
     needs:
       - push-docker-image
-    if: git.ref_name == 'main'
+    if: '${{ git.ref_type == ''tag'' && success() }}'
     runs-on:
       model: library/default-container
     steps:
