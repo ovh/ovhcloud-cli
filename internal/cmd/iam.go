@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/services/iam"
 	"github.com/spf13/cobra"
 )
@@ -149,5 +150,155 @@ func init() {
 	addInteractiveEditorFlag(iamResourceGroupEditCmd)
 	iamResourceGroupCmd.AddCommand(iamResourceGroupEditCmd)
 
+	// Users
+	iamUserCmd := &cobra.Command{
+		Use:   "user",
+		Short: "Manage IAM users",
+	}
+	iamCmd.AddCommand(iamUserCmd)
+
+	iamUserCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List IAM users",
+		Run:     iam.ListUsers,
+	}))
+
+	iamUserCmd.AddCommand(&cobra.Command{
+		Use:   "get <user_login>",
+		Short: "Get a specific IAM user",
+		Run:   iam.GetUser,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	iamUserCmd.AddCommand(getUserCreateCmd())
+	iamUserCmd.AddCommand(getUserEditCmd())
+
+	iamUserCmd.AddCommand(&cobra.Command{
+		Use:   "delete <user_login>",
+		Short: "Delete a specific IAM user",
+		Run:   iam.DeleteUser,
+		Args:  cobra.ExactArgs(1),
+	})
+
 	rootCmd.AddCommand(iamCmd)
+}
+
+func getUserCreateCmd() *cobra.Command {
+	userCreateCmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a new user",
+		Long: `Use this command to create a new IAM user.
+There are three ways to define the creation parameters:
+
+1. Using only CLI flags:
+
+	ovhcloud iam user create --login my_user --password 'MyStrongPassword123!' --email fake.email@ovhcloud.com
+
+2. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud iam user create --init-file ./params.json
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud iam user create --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file, like the following:
+
+	cat ./params.json | ovhcloud iam user create
+
+  In both cases, you can override the parameters in the given file using command line flags, for example:
+
+	ovhcloud iam user create --from-file ./params.json --login nameoverriden
+
+3. Using your default text editor:
+
+	ovhcloud iam user create --editor
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
+  default text editor to update the parameters. When saving the file, the creation will start.
+
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
+
+	ovhcloud iam user create --editor --login nameoverriden
+`,
+		Run:  iam.CreateUser,
+		Args: cobra.NoArgs,
+	}
+
+	userCreateCmd.Flags().StringVar(&iam.UserSpec.Login, "login", "", "Login of the user")
+	userCreateCmd.Flags().StringVar(&iam.UserSpec.Email, "email", "", "Email of the user")
+	userCreateCmd.Flags().StringVar(&iam.UserSpec.Description, "description", "", "Description of the user")
+	userCreateCmd.Flags().StringVar(&iam.UserSpec.Group, "group", "", "Group of the user")
+	userCreateCmd.Flags().StringVar(&iam.UserSpec.Password, "password", "", "Password of the user")
+	userCreateCmd.Flags().StringVar(&iam.UserSpec.Type, "type", "", "Type of the user (ROOT, SERVICE, USER)")
+
+	// Common flags for other means to define parameters
+	addInitParameterFileFlag(userCreateCmd, assets.MeOpenapiSchema, "/me/identity/user", "post", iam.UserCreateExample, nil)
+	addInteractiveEditorFlag(userCreateCmd)
+	addFromFileFlag(userCreateCmd)
+	userCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+
+	return userCreateCmd
+}
+
+func getUserEditCmd() *cobra.Command {
+	userEditCmd := &cobra.Command{
+		Use:   "edit <user_login>",
+		Short: "Edit an existing user",
+		Long: `Use this command to edit an existing IAM user.
+There are three ways to define the editing parameters:
+
+1. Using only CLI flags:
+
+	ovhcloud iam user edit <user_login> --email fake.email+replaced@ovhcloud.com
+
+2. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud iam user edit --init-file ./params.json
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
+  After editing the file to set the correct parameters, run:
+
+	ovhcloud iam user edit <user_login> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file, like the following:
+
+	cat ./params.json | ovhcloud iam user edit <user_login>
+
+  In both cases, you can override the parameters in the given file using command line flags, for example:
+
+	ovhcloud iam user edit <user_login> --from-file ./params.json --email fake.email+overriden@ovhcloud.com
+
+3. Using your default text editor:
+
+	ovhcloud iam user edit <user_login> --editor
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
+  default text editor to update the parameters. When saving the file, the creation will start.
+
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
+
+	ovhcloud iam user edit <user_login> --editor --description "New description"
+`,
+		Run:  iam.EditUser,
+		Args: cobra.ExactArgs(1),
+	}
+
+	userEditCmd.Flags().StringVar(&iam.UserSpec.Email, "email", "", "Email of the user")
+	userEditCmd.Flags().StringVar(&iam.UserSpec.Description, "description", "", "Description of the user")
+	userEditCmd.Flags().StringVar(&iam.UserSpec.Group, "group", "", "Group of the user")
+
+	// Common flags for other means to define parameters
+	addInitParameterFileFlag(userEditCmd, assets.MeOpenapiSchema, "/me/identity/user", "post", iam.UserEditExample, nil)
+	addInteractiveEditorFlag(userEditCmd)
+	addFromFileFlag(userEditCmd)
+	userEditCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+
+	return userEditCmd
 }

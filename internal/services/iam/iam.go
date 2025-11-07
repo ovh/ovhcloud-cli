@@ -35,6 +35,12 @@ var (
 	//go:embed templates/iam_resource_group.tmpl
 	iamResourceGroupTemplate string
 
+	//go:embed parameter-samples/user-create.json
+	UserCreateExample string
+
+	//go:embed parameter-samples/user-edit.json
+	UserEditExample string
+
 	IAMPolicySpec struct {
 		Name        string   `json:"name,omitempty"`
 		Description string   `json:"description,omitempty"`
@@ -58,6 +64,15 @@ var (
 
 	IAMResourceSpec struct {
 		Tags map[string]string `json:"tags,omitempty"`
+	}
+
+	UserSpec struct {
+		Description string `json:"description,omitempty"`
+		Email       string `json:"email,omitempty"`
+		Group       string `json:"group,omitempty"`
+		Login       string `json:"login,omitempty"`
+		Password    string `json:"password,omitempty"`
+		Type        string `json:"type,omitempty"`
 	}
 )
 
@@ -189,4 +204,52 @@ func prepareIAMPermissionsFromCLI() {
 	for _, urn := range IAMPolicySpec.ResourcesURNs {
 		IAMPolicySpec.Resources = append(IAMPolicySpec.Resources, iamResourceURN{URN: urn})
 	}
+}
+
+func ListUsers(_ *cobra.Command, _ []string) {
+	common.ManageListRequest("/me/identity/user", "", []string{"login", "group", "description"}, flags.GenericFilters)
+}
+
+func GetUser(_ *cobra.Command, args []string) {
+	common.ManageObjectRequest("/me/identity/user", args[0], "")
+}
+
+func CreateUser(cmd *cobra.Command, _ []string) {
+	_, err := common.CreateResource(
+		cmd,
+		"/me/identity/user",
+		"/me/identity/user",
+		UserCreateExample,
+		UserSpec,
+		assets.MeOpenapiSchema,
+		[]string{"login", "password", "email"})
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create user: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ User %s created successfully", UserSpec.Login)
+}
+
+func EditUser(cmd *cobra.Command, args []string) {
+	if err := common.EditResource(
+		cmd,
+		"/me/identity/user/{user}",
+		fmt.Sprintf("/me/identity/user/%s", url.PathEscape(args[0])),
+		UserSpec,
+		assets.MeOpenapiSchema,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+}
+
+func DeleteUser(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/me/identity/user/%s", url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete user %s: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ User %s deleted successfully", args[0])
 }
