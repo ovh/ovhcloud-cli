@@ -1,0 +1,8 @@
+{
+  "description": "User example",
+  "email": "fake.email@ovhcloud.com",
+  "group": "DEFAULT",
+  "login": "my_user",
+  "password": "ThisIsAStrongPassword123!",
+  "type": "USER"
+}
