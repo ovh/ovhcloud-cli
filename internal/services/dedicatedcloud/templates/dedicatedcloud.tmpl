@@ -6,7 +6,7 @@ _{{index .Result "iam"  "displayName"}}_
 
 ## General information
 
-**Location**:         {{index .Result "location"}}
+**Location**:         {{if index .Result "regionLocation"}}{{index .Result "regionLocation"}}{{else}}{{index .Result "location"}}{{end}}
 **State**:            {{index .Result "state"}}
 **Generation**:       {{index .Result "generation"}}
 **Version**:          {{index .Result "version" "major"}}.{{index .Result "version" "minor"}}.{{index .Result "version" "build"}}
@@ -25,6 +25,17 @@ _{{index .Result "iam"  "displayName"}}_
 | SPLA | {{index .Result "spla"}} |
 | SSLv3 | {{index .Result "sslV3"}} |
 | User access policy | {{index .Result "userAccessPolicy"}} |
+
+## Datacenters
+
+{{if index .Result "datacenters"}}
+| ID | Name | Version | Commercial name |
+| --- | --- | --- | --- |
+{{ range index .Result "datacenters" }}| {{index . "datacenterId"}} | {{index . "name"}} | {{index . "version"}} | {{index . "commercialName"}} |
+{{end}}
+{{else}}
+No datacenters found
+{{end}}
 
 ## IAM information
 
