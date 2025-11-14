@@ -28,6 +28,38 @@ var (
 	datacenterTemplate string
 )
 
+// toFloat64 converts any numeric type to float64
+func toFloat64(v any) float64 {
+	if f, ok := v.(float64); ok {
+		return f
+	}
+	if i, ok := v.(int); ok {
+		return float64(i)
+	}
+	if n, ok := v.(json.Number); ok {
+		if f, err := n.Float64(); err == nil {
+			return f
+		}
+	}
+	return 0
+}
+
+// toInt converts any numeric type to int
+func toInt(v any) int {
+	if i, ok := v.(int); ok {
+		return i
+	}
+	if f, ok := v.(float64); ok {
+		return int(f)
+	}
+	if n, ok := v.(json.Number); ok {
+		if i, err := n.Int64(); err == nil {
+			return int(i)
+		}
+	}
+	return 0
+}
+
 // getLocationMap fetches the location mapping from the API
 func getLocationMap() (map[string]string, error) {
 	// Fetch location list (array of location IDs)
@@ -200,86 +232,27 @@ func ListDatacenter(_ *cobra.Command, args []string) {
 		for _, host := range hosts {
 			// Sum cores
 			if cpuNumRaw, ok := host["cpuNum"]; ok && cpuNumRaw != nil {
-				var cpuNumValue float64
-				switch v := cpuNumRaw.(type) {
-				case json.Number:
-					val, err := v.Float64()
-					if err == nil {
-						cpuNumValue = val
-					}
-				case float64:
-					cpuNumValue = v
-				case int:
-					cpuNumValue = float64(v)
-				case int64:
-					cpuNumValue = float64(v)
-				case int32:
-					cpuNumValue = float64(v)
-				}
-				totalCores += int(cpuNumValue)
+				totalCores += int(toFloat64(cpuNumRaw))
 			}
 
 			// Sum RAM
 			if ram, ok := host["ram"].(map[string]any); ok {
-				if ramValue, ok := ram["value"].(float64); ok {
-					totalRAM += ramValue
-				} else if ramValueRaw, ok := ram["value"]; ok && ramValueRaw != nil {
-					switch v := ramValueRaw.(type) {
-					case json.Number:
-						val, err := v.Float64()
-						if err == nil {
-							totalRAM += val
-						}
-					case float64:
-						totalRAM += v
-					case int:
-						totalRAM += float64(v)
-					case int64:
-						totalRAM += float64(v)
-					}
+				if ramValueRaw, ok := ram["value"]; ok && ramValueRaw != nil {
+					totalRAM += toFloat64(ramValueRaw)
 				}
 			}
 
 			// Sum VMs
 			if vmTotalRaw, ok := host["vmTotal"]; ok && vmTotalRaw != nil {
-				switch v := vmTotalRaw.(type) {
-				case json.Number:
-					val, err := v.Int64()
-					if err == nil {
-						totalVMs += int(val)
-					}
-				case float64:
-					totalVMs += int(v)
-				case int:
-					totalVMs += v
-				case int64:
-					totalVMs += int(v)
-				case int32:
-					totalVMs += int(v)
-				}
+				totalVMs += toInt(vmTotalRaw)
 			}
 		}
 
 		// Sum disk space from filers
 		for _, filer := range allFilers {
 			if size, ok := filer["size"].(map[string]any); ok {
-				var sizeValue float64
 				if sizeValueRaw, ok := size["value"]; ok && sizeValueRaw != nil {
-					switch v := sizeValueRaw.(type) {
-					case json.Number:
-						val, err := v.Float64()
-						if err == nil {
-							sizeValue = val
-						}
-					case float64:
-						sizeValue = v
-					case int:
-						sizeValue = float64(v)
-					case int64:
-						sizeValue = float64(v)
-					case int32:
-						sizeValue = float64(v)
-					}
+					sizeValue := toFloat64(sizeValueRaw)
 					// Convert to GB if needed
 					if sizeUnit, ok := size["unit"].(string); ok {
 						if strings.ToUpper(sizeUnit) == "TB" {
@@ -335,40 +308,16 @@ func GetDatacenter(_ *cobra.Command, args []string) {
 		// Format Core Number with GHz in parentheses
 		coreNumber := ""
 		if cpuNumRaw, ok := hosts[i]["cpuNum"]; ok && cpuNumRaw != nil {
-			var cpuNumValue float64
-			switch v := cpuNumRaw.(type) {
-			case json.Number:
-				var err error
-				cpuNumValue, err = v.Float64()
-				if err != nil {
-					cpuNumValue = 0
-				}
-			case float64:
-				cpuNumValue = v
-			case int:
-				cpuNumValue = float64(v)
-			case int64:
-				cpuNumValue = float64(v)
-			case int32:
-				cpuNumValue = float64(v)
-			}
+			cpuNumValue := toFloat64(cpuNumRaw)
 			if cpuNumValue > 0 {
 				coreNumber = fmt.Sprintf("%.0f", cpuNumValue)
 				if cpu, ok := hosts[i]["cpu"].(map[string]any); ok {
-					var cpuValue float64
-					switch cv := cpu["value"].(type) {
-					case json.Number:
-						var err error
-						cpuValue, err = cv.Float64()
-						if err != nil {
-							cpuValue = 0
+					if cpuValueRaw, ok := cpu["value"]; ok && cpuValueRaw != nil {
+						cpuValue := toFloat64(cpuValueRaw)
+						if cpuValue > 0 {
+							// Use format: cores (freqGHz)
+							coreNumber += fmt.Sprintf(" (%.0fGHz)", cpuValue)
 						}
-					case float64:
-						cpuValue = cv
-					}
-					if cpuValue > 0 {
-						// Use format: cores (freqGHz)
-						coreNumber += fmt.Sprintf(" (%.0fGHz)", cpuValue)
 					}
 				}
 			}
@@ -376,25 +325,11 @@ func GetDatacenter(_ *cobra.Command, args []string) {
 		hosts[i]["coreNumber"] = coreNumber
 
 		// Add VM count
-		vmCount := 0
 		if vmTotalRaw, ok := hosts[i]["vmTotal"]; ok && vmTotalRaw != nil {
-			switch v := vmTotalRaw.(type) {
-			case json.Number:
-				val, err := v.Int64()
-				if err == nil {
-					vmCount = int(val)
-				}
-			case float64:
-				vmCount = int(v)
-			case int:
-				vmCount = v
-			case int64:
-				vmCount = int(v)
-			case int32:
-				vmCount = int(v)
-			}
+			hosts[i]["vmCount"] = toInt(vmTotalRaw)
+		} else {
+			hosts[i]["vmCount"] = 0
 		}
-		hosts[i]["vmCount"] = vmCount
 
 		// Add maintenance status emoji
 		if inMaintenance, ok := hosts[i]["inMaintenance"].(bool); ok && inMaintenance {
@@ -433,20 +368,7 @@ func GetDatacenter(_ *cobra.Command, args []string) {
 	for _, host := range hosts {
 		if clusterName, ok := host["clusterName"].(string); ok && clusterName != "" {
 			if clusterIdRaw, ok := host["clusterId"]; ok && clusterIdRaw != nil {
-				var clusterId int
-				switch v := clusterIdRaw.(type) {
-				case json.Number:
-					val, err := v.Int64()
-					if err == nil {
-						clusterId = int(val)
-					}
-				case float64:
-					clusterId = int(v)
-				case int:
-					clusterId = v
-				case int64:
-					clusterId = int(v)
-				}
+				clusterId := toInt(clusterIdRaw)
 				if clusterId > 0 {
 					clusterNameToId[clusterName] = clusterId
 				}
@@ -463,21 +385,7 @@ func GetDatacenter(_ *cobra.Command, args []string) {
 			for _, cluster := range clustersList {
 				if name, ok := cluster["name"].(string); ok && name == clusterName {
 					if idRaw, ok := cluster["clusterId"]; ok && idRaw != nil {
-						var id int
-						switch v := idRaw.(type) {
-						case json.Number:
-							val, err := v.Int64()
-							if err == nil {
-								id = int(val)
-							}
-						case float64:
-							id = int(v)
-						case int:
-							id = v
-						case int64:
-							id = int(v)
-						}
-						clusterId = id
+						clusterId = toInt(idRaw)
 						break
 					}
 				}
@@ -544,29 +452,13 @@ func GetDatacenter(_ *cobra.Command, args []string) {
 		// Format size
 		sizeStr := ""
 		if size, ok := allFilers[i]["size"].(map[string]any); ok {
-			var sizeValue float64
 			if sizeValueRaw, ok := size["value"]; ok && sizeValueRaw != nil {
-				switch v := sizeValueRaw.(type) {
-				case json.Number:
-					var err error
-					sizeValue, err = v.Float64()
-					if err != nil {
-						sizeValue = 0
+				sizeValue := toFloat64(sizeValueRaw)
+				if sizeValue > 0 {
+					sizeStr = fmt.Sprintf("%.0f", sizeValue)
+					if sizeUnit, ok := size["unit"].(string); ok {
+						sizeStr += " " + sizeUnit
 					}
-				case float64:
-					sizeValue = v
-				case int:
-					sizeValue = float64(v)
-				case int64:
-					sizeValue = float64(v)
-				case int32:
-					sizeValue = float64(v)
-				}
-			}
-			if sizeValue > 0 {
-				sizeStr = fmt.Sprintf("%.0f", sizeValue)
-				if sizeUnit, ok := size["unit"].(string); ok {
-					sizeStr += " " + sizeUnit
 				}
 			}
 		}
@@ -575,23 +467,7 @@ func GetDatacenter(_ *cobra.Command, args []string) {
 		// Format spaceFree
 		spaceFreeStr := ""
 		if spaceFreeRaw, ok := allFilers[i]["spaceFree"]; ok && spaceFreeRaw != nil {
-			var spaceFreeValue float64
-			switch v := spaceFreeRaw.(type) {
-			case json.Number:
-				var err error
-				spaceFreeValue, err = v.Float64()
-				if err != nil {
-					spaceFreeValue = 0
-				}
-			case float64:
-				spaceFreeValue = v
-			case int:
-				spaceFreeValue = float64(v)
-			case int64:
-				spaceFreeValue = float64(v)
-			case int32:
-				spaceFreeValue = float64(v)
-			}
+			spaceFreeValue := toFloat64(spaceFreeRaw)
 			if spaceFreeValue > 0 {
 				spaceFreeStr = fmt.Sprintf("%.0f GB", spaceFreeValue)
 			}
@@ -610,25 +486,11 @@ func GetDatacenter(_ *cobra.Command, args []string) {
 		allFilers[i]["clusterName"] = clusterName
 
 		// Add VM count
-		vmCount := 0
 		if vmTotalRaw, ok := allFilers[i]["vmTotal"]; ok && vmTotalRaw != nil {
-			switch v := vmTotalRaw.(type) {
-			case json.Number:
-				val, err := v.Int64()
-				if err == nil {
-					vmCount = int(val)
-				}
-			case float64:
-				vmCount = int(v)
-			case int:
-				vmCount = v
-			case int64:
-				vmCount = int(v)
-			case int32:
-				vmCount = int(v)
-			}
+			allFilers[i]["vmCount"] = toInt(vmTotalRaw)
+		} else {
+			allFilers[i]["vmCount"] = 0
 		}
-		allFilers[i]["vmCount"] = vmCount
 
 		// Add connection state indicator
 		connectionStateIndicator := "🔴"
@@ -649,86 +511,27 @@ func GetDatacenter(_ *cobra.Command, args []string) {
 	for _, host := range hosts {
 		// Sum cores
 		if cpuNumRaw, ok := host["cpuNum"]; ok && cpuNumRaw != nil {
-			var cpuNumValue float64
-			switch v := cpuNumRaw.(type) {
-			case json.Number:
-				val, err := v.Float64()
-				if err == nil {
-					cpuNumValue = val
-				}
-			case float64:
-				cpuNumValue = v
-			case int:
-				cpuNumValue = float64(v)
-			case int64:
-				cpuNumValue = float64(v)
-			case int32:
-				cpuNumValue = float64(v)
-			}
-			totalCores += int(cpuNumValue)
+			totalCores += int(toFloat64(cpuNumRaw))
 		}
 
 		// Sum RAM
 		if ram, ok := host["ram"].(map[string]any); ok {
-			if ramValue, ok := ram["value"].(float64); ok {
-				totalRAM += ramValue
-			} else if ramValueRaw, ok := ram["value"]; ok && ramValueRaw != nil {
-				switch v := ramValueRaw.(type) {
-				case json.Number:
-					val, err := v.Float64()
-					if err == nil {
-						totalRAM += val
-					}
-				case float64:
-					totalRAM += v
-				case int:
-					totalRAM += float64(v)
-				case int64:
-					totalRAM += float64(v)
-				}
+			if ramValueRaw, ok := ram["value"]; ok && ramValueRaw != nil {
+				totalRAM += toFloat64(ramValueRaw)
 			}
 		}
 
 		// Sum VMs
 		if vmTotalRaw, ok := host["vmTotal"]; ok && vmTotalRaw != nil {
-			switch v := vmTotalRaw.(type) {
-			case json.Number:
-				val, err := v.Int64()
-				if err == nil {
-					totalVMs += int(val)
-				}
-			case float64:
-				totalVMs += int(v)
-			case int:
-				totalVMs += v
-			case int64:
-				totalVMs += int(v)
-			case int32:
-				totalVMs += int(v)
-			}
+			totalVMs += toInt(vmTotalRaw)
 		}
 	}
 
 	// Sum disk space from filers
 	for _, filer := range allFilers {
 		if size, ok := filer["size"].(map[string]any); ok {
-			var sizeValue float64
 			if sizeValueRaw, ok := size["value"]; ok && sizeValueRaw != nil {
-				switch v := sizeValueRaw.(type) {
-				case json.Number:
-					val, err := v.Float64()
-					if err == nil {
-						sizeValue = val
-					}
-				case float64:
-					sizeValue = v
-				case int:
-					sizeValue = float64(v)
-				case int64:
-					sizeValue = float64(v)
-				case int32:
-					sizeValue = float64(v)
-				}
+				sizeValue := toFloat64(sizeValueRaw)
 				// Convert to GB if needed
 				if sizeUnit, ok := size["unit"].(string); ok {
 					if strings.ToUpper(sizeUnit) == "TB" {
