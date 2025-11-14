@@ -104,14 +104,11 @@ func ListDedicatedCloud(_ *cobra.Command, _ []string) {
 	for _, obj := range body {
 		// Format version
 		if versionObj, ok := obj["version"].(map[string]any); ok {
-			major, _ := versionObj["major"].(string)
-			minor, _ := versionObj["minor"].(string)
-			build, _ := versionObj["build"].(string)
-			versionStr := major
-			if minor != "" {
+			versionStr, _ := versionObj["major"].(string)
+			if minor, ok := versionObj["minor"].(string); ok && minor != "" {
 				versionStr += "." + minor
 			}
-			if build != "" {
+			if build, ok := versionObj["build"].(string); ok && build != "" {
 				versionStr += "." + build
 			}
 			obj["version"] = versionStr
