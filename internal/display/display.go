@@ -275,6 +275,7 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 		r, err := glamour.NewTermRenderer(
 			glamour.WithAutoStyle(),
 			glamour.WithPreservedNewLines(),
+			glamour.WithWordWrap(0),
 		)
 		if err != nil {
 			exitError("failed to init rendered: %s", err)

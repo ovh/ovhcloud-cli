@@ -551,14 +551,5 @@ func GetDatacenter(_ *cobra.Command, args []string) {
 	object["totalVMs"] = totalVMs
 	object["totalDiskSpace"] = fmt.Sprintf("%.0f GB", totalDiskSpace)
 
-	// Fetch IAM information from parent dedicatedcloud
-	dedicatedcloudEndpoint := fmt.Sprintf("/dedicatedCloud/%s", url.PathEscape(args[0]))
-	var dedicatedcloud map[string]any
-	if err := httpLib.Client.Get(dedicatedcloudEndpoint, &dedicatedcloud); err == nil {
-		if iam, ok := dedicatedcloud["iam"].(map[string]any); ok {
-			object["iam"] = iam
-		}
-	}
-
 	display.OutputObject(object, args[1], datacenterTemplate, &flags.OutputFormatConfig)
 }
