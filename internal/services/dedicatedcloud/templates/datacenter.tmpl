@@ -18,20 +18,18 @@
 {{end}}{{if index .Result "totalDiskSpace"}}**Total Disk Space**:   {{index .Result "totalDiskSpace"}}
 {{end}}
 
+{{if index .Result "clusters"}}
 ## Clusters
 
-{{if index .Result "clusters"}}
 | ID | Name | DRS Status | DRS Mode | HA Status | EVC Mode |
 | --- | --- | --- | --- | --- | --- |
 {{ range index .Result "clusters" }}| {{index . "clusterId"}} | {{index . "name"}} | {{index . "drsStatusFormatted"}} | {{index . "drsMode"}} | {{index . "haStatusFormatted"}} | {{index . "evcMode"}} |
 {{end}}
-{{else}}
-No clusters found
 {{end}}
 
+{{if index .Result "hostsByCluster"}}
 ## Hosts
 
-{{if index .Result "hostsByCluster"}}
 {{ range $clusterName, $hosts := (index .Result "hostsByCluster") }}
 ### Cluster: {{$clusterName}}
 
@@ -40,19 +38,15 @@ No clusters found
 {{ range $hosts }}| {{index . "hostId"}} | {{index . "name"}} | {{index . "connectionStateIndicator"}} | {{index . "maintenanceStatus"}} | {{index . "coreNumber"}} | {{if index . "ram"}}{{index . "ram" "value"}}{{if index . "ram" "unit"}} {{index . "ram" "unit"}}{{end}}{{end}} | {{index . "profile"}} | {{index . "vmCount"}} | {{index . "billingType"}} |
 {{end}}
 {{end}}
-{{else}}
-No hosts found
 {{end}}
 
+{{if index .Result "filers"}}
 ## Filers
 
-{{if index .Result "filers"}}
 | ID | Name | Connection | State | Size | Space Free | Cluster | VMs | Billing | Active Node | Visibility |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 {{ range index .Result "filers" }}| {{index . "filerId"}} | {{index . "name"}} | {{index . "connectionStateIndicator"}} | {{index . "state"}} | {{index . "sizeFormatted"}} | {{index . "spaceFreeFormatted"}} | {{index . "clusterName"}} | {{index . "vmCount"}} | {{index . "billingType"}} | {{index . "activeNode"}} | {{index . "visibility"}} |
 {{end}}
-{{else}}
-No filers found
 {{end}}
 
 💡 Use option --json or --yaml to get the raw output with all information

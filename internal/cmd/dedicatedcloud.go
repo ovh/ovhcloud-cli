@@ -47,11 +47,33 @@ func init() {
 		Run:     dedicatedcloud.ListDatacenter,
 	}))
 
-	dedicatedcloudDatacenterCmd.AddCommand(&cobra.Command{
+	datacenterGetCmd := &cobra.Command{
 		Use:   "get <service_name> <datacenter_id>",
 		Short: "Get information about a specific datacenter of a DedicatedCloud",
 		Args:  cobra.ExactArgs(2),
 		Run:   dedicatedcloud.GetDatacenter,
+	}
+	dedicatedcloudDatacenterCmd.AddCommand(datacenterGetCmd)
+
+	dedicatedcloudDatacenterCmd.AddCommand(&cobra.Command{
+		Use:   "hosts <service_name> <datacenter_id>",
+		Short: "Get hosts information for a specific datacenter",
+		Args:  cobra.ExactArgs(2),
+		Run:   dedicatedcloud.GetDatacenterHosts,
+	})
+
+	dedicatedcloudDatacenterCmd.AddCommand(&cobra.Command{
+		Use:   "filers <service_name> <datacenter_id>",
+		Short: "Get filers information for a specific datacenter",
+		Args:  cobra.ExactArgs(2),
+		Run:   dedicatedcloud.GetDatacenterFilers,
+	})
+
+	dedicatedcloudDatacenterCmd.AddCommand(&cobra.Command{
+		Use:   "clusters <service_name> <datacenter_id>",
+		Short: "Get clusters information for a specific datacenter",
+		Args:  cobra.ExactArgs(2),
+		Run:   dedicatedcloud.GetDatacenterClusters,
 	})
 
 	rootCmd.AddCommand(dedicatedcloudCmd)
