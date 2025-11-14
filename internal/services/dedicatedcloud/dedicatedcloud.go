@@ -161,18 +161,7 @@ func ListDatacenter(_ *cobra.Command, args []string) {
 	for i := range datacenters {
 		datacenterId := ""
 		if idRaw, ok := datacenters[i]["datacenterId"]; ok && idRaw != nil {
-			switch v := idRaw.(type) {
-			case json.Number:
-				datacenterId = v.String()
-			case float64:
-				datacenterId = fmt.Sprintf("%.0f", v)
-			case int:
-				datacenterId = fmt.Sprintf("%d", v)
-			case int64:
-				datacenterId = fmt.Sprintf("%d", v)
-			case string:
-				datacenterId = v
-			}
+			datacenterId = fmt.Sprint(idRaw)
 		}
 
 		if datacenterId == "" {
