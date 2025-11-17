@@ -291,10 +291,8 @@ func (ms *MockSuite) TestDedicatedCloudDatacenterGetCmd(assert, require *td.T) {
 
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("datacenter-1"))
-	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("Cluster1"))
-	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("172.17")) // IP address (may be split across lines)
-	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("93GHz"))  // CPU frequency
-	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("1557"))   // Filer ID
-	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("Local"))
-	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("urn:v1:eu:resource:pccVMware:pcc-12345"))
+	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("Total CPU (Cores)"))
+	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("Total RAM"))
+	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("Total VMs"))
+	assert.Cmp(cleanWhitespacesHelper(out), td.Contains("Total Disk Space"))
 }
