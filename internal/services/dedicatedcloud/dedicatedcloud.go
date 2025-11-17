@@ -46,13 +46,12 @@ func toFloat64(v any) float64 {
 
 // toInt converts any numeric type to int
 func toInt(v any) int {
-	if i, ok := v.(int); ok {
-		return i
-	}
-	if f, ok := v.(float64); ok {
-		return int(f)
-	}
-	if n, ok := v.(json.Number); ok {
+	switch n := v.(type) {
+	case int:
+		return n
+	case float64:
+		return int(n)
+	case json.Number:
 		if i, err := n.Int64(); err == nil {
 			return int(i)
 		}
