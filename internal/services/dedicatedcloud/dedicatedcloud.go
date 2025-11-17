@@ -220,7 +220,7 @@ func ListDatacenter(_ *cobra.Command, args []string) {
 		for _, host := range hosts {
 			// Sum cores
 			if cpuNumRaw, ok := host["cpuNum"]; ok && cpuNumRaw != nil {
-				totalCores += int(toFloat64(cpuNumRaw))
+				totalCores += toInt(cpuNumRaw)
 			}
 
 			// Sum RAM
@@ -615,7 +615,7 @@ func getDatacenterWithOptions(args []string, includeHosts, includeFilers, includ
 		for _, host := range hosts {
 			// Sum cores
 			if cpuNumRaw, ok := host["cpuNum"]; ok && cpuNumRaw != nil {
-				totalCores += int(toFloat64(cpuNumRaw))
+				totalCores += toInt(cpuNumRaw)
 			}
 
 			// Sum RAM
