@@ -348,9 +348,18 @@ func getDatacenterWithOptions(args []string, includeHosts, includeFilers, includ
 			host["coreNumber"] = coreNumber
 
 			// Add VM count
-			if vmTotalRaw, ok := host["vmTotal"]; ok && vmTotalRaw != nil {
-				host["vmCount"] = toInt(vmTotalRaw)
-			} else {
+			switch v := host["vmTotal"].(type) {
+			case float64:
+				host["vmCount"] = int(v)
+			case int:
+				host["vmCount"] = v
+			case json.Number:
+				if i, err := v.Int64(); err == nil {
+					host["vmCount"] = int(i)
+				} else {
+					host["vmCount"] = 0
+				}
+			default:
 				host["vmCount"] = 0
 			}
 
@@ -568,9 +577,18 @@ func getDatacenterWithOptions(args []string, includeHosts, includeFilers, includ
 			filer["clusterName"] = clusterName
 
 			// Add VM count
-			if vmTotalRaw, ok := filer["vmTotal"]; ok && vmTotalRaw != nil {
-				filer["vmCount"] = toInt(vmTotalRaw)
-			} else {
+			switch v := filer["vmTotal"].(type) {
+			case float64:
+				filer["vmCount"] = int(v)
+			case int:
+				filer["vmCount"] = v
+			case json.Number:
+				if i, err := v.Int64(); err == nil {
+					filer["vmCount"] = int(i)
+				} else {
+					filer["vmCount"] = 0
+				}
+			default:
 				filer["vmCount"] = 0
 			}
 
