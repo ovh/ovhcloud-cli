@@ -225,14 +225,28 @@ func ListDatacenter(_ *cobra.Command, args []string) {
 
 			// Sum RAM
 			if ram, ok := host["ram"].(map[string]any); ok {
-				if ramValueRaw, ok := ram["value"]; ok && ramValueRaw != nil {
-					totalRAM += toFloat64(ramValueRaw)
+				if ramValue, ok := ram["value"]; ok && ramValue != nil {
+					switch v := ramValue.(type) {
+					case float64:
+						totalRAM += v
+					case json.Number:
+						if f, err := v.Float64(); err == nil {
+							totalRAM += f
+						}
+					}
 				}
 			}
 
 			// Sum VMs
-			if vmTotalRaw, ok := host["vmTotal"]; ok && vmTotalRaw != nil {
-				totalVMs += toInt(vmTotalRaw)
+			if vmTotal, ok := host["vmTotal"]; ok && vmTotal != nil {
+				switch v := vmTotal.(type) {
+				case float64:
+					totalVMs += int(v)
+				case json.Number:
+					if i, err := v.Int64(); err == nil {
+						totalVMs += int(i)
+					}
+				}
 			}
 		}
 
@@ -313,14 +327,14 @@ func getDatacenterWithOptions(args []string, includeHosts, includeFilers, includ
 	// Enrich hosts with formatted data and group by cluster
 	hostsByCluster := make(map[string][]map[string]any)
 	if includeHosts {
-		for i := range hosts {
+		for _, host := range hosts {
 			// Format Core Number with GHz in parentheses
 			coreNumber := ""
-			if cpuNumRaw, ok := hosts[i]["cpuNum"]; ok && cpuNumRaw != nil {
+			if cpuNumRaw, ok := host["cpuNum"]; ok && cpuNumRaw != nil {
 				cpuNumValue := toFloat64(cpuNumRaw)
 				if cpuNumValue > 0 {
 					coreNumber = fmt.Sprintf("%.0f", cpuNumValue)
-					if cpu, ok := hosts[i]["cpu"].(map[string]any); ok {
+					if cpu, ok := host["cpu"].(map[string]any); ok {
 						if cpuValueRaw, ok := cpu["value"]; ok && cpuValueRaw != nil {
 							cpuValue := toFloat64(cpuValueRaw)
 							if cpuValue > 0 {
@@ -331,35 +345,35 @@ func getDatacenterWithOptions(args []string, includeHosts, includeFilers, includ
 					}
 				}
 			}
-			hosts[i]["coreNumber"] = coreNumber
+			host["coreNumber"] = coreNumber
 
 			// Add VM count
-			if vmTotalRaw, ok := hosts[i]["vmTotal"]; ok && vmTotalRaw != nil {
-				hosts[i]["vmCount"] = toInt(vmTotalRaw)
+			if vmTotalRaw, ok := host["vmTotal"]; ok && vmTotalRaw != nil {
+				host["vmCount"] = toInt(vmTotalRaw)
 			} else {
-				hosts[i]["vmCount"] = 0
+				host["vmCount"] = 0
 			}
 
 			// Add maintenance status emoji
-			if inMaintenance, ok := hosts[i]["inMaintenance"].(bool); ok && inMaintenance {
-				hosts[i]["maintenanceStatus"] = "🔧"
+			if inMaintenance, ok := host["inMaintenance"].(bool); ok && inMaintenance {
+				host["maintenanceStatus"] = "🔧"
 			} else {
-				hosts[i]["maintenanceStatus"] = "✅"
+				host["maintenanceStatus"] = "✅"
 			}
 
 			// Add connection state indicator
 			connectionStateIndicator := "🔴"
-			if connectionState, ok := hosts[i]["connectionState"].(string); ok && connectionState == "connected" {
+			if connectionState, ok := host["connectionState"].(string); ok && connectionState == "connected" {
 				connectionStateIndicator = "🟢"
 			}
-			hosts[i]["connectionStateIndicator"] = connectionStateIndicator
+			host["connectionStateIndicator"] = connectionStateIndicator
 
 			// Group by cluster
 			clusterName := "Unknown"
-			if cn, ok := hosts[i]["clusterName"].(string); ok && cn != "" {
+			if cn, ok := host["clusterName"].(string); ok && cn != "" {
 				clusterName = cn
 			}
-			hostsByCluster[clusterName] = append(hostsByCluster[clusterName], hosts[i])
+			hostsByCluster[clusterName] = append(hostsByCluster[clusterName], host)
 		}
 		if len(hostsByCluster) > 0 {
 			object["hostsByCluster"] = hostsByCluster
@@ -576,14 +590,28 @@ func getDatacenterWithOptions(args []string, includeHosts, includeFilers, includ
 
 			// Sum RAM
 			if ram, ok := host["ram"].(map[string]any); ok {
-				if ramValueRaw, ok := ram["value"]; ok && ramValueRaw != nil {
-					totalRAM += toFloat64(ramValueRaw)
+				if ramValue, ok := ram["value"]; ok && ramValue != nil {
+					switch v := ramValue.(type) {
+					case float64:
+						totalRAM += v
+					case json.Number:
+						if f, err := v.Float64(); err == nil {
+							totalRAM += f
+						}
+					}
 				}
 			}
 
 			// Sum VMs
-			if vmTotalRaw, ok := host["vmTotal"]; ok && vmTotalRaw != nil {
-				totalVMs += toInt(vmTotalRaw)
+			if vmTotal, ok := host["vmTotal"]; ok && vmTotal != nil {
+				switch v := vmTotal.(type) {
+				case float64:
+					totalVMs += int(v)
+				case json.Number:
+					if i, err := v.Int64(); err == nil {
+						totalVMs += int(i)
+					}
+				}
 			}
 		}
 
