@@ -395,10 +395,22 @@ func getDatacenterWithOptions(args []string, includeHosts, includeFilers, includ
 		if includeHosts {
 			for _, host := range hosts {
 				if clusterName, ok := host["clusterName"].(string); ok && clusterName != "" {
-					if clusterIdRaw, ok := host["clusterId"]; ok && clusterIdRaw != nil {
-						clusterId := toInt(clusterIdRaw)
+					switch v := host["clusterId"].(type) {
+					case float64:
+						clusterId := int(v)
 						if clusterId > 0 {
 							clusterNameToId[clusterName] = clusterId
+						}
+					case int:
+						if v > 0 {
+							clusterNameToId[clusterName] = v
+						}
+					case json.Number:
+						if i, err := v.Int64(); err == nil {
+							clusterId := int(i)
+							if clusterId > 0 {
+								clusterNameToId[clusterName] = clusterId
+							}
 						}
 					}
 				}
@@ -512,16 +524,16 @@ func getDatacenterWithOptions(args []string, includeHosts, includeFilers, includ
 		allFilers = append(allFilers, globalFilers...)
 
 		// Enrich filers with formatted data
-		for i := range allFilers {
+		for i, filer := range allFilers {
 			// Set visibility based on source
 			if i < len(localFilers) {
-				allFilers[i]["visibility"] = "Local"
+				filer["visibility"] = "Local"
 			} else {
-				allFilers[i]["visibility"] = "Global"
+				filer["visibility"] = "Global"
 			}
 			// Format size
 			sizeStr := ""
-			if size, ok := allFilers[i]["size"].(map[string]any); ok {
+			if size, ok := filer["size"].(map[string]any); ok {
 				if sizeValueRaw, ok := size["value"]; ok && sizeValueRaw != nil {
 					sizeValue := toFloat64(sizeValueRaw)
 					if sizeValue > 0 {
@@ -532,42 +544,42 @@ func getDatacenterWithOptions(args []string, includeHosts, includeFilers, includ
 					}
 				}
 			}
-			allFilers[i]["sizeFormatted"] = sizeStr
+			filer["sizeFormatted"] = sizeStr
 
 			// Format spaceFree
 			spaceFreeStr := ""
-			if spaceFreeRaw, ok := allFilers[i]["spaceFree"]; ok && spaceFreeRaw != nil {
+			if spaceFreeRaw, ok := filer["spaceFree"]; ok && spaceFreeRaw != nil {
 				spaceFreeValue := toFloat64(spaceFreeRaw)
 				if spaceFreeValue > 0 {
 					spaceFreeStr = fmt.Sprintf("%.0f GB", spaceFreeValue)
 				}
 			}
-			allFilers[i]["spaceFreeFormatted"] = spaceFreeStr
+			filer["spaceFreeFormatted"] = spaceFreeStr
 
 			// Extract cluster name from master (first part of domain)
 			clusterName := ""
-			if master, ok := allFilers[i]["master"].(string); ok && master != "" {
+			if master, ok := filer["master"].(string); ok && master != "" {
 				// Extract first part before first dot
 				parts := strings.Split(master, ".")
 				if len(parts) > 0 {
 					clusterName = parts[0]
 				}
 			}
-			allFilers[i]["clusterName"] = clusterName
+			filer["clusterName"] = clusterName
 
 			// Add VM count
-			if vmTotalRaw, ok := allFilers[i]["vmTotal"]; ok && vmTotalRaw != nil {
-				allFilers[i]["vmCount"] = toInt(vmTotalRaw)
+			if vmTotalRaw, ok := filer["vmTotal"]; ok && vmTotalRaw != nil {
+				filer["vmCount"] = toInt(vmTotalRaw)
 			} else {
-				allFilers[i]["vmCount"] = 0
+				filer["vmCount"] = 0
 			}
 
 			// Add connection state indicator
 			connectionStateIndicator := "🔴"
-			if connectionState, ok := allFilers[i]["connectionState"].(string); ok && connectionState == "online" {
+			if connectionState, ok := filer["connectionState"].(string); ok && connectionState == "online" {
 				connectionStateIndicator = "🟢"
 			}
-			allFilers[i]["connectionStateIndicator"] = connectionStateIndicator
+			filer["connectionStateIndicator"] = connectionStateIndicator
 		}
 		if includeFilers && len(allFilers) > 0 {
 			object["filers"] = allFilers
