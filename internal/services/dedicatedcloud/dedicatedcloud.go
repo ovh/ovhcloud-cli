@@ -30,13 +30,12 @@ var (
 
 // toFloat64 converts any numeric type to float64
 func toFloat64(v any) float64 {
-	if f, ok := v.(float64); ok {
-		return f
-	}
-	if i, ok := v.(int); ok {
-		return float64(i)
-	}
-	if n, ok := v.(json.Number); ok {
+	switch n := v.(type) {
+	case float64:
+		return n
+	case int:
+		return float64(n)
+	case json.Number:
 		if f, err := n.Float64(); err == nil {
 			return f
 		}
