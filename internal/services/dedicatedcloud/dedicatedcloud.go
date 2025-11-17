@@ -223,16 +223,7 @@ func ListDatacenter(_ *cobra.Command, args []string) {
 
 			// Sum RAM
 			if ram, ok := host["ram"].(map[string]any); ok {
-				if ramValue, ok := ram["value"]; ok && ramValue != nil {
-					switch v := ramValue.(type) {
-					case float64:
-						totalRAM += v
-					case json.Number:
-						if f, err := v.Float64(); err == nil {
-							totalRAM += f
-						}
-					}
-				}
+				totalRAM += toFloat64(ram["value"])
 			}
 
 			// Sum VMs
@@ -618,16 +609,7 @@ func getDatacenterWithOptions(args []string, includeHosts, includeFilers, includ
 
 			// Sum RAM
 			if ram, ok := host["ram"].(map[string]any); ok {
-				if ramValue, ok := ram["value"]; ok && ramValue != nil {
-					switch v := ramValue.(type) {
-					case float64:
-						totalRAM += v
-					case json.Number:
-						if f, err := v.Float64(); err == nil {
-							totalRAM += f
-						}
-					}
-				}
+				totalRAM += toFloat64(ram["value"])
 			}
 
 			// Sum VMs
