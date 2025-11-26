@@ -1018,3 +1018,83 @@ func init() {
 		Run:   webhosting.GetSSL,
 	}
 	sslCmd.AddCommand(sslGetCmd)
+	sslCreateCmd := &cobra.Command{
+		Use:   "create <service_name>",
+		Short: "Create SSL",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.CreateSSL,
+	}
+	sslCreateCmd.Flags().StringVar(&webhosting.SSLCertificate, "certificate", "", "Certificate")
+	sslCreateCmd.Flags().StringVar(&webhosting.SSLChain, "chain", "", "Certificate chain")
+	sslCreateCmd.Flags().StringVar(&webhosting.SSLKey, "key", "", "Private key")
+	addFromFileFlag(sslCreateCmd)
+	addInteractiveEditorFlag(sslCreateCmd)
+	sslCmd.AddCommand(sslCreateCmd)
+	sslDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name>",
+		Short: "Delete SSL",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.DeleteSSL,
+	}
+	sslCmd.AddCommand(sslDeleteCmd)
+	sslRegenerateCmd := &cobra.Command{
+		Use:   "regenerate <service_name>",
+		Short: "Regenerate SSL",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.RegenerateSSL,
+	}
+	sslCmd.AddCommand(sslRegenerateCmd)
+	sslDomainsCmd := &cobra.Command{
+		Use:   "domains <service_name>",
+		Short: "List SSL domains",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListSSLAttachedDomains,
+	}
+	sslCmd.AddCommand(withFilterFlag(sslDomainsCmd))
+	sslReportCmd := &cobra.Command{
+		Use:   "report <service_name>",
+		Short: "Get SSL report",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetSSLReport,
+	}
+	sslCmd.AddCommand(sslReportCmd)
+	webhostingCmd.AddCommand(sslCmd)
+
+	// CDN
+	cdnCmd := &cobra.Command{Use: "cdn", Short: "Manage CDN"}
+	cdnGetCmd := &cobra.Command{
+		Use:   "get <service_name>",
+		Short: "Get CDN info",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetCdn,
+	}
+	cdnCmd.AddCommand(cdnGetCmd)
+	cdnDomainCmd := &cobra.Command{Use: "domain", Short: "Manage CDN domains"}
+	cdnDomainListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List CDN domains",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListCdnDomains,
+	}
+	cdnDomainCmd.AddCommand(withFilterFlag(cdnDomainListCmd))
+	cdnDomainGetCmd := &cobra.Command{
+		Use:   "get <service_name> <domain>",
+		Short: "Get a CDN domain",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetCdnDomain,
+	}
+	cdnDomainCmd.AddCommand(cdnDomainGetCmd)
+	cdnPurgeCmd := &cobra.Command{
+		Use:   "purge <service_name> <domain>",
+		Short: "Purge CDN domain cache",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.PurgeCdnDomain,
+	}
+	cdnDomainCmd.AddCommand(cdnPurgeCmd)
+	cdnRefreshCmd := &cobra.Command{
+		Use:   "refresh <service_name> <domain>",
+		Short: "Refresh CDN domain",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.RefreshCdnDomain,
+	}
+	cdnDomainCmd.AddCommand(cdnRefreshCmd)
