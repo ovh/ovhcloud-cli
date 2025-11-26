@@ -568,3 +568,23 @@ func init() {
 	webhostingCmd.AddCommand(extraSQLCmd)
 
 	// Env vars
+	envCmd := &cobra.Command{Use: "env", Short: "Manage environment variables"}
+	envListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List env vars",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListEnvVars,
+	}
+	envCmd.AddCommand(withFilterFlag(envListCmd))
+	envGetCmd := &cobra.Command{
+		Use:   "get <service_name> <key>",
+		Short: "Get an env var",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetEnvVar,
+	}
+	envCmd.AddCommand(envGetCmd)
+	envCreateCmd := &cobra.Command{
+		Use:   "create <service_name>",
+		Short: "Create an env var",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.CreateEnvVar,
