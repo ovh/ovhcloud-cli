@@ -1228,3 +1228,53 @@ func init() {
 		Long:  "Create and manage the FTP/SSH users allowed to access your web hosting space.",
 	}
 	userListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List FTP/SSH users",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListUsers,
+	}
+	userCmd.AddCommand(withFilterFlag(userListCmd))
+	userGetCmd := &cobra.Command{
+		Use:   "get <service_name> <login>",
+		Short: "Get a FTP/SSH user",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetUser,
+	}
+	userCmd.AddCommand(userGetCmd)
+	userCreateCmd := &cobra.Command{
+		Use:   "create <service_name>",
+		Short: "Create a FTP/SSH user",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.CreateUser,
+	}
+	userCreateCmd.Flags().StringVar(&webhosting.UserHome, "home", "", "Home directory for the FTP/SSH user")
+	userCreateCmd.Flags().StringVar(&webhosting.UserLogin, "login", "", "FTP/SSH login")
+	userCreateCmd.Flags().StringVar(&webhosting.UserPassword, "password", "", "FTP/SSH password")
+	userCreateCmd.Flags().StringVar(&webhosting.UserSSHState, "ssh-state", "", "SSH state (allowed: active, none)")
+	addFromFileFlag(userCreateCmd)
+	addInteractiveEditorFlag(userCreateCmd)
+	userCmd.AddCommand(userCreateCmd)
+	userUpdateCmd := &cobra.Command{
+		Use:   "update <service_name> <login>",
+		Short: "Update a FTP/SSH user",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.UpdateUser,
+	}
+	userUpdateCmd.Flags().StringVar(&webhosting.UserHome, "home", "", "Home directory for the FTP/SSH user")
+	userUpdateCmd.Flags().StringVar(&webhosting.UserPassword, "password", "", "FTP/SSH password")
+	userUpdateCmd.Flags().StringVar(&webhosting.UserSSHState, "ssh-state", "", "SSH state (allowed: active, none)")
+	addInteractiveEditorFlag(userUpdateCmd)
+	userCmd.AddCommand(userUpdateCmd)
+	userDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <login>",
+		Short: "Delete a FTP/SSH user",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.DeleteUser,
+	}
+	userCmd.AddCommand(userDeleteCmd)
+	userChangePwdCmd := &cobra.Command{
+		Use:   "change-password <service_name> <login>",
+		Short: "Change FTP/SSH user password",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ChangeUserPassword,
+	}
