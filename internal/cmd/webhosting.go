@@ -588,3 +588,63 @@ func init() {
 		Short: "Create an env var",
 		Args:  cobra.ExactArgs(1),
 		Run:   webhosting.CreateEnvVar,
+	}
+	envCreateCmd.Flags().StringVar(&webhosting.EnvVarKey, "key", "", "Variable name")
+	envCreateCmd.Flags().StringVar(&webhosting.EnvVarType, "type", "", "Variable type (allowed: integer, password, string)")
+	envCreateCmd.Flags().StringVar(&webhosting.EnvVarValue, "value", "", "Variable value")
+	addFromFileFlag(envCreateCmd)
+	addInteractiveEditorFlag(envCreateCmd)
+	envCmd.AddCommand(envCreateCmd)
+	envUpdateCmd := &cobra.Command{
+		Use:   "update <service_name> <key>",
+		Short: "Update an env var",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.UpdateEnvVar,
+	}
+	envUpdateCmd.Flags().StringVar(&webhosting.EnvVarType, "type", "", "Variable type (allowed: integer, password, string)")
+	envUpdateCmd.Flags().StringVar(&webhosting.EnvVarValue, "value", "", "Variable value")
+	addInteractiveEditorFlag(envUpdateCmd)
+	envCmd.AddCommand(envUpdateCmd)
+	envDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <key>",
+		Short: "Delete an env var",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.DeleteEnvVar,
+	}
+	envCmd.AddCommand(envDeleteCmd)
+	webhostingCmd.AddCommand(envCmd)
+
+	// Modules
+	moduleCmd := &cobra.Command{Use: "module", Short: "Manage one-click modules"}
+	moduleListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List modules",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListModules,
+	}
+	moduleCmd.AddCommand(withFilterFlag(moduleListCmd))
+	moduleGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get a module",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetModule,
+	}
+	moduleCmd.AddCommand(moduleGetCmd)
+	moduleInstallCmd := &cobra.Command{
+		Use:   "install <service_name>",
+		Short: "Install a module",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.InstallModule,
+	}
+	moduleInstallCmd.Flags().IntVar(&webhosting.ModuleID, "module-id", 0, "Module ID")
+	moduleInstallCmd.Flags().StringVar(&webhosting.ModuleName, "module-name", "", "Module name (latest version will be selected)")
+	moduleInstallCmd.Flags().StringVar(&webhosting.ModuleDomain, "domain", "", "Domain")
+	moduleInstallCmd.Flags().StringVar(&webhosting.ModulePath, "path", "", "Install path")
+	moduleInstallCmd.Flags().StringVar(&webhosting.ModuleLanguage, "language", "", "Language")
+	moduleInstallCmd.Flags().StringVar(&webhosting.ModuleAdmin, "admin", "", "Admin login")
+	moduleInstallCmd.Flags().StringVar(&webhosting.ModulePassword, "admin-password", "", "Admin password")
+	addFromFileFlag(moduleInstallCmd)
+	addInteractiveEditorFlag(moduleInstallCmd)
+	moduleCmd.AddCommand(moduleInstallCmd)
+	moduleDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <id>",
