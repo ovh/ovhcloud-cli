@@ -1,0 +1,29 @@
+🗄️ Extra SQL Option {{.ObjectID}}
+===============================
+
+**Name**: {{index .Result "name"}}
+
+**Status**: {{index .Result "status"}}
+
+**Databases allowed**: {{index .Result "database"}}
+
+{{ with $size := index .Result "size" -}}
+**Quota per database**: {{index $size "value"}} {{index $size "unit"}}
+{{- else -}}
+**Quota per database**: N/A
+{{- end }}
+
+{{ with $task := index .Result "taskId" -}}
+**Active task**: {{$task}}
+{{- end }}
+
+{{ with $usage := index .Result "usage" -}}
+**Linked databases:**
+{{ range $usage -}}
+- {{.}}
+{{ end -}}
+{{- else -}}
+**Linked databases**: none
+{{- end }}
+
+💡 Use option --json or --yaml to get the raw output with all information

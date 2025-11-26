@@ -358,3 +358,58 @@ func init() {
 	dbDumpGetCmd := &cobra.Command{
 		Use:   "get <service_name> <name> <id>",
 		Short: "Get a database dump",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.GetDatabaseDump,
+	}
+	dbDumpCmd.AddCommand(dbDumpGetCmd)
+	dbDumpCreateCmd := &cobra.Command{
+		Use:   "create <service_name> <name>",
+		Short: "Request a database dump",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.RequestDatabaseDump,
+	}
+	dbDumpCreateCmd.Flags().StringVar(&webhosting.DatabaseDumpDate, "date", "", "Dump type (allowed: daily.1, now, weekly.1)")
+	dbDumpCreateCmd.Flags().BoolVar(&webhosting.DatabaseSendEmail, "send-email", true, "Send email when dump is ready")
+	addFromFileFlag(dbDumpCreateCmd)
+	addInteractiveEditorFlag(dbDumpCreateCmd)
+	dbDumpCmd.AddCommand(dbDumpCreateCmd)
+	dbDumpDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <name> <id>",
+		Short: "Delete a database dump",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.DeleteDatabaseDump,
+	}
+	dbDumpCmd.AddCommand(dbDumpDeleteCmd)
+	dbDumpRestoreCmd := &cobra.Command{
+		Use:   "restore <service_name> <name> <id>",
+		Short: "Restore from a dump",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.RestoreDatabaseDump,
+	}
+	dbDumpCmd.AddCommand(dbDumpRestoreCmd)
+	dbCmd.AddCommand(dbDumpCmd)
+
+	dbRestoreCmd := &cobra.Command{
+		Use:   "restore <service_name> <name>",
+		Short: "Restore database from snapshot date",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.RestoreDatabaseFromDate,
+	}
+	dbRestoreCmd.Flags().StringVar(&webhosting.DatabaseDumpDate, "date", "", "Dump type to restore (allowed: daily.1, now, weekly.1)")
+	dbRestoreCmd.Flags().BoolVar(&webhosting.DatabaseSendEmail, "send-email", false, "Send email when restore completes")
+	addFromFileFlag(dbRestoreCmd)
+	addInteractiveEditorFlag(dbRestoreCmd)
+	dbCmd.AddCommand(dbRestoreCmd)
+
+	dbImportCmd := &cobra.Command{
+		Use:   "import <service_name> <name>",
+		Short: "Import a database dump",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ImportDatabaseDump,
+	}
+	dbImportCmd.Flags().StringVar(&webhosting.DatabaseDocumentID, "document-id", "", "Document ID from /me/documents")
+	dbImportCmd.Flags().BoolVar(&webhosting.DatabaseFlush, "flush", false, "Flush database before import")
+	dbImportCmd.Flags().BoolVar(&webhosting.DatabaseSendEmail, "send-email", false, "Send email when done")
+	addFromFileFlag(dbImportCmd)
+	addInteractiveEditorFlag(dbImportCmd)
+	dbCmd.AddCommand(dbImportCmd)
