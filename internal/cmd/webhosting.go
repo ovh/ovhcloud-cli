@@ -938,3 +938,83 @@ func init() {
 	addFromFileFlag(websiteCreateCmd)
 	addInteractiveEditorFlag(websiteCreateCmd)
 	websiteCmd.AddCommand(websiteCreateCmd)
+	websiteCapabilitiesCmd := &cobra.Command{
+		Use:   "creation-capabilities <service_name>",
+		Short: "Show website creation capabilities",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetWebsiteCreationCapabilities,
+	}
+	websiteCmd.AddCommand(websiteCapabilitiesCmd)
+	websiteUpdateCmd := &cobra.Command{
+		Use:   "update <service_name> <id>",
+		Short: "Update a website",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.UpdateWebsite,
+	}
+	websiteUpdateCmd.Flags().StringVar(&webhosting.WebsitePath, "path", "", "Deployment path")
+	websiteUpdateCmd.Flags().StringVar(&webhosting.WebsiteVcsURL, "vcs-url", "", "Repository URL")
+	websiteUpdateCmd.Flags().StringVar(&webhosting.WebsiteBranch, "branch", "", "Branch to deploy")
+	addInteractiveEditorFlag(websiteUpdateCmd)
+	websiteCmd.AddCommand(websiteUpdateCmd)
+	websiteDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <id>",
+		Short: "Delete a website",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.DeleteWebsite,
+	}
+	websiteDeleteCmd.Flags().BoolVar(&webhosting.WebsiteDeleteFiles, "delete-files", false, "Also delete files in the website path")
+	websiteCmd.AddCommand(websiteDeleteCmd)
+	websiteDeployCmd := &cobra.Command{
+		Use:   "deploy <service_name> <id>",
+		Short: "Trigger a deployment",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.DeployWebsite,
+	}
+	websiteCmd.AddCommand(websiteDeployCmd)
+	websiteDeploymentCmd := &cobra.Command{Use: "deployment", Short: "Manage website deployments"}
+	websiteDeploymentListCmd := &cobra.Command{
+		Use:   "list <service_name> <id>",
+		Short: "List deployments",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ListWebsiteDeployments,
+	}
+	websiteDeploymentCmd.AddCommand(withFilterFlag(websiteDeploymentListCmd))
+	websiteDeploymentGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id> <deployment_id>",
+		Short: "Get a deployment",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.GetWebsiteDeployment,
+	}
+	websiteDeploymentCmd.AddCommand(websiteDeploymentGetCmd)
+	websiteDeploymentLogsCmd := &cobra.Command{
+		Use:   "logs <service_name> <id> <deployment_id>",
+		Short: "Get deployment logs",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.GetWebsiteDeploymentLogs,
+	}
+	websiteDeploymentCmd.AddCommand(websiteDeploymentLogsCmd)
+	websiteCmd.AddCommand(websiteDeploymentCmd)
+	webhostingCmd.AddCommand(websiteCmd)
+
+	vcsCmd := &cobra.Command{Use: "vcs", Short: "Manage VCS integrations"}
+	vcsWebhooksCmd := &cobra.Command{
+		Use:   "webhooks <service_name>",
+		Short: "Get VCS webhook URLs",
+		Long:  "Retrieve webhook URLs to configure on your VCS provider (supported platforms: github).",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetVcsWebhooks,
+	}
+	vcsWebhooksCmd.Flags().StringVar(&webhosting.VcsWebhookPath, "path", "", "Hosting path to filter on (required)")
+	vcsWebhooksCmd.Flags().StringVar(&webhosting.VcsWebhookPlatform, "vcs", "", "VCS platform (allowed: github)")
+	vcsCmd.AddCommand(vcsWebhooksCmd)
+	webhostingCmd.AddCommand(vcsCmd)
+
+	// SSL
+	sslCmd := &cobra.Command{Use: "ssl", Short: "Manage SSL"}
+	sslGetCmd := &cobra.Command{
+		Use:   "get <service_name>",
+		Short: "Get SSL info",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetSSL,
+	}
+	sslCmd.AddCommand(sslGetCmd)

@@ -1,0 +1,16 @@
+📒 Own Log {{.ObjectID}}
+====================
+
+**FQDN**: {{index .Result "fqdn"}}
+
+**Logs URL**: {{index .Result "logs"}}
+
+**Stats URL**: {{index .Result "stats"}}
+
+**Status**: {{index .Result "status"}}
+
+{{ with $task := index .Result "taskId" -}}
+**Task ID**: {{$task}}
+{{- end }}
+
+💡 Use option --json or --yaml to get the raw output with all information
