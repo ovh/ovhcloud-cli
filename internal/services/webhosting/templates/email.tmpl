@@ -1,0 +1,18 @@
+📧 Email Settings {{.ServiceName}}
+========================
+
+{{ $contact := index .Result "email" -}}
+{{ if $contact }}**Contact email** (used to receive errors): {{$contact}}
+
+{{ end }}
+**State**: {{index .Result "state"}}
+
+**Bounces**: {{index .Result "bounce"}}
+
+**Sent today**: {{index .Result "sentToday"}}
+
+**Sent total**: {{index .Result "sent"}}
+
+**Daily limit**: {{index .Result "maxPerDay"}}
+
+💡 Use option --json or --yaml to get the raw output with all information
