@@ -278,3 +278,43 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run:   webhosting.CreateDatabase,
 	}
+	dbCreateCmd.Flags().StringVar(&webhosting.DatabaseCapability, "capability", "", "Database capability (allowed: extraSqlPerso, local, privateDatabase, sqlLocal, sqlPerso, sqlPro)")
+	dbCreateCmd.Flags().StringVar(&webhosting.DatabaseType, "type", "", "Database type (allowed: mariadb, mysql, postgresql, redis)")
+	dbCreateCmd.Flags().StringVar(&webhosting.DatabaseUser, "user", "", "Database user (must start with hosting login, lowercase)")
+	dbCreateCmd.Flags().StringVar(&webhosting.DatabasePassword, "password", "", "Database password")
+	dbCreateCmd.Flags().StringVar(&webhosting.DatabaseVersion, "version", "", "Database version (allowed: 10, 10.1, 10.11, 10.2, 10.3, 10.4, 10.5, 10.6, 11, 12, 13, 15, 3.2, 3.4, 4.0, 5.1, 5.5, 5.6, 5.7, 6.0, 7.0, 8.0, 8.4, 9.4, 9.5, 9.6)")
+	dbCreateCmd.Flags().StringVar(&webhosting.DatabaseQuota, "quota", "", "Database quota (allowed: 25, 100, 200, 256, 400, 512, 800, 1024)")
+	addFromFileFlag(dbCreateCmd)
+	addInteractiveEditorFlag(dbCreateCmd)
+	dbCmd.AddCommand(dbCreateCmd)
+
+	dbDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <name>",
+		Short: "Delete a database",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.DeleteDatabase,
+	}
+	dbCmd.AddCommand(dbDeleteCmd)
+
+	dbChangePasswordCmd := &cobra.Command{
+		Use:   "change-password <service_name> <name>",
+		Short: "Change database password",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ChangeDatabasePassword,
+	}
+	dbChangePasswordCmd.Flags().StringVar(&webhosting.DatabasePassword, "password", "", "New password")
+	dbCmd.AddCommand(dbChangePasswordCmd)
+
+	dbCopyCmd := &cobra.Command{Use: "copy", Short: "Manage database copies"}
+	dbCopyListCmd := &cobra.Command{
+		Use:   "list <service_name> <name>",
+		Short: "List database copies",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ListDatabaseCopies,
+	}
+	dbCopyCmd.AddCommand(withFilterFlag(dbCopyListCmd))
+	dbCopyGetCmd := &cobra.Command{
+		Use:   "get <service_name> <name> <id>",
+		Short: "Get a database copy",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.GetDatabaseCopy,
