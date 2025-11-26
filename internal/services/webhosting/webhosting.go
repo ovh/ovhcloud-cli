@@ -2538,3 +2538,91 @@ func ListCronAvailableLanguages(_ *cobra.Command, args []string) {
 
 	display.RenderTable(rows, []string{"language"}, &flags.OutputFormatConfig)
 }
+
+func ListCdnDomainOptions(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("cdn/domain/%s/option", url.PathEscape(args[1])))
+	common.ManageListRequestNoExpand(endpoint, []string{"name", "type", "enabled"}, flags.GenericFilters)
+}
+
+func AddCdnDomainOption(cmd *cobra.Command, args []string) {
+	if !flags.ParametersViaEditor && flags.ParametersFile == "" {
+		if !cmd.Flags().Changed("name") || CdnOptionName == "" {
+			display.OutputError(&flags.OutputFormatConfig, "option name is required")
+			return
+		}
+		if !cmd.Flags().Changed("type") || CdnOptionType == "" {
+			display.OutputError(&flags.OutputFormatConfig, "option type is required")
+			return
+		}
+		if !cmd.Flags().Changed("enabled") {
+			display.OutputError(&flags.OutputFormatConfig, "option enabled flag must be provided")
+			return
+		}
+	}
+
+	body := buildCdnOptionBody(cmd, true)
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("cdn/domain/%s/option", url.PathEscape(args[1])))
+
+	created, err := common.CreateResource(
+		cmd,
+		"/hosting/web/{serviceName}/cdn/domain/{domainName}/option",
+		endpoint,
+		"",
+		body,
+		assets.WebhostingOpenapiSchema,
+		[]string{"name", "type", "enabled"},
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create CDN option: %s", err)
+		return
+	}
+
+	display.OutputObject(created, args[1], cdnDomainOptionTemplate, &flags.OutputFormatConfig)
+}
+
+func GetCdnDomainOption(_ *cobra.Command, args []string) {
+	base := serviceEndpoint(args[0], fmt.Sprintf("cdn/domain/%s/option", url.PathEscape(args[1])))
+	common.ManageObjectRequest(base, args[2], cdnDomainOptionTemplate)
+}
+
+func UpdateCdnDomainOption(cmd *cobra.Command, args []string) {
+	params := buildCdnOptionBody(cmd, false)
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("cdn/domain/%s/option/%s", url.PathEscape(args[1]), url.PathEscape(args[2])))
+
+	if err := updateResource(cmd, "/hosting/web/{serviceName}/cdn/domain/{domainName}/option/{optionName}", endpoint, params, nil); err != nil {
+		if errors.Is(err, errNothingToEdit) {
+			display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
+			return
+		}
+		display.OutputError(&flags.OutputFormatConfig, "failed to update CDN option: %s", err)
+		return
+	}
+}
+
+func DeleteCdnDomainOption(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("cdn/domain/%s/option/%s", url.PathEscape(args[1]), url.PathEscape(args[2])))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete CDN option: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ CDN option deleted")
+}
+
+func buildCdnOptionBody(cmd *cobra.Command, includeName bool) map[string]any {
+	body := map[string]any{}
+	if includeName && cmd.Flags().Changed("name") {
+		body["name"] = CdnOptionName
+	}
+	if cmd.Flags().Changed("type") {
+		body["type"] = CdnOptionType
+	}
+	if cmd.Flags().Changed("enabled") {
+		body["enabled"] = CdnOptionEnabled
+	}
+	if cmd.Flags().Changed("pattern") {
+		body["pattern"] = CdnOptionPattern
+	}
+
+	if config := buildCdnOptionConfig(cmd); len(config) > 0 {
+		body["config"] = config
+	}

@@ -1,0 +1,26 @@
+⚙️ CDN Option {{index .Result "name"}}
+=========================
+
+**Type**: {{index .Result "type"}}
+
+**Enabled**: {{index .Result "enabled"}}
+
+**Pattern**: {{index .Result "pattern"}}
+
+{{ $config := index .Result "config" -}}
+{{ if $config -}}
+## Configuration
+{{ range $key, $value := $config -}}
+- {{ $key }}: {{ printf "%v" $value }}
+{{ end -}}
+{{ end }}
+
+{{ $extra := index .Result "extra" -}}
+{{ if $extra -}}
+## Extra
+{{ range $key, $value := $extra -}}
+- {{ $key }}: {{ printf "%v" $value }}
+{{ end -}}
+{{ end }}
+
+💡 Use option --json ou --yaml pour afficher toutes les informations brutes
