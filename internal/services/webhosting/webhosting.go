@@ -358,3 +358,197 @@ func serviceEndpoint(serviceName, suffix string) string {
 }
 
 func renderDetails(body any) {
+	display.OutputWithFormat(&display.OutputMessage{Details: body}, &flags.OutputFormatConfig)
+}
+
+// Attached domains
+func ListAttachedDomains(cmd *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "attachedDomain")
+	common.ManageListRequest(endpoint, "", []string{"domain", "path", "runtimeId", "ssl", "cdn", "firewall"}, flags.GenericFilters)
+}
+
+func FindHostingByDomain(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/hosting/web/attachedDomain?domain=%s", url.QueryEscape(args[0]))
+	var services []string
+	if err := httpLib.Client.Get(endpoint, &services); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to find hosting for domain: %s", err)
+		return
+	}
+	rows := make([]map[string]any, 0, len(services))
+	for _, service := range services {
+		rows = append(rows, map[string]any{"domain": args[0], "serviceName": service})
+	}
+	if len(rows) == 0 {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "ℹ️ No hosting found for domain %s", args[0])
+		return
+	}
+	display.RenderTable(rows, []string{"domain", "serviceName"}, &flags.OutputFormatConfig)
+}
+
+func ListAvailableHostingOffers(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/hosting/web/availableOffer?domain=%s", url.QueryEscape(args[0]))
+	var offers []string
+	if err := httpLib.Client.Get(endpoint, &offers); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch available offers: %s", err)
+		return
+	}
+	if len(offers) == 0 {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "ℹ️ No offer available for domain %s", args[0])
+		return
+	}
+	rows := make([]map[string]any, 0, len(offers))
+	for _, offer := range offers {
+		rows = append(rows, map[string]any{"domain": args[0], "offer": offer})
+	}
+	display.RenderTable(rows, []string{"domain", "offer"}, &flags.OutputFormatConfig)
+}
+
+func ListHostingIncidents(_ *cobra.Command, _ []string) {
+	var incidents []string
+	if err := httpLib.Client.Get("/hosting/web/incident", &incidents); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch incidents: %s", err)
+		return
+	}
+	if len(incidents) == 0 {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "ℹ️ No ongoing incidents")
+		return
+	}
+	rows := make([]map[string]any, 0, len(incidents))
+	for _, incident := range incidents {
+		rows = append(rows, map[string]any{"incident": incident})
+	}
+	display.RenderTable(rows, []string{"incident"}, &flags.OutputFormatConfig)
+}
+
+func GetAttachedDomain(cmd *cobra.Command, args []string) {
+	common.ManageObjectRequest(serviceEndpoint(args[0], "attachedDomain"), args[1], attachedDomainTemplate)
+}
+
+func GetAttachedDomainDigStatus(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("attachedDomain/%s/digStatus", url.PathEscape(args[1])))
+	var body map[string]any
+	if err := httpLib.Client.Get(endpoint, &body); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch DNS status: %s", err)
+		return
+	}
+	display.OutputObject(body, args[1], attachedDomainDigStatusTemplate, &flags.OutputFormatConfig)
+}
+
+func AddAttachedDomain(cmd *cobra.Command, args []string) {
+	params := map[string]any{}
+	if AttachedDomainDomain != "" {
+		params["domain"] = AttachedDomainDomain
+	}
+	if AttachedDomainPath != "" {
+		params["path"] = AttachedDomainPath
+	}
+	if cmd.Flags().Changed("runtime-id") {
+		params["runtimeId"] = AttachedDomainRuntimeID
+	}
+	if cmd.Flags().Changed("enable-ssl") {
+		params["ssl"] = AttachedDomainEnableSSL
+	}
+	if cmd.Flags().Changed("disable-ssl") {
+		params["ssl"] = false
+	}
+	if AttachedDomainCDN != "" {
+		params["cdn"] = AttachedDomainCDN
+	}
+	if AttachedDomainFirewall != "" {
+		params["firewall"] = AttachedDomainFirewall
+	}
+	if AttachedDomainIPLocation != "" {
+		params["ipLocation"] = AttachedDomainIPLocation
+	}
+	if AttachedDomainOwnLog != "" {
+		params["ownLog"] = AttachedDomainOwnLog
+	}
+	if cmd.Flags().Changed("bypass-dns") {
+		params["bypassDNSConfiguration"] = AttachedDomainBypassDNS
+	}
+
+	endpoint := serviceEndpoint(args[0], "attachedDomain")
+	if _, err := common.CreateResource(
+		cmd,
+		"/hosting/web/{serviceName}/attachedDomain",
+		endpoint,
+		"",
+		params,
+		assets.WebhostingOpenapiSchema,
+		[]string{"domain", "path"},
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to attach domain: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Domain attached")
+}
+
+func UpdateAttachedDomain(cmd *cobra.Command, args []string) {
+	params := map[string]any{}
+	if AttachedDomainPath != "" {
+		params["path"] = AttachedDomainPath
+	}
+	if cmd.Flags().Changed("runtime-id") {
+		params["runtimeId"] = AttachedDomainRuntimeID
+	}
+	if cmd.Flags().Changed("enable-ssl") {
+		params["ssl"] = AttachedDomainEnableSSL
+	}
+	if cmd.Flags().Changed("disable-ssl") {
+		params["ssl"] = false
+	}
+	if AttachedDomainCDN != "" {
+		params["cdn"] = AttachedDomainCDN
+	}
+	if AttachedDomainFirewall != "" {
+		params["firewall"] = AttachedDomainFirewall
+	}
+	if AttachedDomainIPLocation != "" {
+		params["ipLocation"] = AttachedDomainIPLocation
+	}
+	if cmd.Flags().Changed("own-log") {
+		params["ownLog"] = AttachedDomainOwnLog
+	}
+	if cmd.Flags().Changed("bypass-dns") {
+		params["bypassDNSConfiguration"] = AttachedDomainBypassDNS
+	}
+
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("attachedDomain/%s", url.PathEscape(args[1])))
+
+	if err := updateResource(cmd, "/hosting/web/{serviceName}/attachedDomain/{domain}", endpoint, params, nil); err != nil {
+		if errors.Is(err, errNothingToEdit) {
+			display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
+			return
+		}
+		display.OutputError(&flags.OutputFormatConfig, "failed to update attached domain: %s", err)
+		return
+	}
+}
+
+func DeleteAttachedDomain(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("attachedDomain/%s", url.PathEscape(args[1])))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete attached domain: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Domain deleted")
+}
+
+func PurgeAttachedDomainCache(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("attachedDomain/%s/purgeCache", url.PathEscape(args[1])))
+	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to purge domain cache: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Purge triggered")
+}
+
+func RestartAttachedDomain(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("attachedDomain/%s/restart", url.PathEscape(args[1])))
+	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to restart domain: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Restart triggered")
+}
