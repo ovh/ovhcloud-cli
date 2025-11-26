@@ -1,0 +1,15 @@
+🧱 OVH Config Capabilities {{.ServiceName}}
+==================================
+
+{{ $entries := index .Result "entries" -}}
+{{ if $entries }}
+| PHP Version | Container Images |
+|-------------|------------------|
+{{ range $entries -}}
+| {{index . "version"}} | {{join (index . "containerImage")}} |
+{{ end }}
+{{ else }}
+No capabilities available.
+{{ end }}
+
+💡 Use option --json or --yaml to get the raw output with all information
