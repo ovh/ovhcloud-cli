@@ -918,3 +918,23 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run:   webhosting.ListWebsites,
 	}
+	websiteCmd.AddCommand(withFilterFlag(websiteListCmd))
+	websiteGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get a website",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetWebsite,
+	}
+	websiteCmd.AddCommand(websiteGetCmd)
+	websiteCreateCmd := &cobra.Command{
+		Use:   "create <service_name>",
+		Short: "Create a website",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.CreateWebsite,
+	}
+	websiteCreateCmd.Flags().StringVar(&webhosting.WebsitePath, "path", "", "Deployment path")
+	websiteCreateCmd.Flags().StringVar(&webhosting.WebsiteVcsURL, "vcs-url", "", "Repository URL")
+	websiteCreateCmd.Flags().StringVar(&webhosting.WebsiteBranch, "branch", "", "Branch to deploy")
+	addFromFileFlag(websiteCreateCmd)
+	addInteractiveEditorFlag(websiteCreateCmd)
+	websiteCmd.AddCommand(websiteCreateCmd)
