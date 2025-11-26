@@ -1,0 +1,41 @@
+⚙️ Runtime {{.ServiceName}}
+================
+
+**ID**: {{index .Result "id"}}
+
+**Name**: {{index .Result "name"}}
+
+**Type**: {{index .Result "type"}}
+
+**Public dir**: {{index .Result "publicDir"}}
+
+**App env**: {{index .Result "appEnv"}}
+
+**Default**: {{index .Result "isDefault"}}
+
+{{ with index .Result "appBootstrap" -}}
+**Bootstrap**: {{.}}
+
+{{ end -}}
+{{ with index .Result "status" -}}
+**Status**: {{.}}
+
+{{ end -}}
+{{ with index .Result "isDeletable" -}}
+**Deletable**: {{.}}
+
+{{ end -}}
+{{ with index .Result "creationDate" -}}
+**Creation date**: {{.}}
+
+{{ end -}}
+{{ with index .Result "lastUpdate" -}}
+**Last update**: {{.}}
+
+{{ end -}}
+{{ with index .Result "taskId" -}}
+**Task ID**: {{.}}
+
+{{ end }}
+
+💡 Use option --json or --yaml to get the raw output with all information
