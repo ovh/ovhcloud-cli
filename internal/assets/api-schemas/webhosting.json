@@ -905,6 +905,49 @@
             "type": "boolean",
             "description": "Whether to put the attached domain in the SSL certificate",
             "nullable": true
+          },
+          "capabilities": {
+            "type": "array",
+            "description": "Available operations on this attached domain",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "href": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "method": {
+                  "type": "string"
+                }
+              }
+            },
+            "readOnly": true
+          },
+          "isFlushable": {
+            "type": "boolean",
+            "description": "Whether cache can be flushed for this domain",
+            "readOnly": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Attached domain status",
+            "readOnly": true
+          },
+          "taskId": {
+            "type": "integer",
+            "description": "Task ID currently running on this domain",
+            "nullable": true,
+            "readOnly": true
+          },
+          "vcsStatus": {
+            "type": "string",
+            "description": "VCS deployment status",
+            "readOnly": true
           }
         }
       },
