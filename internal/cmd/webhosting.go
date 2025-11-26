@@ -648,3 +648,103 @@ func init() {
 	moduleCmd.AddCommand(moduleInstallCmd)
 	moduleDeleteCmd := &cobra.Command{
 		Use:   "delete <service_name> <id>",
+		Short: "Delete a module",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.DeleteModule,
+	}
+	moduleCmd.AddCommand(moduleDeleteCmd)
+
+	moduleCatalogCmd := &cobra.Command{Use: "catalog", Short: "Browse available one-click modules"}
+	moduleCatalogListCmd := &cobra.Command{
+		Use:   "list",
+		Short: "List available modules",
+		Args:  cobra.NoArgs,
+		Run:   webhosting.ListModuleCatalog,
+	}
+	moduleCatalogListCmd.Flags().StringVar(&webhosting.ModuleCatalogBranch, "branch", "", "Filter by branch (allowed: old, stable, testing)")
+	moduleCatalogListCmd.Flags().StringVar(&webhosting.ModuleCatalogActiveFilter, "active", "", "Filter by active flag (true/false)")
+	moduleCatalogListCmd.Flags().StringVar(&webhosting.ModuleCatalogLatestFilter, "latest", "", "Filter by latest flag (true/false)")
+	moduleCatalogCmd.AddCommand(withFilterFlag(moduleCatalogListCmd))
+	moduleCatalogGetCmd := &cobra.Command{
+		Use:   "get <id>",
+		Short: "Get available module details",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetModuleCatalog,
+	}
+	moduleCatalogCmd.AddCommand(moduleCatalogGetCmd)
+	moduleCmd.AddCommand(moduleCatalogCmd)
+	webhostingCmd.AddCommand(moduleCmd)
+
+	offerCmd := &cobra.Command{Use: "offer", Short: "Inspect hosting offers"}
+	offerCapabilitiesCmd := &cobra.Command{
+		Use:   "capabilities <offer>",
+		Short: "Get offer capabilities",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetOfferCapabilities,
+	}
+	offerCmd.AddCommand(offerCapabilitiesCmd)
+	vcsSupportedCmd := &cobra.Command{
+		Use:   "vcs-supported",
+		Short: "List supported VCS platforms",
+		Args:  cobra.NoArgs,
+		Run:   webhosting.ListSupportedVcs,
+	}
+	offerCmd.AddCommand(withFilterFlag(vcsSupportedCmd))
+	webhostingCmd.AddCommand(offerCmd)
+
+	abuseCmd := &cobra.Command{
+		Use:   "abuse-state <service_name>",
+		Short: "Get abuse state",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetAbuseState,
+	}
+	webhostingCmd.AddCommand(abuseCmd)
+
+	ovhConfigCmd := &cobra.Command{Use: "ovh-config", Short: "Manage .ovhconfig settings"}
+	ovhConfigListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List .ovhconfig entries",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListOvhConfigs,
+	}
+	ovhConfigListCmd.Flags().StringVar(&webhosting.OvhConfigPathFilter, "path", "", "Filter configurations by path")
+	ovhConfigListCmd.Flags().BoolVar(&webhosting.OvhConfigHistoricalOnly, "historical", false, "Show only historical configurations")
+	ovhConfigCmd.AddCommand(withFilterFlag(ovhConfigListCmd))
+	ovhConfigGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get a .ovhconfig entry",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetOvhConfig,
+	}
+	ovhConfigCmd.AddCommand(ovhConfigGetCmd)
+	ovhConfigChangeCmd := &cobra.Command{
+		Use:   "change <service_name> <id>",
+		Short: "Change a .ovhconfig entry",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ChangeOvhConfig,
+	}
+	ovhConfigChangeCmd.Flags().StringVar(&webhosting.OvhConfigEngineName, "engine-name", "", "Engine name")
+	ovhConfigChangeCmd.Flags().StringVar(&webhosting.OvhConfigEngineVersion, "engine-version", "", "Engine version")
+	ovhConfigChangeCmd.Flags().StringVar(&webhosting.OvhConfigEnvironment, "environment", "", "Environment (production, development, ...)")
+	ovhConfigChangeCmd.Flags().StringVar(&webhosting.OvhConfigHTTPFirewall, "http-firewall", "", "HTTP firewall mode (none, security, ...)")
+	ovhConfigChangeCmd.Flags().StringVar(&webhosting.OvhConfigContainer, "container", "", "Container image")
+	addFromFileFlag(ovhConfigChangeCmd)
+	addInteractiveEditorFlag(ovhConfigChangeCmd)
+	ovhConfigCmd.AddCommand(ovhConfigChangeCmd)
+	ovhConfigRollbackCmd := &cobra.Command{
+		Use:   "rollback <service_name> <id>",
+		Short: "Rollback a .ovhconfig entry",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.RollbackOvhConfig,
+	}
+	ovhConfigRollbackCmd.Flags().IntVar(&webhosting.OvhConfigRollbackID, "rollback-id", 0, "Configuration ID to rollback to")
+	ovhConfigCmd.AddCommand(ovhConfigRollbackCmd)
+	ovhConfigCapabilitiesCmd := &cobra.Command{
+		Use:   "capabilities <service_name>",
+		Short: "List available versions and containers",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetOvhConfigCapabilities,
+	}
+	ovhConfigCmd.AddCommand(withFilterFlag(ovhConfigCapabilitiesCmd))
+	ovhConfigRecommendedCmd := &cobra.Command{
+		Use:   "recommended <service_name>",
