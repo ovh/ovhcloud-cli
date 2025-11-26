@@ -1478,3 +1478,22 @@ func init() {
 	restoreSnapshotCmd.Flags().StringVar(&webhosting.RestoreBackup, "backup", "", "Backup to restore (allowed: daily.1, daily.2, daily.3, weekly.1, weekly.2)")
 	addFromFileFlag(restoreSnapshotCmd)
 	addInteractiveEditorFlag(restoreSnapshotCmd)
+	webhostingCmd.AddCommand(restoreSnapshotCmd)
+
+	tokenCmd := &cobra.Command{
+		Use:   "token <service_name>",
+		Short: "Get DNS verification token",
+		Long:  "Use to link an external domain. This token must be added to a TXT record on your DNS zone using the ovhcontrol subdomain.",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetToken,
+	}
+	webhostingCmd.AddCommand(tokenCmd)
+
+	unblockTCPCmd := &cobra.Command{
+		Use:   "unblock-tcp-out <service_name>",
+		Short: "Unblock outgoing TCP connections",
+		Long:  "Request a reset of outgoing TCP restrictions applied to your hosting service.",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.UnblockTCPOut,
+	}
+	webhostingCmd.AddCommand(unblockTCPCmd)
