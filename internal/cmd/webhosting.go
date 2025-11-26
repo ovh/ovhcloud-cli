@@ -1198,3 +1198,33 @@ func init() {
 	cdnCmd.AddCommand(cdnServiceInfoCmd)
 	cdnOperationCmd := &cobra.Command{Use: "operation", Short: "Manage CDN operations"}
 	cdnOpListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List CDN operations",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListCdnOperations,
+	}
+	cdnOperationCmd.AddCommand(withFilterFlag(cdnOpListCmd))
+	cdnOpGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get a CDN operation",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetCdnOperation,
+	}
+	cdnOperationCmd.AddCommand(cdnOpGetCmd)
+	cdnCmd.AddCommand(cdnOperationCmd)
+	cdnAvailableOptionsCmd := &cobra.Command{
+		Use:   "available-options <service_name>",
+		Short: "List available CDN options",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListCdnAvailableOptions,
+	}
+	cdnCmd.AddCommand(withFilterFlag(cdnAvailableOptionsCmd))
+	webhostingCmd.AddCommand(cdnCmd)
+
+	// Users
+	userCmd := &cobra.Command{
+		Use:   "user",
+		Short: "Manage FTP/SSH users",
+		Long:  "Create and manage the FTP/SSH users allowed to access your web hosting space.",
+	}
+	userListCmd := &cobra.Command{
