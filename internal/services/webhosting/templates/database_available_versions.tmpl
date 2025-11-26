@@ -1,0 +1,15 @@
+🧩 Database Version Information
+===============================
+
+**Default version**: {{index .Result "default"}}
+
+{{ $list := index .Result "list" }}
+{{ if $list }}
+**Available versions**:
+{{ range $list }}- {{.}}
+{{ end }}
+{{ else }}
+_No versions available._
+{{ end }}
+
+💡 Use option --json or --yaml to get the raw output with all information
