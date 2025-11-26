@@ -1,0 +1,34 @@
+🚀 Deployment {{.ServiceName}}
+====================
+
+**ID**: {{or (index .Result "deploymentId") (index .Result "id")}}
+
+**Status**: {{index .Result "status"}}
+
+{{ with $branch := index .Result "vcsBranch" -}}
+**Branch**: {{$branch}}
+
+{{- end }}
+{{ with $commit := index .Result "vcsCommitId" -}}
+**Commit**: {{$commit}}
+
+{{- end }}
+{{ with $message := index .Result "vcsCommitMessage" -}}
+**Message**: {{$message}}
+
+{{- end }}
+{{ with $source := index .Result "source" -}}
+**Source**: {{$source}}
+
+{{- end }}
+{{ with $reset := index .Result "reset" -}}
+**Reset**: {{$reset}}
+
+{{- end }}
+
+{{ with $date := index .Result "date" -}}
+**Date**: {{$date}}
+
+{{- end }}
+
+💡 Use option --json or --yaml to get the raw output with all information

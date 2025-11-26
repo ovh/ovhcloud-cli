@@ -1098,3 +1098,103 @@ func init() {
 		Run:   webhosting.RefreshCdnDomain,
 	}
 	cdnDomainCmd.AddCommand(cdnRefreshCmd)
+	cdnDomainOptionCmd := &cobra.Command{Use: "option", Short: "Manage CDN domain options"}
+	cdnDomainOptionListCmd := &cobra.Command{
+		Use:   "list <service_name> <domain>",
+		Short: "List CDN domain options",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ListCdnDomainOptions,
+	}
+	cdnDomainOptionCmd.AddCommand(withFilterFlag(cdnDomainOptionListCmd))
+	cdnDomainOptionAddCmd := &cobra.Command{
+		Use:   "add <service_name> <domain>",
+		Short: "Add a CDN domain option",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.AddCdnDomainOption,
+	}
+	cdnDomainOptionAddCmd.Flags().StringVar(&webhosting.CdnOptionName, "name", "", "Option name")
+	cdnDomainOptionAddCmd.Flags().StringVar(&webhosting.CdnOptionType, "type", "", "Option type")
+	cdnDomainOptionAddCmd.Flags().BoolVar(&webhosting.CdnOptionEnabled, "enabled", false, "Enable or disable the option")
+	cdnDomainOptionAddCmd.Flags().StringVar(&webhosting.CdnOptionPattern, "pattern", "", "URL pattern for the option")
+	cdnDomainOptionAddCmd.Flags().StringVar(&webhosting.CdnOptionConfigDestination, "destination", "", "Destination URL for redirects")
+	cdnDomainOptionAddCmd.Flags().BoolVar(&webhosting.CdnOptionConfigFollowURI, "follow-uri", false, "Follow URI on redirects")
+	cdnDomainOptionAddCmd.Flags().StringVar(&webhosting.CdnOptionConfigOrigins, "origins", "", "Authorized origins (comma separated)")
+	cdnDomainOptionAddCmd.Flags().StringVar(&webhosting.CdnOptionConfigPatternType, "pattern-type", "", "Pattern type")
+	cdnDomainOptionAddCmd.Flags().IntVar(&webhosting.CdnOptionConfigPriority, "priority", 0, "Cache rule priority")
+	cdnDomainOptionAddCmd.Flags().StringVar(&webhosting.CdnOptionConfigQueryParameter, "query-parameters", "", "Action on query parameters")
+	cdnDomainOptionAddCmd.Flags().StringSliceVar(&webhosting.CdnOptionConfigResources, "resource", nil, "Resource URI (repeatable)")
+	cdnDomainOptionAddCmd.Flags().IntVar(&webhosting.CdnOptionConfigStatusCode, "status-code", 0, "Redirection HTTP status code")
+	cdnDomainOptionAddCmd.Flags().IntVar(&webhosting.CdnOptionConfigTTL, "ttl", 0, "Cache time in seconds")
+	addFromFileFlag(cdnDomainOptionAddCmd)
+	addInteractiveEditorFlag(cdnDomainOptionAddCmd)
+	cdnDomainOptionCmd.AddCommand(cdnDomainOptionAddCmd)
+	cdnDomainOptionGetCmd := &cobra.Command{
+		Use:   "get <service_name> <domain> <option>",
+		Short: "Get CDN domain option details",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.GetCdnDomainOption,
+	}
+	cdnDomainOptionCmd.AddCommand(cdnDomainOptionGetCmd)
+	cdnDomainOptionUpdateCmd := &cobra.Command{
+		Use:   "update <service_name> <domain> <option>",
+		Short: "Update a CDN domain option",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.UpdateCdnDomainOption,
+	}
+	cdnDomainOptionUpdateCmd.Flags().BoolVar(&webhosting.CdnOptionEnabled, "enabled", false, "Enable or disable the option")
+	cdnDomainOptionUpdateCmd.Flags().StringVar(&webhosting.CdnOptionType, "type", "", "Option type")
+	cdnDomainOptionUpdateCmd.Flags().StringVar(&webhosting.CdnOptionPattern, "pattern", "", "URL pattern for the option")
+	cdnDomainOptionUpdateCmd.Flags().StringVar(&webhosting.CdnOptionConfigDestination, "destination", "", "Destination URL for redirects")
+	cdnDomainOptionUpdateCmd.Flags().BoolVar(&webhosting.CdnOptionConfigFollowURI, "follow-uri", false, "Follow URI on redirects")
+	cdnDomainOptionUpdateCmd.Flags().StringVar(&webhosting.CdnOptionConfigOrigins, "origins", "", "Authorized origins (comma separated)")
+	cdnDomainOptionUpdateCmd.Flags().StringVar(&webhosting.CdnOptionConfigPatternType, "pattern-type", "", "Pattern type")
+	cdnDomainOptionUpdateCmd.Flags().IntVar(&webhosting.CdnOptionConfigPriority, "priority", 0, "Cache rule priority")
+	cdnDomainOptionUpdateCmd.Flags().StringVar(&webhosting.CdnOptionConfigQueryParameter, "query-parameters", "", "Action on query parameters")
+	cdnDomainOptionUpdateCmd.Flags().StringSliceVar(&webhosting.CdnOptionConfigResources, "resource", nil, "Resource URI (repeatable)")
+	cdnDomainOptionUpdateCmd.Flags().IntVar(&webhosting.CdnOptionConfigStatusCode, "status-code", 0, "Redirection HTTP status code")
+	cdnDomainOptionUpdateCmd.Flags().IntVar(&webhosting.CdnOptionConfigTTL, "ttl", 0, "Cache time in seconds")
+	addFromFileFlag(cdnDomainOptionUpdateCmd)
+	addInteractiveEditorFlag(cdnDomainOptionUpdateCmd)
+	cdnDomainOptionCmd.AddCommand(cdnDomainOptionUpdateCmd)
+	cdnDomainOptionDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <domain> <option>",
+		Short: "Delete a CDN domain option",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.DeleteCdnDomainOption,
+	}
+	cdnDomainOptionCmd.AddCommand(cdnDomainOptionDeleteCmd)
+	cdnDomainCmd.AddCommand(cdnDomainOptionCmd)
+	cdnDomainStatsCmd := &cobra.Command{
+		Use:   "statistics <service_name> <domain>",
+		Short: "Get CDN domain statistics",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetCdnDomainStatistics,
+	}
+	cdnDomainStatsCmd.Flags().StringVar(&webhosting.CdnStatisticPeriod, "period", "", "Statistics period (default day)")
+	cdnDomainCmd.AddCommand(withFilterFlag(cdnDomainStatsCmd))
+	cdnCmd.AddCommand(cdnDomainCmd)
+	cdnServiceInfoCmd := &cobra.Command{Use: "service-info", Short: "Manage CDN service info"}
+	cdnServiceInfoGetCmd := &cobra.Command{
+		Use:   "get <service_name>",
+		Short: "Get CDN service information",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetCdnServiceInfo,
+	}
+	cdnServiceInfoCmd.AddCommand(cdnServiceInfoGetCmd)
+	cdnServiceInfoUpdateCmd := &cobra.Command{
+		Use:   "update <service_name>",
+		Short: "Update CDN service information",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.UpdateCdnServiceInfo,
+	}
+	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
+	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
+	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
+	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
+	cdnServiceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
+	addFromFileFlag(cdnServiceInfoUpdateCmd)
+	addInteractiveEditorFlag(cdnServiceInfoUpdateCmd)
+	cdnServiceInfoCmd.AddCommand(cdnServiceInfoUpdateCmd)
+	cdnCmd.AddCommand(cdnServiceInfoCmd)
+	cdnOperationCmd := &cobra.Command{Use: "operation", Short: "Manage CDN operations"}
+	cdnOpListCmd := &cobra.Command{
