@@ -114,11 +114,11 @@ func (ms *MockSuite) TestCloudInstanceNullImageCmd(assert, require *td.T) {
 
   **Name**:                   b2-7
   **Operating system**:       linux
-  **Number of disks**:        50
-  **RAM**:                    7 Mio
+  **Storage**:                50 GB
+  **RAM**:                    7 GB
   **vCPUs**:                  2
-  **Max inbound bandwidth**:  250Mbit/s
-  **Max outbound bandwidth**: 250Mbit/s
+  **Max inbound bandwidth**:  250 Mbit/s
+  **Max outbound bandwidth**: 250 Mbit/s
 
   💡 Use option --json or --yaml to get the raw output with all information
 
