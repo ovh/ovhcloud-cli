@@ -413,3 +413,50 @@ func init() {
 	addFromFileFlag(dbImportCmd)
 	addInteractiveEditorFlag(dbImportCmd)
 	dbCmd.AddCommand(dbImportCmd)
+
+	dbStatsCmd := &cobra.Command{
+		Use:   "stats <service_name> <name>",
+		Short: "Get database statistics",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetDatabaseStatistics,
+	}
+	dbStatsCmd.Flags().StringVar(&webhosting.DatabaseStatsPeriod, "period", "", "Statistics period (allowed: daily, monthly, weekly, yearly)")
+	dbStatsCmd.Flags().StringVar(&webhosting.DatabaseStatsType, "type", "", "Statistics type (allowed: statement, statementMeanTime)")
+	dbCmd.AddCommand(withFilterFlag(dbStatsCmd))
+
+	dbActionCmd := &cobra.Command{
+		Use:   "request-action <service_name> <name>",
+		Short: "Request an action on a database",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.RequestDatabaseAction,
+	}
+	dbActionCmd.Flags().StringVar(&webhosting.DatabaseAction, "action", "", "Action to request (allowed: CHECK_QUOTA)")
+	addFromFileFlag(dbActionCmd)
+	addInteractiveEditorFlag(dbActionCmd)
+	dbCmd.AddCommand(dbActionCmd)
+
+	webhostingCmd.AddCommand(dbCmd)
+
+	// Email
+	emailCmd := &cobra.Command{Use: "email", Short: "Manage automated emails"}
+	emailInfoCmd := &cobra.Command{
+		Use:   "info <service_name>",
+		Short: "Get email sending settings",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetEmailInfo,
+	}
+	emailCmd.AddCommand(emailInfoCmd)
+	emailUpdateCmd := &cobra.Command{
+		Use:   "update <service_name>",
+		Short: "Update email sending settings",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.UpdateEmail,
+	}
+	emailUpdateCmd.Flags().StringVar(&webhosting.EmailContactAddress, "contact-email", "", "Email used to receive error notifications")
+	addInteractiveEditorFlag(emailUpdateCmd)
+	emailCmd.AddCommand(emailUpdateCmd)
+	emailBouncesCmd := &cobra.Command{
+		Use:   "bounces <service_name>",
+		Short: "List recent email bounces",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListEmailBounces,
