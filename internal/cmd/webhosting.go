@@ -1278,3 +1278,73 @@ func init() {
 		Args:  cobra.ExactArgs(2),
 		Run:   webhosting.ChangeUserPassword,
 	}
+	userChangePwdCmd.Flags().StringVar(&webhosting.UserPassword, "password", "", "New FTP/SSH password")
+	userCmd.AddCommand(userChangePwdCmd)
+	webhostingCmd.AddCommand(userCmd)
+
+	sshKeyCmd := &cobra.Command{Use: "ssh-key", Short: "Manage SSH keys"}
+	sshKeyGetCmd := &cobra.Command{
+		Use:   "get <service_name>",
+		Short: "Get the SSH public key",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetSSHKey,
+	}
+	sshKeyCmd.AddCommand(sshKeyGetCmd)
+	sshKeyCreateCmd := &cobra.Command{
+		Use:   "create <service_name>",
+		Short: "Generate a new SSH key pair",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.CreateSSHKey,
+	}
+	sshKeyCmd.AddCommand(sshKeyCreateCmd)
+	webhostingCmd.AddCommand(sshKeyCmd)
+
+	serviceInfoCmd := &cobra.Command{Use: "service-info", Short: "Manage webhosting service info"}
+	serviceInfoGetCmd := &cobra.Command{
+		Use:   "get <service_name>",
+		Short: "Get service information",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetServiceInfo,
+	}
+	serviceInfoCmd.AddCommand(serviceInfoGetCmd)
+	serviceInfoUpdateCmd := &cobra.Command{
+		Use:   "update <service_name>",
+		Short: "Update service information",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.UpdateServiceInfo,
+	}
+	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
+	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
+	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
+	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
+	serviceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
+	addFromFileFlag(serviceInfoUpdateCmd)
+	addInteractiveEditorFlag(serviceInfoUpdateCmd)
+	serviceInfoCmd.AddCommand(serviceInfoUpdateCmd)
+	webhostingCmd.AddCommand(serviceInfoCmd)
+
+	localSeoCmd := &cobra.Command{Use: "local-seo", Short: "Manage Local SEO features"}
+	localSeoDirectoriesCmd := &cobra.Command{
+		Use:   "directories",
+		Short: "List directories available for a country and offer",
+		Args:  cobra.NoArgs,
+		Run:   webhosting.ListLocalSeoDirectories,
+	}
+	localSeoDirectoriesCmd.Flags().StringVar(&webhosting.LocalSEOCountry, "country", "", "Country of the Local SEO offer (see API documentation for possible values)")
+	localSeoDirectoriesCmd.Flags().StringVar(&webhosting.LocalSEOOffer, "offer", "", "Local SEO offer (see API documentation for possible values)")
+	localSeoCmd.AddCommand(localSeoDirectoriesCmd)
+
+	localSeoEmailCmd := &cobra.Command{
+		Use:   "email-availability [service_name]",
+		Short: "Check if an email can be used for Local SEO",
+		Args:  cobra.RangeArgs(0, 1),
+		Run:   webhosting.CheckLocalSeoEmailAvailability,
+	}
+	localSeoEmailCmd.Flags().StringVar(&webhosting.LocalSEOEmail, "email", "", "Email to test for availability")
+	localSeoCmd.AddCommand(localSeoEmailCmd)
+
+	localSeoVisibilityCmd := &cobra.Command{
+		Use:   "visibility-check",
+		Short: "Launch a Local SEO visibility check",
+		Args:  cobra.NoArgs,
+		Run:   webhosting.RunLocalSeoVisibilityCheck,
