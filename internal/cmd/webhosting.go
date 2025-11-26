@@ -1348,3 +1348,73 @@ func init() {
 		Short: "Launch a Local SEO visibility check",
 		Args:  cobra.NoArgs,
 		Run:   webhosting.RunLocalSeoVisibilityCheck,
+	}
+	localSeoVisibilityCmd.Flags().StringVar(&webhosting.LocalSEOCountry, "country", "", "Country of the location (see API documentation for allowed values)")
+	localSeoVisibilityCmd.Flags().StringVar(&webhosting.LocalSEOName, "name", "", "Name of the location")
+	localSeoVisibilityCmd.Flags().StringVar(&webhosting.LocalSEOStreet, "street", "", "Street of the location")
+	localSeoVisibilityCmd.Flags().StringVar(&webhosting.LocalSEOZip, "zip", "", "Zip code of the location")
+	addFromFileFlag(localSeoVisibilityCmd)
+	addInteractiveEditorFlag(localSeoVisibilityCmd)
+	localSeoCmd.AddCommand(localSeoVisibilityCmd)
+
+	localSeoVisibilityResultCmd := &cobra.Command{
+		Use:   "visibility-result <check_id>",
+		Short: "Display the result of a visibility check",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetLocalSeoVisibilityResult,
+	}
+	localSeoVisibilityResultCmd.Flags().StringVar(&webhosting.LocalSEODirectory, "directory", "", "Directory code to fetch (see directories command)")
+	localSeoVisibilityResultCmd.Flags().StringVar(&webhosting.LocalSEOToken, "token", "", "Token returned by the visibility check")
+	localSeoCmd.AddCommand(localSeoVisibilityResultCmd)
+
+	localSeoAccountCmd := &cobra.Command{Use: "account", Short: "Manage Local SEO accounts"}
+	localSeoAccountListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List Local SEO accounts",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListLocalSeoAccounts,
+	}
+	localSeoAccountListCmd.Flags().StringVar(&webhosting.LocalSEOAccountEmailFilter, "email", "", "Filter accounts by email")
+	localSeoAccountCmd.AddCommand(withFilterFlag(localSeoAccountListCmd))
+	localSeoAccountGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get a Local SEO account",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetLocalSeoAccount,
+	}
+	localSeoAccountCmd.AddCommand(localSeoAccountGetCmd)
+	localSeoAccountLoginCmd := &cobra.Command{
+		Use:   "login <service_name> <id>",
+		Short: "Generate an SSO link for a Local SEO account",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.LoginLocalSeoAccount,
+	}
+	localSeoAccountCmd.AddCommand(localSeoAccountLoginCmd)
+	localSeoCmd.AddCommand(localSeoAccountCmd)
+
+	localSeoLocationCmd := &cobra.Command{Use: "location", Short: "Manage Local SEO locations"}
+	localSeoLocationListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List Local SEO locations",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListLocalSeoLocations,
+	}
+	localSeoLocationCmd.AddCommand(withFilterFlag(localSeoLocationListCmd))
+	localSeoLocationGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get a Local SEO location",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetLocalSeoLocation,
+	}
+	localSeoLocationCmd.AddCommand(localSeoLocationGetCmd)
+	localSeoLocationServiceInfoCmd := &cobra.Command{Use: "service-info", Short: "Manage Local SEO location service info"}
+	localSeoLocationServiceInfoGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get Local SEO location service info",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetLocalSeoLocationServiceInfo,
+	}
+	localSeoLocationServiceInfoCmd.AddCommand(localSeoLocationServiceInfoGetCmd)
+	localSeoLocationServiceInfoUpdateCmd := &cobra.Command{
+		Use:   "update <service_name> <id>",
+		Short: "Update Local SEO location service info",

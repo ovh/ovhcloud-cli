@@ -2626,3 +2626,312 @@ func buildCdnOptionBody(cmd *cobra.Command, includeName bool) map[string]any {
 	if config := buildCdnOptionConfig(cmd); len(config) > 0 {
 		body["config"] = config
 	}
+
+	return body
+}
+
+func buildCdnOptionConfig(cmd *cobra.Command) map[string]any {
+	config := map[string]any{}
+
+	if cmd.Flags().Changed("destination") {
+		config["destination"] = CdnOptionConfigDestination
+	}
+	if cmd.Flags().Changed("follow-uri") {
+		config["followUri"] = CdnOptionConfigFollowURI
+	}
+	if cmd.Flags().Changed("origins") {
+		config["origins"] = CdnOptionConfigOrigins
+	}
+	if cmd.Flags().Changed("pattern-type") {
+		config["patternType"] = CdnOptionConfigPatternType
+	}
+	if cmd.Flags().Changed("priority") {
+		config["priority"] = CdnOptionConfigPriority
+	}
+	if cmd.Flags().Changed("query-parameters") {
+		config["queryParameters"] = CdnOptionConfigQueryParameter
+	}
+	if cmd.Flags().Changed("resource") {
+		config["resources"] = CdnOptionConfigResources
+	}
+	if cmd.Flags().Changed("status-code") {
+		config["statusCode"] = CdnOptionConfigStatusCode
+	}
+	if cmd.Flags().Changed("ttl") {
+		config["ttl"] = CdnOptionConfigTTL
+	}
+
+	return config
+}
+
+func buildServiceInfoRenewPayload(cmd *cobra.Command) map[string]any {
+	renew := map[string]any{}
+	if cmd.Flags().Changed("renew-automatic") {
+		renew["automatic"] = common.ServiceInfoSpec.Renew.Automatic
+	}
+	if cmd.Flags().Changed("renew-delete-at-expiration") {
+		renew["deleteAtExpiration"] = common.ServiceInfoSpec.Renew.DeleteAtExpiration
+	}
+	if cmd.Flags().Changed("renew-forced") {
+		renew["forced"] = common.ServiceInfoSpec.Renew.Forced
+	}
+	if cmd.Flags().Changed("renew-manual-payment") {
+		renew["manualPayment"] = common.ServiceInfoSpec.Renew.ManualPayment
+	}
+	if cmd.Flags().Changed("renew-period") {
+		renew["period"] = common.ServiceInfoSpec.Renew.Period
+	}
+
+	if len(renew) == 0 {
+		return map[string]any{}
+	}
+
+	return map[string]any{"renew": renew}
+}
+
+func formatQuota(value any) (string, bool) {
+	quotaMap, ok := value.(map[string]any)
+	if !ok {
+		return "", false
+	}
+
+	val, valOK := quotaMap["value"]
+	unit, unitOK := quotaMap["unit"]
+	if !valOK || !unitOK {
+		return "", false
+	}
+
+	var amount float64
+	switch v := val.(type) {
+	case float64:
+		amount = v
+	case json.Number:
+		f, err := v.Float64()
+		if err != nil {
+			return "", false
+		}
+		amount = f
+	default:
+		return "", false
+	}
+
+	return fmt.Sprintf("%.2f %v", amount, unit), true
+}
+
+func safeTableString(value string) string {
+	return strings.ReplaceAll(value, "%", "%%")
+}
+
+func safeMessageString(value string) string {
+	return strings.ReplaceAll(value, "%", "%%")
+}
+
+func formatTimestamp(value any) string {
+	switch v := value.(type) {
+	case string:
+		return v
+	case float64:
+		sec := int64(v)
+		if v > 1e12 {
+			sec = int64(v / 1000)
+		}
+		return time.Unix(sec, 0).UTC().Format(time.RFC3339)
+	case json.Number:
+		f, err := v.Float64()
+		if err != nil {
+			return v.String()
+		}
+		return formatTimestamp(f)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+func stringifyList(value any) (string, bool) {
+	array, ok := value.([]any)
+	if !ok {
+		stringsSlice, ok := value.([]string)
+		if ok {
+			if len(stringsSlice) == 0 {
+				return "", false
+			}
+			return strings.Join(stringsSlice, ", "), true
+		}
+		return "", false
+	}
+
+	var parts []string
+	for _, entry := range array {
+		if s, ok := entry.(string); ok {
+			parts = append(parts, s)
+		}
+	}
+	if len(parts) == 0 {
+		return "", false
+	}
+	return strings.Join(parts, ", "), true
+}
+
+// Users
+func ListUsers(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "user")
+	common.ManageListRequest(endpoint, "", []string{
+		"login",
+		"home",
+		"state",
+		"status",
+		"sshState SSH State",
+		"serviceManagementCredentials.ftp.url FTP Host",
+		"serviceManagementCredentials.ftp.port FTP Port",
+		"serviceManagementCredentials.ssh.url SSH Host",
+		"serviceManagementCredentials.ssh.port SSH Port",
+	}, flags.GenericFilters)
+}
+
+func GetUser(_ *cobra.Command, args []string) {
+	common.ManageObjectRequest(serviceEndpoint(args[0], "user"), args[1], userTemplate)
+}
+
+func CreateUser(cmd *cobra.Command, args []string) {
+	params := map[string]any{}
+	if UserHome != "" {
+		params["home"] = UserHome
+	}
+	if UserLogin != "" {
+		params["login"] = UserLogin
+	}
+	if UserPassword != "" {
+		params["password"] = UserPassword
+	}
+	if UserSSHState != "" {
+		params["sshState"] = UserSSHState
+	}
+
+	const createUserExample = `{
+  "home": "",
+  "login": "",
+  "password": "",
+  "sshState": ""
+}`
+
+	endpoint := serviceEndpoint(args[0], "user")
+	if _, err := common.CreateResource(
+		cmd,
+		"/hosting/web/{serviceName}/user",
+		endpoint,
+		createUserExample,
+		params,
+		assets.WebhostingOpenapiSchema,
+		[]string{"home", "login", "password"},
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create user: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ User created")
+}
+
+func UpdateUser(cmd *cobra.Command, args []string) {
+	params := map[string]any{}
+	if UserHome != "" {
+		params["home"] = UserHome
+	}
+	if UserPassword != "" {
+		params["password"] = UserPassword
+	}
+	if UserSSHState != "" {
+		params["sshState"] = UserSSHState
+	}
+
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("user/%s", url.PathEscape(args[1])))
+	if err := updateResource(cmd, "/hosting/web/{serviceName}/user/{login}", endpoint, params, nil); err != nil {
+		if errors.Is(err, errNothingToEdit) {
+			display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
+			return
+		}
+		display.OutputError(&flags.OutputFormatConfig, "failed to update user: %s", err)
+		return
+	}
+}
+
+func DeleteUser(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("user/%s", url.PathEscape(args[1])))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete user: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ User deleted")
+}
+
+func ChangeUserPassword(_ *cobra.Command, args []string) {
+	if UserPassword == "" {
+		display.OutputError(&flags.OutputFormatConfig, "password required, use --password to provide the new value")
+		return
+	}
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("user/%s/changePassword", url.PathEscape(args[1])))
+	body := map[string]any{"password": UserPassword}
+	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to change password: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Password updated")
+}
+
+// SSH keys
+func GetSSHKey(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "key/ssh")
+	var key map[string]any
+	if err := httpLib.Client.Get(endpoint, &key); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch SSH key: %s", err)
+		return
+	}
+	display.OutputObject(key, args[0], sshKeyTemplate, &flags.OutputFormatConfig)
+}
+
+func CreateSSHKey(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "key/ssh")
+	var key map[string]any
+	if err := httpLib.Client.Post(endpoint, nil, &key); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create SSH key: %s", err)
+		return
+	}
+	if key == nil {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ SSH key generated")
+		return
+	}
+	display.OutputObject(key, args[0], sshKeyTemplate, &flags.OutputFormatConfig)
+}
+
+func GetServiceInfo(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "serviceInfos")
+	var info map[string]any
+	if err := httpLib.Client.Get(endpoint, &info); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch service info: %s", err)
+		return
+	}
+	display.OutputObject(info, args[0], common.ServiceInfoTemplate, &flags.OutputFormatConfig)
+}
+
+func UpdateServiceInfo(cmd *cobra.Command, args []string) {
+	payload := buildServiceInfoRenewPayload(cmd)
+	if len(payload) == 0 && !flags.ParametersViaEditor && flags.ParametersFile == "" && !utils.IsInputFromPipe() {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
+		return
+	}
+
+	body, err := prepareServiceInfoPayload(cmd, payload, defaultRenewExample)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to prepare payload: %s", err)
+		return
+	}
+	if len(body) == 0 {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
+		return
+	}
+
+	endpoint := serviceEndpoint(args[0], "serviceInfos")
+	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to update service info: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Service info updated")
+}
