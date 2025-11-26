@@ -2935,3 +2935,493 @@ func UpdateServiceInfo(cmd *cobra.Command, args []string) {
 	}
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Service info updated")
 }
+
+func prepareServiceInfoPayload(cmd *cobra.Command, params map[string]any, example string) (map[string]any, error) {
+	switch {
+	case utils.IsInputFromPipe():
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, err
+		}
+		var body map[string]any
+		if err := json.Unmarshal(data, &body); err != nil {
+			return nil, err
+		}
+		return body, nil
+	case flags.ParametersFile != "":
+		log.Print("Flag --from-file used, all other flags will override the file values")
+		fd, err := os.Open(flags.ParametersFile)
+		if err != nil {
+			return nil, err
+		}
+		defer fd.Close()
+		var body map[string]any
+		if err := json.NewDecoder(fd).Decode(&body); err != nil {
+			return nil, err
+		}
+		return body, nil
+	case flags.ParametersViaEditor:
+		log.Print("Flag --editor used, all other flags will override the example values")
+		base := map[string]any{}
+		if example != "" {
+			_ = json.Unmarshal([]byte(example), &base)
+		}
+		if len(params) > 0 {
+			if err := utils.MergeMaps(base, params); err != nil {
+				return nil, err
+			}
+		}
+		content, err := json.MarshalIndent(base, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		edited, err := editor.EditValueWithEditor(content)
+		if err != nil {
+			return nil, err
+		}
+		var body map[string]any
+		if err := json.Unmarshal(edited, &body); err != nil {
+			return nil, err
+		}
+		return body, nil
+	default:
+		return params, nil
+	}
+}
+
+// Local SEO
+func ListLocalSeoDirectories(_ *cobra.Command, _ []string) {
+	if LocalSEOCountry == "" || LocalSEOOffer == "" {
+		display.OutputError(&flags.OutputFormatConfig, "flags --country and --offer are required")
+		return
+	}
+
+	query := url.Values{}
+	query.Set("country", LocalSEOCountry)
+	query.Set("offer", LocalSEOOffer)
+
+	endpoint := fmt.Sprintf("/hosting/web/localSeo/directoriesList?%s", query.Encode())
+	var directories map[string]any
+	if err := httpLib.Client.Get(endpoint, &directories); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch directories: %s", err)
+		return
+	}
+
+	display.OutputObject(directories, fmt.Sprintf("%s • %s", LocalSEOCountry, LocalSEOOffer), localSeoDirectoriesTemplate, &flags.OutputFormatConfig)
+}
+
+func CheckLocalSeoEmailAvailability(_ *cobra.Command, args []string) {
+	if LocalSEOEmail == "" {
+		display.OutputError(&flags.OutputFormatConfig, "flag --email is required")
+		return
+	}
+
+	query := url.Values{}
+	query.Set("email", LocalSEOEmail)
+
+	var endpoint string
+	label := LocalSEOEmail
+	if len(args) == 0 {
+		endpoint = fmt.Sprintf("/hosting/web/localSeo/emailAvailability?%s", query.Encode())
+	} else {
+		endpoint = fmt.Sprintf("%s?%s", serviceEndpoint(args[0], "localSeo/emailAvailability"), query.Encode())
+		label = fmt.Sprintf("%s • %s", args[0], LocalSEOEmail)
+	}
+
+	var availability map[string]any
+	if err := httpLib.Client.Get(endpoint, &availability); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to check email availability: %s", err)
+		return
+	}
+	display.OutputObject(availability, label, localSeoEmailTemplate, &flags.OutputFormatConfig)
+}
+
+func RunLocalSeoVisibilityCheck(cmd *cobra.Command, _ []string) {
+	params := map[string]any{}
+	if LocalSEOCountry != "" {
+		params["country"] = LocalSEOCountry
+	}
+	if LocalSEOName != "" {
+		params["name"] = LocalSEOName
+	}
+	if LocalSEOStreet != "" {
+		params["street"] = LocalSEOStreet
+	}
+	if LocalSEOZip != "" {
+		params["zip"] = LocalSEOZip
+	}
+
+	result, err := common.CreateResource(
+		cmd,
+		"/hosting/web/localSeo/visibilityCheck",
+		"/hosting/web/localSeo/visibilityCheck",
+		localSeoVisibilityExample,
+		params,
+		assets.WebhostingOpenapiSchema,
+		[]string{"country", "name", "street", "zip"},
+	)
+	if err != nil {
+		var apiErr *ovh.APIError
+		if errors.As(err, &apiErr) && apiErr.Code == 400 {
+			message := apiErr.Message
+			if message == "" {
+				message = "Location not found"
+			}
+			payload := map[string]any{
+				"notFound": true,
+				"message":  message,
+			}
+			display.OutputObject(payload, fmt.Sprintf("%s • %s", LocalSEOName, LocalSEOCountry), localSeoVisibilityCheckTemplate, &flags.OutputFormatConfig)
+			return
+		}
+
+		display.OutputError(&flags.OutputFormatConfig, "failed to run visibility check: %s", err)
+		return
+	}
+
+	display.OutputObject(result, fmt.Sprintf("%s • %s", LocalSEOName, LocalSEOCountry), localSeoVisibilityCheckTemplate, &flags.OutputFormatConfig)
+}
+
+func GetLocalSeoVisibilityResult(_ *cobra.Command, args []string) {
+	if LocalSEODirectory == "" || LocalSEOToken == "" {
+		display.OutputError(&flags.OutputFormatConfig, "flags --directory and --token are required")
+		return
+	}
+
+	query := url.Values{}
+	query.Set("directory", LocalSEODirectory)
+	query.Set("id", args[0])
+	query.Set("token", LocalSEOToken)
+
+	endpoint := fmt.Sprintf("/hosting/web/localSeo/visibilityCheckResult?%s", query.Encode())
+	var results []map[string]any
+	if err := httpLib.Client.Get(endpoint, &results); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch visibility results: %s", err)
+		return
+	}
+
+	payload := map[string]any{
+		"results":   results,
+		"directory": LocalSEODirectory,
+	}
+	display.OutputObject(payload, args[0], localSeoVisibilityResultTemplate, &flags.OutputFormatConfig)
+}
+
+func ListLocalSeoAccounts(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "localSeo/account")
+	if LocalSEOAccountEmailFilter != "" {
+		endpoint = fmt.Sprintf("%s?email=%s", endpoint, url.QueryEscape(LocalSEOAccountEmailFilter))
+	}
+
+	accountIDs, err := httpLib.FetchArray(endpoint, "")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch accounts: %s", err)
+		return
+	}
+
+	var rows []map[string]any
+	for _, id := range accountIDs {
+		rows = append(rows, map[string]any{"id": fmt.Sprintf("%v", id)})
+	}
+
+	display.RenderTable(rows, []string{"id"}, &flags.OutputFormatConfig)
+}
+
+func GetLocalSeoAccount(_ *cobra.Command, args []string) {
+	common.ManageObjectRequest(serviceEndpoint(args[0], "localSeo/account"), args[1], localSeoAccountTemplate)
+}
+
+func LoginLocalSeoAccount(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("localSeo/account/%s/login", url.PathEscape(args[1])))
+	var loginURL string
+	if err := httpLib.Client.Post(endpoint, nil, &loginURL); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to generate SSO URL: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, map[string]any{"url": loginURL}, "🔐 SSO link: %s", loginURL)
+}
+
+func ListLocalSeoLocations(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "localSeo/location")
+	locationIDs, err := httpLib.FetchArray(endpoint, "")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch locations: %s", err)
+		return
+	}
+
+	var rows []map[string]any
+	for _, id := range locationIDs {
+		rows = append(rows, map[string]any{"id": fmt.Sprintf("%v", id)})
+	}
+
+	display.RenderTable(rows, []string{"id"}, &flags.OutputFormatConfig)
+}
+
+func GetLocalSeoLocation(_ *cobra.Command, args []string) {
+	common.ManageObjectRequest(serviceEndpoint(args[0], "localSeo/location"), args[1], localSeoLocationTemplate)
+}
+
+func GetLocalSeoLocationServiceInfo(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("localSeo/location/%s/serviceInfos", url.PathEscape(args[1])))
+	var info map[string]any
+	if err := httpLib.Client.Get(endpoint, &info); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch service info: %s", err)
+		return
+	}
+	display.OutputObject(info, fmt.Sprintf("Location %s", args[1]), common.ServiceInfoTemplate, &flags.OutputFormatConfig)
+}
+
+func UpdateLocalSeoLocationServiceInfo(cmd *cobra.Command, args []string) {
+	payload := buildServiceInfoRenewPayload(cmd)
+	if len(payload) == 0 && !flags.ParametersViaEditor && flags.ParametersFile == "" {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
+		return
+	}
+
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("localSeo/location/%s/serviceInfosUpdate", url.PathEscape(args[1])))
+	if _, err := common.CreateResource(
+		cmd,
+		"/hosting/web/{serviceName}/localSeo/location/{id}/serviceInfosUpdate",
+		endpoint,
+		defaultRenewExample,
+		payload,
+		assets.WebhostingOpenapiSchema,
+		[]string{"renew"},
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to update service info: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Local SEO service info updated")
+}
+
+func TerminateLocalSeoLocation(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("localSeo/location/%s/terminate", url.PathEscape(args[1])))
+	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to request termination: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Local SEO location termination requested")
+}
+
+func ListTasks(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "tasks")
+	common.ManageListRequest(endpoint, "", []string{"id", "function", "status"}, flags.GenericFilters)
+}
+
+func GetTask(_ *cobra.Command, args []string) {
+	common.ManageObjectRequest(serviceEndpoint(args[0], "tasks"), args[1], taskTemplate)
+}
+
+func RequestBoost(cmd *cobra.Command, args []string) {
+	params := map[string]any{}
+	var chosenOffer string
+	if BoostOffer != "" {
+		if _, ok := boostOfferChoiceSet[BoostOffer]; !ok {
+			display.OutputError(&flags.OutputFormatConfig, "unsupported boost offer %q. Allowed values: %s", BoostOffer, strings.Join(SupportedBoostOffers, ", "))
+			return
+		}
+		params["offer"] = BoostOffer
+		chosenOffer = BoostOffer
+	} else if !flags.ParametersViaEditor && flags.ParametersFile == "" {
+		display.OutputError(&flags.OutputFormatConfig, "boost offer is required. Allowed values: %s", strings.Join(SupportedBoostOffers, ", "))
+		return
+	}
+
+	endpoint := serviceEndpoint(args[0], "requestBoost")
+	if _, err := common.CreateResource(
+		cmd,
+		"/hosting/web/{serviceName}/requestBoost",
+		endpoint,
+		"",
+		params,
+		assets.WebhostingOpenapiSchema,
+		[]string{"offer"},
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to request boost: %s", err)
+		return
+	}
+	if chosenOffer != "" {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Boost %s requested", chosenOffer)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Boost requested")
+}
+
+func RestoreSnapshot(cmd *cobra.Command, args []string) {
+	params := map[string]any{}
+	if RestoreBackup != "" {
+		params["backup"] = RestoreBackup
+	}
+
+	const restoreSnapshotExample = `{
+  "backup": ""
+}`
+
+	endpoint := serviceEndpoint(args[0], "restoreSnapshot")
+	if _, err := common.CreateResource(
+		cmd,
+		"/hosting/web/{serviceName}/restoreSnapshot",
+		endpoint,
+		restoreSnapshotExample,
+		params,
+		assets.WebhostingOpenapiSchema,
+		[]string{"backup"},
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to request restore: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Snapshot restore requested")
+}
+
+func GetToken(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "token")
+	var raw json.RawMessage
+	if err := httpLib.Client.Get(endpoint, &raw); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch token: %s", err)
+		return
+	}
+
+	payload := map[string]any{}
+	if err := json.Unmarshal(raw, &payload); err != nil || len(payload) == 0 {
+		var token string
+		if err := json.Unmarshal(raw, &token); err == nil {
+			payload = map[string]any{"token": token}
+		} else {
+			payload = map[string]any{"raw": strings.TrimSpace(string(raw))}
+		}
+	}
+
+	display.OutputObject(payload, args[0], tokenTemplate, &flags.OutputFormatConfig)
+}
+
+func ListBoostHistory(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "boostHistory")
+	var dates []string
+	if err := httpLib.Client.Get(endpoint, &dates); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch boost history: %s", err)
+		return
+	}
+
+	var histories []map[string]any
+	for _, date := range dates {
+		detailEndpoint := serviceEndpoint(args[0], fmt.Sprintf("boostHistory/%s", url.PathEscape(date)))
+		var detail map[string]any
+		if err := httpLib.Client.Get(detailEndpoint, &detail); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch boost history for %s: %s", date, err)
+			return
+		}
+		histories = append(histories, detail)
+	}
+
+	filtered, err := filtersLib.FilterLines(histories, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to apply filters: %s", err)
+		return
+	}
+
+	renderPayload := map[string]any{
+		"entries": filtered,
+	}
+
+	display.OutputObject(renderPayload, args[0], boostHistoryTemplate, &flags.OutputFormatConfig)
+}
+
+func TerminateService(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "terminate")
+	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to request termination: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Termination requested")
+}
+
+func UnblockTCPOut(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "unblockTCPOut")
+	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to unblock outgoing TCP: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Outgoing TCP unblocked")
+}
+
+func ConfirmTermination(cmd *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "confirmTermination")
+	if _, err := common.CreateResource(
+		cmd,
+		"/hosting/web/{serviceName}/confirmTermination",
+		endpoint,
+		"",
+		map[string]any{},
+		assets.WebhostingOpenapiSchema,
+		nil,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to confirm termination: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Termination confirmed")
+}
+
+// Generic API call for advanced cases
+func CallWebHostingAPI(cmd *cobra.Command, args []string) {
+	method := strings.ToUpper(args[0])
+	path := args[1]
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	var (
+		body   any
+		result any
+	)
+
+	if method == "POST" || method == "PUT" {
+		// Prepare payload from file or editor, if provided
+		if flags.ParametersFile != "" {
+			content, err := os.ReadFile(flags.ParametersFile)
+			if err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "failed to read parameters file: %s", err)
+				return
+			}
+			if err := json.Unmarshal(content, &body); err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "failed to parse parameters file: %s", err)
+				return
+			}
+		} else if flags.ParametersViaEditor {
+			edited, err := editor.EditValueWithEditor([]byte("{}"))
+			if err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "failed to edit payload: %s", err)
+				return
+			}
+			if err := json.Unmarshal(edited, &body); err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "failed to parse edited payload: %s", err)
+				return
+			}
+		}
+	}
+
+	var err error
+	switch method {
+	case "GET":
+		err = httpLib.Client.Get(path, &result)
+	case "POST":
+		err = httpLib.Client.Post(path, body, &result)
+	case "PUT":
+		err = httpLib.Client.Put(path, body, &result)
+	case "DELETE":
+		err = httpLib.Client.Delete(path, &result)
+	default:
+		display.OutputError(&flags.OutputFormatConfig, "unsupported method %s", method)
+		return
+	}
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "request failed: %s", err)
+		return
+	}
+
+	if result != nil {
+		renderDetails(result)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Request completed")
+}
