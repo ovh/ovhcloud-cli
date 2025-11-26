@@ -1497,3 +1497,35 @@ func init() {
 		Run:   webhosting.UnblockTCPOut,
 	}
 	webhostingCmd.AddCommand(unblockTCPCmd)
+
+	boostHistoryCmd := &cobra.Command{
+		Use:   "boost-history <service_name>",
+		Short: "List boost history",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListBoostHistory,
+	}
+	webhostingCmd.AddCommand(withFilterFlag(boostHistoryCmd))
+
+	terminateCmd := &cobra.Command{
+		Use:   "terminate <service_name>",
+		Short: "Terminate service",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.TerminateService,
+	}
+	webhostingCmd.AddCommand(terminateCmd)
+
+	// Generic API call
+	apiCmd := &cobra.Command{
+		Use:   "api",
+		Short: "Generic webhosting API access",
+	}
+	apiCallCmd := &cobra.Command{
+		Use:   "call <method> <path>",
+		Short: "Call any webhosting API path",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.CallWebHostingAPI,
+	}
+	addFromFileFlag(apiCallCmd)
+	addInteractiveEditorFlag(apiCallCmd)
+	apiCmd.AddCommand(apiCallCmd)
+	webhostingCmd.AddCommand(apiCmd)
