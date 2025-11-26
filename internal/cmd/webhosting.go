@@ -521,3 +521,50 @@ func init() {
 		Run:   webhosting.ListExtraSqlOptions,
 	}
 	extraSQLCmd.AddCommand(withFilterFlag(extraSQLListCmd))
+	extraSQLGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get an extra SQL option",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetExtraSqlOption,
+	}
+	extraSQLCmd.AddCommand(extraSQLGetCmd)
+	extraSQLDatabasesCmd := &cobra.Command{
+		Use:   "databases <service_name> <id>",
+		Short: "List databases linked to an extra SQL option",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ListExtraSqlDatabases,
+	}
+	extraSQLCmd.AddCommand(withFilterFlag(extraSQLDatabasesCmd))
+	extraSQLServiceInfoCmd := &cobra.Command{Use: "service-info", Short: "Manage extra SQL service info"}
+	extraSQLServiceInfoGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get extra SQL service information",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetExtraSqlServiceInfo,
+	}
+	extraSQLServiceInfoCmd.AddCommand(extraSQLServiceInfoGetCmd)
+	extraSQLServiceInfoUpdateCmd := &cobra.Command{
+		Use:   "update <service_name> <id>",
+		Short: "Update extra SQL service information",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.UpdateExtraSqlServiceInfo,
+	}
+	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
+	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
+	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
+	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
+	extraSQLServiceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
+	addFromFileFlag(extraSQLServiceInfoUpdateCmd)
+	addInteractiveEditorFlag(extraSQLServiceInfoUpdateCmd)
+	extraSQLServiceInfoCmd.AddCommand(extraSQLServiceInfoUpdateCmd)
+	extraSQLCmd.AddCommand(extraSQLServiceInfoCmd)
+	extraSQLTerminateCmd := &cobra.Command{
+		Use:   "terminate <service_name> <id>",
+		Short: "Terminate an extra SQL option",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.TerminateExtraSqlOption,
+	}
+	extraSQLCmd.AddCommand(extraSQLTerminateCmd)
+	webhostingCmd.AddCommand(extraSQLCmd)
+
+	// Env vars
