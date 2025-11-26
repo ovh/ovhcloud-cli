@@ -1418,3 +1418,33 @@ func init() {
 	localSeoLocationServiceInfoUpdateCmd := &cobra.Command{
 		Use:   "update <service_name> <id>",
 		Short: "Update Local SEO location service info",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.UpdateLocalSeoLocationServiceInfo,
+	}
+	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
+	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
+	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
+	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
+	localSeoLocationServiceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
+	addFromFileFlag(localSeoLocationServiceInfoUpdateCmd)
+	addInteractiveEditorFlag(localSeoLocationServiceInfoUpdateCmd)
+	localSeoLocationServiceInfoCmd.AddCommand(localSeoLocationServiceInfoUpdateCmd)
+	localSeoLocationCmd.AddCommand(localSeoLocationServiceInfoCmd)
+	localSeoLocationTerminateCmd := &cobra.Command{
+		Use:   "terminate <service_name> <id>",
+		Short: "Terminate a Local SEO location",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.TerminateLocalSeoLocation,
+	}
+	localSeoLocationCmd.AddCommand(localSeoLocationTerminateCmd)
+	localSeoCmd.AddCommand(localSeoLocationCmd)
+	webhostingCmd.AddCommand(localSeoCmd)
+
+	tasksCmd := &cobra.Command{Use: "tasks", Short: "Manage tasks"}
+	tasksListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List tasks",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListTasks,
+	}
+	tasksCmd.AddCommand(withFilterFlag(tasksListCmd))
