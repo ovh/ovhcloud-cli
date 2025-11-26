@@ -1529,3 +1529,6 @@ func init() {
 	addInteractiveEditorFlag(apiCallCmd)
 	apiCmd.AddCommand(apiCallCmd)
 	webhostingCmd.AddCommand(apiCmd)
+
+	rootCmd.AddCommand(webhostingCmd)
+}

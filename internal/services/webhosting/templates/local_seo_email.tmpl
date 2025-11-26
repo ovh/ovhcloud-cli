@@ -1,0 +1,12 @@
+📧 Local SEO Email Availability {{.ServiceName}}
+==================================
+
+**Availability**: {{toTitle (index .Result "availability")}}
+
+{{ with $service := index .Result "serviceName" -}}
+**Already used on hosting**: {{$service}}
+{{ else -}}
+**Already used on hosting**: none
+{{ end }}
+
+💡 Use option --json or --yaml to get the raw output with all information.

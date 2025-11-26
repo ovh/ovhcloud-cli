@@ -1,0 +1,26 @@
+👥 User Log {{.ObjectID}}
+======================
+
+**Login**: {{index .Result "login"}}
+
+{{ with $desc := index .Result "description" -}}
+**Description**: {{$desc}}
+
+{{- end -}}
+{{ with $status := index .Result "status" -}}
+**Status**: {{$status}}
+
+{{- end -}}
+{{ with $date := index .Result "creationDate" -}}
+**Creation date**: {{$date}}
+
+{{- end -}}
+{{ with $own := index .Result "ownLogsId" -}}
+**Own log ID**: {{$own}}
+
+{{- end -}}
+{{ with $task := index .Result "taskId" -}}
+**Task ID**: {{$task}}
+
+{{- end }}
+💡 Use option --json or --yaml to get the raw output with all information

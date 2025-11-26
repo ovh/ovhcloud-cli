@@ -1,0 +1,22 @@
+📍 Local SEO Location {{.ServiceName}}
+===============================
+
+**Name**: {{index .Result "name"}}
+
+**Status**: {{index .Result "status"}}
+
+**Offer**: {{index .Result "offer"}}  
+**Country**: {{index .Result "country"}}
+
+**Address**: {{index .Result "address"}}
+
+**Account ID**: {{index .Result "accountId"}}
+
+**Created at**: {{index .Result "creationDate"}}  
+**Last update**: {{index .Result "lastUpdate"}}
+
+{{ with $task := index .Result "taskId" -}}
+**Active task**: {{$task}}
+{{- end }}
+
+💡 Use option --json or --yaml to get the detailed payload.

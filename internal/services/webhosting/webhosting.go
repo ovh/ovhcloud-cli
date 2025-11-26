@@ -3425,3 +3425,66 @@ func CallWebHostingAPI(cmd *cobra.Command, args []string) {
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Request completed")
 }
+
+var errNothingToEdit = errors.New("nothing to edit")
+
+func updateResource(cmd *cobra.Command, pathSpec, endpoint string, params map[string]any, allowNil map[string]bool) error {
+	cleaned := map[string]any{}
+	for k, v := range params {
+		if v == nil && (allowNil == nil || !allowNil[k]) {
+			continue
+		}
+		cleaned[k] = v
+	}
+
+	if len(cleaned) == 0 && !flags.ParametersViaEditor {
+		return errNothingToEdit
+	}
+
+	source := cleaned
+	if flags.ParametersViaEditor {
+		var current map[string]any
+		if err := httpLib.Client.Get(endpoint, &current); err != nil {
+			return fmt.Errorf("error fetching %s: %w", endpoint, err)
+		}
+		for k, v := range cleaned {
+			current[k] = v
+		}
+		source = current
+	}
+
+	editableBody, err := openapi.FilterEditableFields(
+		assets.WebhostingOpenapiSchema,
+		pathSpec,
+		"put",
+		source,
+	)
+	if err != nil {
+		return err
+	}
+
+	if !flags.ParametersViaEditor {
+		if err := httpLib.Client.Put(endpoint, editableBody, nil); err != nil {
+			return err
+		}
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Resource updated successfully")
+		return nil
+	}
+
+	editableOutput, err := json.MarshalIndent(editableBody, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	updatedBody, err := editor.EditValueWithEditor(editableOutput)
+	if err != nil {
+		return err
+	}
+
+	if err := httpLib.Client.Put(endpoint, json.RawMessage(updatedBody), nil); err != nil {
+		return err
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Resource updated successfully")
+	return nil
+}
