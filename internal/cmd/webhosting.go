@@ -151,3 +151,11 @@ func init() {
 	attachedDomainCmd.AddCommand(attachedDomainRestartCmd)
 
 	webhostingCmd.AddCommand(attachedDomainCmd)
+
+	incidentCmd := &cobra.Command{
+		Use:   "incident",
+		Short: "List current incidents",
+		Args:  cobra.NoArgs,
+		Run:   webhosting.ListHostingIncidents,
+	}
+	webhostingCmd.AddCommand(withFilterFlag(incidentCmd))
