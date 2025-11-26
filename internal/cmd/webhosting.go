@@ -748,3 +748,53 @@ func init() {
 	ovhConfigCmd.AddCommand(withFilterFlag(ovhConfigCapabilitiesCmd))
 	ovhConfigRecommendedCmd := &cobra.Command{
 		Use:   "recommended <service_name>",
+		Short: "Show recommended values",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetOvhConfigRecommendedValues,
+	}
+	ovhConfigCmd.AddCommand(ovhConfigRecommendedCmd)
+	ovhConfigRefreshCmd := &cobra.Command{
+		Use:   "refresh <service_name>",
+		Short: "Refresh cached .ovhconfig data",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.RefreshOvhConfig,
+	}
+	ovhConfigCmd.AddCommand(ovhConfigRefreshCmd)
+	webhostingCmd.AddCommand(ovhConfigCmd)
+
+	ownLogCmd := &cobra.Command{Use: "own-log", Short: "Manage own logs"}
+	ownLogListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List own logs",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListOwnLogsEntries,
+	}
+	ownLogCmd.AddCommand(withFilterFlag(ownLogListCmd))
+	ownLogGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get an own log entry",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetOwnLog,
+	}
+	ownLogCmd.AddCommand(ownLogGetCmd)
+
+	ownLogUserCmd := &cobra.Command{Use: "user", Short: "Manage own log users"}
+	ownLogUserListCmd := &cobra.Command{
+		Use:   "list <service_name> <ownlog_id>",
+		Short: "List users for an own log",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ListOwnLogUsers,
+	}
+	ownLogUserCmd.AddCommand(withFilterFlag(ownLogUserListCmd))
+	ownLogUserGetCmd := &cobra.Command{
+		Use:   "get <service_name> <ownlog_id> <login>",
+		Short: "Get an own log user",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.GetOwnLogUser,
+	}
+	ownLogUserCmd.AddCommand(ownLogUserGetCmd)
+	ownLogUserCreateCmd := &cobra.Command{
+		Use:   "create <service_name> <ownlog_id>",
+		Short: "Create an own log user",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.CreateOwnLogUser,
