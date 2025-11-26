@@ -318,3 +318,43 @@ func init() {
 		Short: "Get a database copy",
 		Args:  cobra.ExactArgs(3),
 		Run:   webhosting.GetDatabaseCopy,
+	}
+	dbCopyCmd.AddCommand(dbCopyGetCmd)
+	dbCopyCreateCmd := &cobra.Command{
+		Use:   "create <service_name> <name>",
+		Short: "Create a database copy",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.CreateDatabaseCopy,
+	}
+	dbCopyCmd.AddCommand(dbCopyCreateCmd)
+	dbCopyDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <name> <id>",
+		Short: "Delete a database copy",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.DeleteDatabaseCopy,
+	}
+	dbCopyCmd.AddCommand(dbCopyDeleteCmd)
+	dbCopyRestoreCmd := &cobra.Command{
+		Use:   "restore <service_name> <name>",
+		Short: "Restore a database copy",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.RestoreDatabaseCopy,
+	}
+	dbCopyRestoreCmd.Flags().StringVar(&webhosting.DatabaseCopyID, "copy-id", "", "Copy ID to restore")
+	dbCopyRestoreCmd.Flags().BoolVar(&webhosting.DatabaseFlush, "flush", false, "Flush database before restore")
+	addFromFileFlag(dbCopyRestoreCmd)
+	addInteractiveEditorFlag(dbCopyRestoreCmd)
+	dbCopyCmd.AddCommand(dbCopyRestoreCmd)
+	dbCmd.AddCommand(dbCopyCmd)
+
+	dbDumpCmd := &cobra.Command{Use: "dump", Short: "Manage database dumps"}
+	dbDumpListCmd := &cobra.Command{
+		Use:   "list <service_name> <name>",
+		Short: "List database dumps",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ListDatabaseDumps,
+	}
+	dbDumpCmd.AddCommand(withFilterFlag(dbDumpListCmd))
+	dbDumpGetCmd := &cobra.Command{
+		Use:   "get <service_name> <name> <id>",
+		Short: "Get a database dump",

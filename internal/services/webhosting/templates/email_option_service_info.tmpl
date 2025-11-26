@@ -1,0 +1,21 @@
+📫 Email Option Service Info {{.ServiceName}}
+=================================
+
+**Domain**: {{index .Result "resource" "name"}}
+
+**State**: {{index .Result "state"}}
+
+**Quantity**: {{index .Result "quantity"}}
+
+**Creation date**: {{index .Result "creationDate"}}
+
+**Next billing date**: {{index .Result "nextBillingDate"}}
+
+**Expiration date**: {{index .Result "expirationDate"}}
+
+{{ $route := index .Result "route" }}
+{{ if $route }}
+**Management URL**: {{index $route "url"}}
+{{ end }}
+
+💡 Use option --json or --yaml to get the raw output with all information
