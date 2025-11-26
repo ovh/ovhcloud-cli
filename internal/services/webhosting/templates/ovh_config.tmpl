@@ -1,0 +1,28 @@
+🛠️ OVH Config {{.ServiceName}}
+=============================
+
+**ID**: {{index .Result "id"}}
+
+**Path**: {{index .Result "path"}}
+
+**Status**: {{index .Result "status"}}
+
+**Engine**: {{index .Result "engineName"}} {{index .Result "engineVersion"}}
+
+**Environment**: {{index .Result "environment"}}
+
+**HTTP Firewall**: {{index .Result "httpFirewall"}}
+
+**Container**: {{index .Result "container"}}
+
+**File present**: {{index .Result "fileExist"}}
+
+**Historical**: {{index .Result "historical"}}
+
+**Creation date**: {{index .Result "creationDate"}}
+
+{{ with $task := index .Result "taskId" -}}
+**Task ID**: {{$task}}
+{{- end }}
+
+💡 Use option --json or --yaml to get the raw output with all information

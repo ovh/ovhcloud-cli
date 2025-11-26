@@ -818,3 +818,103 @@ func init() {
 		Use:   "delete <service_name> <ownlog_id> <login>",
 		Short: "Delete an own log user",
 		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.DeleteOwnLogUser,
+	}
+	ownLogUserCmd.AddCommand(ownLogUserDeleteCmd)
+	ownLogUserPasswordCmd := &cobra.Command{
+		Use:   "change-password <service_name> <ownlog_id> <login>",
+		Short: "Change an own log user password",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.ChangeOwnLogUserPassword,
+	}
+	ownLogUserPasswordCmd.Flags().StringVar(&webhosting.OwnLogUserPassword, "password", "", "New password")
+	ownLogUserCmd.AddCommand(ownLogUserPasswordCmd)
+	ownLogCmd.AddCommand(ownLogUserCmd)
+	webhostingCmd.AddCommand(ownLogCmd)
+
+	requestCmd := &cobra.Command{
+		Use:   "request-action <service_name>",
+		Short: "Request a hosting operation",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.RequestHostingAction,
+	}
+	requestCmd.Flags().StringVar(&webhosting.RequestAction, "action", "", "Action to request (allowed: CHECK_QUOTA, FLUSH_CACHE, SCAN_ANTIHACK)")
+	webhostingCmd.AddCommand(requestCmd)
+
+	// Runtime
+	runtimeCmd := &cobra.Command{Use: "runtime", Short: "Manage runtimes"}
+	runtimeListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List runtimes",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListRuntimes,
+	}
+	runtimeCmd.AddCommand(withFilterFlag(runtimeListCmd))
+	runtimeAvailableTypesCmd := &cobra.Command{
+		Use:   "available-types <service_name>",
+		Short: "List available runtime backend types",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListRuntimeAvailableTypes,
+	}
+	runtimeAvailableTypesCmd.Flags().StringVar(&webhosting.RuntimeLanguage, "language", "", "Filter by programming language")
+	runtimeCmd.AddCommand(withFilterFlag(runtimeAvailableTypesCmd))
+	runtimeGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get a runtime",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetRuntime,
+	}
+	runtimeCmd.AddCommand(runtimeGetCmd)
+	runtimeCreateCmd := &cobra.Command{
+		Use:   "create <service_name>",
+		Short: "Create a runtime",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.CreateRuntime,
+	}
+	runtimeCreateCmd.Flags().StringVar(&webhosting.RuntimeName, "name", "", "Runtime name")
+	runtimeCreateCmd.Flags().StringVar(&webhosting.RuntimeType, "type", "", "Runtime backend type")
+	runtimeCreateCmd.Flags().StringVar(&webhosting.RuntimePublicDir, "public-dir", "", "Public directory")
+	runtimeCreateCmd.Flags().StringVar(&webhosting.RuntimeAppEnv, "app-env", "", "Application environment")
+	runtimeCreateCmd.Flags().StringVar(&webhosting.RuntimeAppBootstrap, "app-bootstrap", "", "Application bootstrap script")
+	runtimeCreateCmd.Flags().BoolVar(&webhosting.RuntimeIsDefault, "runtime-default", false, "Set as default runtime")
+	runtimeCreateCmd.Flags().StringSliceVar(&webhosting.RuntimeDomains, "domain", []string{}, "Domains to attach")
+	addFromFileFlag(runtimeCreateCmd)
+	addInteractiveEditorFlag(runtimeCreateCmd)
+	runtimeCmd.AddCommand(runtimeCreateCmd)
+	runtimeUpdateCmd := &cobra.Command{
+		Use:   "update <service_name> <id>",
+		Short: "Update a runtime",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.UpdateRuntime,
+	}
+	runtimeUpdateCmd.Flags().StringVar(&webhosting.RuntimeName, "name", "", "Runtime name")
+	runtimeUpdateCmd.Flags().StringVar(&webhosting.RuntimePublicDir, "public-dir", "", "Public directory")
+	runtimeUpdateCmd.Flags().StringVar(&webhosting.RuntimeAppEnv, "app-env", "", "Application environment")
+	runtimeUpdateCmd.Flags().StringVar(&webhosting.RuntimeAppBootstrap, "app-bootstrap", "", "Application bootstrap script")
+	runtimeUpdateCmd.Flags().BoolVar(&webhosting.RuntimeIsDefault, "runtime-default", false, "Set as default runtime")
+	addInteractiveEditorFlag(runtimeUpdateCmd)
+	runtimeCmd.AddCommand(runtimeUpdateCmd)
+	runtimeDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <id>",
+		Short: "Delete a runtime",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.DeleteRuntime,
+	}
+	runtimeCmd.AddCommand(runtimeDeleteCmd)
+	runtimeDomainsCmd := &cobra.Command{
+		Use:   "domains <service_name> <id>",
+		Short: "List domains attached to a runtime",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.ListRuntimeDomains,
+	}
+	runtimeCmd.AddCommand(withFilterFlag(runtimeDomainsCmd))
+	webhostingCmd.AddCommand(runtimeCmd)
+
+	// Websites
+	websiteCmd := &cobra.Command{Use: "website", Short: "Manage websites deployments"}
+	websiteListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List websites",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListWebsites,
+	}
