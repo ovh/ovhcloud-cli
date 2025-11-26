@@ -798,3 +798,23 @@ func init() {
 		Short: "Create an own log user",
 		Args:  cobra.ExactArgs(2),
 		Run:   webhosting.CreateOwnLogUser,
+	}
+	ownLogUserCreateCmd.Flags().StringVar(&webhosting.OwnLogUserLogin, "login", "", "User login used to connect to logs.ovh.net")
+	ownLogUserCreateCmd.Flags().StringVar(&webhosting.OwnLogUserPassword, "password", "", "User password (required)")
+	ownLogUserCreateCmd.Flags().StringVar(&webhosting.OwnLogUserDescription, "description", "", "Description for this user (required)")
+	addFromFileFlag(ownLogUserCreateCmd)
+	addInteractiveEditorFlag(ownLogUserCreateCmd)
+	ownLogUserCmd.AddCommand(ownLogUserCreateCmd)
+	ownLogUserUpdateCmd := &cobra.Command{
+		Use:   "update <service_name> <ownlog_id> <login>",
+		Short: "Update an own log user",
+		Args:  cobra.ExactArgs(3),
+		Run:   webhosting.UpdateOwnLogUser,
+	}
+	ownLogUserUpdateCmd.Flags().StringVar(&webhosting.OwnLogUserDescription, "description", "", "User description")
+	addInteractiveEditorFlag(ownLogUserUpdateCmd)
+	ownLogUserCmd.AddCommand(ownLogUserUpdateCmd)
+	ownLogUserDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <ownlog_id> <login>",
+		Short: "Delete an own log user",
+		Args:  cobra.ExactArgs(3),
