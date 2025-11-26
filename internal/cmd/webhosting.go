@@ -221,3 +221,60 @@ func init() {
 	}
 	cronCmd.AddCommand(cronAvailableLangCmd)
 	webhostingCmd.AddCommand(cronCmd)
+
+	// Databases
+	dbCmd := &cobra.Command{Use: "db", Short: "Manage databases"}
+	dbListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List databases",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListDatabases,
+	}
+	dbCmd.AddCommand(withFilterFlag(dbListCmd))
+	dbGetCmd := &cobra.Command{
+		Use:   "get <service_name> <name>",
+		Short: "Get a database",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetDatabase,
+	}
+	dbCmd.AddCommand(dbGetCmd)
+
+	dbCapabilitiesCmd := &cobra.Command{
+		Use:   "capabilities <service_name> <name>",
+		Short: "Get database capabilities",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetDatabaseCapabilities,
+	}
+	dbCmd.AddCommand(dbCapabilitiesCmd)
+
+	dbAvailableTypeCmd := &cobra.Command{
+		Use:   "available-type <service_name>",
+		Short: "List database types available for creation",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListDatabaseAvailableTypes,
+	}
+	dbCmd.AddCommand(withFilterFlag(dbAvailableTypeCmd))
+
+	dbAvailableVersionCmd := &cobra.Command{
+		Use:   "available-version <service_name>",
+		Short: "List available versions for a database type",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListDatabaseAvailableVersions,
+	}
+	dbAvailableVersionCmd.Flags().StringVar(&webhosting.DatabaseVersionQueryType, "type", "", "Database type (required)")
+	dbCmd.AddCommand(dbAvailableVersionCmd)
+
+	dbCreationCapabilitiesCmd := &cobra.Command{
+		Use:   "creation-capabilities <service_name>",
+		Short: "List database creation capabilities",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListDatabaseCreationCapabilities,
+	}
+	dbCmd.AddCommand(withFilterFlag(dbCreationCapabilitiesCmd))
+
+	dbCreateCmd := &cobra.Command{
+		Use:   "create <service_name>",
+		Short: "Create a database",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.CreateDatabase,
+	}

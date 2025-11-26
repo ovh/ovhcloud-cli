@@ -1,0 +1,20 @@
+🗄️ Database {{.ServiceName}}
+==================
+
+**Name**: {{index .Result "name"}}
+
+**Type**: {{index .Result "type"}}
+
+**Version**: {{index .Result "version"}}
+
+**User**: {{index .Result "user"}}
+
+**Mode**: {{index .Result "mode"}}
+
+**State**: {{index .Result "state"}}
+
+**Quota used**: {{index .Result "quotaUsed" "value"}} {{index .Result "quotaUsed" "unit"}}
+
+**Quota size**: {{index .Result "quotaSize" "value"}} {{index .Result "quotaSize" "unit"}}
+
+💡 Use option --json or --yaml to get the raw output with all information
