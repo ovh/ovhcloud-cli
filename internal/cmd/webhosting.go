@@ -1448,3 +1448,33 @@ func init() {
 		Run:   webhosting.ListTasks,
 	}
 	tasksCmd.AddCommand(withFilterFlag(tasksListCmd))
+	tasksGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get a task",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetTask,
+	}
+	tasksCmd.AddCommand(tasksGetCmd)
+	webhostingCmd.AddCommand(tasksCmd)
+
+	boostCmd := &cobra.Command{
+		Use:   "request-boost <service_name>",
+		Short: "Request a boost offer",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.RequestBoost,
+	}
+	allowedOffers := strings.Join(webhosting.SupportedBoostOffers, ", ")
+	boostCmd.Flags().StringVar(&webhosting.BoostOffer, "offer", "", fmt.Sprintf("Boost offer (allowed: %s)", allowedOffers))
+	addFromFileFlag(boostCmd)
+	addInteractiveEditorFlag(boostCmd)
+	webhostingCmd.AddCommand(boostCmd)
+
+	restoreSnapshotCmd := &cobra.Command{
+		Use:   "restore-snapshot <service_name>",
+		Short: "Restore a snapshot",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.RestoreSnapshot,
+	}
+	restoreSnapshotCmd.Flags().StringVar(&webhosting.RestoreBackup, "backup", "", "Backup to restore (allowed: daily.1, daily.2, daily.3, weekly.1, weekly.2)")
+	addFromFileFlag(restoreSnapshotCmd)
+	addInteractiveEditorFlag(restoreSnapshotCmd)
