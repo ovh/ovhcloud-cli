@@ -159,3 +159,65 @@ func init() {
 		Run:   webhosting.ListHostingIncidents,
 	}
 	webhostingCmd.AddCommand(withFilterFlag(incidentCmd))
+
+	// Cron
+	cronCmd := &cobra.Command{Use: "cron", Short: "Manage cron tasks"}
+	cronListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List cron tasks",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListCrons,
+	}
+	cronCmd.AddCommand(withFilterFlag(cronListCmd))
+	cronGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get a cron task",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetCron,
+	}
+	cronCmd.AddCommand(cronGetCmd)
+
+	cronCreateCmd := &cobra.Command{
+		Use:   "create <service_name>",
+		Short: "Create a cron task",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.CreateCron,
+	}
+	cronCreateCmd.Flags().StringVar(&webhosting.CronCommand, "command", "", "Command to execute")
+	cronCreateCmd.Flags().StringVar(&webhosting.CronFrequency, "frequency", "", "Frequency (crontab format)")
+	cronCreateCmd.Flags().StringVar(&webhosting.CronLanguage, "language", "", "Language")
+	cronCreateCmd.Flags().StringVar(&webhosting.CronEmail, "email", "", "Email for stderr")
+	cronCreateCmd.Flags().StringVar(&webhosting.CronDesc, "description", "", "Description")
+	addFromFileFlag(cronCreateCmd)
+	addInteractiveEditorFlag(cronCreateCmd)
+	cronCmd.AddCommand(cronCreateCmd)
+
+	cronUpdateCmd := &cobra.Command{
+		Use:   "update <service_name> <id>",
+		Short: "Update a cron task",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.UpdateCron,
+	}
+	cronUpdateCmd.Flags().StringVar(&webhosting.CronCommand, "command", "", "Command to execute")
+	cronUpdateCmd.Flags().StringVar(&webhosting.CronFrequency, "frequency", "", "Frequency (crontab format)")
+	cronUpdateCmd.Flags().StringVar(&webhosting.CronLanguage, "language", "", "Language")
+	cronUpdateCmd.Flags().StringVar(&webhosting.CronEmail, "email", "", "Email for stderr")
+	cronUpdateCmd.Flags().StringVar(&webhosting.CronDesc, "description", "", "Description")
+	addInteractiveEditorFlag(cronUpdateCmd)
+	cronCmd.AddCommand(cronUpdateCmd)
+
+	cronDeleteCmd := &cobra.Command{
+		Use:   "delete <service_name> <id>",
+		Short: "Delete a cron task",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.DeleteCron,
+	}
+	cronCmd.AddCommand(cronDeleteCmd)
+	cronAvailableLangCmd := &cobra.Command{
+		Use:   "available-languages <service_name>",
+		Short: "List available cron languages",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListCronAvailableLanguages,
+	}
+	cronCmd.AddCommand(cronAvailableLangCmd)
+	webhostingCmd.AddCommand(cronCmd)
