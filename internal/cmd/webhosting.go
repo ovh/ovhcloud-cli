@@ -460,3 +460,64 @@ func init() {
 		Short: "List recent email bounces",
 		Args:  cobra.ExactArgs(1),
 		Run:   webhosting.ListEmailBounces,
+	}
+	emailBouncesCmd.Flags().IntVar(&webhosting.EmailBounceLimit, "limit", 20, "Maximum number of bounces to fetch (1-100)")
+	emailCmd.AddCommand(emailBouncesCmd)
+	emailRequestCmd := &cobra.Command{
+		Use:   "request-action <service_name>",
+		Short: "Request an email action",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.RequestEmailAction,
+	}
+	emailRequestCmd.Flags().StringVar(&webhosting.EmailRequestAction, "action", "", "Action to request (allowed: BLOCK, PURGE, UNBLOCK)")
+	emailCmd.AddCommand(emailRequestCmd)
+	emailVolumesCmd := &cobra.Command{
+		Use:   "volumes <service_name>",
+		Short: "List email sending volumes",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListEmailVolumes,
+	}
+	emailCmd.AddCommand(withFilterFlag(emailVolumesCmd))
+	webhostingCmd.AddCommand(emailCmd)
+
+	// Email options
+	emailOptionCmd := &cobra.Command{Use: "email-option", Short: "Manage email options"}
+	emailOptionListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List email options",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListEmailOptions,
+	}
+	emailOptionCmd.AddCommand(withFilterFlag(emailOptionListCmd))
+	emailOptionGetCmd := &cobra.Command{
+		Use:   "get <service_name> <id>",
+		Short: "Get an email option",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetEmailOption,
+	}
+	emailOptionCmd.AddCommand(emailOptionGetCmd)
+	emailOptionServiceInfoCmd := &cobra.Command{
+		Use:   "service-info <service_name> <id>",
+		Short: "Get email option service info",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.GetEmailOptionServiceInfo,
+	}
+	emailOptionCmd.AddCommand(emailOptionServiceInfoCmd)
+	emailOptionTerminateCmd := &cobra.Command{
+		Use:   "terminate <service_name> <id>",
+		Short: "Terminate an email option",
+		Args:  cobra.ExactArgs(2),
+		Run:   webhosting.TerminateEmailOption,
+	}
+	emailOptionCmd.AddCommand(emailOptionTerminateCmd)
+	webhostingCmd.AddCommand(emailOptionCmd)
+
+	// Extra SQL options
+	extraSQLCmd := &cobra.Command{Use: "extra-sql", Short: "Manage extra SQL options"}
+	extraSQLListCmd := &cobra.Command{
+		Use:   "list <service_name>",
+		Short: "List extra SQL options",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.ListExtraSqlOptions,
+	}
+	extraSQLCmd.AddCommand(withFilterFlag(extraSQLListCmd))

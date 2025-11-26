@@ -1,0 +1,64 @@
+📦 Module {{.ServiceName}}
+================
+
+**ID**: {{index .Result "id"}}
+
+**Module ID**: {{index .Result "moduleId"}}
+
+{{ $module := index .Result "module" }}
+{{ if $module }}
+  {{ with index $module "name" }}
+**Name**: {{.}}
+  {{ end }}
+{{ else if index .Result "moduleName" }}
+**Name**: {{index .Result "moduleName"}}
+{{ else }}
+**Name**: N/A
+{{ end }}
+
+{{ if $module }}
+  {{ with index $module "version" }}
+**Version**: {{.}}
+  {{ end }}
+  {{ with index $module "branch" }}
+**Branch**: {{.}}
+  {{ end }}
+{{ end }}
+
+{{ if index .Result "moduleVersion" }}
+**Version**: {{index .Result "moduleVersion"}}
+{{ end }}
+
+{{ if index .Result "moduleBranch" }}
+**Branch**: {{index .Result "moduleBranch"}}
+{{ end }}
+
+**Status**: {{index .Result "status"}}
+
+**Domain / Target URL**: {{index .Result "domain"}} / {{index .Result "targetUrl"}}
+
+**Path**: {{index .Result "path"}}
+
+**Language**: {{index .Result "language"}}
+
+**Admin folder / user**: {{index .Result "adminFolder"}} / {{index .Result "adminName"}}
+
+**Created at**: {{index .Result "creationDate"}}
+
+**Last update**: {{index .Result "lastUpdate"}}
+
+{{ with $deps := index .Result "dependencies" -}}
+### 🔗 Dependencies
+
+| Name | Type | Server | User | Prefix |
+|------|------|--------|------|--------|
+{{ range $deps -}}
+| {{index . "name"}} | {{index . "type"}} | {{index . "server"}} | {{index . "user"}} | {{index . "prefix"}} |
+{{ end }}
+{{ else }}
+### 🔗 Dependencies
+
+No dependencies linked to this module.
+{{ end }}
+
+💡 Use option --json or --yaml to get the raw output with all information
