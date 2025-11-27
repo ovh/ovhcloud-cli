@@ -3,12 +3,13 @@
 Edit the given WebHosting
 
 ```
-ovhcloud webhosting edit <service_name> [flags]
+  ovhcloud webhosting edit <service_name> [flags]
 ```
 
 ### Options
 
 ```
+      --clear-display-name    Clear the display name (set default value)
       --display-name string   Display name of the WebHosting
       --editor                Use a text editor to define parameters
   -h, --help                  help for edit
@@ -36,4 +37,3 @@ ovhcloud webhosting edit <service_name> [flags]
 ### SEE ALSO
 
 * [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
-
