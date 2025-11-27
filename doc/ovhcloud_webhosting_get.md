@@ -3,7 +3,7 @@
 Retrieve information of a specific WebHosting
 
 ```
-ovhcloud webhosting get <service_name> [flags]
+  ovhcloud webhosting get <service_name> [flags]
 ```
 
 ### Options
@@ -34,4 +34,3 @@ ovhcloud webhosting get <service_name> [flags]
 ### SEE ALSO
 
 * [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
-
