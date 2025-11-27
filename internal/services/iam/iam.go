@@ -41,6 +41,9 @@ var (
 	//go:embed parameter-samples/user-edit.json
 	UserEditExample string
 
+	//go:embed parameter-samples/token-create.json
+	TokenCreateExample string
+
 	IAMPolicySpec struct {
 		Name        string   `json:"name,omitempty"`
 		Description string   `json:"description,omitempty"`
@@ -73,6 +76,13 @@ var (
 		Login       string `json:"login,omitempty"`
 		Password    string `json:"password,omitempty"`
 		Type        string `json:"type,omitempty"`
+	}
+
+	TokenSpec struct {
+		Name        string `json:"name,omitempty"`
+		Description string `json:"description,omitempty"`
+		ExpiredAt   string `json:"expiredAt,omitempty"`
+		ExpiresIn   int    `json:"expiresIn,omitempty"`
 	}
 )
 
@@ -252,4 +262,41 @@ func DeleteUser(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ User %s deleted successfully", args[0])
+}
+
+func ListUserTokens(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/me/identity/user/%s/token", url.PathEscape(args[0]))
+	common.ManageListRequest(endpoint, "", []string{"name", "description", "expiresAt"}, flags.GenericFilters)
+}
+
+func GetUserToken(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/me/identity/user/%s/token", url.PathEscape(args[0]))
+	common.ManageObjectRequest(endpoint, args[1], "")
+}
+
+func CreateUserToken(cmd *cobra.Command, args []string) {
+	token, err := common.CreateResource(
+		cmd,
+		"/me/identity/user/{user}/token",
+		fmt.Sprintf("/me/identity/user/%s/token", url.PathEscape(args[0])),
+		TokenCreateExample,
+		TokenSpec,
+		assets.MeOpenapiSchema,
+		[]string{"name", "description"})
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create token for user %s: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, token, "✅ Token %s created successfully, value: %s", token["name"], token["token"])
+}
+
+func DeleteUserToken(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/me/identity/user/%s/token/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete token %s for user %s: %s", args[1], args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Token %s deleted successfully for user %s", args[1], args[0])
 }

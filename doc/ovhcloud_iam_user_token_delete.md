@@ -1,11 +1,15 @@
-## ovhcloud iam user
+## ovhcloud iam user token delete
 
-Manage IAM users
+Delete a specific token of an IAM user
+
+```
+ovhcloud iam user token delete <user_login> <token_name> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for user
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -28,11 +32,5 @@ Manage IAM users
 
 ### SEE ALSO
 
-* [ovhcloud iam](ovhcloud_iam.md)	 - Manage IAM resources, permissions and policies
-* [ovhcloud iam user create](ovhcloud_iam_user_create.md)	 - Create a new user
-* [ovhcloud iam user delete](ovhcloud_iam_user_delete.md)	 - Delete a specific IAM user
-* [ovhcloud iam user edit](ovhcloud_iam_user_edit.md)	 - Edit an existing user
-* [ovhcloud iam user get](ovhcloud_iam_user_get.md)	 - Get a specific IAM user
-* [ovhcloud iam user list](ovhcloud_iam_user_list.md)	 - List IAM users
 * [ovhcloud iam user token](ovhcloud_iam_user_token.md)	 - Manage IAM user tokens
 
