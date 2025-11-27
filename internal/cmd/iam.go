@@ -181,6 +181,45 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	tokenCmd := &cobra.Command{
+		Use:   "token",
+		Short: "Manage IAM user tokens",
+	}
+	iamUserCmd.AddCommand(tokenCmd)
+
+	tokenCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list <user_login>",
+		Aliases: []string{"ls"},
+		Short:   "List tokens of a specific IAM user",
+		Run:     iam.ListUserTokens,
+		Args:    cobra.ExactArgs(1),
+	}))
+
+	tokenCmd.AddCommand(&cobra.Command{
+		Use:   "get <user_login> <token_name>",
+		Short: "Get a specific token of an IAM user",
+		Run:   iam.GetUserToken,
+		Args:  cobra.ExactArgs(2),
+	})
+
+	tokenCreateCmd := getGenericCreateCmd(
+		"token", "iam user token create", "--name Token --description Desc",
+		"/me/identity/user/{user}/token", iam.TokenCreateExample,
+		assets.MeOpenapiSchema, []string{"user_login"}, iam.CreateUserToken,
+	)
+	tokenCreateCmd.Flags().StringVar(&iam.TokenSpec.Name, "name", "", "Name of the token")
+	tokenCreateCmd.Flags().StringVar(&iam.TokenSpec.Description, "description", "", "Description of the token")
+	tokenCreateCmd.Flags().StringVar(&iam.TokenSpec.ExpiredAt, "expiredAt", "", "Expiration date of the token (RFC3339 format)")
+	tokenCreateCmd.Flags().IntVar(&iam.TokenSpec.ExpiresIn, "expiresIn", 0, "Number of seconds before the token expires")
+	tokenCmd.AddCommand(tokenCreateCmd)
+
+	tokenCmd.AddCommand(&cobra.Command{
+		Use:   "delete <user_login> <token_name>",
+		Short: "Delete a specific token of an IAM user",
+		Run:   iam.DeleteUserToken,
+		Args:  cobra.ExactArgs(2),
+	})
+
 	rootCmd.AddCommand(iamCmd)
 }
 
