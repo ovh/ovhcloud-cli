@@ -35,6 +35,9 @@ var (
 	//go:embed templates/iam_resource_group.tmpl
 	iamResourceGroupTemplate string
 
+	//go:embed parameter-samples/policy-create.json
+	IAMPolicyCreateExample string
+
 	//go:embed parameter-samples/user-create.json
 	UserCreateExample string
 
@@ -122,6 +125,35 @@ func EditIAMPolicy(cmd *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
+}
+
+func CreateIAMPolicy(cmd *cobra.Command, _ []string) {
+	prepareIAMPermissionsFromCLI()
+	policy, err := common.CreateResource(
+		cmd,
+		"/iam/policy",
+		"/v2/iam/policy",
+		IAMPolicyCreateExample,
+		IAMPolicySpec,
+		assets.IamOpenapiSchema,
+		[]string{"name", "identities", "permissions", "resources"},
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create IAM policy: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, policy, "✅ IAM policy %s created successfully", policy["id"])
+}
+
+func DeleteIAMPolicy(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/v2/iam/policy/%s", url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete IAM policy %s: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ IAM policy %s deleted successfully", args[0])
 }
 
 func ListIAMPermissionsGroups(_ *cobra.Command, _ []string) {
