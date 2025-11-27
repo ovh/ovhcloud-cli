@@ -1012,38 +1012,26 @@ func init() {
 	// SSL
 	sslCmd := &cobra.Command{Use: "ssl", Short: "Manage SSL"}
 	sslGetCmd := &cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Get SSL info",
-		Args:  cobra.ExactArgs(1),
+		Use:   "get <service_name> <domain>",
+		Short: "Get SSL info for an attached domain",
+		Args:  cobra.ExactArgs(2),
 		Run:   webhosting.GetSSL,
 	}
 	sslCmd.AddCommand(sslGetCmd)
 	sslCreateCmd := &cobra.Command{
-		Use:   "create <service_name>",
-		Short: "Create SSL",
-		Args:  cobra.ExactArgs(1),
+		Use:   "create <service_name> <domain>",
+		Short: "Create the free default SSL for an attached domain",
+		Args:  cobra.ExactArgs(2),
 		Run:   webhosting.CreateSSL,
 	}
-	sslCreateCmd.Flags().StringVar(&webhosting.SSLCertificate, "certificate", "", "Certificate")
-	sslCreateCmd.Flags().StringVar(&webhosting.SSLChain, "chain", "", "Certificate chain")
-	sslCreateCmd.Flags().StringVar(&webhosting.SSLKey, "key", "", "Private key")
-	addFromFileFlag(sslCreateCmd)
-	addInteractiveEditorFlag(sslCreateCmd)
 	sslCmd.AddCommand(sslCreateCmd)
 	sslDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name>",
-		Short: "Delete SSL",
-		Args:  cobra.ExactArgs(1),
+		Use:   "delete <service_name> <domain>",
+		Short: "Delete SSL for an attached domain",
+		Args:  cobra.ExactArgs(2),
 		Run:   webhosting.DeleteSSL,
 	}
 	sslCmd.AddCommand(sslDeleteCmd)
-	sslRegenerateCmd := &cobra.Command{
-		Use:   "regenerate <service_name>",
-		Short: "Regenerate SSL",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.RegenerateSSL,
-	}
-	sslCmd.AddCommand(sslRegenerateCmd)
 	sslDomainsCmd := &cobra.Command{
 		Use:   "domains <service_name>",
 		Short: "List SSL domains",
@@ -1051,13 +1039,6 @@ func init() {
 		Run:   webhosting.ListSSLAttachedDomains,
 	}
 	sslCmd.AddCommand(withFilterFlag(sslDomainsCmd))
-	sslReportCmd := &cobra.Command{
-		Use:   "report <service_name>",
-		Short: "Get SSL report",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetSSLReport,
-	}
-	sslCmd.AddCommand(sslReportCmd)
 	webhostingCmd.AddCommand(sslCmd)
 
 	// CDN

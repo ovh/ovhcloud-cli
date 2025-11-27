@@ -73,6 +73,8 @@ var (
 	offerCapabilitiesTemplate string
 	//go:embed templates/abuse_state.tmpl
 	abuseStateTemplate string
+	//go:embed templates/ssl_resource_certificates.tmpl
+	sslResourceCertificatesTemplate string
 	//go:embed templates/runtime.tmpl
 	runtimeTemplate string
 	//go:embed templates/website.tmpl
@@ -129,6 +131,8 @@ var (
 	tokenTemplate string
 	//go:embed templates/vcs_webhooks.tmpl
 	vcsWebhooksTemplate string
+	//go:embed templates/ssl.tmpl
+	sslTemplate string
 
 	WebHostingSpec struct {
 		DisplayName string `json:"displayName,omitempty"`
@@ -210,11 +214,6 @@ var (
 	WebsiteVcsURL      string
 	WebsiteBranch      string
 	WebsiteDeleteFiles bool
-
-	// SSL
-	SSLCertificate string
-	SSLChain       string
-	SSLKey         string
 
 	// Users
 	UserLogin          string
@@ -2333,37 +2332,21 @@ func GetVcsWebhooks(_ *cobra.Command, args []string) {
 
 // SSL
 func GetSSL(_ *cobra.Command, args []string) {
-	endpoint := serviceEndpoint(args[0], "ssl")
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("attachedDomain/%s/ssl", url.PathEscape(args[1])))
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to get SSL: %s", err)
 		return
 	}
-	renderDetails(body)
+	if body == nil {
+		body = map[string]any{}
+	}
+	display.OutputObject(body, fmt.Sprintf("%s (%s)", args[1], args[0]), sslTemplate, &flags.OutputFormatConfig)
 }
 
-func CreateSSL(cmd *cobra.Command, args []string) {
-	params := map[string]any{}
-	if SSLCertificate != "" {
-		params["certificate"] = SSLCertificate
-	}
-	if SSLChain != "" {
-		params["chain"] = SSLChain
-	}
-	if SSLKey != "" {
-		params["key"] = SSLKey
-	}
-
-	endpoint := serviceEndpoint(args[0], "ssl")
-	if _, err := common.CreateResource(
-		cmd,
-		"/hosting/web/{serviceName}/ssl",
-		endpoint,
-		"",
-		params,
-		assets.WebhostingOpenapiSchema,
-		nil,
-	); err != nil {
+func CreateSSL(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("attachedDomain/%s/ssl", url.PathEscape(args[1])))
+	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create SSL: %s", err)
 		return
 	}
@@ -2371,7 +2354,7 @@ func CreateSSL(cmd *cobra.Command, args []string) {
 }
 
 func DeleteSSL(_ *cobra.Command, args []string) {
-	endpoint := serviceEndpoint(args[0], "ssl")
+	endpoint := serviceEndpoint(args[0], fmt.Sprintf("attachedDomain/%s/ssl", url.PathEscape(args[1])))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete SSL: %s", err)
 		return
@@ -2379,28 +2362,15 @@ func DeleteSSL(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ SSL deleted")
 }
 
-func RegenerateSSL(_ *cobra.Command, args []string) {
-	endpoint := serviceEndpoint(args[0], "ssl/regenerate")
-	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to regenerate SSL: %s", err)
-		return
-	}
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Regeneration requested")
-}
-
 func ListSSLAttachedDomains(_ *cobra.Command, args []string) {
-	endpoint := serviceEndpoint(args[0], "ssl/domains")
-	common.ManageListRequestNoExpand(endpoint, []string{"domain"}, flags.GenericFilters)
-}
-
-func GetSSLReport(_ *cobra.Command, args []string) {
-	endpoint := serviceEndpoint(args[0], "ssl/report")
-	var body map[string]any
-	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch SSL report: %s", err)
+	endpoint := fmt.Sprintf("/v2/webhosting/resource/%s/certificate", url.PathEscape(args[0]))
+	var certificates []map[string]any
+	if err := httpLib.Client.Get(endpoint, &certificates); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch SSL certificates: %s", err)
 		return
 	}
-	renderDetails(body)
+	payload := map[string]any{"certificates": certificates}
+	display.OutputObject(payload, args[0], sslResourceCertificatesTemplate, &flags.OutputFormatConfig)
 }
 
 // CDN

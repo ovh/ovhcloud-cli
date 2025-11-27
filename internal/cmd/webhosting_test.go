@@ -261,21 +261,12 @@ func (ms *MockSuite) TestWebhostingUserCreateCmd(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestWebhostingSSLCreationCmd(assert, require *td.T) {
-	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ssl",
-		tdhttpmock.JSONBody(td.JSON(`{
-			"certificate": "CERT",
-			"chain": "CHAIN",
-			"key": "KEY"
-		}`)),
+	httpmock.RegisterResponder(http.MethodPost,
+		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com/ssl",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "ssl", "create", "myservice",
-		"--certificate", "CERT",
-		"--chain", "CHAIN",
-		"--key", "KEY",
-	)
+	out, err := cmd.Execute("webhosting", "ssl", "create", "myservice", "example.com")
 
 	require.CmpNoError(err)
 	assert.String(out, "⚡️ SSL creation requested")
@@ -879,21 +870,25 @@ func (ms *MockSuite) TestWebhostingVcsWebhooks(assert, require *td.T) {
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"path":"/www","push":"https://hook","vcs":"github"}`))
 }
 
-func (ms *MockSuite) TestWebhostingSSLRegenerateAndDelete(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ssl/regenerate",
-		httpmock.NewStringResponder(200, `{}`),
-	)
-	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ssl",
-		httpmock.NewStringResponder(200, `{}`),
+func (ms *MockSuite) TestWebhostingSSLGet(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com/ssl",
+		httpmock.NewStringResponder(200, `{"provider":"LETSENCRYPT","status":"creating"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "ssl", "regenerate", "myservice")
+	out, err := cmd.Execute("webhosting", "ssl", "get", "myservice", "example.com", "--json")
+
 	require.CmpNoError(err)
-	assert.String(out, "⚡️ Regeneration requested")
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"provider":"LETSENCRYPT","status":"creating"}`))
+}
 
-	out, err = cmd.Execute("webhosting", "ssl", "delete", "myservice")
+func (ms *MockSuite) TestWebhostingSSLDelete(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodDelete,
+		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com/ssl",
+		httpmock.NewStringResponder(200, `{}`),
+	)
+
+	out, err := cmd.Execute("webhosting", "ssl", "delete", "myservice", "example.com")
 	require.CmpNoError(err)
 	assert.String(out, "✅ SSL deleted")
 }

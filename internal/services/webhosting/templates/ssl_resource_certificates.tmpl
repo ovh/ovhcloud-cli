@@ -1,0 +1,36 @@
+🔐 Resource Certificates {{.ServiceName}}
+===============================
+
+{{ $certs := index .Result "certificates" -}}
+{{- if not $certs }}
+No certificates detected on this hosting resource.
+{{- else }}
+{{- range $idx, $cert := $certs }}
+{{- $state := index $cert "currentState" }}
+{{- if gt $idx 0 }}
+
+---
+{{- end }}
+**Domain:** {{index $state "mainDomain"}}
+
+- Type: {{with (index $state "certificateType")}}{{.}}{{else}}N/A{{end}}
+- Status: {{with (index $state "state")}}{{.}}{{else}}N/A{{end}}
+- Created: {{with (index $state "createdAt")}}{{.}}{{else}}N/A{{end}}
+- Expiration: {{with (index $state "expiredAt")}}{{.}}{{else}}N/A{{end}}
+- Resource ID: {{with (index $cert "id")}}{{.}}{{else}}N/A{{end}}
+{{- $additional := index $state "additionalDomains" }}
+{{- if and $additional (gt (len $additional) 0) }}
+- Additional domains:
+{{- range $additional }}
+  - {{.}}
+{{- end }}
+{{- else }}
+- Additional domains: N/A
+{{- end }}
+
+{{- end }}
+
+Total certificates: {{len $certs}}
+{{- end }}
+
+💡 Use option --json or --yaml to get the raw output with all information
