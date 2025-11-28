@@ -20,6 +20,7 @@ fmt:
 
 doc:
 	go run cmd/docgen/main.go
+	git checkout doc/ovhcloud.md
 
 release-snapshot:
 	goreleaser release --snapshot --clean --parallelism 1

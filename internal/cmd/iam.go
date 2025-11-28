@@ -37,6 +37,23 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	iamPolicyCreateCmd := getGenericCreateCmd(
+		"policy", "iam policy create",
+		"--name MyPolicy --allow 'domain:apiovh:get' --identity 'urn:v1:eu:identity:account:aa1-ovh' --resource 'urn:v1:eu:resource:domain:*'",
+		"/iam/policy", iam.IAMPolicyCreateExample,
+		assets.IamOpenapiSchema, nil, iam.CreateIAMPolicy,
+	)
+	iamPolicyCreateCmd.Flags().StringVar(&iam.IAMPolicySpec.Name, "name", "", "Name of the policy")
+	iamPolicyCreateCmd.Flags().StringVar(&iam.IAMPolicySpec.Description, "description", "", "Description of the policy")
+	iamPolicyCreateCmd.Flags().StringVar(&iam.IAMPolicySpec.ExpiredAt, "expiredAt", "", "Expiration date of the policy (RFC3339 format), after this date it will no longer be applied")
+	iamPolicyCreateCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.Identities, "identity", nil, "Identities to which the policy applies")
+	iamPolicyCreateCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsAllowed, "allow", nil, "List of allowed actions")
+	iamPolicyCreateCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsDenied, "deny", nil, "List of denied actions")
+	iamPolicyCreateCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsExcept, "except", nil, "List of actions to filter from the allowed list")
+	iamPolicyCreateCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.PermissionsGroupsURNs, "permissions-group", nil, "Permissions group URNs")
+	iamPolicyCreateCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.ResourcesURNs, "resource", nil, "Resource URNs")
+	iamPolicyCmd.AddCommand(iamPolicyCreateCmd)
+
 	iamPolicyEditCmd := &cobra.Command{
 		Use:   "edit <policy_id>",
 		Short: "Edit specific IAM policy",
@@ -54,6 +71,13 @@ func init() {
 	iamPolicyEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.ResourcesURNs, "resource", nil, "Resource URNs")
 	addInteractiveEditorFlag(iamPolicyEditCmd)
 	iamPolicyCmd.AddCommand(iamPolicyEditCmd)
+
+	iamPolicyCmd.AddCommand(&cobra.Command{
+		Use:   "delete <policy_id>",
+		Short: "Delete a specific IAM policy",
+		Run:   iam.DeleteIAMPolicy,
+		Args:  cobra.ExactArgs(1),
+	})
 
 	iamPermissionsGroupCmd := &cobra.Command{
 		Use:   "permissions-group",
