@@ -98,3 +98,13 @@ func (ms *MockSuite) TestDomainZoneUpdateRecord(assert, require *td.T) {
 	require.CmpNoError(err)
 	assert.String(out, `✅ record 1 in example.com updated, don't forget to refresh the associated zone!`)
 }
+
+func (ms *MockSuite) TestDomainZoneDeleteRecord(assert, require *td.T) {
+	httpmock.RegisterResponder("DELETE", "https://eu.api.ovh.com/1.0/domain/zone/example.com/record/1",
+		httpmock.NewStringResponder(200, ``),
+	)
+
+	out, err := cmd.Execute("domain-zone", "record", "delete", "example.com", "1")
+	require.CmpNoError(err)
+	assert.String(out, `✅ record 1 deleted successfully from example.com`)
+}
