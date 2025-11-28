@@ -41,11 +41,6 @@ var (
 		"format",
 		"debug",
 	}
-
-	wasmHiddenCommands = []string{
-		"login",
-		"config",
-	}
 )
 
 func GetRootCommand() *cobra.Command {
@@ -182,13 +177,6 @@ func init() {
 }
 
 func WasmCleanCommands() {
-	// Remove commands that are not relevant in WASM mode
-	for _, child := range rootCmd.Commands() {
-		if slices.Contains(wasmHiddenCommands, child.Name()) {
-			rootCmd.RemoveCommand(child)
-		}
-	}
-
 	// Hide "completion" command
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
