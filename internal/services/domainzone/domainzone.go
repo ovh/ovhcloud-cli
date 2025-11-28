@@ -107,6 +107,16 @@ func CreateRecord(cmd *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ record %s created in %s, don't forget to refresh the associated zone!", record["id"], args[0])
 }
 
+func DeleteRecord(cmd *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/domain/zone/%s/record/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error deleting record %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ record %s deleted successfully from %s", args[1], args[0])
+}
+
 func UpdateRecord(cmd *cobra.Command, args []string) {
 	if UpdateRecordSpec.TTL < 1 {
 		UpdateRecordSpec.TTL = 0

@@ -89,5 +89,13 @@ func init() {
 
 	domainZoneRecordCmd.AddCommand(domainZoneRecordPutCmd)
 
+	domainZoneRecordDeleteCmd := &cobra.Command{
+		Use:   "delete <zone_name> <record_id>",
+		Short: "Delete a single DNS record from your zone",
+		Args:  cobra.ExactArgs(2),
+		Run:   domainzone.DeleteRecord,
+	}
+	domainZoneRecordCmd.AddCommand(domainZoneRecordDeleteCmd)
+
 	rootCmd.AddCommand(domainzoneCmd)
 }
