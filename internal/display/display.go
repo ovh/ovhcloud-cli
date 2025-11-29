@@ -276,10 +276,8 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 		// Define word wrap for the renderer.
 		// Use 80 characters by default, or the terminal width if available.
 		wordWrap := 80
-		termFd := os.Stdout.Fd()
-		if term.IsTerminal(termFd) {
-			termWidth, _, _ := term.GetSize(os.Stdout.Fd())
-			if termWidth > 0 {
+		if termFd := os.Stdout.Fd(); term.IsTerminal(termFd) {
+			if termWidth, _, _ := term.GetSize(termFd); termWidth > 0 {
 				wordWrap = termWidth
 			}
 		}
