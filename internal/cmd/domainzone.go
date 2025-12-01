@@ -78,7 +78,7 @@ func init() {
 		Args:  cobra.ExactArgs(2),
 		Run:   domainzone.UpdateRecord,
 	}
-	domainZoneRecordPutCmd.Flags().StringVar(&domainzone.UpdateRecordSpec.SubDomain, "subdomain", "", "Subdomain to update")
+	domainZoneRecordPutCmd.Flags().StringVar(&domainzone.UpdateRecordSpec.SubDomain, "sub-domain", "", "Subdomain to update")
 	domainZoneRecordPutCmd.Flags().StringVar(&domainzone.UpdateRecordSpec.Target, "target", "", "New target to apply")
 	domainZoneRecordPutCmd.Flags().IntVar(&domainzone.UpdateRecordSpec.TTL, "ttl", 0, "New TTL to apply")
 
