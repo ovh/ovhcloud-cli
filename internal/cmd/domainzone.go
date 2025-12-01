@@ -65,7 +65,7 @@ func init() {
 	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.Target, "target", "", "Target of the record")
 	domainZoneRecordPostCmd.Flags().IntVar(&domainzone.CreateRecordSpec.TTL, "ttl", 0, "TTL of the record")
 
-	addInitParameterFileFlag(domainZoneRecordPostCmd, assets.DomainOpenapiSchema, "/domain/zone/{zoneName}/record", "post", domainzone.RecordUpdateExample, nil)
+	addInitParameterFileFlag(domainZoneRecordPostCmd, assets.DomainOpenapiSchema, "/domain/zone/{zoneName}/record", "post", domainzone.RecordCreateExample, nil)
 	addInteractiveEditorFlag(domainZoneRecordPostCmd)
 	addFromFileFlag(domainZoneRecordPostCmd)
 	domainZoneRecordPostCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
