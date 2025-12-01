@@ -50,7 +50,7 @@ func (ms *MockSuite) TestDomainZoneRefresh(assert, require *td.T) {
 func (ms *MockSuite) TestDomainZoneCreateRecord(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder("POST", "https://eu.api.ovh.com/1.0/domain/zone/example.com/record",
 		tdhttpmock.JSONBody(td.JSON(`{
-			  "fieldType": "A",
+				"fieldType": "A",
 				"subDomain": "example-created",
 				"target":    "127.0.0.1",
 				"ttl":       0
