@@ -65,7 +65,7 @@ func (ms *MockSuite) TestDomainZoneCreateRecord(assert, require *td.T) {
 		}`),
 	)
 
-	out, err := cmd.Execute("domain-zone", "record", "create", "example.com", "--fieldType", "A", "--subdomain", "example-created", "--target", "127.0.0.1", "--ttl", "0")
+	out, err := cmd.Execute("domain-zone", "record", "create", "example.com", "--field-type", "A", "--sub-domain", "example-created", "--target", "127.0.0.1", "--ttl", "0")
 
 	require.CmpNoError(err)
 	assert.String(out, `✅ record 1 created in example.com, don't forget to refresh the associated zone!`)
@@ -93,7 +93,7 @@ func (ms *MockSuite) TestDomainZoneUpdateRecord(assert, require *td.T) {
 		httpmock.NewStringResponder(200, ``),
 	)
 
-	out, err := cmd.Execute("domain-zone", "record", "update", "example.com", "1", "--subdomain", "example-updated", "--target", "127.0.0.2", "--ttl", "0")
+	out, err := cmd.Execute("domain-zone", "record", "update", "example.com", "1", "--sub-domain", "example-updated", "--target", "127.0.0.2", "--ttl", "0")
 
 	require.CmpNoError(err)
 	assert.String(out, `✅ record 1 in example.com updated, don't forget to refresh the associated zone!`)
