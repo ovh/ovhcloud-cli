@@ -9,15 +9,15 @@ ovhcloud domain-zone record create <zone_name> [flags]
 ### Options
 
 ```
-      --editor             Use a text editor to define parameters
-      --fieldType string   Record type (A, AAAA, CAA, CNAME, DKIM, DMARC, DNAME, HTTPS, LOC, MX, NAPTR, NS, PTR, RP, SPF, SRV, SSHFP, SVCB, TLSA, TXT)
-      --from-file string   File containing parameters
-  -h, --help               help for create
-      --init-file string   Create a file with example parameters
-      --replace            Replace parameters file if it already exists
-      --subdomain string   Record subDomain
-      --target string      Target of the record
-      --ttl int            TTL of the record
+      --editor              Use a text editor to define parameters
+      --field-type string   Record type (A, AAAA, CAA, CNAME, DKIM, DMARC, DNAME, HTTPS, LOC, MX, NAPTR, NS, PTR, RP, SPF, SRV, SSHFP, SVCB, TLSA, TXT)
+      --from-file string    File containing parameters
+  -h, --help                help for create
+      --init-file string    Create a file with example parameters
+      --replace             Replace parameters file if it already exists
+      --sub-domain string   Record subDomain
+      --target string       Target of the record
+      --ttl int             TTL of the record
 ```
 
 ### Options inherited from parent commands
