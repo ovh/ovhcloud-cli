@@ -60,7 +60,7 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run:   domainzone.CreateRecord,
 	}
-	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.FieldType, "fieldType", "", "Record type (A, AAAA, CAA, CNAME, DKIM, DMARC, DNAME, HTTPS, LOC, MX, NAPTR, NS, PTR, RP, SPF, SRV, SSHFP, SVCB, TLSA, TXT)")
+	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.FieldType, "field-type", "", "Record type (A, AAAA, CAA, CNAME, DKIM, DMARC, DNAME, HTTPS, LOC, MX, NAPTR, NS, PTR, RP, SPF, SRV, SSHFP, SVCB, TLSA, TXT)")
 	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.SubDomain, "subdomain", "", "Record subDomain")
 	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.Target, "target", "", "Target of the record")
 	domainZoneRecordPostCmd.Flags().IntVar(&domainzone.CreateRecordSpec.TTL, "ttl", 0, "TTL of the record")
