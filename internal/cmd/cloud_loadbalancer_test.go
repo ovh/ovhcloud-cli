@@ -82,6 +82,14 @@ func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
 			"vipSubnetId": "44a869c4-a8db-11f0-899f-0050568ce122"
 		}`))
 
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/SBG5/loadbalancing/flavor/f862fa22-6275-4f8f-885e-66a8faf5e44e",
+		httpmock.NewStringResponder(200, `{
+			"id": "f862fa22-6275-4f8f-885e-66a8faf5e44e",
+			"name": "medium",
+			"description": "Medium Load Balancer Flavor"
+		}`))
+
 	out, err := cmd.Execute("cloud", "loadbalancer", "get", "fakeLB", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
@@ -94,7 +102,7 @@ func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
   **Region**:              SBG5
   **Operating status**:    online
   **Provisioning status**: active
-  **Flavor ID**:           f862fa22-6275-4f8f-885e-66a8faf5e44e
+  **Flavor**:              medium (ID: f862fa22-6275-4f8f-885e-66a8faf5e44e)
   **Creation date**:       2024-07-30T08:26:51Z
 
   ## Technical information
