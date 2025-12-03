@@ -22,6 +22,7 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/charmbracelet/x/term"
 	"github.com/ghodss/yaml"
 	"github.com/ovh/ovhcloud-cli/internal/filters"
 	"gopkg.in/ini.v1"
@@ -272,9 +273,19 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 			exitError("failed to execute template: %s", err)
 		}
 
+		// Define word wrap for the renderer.
+		// Use 80 characters by default, or the terminal width if available.
+		wordWrap := 80
+		if termFd := os.Stdout.Fd(); term.IsTerminal(termFd) {
+			if termWidth, _, _ := term.GetSize(termFd); termWidth > 0 {
+				wordWrap = termWidth
+			}
+		}
+
 		r, err := glamour.NewTermRenderer(
 			glamour.WithAutoStyle(),
 			glamour.WithPreservedNewLines(),
+			glamour.WithWordWrap(wordWrap),
 		)
 		if err != nil {
 			exitError("failed to init rendered: %s", err)
