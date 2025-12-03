@@ -97,10 +97,22 @@ func GetCloudLoadbalancer(_ *cobra.Command, args []string) {
 		return
 	}
 
-	_, lb, err := locateLoadbalancer(projectID, args[0])
+	// Find and fetch the loadbalancer
+	region, lb, err := locateLoadbalancer(projectID, args[0])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
+	}
+
+	// Fetch details about the flavor
+	if flavorID, ok := lb["flavorId"].(string); ok && flavorID != "" {
+		endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/loadbalancing/flavor/%s",
+			projectID, url.PathEscape(region), url.PathEscape(flavorID))
+
+		var flavor map[string]any
+		if err := httpLib.Client.Get(endpoint, &flavor); err == nil {
+			lb["flavor"] = flavor
+		}
 	}
 
 	display.OutputObject(lb, args[0], cloudLoadbalancerTemplate, &flags.OutputFormatConfig)

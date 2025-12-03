@@ -8,7 +8,7 @@ _{{index .Result "name"}}_
 **Region**:              {{index .Result "region"}}
 **Operating status**:    {{index .Result "operatingStatus"}}
 **Provisioning status**: {{index .Result "provisioningStatus"}}
-**Flavor ID**:           {{index .Result "flavorId"}}
+**Flavor**:              {{if index .Result "flavor"}}{{index .Result "flavor" "name"}} (ID: {{index .Result "flavorId"}}){{else}}{{index .Result "flavorId"}}{{end}}
 **Creation date**:       {{index .Result "createdAt"}}
 
 ## Technical information
@@ -16,6 +16,6 @@ _{{index .Result "name"}}_
 **VIP address**:        {{index .Result "vipAddress"}}
 **VIP network ID**:     {{index .Result "vipNetworkId"}}
 **VIP subnet ID**:      {{index .Result "vipSubnetId"}}
-{{if index .Result "floatingIp"}}**Floating IP**:       {{index .Result "floatingIp"}}{{end}}
+{{if index .Result "floatingIp"}}**Floating IP**:        {{index .Result "floatingIp" "ip"}}{{end}}
 
 💡 Use option --json or --yaml to get the raw output with all information
