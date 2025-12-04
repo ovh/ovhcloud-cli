@@ -82,11 +82,11 @@ var (
 )
 
 func ListVps(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/vps", "", vpsColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/vps", "", vpsColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetVps(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s", url.PathEscape(args[0]))
 
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
@@ -109,7 +109,7 @@ func EditVps(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/vps/{serviceName}",
-		fmt.Sprintf("/vps/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/vps/%s", url.PathEscape(args[0])),
 		VpsSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
@@ -119,7 +119,7 @@ func EditVps(cmd *cobra.Command, args []string) {
 }
 
 func GetVpsSnapshot(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/snapshot", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/snapshot", url.PathEscape(args[0]))
 
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
@@ -138,7 +138,7 @@ func EditVpsSnapshot(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/vps/{serviceName}/snapshot",
-		fmt.Sprintf("/vps/%s/snapshot", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/vps/%s/snapshot", url.PathEscape(args[0])),
 		VpsSnapshotSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
@@ -148,7 +148,7 @@ func EditVpsSnapshot(cmd *cobra.Command, args []string) {
 }
 
 func CreateVpsSnapshot(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/createSnapshot", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/createSnapshot", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, VpsSnapshotSpec, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error creating snapshot for %s: %s", args[0], err)
@@ -159,7 +159,7 @@ func CreateVpsSnapshot(_ *cobra.Command, args []string) {
 }
 
 func DeleteVpsSnapshot(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/snapshot", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/snapshot", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting snapshot for %s: %s", args[0], err)
@@ -170,7 +170,7 @@ func DeleteVpsSnapshot(_ *cobra.Command, args []string) {
 }
 
 func AbortVpsSnapshot(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/abortSnapshot", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/abortSnapshot", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error aborting snapshot for %s: %s", args[0], err)
@@ -181,7 +181,7 @@ func AbortVpsSnapshot(_ *cobra.Command, args []string) {
 }
 
 func RestoreVpsSnapshot(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/snapshot/revert", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/snapshot/revert", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error restoring snapshot for %s: %s", args[0], err)
@@ -192,7 +192,7 @@ func RestoreVpsSnapshot(_ *cobra.Command, args []string) {
 }
 
 func DownloadVpsSnapshot(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/snapshot/download", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/snapshot/download", url.PathEscape(args[0]))
 
 	var response map[string]any
 	if err := httpLib.Client.Get(endpoint, &response); err != nil {
@@ -204,7 +204,7 @@ func DownloadVpsSnapshot(_ *cobra.Command, args []string) {
 }
 
 func GetVpsAutomatedBackup(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/automatedBackup", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/automatedBackup", url.PathEscape(args[0]))
 
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
@@ -220,12 +220,12 @@ func GetVpsAutomatedBackup(_ *cobra.Command, args []string) {
 }
 
 func ListVpsAutomatedBackups(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/automatedBackup/attachedBackup", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/automatedBackup/attachedBackup", url.PathEscape(args[0]))
 	common.ManageListRequestNoExpand(endpoint, []string{"restorePoint"}, flags.GenericFilters)
 }
 
 func DetachVpsAutomatedBackup(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/automatedBackup/detachBackup", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/automatedBackup/detachBackup", url.PathEscape(args[0]))
 	body := map[string]any{
 		"restorePoint": args[1],
 	}
@@ -239,7 +239,7 @@ func DetachVpsAutomatedBackup(_ *cobra.Command, args []string) {
 }
 
 func RescheduleVpsAutomatedBackup(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/automatedBackup/reschedule", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/automatedBackup/reschedule", url.PathEscape(args[0]))
 	body := map[string]any{
 		"schedule": args[1],
 	}
@@ -253,7 +253,7 @@ func RescheduleVpsAutomatedBackup(_ *cobra.Command, args []string) {
 }
 
 func RestoreVpsAutomatedBackup(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/automatedBackup/restore", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/automatedBackup/restore", url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, VpsSnapshotRestoreSpec, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error restoring automated backup for %s: %s", args[0], err)
 		return
@@ -263,7 +263,7 @@ func RestoreVpsAutomatedBackup(_ *cobra.Command, args []string) {
 }
 
 func ListVpsAutomatedBackupRestorePoints(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/automatedBackup/restorePoints?state=%s", url.PathEscape(args[0]), url.QueryEscape(VpsBackupRestorePointsState))
+	endpoint := fmt.Sprintf("/v1/vps/%s/automatedBackup/restorePoints?state=%s", url.PathEscape(args[0]), url.QueryEscape(VpsBackupRestorePointsState))
 
 	var restorePoints []string
 	if err := httpLib.Client.Get(endpoint, &restorePoints); err != nil {
@@ -282,12 +282,12 @@ func ListVpsAutomatedBackupRestorePoints(_ *cobra.Command, args []string) {
 }
 
 func ListVpsAvailableUpgrades(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/availableUpgrade", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/availableUpgrade", url.PathEscape(args[0]))
 	common.ManageListRequestNoExpand(endpoint, []string{"name", "offer", "vcore", "memory", "disk"}, flags.GenericFilters)
 }
 
 func ChangeVpsContacts(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/changeContact", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/changeContact", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, VpsContacts, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error changing contacts for %s: %s", args[0], err)
@@ -298,7 +298,7 @@ func ChangeVpsContacts(_ *cobra.Command, args []string) {
 }
 
 func GetVpsServiceInfo(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/serviceInfos", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/serviceInfos", url.PathEscape(args[0]))
 
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
@@ -313,7 +313,7 @@ func EditVpsServiceInfo(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/vps/{serviceName}/serviceInfos",
-		fmt.Sprintf("/vps/%s/serviceInfos", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/vps/%s/serviceInfos", url.PathEscape(args[0])),
 		common.ServiceInfoSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
@@ -323,7 +323,7 @@ func EditVpsServiceInfo(cmd *cobra.Command, args []string) {
 }
 
 func TerminateVps(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/terminate", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/terminate", url.PathEscape(args[0]))
 
 	var response string
 	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
@@ -335,7 +335,7 @@ func TerminateVps(_ *cobra.Command, args []string) {
 }
 
 func ConfirmVpsTermination(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/confirmTermination", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/confirmTermination", url.PathEscape(args[0]))
 
 	body := map[string]any{
 		"token": args[1],
@@ -350,19 +350,19 @@ func ConfirmVpsTermination(_ *cobra.Command, args []string) {
 }
 
 func ListVpsDisks(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/disks", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/disks", url.PathEscape(args[0]))
 	common.ManageListRequest(endpoint, "", []string{"id", "serviceName", "size", "type", "state"}, flags.GenericFilters)
 }
 
 func GetVpsDisk(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest(fmt.Sprintf("/vps/%s/disks", url.PathEscape(args[0])), args[1], "")
+	common.ManageObjectRequest(fmt.Sprintf("/v1/vps/%s/disks", url.PathEscape(args[0])), args[1], "")
 }
 
 func EditVpsDisk(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/vps/{serviceName}/disks/{id}",
-		fmt.Sprintf("/vps/%s/disks/%s", url.PathEscape(args[0]), url.PathEscape(args[1])),
+		fmt.Sprintf("/v1/vps/%s/disks/%s", url.PathEscape(args[0]), url.PathEscape(args[1])),
 		VpsDiskSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
@@ -372,7 +372,7 @@ func EditVpsDisk(cmd *cobra.Command, args []string) {
 }
 
 func VpsGetConsoleURL(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/getConsoleUrl", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/getConsoleUrl", url.PathEscape(args[0]))
 
 	var consoleURL string
 	if err := httpLib.Client.Post(endpoint, nil, &consoleURL); err != nil {
@@ -384,7 +384,7 @@ func VpsGetConsoleURL(_ *cobra.Command, args []string) {
 }
 
 func GetVpsImages(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/images/available", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/images/available", url.PathEscape(args[0]))
 
 	// Fetch available images
 	body, err := httpLib.FetchExpandedArray(endpoint, "")
@@ -404,7 +404,7 @@ func GetVpsImages(_ *cobra.Command, args []string) {
 
 	// Fetch current image
 	var current map[string]any
-	endpoint = fmt.Sprintf("/vps/%s/images/current", url.PathEscape(args[0]))
+	endpoint = fmt.Sprintf("/v1/vps/%s/images/current", url.PathEscape(args[0]))
 	if err := httpLib.Client.Get(endpoint, &current); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch current image: %s", err)
 		return
@@ -418,12 +418,12 @@ func GetVpsImages(_ *cobra.Command, args []string) {
 }
 
 func ListVpsIPs(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/ips", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/ips", url.PathEscape(args[0]))
 	common.ManageListRequest(endpoint, "", []string{"ipAddress", "reverse", "type", "geolocation", "gateway", "macAddress"}, flags.GenericFilters)
 }
 
 func SetVpsIPReverse(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/ips/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/ips/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
 
 	body := map[string]any{
 		"reverse": args[2],
@@ -438,7 +438,7 @@ func SetVpsIPReverse(_ *cobra.Command, args []string) {
 }
 
 func ReleaseVpsIP(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/ips/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/ips/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error releasing IP %s: %s", args[1], err)
@@ -449,12 +449,12 @@ func ReleaseVpsIP(_ *cobra.Command, args []string) {
 }
 
 func ListVPSOptions(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/option", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/option", url.PathEscape(args[0]))
 	common.ManageListRequest(endpoint, "", []string{"option", "state"}, flags.GenericFilters)
 }
 
 func StartVps(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/start", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/start", url.PathEscape(args[0]))
 
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
@@ -479,7 +479,7 @@ func StartVps(_ *cobra.Command, args []string) {
 }
 
 func StopVps(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/stop", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/stop", url.PathEscape(args[0]))
 
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
@@ -504,7 +504,7 @@ func StopVps(_ *cobra.Command, args []string) {
 }
 
 func RebootVps(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/reboot", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/reboot", url.PathEscape(args[0]))
 
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
@@ -529,7 +529,7 @@ func RebootVps(_ *cobra.Command, args []string) {
 }
 
 func ReinstallVps(cmd *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/rebuild", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/rebuild", url.PathEscape(args[0]))
 
 	if VpsImageViaInteractiveSelector {
 		_, id, err := runImageSelector(args[0])
@@ -580,12 +580,12 @@ func ReinstallVps(cmd *cobra.Command, args []string) {
 }
 
 func ListVpsSecondaryDNSDomains(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/secondaryDnsDomains", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/secondaryDnsDomains", url.PathEscape(args[0]))
 	common.ManageListRequest(endpoint, "", []string{"domain", "dns", "ipMaster", "creationDate"}, flags.GenericFilters)
 }
 
 func AddVpsSecondaryDNSDomain(cmd *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/secondaryDnsDomains", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/secondaryDnsDomains", url.PathEscape(args[0]))
 
 	if _, err := common.CreateResource(
 		cmd,
@@ -604,7 +604,7 @@ func AddVpsSecondaryDNSDomain(cmd *cobra.Command, args []string) {
 }
 
 func DeleteVpsSecondaryDNSDomain(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/secondaryDnsDomains/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/secondaryDnsDomains/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting secondary DNS domain %s: %s", args[1], err)
@@ -615,7 +615,7 @@ func DeleteVpsSecondaryDNSDomain(_ *cobra.Command, args []string) {
 }
 
 func ChangeVpsPassword(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/setPassword", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/setPassword", url.PathEscape(args[0]))
 
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
@@ -640,6 +640,6 @@ func ChangeVpsPassword(_ *cobra.Command, args []string) {
 }
 
 func ListVpsTasks(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/vps/%s/tasks", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/vps/%s/tasks", url.PathEscape(args[0]))
 	common.ManageListRequest(endpoint, "", []string{"id", "type", "state", "date", "progress"}, flags.GenericFilters)
 }

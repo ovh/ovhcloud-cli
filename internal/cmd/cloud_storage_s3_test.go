@@ -15,10 +15,10 @@ import (
 )
 
 func (ms *MockSuite) TestCloudStorageS3BulkDeletePrefixCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region",
 		httpmock.NewStringResponder(200, `["BHS"]`))
 
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS",
 		httpmock.NewStringResponder(200, `{
 			"name": "BHS",
 			"type": "region",
@@ -45,7 +45,7 @@ func (ms *MockSuite) TestCloudStorageS3BulkDeletePrefixCmd(assert, require *td.T
 		}`))
 
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer",
 		httpmock.NewStringResponder(200, `{
 			"name": "fakeContainer",
 			"virtualHost": "https://fakeContainer.test.ovh.net/",
@@ -62,7 +62,7 @@ func (ms *MockSuite) TestCloudStorageS3BulkDeletePrefixCmd(assert, require *td.T
 		}`))
 
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/object?prefix=logs%2F",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/object?prefix=logs%2F",
 		httpmock.NewStringResponder(200, `[
 			{"key": "logs/log1.txt"},
 			{"key": "logs/log2.txt"}
@@ -70,7 +70,7 @@ func (ms *MockSuite) TestCloudStorageS3BulkDeletePrefixCmd(assert, require *td.T
 	)
 
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/bulkDeleteObjects",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/bulkDeleteObjects",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"objects": [
@@ -88,10 +88,10 @@ func (ms *MockSuite) TestCloudStorageS3BulkDeletePrefixCmd(assert, require *td.T
 }
 
 func (ms *MockSuite) TestCloudStorageS3BulkDeleteAllCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region",
 		httpmock.NewStringResponder(200, `["BHS"]`))
 
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS",
 		httpmock.NewStringResponder(200, `{
 			"name": "BHS",
 			"type": "region",
@@ -118,7 +118,7 @@ func (ms *MockSuite) TestCloudStorageS3BulkDeleteAllCmd(assert, require *td.T) {
 		}`))
 
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer",
 		httpmock.NewStringResponder(200, `{
 			"name": "fakeContainer",
 			"virtualHost": "https://fakeContainer.test.ovh.net/",
@@ -135,7 +135,7 @@ func (ms *MockSuite) TestCloudStorageS3BulkDeleteAllCmd(assert, require *td.T) {
 		}`))
 
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/object",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/object",
 		httpmock.NewStringResponder(200, `[
 			{"key": "logs/log1.txt"},
 			{"key": "logs/log2.txt"},
@@ -144,7 +144,7 @@ func (ms *MockSuite) TestCloudStorageS3BulkDeleteAllCmd(assert, require *td.T) {
 	)
 
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/bulkDeleteObjects",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/bulkDeleteObjects",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"objects": [

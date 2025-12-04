@@ -27,18 +27,18 @@ var (
 )
 
 func ListHostingPrivateDatabase(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/hosting/privateDatabase", "", hostingprivatedatabaseColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/hosting/privateDatabase", "", hostingprivatedatabaseColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetHostingPrivateDatabase(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/hosting/privateDatabase", args[0], hostingprivatedatabaseTemplate)
+	common.ManageObjectRequest("/v1/hosting/privateDatabase", args[0], hostingprivatedatabaseTemplate)
 }
 
 func EditHostingPrivateDatabase(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/hosting/privateDatabase/{serviceName}",
-		fmt.Sprintf("/hosting/privateDatabase/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/hosting/privateDatabase/%s", url.PathEscape(args[0])),
 		map[string]any{
 			"displayName": HostingPrivateDatabaseDisplayName,
 		},

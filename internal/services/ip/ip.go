@@ -29,18 +29,18 @@ var (
 )
 
 func ListIp(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/ip", "", ipColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/ip", "", ipColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetIp(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/ip", args[0], ipTemplate)
+	common.ManageObjectRequest("/v1/ip", args[0], ipTemplate)
 }
 
 func EditIp(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/ip/{ip}",
-		fmt.Sprintf("/ip/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/ip/%s", url.PathEscape(args[0])),
 		IPSpec,
 		assets.IpOpenapiSchema,
 	); err != nil {
@@ -50,7 +50,7 @@ func EditIp(cmd *cobra.Command, args []string) {
 }
 
 func IpSetReverse(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/ip/%s/reverse", url.PathEscape(args[0]))
+	url := fmt.Sprintf("/v1/ip/%s/reverse", url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(url, map[string]string{
 		"ipReverse": args[1],
 		"reverse":   args[2],
@@ -63,12 +63,12 @@ func IpSetReverse(_ *cobra.Command, args []string) {
 }
 
 func IpGetReverse(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/ip/%s/reverse", url.PathEscape(args[0]))
+	url := fmt.Sprintf("/v1/ip/%s/reverse", url.PathEscape(args[0]))
 	common.ManageListRequest(url, "", []string{"ipReverse", "reverse"}, flags.GenericFilters)
 }
 
 func IpDeleteReverse(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/ip/%s/reverse/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+	url := fmt.Sprintf("/v1/ip/%s/reverse/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(url, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return

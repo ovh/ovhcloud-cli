@@ -29,18 +29,18 @@ var (
 )
 
 func ListLdp(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/dbaas/logs", "", ldpColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/dbaas/logs", "", ldpColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetLdp(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/dbaas/logs", args[0], ldpTemplate)
+	common.ManageObjectRequest("/v1/dbaas/logs", args[0], ldpTemplate)
 }
 
 func EditLdp(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/dbaas/logs/{serviceName}",
-		fmt.Sprintf("/dbaas/logs/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/dbaas/logs/%s", url.PathEscape(args[0])),
 		LdpSpec,
 		assets.LdpOpenapiSchema,
 	); err != nil {

@@ -11,10 +11,10 @@ import (
 )
 
 func (ms *MockSuite) TestCloudKubeListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/kube",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube",
 		httpmock.NewStringResponder(200, `["kube-12345"]`).Once())
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/kube/kube-12345",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/kube-12345",
 		httpmock.NewStringResponder(200, `{
 			"id": "kube-12345",
 			"name": "test-kube",

@@ -20,9 +20,9 @@ var (
 )
 
 func ListCdnDedicated(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/cdn/dedicated", "", cdndedicatedColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/cdn/dedicated", "", cdndedicatedColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCdnDedicated(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/cdn/dedicated", args[0], cdndedicatedTemplate)
+	common.ManageObjectRequest("/v1/cdn/dedicated", args[0], cdndedicatedTemplate)
 }

@@ -29,18 +29,18 @@ var (
 )
 
 func ListDedicatedCeph(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/dedicated/ceph", "", dedicatedcephColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/dedicated/ceph", "", dedicatedcephColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetDedicatedCeph(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/dedicated/ceph", args[0], dedicatedcephTemplate)
+	common.ManageObjectRequest("/v1/dedicated/ceph", args[0], dedicatedcephTemplate)
 }
 
 func EditDedicatedCeph(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/dedicated/ceph/{serviceName}",
-		fmt.Sprintf("/dedicated/ceph/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/dedicated/ceph/%s", url.PathEscape(args[0])),
 		DedicatedCephSpec,
 		assets.DedicatedcephOpenapiSchema,
 	); err != nil {

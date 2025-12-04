@@ -46,18 +46,18 @@ var (
 )
 
 func ListEmailMXPlan(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/email/mxplan", "", emailmxplanColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/email/mxplan", "", emailmxplanColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetEmailMXPlan(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/email/mxplan", args[0], emailmxplanTemplate)
+	common.ManageObjectRequest("/v1/email/mxplan", args[0], emailmxplanTemplate)
 }
 
 func EditEmailMXPlan(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/email/mxplan/{service}",
-		fmt.Sprintf("/email/mxplan/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/email/mxplan/%s", url.PathEscape(args[0])),
 		EmailMXPlanSpec,
 		assets.EmailmxplanOpenapiSchema,
 	); err != nil {

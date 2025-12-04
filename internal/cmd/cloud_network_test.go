@@ -16,7 +16,7 @@ import (
 
 func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS5/network",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"gateway": {
@@ -35,7 +35,7 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 		httpmock.NewStringResponder(200, `{"id": "operation-12345"}`),
 	)
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/operation/operation-12345",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/operation/operation-12345",
 		httpmock.NewStringResponder(200, `
 		{
 			"id": "6610ec10-9b09-11f0-a8ac-0050568ce122",
@@ -66,7 +66,7 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 		}`),
 	)
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/network/private",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/network/private",
 		httpmock.NewStringResponder(200, `[
 			{
 				"id": "pn-example",
@@ -85,7 +85,7 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 		]`),
 	)
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS5/network/80c1de3e-9b09-11f0-993b-0050568ce122/subnet",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/80c1de3e-9b09-11f0-993b-0050568ce122/subnet",
 		httpmock.NewStringResponder(200, `[
 			{
 				"id": "c59a3fdc-9b0f-11f0-ac97-0050568ce122",
@@ -104,7 +104,7 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 		]`),
 	)
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS5/gateway?subnetId=c59a3fdc-9b0f-11f0-ac97-0050568ce122",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/gateway?subnetId=c59a3fdc-9b0f-11f0-ac97-0050568ce122",
 		httpmock.NewStringResponder(200, `[
 			{
 				"id": "e7045f34-8f2b-41a4-a734-97b7b0e323de",
@@ -159,7 +159,7 @@ message: '✅ Network pn-example created successfully (Openstack ID: 80c1de3e-9b
 
 func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/network/private/pn-123456/subnet",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/network/private/pn-123456/subnet",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"dhcp": false,

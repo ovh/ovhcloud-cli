@@ -112,7 +112,7 @@ func locateStorageS3Container(projectID, containerName string) (string, map[stri
 
 	// Search for the given container in all regions
 	for _, region := range regions {
-		endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/storage/%s",
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s",
 			projectID, url.PathEscape(region.(string)), url.PathEscape(containerName))
 
 		var container map[string]any
@@ -139,7 +139,7 @@ func ListCloudStorageS3(_ *cobra.Command, _ []string) {
 	}
 
 	// Fetch containers in all regions
-	url := fmt.Sprintf("/cloud/project/%s/region", projectID)
+	url := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
 	containers, err := httpLib.FetchObjectsParallel[[]map[string]any](url+"/%s/storage", regions, true)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch storage containers: %s", err)
@@ -223,7 +223,7 @@ func CreateStorageS3(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/storage", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage", projectID, url.PathEscape(args[0]))
 	container, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/storage",
@@ -619,7 +619,7 @@ func ListStorageS3Credentials(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%s/s3Credentials", projectID, url.PathEscape(args[0]))
 	common.ManageListRequestNoExpand(endpoint, []string{"access", "userId", "tenantId"}, flags.GenericFilters)
 }
 
@@ -631,7 +631,7 @@ func CreateStorageS3Credentials(cmd *cobra.Command, args []string) {
 	}
 
 	credentials := map[string]any{}
-	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%s/s3Credentials", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, nil, &credentials); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create S3 credentials: %s", err)
 		return
@@ -647,7 +647,7 @@ func DeleteStorageS3Credentials(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%s/s3Credentials/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete S3 credentials: %s", err)
 		return
@@ -663,7 +663,7 @@ func GetStorageS3Credentials(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%s/s3Credentials/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	var credentials map[string]any
 	if err := httpLib.Client.Get(endpoint, &credentials); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to get S3 credentials: %s", err)
@@ -671,7 +671,7 @@ func GetStorageS3Credentials(_ *cobra.Command, args []string) {
 	}
 
 	// Fetch credentials secret
-	secretEndpoint := fmt.Sprintf("/cloud/project/%s/user/%s/s3Credentials/%s/secret", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	secretEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%s/s3Credentials/%s/secret", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Post(secretEndpoint, nil, &credentials); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to get S3 credentials secret: %s", err)
 		return

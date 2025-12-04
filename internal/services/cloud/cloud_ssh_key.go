@@ -29,7 +29,7 @@ func ListCloudSSHKeys(_ *cobra.Command, _ []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	path := fmt.Sprintf("/cloud/project/%s/sshkey", projectID)
+	path := fmt.Sprintf("/v1/cloud/project/%s/sshkey", projectID)
 
 	var body []map[string]any
 	if err := httpLib.Client.Get(path, &body); err != nil {
@@ -53,5 +53,5 @@ func GetCloudSSHKey(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/sshkey", projectID), args[0], cloudSSHKeyTemplate)
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/sshkey", projectID), args[0], cloudSSHKeyTemplate)
 }

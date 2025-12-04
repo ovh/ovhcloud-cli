@@ -14,11 +14,11 @@ import (
 )
 
 func (ms *MockSuite) TestIAMTokenListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/me/identity/user/fakeUser/token",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/me/identity/user/fakeUser/token",
 		httpmock.NewStringResponder(200, `["token1","token2"]`),
 	)
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/me/identity/user/fakeUser/token/token1",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/me/identity/user/fakeUser/token/token1",
 		httpmock.NewStringResponder(200, `{
 			"name": "token1",
 			"description": "First token",
@@ -26,7 +26,7 @@ func (ms *MockSuite) TestIAMTokenListCmd(assert, require *td.T) {
 		}`),
 	)
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/me/identity/user/fakeUser/token/token2",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/me/identity/user/fakeUser/token/token2",
 		httpmock.NewStringResponder(200, `{
 			"name": "token2",
 			"description": "Second token",

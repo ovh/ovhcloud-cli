@@ -28,7 +28,7 @@ func ListCloudRegions(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequest(fmt.Sprintf("/cloud/project/%s/region", projectID), "", cloudprojectRegionColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest(fmt.Sprintf("/v1/cloud/project/%s/region", projectID), "", cloudprojectRegionColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudRegion(_ *cobra.Command, args []string) {
@@ -38,5 +38,5 @@ func GetCloudRegion(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/region", projectID), args[0], cloudRegionTemplate)
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/region", projectID), args[0], cloudRegionTemplate)
 }

@@ -29,18 +29,18 @@ var (
 )
 
 func ListDedicatedNasHA(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/dedicated/nasha", "", dedicatednashaColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/dedicated/nasha", "", dedicatednashaColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetDedicatedNasHA(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/dedicated/nasha", args[0], dedicatednashaTemplate)
+	common.ManageObjectRequest("/v1/dedicated/nasha", args[0], dedicatednashaTemplate)
 }
 
 func EditDedicatedNasHA(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/dedicated/nasha/{serviceName}",
-		fmt.Sprintf("/dedicated/nasha/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/dedicated/nasha/%s", url.PathEscape(args[0])),
 		DedicatedNasHASpec,
 		assets.DedicatednashaOpenapiSchema,
 	); err != nil {

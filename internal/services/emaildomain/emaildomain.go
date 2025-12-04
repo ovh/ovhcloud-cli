@@ -20,9 +20,9 @@ var (
 )
 
 func ListEmailDomain(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/email/domain", "", emaildomainColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/email/domain", "", emaildomainColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetEmailDomain(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/email/domain", args[0], emaildomainTemplate)
+	common.ManageObjectRequest("/v1/email/domain", args[0], emaildomainTemplate)
 }

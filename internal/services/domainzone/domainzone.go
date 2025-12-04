@@ -34,11 +34,11 @@ var (
 )
 
 func ListDomainZone(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/domain/zone", "", domainzoneColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/domain/zone", "", domainzoneColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetDomainZone(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/domain/zone/%s", url.PathEscape(args[0]))
+	path := fmt.Sprintf("/v1/domain/zone/%s", url.PathEscape(args[0]))
 
 	// Fetch domain zone
 	var object map[string]any
@@ -48,7 +48,7 @@ func GetDomainZone(_ *cobra.Command, args []string) {
 	}
 
 	// Fetch running tasks
-	path = fmt.Sprintf("/domain/zone/%s/record", url.PathEscape(args[0]))
+	path = fmt.Sprintf("/v1/domain/zone/%s/record", url.PathEscape(args[0]))
 	records, err := httpLib.FetchExpandedArray(path, "")
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error fetching records for %s: %s", args[0], err)
@@ -60,12 +60,12 @@ func GetDomainZone(_ *cobra.Command, args []string) {
 }
 
 func GetRecord(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/domain/zone/%s/record", url.PathEscape(args[0]))
+	path := fmt.Sprintf("/v1/domain/zone/%s/record", url.PathEscape(args[0]))
 	common.ManageObjectRequest(path, args[1], "")
 }
 
 func RefreshZone(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/domain/zone/%s/refresh", url.PathEscape(args[0]))
+	path := fmt.Sprintf("/v1/domain/zone/%s/refresh", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(path, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error refreshing zone %s: %s", path, err)
@@ -83,7 +83,7 @@ func UpdateRecord(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/domain/zone/{zoneName}/record/{id}",
-		fmt.Sprintf("/domain/zone/%s/record/%s", url.PathEscape(args[0]), url.PathEscape(args[1])),
+		fmt.Sprintf("/v1/domain/zone/%s/record/%s", url.PathEscape(args[0]), url.PathEscape(args[1])),
 		UpdateRecordSpec,
 		assets.DomainOpenapiSchema,
 	); err != nil {
