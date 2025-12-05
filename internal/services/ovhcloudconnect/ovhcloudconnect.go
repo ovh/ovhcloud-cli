@@ -28,18 +28,18 @@ var (
 )
 
 func ListOvhCloudConnect(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/ovhCloudConnect", "", ovhcloudconnectColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/ovhCloudConnect", "", ovhcloudconnectColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetOvhCloudConnect(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/ovhCloudConnect", args[0], ovhcloudconnectTemplate)
+	common.ManageObjectRequest("/v1/ovhCloudConnect", args[0], ovhcloudconnectTemplate)
 }
 
 func EditOvhCloudConnect(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/ovhCloudConnect/{serviceName}",
-		fmt.Sprintf("/ovhCloudConnect/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/ovhCloudConnect/%s", url.PathEscape(args[0])),
 		OvhCloudConnectSpec,
 		assets.OvhcloudconnectOpenapiSchema,
 	); err != nil {

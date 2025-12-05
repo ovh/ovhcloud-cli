@@ -13,10 +13,10 @@ import (
 )
 
 func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region",
 		httpmock.NewStringResponder(200, `["GRA11", "SBG5", "BHS5"]`))
 
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/GRA11",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11",
 		httpmock.NewStringResponder(200, `{
 			"name": "GRA11",
 			"type": "region",
@@ -34,7 +34,7 @@ func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
 			"datacenterLocation": "GRA11"
 		}`))
 
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/SBG5",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5",
 		httpmock.NewStringResponder(200, `{
 			"name": "SBG5",
 			"type": "region",
@@ -52,7 +52,7 @@ func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
 			"datacenterLocation": "SBG5"
 		}`))
 
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/BHS5",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5",
 		httpmock.NewStringResponder(200, `{
 			"name": "BHS5",
 			"type": "region",
@@ -66,7 +66,7 @@ func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
 		}`))
 
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/SBG5/loadbalancing/loadbalancer/fakeLB",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/loadbalancer/fakeLB",
 		httpmock.NewStringResponder(200, `{
 			"createdAt": "2024-07-30T08:26:51Z",
 			"flavorId": "f862fa22-6275-4f8f-885e-66a8faf5e44e",
@@ -83,7 +83,7 @@ func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
 		}`))
 
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/SBG5/loadbalancing/flavor/f862fa22-6275-4f8f-885e-66a8faf5e44e",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/flavor/f862fa22-6275-4f8f-885e-66a8faf5e44e",
 		httpmock.NewStringResponder(200, `{
 			"id": "f862fa22-6275-4f8f-885e-66a8faf5e44e",
 			"name": "medium",

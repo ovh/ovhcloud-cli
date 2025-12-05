@@ -46,7 +46,7 @@ func ListContainerRegistries(_ *cobra.Command, _ []string) {
 	}
 
 	// Fetch registries
-	endpoint := fmt.Sprintf("/cloud/project/%s/containerRegistry", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry", projectID)
 	body, err := httpLib.FetchArray(endpoint, "")
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
@@ -100,7 +100,7 @@ func GetContainerRegistry(_ *cobra.Command, args []string) {
 	}
 
 	// Fetch registry details
-	endpoint := fmt.Sprintf("/cloud/project/%s/containerRegistry/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s", projectID, url.PathEscape(args[0]))
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", endpoint, err)
@@ -146,7 +146,7 @@ func EditContainerRegistry(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/containerRegistry/{registryID}",
-		fmt.Sprintf("/cloud/project/%s/containerRegistry/%s", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s", projectID, url.PathEscape(args[0])),
 		map[string]any{"name": CloudContainerRegistryName},
 		assets.CloudOpenapiSchema,
 	); err != nil {
@@ -165,7 +165,7 @@ func CreateContainerRegistry(cmd *cobra.Command, args []string) {
 	registry, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/containerRegistry",
-		fmt.Sprintf("/cloud/project/%s/containerRegistry", projectID),
+		fmt.Sprintf("/v1/cloud/project/%s/containerRegistry", projectID),
 		CloudContainerRegistryCreateSample,
 		CloudContainerRegistrySpec,
 		assets.CloudOpenapiSchema,
@@ -186,7 +186,7 @@ func DeleteContainerRegistry(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/containerRegistry/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete container registry: %s", err)
 		return

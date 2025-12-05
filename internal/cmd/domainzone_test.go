@@ -14,7 +14,7 @@ import (
 )
 
 func (ms *MockSuite) TestDomainZoneGetRecord(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/domain/zone/example.com/record/1",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/domain/zone/example.com/record/1",
 		httpmock.NewStringResponder(200, `{
 				"fieldType": "A",
 				"id": 1,
@@ -38,7 +38,7 @@ func (ms *MockSuite) TestDomainZoneGetRecord(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestDomainZoneRefresh(assert, require *td.T) {
-	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/1.0/domain/zone/example.com/refresh",
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/domain/zone/example.com/refresh",
 		httpmock.NewStringResponder(200, ``).Once())
 
 	out, err := cmd.Execute("domain-zone", "refresh", "example.com")
@@ -48,7 +48,7 @@ func (ms *MockSuite) TestDomainZoneRefresh(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestDomainZoneUpdateRecord(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/domain/zone/example.com/record/1",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/domain/zone/example.com/record/1",
 		httpmock.NewStringResponder(200, `{
 				"fieldType": "A",
 				"id": 1,
@@ -58,7 +58,7 @@ func (ms *MockSuite) TestDomainZoneUpdateRecord(assert, require *td.T) {
 				"zone": "example.com"
 			}`).Once())
 
-	httpmock.RegisterMatcherResponder("PUT", "https://eu.api.ovh.com/1.0/domain/zone/example.com/record/1",
+	httpmock.RegisterMatcherResponder("PUT", "https://eu.api.ovh.com/v1/domain/zone/example.com/record/1",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"subDomain": "example-updated",

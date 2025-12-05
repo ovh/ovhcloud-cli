@@ -20,9 +20,9 @@ var (
 )
 
 func ListSsl(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/ssl", "", sslColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/ssl", "", sslColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetSsl(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/ssl", args[0], sslTemplate)
+	common.ManageObjectRequest("/v1/ssl", args[0], sslTemplate)
 }

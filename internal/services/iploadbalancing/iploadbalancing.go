@@ -29,18 +29,18 @@ var (
 )
 
 func ListIpLoadbalancing(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/ipLoadbalancing", "", iploadbalancingColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/ipLoadbalancing", "", iploadbalancingColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetIpLoadbalancing(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/ipLoadbalancing", args[0], iploadbalancingTemplate)
+	common.ManageObjectRequest("/v1/ipLoadbalancing", args[0], iploadbalancingTemplate)
 }
 
 func EditIpLoadbalancing(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/ipLoadbalancing/{serviceName}",
-		fmt.Sprintf("/ipLoadbalancing/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/ipLoadbalancing/%s", url.PathEscape(args[0])),
 		IPLoadbalancingSpec,
 		assets.IploadbalancingOpenapiSchema,
 	); err != nil {

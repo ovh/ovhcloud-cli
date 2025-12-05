@@ -129,7 +129,7 @@ func ListInstances(_ *cobra.Command, _ []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	common.ManageListRequest(fmt.Sprintf("/cloud/project/%s/instance", projectID), "id", cloudprojectInstanceColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest(fmt.Sprintf("/v1/cloud/project/%s/instance", projectID), "id", cloudprojectInstanceColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetInstance(_ *cobra.Command, args []string) {
@@ -138,7 +138,7 @@ func GetInstance(_ *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/instance", projectID), args[0], cloudInstanceTemplate)
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/instance", projectID), args[0], cloudInstanceTemplate)
 }
 
 func SetInstanceName(_ *cobra.Command, args []string) {
@@ -148,7 +148,7 @@ func SetInstanceName(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
 	body := map[string]any{
 		"instanceName": args[1],
 	}
@@ -167,7 +167,7 @@ func StartInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/start", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/start", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error starting instance %q: %s", args[0], err)
@@ -184,7 +184,7 @@ func StopInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/stop", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/stop", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error stopping instance %q: %s", args[0], err)
@@ -201,7 +201,7 @@ func ShelveInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/shelve", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/shelve", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error shelving instance %q: %s", args[0], err)
@@ -218,7 +218,7 @@ func UnshelveInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/unshelve", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/unshelve", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error unshelving instance %q: %s", args[0], err)
@@ -235,7 +235,7 @@ func ResumeInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/resume", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/resume", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error resuming instance %q: %s", args[0], err)
@@ -257,7 +257,7 @@ func RebootInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/reboot", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/reboot", projectID, url.PathEscape(args[0]))
 	body := map[string]any{
 		"type": InstanceRebootType,
 	}
@@ -298,7 +298,7 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/instance", projectID, region)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance", projectID, region)
 	operation, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/instance",
@@ -336,7 +336,7 @@ func DeleteInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting instance %q: %s", args[0], err)
@@ -446,7 +446,7 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 		log.Print("Flag --image-selector used, all other flags will be ignored")
 
 		// Fetch instance details to get its region
-		endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
 		var instance map[string]any
 		if err := httpLib.Client.Get(endpoint, &instance); err != nil {
 			display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
@@ -542,7 +542,7 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 	log.Println("Installation parameters: \n" + string(out))
 
 	var task map[string]any
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/reinstall", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/reinstall", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, parameters, &task); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error reinstalling instance %q: %s", args[0], err)
 		return
@@ -564,7 +564,7 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 }
 
 func waitForInstanceStatus(cloudProject, instanceID, targetStatus string) error {
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", cloudProject, url.PathEscape(instanceID))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", cloudProject, url.PathEscape(instanceID))
 
 	for range 100 {
 		var instance map[string]any
@@ -594,7 +594,7 @@ func ActivateMonthlyBilling(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/activeMonthlyBilling", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/activeMonthlyBilling", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error activating monthly billing for instance %q: %s", args[0], err)
@@ -611,7 +611,7 @@ func ListInstanceInterfaces(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/interface", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/interface", projectID, url.PathEscape(args[0]))
 
 	common.ManageListRequestNoExpand(endpoint, []string{"id", "type", "macAddress", "networkId", "state"}, flags.GenericFilters)
 }
@@ -623,7 +623,7 @@ func GetInstanceInterface(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/interface", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/interface", projectID, url.PathEscape(args[0]))
 
 	common.ManageObjectRequest(endpoint, args[1], cloudInstanceInterfaceTemplate)
 }
@@ -635,7 +635,7 @@ func CreateInstanceInterface(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/interface", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/interface", projectID, url.PathEscape(args[0]))
 	body := map[string]any{
 		"networkId": args[1],
 	}
@@ -660,7 +660,7 @@ func DeleteInstanceInterface(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/interface/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/interface/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting interface %s for instance %q: %s", args[1], args[0], err)
@@ -677,7 +677,7 @@ func EnableInstanceInRescueMode(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/rescueMode", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/rescueMode", projectID, url.PathEscape(args[0]))
 	body := map[string]any{
 		"rescue": true,
 	}
@@ -713,7 +713,7 @@ func DisableInstanceRescueMode(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/rescueMode", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/rescueMode", projectID, url.PathEscape(args[0]))
 	body := map[string]any{
 		"rescue": false,
 	}
@@ -751,7 +751,7 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 		log.Print("Flag --flavor-selector used, all other flags will be ignored")
 
 		// Fetch instance details to get its region
-		endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
 		var instance map[string]any
 		if err := httpLib.Client.Get(endpoint, &instance); err != nil {
 			display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
@@ -781,7 +781,7 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 
 	log.Printf("Selected flavor %s", flavor)
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s/resize", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/resize", projectID, url.PathEscape(args[0]))
 	body := map[string]any{
 		"flavorId": flavor,
 	}
@@ -814,7 +814,7 @@ func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 	}
 
 	// Fetch instance details to get its region
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
 	var instance map[string]any
 	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
@@ -824,7 +824,7 @@ func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 
 	InstanceSnapshotSpec.SnapshotName = args[1]
 
-	endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/instance/%s/snapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
+	endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/snapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, InstanceSnapshotSpec, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error creating snapshot for instance %q: %s", args[0], err)
@@ -842,7 +842,7 @@ func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
 	}
 
 	// Fetch instance details to get its region
-	endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
 	var instance map[string]any
 	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
@@ -851,7 +851,7 @@ func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
 	region := instance["region"].(string)
 
 	// Abort the snapshot
-	endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/instance/%s/abortSnapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
+	endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/abortSnapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error aborting snapshot for instance %q: %s", args[0], err)
 		return
@@ -867,7 +867,7 @@ func ListInstanceSnapshots(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequestNoExpand(fmt.Sprintf("/cloud/project/%s/snapshot", projectID), []string{"id", "name", "type", "status", "region"}, flags.GenericFilters)
+	common.ManageListRequestNoExpand(fmt.Sprintf("/v1/cloud/project/%s/snapshot", projectID), []string{"id", "name", "type", "status", "region"}, flags.GenericFilters)
 }
 
 func GetInstanceSnapshot(_ *cobra.Command, args []string) {
@@ -877,7 +877,7 @@ func GetInstanceSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/snapshot", projectID), args[0], "")
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/snapshot", projectID), args[0], "")
 }
 
 func DeleteInstanceSnapshot(_ *cobra.Command, args []string) {
@@ -887,7 +887,7 @@ func DeleteInstanceSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/snapshot/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot/%s", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting snapshot %q: %s", args[0], err)

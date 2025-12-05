@@ -37,18 +37,18 @@ var (
 )
 
 func ListCloudProject(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/cloud/project", "", cloudprojectColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/cloud/project", "", cloudprojectColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudProject(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/cloud/project", args[0], cloudProjectTemplate)
+	common.ManageObjectRequest("/v1/cloud/project", args[0], cloudProjectTemplate)
 }
 
 func EditCloudProject(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}",
-		fmt.Sprintf("/cloud/project/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s", url.PathEscape(args[0])),
 		CloudProjectSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
@@ -111,7 +111,7 @@ func getCloudRegionsWithFeatureAvailable(projectID string, features ...string) (
 }
 
 func fetchProjectRegions(projectID string) ([]map[string]any, error) {
-	endpoint := fmt.Sprintf("/cloud/project/%s/region", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
 
 	regions, err := httpLib.FetchExpandedArray(endpoint, "")
 	if err != nil {

@@ -20,9 +20,9 @@ var (
 )
 
 func ListVeeamCloudConnect(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/veeamCloudConnect", "", veeamcloudconnectColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/veeamCloudConnect", "", veeamcloudconnectColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetVeeamCloudConnect(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/veeamCloudConnect", args[0], veeamcloudconnectTemplate)
+	common.ManageObjectRequest("/v1/veeamCloudConnect", args[0], veeamcloudconnectTemplate)
 }

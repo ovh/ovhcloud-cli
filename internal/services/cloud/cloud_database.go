@@ -87,7 +87,7 @@ func ListCloudDatabases(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequest(fmt.Sprintf("/cloud/project/%s/database/service", projectID), "", cloudprojectDatabaseColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest(fmt.Sprintf("/v1/cloud/project/%s/database/service", projectID), "", cloudprojectDatabaseColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudDatabase(_ *cobra.Command, args []string) {
@@ -97,7 +97,7 @@ func GetCloudDatabase(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/database/service", projectID), args[0], cloudDatabaseTemplate)
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/database/service", projectID), args[0], cloudDatabaseTemplate)
 }
 
 func CreateDatabase(cmd *cobra.Command, args []string) {
@@ -125,7 +125,7 @@ func CreateDatabase(cmd *cobra.Command, args []string) {
 		})
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/database/%s", projectID, url.PathEscape(DatabaseSpec.Engine))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s", projectID, url.PathEscape(DatabaseSpec.Engine))
 	database, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/database/"+url.PathEscape(DatabaseSpec.Engine),
@@ -151,13 +151,13 @@ func DeleteDatabase(cmd *cobra.Command, args []string) {
 
 	// Fetch database service to retrieve the engine
 	var databaseService map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
 		return
 	}
 
 	// Delete the database
-	endpoint := fmt.Sprintf("/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete database: %s", err)
 		return
@@ -175,7 +175,7 @@ func EditDatabase(cmd *cobra.Command, args []string) {
 
 	// Fetch database service to retrieve the engine
 	var databaseService map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
 		return
 	}
@@ -189,7 +189,7 @@ func EditDatabase(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/database/"+url.PathEscape(databaseService["engine"].(string))+"/{clusterId}",
-		fmt.Sprintf("/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
 		DatabaseSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
@@ -208,13 +208,13 @@ func CreateDatabaseInDatabase(_ *cobra.Command, args []string) {
 	// Fetch database service to retrieve the engine
 	var databaseService map[string]any
 	if err := httpLib.Client.Get(
-		fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
 		return
 	}
 
 	endpoint := fmt.Sprintf(
-		"/cloud/project/%s/database/%s/%s/database",
+		"/v1/cloud/project/%s/database/%s/%s/database",
 		projectID,
 		url.PathEscape(databaseService["engine"].(string)),
 		url.PathEscape(args[0]),
@@ -239,14 +239,14 @@ func DeleteDatabaseInDatabase(_ *cobra.Command, args []string) {
 	// Fetch database service to retrieve the engine
 	var databaseService map[string]any
 	if err := httpLib.Client.Get(
-		fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
 		return
 	}
 
 	// Delete the database in the given database cluster
 	endpoint := fmt.Sprintf(
-		"/cloud/project/%s/database/%s/%s/database/%s",
+		"/v1/cloud/project/%s/database/%s/%s/database/%s",
 		projectID,
 		url.PathEscape(databaseService["engine"].(string)),
 		url.PathEscape(args[0]),
@@ -270,13 +270,13 @@ func ListDatabasesInDatabase(_ *cobra.Command, args []string) {
 	// Fetch database service to retrieve the engine
 	var databaseService map[string]any
 	if err := httpLib.Client.Get(
-		fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
 		return
 	}
 
 	common.ManageListRequest(
-		fmt.Sprintf("/cloud/project/%s/database/%s/%s/database", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/database", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
 		"",
 		[]string{"id", "name", "default"},
 		flags.GenericFilters,
@@ -293,13 +293,13 @@ func GetDatabaseInDatabase(_ *cobra.Command, args []string) {
 	// Fetch database service to retrieve the engine
 	var databaseService map[string]any
 	if err := httpLib.Client.Get(
-		fmt.Sprintf("/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
 		return
 	}
 
 	common.ManageObjectRequest(
-		fmt.Sprintf("/cloud/project/%s/database/%s/%s/database", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/database", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
 		args[1],
 		"",
 	)

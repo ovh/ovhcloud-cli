@@ -20,9 +20,9 @@ var (
 )
 
 func ListDedicatedCloud(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/dedicatedCloud", "", dedicatedcloudColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/dedicatedCloud", "", dedicatedcloudColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetDedicatedCloud(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/dedicatedCloud", args[0], dedicatedcloudTemplate)
+	common.ManageObjectRequest("/v1/dedicatedCloud", args[0], dedicatedcloudTemplate)
 }

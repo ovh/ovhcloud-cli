@@ -14,7 +14,7 @@ import (
 
 func (ms *MockSuite) TestCloudInstanceNullImageCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/instance/fakeInstanceID",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/instance/fakeInstanceID",
 		httpmock.NewStringResponder(200, `
 			{
 				"id": "fakeInstanceID",

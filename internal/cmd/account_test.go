@@ -16,7 +16,7 @@ import (
 
 func (ms *MockSuite) TestOauth2ClientCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/me/api/oauth2/client",
+		"https://eu.api.ovh.com/v1/me/api/oauth2/client",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"callbackUrls": [

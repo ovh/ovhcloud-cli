@@ -39,14 +39,14 @@ func GetMe(_ *cobra.Command, _ []string) {
 }
 
 func ListSSHKeys(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/me/sshKey", "", sshKeysColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/me/sshKey", "", sshKeysColumnsToDisplay, flags.GenericFilters)
 }
 
 func CreateOAuth2Client(cmd *cobra.Command, args []string) {
 	client, err := common.CreateResource(
 		cmd,
 		"/me/api/oauth2/client",
-		"/me/api/oauth2/client",
+		"/v1/me/api/oauth2/client",
 		Oauth2ClientCreateSample,
 		Oauth2ClientSpec,
 		assets.MeOpenapiSchema,
@@ -67,16 +67,16 @@ func CreateOAuth2Client(cmd *cobra.Command, args []string) {
 }
 
 func ListOAuth2Clients(_ *cobra.Command, _ []string) {
-	endpoint := "/me/api/oauth2/client"
+	endpoint := "/v1/me/api/oauth2/client"
 	common.ManageListRequest(endpoint, "", []string{"clientId", "name", "description", "flow", "createdAt"}, flags.GenericFilters)
 }
 
 func GetOauth2Client(cmd *cobra.Command, args []string) {
-	common.ManageObjectRequest("/me/api/oauth2/client", args[0], "")
+	common.ManageObjectRequest("/v1/me/api/oauth2/client", args[0], "")
 }
 
 func DeleteOauth2Client(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/me/api/oauth2/client/%s", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/me/api/oauth2/client/%s", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete OAuth2 client: %s", err)
@@ -90,7 +90,7 @@ func EditOauth2Client(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/me/api/oauth2/client/{clientId}",
-		fmt.Sprintf("/me/api/oauth2/client/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/me/api/oauth2/client/%s", url.PathEscape(args[0])),
 		Oauth2ClientSpec,
 		assets.MeOpenapiSchema,
 	); err != nil {

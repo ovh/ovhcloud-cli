@@ -20,9 +20,9 @@ var (
 )
 
 func ListVeeamEnterprise(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/veeam/veeamEnterprise", "", veeamenterpriseColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/veeam/veeamEnterprise", "", veeamenterpriseColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetVeeamEnterprise(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/veeam/veeamEnterprise", args[0], veeamenterpriseTemplate)
+	common.ManageObjectRequest("/v1/veeam/veeamEnterprise", args[0], veeamenterpriseTemplate)
 }

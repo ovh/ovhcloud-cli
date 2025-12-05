@@ -249,18 +249,18 @@ func prepareIAMPermissionsFromCLI() {
 }
 
 func ListUsers(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/me/identity/user", "", []string{"login", "group", "description"}, flags.GenericFilters)
+	common.ManageListRequest("/v1/me/identity/user", "", []string{"login", "group", "description"}, flags.GenericFilters)
 }
 
 func GetUser(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/me/identity/user", args[0], "")
+	common.ManageObjectRequest("/v1/me/identity/user", args[0], "")
 }
 
 func CreateUser(cmd *cobra.Command, _ []string) {
 	_, err := common.CreateResource(
 		cmd,
 		"/me/identity/user",
-		"/me/identity/user",
+		"/v1/me/identity/user",
 		UserCreateExample,
 		UserSpec,
 		assets.MeOpenapiSchema,
@@ -277,7 +277,7 @@ func EditUser(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/me/identity/user/{user}",
-		fmt.Sprintf("/me/identity/user/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/me/identity/user/%s", url.PathEscape(args[0])),
 		UserSpec,
 		assets.MeOpenapiSchema,
 	); err != nil {
@@ -287,7 +287,7 @@ func EditUser(cmd *cobra.Command, args []string) {
 }
 
 func DeleteUser(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/me/identity/user/%s", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/me/identity/user/%s", url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete user %s: %s", args[0], err)
 		return
@@ -297,12 +297,12 @@ func DeleteUser(_ *cobra.Command, args []string) {
 }
 
 func ListUserTokens(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/me/identity/user/%s/token", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/me/identity/user/%s/token", url.PathEscape(args[0]))
 	common.ManageListRequest(endpoint, "", []string{"name", "description", "expiresAt"}, flags.GenericFilters)
 }
 
 func GetUserToken(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/me/identity/user/%s/token", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/me/identity/user/%s/token", url.PathEscape(args[0]))
 	common.ManageObjectRequest(endpoint, args[1], "")
 }
 
@@ -310,7 +310,7 @@ func CreateUserToken(cmd *cobra.Command, args []string) {
 	token, err := common.CreateResource(
 		cmd,
 		"/me/identity/user/{user}/token",
-		fmt.Sprintf("/me/identity/user/%s/token", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/me/identity/user/%s/token", url.PathEscape(args[0])),
 		TokenCreateExample,
 		TokenSpec,
 		assets.MeOpenapiSchema,
@@ -324,7 +324,7 @@ func CreateUserToken(cmd *cobra.Command, args []string) {
 }
 
 func DeleteUserToken(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/me/identity/user/%s/token/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/me/identity/user/%s/token/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete token %s for user %s: %s", args[1], args[0], err)
 		return

@@ -11,7 +11,7 @@ import (
 )
 
 func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/containerRegistry",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry",
 		httpmock.NewStringResponder(200, `[
 			{
 				"createdAt": "2025-08-22T09:24:18.953364Z",
@@ -28,10 +28,10 @@ func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
 			}
 		]`).Once())
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region",
 		httpmock.NewStringResponder(200, `["GRA", "EU-WEST-PAR"]`).Once())
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/GRA",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA",
 		httpmock.NewStringResponder(200, `{
 			"name": "GRA",
 			"type": "region",
@@ -44,7 +44,7 @@ func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
 			"datacenterLocation": "GRA"
 		}`).Once())
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/region/EU-WEST-PAR",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/EU-WEST-PAR",
 		httpmock.NewStringResponder(200, `{
 			"name": "EU-WEST-PAR",
 			"type": "region-3-az",
@@ -57,7 +57,7 @@ func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
 			"datacenterLocation": "EU-WEST-PAR"
 		}`).Once())
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/containerRegistry/0b1b2dc2-952b-11f0-afd9-0050568ce122/plan",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/0b1b2dc2-952b-11f0-afd9-0050568ce122/plan",
 		httpmock.NewStringResponder(200, `{
 			"code": "registry.s-plan-equivalent.hour.consumption",
 			"createdAt": "2019-09-13T15:53:33.599585Z",

@@ -20,9 +20,9 @@ var (
 )
 
 func ListDedicatedCluster(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/dedicated/cluster", "", dedicatedclusterColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/dedicated/cluster", "", dedicatedclusterColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetDedicatedCluster(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/dedicated/cluster", args[0], dedicatedclusterTemplate)
+	common.ManageObjectRequest("/v1/dedicated/cluster", args[0], dedicatedclusterTemplate)
 }

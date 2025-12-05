@@ -30,18 +30,18 @@ var (
 )
 
 func ListOverTheBox(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/overTheBox", "", overtheboxColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/overTheBox", "", overtheboxColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetOverTheBox(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/overTheBox", args[0], overtheboxTemplate)
+	common.ManageObjectRequest("/v1/overTheBox", args[0], overtheboxTemplate)
 }
 
 func EditOverTheBox(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/overTheBox/{serviceName}",
-		fmt.Sprintf("/overTheBox/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/overTheBox/%s", url.PathEscape(args[0])),
 		OverTheBoxSpec,
 		assets.OvertheboxOpenapiSchema,
 	); err != nil {
