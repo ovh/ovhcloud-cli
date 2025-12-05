@@ -143,6 +143,12 @@ OVHcloud CLI requires authentication to be able to make API calls. There are sev
 
 Check out the [authentication page](./doc/authentication.md) for further information about the configuration and the authentication means.
 
+* Interactive login:
+```sh
+# Log in and create API credentials (interactive)
+ovhcloud login
+```
+
 * Using a configuration file:
 
 Default settings can be set using a configuration file named `.ovh.conf` and located in your `${HOME}` directory.
@@ -169,12 +175,6 @@ OVH_APPLICATION_KEY=xxx
 OVH_APPLICATION_SECRET=xxx
 OVH_CONSUMER_KEY=xxx
 OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID> 
-```
-
-* Interactive login:
-```sh
-# Log in and create API credentials (interactive)
-ovhcloud login
 ```
 
 ## Examples
