@@ -108,7 +108,7 @@ func CreateRecord(cmd *cobra.Command, args []string) {
 }
 
 func DeleteRecord(cmd *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/domain/zone/%s/record/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/domain/zone/%s/record/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting record %s", err)
 		return
