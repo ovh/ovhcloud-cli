@@ -93,7 +93,7 @@ func CreateRecord(cmd *cobra.Command, args []string) {
 	record, err := common.CreateResource(
 		cmd,
 		"/domain/zone/{zoneName}/record",
-		fmt.Sprintf("/domain/zone/%s/record", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/domain/zone/%s/record", url.PathEscape(args[0])),
 		RecordCreateExample,
 		CreateRecordSpec,
 		assets.DomainOpenapiSchema,
