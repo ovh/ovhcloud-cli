@@ -233,6 +233,40 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.DeleteGatewayInterface,
 		Args:  cobra.ExactArgs(2),
 	})
+
+	// Loadbalancer commands
+	loadbalancerCmd := &cobra.Command{
+		Use:   "loadbalancer",
+		Short: "Manage loadbalancers in the given cloud project",
+	}
+	networkCmd.AddCommand(loadbalancerCmd)
+
+	loadbalancerListCmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your loadbalancers",
+		Run:     cloud.ListCloudLoadbalancers,
+	}
+	loadbalancerCmd.AddCommand(withFilterFlag(loadbalancerListCmd))
+
+	loadbalancerCmd.AddCommand(&cobra.Command{
+		Use:   "get <loadbalancer_id>",
+		Short: "Get a specific loadbalancer",
+		Run:   cloud.GetCloudLoadbalancer,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	editLoadbalancerCmd := &cobra.Command{
+		Use:   "edit <loadbalancer_id>",
+		Short: "Edit the given loadbalancer",
+		Run:   cloud.EditCloudLoadbalancer,
+		Args:  cobra.ExactArgs(1),
+	}
+	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Name, "name", "", "Name of the loadbalancer")
+	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Description, "description", "", "Description of the loadbalancer")
+	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.FlavorId, "flavor", "", "Flavor ID of the loadbalancer (can be retrieved with 'cloud reference loadbalancer list-flavors <region>')")
+	addInteractiveEditorFlag(editLoadbalancerCmd)
+	loadbalancerCmd.AddCommand(editLoadbalancerCmd)
 }
 
 func getPrivateNetworkCreationCmd() *cobra.Command {

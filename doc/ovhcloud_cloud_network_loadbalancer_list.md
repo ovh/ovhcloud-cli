@@ -1,15 +1,22 @@
-## ovhcloud cloud loadbalancer get
+## ovhcloud cloud network loadbalancer list
 
-Get a specific loadbalancer
+List your loadbalancers
 
 ```
-ovhcloud cloud loadbalancer get <loadbalancer_id> [flags]
+ovhcloud cloud network loadbalancer list [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -33,5 +40,5 @@ ovhcloud cloud loadbalancer get <loadbalancer_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud network loadbalancer](ovhcloud_cloud_network_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
 
