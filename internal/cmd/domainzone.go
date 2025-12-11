@@ -54,13 +54,31 @@ func init() {
 	}
 	domainZoneRecordCmd.AddCommand(domainZoneRecordGetCmd)
 
+	domainZoneRecordPostCmd := &cobra.Command{
+		Use:   "create <zone_name>",
+		Short: "Create a single DNS record in your zone",
+		Args:  cobra.ExactArgs(1),
+		Run:   domainzone.CreateRecord,
+	}
+	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.FieldType, "field-type", "", "Record type (A, AAAA, CAA, CNAME, DKIM, DMARC, DNAME, HTTPS, LOC, MX, NAPTR, NS, PTR, RP, SPF, SRV, SSHFP, SVCB, TLSA, TXT)")
+	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.SubDomain, "sub-domain", "", "Record subDomain")
+	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.Target, "target", "", "Target of the record")
+	domainZoneRecordPostCmd.Flags().IntVar(&domainzone.CreateRecordSpec.TTL, "ttl", 0, "TTL of the record")
+
+	addInitParameterFileFlag(domainZoneRecordPostCmd, assets.DomainOpenapiSchema, "/domain/zone/{zoneName}/record", "post", domainzone.RecordCreateExample, nil)
+	addInteractiveEditorFlag(domainZoneRecordPostCmd)
+	addFromFileFlag(domainZoneRecordPostCmd)
+	domainZoneRecordPostCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+
+	domainZoneRecordCmd.AddCommand(domainZoneRecordPostCmd)
+
 	domainZoneRecordPutCmd := &cobra.Command{
 		Use:   "update <zone_name> <record_id>",
 		Short: "Update a single DNS record from your zone",
 		Args:  cobra.ExactArgs(2),
 		Run:   domainzone.UpdateRecord,
 	}
-	domainZoneRecordPutCmd.Flags().StringVar(&domainzone.UpdateRecordSpec.SubDomain, "subdomain", "", "Subdomain to update")
+	domainZoneRecordPutCmd.Flags().StringVar(&domainzone.UpdateRecordSpec.SubDomain, "sub-domain", "", "Subdomain to update")
 	domainZoneRecordPutCmd.Flags().StringVar(&domainzone.UpdateRecordSpec.Target, "target", "", "New target to apply")
 	domainZoneRecordPutCmd.Flags().IntVar(&domainzone.UpdateRecordSpec.TTL, "ttl", 0, "New TTL to apply")
 
@@ -70,6 +88,14 @@ func init() {
 	domainZoneRecordPutCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	domainZoneRecordCmd.AddCommand(domainZoneRecordPutCmd)
+
+	domainZoneRecordDeleteCmd := &cobra.Command{
+		Use:   "delete <zone_name> <record_id>",
+		Short: "Delete a single DNS record from your zone",
+		Args:  cobra.ExactArgs(2),
+		Run:   domainzone.DeleteRecord,
+	}
+	domainZoneRecordCmd.AddCommand(domainZoneRecordDeleteCmd)
 
 	rootCmd.AddCommand(domainzoneCmd)
 }

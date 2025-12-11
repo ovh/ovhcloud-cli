@@ -9,14 +9,14 @@ ovhcloud domain-zone record update <zone_name> <record_id> [flags]
 ### Options
 
 ```
-      --editor             Use a text editor to define parameters
-      --from-file string   File containing parameters
-  -h, --help               help for update
-      --init-file string   Create a file with example parameters
-      --replace            Replace parameters file if it already exists
-      --subdomain string   Subdomain to update
-      --target string      New target to apply
-      --ttl int            New TTL to apply
+      --editor              Use a text editor to define parameters
+      --from-file string    File containing parameters
+  -h, --help                help for update
+      --init-file string    Create a file with example parameters
+      --replace             Replace parameters file if it already exists
+      --sub-domain string   Subdomain to update
+      --target string       New target to apply
+      --ttl int             New TTL to apply
 ```
 
 ### Options inherited from parent commands

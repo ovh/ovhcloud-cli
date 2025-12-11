@@ -1,11 +1,23 @@
-## ovhcloud domain-zone record
+## ovhcloud domain-zone record create
 
-Retrieve information and manage your DNS records within a zone
+Create a single DNS record in your zone
+
+```
+ovhcloud domain-zone record create <zone_name> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for record
+      --editor              Use a text editor to define parameters
+      --field-type string   Record type (A, AAAA, CAA, CNAME, DKIM, DMARC, DNAME, HTTPS, LOC, MX, NAPTR, NS, PTR, RP, SPF, SRV, SSHFP, SVCB, TLSA, TXT)
+      --from-file string    File containing parameters
+  -h, --help                help for create
+      --init-file string    Create a file with example parameters
+      --replace             Replace parameters file if it already exists
+      --sub-domain string   Record subDomain
+      --target string       Target of the record
+      --ttl int             TTL of the record
 ```
 
 ### Options inherited from parent commands
@@ -28,9 +40,5 @@ Retrieve information and manage your DNS records within a zone
 
 ### SEE ALSO
 
-* [ovhcloud domain-zone](ovhcloud_domain-zone.md)	 - Retrieve information and manage your domain zones
-* [ovhcloud domain-zone record create](ovhcloud_domain-zone_record_create.md)	 - Create a single DNS record in your zone
-* [ovhcloud domain-zone record delete](ovhcloud_domain-zone_record_delete.md)	 - Delete a single DNS record from your zone
-* [ovhcloud domain-zone record get](ovhcloud_domain-zone_record_get.md)	 - Get a single DNS record from your zone
-* [ovhcloud domain-zone record update](ovhcloud_domain-zone_record_update.md)	 - Update a single DNS record from your zone
+* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Retrieve information and manage your DNS records within a zone
 
