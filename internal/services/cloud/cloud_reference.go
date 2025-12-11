@@ -24,7 +24,7 @@ func GetFlavors(region string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/flavor", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/flavor", projectID)
 	if region != "" {
 		endpoint += "?region=" + url.QueryEscape(region)
 	}
@@ -47,7 +47,7 @@ func GetImages(region, osType string) {
 		query.Add("osType", osType)
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/image?%s", projectID, query.Encode())
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/image?%s", projectID, query.Encode())
 
 	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "region", "type", "status"}, flags.GenericFilters)
 }
@@ -58,7 +58,7 @@ func ListContainerRegistryPlans(_ *cobra.Command, _ []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	path := fmt.Sprintf("/cloud/project/%s/capabilities/containerRegistry", projectID)
+	path := fmt.Sprintf("/v1/cloud/project/%s/capabilities/containerRegistry", projectID)
 
 	var body []map[string]any
 	if err := httpLib.Client.Get(path, &body); err != nil {
@@ -133,7 +133,7 @@ func ListDatabasesPlans(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/database/capabilities", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database plans: %s", err)
@@ -161,7 +161,7 @@ func ListDatabasesNodeFlavors(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/database/capabilities", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database plans: %s", err)
@@ -198,7 +198,7 @@ func ListDatabaseEngines(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/database/capabilities", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database engines: %s", err)
@@ -238,6 +238,6 @@ func ListLoadbalancerFlavors(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/loadbalancing/flavor", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/flavor", projectID, url.PathEscape(args[0]))
 	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "region"}, flags.GenericFilters)
 }

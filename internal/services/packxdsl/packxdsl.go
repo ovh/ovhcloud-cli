@@ -28,18 +28,18 @@ var (
 )
 
 func ListPackXDSL(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/pack/xdsl", "", packxdslColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/pack/xdsl", "", packxdslColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetPackXDSL(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/pack/xdsl", args[0], packxdslTemplate)
+	common.ManageObjectRequest("/v1/pack/xdsl", args[0], packxdslTemplate)
 }
 
 func EditPackXDSL(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/pack/xdsl/{packName}",
-		fmt.Sprintf("/pack/xdsl/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/pack/xdsl/%s", url.PathEscape(args[0])),
 		PackXDSLSpec,
 		assets.PackxdslOpenapiSchema,
 	); err != nil {

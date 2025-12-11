@@ -36,7 +36,7 @@ type CloudProjectSubOperation struct {
 
 func getAvailableImages(projectID string, region string) (map[string]string, error) {
 	// Fetch available images for the project
-	endpoint := fmt.Sprintf("/cloud/project/%s/image", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/image", projectID)
 	if region != "" {
 		endpoint += "?region=" + url.QueryEscape(region)
 	}
@@ -79,7 +79,7 @@ func runImageSelector(projectID string, region string) (string, string, error) {
 
 func getAvailableFlavors(projectID string, region string) (map[string]string, error) {
 	// Fetch available flavors for the project
-	endpoint := fmt.Sprintf("/cloud/project/%s/flavor", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/flavor", projectID)
 	if region != "" {
 		endpoint += "?region=" + url.QueryEscape(region)
 	}
@@ -117,7 +117,7 @@ func runFlavorSelector(projectID string, region string) (string, string, error) 
 }
 
 func waitForCloudOperation(projectID, operationID, action string, retryDuration time.Duration) (string, error) {
-	endpoint := fmt.Sprintf("/cloud/project/%s/operation/%s", url.PathEscape(projectID), url.PathEscape(operationID))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/operation/%s", url.PathEscape(projectID), url.PathEscape(operationID))
 	resourceID := ""
 
 	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)

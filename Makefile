@@ -6,7 +6,9 @@ LD_PKG	  = $(shell go list ./internal/version)
 LD_FLAGS  = -s -w -extldflags -static -X ${LD_PKG}.Version=${VERSION}
 BUILD_CMD = CGO_ENABLED=0 go build
 
-all:
+all: build
+
+build:
 	${BUILD_CMD} -ldflags "${LD_FLAGS}" -o ovhcloud ./cmd/ovhcloud
 
 wasm:

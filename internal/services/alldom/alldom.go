@@ -20,9 +20,9 @@ var (
 )
 
 func ListAllDom(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/allDom", "", alldomColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/allDom", "", alldomColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetAllDom(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/allDom", args[0], alldomTemplate)
+	common.ManageObjectRequest("/v1/allDom", args[0], alldomTemplate)
 }

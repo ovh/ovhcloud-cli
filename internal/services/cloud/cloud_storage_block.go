@@ -55,7 +55,7 @@ func ListCloudVolumes(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequestNoExpand(fmt.Sprintf("/cloud/project/%s/volume", projectID), volumeColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequestNoExpand(fmt.Sprintf("/v1/cloud/project/%s/volume", projectID), volumeColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetVolume(_ *cobra.Command, args []string) {
@@ -65,7 +65,7 @@ func GetVolume(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/volume", projectID), args[0], volumeTemplate)
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/volume", projectID), args[0], volumeTemplate)
 }
 
 func EditVolume(cmd *cobra.Command, args []string) {
@@ -78,7 +78,7 @@ func EditVolume(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/volume/{volumeId}",
-		fmt.Sprintf("/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
 		VolumeSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
@@ -94,7 +94,7 @@ func CreateVolume(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/volume", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume", projectID, url.PathEscape(args[0]))
 	task, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/volume",
@@ -131,7 +131,7 @@ func DeleteVolume(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete volume: %s", err)
 		return
@@ -148,7 +148,7 @@ func AttachVolumeToInstance(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(
-		fmt.Sprintf("/cloud/project/%s/volume/%s/attach", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/volume/%s/attach", projectID, url.PathEscape(args[0])),
 		map[string]string{"instanceId": args[1]},
 		nil,
 	); err != nil {
@@ -167,7 +167,7 @@ func DetachVolumeFromInstance(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(
-		fmt.Sprintf("/cloud/project/%s/volume/%s/detach", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/volume/%s/detach", projectID, url.PathEscape(args[0])),
 		map[string]string{"instanceId": args[1]},
 		nil,
 	); err != nil {
@@ -186,7 +186,7 @@ func CreateVolumeSnapshot(_ *cobra.Command, args []string) {
 	}
 
 	var (
-		endpoint = fmt.Sprintf("/cloud/project/%s/volume/%s/snapshot", projectID, url.PathEscape(args[0]))
+		endpoint = fmt.Sprintf("/v1/cloud/project/%s/volume/%s/snapshot", projectID, url.PathEscape(args[0]))
 		response map[string]any
 	)
 
@@ -205,7 +205,7 @@ func ListVolumeSnapshots(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/volume/snapshot", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/snapshot", projectID)
 
 	volume, err := cmd.Flags().GetString("volume-id")
 	if err != nil {
@@ -226,7 +226,7 @@ func DeleteVolumeSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/volume/snapshot/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/snapshot/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete snapshot: %s", err)
 		return
@@ -252,7 +252,7 @@ func UpsizeVolume(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/volume/%s/upsize", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s/upsize", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(
 		endpoint,
 		map[string]int{"size": size},
@@ -282,7 +282,7 @@ func findVolumeBackup(backupId string) (string, map[string]any, error) {
 	for _, region := range regions {
 		var (
 			volumeBackup map[string]any
-			endpoint     = fmt.Sprintf("/cloud/project/%s/region/%s/volumeBackup/%s",
+			endpoint     = fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup/%s",
 				projectID, url.PathEscape(region.(string)), url.PathEscape(backupId))
 		)
 		if err := httpLib.Client.Get(endpoint, &volumeBackup); err == nil {
@@ -308,7 +308,7 @@ func ListVolumeBackups(_ *cobra.Command, args []string) {
 	}
 
 	// Fetch volumes in all regions
-	endpoint := fmt.Sprintf("/cloud/project/%s/region", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
 	volumeBackups, err := httpLib.FetchObjectsParallel[[]map[string]any](endpoint+"/%s/volumeBackup", regions, true)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume backups: %s", err)
@@ -366,14 +366,14 @@ func CreateVolumeBackup(cmd *cobra.Command, args []string) {
 	// Fetch volume to get its region
 	var volume map[string]any
 	if err := httpLib.Client.Get(
-		fmt.Sprintf("/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
 		&volume,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume: %s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/volumeBackup", projectID, url.PathEscape(volume["region"].(string)))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup", projectID, url.PathEscape(volume["region"].(string)))
 
 	var (
 		response map[string]any

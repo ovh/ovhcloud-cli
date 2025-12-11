@@ -166,7 +166,7 @@ func ListKubes(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequest(fmt.Sprintf("/cloud/project/%s/kube", projectID), "", cloudprojectKubeColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest(fmt.Sprintf("/v1/cloud/project/%s/kube", projectID), "", cloudprojectKubeColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetKube(_ *cobra.Command, args []string) {
@@ -176,7 +176,7 @@ func GetKube(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
 
 	var object map[string]any
 	if err := httpLib.Client.Get(endpoint, &object); err != nil {
@@ -212,7 +212,7 @@ func CreateKube(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube", projectID)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube", projectID)
 	cluster, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/kube",
@@ -239,11 +239,8 @@ func EditKube(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}",
-		fmt.Sprintf("/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0])),
-		map[string]any{
-			"name":         KubeSpec.Name,
-			"updatePolicy": KubeSpec.UpdatePolicy,
-		},
+		fmt.Sprintf("/v1/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0])),
+		KubeSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -258,7 +255,7 @@ func DeleteKube(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete MKS cluster: %s", err)
 		return
@@ -274,7 +271,7 @@ func GetKubeCustomization(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0]))
 	var customization map[string]any
 	if err := httpLib.Client.Get(endpoint, &customization); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch MKS cluster customization: %s", err)
@@ -294,7 +291,7 @@ func EditKubeCustomization(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/customization",
-		fmt.Sprintf("/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0])),
 		KubeSpec.Customization,
 		assets.CloudOpenapiSchema,
 	); err != nil {
@@ -310,7 +307,7 @@ func ListKubeIPRestrictions(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/ipRestrictions", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", projectID, url.PathEscape(args[0]))
 
 	body, err := httpLib.FetchArray(endpoint, "")
 	if err != nil {
@@ -340,7 +337,7 @@ func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/ipRestrictions", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", projectID, url.PathEscape(args[0]))
 
 	if flags.ParametersViaEditor {
 		// Fetch resource
@@ -394,7 +391,7 @@ func GenerateKubeConfig(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/kubeconfig", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig", projectID, url.PathEscape(args[0]))
 
 	var kubeConfig map[string]any
 	if err := httpLib.Client.Post(endpoint, nil, &kubeConfig); err != nil {
@@ -412,7 +409,7 @@ func ResetKubeConfig(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/kubeconfig/reset", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig/reset", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to reset kube config: %s", err)
@@ -429,7 +426,7 @@ func ListKubeNodes(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/node", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/node", projectID, url.PathEscape(args[0]))
 
 	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "flavor", "version", "status"}, flags.GenericFilters)
 }
@@ -441,7 +438,7 @@ func GetKubeNode(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/node", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/node", projectID, url.PathEscape(args[0]))
 
 	common.ManageObjectRequest(endpoint, args[1], cloudKubeNodeTemplate)
 }
@@ -453,7 +450,7 @@ func DeleteKubeNode(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/node/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/node/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete MKS node: %s", err)
 		return
@@ -469,7 +466,7 @@ func ListKubeNodepools(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
 
 	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "flavor", "currentNodes", "status"}, flags.GenericFilters)
 }
@@ -481,7 +478,7 @@ func GetKubeNodepool(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
 
 	common.ManageObjectRequest(endpoint, args[1], cloudKubeNodepoolTemplate)
 }
@@ -496,7 +493,7 @@ func EditKubeNodepool(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/nodepool/{nodepoolId}",
-		fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1])),
+		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1])),
 		KubeNodepoolSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
@@ -512,7 +509,7 @@ func DeleteKubeNodepool(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete MKS node pool: %s", err)
 		return
@@ -566,7 +563,7 @@ func CreateKubeNodepool(cmd *cobra.Command, args []string) {
 		KubeNodepoolSpec.FlavorName = flavor["flavorName"].(string)
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
 	nodepool, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/nodepool",
@@ -601,7 +598,7 @@ func GetKubeFlavorInteractiveSelector(cmd *cobra.Command, args []string) (map[st
 
 	// Fetch MKS cluster to extract its region
 	var clusterDetails map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/kube/%s", projectID, url.PathEscape(clusterID)), &clusterDetails); err != nil {
+	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/kube/%s", projectID, url.PathEscape(clusterID)), &clusterDetails); err != nil {
 		return nil, fmt.Errorf("failed to fetch MKS cluster details: %w", err)
 	}
 	region := clusterDetails["region"].(string)
@@ -627,7 +624,7 @@ func GetKubeOIDCIntegration(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
 
 	var oidcConfig map[string]any
 	if err := httpLib.Client.Get(endpoint, &oidcConfig); err != nil {
@@ -648,7 +645,7 @@ func EditKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect",
-		fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0])),
 		KubeOIDCConfig,
 		assets.CloudOpenapiSchema,
 	); err != nil {
@@ -664,7 +661,7 @@ func CreateKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
 	if _, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect",
@@ -687,7 +684,7 @@ func DeleteKubeOIDCIntegration(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete OIDC integration: %s", err)
@@ -704,7 +701,7 @@ func GetKubePrivateNetworkConfiguration(_cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/privateNetworkConfiguration", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/privateNetworkConfiguration", projectID, url.PathEscape(args[0]))
 
 	var privateNetworkConfig map[string]any
 	if err := httpLib.Client.Get(endpoint, &privateNetworkConfig); err != nil {
@@ -725,7 +722,7 @@ func EditKubePrivateNetworkConfiguration(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/privateNetworkConfiguration",
-		fmt.Sprintf("/cloud/project/%s/kube/%s/privateNetworkConfiguration", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/privateNetworkConfiguration", projectID, url.PathEscape(args[0])),
 		KubeSpec.PrivateNetworkConfiguration,
 		assets.CloudOpenapiSchema,
 	); err != nil {
@@ -741,7 +738,7 @@ func ResetKubeCluster(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/reset", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/reset", projectID, url.PathEscape(args[0]))
 	_, err = common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/reset",
@@ -765,7 +762,7 @@ func RestartKubeCluster(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := httpLib.Client.Post(fmt.Sprintf("/cloud/project/%s/kube/%s/restart", projectID, url.PathEscape(args[0])), map[string]any{
+	if err := httpLib.Client.Post(fmt.Sprintf("/v1/cloud/project/%s/kube/%s/restart", projectID, url.PathEscape(args[0])), map[string]any{
 		"force": KubeForceAction,
 	}, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to restart Kubernetes cluster: %s", err)
@@ -782,7 +779,7 @@ func UpdateKubeCluster(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/update", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/update", projectID, url.PathEscape(args[0]))
 
 	body := map[string]any{
 		"force": KubeForceAction,
@@ -806,7 +803,7 @@ func UpdateKubeLoadBalancersSubnet(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/kube/%s/updateLoadBalancersSubnetId", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/updateLoadBalancersSubnetId", projectID, url.PathEscape(args[0]))
 	body := map[string]any{
 		"loadBalancersSubnetId": args[1],
 	}

@@ -33,7 +33,7 @@ func ListCloudStorageSwift(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequestNoExpand(fmt.Sprintf("/cloud/project/%s/storage", projectID), cloudprojectStorageSwiftColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequestNoExpand(fmt.Sprintf("/v1/cloud/project/%s/storage", projectID), cloudprojectStorageSwiftColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetStorageSwift(_ *cobra.Command, args []string) {
@@ -43,7 +43,7 @@ func GetStorageSwift(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/storage", projectID), args[0], cloudStorageSwiftTemplate)
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/storage", projectID), args[0], cloudStorageSwiftTemplate)
 }
 
 func EditStorageSwift(cmd *cobra.Command, args []string) {
@@ -56,7 +56,7 @@ func EditStorageSwift(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/storage/{containerId}",
-		fmt.Sprintf("/cloud/project/%s/storage/%s", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/storage/%s", projectID, url.PathEscape(args[0])),
 		map[string]any{
 			"containerType": CloudSwiftContainerType,
 		},

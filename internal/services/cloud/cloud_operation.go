@@ -31,7 +31,7 @@ func ListCloudOperations(_ *cobra.Command, _ []string) {
 	}
 
 	var operations []map[string]any
-	err = httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/operation", projectID), &operations)
+	err = httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/operation", projectID), &operations)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
 		return
@@ -53,5 +53,5 @@ func GetCloudOperation(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/operation", projectID), args[0], cloudOperationTemplate)
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/operation", projectID), args[0], cloudOperationTemplate)
 }

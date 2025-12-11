@@ -53,7 +53,7 @@ func ListCloudUsers(_ *cobra.Command, _ []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	path := fmt.Sprintf("/cloud/project/%s/user", projectID)
+	path := fmt.Sprintf("/v1/cloud/project/%s/user", projectID)
 
 	var body []map[string]any
 	if err := httpLib.Client.Get(path, &body); err != nil {
@@ -77,7 +77,7 @@ func GetCloudUser(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/user", projectID), args[0], cloudUserTemplate)
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/user", projectID), args[0], cloudUserTemplate)
 }
 
 func CreateCloudUser(cmd *cobra.Command, args []string) {
@@ -90,7 +90,7 @@ func CreateCloudUser(cmd *cobra.Command, args []string) {
 	client, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/user",
-		fmt.Sprintf("/cloud/project/%s/user", projectID),
+		fmt.Sprintf("/v1/cloud/project/%s/user", projectID),
 		UserCreateExample,
 		UserSpec,
 		assets.CloudOpenapiSchema,
@@ -111,7 +111,7 @@ func DeleteCloudUser(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%s", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete user: %s", err)
@@ -212,7 +212,7 @@ func CreateUserS3Policy(cmd *cobra.Command, args []string) {
 
 	log.Println("Final parameters: \n" + string(out))
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/user/%s/policy", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%s/policy", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, parameters, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error creating resource: %s", err)
 		return
@@ -228,5 +228,5 @@ func GetUserS3Policy(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/cloud/project/%s/user/%s/policy", projectID, args[0]), "", "")
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/user/%s/policy", projectID, args[0]), "", "")
 }

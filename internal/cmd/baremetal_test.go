@@ -11,7 +11,7 @@ import (
 )
 
 func (ms *MockSuite) TestBaremetalListCompatibleOSCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/dedicated/server/fakeBaremetal/install/compatibleTemplates",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/install/compatibleTemplates",
 		httpmock.NewStringResponder(200, `{
 			"ovh": [
 				"alma8-cpanel-latest_64",

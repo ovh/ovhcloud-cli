@@ -20,9 +20,9 @@ var (
 )
 
 func ListNutanix(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/nutanix", "", nutanixColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/nutanix", "", nutanixColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetNutanix(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/nutanix", args[0], nutanixTemplate)
+	common.ManageObjectRequest("/v1/nutanix", args[0], nutanixTemplate)
 }

@@ -46,18 +46,18 @@ var (
 )
 
 func ListEmailPro(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/email/pro", "", emailproColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/email/pro", "", emailproColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetEmailPro(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/email/pro", args[0], emailproTemplate)
+	common.ManageObjectRequest("/v1/email/pro", args[0], emailproTemplate)
 }
 
 func EditEmailPro(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/email/pro/{service}",
-		fmt.Sprintf("/email/pro/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/email/pro/%s", url.PathEscape(args[0])),
 		EmailProSpec,
 		assets.EmailproOpenapiSchema,
 	); err != nil {

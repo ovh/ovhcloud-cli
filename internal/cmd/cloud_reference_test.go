@@ -99,7 +99,7 @@ func (ms *MockSuite) TestCloudReferenceRancherPlansListCmdWithNil(assert, requir
 }
 
 func (ms *MockSuite) TestCloudReferenceDatabasesPlansListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/database/capabilities",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
 		httpmock.NewStringResponder(200, `{
 			"plans": [
 				{
@@ -152,7 +152,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesPlansListCmd(assert, require *td
 }
 
 func (ms *MockSuite) TestCloudReferenceDatabasesFlavorsListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/database/capabilities",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
 		httpmock.NewStringResponder(200, `{
 			"flavors": [
 				{
@@ -218,7 +218,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesFlavorsListCmd(assert, require *
 }
 
 func (ms *MockSuite) TestCloudReferenceDatabasesEnginesListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/database/capabilities",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
 		httpmock.NewStringResponder(200, `{
 			"engines": [
 				{

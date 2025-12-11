@@ -20,9 +20,9 @@ var (
 )
 
 func ListSupportTickets(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/support/tickets", "", supportticketsColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/support/tickets", "", supportticketsColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetSupportTickets(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/support/tickets", args[0], supportticketsTemplate)
+	common.ManageObjectRequest("/v1/support/tickets", args[0], supportticketsTemplate)
 }
