@@ -48,7 +48,7 @@ func (ms *MockSuite) TestDomainZoneRefresh(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestDomainZoneCreateRecord(assert, require *td.T) {
-	httpmock.RegisterMatcherResponder("POST", "https://eu.api.ovh.com/1.0/domain/zone/example.com/record",
+	httpmock.RegisterMatcherResponder("POST", "https://eu.api.ovh.com/v1/domain/zone/example.com/record",
 		tdhttpmock.JSONBody(td.JSON(`{
 				"fieldType": "A",
 				"subDomain": "example-created",
@@ -100,7 +100,7 @@ func (ms *MockSuite) TestDomainZoneUpdateRecord(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestDomainZoneDeleteRecord(assert, require *td.T) {
-	httpmock.RegisterResponder("DELETE", "https://eu.api.ovh.com/1.0/domain/zone/example.com/record/1",
+	httpmock.RegisterResponder("DELETE", "https://eu.api.ovh.com/v1/domain/zone/example.com/record/1",
 		httpmock.NewStringResponder(200, ``),
 	)
 
