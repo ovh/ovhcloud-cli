@@ -273,15 +273,6 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 			exitError("failed to execute template: %s", err)
 		}
 
-		// Define word wrap for the renderer.
-		// Use 80 characters by default, or the terminal width if available.
-		wordWrap := 80
-		if termFd := os.Stdout.Fd(); term.IsTerminal(termFd) {
-			if termWidth, _, _ := term.GetSize(termFd); termWidth > 0 {
-				wordWrap = termWidth
-			}
-		}
-
 		r, err := glamour.NewTermRenderer(
 			glamour.WithAutoStyle(),
 			glamour.WithPreservedNewLines(),
