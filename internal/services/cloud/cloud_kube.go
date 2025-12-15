@@ -130,13 +130,16 @@ type kubeNodepoolSpec struct {
 		ScaleDownUtilizationThreshold float64 `json:"scaleDownUtilizationThreshold,omitempty"`
 	} `json:"autoscaling,omitzero"`
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
-	DesiredNodes      int      `json:"desiredNodes,omitempty"`
-	FlavorName        string   `json:"flavorName,omitempty"`
-	MaxNodes          int      `json:"maxNodes,omitempty"`
-	MinNodes          int      `json:"minNodes,omitempty"`
-	MonthlyBilled     bool     `json:"monthlyBilled,omitempty"`
-	Name              string   `json:"name,omitempty"`
-	Template          struct {
+	AttachFloatingIps struct {
+		Enabled *bool `json:"enabled,omitempty"`
+	} `json:"attachFloatingIps,omitzero"`
+	DesiredNodes  int    `json:"desiredNodes,omitempty"`
+	FlavorName    string `json:"flavorName,omitempty"`
+	MaxNodes      int    `json:"maxNodes,omitempty"`
+	MinNodes      int    `json:"minNodes,omitempty"`
+	MonthlyBilled bool   `json:"monthlyBilled,omitempty"`
+	Name          string `json:"name,omitempty"`
+	Template      struct {
 		Metadata struct {
 			Annotations map[string]string `json:"annotations,omitempty"`
 			Finalizers  []string          `json:"finalizers,omitempty"`
@@ -488,6 +491,11 @@ func EditKubeNodepool(cmd *cobra.Command, args []string) {
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
+	}
+
+	// The --attach-floating-ips flag hasn't been set by the user.
+	if !cmd.Flags().Changed("attach-floating-ips") {
+		KubeNodepoolSpec.AttachFloatingIps.Enabled = nil
 	}
 
 	if err := common.EditResource(

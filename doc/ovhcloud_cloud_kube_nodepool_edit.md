@@ -9,6 +9,7 @@ ovhcloud cloud kube nodepool edit <cluster_id> <nodepool_id> [flags]
 ### Options
 
 ```
+      --attach-floating-ips                      Enable FloatingIP creation, if true, a floating IP will be created and attached to each node
       --autoscale                                Enable autoscaling for the node pool
       --desired-nodes int                        Desired number of nodes
       --editor                                   Use a text editor to define parameters

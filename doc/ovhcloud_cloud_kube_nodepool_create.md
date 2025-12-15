@@ -58,8 +58,9 @@ ovhcloud cloud kube nodepool create <cluster_id> [flags]
 
 ```
       --anti-affinity                            Enable anti-affinity for the node pool
+      --attach-floating-ips                      Enable FloatingIP creation, if true, a floating IP will be created and attached to each node
       --autoscale                                Enable autoscaling for the node pool
-      --availability-zones strings               Availability zones for the node pool
+      --availability-zones stringArray           Availability zones for the node pool
       --desired-nodes int                        Desired number of nodes
       --editor                                   Use a text editor to define parameters
       --flavor-name string                       Flavor name for the nodes (b2-7, b2-15, etc.)

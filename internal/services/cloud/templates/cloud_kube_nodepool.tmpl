@@ -15,6 +15,13 @@ _{{index .Result "name"}}_
 
 **Anti Affinity**:      {{index .Result "antiAffinity"}}
 **Autoscale**:          {{index .Result "autoscale"}}
+
+**AttachFloatingIP**:   {{ range $k, $v := index .Result "attachFloatingIps" }}
+                            {{- if $k = "enabled" -}} 
+                                {{$v}}
+                            {{end}}
+                        {{- end}}
+
 **Autoscaling**:
     - Scale Down Unneeded Time (s): {{index .Result "autoscaling" "scaleDownUnneededTimeSeconds"}}
     - Scale Down Unready Time (s):  {{index .Result "autoscaling" "scaleDownUnreadyTimeSeconds"}}

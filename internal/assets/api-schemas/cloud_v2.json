@@ -271,6 +271,16 @@
             "format": "uuid",
             "readOnly": true
           },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata.StateEnum"
+              }
+            ],
+            "description": "Resource state",
+            "nullable": true,
+            "readOnly": true
+          },
           "tags": {
             "type": "object",
             "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
@@ -286,6 +296,16 @@
             "readOnly": true
           }
         }
+      },
+      "iam.ResourceMetadata.StateEnum": {
+        "type": "string",
+        "description": "Resource state",
+        "enum": [
+          "EXPIRED",
+          "IN_CREATION",
+          "OK",
+          "SUSPENDED"
+        ]
       },
       "iam.resource.TagFilter": {
         "type": "object",
