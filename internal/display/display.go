@@ -22,7 +22,6 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/charmbracelet/x/term"
 	"github.com/ghodss/yaml"
 	"github.com/ovh/ovhcloud-cli/internal/filters"
 	"gopkg.in/ini.v1"
