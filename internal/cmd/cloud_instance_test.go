@@ -105,10 +105,10 @@ func (ms *MockSuite) TestCloudInstanceNullImageCmd(assert, require *td.T) {
 
   IP addresses:
 
-   IP                     | Type                   | Gateway IP
-  ------------------------|------------------------|------------------------
-   1.2.3.4                | public                 | 1.2.3.4
-   2001:db8::1            | public                 | 2001:db8::ff
+   IP          | Type   | Gateway IP
+  -------------|--------|--------------
+   1.2.3.4     | public | 1.2.3.4
+   2001:db8::1 | public | 2001:db8::ff
 
   ## Flavor details
 

@@ -1,0 +1,52 @@
+🏢 Datacenter {{.ServiceName}}
+=======
+
+## General information
+
+**ID**:                {{index .Result "datacenterId"}}
+**Name**:              {{index .Result "name"}}
+**Version**:           {{index .Result "version"}}
+**Commercial name**:   {{index .Result "commercialName"}}
+{{if index .Result "commercialRangeName"}}**Commercial range**:   {{index .Result "commercialRangeName"}}
+{{end}}**Removable**:          {{index .Result "isRemovable"}}
+{{if index .Result "description"}}**Description**:         {{index .Result "description"}}
+{{end}}{{if index .Result "horizonViewName"}}**Horizon View**:       {{index .Result "horizonViewName"}}
+{{end}}
+{{if index .Result "totalCores"}}**Total CPU (Cores)**:  {{index .Result "totalCores"}}
+{{end}}{{if index .Result "totalRAM"}}**Total RAM**:          {{index .Result "totalRAM"}}
+{{end}}{{if index .Result "totalVMs"}}**Total VMs**:          {{index .Result "totalVMs"}}
+{{end}}{{if index .Result "totalDiskSpace"}}**Total Disk Space**:   {{index .Result "totalDiskSpace"}}
+{{end}}
+
+{{if index .Result "clusters"}}
+## Clusters
+
+| ID | Name | DRS Status | DRS Mode | HA Status | EVC Mode |
+| --- | --- | --- | --- | --- | --- |
+{{ range index .Result "clusters" }}| {{index . "clusterId"}} | {{index . "name"}} | {{index . "drsStatusFormatted"}} | {{index . "drsMode"}} | {{index . "haStatusFormatted"}} | {{index . "evcMode"}} |
+{{end}}
+{{end}}
+
+{{if index .Result "hostsByCluster"}}
+## Hosts
+
+{{ range $clusterName, $hosts := (index .Result "hostsByCluster") }}
+### Cluster: {{$clusterName}}
+
+| ID | Name | Connection | State | Cores | RAM | Profile | VMs | Billing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+{{ range $hosts }}| {{index . "hostId"}} | {{index . "name"}} | {{index . "connectionStateIndicator"}} | {{index . "maintenanceStatus"}} | {{index . "coreNumber"}} | {{if index . "ram"}}{{index . "ram" "value"}}{{if index . "ram" "unit"}} {{index . "ram" "unit"}}{{end}}{{end}} | {{index . "profile"}} | {{index . "vmCount"}} | {{index . "billingType"}} |
+{{end}}
+{{end}}
+{{end}}
+
+{{if index .Result "filers"}}
+## Filers
+
+| ID | Name | Connection | State | Size | Space Free | Cluster | VMs | Billing | Active Node | Visibility |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+{{ range index .Result "filers" }}| {{index . "filerId"}} | {{index . "name"}} | {{index . "connectionStateIndicator"}} | {{index . "state"}} | {{index . "sizeFormatted"}} | {{index . "spaceFreeFormatted"}} | {{index . "clusterName"}} | {{index . "vmCount"}} | {{index . "billingType"}} | {{index . "activeNode"}} | {{index . "visibility"}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information
