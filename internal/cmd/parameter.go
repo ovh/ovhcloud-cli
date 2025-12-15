@@ -7,8 +7,10 @@ package cmd
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -99,4 +101,65 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Parameter file written at %s", paramFile)
 		os.Exit(0)
 	}
+}
+
+func getGenericCreateCmd(resource, baseCommand, flagsSample, path, bodyExample string,
+	openAPISchema []byte, positionalArgs []string, fn func(*cobra.Command, []string),
+) *cobra.Command {
+	var formattedArgs strings.Builder
+	for _, arg := range positionalArgs {
+		fmt.Fprintf(&formattedArgs, " <%s>", arg)
+	}
+
+	createCmd := &cobra.Command{
+		Use:   "create" + formattedArgs.String(),
+		Short: fmt.Sprintf("Create a new %s", resource),
+		Long: fmt.Sprintf(`Use this command to create a new %[1]s.
+There are three ways to define the creation parameters:
+
+1. Using only CLI flags:
+
+	ovhcloud %[2]s %[3]s
+
+2. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud %[2]s --init-file ./params.json
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud %[2]s --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file, like the following:
+
+	cat ./params.json | ovhcloud %[2]s
+
+  In both cases, you can override the parameters in the given file using command line flags, for example:
+
+	ovhcloud %[2]s --from-file ./params.json %[3]s
+
+3. Using your default text editor:
+
+	ovhcloud %[2]s --editor
+
+  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
+  default text editor to update the parameters. When saving the file, the creation will start.
+
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
+
+	ovhcloud %[2]s --editor %[3]s
+`, resource, baseCommand, flagsSample),
+		Run:  fn,
+		Args: cobra.ExactArgs(len(positionalArgs)),
+	}
+
+	// Common flags for other means to define parameters
+	addInitParameterFileFlag(createCmd, openAPISchema, path, "post", bodyExample, nil)
+	addInteractiveEditorFlag(createCmd)
+	addFromFileFlag(createCmd)
+	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+
+	return createCmd
 }

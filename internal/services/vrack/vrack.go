@@ -29,18 +29,18 @@ var (
 )
 
 func ListVrack(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/vrack", "", vrackColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/vrack", "", vrackColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetVrack(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/vrack", args[0], vrackTemplate)
+	common.ManageObjectRequest("/v1/vrack", args[0], vrackTemplate)
 }
 
 func EditVrack(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/vrack/{serviceName}",
-		fmt.Sprintf("/vrack/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/vrack/%s", url.PathEscape(args[0])),
 		VrackSpec,
 		assets.VrackOpenapiSchema,
 	); err != nil {

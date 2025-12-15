@@ -77,16 +77,16 @@ var (
 )
 
 func ListBaremetal(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/dedicated/server", "", baremetalColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/dedicated/server", "", baremetalColumnsToDisplay, flags.GenericFilters)
 }
 
 func ListBaremetalTasks(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/dedicated/server/%s/task", args[0])
+	url := fmt.Sprintf("/v1/dedicated/server/%s/task", args[0])
 	common.ManageListRequest(url, "", []string{"taskId", "function", "status", "startDate", "doneDate"}, flags.GenericFilters)
 }
 
 func GetBaremetal(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
+	path := fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(args[0]))
 
 	// Fetch dedicated server
 	var object map[string]any
@@ -96,7 +96,7 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 	}
 
 	// Fetch running tasks
-	path = fmt.Sprintf("/dedicated/server/%s/task", url.PathEscape(args[0]))
+	path = fmt.Sprintf("/v1/dedicated/server/%s/task", url.PathEscape(args[0]))
 	tasks, err := httpLib.FetchExpandedArray(path, "")
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error fetching tasks for %s: %s", args[0], err)
@@ -105,7 +105,7 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 	object["tasks"] = tasks
 
 	// Fetch network information
-	path = fmt.Sprintf("/dedicated/server/%s/specifications/network", url.PathEscape(args[0]))
+	path = fmt.Sprintf("/v1/dedicated/server/%s/specifications/network", url.PathEscape(args[0]))
 	var network map[string]any
 	if err := httpLib.Client.Get(path, &network); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error fetching network specifications for %s: %s", args[0], err)
@@ -113,7 +113,7 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 	}
 	object["network"] = network
 
-	path = fmt.Sprintf("/dedicated/server/%s/serviceInfos", url.PathEscape(args[0]))
+	path = fmt.Sprintf("/v1/dedicated/server/%s/serviceInfos", url.PathEscape(args[0]))
 	var serviceInfo map[string]any
 	if err := httpLib.Client.Get(path, &serviceInfo); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error fetching billing information for %s: %s", args[0], err)
@@ -128,7 +128,7 @@ func EditBaremetal(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/dedicated/server/{serviceName}",
-		fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(args[0])),
 		&EditBaremetalParams,
 		assets.BaremetalOpenapiSchema,
 	); err != nil {
@@ -138,7 +138,7 @@ func EditBaremetal(cmd *cobra.Command, args []string) {
 }
 
 func RebootBaremetal(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/dedicated/server/%s/reboot", url.PathEscape(args[0]))
+	url := fmt.Sprintf("/v1/dedicated/server/%s/reboot", url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Post(url, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error rebooting server %s: %s", args[0], err)
@@ -149,7 +149,7 @@ func RebootBaremetal(_ *cobra.Command, args []string) {
 }
 
 func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/dedicated/server/%s/boot?bootType=rescue", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/boot?bootType=rescue", url.PathEscape(args[0]))
 
 	var boots []int
 	if err := httpLib.Client.Get(endpoint, &boots); err != nil {
@@ -163,7 +163,7 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 	}
 
 	// Update server with boot ID
-	endpoint = fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
+	endpoint = fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(args[0]))
 	if err := httpLib.Client.Put(endpoint, map[string]any{
 		"bootId": boots[0],
 	}, nil); err != nil {
@@ -197,7 +197,7 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 }
 
 func waitForDedicatedServerTask(serviceName string, taskID any) error {
-	endpoint := fmt.Sprintf("/dedicated/server/%s/task/%s", url.PathEscape(serviceName), taskID)
+	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/task/%s", url.PathEscape(serviceName), taskID)
 
 	for retry := 0; retry < 100; retry++ {
 		var task map[string]any
@@ -221,7 +221,7 @@ func waitForDedicatedServerTask(serviceName string, taskID any) error {
 }
 
 func BaremetalGetIPMIAccess(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/dedicated/server/%s/features/ipmi/access", url.PathEscape(args[0]))
+	path := fmt.Sprintf("/v1/dedicated/server/%s/features/ipmi/access", url.PathEscape(args[0]))
 
 	parameters := map[string]any{
 		"type": BaremetalIpmiAccessType,
@@ -262,7 +262,7 @@ func BaremetalGetIPMIAccess(_ *cobra.Command, args []string) {
 }
 
 func ListBaremetalInterventions(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/dedicated/server/%s/intervention", args[0])
+	path := fmt.Sprintf("/v1/dedicated/server/%s/intervention", args[0])
 
 	interventions, err := httpLib.FetchExpandedArray(path, "")
 	if err != nil {
@@ -274,7 +274,7 @@ func ListBaremetalInterventions(_ *cobra.Command, args []string) {
 		inter["status"] = "done"
 	}
 
-	path = fmt.Sprintf("/dedicated/server/%s/plannedIntervention", args[0])
+	path = fmt.Sprintf("/v1/dedicated/server/%s/plannedIntervention", args[0])
 	plannedInterventions, err := httpLib.FetchExpandedArray(path, "")
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch planned interventions: %s", err)
@@ -297,7 +297,7 @@ func ListBaremetalInterventions(_ *cobra.Command, args []string) {
 }
 
 func ListBaremetalBoots(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/dedicated/server/%s/boot", url.PathEscape(args[0]))
+	path := fmt.Sprintf("/v1/dedicated/server/%s/boot", url.PathEscape(args[0]))
 
 	boots, err := httpLib.FetchExpandedArray(path, "")
 	if err != nil {
@@ -306,7 +306,7 @@ func ListBaremetalBoots(_ *cobra.Command, args []string) {
 	}
 
 	for _, boot := range boots {
-		path = fmt.Sprintf("/dedicated/server/%s/boot/%s/option", url.PathEscape(args[0]), boot["bootId"])
+		path = fmt.Sprintf("/v1/dedicated/server/%s/boot/%s/option", url.PathEscape(args[0]), boot["bootId"])
 
 		options, err := httpLib.FetchExpandedArray(path, "")
 		if err != nil {
@@ -333,7 +333,7 @@ func SetBaremetalBootId(_ *cobra.Command, args []string) {
 		return
 	}
 
-	url := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
+	url := fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(args[0]))
 	if err := httpLib.Client.Put(url, map[string]any{
 		"bootId": bootID,
 	}, nil); err != nil {
@@ -373,7 +373,7 @@ func SetBaremetalBootScript(_ *cobra.Command, args []string) {
 		}
 	}
 
-	url := fmt.Sprintf("/dedicated/server/%s", url.PathEscape(args[0]))
+	url := fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(args[0]))
 	if err := httpLib.Client.Put(url, map[string]any{
 		"bootScript": string(script),
 	}, nil); err != nil {
@@ -385,12 +385,12 @@ func SetBaremetalBootScript(_ *cobra.Command, args []string) {
 }
 
 func ListBaremetalVNIs(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/dedicated/server/%s/virtualNetworkInterface", args[0])
+	url := fmt.Sprintf("/v1/dedicated/server/%s/virtualNetworkInterface", args[0])
 	common.ManageListRequest(url, "", []string{"uuid", "name", "mode", "vrack", "enabled"}, flags.GenericFilters)
 }
 
 func CreateBaremetalOLAAggregation(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/dedicated/server/%s/ola/aggregation", url.PathEscape(args[0]))
+	url := fmt.Sprintf("/v1/dedicated/server/%s/ola/aggregation", url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(url, map[string]any{
 		"name":                     BaremetalOLAName,
 		"virtualNetworkInterfaces": BaremetalOLAInterfaces,
@@ -400,7 +400,7 @@ func CreateBaremetalOLAAggregation(_ *cobra.Command, args []string) {
 }
 
 func ResetBaremetalOLAAggregation(_ *cobra.Command, args []string) {
-	url := fmt.Sprintf("/dedicated/server/%s/ola/reset", url.PathEscape(args[0]))
+	url := fmt.Sprintf("/v1/dedicated/server/%s/ola/reset", url.PathEscape(args[0]))
 
 	for _, itf := range BaremetalOLAInterfaces {
 		if err := httpLib.Client.Post(url, map[string]string{
@@ -423,7 +423,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
 	task, err := common.CreateResource(
 		cmd,
 		"/dedicated/server/{serviceName}/reinstall",
@@ -462,7 +462,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 }
 
 func GetBaremetalRelatedIPs(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/ip?routedTo.serviceName=%s", url.QueryEscape(args[0]))
+	path := fmt.Sprintf("/v1/ip?routedTo.serviceName=%s", url.QueryEscape(args[0]))
 
 	var ips []any
 	if err := httpLib.Client.Get(path, &ips); err != nil {
@@ -486,7 +486,7 @@ func GetBaremetalRelatedIPs(_ *cobra.Command, args []string) {
 }
 
 func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/dedicated/server/%s/authenticationSecret", url.PathEscape(args[0]))
+	path := fmt.Sprintf("/v1/dedicated/server/%s/authenticationSecret", url.PathEscape(args[0]))
 
 	var allSecrets []map[string]any
 	if err := httpLib.Client.Post(path, nil, &allSecrets); err != nil {
@@ -497,7 +497,7 @@ func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
 	for _, secret := range allSecrets {
 		if secretID, ok := secret["password"]; ok {
 			var secretValue map[string]any
-			if err := httpLib.Client.Post("/secret/retrieve", map[string]any{
+			if err := httpLib.Client.Post("/v1/secret/retrieve", map[string]any{
 				"id": secretID,
 			}, &secretValue); err != nil {
 				display.OutputError(&flags.OutputFormatConfig, "failed to retrieve secret value: %s", err)
@@ -517,7 +517,7 @@ func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
 }
 
 func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/dedicated/server/%s/install/compatibleTemplates", url.PathEscape(args[0]))
+	path := fmt.Sprintf("/v1/dedicated/server/%s/install/compatibleTemplates", url.PathEscape(args[0]))
 
 	var oses map[string]any
 	if err := httpLib.Client.Get(path, &oses); err != nil {

@@ -20,11 +20,11 @@ IP addresses:
 
 **Name**:                   {{index .Result "flavor" "name"}}
 **Operating system**:       {{index .Result "flavor" "osType"}}
-**Number of disks**:        {{index .Result "flavor" "disk"}}
-**RAM**:                    {{index .Result "flavor" "ram"}} Mio
+**Storage**:                {{index .Result "flavor" "disk"}} GB
+**RAM**:                    {{index .Result "flavor" "ram"}} GB
 **vCPUs**:                  {{index .Result "flavor" "vcpus"}}
-**Max inbound bandwidth**:  {{index .Result "flavor" "inboundBandwidth"}}Mbit/s
-**Max outbound bandwidth**: {{index .Result "flavor" "outboundBandwidth"}}Mbit/s
+**Max inbound bandwidth**:  {{index .Result "flavor" "inboundBandwidth"}} Mbit/s
+**Max outbound bandwidth**: {{index .Result "flavor" "outboundBandwidth"}} Mbit/s
 
 {{if index .Result "image" -}}
 ## Image details

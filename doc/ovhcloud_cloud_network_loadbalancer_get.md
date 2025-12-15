@@ -1,19 +1,15 @@
-## ovhcloud cloud loadbalancer edit
+## ovhcloud cloud network loadbalancer get
 
-Edit the given loadbalancer
+Get a specific loadbalancer
 
 ```
-ovhcloud cloud loadbalancer edit <loadbalancer_id> [flags]
+ovhcloud cloud network loadbalancer get <loadbalancer_id> [flags]
 ```
 
 ### Options
 
 ```
-      --description string   Description of the loadbalancer
-      --editor               Use a text editor to define parameters
-      --flavor string        Flavor ID of the loadbalancer (can be retrieved with 'cloud reference loadbalancer list-flavors <region>')
-  -h, --help                 help for edit
-      --name string          Name of the loadbalancer
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -37,5 +33,5 @@ ovhcloud cloud loadbalancer edit <loadbalancer_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud network loadbalancer](ovhcloud_cloud_network_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
 

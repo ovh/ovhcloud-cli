@@ -1,0 +1,5 @@
+{
+  "name": "MyToken",
+  "description": "Token example",
+  "expiresIn": 3600
+}

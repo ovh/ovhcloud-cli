@@ -28,7 +28,7 @@ func waitForVpsTask(serviceName string, taskInput map[string]any, retryDuration 
 		return nil, fmt.Errorf("task ID is not a valid JSON number: %v", id)
 	}
 
-	endpoint := fmt.Sprintf("/vps/%s/tasks/%s", url.PathEscape(serviceName), url.PathEscape(string(taskID)))
+	endpoint := fmt.Sprintf("/v1/vps/%s/tasks/%s", url.PathEscape(serviceName), url.PathEscape(string(taskID)))
 
 	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
 	defer cancel()
@@ -60,7 +60,7 @@ func waitForVpsTask(serviceName string, taskInput map[string]any, retryDuration 
 }
 
 func getAvailableImages(serviceName string) (map[string]string, error) {
-	endpoint := fmt.Sprintf("/vps/%s/images/available", url.PathEscape(serviceName))
+	endpoint := fmt.Sprintf("/v1/vps/%s/images/available", url.PathEscape(serviceName))
 
 	images, err := httpLib.FetchExpandedArray(endpoint, "")
 	if err != nil {
@@ -95,7 +95,7 @@ func runImageSelector(serviceName string) (string, string, error) {
 }
 
 func runSSHKeySelector() (string, string, error) {
-	endpoint := "/me/sshKey"
+	endpoint := "/v1/me/sshKey"
 
 	keys, err := httpLib.FetchExpandedArray(endpoint, "")
 	if err != nil {

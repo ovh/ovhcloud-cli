@@ -19,7 +19,7 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w -extldflags -static -X github.com/ovh/ovhcloud-cli/internal/version.Version={{.Version}}
+      - -s -w -extldflags -static -X github.com/ovh/ovhcloud-cli/internal/version.Version={{.Tag}}
     goos:
       - linux
       - windows
@@ -31,7 +31,7 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w -extldflags -static -X github.com/ovh/ovhcloud-cli/internal/version.Version={{.Version}}
+      - -s -w -extldflags -static -X github.com/ovh/ovhcloud-cli/internal/version.Version={{.Tag}}
     goos:
       - js
     goarch:

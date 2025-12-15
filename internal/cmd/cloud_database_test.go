@@ -15,7 +15,7 @@ import (
 
 func (ms *MockSuite) TestCloudDatabaseCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/database/mysql",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/mysql",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"nodesList": [
@@ -39,7 +39,7 @@ func (ms *MockSuite) TestCloudDatabaseCreateCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestCloudDatabaseEditCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/database/service/fakeDatabaseID",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeDatabaseID",
 		httpmock.NewStringResponder(200, `{
 				"id": "fakeDatabaseID",
 				"engine": "mysql"
@@ -47,7 +47,7 @@ func (ms *MockSuite) TestCloudDatabaseEditCmd(assert, require *td.T) {
 	)
 
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/database/mysql/fakeDatabaseID",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/mysql/fakeDatabaseID",
 		httpmock.NewStringResponder(200, `{
 			"createdAt": "2025-09-22T14:16:18.506458+02:00",
 			"plan": "essential",
@@ -100,7 +100,7 @@ func (ms *MockSuite) TestCloudDatabaseEditCmd(assert, require *td.T) {
 	)
 
 	httpmock.RegisterMatcherResponder(http.MethodPut,
-		"https://eu.api.ovh.com/1.0/cloud/project/fakeProjectID/database/mysql/fakeDatabaseID",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/mysql/fakeDatabaseID",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
 				"backupTime": "09:10:00",

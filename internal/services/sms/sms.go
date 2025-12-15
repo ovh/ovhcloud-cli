@@ -46,18 +46,18 @@ var (
 )
 
 func ListSms(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/sms", "", smsColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/sms", "", smsColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetSms(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/sms", args[0], smsTemplate)
+	common.ManageObjectRequest("/v1/sms", args[0], smsTemplate)
 }
 
 func EditSms(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/sms/{serviceName}",
-		fmt.Sprintf("/sms/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/sms/%s", url.PathEscape(args[0])),
 		SmsSpec,
 		assets.SmsOpenapiSchema,
 	); err != nil {

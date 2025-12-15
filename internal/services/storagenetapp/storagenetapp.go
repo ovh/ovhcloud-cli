@@ -28,18 +28,18 @@ var (
 )
 
 func ListStorageNetApp(_ *cobra.Command, _ []string) {
-	common.ManageListRequestNoExpand("/storage/netapp", storagenetappColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequestNoExpand("/v1/storage/netapp", storagenetappColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetStorageNetApp(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/storage/netapp", args[0], storagenetappTemplate)
+	common.ManageObjectRequest("/v1/storage/netapp", args[0], storagenetappTemplate)
 }
 
 func EditStorageNetApp(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/storage/netapp/{serviceName}",
-		fmt.Sprintf("/storage/netapp/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/storage/netapp/%s", url.PathEscape(args[0])),
 		StorageNetAppSpec,
 		assets.SmsOpenapiSchema,
 	); err != nil {

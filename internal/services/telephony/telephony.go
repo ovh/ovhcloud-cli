@@ -35,18 +35,18 @@ var (
 )
 
 func ListTelephony(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/telephony", "", telephonyColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/telephony", "", telephonyColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetTelephony(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/telephony", args[0], telephonyTemplate)
+	common.ManageObjectRequest("/v1/telephony", args[0], telephonyTemplate)
 }
 
 func EditTelephony(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/telephony/{billingAccount}",
-		fmt.Sprintf("/telephony/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/telephony/%s", url.PathEscape(args[0])),
 		TelephonySpec,
 		assets.TelephonyOpenapiSchema,
 	); err != nil {

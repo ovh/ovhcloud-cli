@@ -29,18 +29,18 @@ var (
 )
 
 func ListDomainName(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/domain", "", domainnameColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/domain", "", domainnameColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetDomainName(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/domain", args[0], domainnameTemplate)
+	common.ManageObjectRequest("/v1/domain", args[0], domainnameTemplate)
 }
 
 func EditDomainName(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/domain/{serviceName}",
-		fmt.Sprintf("/domain/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/domain/%s", url.PathEscape(args[0])),
 		DomainSpec,
 		assets.DomainOpenapiSchema,
 	); err != nil {

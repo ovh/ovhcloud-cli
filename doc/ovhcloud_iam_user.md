@@ -34,4 +34,5 @@ Manage IAM users
 * [ovhcloud iam user edit](ovhcloud_iam_user_edit.md)	 - Edit an existing user
 * [ovhcloud iam user get](ovhcloud_iam_user_get.md)	 - Get a specific IAM user
 * [ovhcloud iam user list](ovhcloud_iam_user_list.md)	 - List IAM users
+* [ovhcloud iam user token](ovhcloud_iam_user_token.md)	 - Manage IAM user tokens
 

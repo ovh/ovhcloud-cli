@@ -1,0 +1,6 @@
+{
+  "fieldType": "A",
+  "subDomain": "example-created",
+  "target": "target-created",
+  "ttl": 0
+}

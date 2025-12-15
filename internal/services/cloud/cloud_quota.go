@@ -26,7 +26,7 @@ func GetCloudQuota(_ *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	url := fmt.Sprintf("/cloud/project/%s/region/%s/quota", projectID, url.PathEscape(args[0]))
+	url := fmt.Sprintf("/v1/cloud/project/%s/region/%s/quota", projectID, url.PathEscape(args[0]))
 
 	var object map[string]any
 	if err := httpLib.Client.Get(url, &object); err != nil {

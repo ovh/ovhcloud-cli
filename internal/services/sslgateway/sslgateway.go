@@ -34,18 +34,18 @@ var (
 )
 
 func ListSslGateway(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/sslGateway", "", sslgatewayColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/sslGateway", "", sslgatewayColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetSslGateway(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/sslGateway", args[0], sslgatewayTemplate)
+	common.ManageObjectRequest("/v1/sslGateway", args[0], sslgatewayTemplate)
 }
 
 func EditSslGateway(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/sslGateway/{serviceName}",
-		fmt.Sprintf("/sslGateway/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/sslGateway/%s", url.PathEscape(args[0])),
 		SSLGatewaySpec,
 		assets.SslgatewayOpenapiSchema,
 	); err != nil {

@@ -146,7 +146,7 @@ func ListPrivateNetworks(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	body, err := httpLib.FetchExpandedArray(fmt.Sprintf("/cloud/project/%s/network/private", projectID), "id")
+	body, err := httpLib.FetchExpandedArray(fmt.Sprintf("/v1/cloud/project/%s/network/private", projectID), "id")
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
 		return
@@ -187,7 +187,7 @@ func GetPrivateNetwork(_ *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	path := fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
+	path := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
 
 	var object map[string]any
 	if err := httpLib.Client.Get(path, &object); err != nil {
@@ -204,7 +204,7 @@ func GetPrivateNetwork(_ *cobra.Command, args []string) {
 		}
 
 		// Fetch subnets of region network
-		path = fmt.Sprintf("/cloud/project/%s/region/%s/network/%s/subnet",
+		path = fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
 			projectID,
 			url.PathEscape(region["region"].(string)),
 			url.PathEscape(region["openstackId"].(string)),
@@ -231,7 +231,7 @@ func EditPrivateNetwork(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/network/private/{networkId}",
-		fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0])),
 		map[string]any{
 			"name": CloudNetworkName,
 		},
@@ -277,7 +277,7 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 
 	// Create resource
 	region := args[0]
-	endpoint := fmt.Sprintf("/cloud/project/%s/region/%s/network", projectID, url.PathEscape(region))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network", projectID, url.PathEscape(region))
 	task, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/network",
@@ -306,7 +306,7 @@ You can check the status of the operation with: 'ovhcloud cloud operation get %[
 
 	// Fetch all private networks
 	var networks []PrivateNetwork
-	if err := httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/private", projectID), &networks); err != nil {
+	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/network/private", projectID), &networks); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch private networks: %s", err)
 		return
 	}
@@ -334,7 +334,7 @@ eachNetwork:
 	}
 
 	// Fetch subnets of created network
-	endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/network/%s/subnet", projectID, url.PathEscape(region), url.PathEscape(foundRegionNetwork.OpenstackID))
+	endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet", projectID, url.PathEscape(region), url.PathEscape(foundRegionNetwork.OpenstackID))
 	var subnets []map[string]any
 	if err := httpLib.Client.Get(endpoint, &subnets); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch subnets of created network: %s", err)
@@ -344,7 +344,7 @@ eachNetwork:
 	// Fetch gateway of created subnets and prepare output
 	var outputSubnets []map[string]any
 	for _, subnet := range subnets {
-		endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/gateway?subnetId=%s",
+		endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway?subnetId=%s",
 			projectID,
 			url.PathEscape(region),
 			url.PathEscape(subnet["id"].(string)),
@@ -389,7 +389,7 @@ func DeletePrivateNetwork(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete private network: %s", err)
 		return
@@ -405,7 +405,7 @@ func DeletePrivateNetworkRegion(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s/region/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/region/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete private network region: %s", err)
 		return
@@ -421,7 +421,7 @@ func AddPrivateNetworkRegion(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s/region", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/region", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, map[string]string{"region": args[1]}, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to add private network region: %s", err)
 		return
@@ -437,7 +437,7 @@ func ListPrivateNetworkSubnets(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s/subnet", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", projectID, url.PathEscape(args[0]))
 
 	common.ManageListRequestNoExpand(endpoint, []string{"id", "cidr", "gatewayIp", "dhcpEnabled"}, flags.GenericFilters)
 }
@@ -449,7 +449,7 @@ func GetPrivateNetworkSubnet(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s/subnet", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", projectID, url.PathEscape(args[0]))
 	common.ManageObjectRequest(endpoint, args[1], "")
 }
 
@@ -463,7 +463,7 @@ func CreatePrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 	subnet, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/network/private/{networkId}/subnet",
-		fmt.Sprintf("/cloud/project/%s/network/private/%s/subnet", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", projectID, url.PathEscape(args[0])),
 		PrivateNetworkSubnetCreationExample,
 		CloudNetworkSubnetSpec,
 		assets.CloudOpenapiSchema,
@@ -483,7 +483,7 @@ func EditPrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s/subnet/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 
 	if err := common.EditResource(
 		cmd,
@@ -504,7 +504,7 @@ func DeletePrivateNetworkSubnet(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/cloud/project/%s/network/private/%s/subnet/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete private network subnet: %s", err)
 		return
@@ -521,7 +521,7 @@ func ListPublicNetworks(_ *cobra.Command, _ []string) {
 	}
 
 	var body []map[string]any
-	err = httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/public", projectID), &body)
+	err = httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/network/public", projectID), &body)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
 		return
@@ -564,7 +564,7 @@ func GetPublicNetwork(_ *cobra.Command, args []string) {
 	}
 
 	var allNetworks []map[string]any
-	err = httpLib.Client.Get(fmt.Sprintf("/cloud/project/%s/network/public", projectID), &allNetworks)
+	err = httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/network/public", projectID), &allNetworks)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch public networks: %s", err)
 		return
@@ -588,7 +588,7 @@ func GetPublicNetwork(_ *cobra.Command, args []string) {
 		region := region.(map[string]any)
 
 		// Fetch subnets of region network
-		path := fmt.Sprintf("/cloud/project/%s/region/%s/network/%s/subnet",
+		path := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
 			projectID,
 			url.PathEscape(region["region"].(string)),
 			url.PathEscape(region["openstackId"].(string)),
@@ -620,7 +620,7 @@ func ListGateways(_ *cobra.Command, _ []string) {
 	}
 
 	// Fetch gateways in all regions
-	url := fmt.Sprintf("/cloud/project/%s/region", projectID)
+	url := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
 	gateways, err := httpLib.FetchObjectsParallel[[]map[string]any](url+"/%s/gateway", regions, true)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch gateways: %s", err)
@@ -660,7 +660,7 @@ func findGateway(gatewayId string) (string, map[string]any, error) {
 	for _, region := range regions {
 		var (
 			gateway  map[string]any
-			endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/gateway/%s",
+			endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway/%s",
 				projectID, url.PathEscape(region.(string)), url.PathEscape(gatewayId))
 		)
 		if err := httpLib.Client.Get(endpoint, &gateway); err == nil {
@@ -738,12 +738,12 @@ func CreateGateway(cmd *cobra.Command, args []string) {
 	if CloudGatewaySpec.ExistingNetworkID != "" {
 		path = "/cloud/project/{serviceName}/region/{regionName}/network/{networkId}/subnet/{subnetId}/gateway"
 		endpoint = fmt.Sprintf(
-			"/cloud/project/%s/region/%s/network/%s/subnet/%s/gateway",
+			"/v1/cloud/project/%s/region/%s/network/%s/subnet/%s/gateway",
 			projectID, url.PathEscape(region), url.PathEscape(CloudGatewaySpec.ExistingNetworkID),
 			url.PathEscape(CloudGatewaySpec.ExistingSubnetID))
 	} else {
 		path = "/cloud/project/{serviceName}/region/{regionName}/gateway"
-		endpoint = fmt.Sprintf("/cloud/project/%s/region/%s/gateway", projectID, url.PathEscape(region))
+		endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway", projectID, url.PathEscape(region))
 	}
 
 	// Create resource

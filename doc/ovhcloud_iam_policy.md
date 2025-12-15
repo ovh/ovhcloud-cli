@@ -29,6 +29,8 @@ Manage IAM policies
 ### SEE ALSO
 
 * [ovhcloud iam](ovhcloud_iam.md)	 - Manage IAM resources, permissions and policies
+* [ovhcloud iam policy create](ovhcloud_iam_policy_create.md)	 - Create a new policy
+* [ovhcloud iam policy delete](ovhcloud_iam_policy_delete.md)	 - Delete a specific IAM policy
 * [ovhcloud iam policy edit](ovhcloud_iam_policy_edit.md)	 - Edit specific IAM policy
 * [ovhcloud iam policy get](ovhcloud_iam_policy_get.md)	 - Get a specific IAM policy
 * [ovhcloud iam policy list](ovhcloud_iam_policy_list.md)	 - List IAM policies

@@ -30,18 +30,18 @@ var (
 )
 
 func ListXdsl(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/xdsl", "", xdslColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequest("/v1/xdsl", "", xdslColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetXdsl(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/xdsl", args[0], xdslTemplate)
+	common.ManageObjectRequest("/v1/xdsl", args[0], xdslTemplate)
 }
 
 func EditXdsl(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/xdsl/{serviceName}",
-		fmt.Sprintf("/xdsl/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/xdsl/%s", url.PathEscape(args[0])),
 		XdslSpec,
 		assets.XdslOpenapiSchema,
 	); err != nil {

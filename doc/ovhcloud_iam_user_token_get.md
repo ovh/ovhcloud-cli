@@ -1,12 +1,15 @@
-## ovhcloud cloud loadbalancer
+## ovhcloud iam user token get
 
-Manage loadbalancers in the given cloud project
+Get a specific token of an IAM user
+
+```
+ovhcloud iam user token get <user_login> <token_name> [flags]
+```
 
 ### Options
 
 ```
-      --cloud-project string   Cloud project ID
-  -h, --help                   help for loadbalancer
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -29,8 +32,5 @@ Manage loadbalancers in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
-* [ovhcloud cloud loadbalancer edit](ovhcloud_cloud_loadbalancer_edit.md)	 - Edit the given loadbalancer
-* [ovhcloud cloud loadbalancer get](ovhcloud_cloud_loadbalancer_get.md)	 - Get a specific loadbalancer
-* [ovhcloud cloud loadbalancer list](ovhcloud_cloud_loadbalancer_list.md)	 - List your loadbalancers
+* [ovhcloud iam user token](ovhcloud_iam_user_token.md)	 - Manage IAM user tokens
 

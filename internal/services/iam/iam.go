@@ -35,11 +35,17 @@ var (
 	//go:embed templates/iam_resource_group.tmpl
 	iamResourceGroupTemplate string
 
+	//go:embed parameter-samples/policy-create.json
+	IAMPolicyCreateExample string
+
 	//go:embed parameter-samples/user-create.json
 	UserCreateExample string
 
 	//go:embed parameter-samples/user-edit.json
 	UserEditExample string
+
+	//go:embed parameter-samples/token-create.json
+	TokenCreateExample string
 
 	IAMPolicySpec struct {
 		Name        string   `json:"name,omitempty"`
@@ -73,6 +79,13 @@ var (
 		Login       string `json:"login,omitempty"`
 		Password    string `json:"password,omitempty"`
 		Type        string `json:"type,omitempty"`
+	}
+
+	TokenSpec struct {
+		Name        string `json:"name,omitempty"`
+		Description string `json:"description,omitempty"`
+		ExpiredAt   string `json:"expiredAt,omitempty"`
+		ExpiresIn   int    `json:"expiresIn,omitempty"`
 	}
 )
 
@@ -112,6 +125,35 @@ func EditIAMPolicy(cmd *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
+}
+
+func CreateIAMPolicy(cmd *cobra.Command, _ []string) {
+	prepareIAMPermissionsFromCLI()
+	policy, err := common.CreateResource(
+		cmd,
+		"/iam/policy",
+		"/v2/iam/policy",
+		IAMPolicyCreateExample,
+		IAMPolicySpec,
+		assets.IamOpenapiSchema,
+		[]string{"name", "identities", "permissions", "resources"},
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create IAM policy: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, policy, "✅ IAM policy %s created successfully", policy["id"])
+}
+
+func DeleteIAMPolicy(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/v2/iam/policy/%s", url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete IAM policy %s: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ IAM policy %s deleted successfully", args[0])
 }
 
 func ListIAMPermissionsGroups(_ *cobra.Command, _ []string) {
@@ -207,18 +249,18 @@ func prepareIAMPermissionsFromCLI() {
 }
 
 func ListUsers(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/me/identity/user", "", []string{"login", "group", "description"}, flags.GenericFilters)
+	common.ManageListRequest("/v1/me/identity/user", "", []string{"login", "group", "description"}, flags.GenericFilters)
 }
 
 func GetUser(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/me/identity/user", args[0], "")
+	common.ManageObjectRequest("/v1/me/identity/user", args[0], "")
 }
 
 func CreateUser(cmd *cobra.Command, _ []string) {
 	_, err := common.CreateResource(
 		cmd,
 		"/me/identity/user",
-		"/me/identity/user",
+		"/v1/me/identity/user",
 		UserCreateExample,
 		UserSpec,
 		assets.MeOpenapiSchema,
@@ -235,7 +277,7 @@ func EditUser(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/me/identity/user/{user}",
-		fmt.Sprintf("/me/identity/user/%s", url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/me/identity/user/%s", url.PathEscape(args[0])),
 		UserSpec,
 		assets.MeOpenapiSchema,
 	); err != nil {
@@ -245,11 +287,48 @@ func EditUser(cmd *cobra.Command, args []string) {
 }
 
 func DeleteUser(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/me/identity/user/%s", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/me/identity/user/%s", url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete user %s: %s", args[0], err)
 		return
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ User %s deleted successfully", args[0])
+}
+
+func ListUserTokens(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/v1/me/identity/user/%s/token", url.PathEscape(args[0]))
+	common.ManageListRequest(endpoint, "", []string{"name", "description", "expiresAt"}, flags.GenericFilters)
+}
+
+func GetUserToken(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/v1/me/identity/user/%s/token", url.PathEscape(args[0]))
+	common.ManageObjectRequest(endpoint, args[1], "")
+}
+
+func CreateUserToken(cmd *cobra.Command, args []string) {
+	token, err := common.CreateResource(
+		cmd,
+		"/me/identity/user/{user}/token",
+		fmt.Sprintf("/v1/me/identity/user/%s/token", url.PathEscape(args[0])),
+		TokenCreateExample,
+		TokenSpec,
+		assets.MeOpenapiSchema,
+		[]string{"name", "description"})
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create token for user %s: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, token, "✅ Token %s created successfully, value: %s", token["name"], token["token"])
+}
+
+func DeleteUserToken(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/v1/me/identity/user/%s/token/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete token %s for user %s: %s", args[1], args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Token %s deleted successfully for user %s", args[1], args[0])
 }

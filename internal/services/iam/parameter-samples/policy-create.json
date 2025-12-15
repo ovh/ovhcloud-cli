@@ -1,0 +1,27 @@
+{
+  "description": "Delegate DNS zone management to the development team",
+  "identities": [
+    "urn:v1:eu:identity:group:aa1-ovh/devs"
+  ],
+  "name": "dev-dns-delegation",
+  "permissions": {
+    "allow": [
+      {
+        "action": "dnsZone:apiovh:get"
+      },
+      {
+        "action": "dnsZone:apiovh:record/*"
+      }
+    ],
+    "except": [
+      {
+        "action": "dnsZone:apiovh:record/delete"
+      }
+    ]
+  },
+  "resources": [
+    {
+      "urn": "urn:v1:eu:resource:dnsZone:example.com"
+    }
+  ]
+}
