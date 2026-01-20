@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
@@ -22,11 +23,19 @@ import (
 var (
 	cloudprojectContainerRegistryColumnsToDisplay = []string{"id", "name", "region", "plan.name plan", "deploymentMode", "version", "status"}
 
+	cloudprojectContainerRegistryUsersColumnsToDisplay = []string{"id", "user", "email"}
+
 	//go:embed templates/cloud_container_registry.tmpl
 	cloudContainerRegistryTemplate string
 
+	//go:embed templates/cloud_container_registry_user.tmpl
+	cloudContainerRegistryUserTemplate string
+
 	//go:embed parameter-samples/container-registry-create.json
 	CloudContainerRegistryCreateSample string
+
+	//go:embed parameter-samples/container-registry-user-create.json
+	CloudContainerRegistryUserCreateSample string
 
 	// CloudContainerRegistryName is used to edit the container registry
 	CloudContainerRegistryName string
@@ -35,6 +44,11 @@ var (
 		Name   string `json:"name,omitempty"`
 		PlanID string `json:"planID,omitempty"`
 		Region string `json:"region,omitempty"`
+	}
+
+	CloudContainerRegistryUserSpec struct {
+		Email string `json:"email,omitempty"`
+		Login string `json:"login,omitempty"`
 	}
 )
 
@@ -155,7 +169,7 @@ func EditContainerRegistry(cmd *cobra.Command, args []string) {
 	}
 }
 
-func CreateContainerRegistry(cmd *cobra.Command, args []string) {
+func CreateContainerRegistry(cmd *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -193,4 +207,92 @@ func DeleteContainerRegistry(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry deleted successfully")
+}
+
+func ListContainerRegistryUsers(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageListRequestNoExpand(fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/users", projectID, url.PathEscape(args[0])), cloudprojectContainerRegistryUsersColumnsToDisplay, flags.GenericFilters)
+}
+
+func GetContainerRegistryUser(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/users", projectID, url.PathEscape(args[0])), args[1], cloudContainerRegistryUserTemplate)
+}
+
+func CreateContainerRegistryUser(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	user, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/containerRegistry/{registryID}/users",
+		fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/users", projectID, url.PathEscape(args[0])),
+		CloudContainerRegistryUserCreateSample,
+		CloudContainerRegistryUserSpec,
+		assets.CloudOpenapiSchema,
+		nil,
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, user, "✅ Container registry user '%s' created successfully with password '%s'", user["user"], user["password"])
+}
+
+func SetContainerRegistryUserAsAdmin(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	userID, err := strconv.ParseInt(args[1], 10, 64)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/users/%d/setAsAdmin", projectID, url.PathEscape(args[0]), userID)
+	if err := httpLib.Client.Put(endpoint, nil, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to set container registry user as admin: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry user successfully set as admin")
+}
+
+func DeleteContainerRegistryUser(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	userID, err := strconv.ParseInt(args[1], 10, 64)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/users/%d", projectID, url.PathEscape(args[0]), userID)
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete container registry user: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry user deleted successfully")
 }

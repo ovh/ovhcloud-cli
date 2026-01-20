@@ -63,5 +63,59 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	initContainerRegistryUsersCommand(registryCmd)
+
 	cloudCmd.AddCommand(registryCmd)
+}
+
+func initContainerRegistryUsersCommand(registryCmd *cobra.Command) {
+	usersCmd := &cobra.Command{ //nolint:exhaustruct
+		Use:   "users",
+		Short: "Manage container registry users in the given cloud project",
+	}
+
+	registryListCmd := &cobra.Command{
+		Use:     "list <registry_id>",
+		Aliases: []string{"ls"},
+		Short:   "List your container registry users",
+		Run:     cloud.ListContainerRegistryUsers,
+	}
+	usersCmd.AddCommand(withFilterFlag(registryListCmd))
+
+	usersCmd.AddCommand(&cobra.Command{
+		Use:   "get <registry_id> <user_id>",
+		Short: "Get a specific container registry user",
+		Run:   cloud.GetContainerRegistryUser,
+		Args:  cobra.ExactArgs(2),
+	})
+
+	usersCreateCmd := &cobra.Command{
+		Use:   "create <registry_id>",
+		Short: "Create a new container registry user",
+		Args:  cobra.ExactArgs(1),
+		Run:   cloud.CreateContainerRegistryUser,
+	}
+	usersCreateCmd.Flags().StringVar(&cloud.CloudContainerUserSpec.Email, "email", "", "User email")
+	usersCreateCmd.Flags().StringVar(&cloud.CloudContainerUserSpec.Login, "login", "", "User login")
+	addInitParameterFileFlag(usersCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryId}/users", "post", cloud.CloudContainerRegistryUserCreateSample, nil)
+	addInteractiveEditorFlag(usersCreateCmd)
+	addFromFileFlag(usersCreateCmd)
+	usersCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	usersCmd.AddCommand(usersCreateCmd)
+
+	usersCmd.AddCommand(&cobra.Command{
+		Use:   "set-as-admin <registry_id> <user_id>",
+		Short: "Set a specific container registry user as admin",
+		Run:   cloud.SetContainerRegistryUserAsAdmin,
+		Args:  cobra.ExactArgs(2),
+	})
+
+	usersCmd.AddCommand(&cobra.Command{
+		Use:   "delete <registry_id> <user_id>",
+		Short: "Delete a specific container registry user",
+		Run:   cloud.DeleteContainerRegistryUser,
+		Args:  cobra.ExactArgs(2),
+	})
+
+	registryCmd.AddCommand(usersCmd)
 }
