@@ -58,6 +58,13 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 		Args:  cobra.NoArgs,
 	}))
 
+	containerRegistryReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-regions",
+		Short: "List available container registry regions in the given cloud project",
+		Run:   cloud.ListContainerRegistryRegions,
+		Args:  cobra.NoArgs,
+	}))
+
 	// Rancher reference commands
 	rancherReferenceCmd := &cobra.Command{
 		Use:   "rancher",
