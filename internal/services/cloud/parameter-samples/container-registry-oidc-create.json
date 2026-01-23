@@ -1,0 +1,16 @@
+{
+  "deleteUsers": false,
+  "provider": {
+    "adminGroup": "harbor_admin",
+    "autoOnboard": true,
+    "clientId": "harbor",
+    "clientSecret": "clientSecret",
+    "endpoint": "https://oidc-provider.com",
+    "groupFilter": "harbor_admin",
+    "groupsClaim": "groups",
+    "name": "my-oidc-provider",
+    "scope": "openid,profile,email,offline_access",
+    "userClaim": "name",
+    "verifyCert": true
+  }
+}

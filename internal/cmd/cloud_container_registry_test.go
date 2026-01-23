@@ -5,6 +5,7 @@
 package cmd_test
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/jarcoal/httpmock"
@@ -14,7 +15,7 @@ import (
 )
 
 func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry",
 		httpmock.NewStringResponder(200, `[
 			{
 				"createdAt": "2025-08-22T09:24:18.953364Z",
@@ -31,10 +32,10 @@ func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
 			}
 		]`).Once())
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region",
 		httpmock.NewStringResponder(200, `["GRA", "EU-WEST-PAR"]`).Once())
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA",
 		httpmock.NewStringResponder(200, `{
 			"name": "GRA",
 			"type": "region",
@@ -47,7 +48,7 @@ func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
 			"datacenterLocation": "GRA"
 		}`).Once())
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/EU-WEST-PAR",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/EU-WEST-PAR",
 		httpmock.NewStringResponder(200, `{
 			"name": "EU-WEST-PAR",
 			"type": "region-3-az",
@@ -60,7 +61,7 @@ func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
 			"datacenterLocation": "EU-WEST-PAR"
 		}`).Once())
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/0b1b2dc2-952b-11f0-afd9-0050568ce122/plan",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/0b1b2dc2-952b-11f0-afd9-0050568ce122/plan",
 		httpmock.NewStringResponder(200, `{
 			"code": "registry.s-plan-equivalent.hour.consumption",
 			"createdAt": "2019-09-13T15:53:33.599585Z",
@@ -89,7 +90,7 @@ func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestCloudContainerRegistryGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000",
 		httpmock.NewStringResponder(200, `{
 			"createdAt": "2025-08-22T09:24:18.953364Z",
 			"deliveredAt": "2025-08-22T09:26:54.540629Z",
@@ -104,7 +105,7 @@ func (ms *MockSuite) TestCloudContainerRegistryGetCmd(assert, require *td.T) {
 			"version": "2.12.2"
 		}`).Once())
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/plan",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/plan",
 		httpmock.NewStringResponder(200, `{
 			"code": "registry.m-plan-equivalent.hour.consumption",
 			"createdAt": "2019-09-13T15:53:33.599585Z",
@@ -173,7 +174,7 @@ func (ms *MockSuite) TestCloudContainerRegistryCreateCmd(assert, require *td.T) 
 }
 
 func (ms *MockSuite) TestCloudContainerRegistryEditCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000",
 		httpmock.NewStringResponder(200, `{
 			"id": "550e8400-e29b-41d4-a716-446655440000",
 			"name": "OldName",
@@ -206,8 +207,48 @@ func (ms *MockSuite) TestCloudContainerRegistryDeleteCmd(assert, require *td.T) 
 	assert.String(out, `✅ Container registry deleted successfully`)
 }
 
+func (ms *MockSuite) TestCloudContainerRegistryIAMEnableCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(
+		http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/iam",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"deleteUsers": false
+		}`)),
+		httpmock.NewStringResponder(200, ``).Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "iam", "enable", "550e8400-e29b-41d4-a716-446655440000", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ Container registry IAM enabled successfully`)
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryIAMEnableCmdWithDeleteUsers(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(
+		http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/iam",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"deleteUsers": true
+		}`)),
+		httpmock.NewStringResponder(200, ``).Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "iam", "enable", "550e8400-e29b-41d4-a716-446655440000", "--delete-users", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ Container registry IAM enabled successfully`)
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryIAMDisableCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("DELETE", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/iam",
+		httpmock.NewStringResponder(204, ``).Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "iam", "disable", "550e8400-e29b-41d4-a716-446655440000", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ Container registry IAM disabled successfully`)
+}
+
 func (ms *MockSuite) TestCloudContainerRegistryUsersListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/users",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/users",
 		httpmock.NewStringResponder(200, `[
 			{
 				"id": 1,
@@ -235,7 +276,7 @@ func (ms *MockSuite) TestCloudContainerRegistryUsersListCmd(assert, require *td.
 }
 
 func (ms *MockSuite) TestCloudContainerRegistryUsersGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/users/42",
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/users/42",
 		httpmock.NewStringResponder(200, `{
 			"id": 42,
 			"user": "testuser",
@@ -317,4 +358,232 @@ func (ms *MockSuite) TestCloudContainerRegistryUsersDeleteCmd(assert, require *t
 
 	require.CmpNoError(err)
 	assert.String(out, `✅ Container registry user deleted successfully`)
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryOIDCGetCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/openIdConnect",
+		httpmock.NewStringResponder(200, `{
+			"adminGroup": "admins",
+			"autoOnboard": true,
+			"clientId": "client-id",
+			"clientSecret": "client-secret",
+			"createdAt": "2026-01-23T11:00:19.797Z",
+			"endpoint": "https://oidc.example.com",
+			"groupFilter": ".*",
+			"groupsClaim": "groups",
+			"id": "oidc-config-id",
+			"name": "Example OIDC",
+			"scope": "openid profile",
+			"status": "READY",
+			"updatedAt": "2026-01-23T11:00:19.797Z",
+			"userClaim": "email",
+			"verifyCert": true
+		}`).Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "oidc", "get", "550e8400-e29b-41d4-a716-446655440000", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	var configuration map[string]any
+	require.CmpNoError(json.Unmarshal([]byte(out), &configuration))
+	assert.Cmp(configuration, td.JSON(`{
+		"adminGroup": "admins",
+		"autoOnboard": true,
+		"clientId": "client-id",
+		"clientSecret": "client-secret",
+		"createdAt": "2026-01-23T11:00:19.797Z",
+		"endpoint": "https://oidc.example.com",
+		"groupFilter": ".*",
+		"groupsClaim": "groups",
+		"id": "oidc-config-id",
+		"name": "Example OIDC",
+		"scope": "openid profile",
+		"status": "READY",
+		"updatedAt": "2026-01-23T11:00:19.797Z",
+		"userClaim": "email",
+		"verifyCert": true
+	}`))
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryOIDCCreateCmdWithAllOptionalParameters(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(
+		http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/openIdConnect",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"deleteUsers": true,
+			"provider": {
+				"adminGroup": "admins",
+				"autoOnboard": true,
+				"clientId": "client-id",
+				"clientSecret": "client-secret",
+				"endpoint": "https://oidc.example.com",
+				"groupFilter": ".*",
+				"groupsClaim": "groups",
+				"name": "Example OIDC",
+				"scope": "openid,profile",
+				"userClaim": "name",
+				"verifyCert": true
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "oidc-config-id"}`).Once())
+
+	out, err := cmd.Execute(
+		"cloud", "container-registry", "oidc", "create", "550e8400-e29b-41d4-a716-446655440000",
+		"--name", "Example OIDC",
+		"--endpoint", "https://oidc.example.com",
+		"--client-id", "client-id",
+		"--client-secret", "client-secret",
+		"--scope", "openid,profile",
+		"--delete-users",
+		"--auto-onboard",
+		"--verify-cert",
+		"--admin-group", "admins",
+		"--group-filter", ".*",
+		"--groups-claim", "groups",
+		"--user-claim", "name",
+		"--cloud-project", "fakeProjectID",
+	)
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ Container registry OIDC configuration created successfully")
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryOIDCCreateCmdWithoutOptionalParameter(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(
+		http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/openIdConnect",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"provider": {
+				"clientId": "client-id",
+				"clientSecret": "client-secret",
+				"endpoint": "https://oidc.example.com",
+				"name": "Example OIDC",
+				"scope": "openid,profile"
+			}
+		}`)),
+		httpmock.NewStringResponder(201, "").Once())
+
+	out, err := cmd.Execute(
+		"cloud", "container-registry", "oidc", "create", "550e8400-e29b-41d4-a716-446655440000",
+		"--name", "Example OIDC",
+		"--endpoint", "https://oidc.example.com",
+		"--client-id", "client-id",
+		"--client-secret", "client-secret",
+		"--scope", "openid,profile",
+		"--cloud-project", "fakeProjectID",
+	)
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ Container registry OIDC configuration created successfully")
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryOIDCDeleteCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("DELETE", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/openIdConnect",
+		httpmock.NewStringResponder(204, ``).Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "oidc", "delete", "550e8400-e29b-41d4-a716-446655440000", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ Container registry OIDC configuration deleted successfully")
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryOIDCEditCmdWithAllOptionalParameters(assert, require *td.T) {
+	httpmock.RegisterResponder(
+		http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/openIdConnect",
+		httpmock.NewStringResponder(200, `{
+			"adminGroup": "admins",
+			"autoOnboard": false,
+			"clientId": "client-id",
+			"clientSecret": "client-secret",
+			"endpoint": "https://oidc.example.com",
+			"groupFilter": ".*",
+			"groupsClaim": "groups",
+			"name": "Example OIDC",
+			"scope": "openid,profile",
+			"userClaim": "email",
+			"verifyCert": false
+		}`).Once())
+
+	httpmock.RegisterMatcherResponder(
+		http.MethodPut,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/openIdConnect",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"adminGroup":"new-admins",
+			"autoOnboard":true,
+			"clientId":"new-client-id",
+			"clientSecret":"new-client-secret",
+			"endpoint":"https://oidc-new.example.com",
+			"groupsClaim":"new-groups",
+			"name":"new Example OIDC",
+			"scope":"openid,email",
+			"userClaim":"name",
+			"verifyCert":true
+		}`)),
+		httpmock.NewStringResponder(204, ``).Once(),
+	)
+
+	out, err := cmd.Execute(
+		"cloud", "container-registry", "oidc", "edit", "550e8400-e29b-41d4-a716-446655440000",
+		"--name", "new Example OIDC",
+		"--endpoint", "https://oidc-new.example.com",
+		"--client-id", "new-client-id",
+		"--client-secret", "new-client-secret",
+		"--scope", "openid,email",
+		"--admin-group", "new-admins",
+		"--group-filter", ".*",
+		"--groups-claim", "new-groups",
+		"--user-claim", "name",
+		"--auto-onboard",
+		"--verify-cert",
+		"--cloud-project", "fakeProjectID",
+	)
+
+	require.CmpNoError(err)
+	assert.Cmp(cleanWhitespacesHelper(out), "✅ Resource updated successfully")
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryOIDCEditCmdWithSingleParameter(assert, require *td.T) {
+	httpmock.RegisterResponder(
+		http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/openIdConnect",
+		httpmock.NewStringResponder(200, `{
+			"adminGroup": "admins",
+			"autoOnboard": false,
+			"clientId": "client-id",
+			"clientSecret": "client-secret",
+			"endpoint": "https://oidc.example.com",
+			"groupFilter": ".*",
+			"groupsClaim": "groups",
+			"name": "Example OIDC",
+			"scope": "openid,profile",
+			"userClaim": "email",
+			"verifyCert": false		
+		}`).Once(),
+	)
+
+	httpmock.RegisterMatcherResponder(
+		http.MethodPut,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/openIdConnect",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"adminGroup":"admins",
+			"autoOnboard":false,
+			"clientId":"client-id",
+			"clientSecret":"client-secret",
+			"endpoint":"https://oidc.example.com",
+			"groupsClaim":"groups",
+			"name":"Updated OIDC",
+			"scope":"openid,profile",
+			"userClaim":"email",
+			"verifyCert":false
+		}`)),
+		httpmock.NewStringResponder(200, `✅ Resource updated successfully`).Once())
+
+	out, err := cmd.Execute(
+		"cloud", "container-registry", "oidc", "edit", "550e8400-e29b-41d4-a716-446655440000",
+		"--name", "Updated OIDC",
+		"--cloud-project", "fakeProjectID",
+	)
+
+	require.CmpNoError(err)
+	assert.Cmp(cleanWhitespacesHelper(out), "✅ Resource updated successfully")
 }

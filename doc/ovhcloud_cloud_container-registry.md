@@ -34,6 +34,8 @@ Manage container registries in the given cloud project
 * [ovhcloud cloud container-registry delete](ovhcloud_cloud_container-registry_delete.md)	 - Delete a specific container registry
 * [ovhcloud cloud container-registry edit](ovhcloud_cloud_container-registry_edit.md)	 - Edit the given container registry
 * [ovhcloud cloud container-registry get](ovhcloud_cloud_container-registry_get.md)	 - Get a specific container registry
+* [ovhcloud cloud container-registry iam](ovhcloud_cloud_container-registry_iam.md)	 - Manage container registry IAM in the given cloud project
 * [ovhcloud cloud container-registry list](ovhcloud_cloud_container-registry_list.md)	 - List your container registries
-* [ovhcloud cloud container-registry users](ovhcloud_cloud_container-registry_users.md)	 - Manage container registries users in the given cloud project
+* [ovhcloud cloud container-registry oidc](ovhcloud_cloud_container-registry_oidc.md)	 - Manage container registry OIDC integration
+* [ovhcloud cloud container-registry users](ovhcloud_cloud_container-registry_users.md)	 - Manage container registry users in the given cloud project
 

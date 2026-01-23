@@ -64,6 +64,8 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 	})
 
 	initContainerRegistryUsersCommand(registryCmd)
+	initContainerRegistryIAMCommand(registryCmd)
+	initContainerRegistryOIDCCommand(registryCmd)
 
 	cloudCmd.AddCommand(registryCmd)
 }
@@ -95,8 +97,8 @@ func initContainerRegistryUsersCommand(registryCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 		Run:   cloud.CreateContainerRegistryUser,
 	}
-	usersCreateCmd.Flags().StringVar(&cloud.CloudContainerUserSpec.Email, "email", "", "User email")
-	usersCreateCmd.Flags().StringVar(&cloud.CloudContainerUserSpec.Login, "login", "", "User login")
+	usersCreateCmd.Flags().StringVar(&cloud.CloudContainerRegistryUserSpec.Email, "email", "", "User email")
+	usersCreateCmd.Flags().StringVar(&cloud.CloudContainerRegistryUserSpec.Login, "login", "", "User login")
 	addInitParameterFileFlag(usersCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryId}/users", "post", cloud.CloudContainerRegistryUserCreateSample, nil)
 	addInteractiveEditorFlag(usersCreateCmd)
 	addFromFileFlag(usersCreateCmd)
@@ -118,4 +120,102 @@ func initContainerRegistryUsersCommand(registryCmd *cobra.Command) {
 	})
 
 	registryCmd.AddCommand(usersCmd)
+}
+
+func initContainerRegistryIAMCommand(registryCmd *cobra.Command) {
+	iamCmd := &cobra.Command{ //nolint:exhaustruct
+		Use:   "iam",
+		Short: "Manage container registry IAM in the given cloud project",
+	}
+
+	enableCmd := &cobra.Command{
+		Use:   "enable <registry_id>",
+		Short: "Enable IAM for the given container registry",
+		Args:  cobra.ExactArgs(1),
+		Run:   cloud.EnableContainerRegistryIAM,
+	}
+	enableCmd.Flags().BoolVar(&cloud.CloudContainerRegistryIamSpec.DeleteUsers, "delete-users", false, "Delete existing container registry users when enabling IAM")
+	addInitParameterFileFlag(enableCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryId}/iam", "post", cloud.CloudContainerRegistryIamEnableSample, nil)
+	addInteractiveEditorFlag(enableCmd)
+	addFromFileFlag(enableCmd)
+	enableCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	iamCmd.AddCommand(enableCmd)
+
+	iamCmd.AddCommand(&cobra.Command{
+		Use:   "disable <registry_id>",
+		Short: "Disable IAM for the given container registry",
+		Args:  cobra.ExactArgs(1),
+		Run:   cloud.DisableContainerRegistryIAM,
+	})
+
+	registryCmd.AddCommand(iamCmd)
+}
+
+func initContainerRegistryOIDCCommand(registryCmd *cobra.Command) {
+	oidcCmd := &cobra.Command{ //nolint:exhaustruct
+		Use:   "oidc",
+		Short: "Manage container registry OIDC integration",
+	}
+
+	getCmd := &cobra.Command{
+		Use:   "get <registry_id>",
+		Short: "Get OIDC configuration for a container registry",
+		Args:  cobra.ExactArgs(1),
+		Run:   cloud.GetContainerRegistryOIDC,
+	}
+	oidcCmd.AddCommand(getCmd)
+
+	createCmd := &cobra.Command{
+		Use:   "create <registry_id>",
+		Short: "Create a new OIDC configuration for a container registry",
+		Args:  cobra.ExactArgs(1),
+		Run:   cloud.CreateContainerRegistryOIDC,
+	}
+	createCmd.Flags().BoolVar(&cloud.CloudContainerRegistryOidcCreateSpec.DeleteUsers, "delete-users", false, "Delete existing local users when enabling OIDC")
+	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.Name, "name", "", "OIDC provider name")
+	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.Endpoint, "endpoint", "", "OIDC provider endpoint")
+	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.ClientID, "client-id", "", "OIDC client ID")
+	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.ClientSecret, "client-secret", "", "OIDC client secret")
+	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.Scope, "scope", "", "OIDC scopes")
+	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.AdminGroup, "admin-group", "", "Group granted admin role")
+	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.GroupFilter, "group-filter", "", "Regex applied to filter groups")
+	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.GroupsClaim, "groups-claim", "", "OIDC claim containing groups")
+	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.UserClaim, "user-claim", "", "OIDC claim containing the username")
+	createCmd.Flags().BoolVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.AutoOnboard, "auto-onboard", false, "Automatically create users on first login")
+	createCmd.Flags().BoolVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.VerifyCert, "verify-cert", false, "Verify the provider TLS certificate")
+	addInitParameterFileFlag(createCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryID}/openIdConnect", "post", cloud.CloudContainerRegistryOidcCreateSample, nil)
+	addInteractiveEditorFlag(createCmd)
+	addFromFileFlag(createCmd)
+	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	oidcCmd.AddCommand(createCmd)
+
+	editCmd := &cobra.Command{
+		Use:   "edit <registry_id>",
+		Short: "Edit the OIDC configuration for a container registry",
+		Args:  cobra.ExactArgs(1),
+		Run:   cloud.EditContainerRegistryOIDC,
+	}
+	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.AdminGroup, "admin-group", "", "Group granted admin role")
+	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.ClientID, "client-id", "", "OIDC client ID")
+	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.ClientSecret, "client-secret", "", "OIDC client secret")
+	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.Endpoint, "endpoint", "", "OIDC provider endpoint")
+	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.GroupFilter, "group-filter", "", "Regex applied to filter groups")
+	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.GroupsClaim, "groups-claim", "", "OIDC claim containing groups")
+	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.Name, "name", "", "OIDC provider name")
+	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.Scope, "scope", "", "OIDC scopes")
+	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.UserClaim, "user-claim", "", "OIDC claim containing the username")
+	editCmd.Flags().BoolVar(&cloud.CloudContainerRegistryOidcEditSpec.AutoOnboard, "auto-onboard", false, "Automatically create users on first login")
+	editCmd.Flags().BoolVar(&cloud.CloudContainerRegistryOidcEditSpec.VerifyCert, "verify-cert", false, "Verify the provider TLS certificate")
+	addInteractiveEditorFlag(editCmd)
+	oidcCmd.AddCommand(editCmd)
+
+	deleteCmd := &cobra.Command{
+		Use:   "delete <registry_id>",
+		Short: "Delete the OIDC configuration for a container registry",
+		Args:  cobra.ExactArgs(1),
+		Run:   cloud.DeleteContainerRegistryOIDC,
+	}
+	oidcCmd.AddCommand(deleteCmd)
+
+	registryCmd.AddCommand(oidcCmd)
 }

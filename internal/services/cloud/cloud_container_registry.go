@@ -37,6 +37,12 @@ var (
 	//go:embed parameter-samples/container-registry-user-create.json
 	CloudContainerRegistryUserCreateSample string
 
+	//go:embed parameter-samples/container-registry-iam-enable.json
+	CloudContainerRegistryIamEnableSample string
+
+	//go:embed parameter-samples/container-registry-oidc-create.json
+	CloudContainerRegistryOidcCreateSample string
+
 	// CloudContainerRegistryName is used to edit the container registry
 	CloudContainerRegistryName string
 
@@ -49,6 +55,41 @@ var (
 	CloudContainerRegistryUserSpec struct {
 		Email string `json:"email,omitempty"`
 		Login string `json:"login,omitempty"`
+	}
+
+	CloudContainerRegistryIamSpec struct {
+		DeleteUsers bool `json:"deleteUsers"`
+	}
+
+	CloudContainerRegistryOidcCreateSpec struct {
+		DeleteUsers bool `json:"deleteUsers,omitempty"`
+		Provider    struct {
+			AdminGroup   string `json:"adminGroup,omitempty"`
+			AutoOnboard  bool   `json:"autoOnboard,omitempty"`
+			ClientID     string `json:"clientId"`
+			ClientSecret string `json:"clientSecret"`
+			Endpoint     string `json:"endpoint"`
+			GroupFilter  string `json:"groupFilter,omitempty"`
+			GroupsClaim  string `json:"groupsClaim,omitempty"`
+			Name         string `json:"name"`
+			Scope        string `json:"scope"`
+			UserClaim    string `json:"userClaim,omitempty"`
+			VerifyCert   bool   `json:"verifyCert,omitempty"`
+		} `json:"provider"`
+	}
+
+	CloudContainerRegistryOidcEditSpec struct {
+		AdminGroup   string `json:"adminGroup,omitempty"`
+		AutoOnboard  bool   `json:"autoOnboard,omitempty"`
+		ClientID     string `json:"clientId,omitempty"`
+		ClientSecret string `json:"clientSecret,omitempty"`
+		Endpoint     string `json:"endpoint,omitempty"`
+		GroupFilter  string `json:"groupFilter,omitempty"`
+		GroupsClaim  string `json:"groupsClaim,omitempty"`
+		Name         string `json:"name,omitempty"`
+		Scope        string `json:"scope,omitempty"`
+		UserClaim    string `json:"userClaim,omitempty"`
+		VerifyCert   bool   `json:"verifyCert,omitempty"`
 	}
 )
 
@@ -209,6 +250,46 @@ func DeleteContainerRegistry(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry deleted successfully")
 }
 
+func EnableContainerRegistryIAM(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	_, err = common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/containerRegistry/{registryID}/iam",
+		fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/iam", projectID, url.PathEscape(args[0])),
+		CloudContainerRegistryIamEnableSample,
+		CloudContainerRegistryIamSpec,
+		assets.CloudOpenapiSchema,
+		nil,
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry IAM enabled successfully")
+}
+
+func DisableContainerRegistryIAM(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/iam", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to disable container registry IAM: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry IAM disabled successfully")
+}
+
 func ListContainerRegistryUsers(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -295,4 +376,110 @@ func DeleteContainerRegistryUser(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry user deleted successfully")
+}
+
+func GetContainerRegistryOIDC(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/openIdConnect", projectID, url.PathEscape(args[0]))
+	var configuration map[string]any
+	if err := httpLib.Client.Get(endpoint, &configuration); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", endpoint, err)
+		return
+	}
+
+	display.OutputObject(configuration, args[0], "", &flags.OutputFormatConfig)
+}
+
+func CreateContainerRegistryOIDC(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	configuration, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/containerRegistry/{registryID}/openIdConnect",
+		fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/openIdConnect", projectID, url.PathEscape(args[0])),
+		CloudContainerRegistryOidcCreateSample,
+		CloudContainerRegistryOidcCreateSpec,
+		assets.CloudOpenapiSchema,
+		[]string{ // Make it empty as it looks like CreateResource function does not support embedded map
+			//"provider.name",
+			//"provider.endpoint",
+			//"provider.clientId",
+			//"provider.clientSecret",
+			//"provider.scope",
+		},
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, configuration, "✅ Container registry OIDC configuration created successfully")
+}
+
+func EditContainerRegistryOIDC(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	payload := make(map[string]any)
+	maybeAddString := func(flagName, key, value string) {
+		if cmd.Flags().Changed(flagName) {
+			payload[key] = value
+		}
+	}
+	maybeAddBool := func(flagName, key string, value bool) {
+		if cmd.Flags().Changed(flagName) {
+			payload[key] = value
+		}
+	}
+
+	maybeAddString("admin-group", "adminGroup", CloudContainerRegistryOidcEditSpec.AdminGroup)
+	maybeAddString("client-id", "clientId", CloudContainerRegistryOidcEditSpec.ClientID)
+	maybeAddString("client-secret", "clientSecret", CloudContainerRegistryOidcEditSpec.ClientSecret)
+	maybeAddString("endpoint", "endpoint", CloudContainerRegistryOidcEditSpec.Endpoint)
+	maybeAddString("group-filter", "groupFilter", CloudContainerRegistryOidcEditSpec.GroupFilter)
+	maybeAddString("groups-claim", "groupsClaim", CloudContainerRegistryOidcEditSpec.GroupsClaim)
+	maybeAddString("name", "name", CloudContainerRegistryOidcEditSpec.Name)
+	maybeAddString("scope", "scope", CloudContainerRegistryOidcEditSpec.Scope)
+	maybeAddString("user-claim", "userClaim", CloudContainerRegistryOidcEditSpec.UserClaim)
+	maybeAddBool("auto-onboard", "autoOnboard", CloudContainerRegistryOidcEditSpec.AutoOnboard)
+	maybeAddBool("verify-cert", "verifyCert", CloudContainerRegistryOidcEditSpec.VerifyCert)
+
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/containerRegistry/{registryID}/openIdConnect",
+		fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/openIdConnect", projectID, url.PathEscape(args[0])),
+		payload,
+		assets.CloudOpenapiSchema,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+}
+
+func DeleteContainerRegistryOIDC(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/openIdConnect", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete container registry OIDC configuration: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry OIDC configuration deleted successfully")
 }
