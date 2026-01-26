@@ -5,12 +5,10 @@
 package cloud
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
 
-	"code.cloudfoundry.org/bytefmt"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -82,27 +80,7 @@ func ListContainerRegistryPlans(_ *cobra.Command, _ []string) {
 			}
 			seenPlans[planID] = true
 
-			// Extract and format registry limits
-			if registryLimits, ok := planMap["registryLimits"].(map[string]any); ok {
-				if imageStorage, ok := registryLimits["imageStorage"].(json.Number); ok {
-					imageStorage, err := imageStorage.Int64()
-					if err != nil {
-						display.OutputError(&flags.OutputFormatConfig, "%s", err)
-					}
-
-					planMap["imageStorage"] = bytefmt.ByteSize(uint64(imageStorage))
-				}
-				if parallelRequest, ok := registryLimits["parallelRequest"].(json.Number); ok {
-					planMap["parallelRequest"] = parallelRequest
-				}
-			}
-
-			// Extract vulnerability feature
-			if features, ok := planMap["features"].(map[string]any); ok {
-				if vulnerability, ok := features["vulnerability"].(bool); ok {
-					planMap["vulnerability"] = vulnerability
-				}
-			}
+			formatContainerRegistryPlans(planMap)
 
 			updatedBody = append(updatedBody, planMap)
 		}

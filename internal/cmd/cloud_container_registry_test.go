@@ -64,8 +64,6 @@ func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/0b1b2dc2-952b-11f0-afd9-0050568ce122/plan",
 		httpmock.NewStringResponder(200, `{
 			"code": "registry.s-plan-equivalent.hour.consumption",
-			"createdAt": "2019-09-13T15:53:33.599585Z",
-			"updatedAt": "2021-03-29T10:09:03.960847Z",
 			"name": "SMALL",
 			"id": "9f728ba5-998b-4401-ab0f-497cd8bc6a89",
 			"registryLimits": {
@@ -108,8 +106,6 @@ func (ms *MockSuite) TestCloudContainerRegistryGetCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/plan",
 		httpmock.NewStringResponder(200, `{
 			"code": "registry.m-plan-equivalent.hour.consumption",
-			"createdAt": "2019-09-13T15:53:33.599585Z",
-			"updatedAt": "2021-03-29T10:09:03.960847Z",
 			"name": "MEDIUM",
 			"id": "9f728ba5-998b-4401-ab0f-497cd8bc6a89",
 			"registryLimits": {
@@ -586,4 +582,62 @@ func (ms *MockSuite) TestCloudContainerRegistryOIDCEditCmdWithSingleParameter(as
 
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), "✅ Resource updated successfully")
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryPlanListCapabilitiesCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/capabilities/plan",
+		httpmock.NewStringResponder(200, `[
+		  {
+		    "code": "registry.m-plan-equivalent.hour.consumption",
+		    "name": "MEDIUM",
+		    "id": "c5ddc763-be75-48f7-b7ec-e923ca040bee",
+		    "registryLimits": {
+		      "imageStorage": 644245094400,
+		      "parallelRequest": 45
+		    },
+		    "features": {
+		      "vulnerability": true
+		    }
+		  },
+		  {
+		    "code": "registry.l-plan-equivalent.hour.consumption",
+		    "name": "LARGE",
+		    "id": "0dae73df-6c49-47bf-a9d5-6b866c74ac54",
+		    "registryLimits": {
+		      "imageStorage": 5497558138880,
+		      "parallelRequest": 90
+		    },
+		    "features": {
+		      "vulnerability": true
+		    }
+		  }
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "plan", "list-capabilities", "550e8400-e29b-41d4-a716-446655440000", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌──────────────────────────────────────┬────────┬───────────────┬──────────────┬─────────────────┐
+│                  id                  │  name  │ vulnerability │ imageStorage │ parallelRequest │
+├──────────────────────────────────────┼────────┼───────────────┼──────────────┼─────────────────┤
+│ c5ddc763-be75-48f7-b7ec-e923ca040bee │ MEDIUM │ true          │ 600G         │ 45              │
+│ 0dae73df-6c49-47bf-a9d5-6b866c74ac54 │ LARGE  │ true          │ 5T           │ 90              │
+└──────────────────────────────────────┴────────┴───────────────┴──────────────┴─────────────────┘
+💡 Use option --json or --yaml to get the raw output with all information`[1:])
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryPlanUpgradeCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(
+		http.MethodPut,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/plan",
+		tdhttpmock.JSONBody(td.JSON(`{
+		  "planID": "c5ddc763-be75-48f7-b7ec-e923ca040bee"
+		}`)),
+		httpmock.NewStringResponder(204, ""),
+	)
+
+	out, err := cmd.Execute("cloud", "container-registry", "plan", "upgrade", "550e8400-e29b-41d4-a716-446655440000", "--plan-id", "c5ddc763-be75-48f7-b7ec-e923ca040bee", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ Container registry 550e8400-e29b-41d4-a716-446655440000 plan upgraded to c5ddc763-be75-48f7-b7ec-e923ca040bee")
 }

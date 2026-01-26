@@ -66,6 +66,7 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 	initContainerRegistryUsersCommand(registryCmd)
 	initContainerRegistryIAMCommand(registryCmd)
 	initContainerRegistryOIDCCommand(registryCmd)
+	initContainerRegistryPlanCommand(registryCmd)
 
 	cloudCmd.AddCommand(registryCmd)
 }
@@ -218,4 +219,31 @@ func initContainerRegistryOIDCCommand(registryCmd *cobra.Command) {
 	oidcCmd.AddCommand(deleteCmd)
 
 	registryCmd.AddCommand(oidcCmd)
+}
+
+func initContainerRegistryPlanCommand(registryCmd *cobra.Command) {
+	planCmd := &cobra.Command{ //nolint:exhaustruct
+		Use:   "plan",
+		Short: "Manage container registry plans",
+	}
+
+	planListCapabilitiesCmd := &cobra.Command{
+		Use:   "list-capabilities <registry_id>",
+		Short: "List available plans for a specific container registry",
+		Args:  cobra.ExactArgs(1),
+		Run:   cloud.ListContainerRegistryPlanCapabilities,
+	}
+	planCmd.AddCommand(withFilterFlag(planListCapabilitiesCmd))
+
+	planUpgradeCmd := &cobra.Command{
+		Use:   "upgrade <registry_id>",
+		Short: "Upgrade a container registry plan",
+		Args:  cobra.ExactArgs(1),
+		Run:   cloud.UpgradeContainerRegistryPlan,
+	}
+	planUpgradeCmd.Flags().StringVar(&cloud.CloudContainerRegistryPlanUpgradeSpec.PlanID, "plan-id", "", "Target plan ID for the registry")
+	planUpgradeCmd.MarkFlagRequired("plan-id") //nolint:errcheck
+	planCmd.AddCommand(planUpgradeCmd)
+
+	registryCmd.AddCommand(planCmd)
 }

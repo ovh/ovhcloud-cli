@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
@@ -24,6 +25,8 @@ var (
 	cloudprojectContainerRegistryColumnsToDisplay = []string{"id", "name", "region", "plan.name plan", "deploymentMode", "version", "status"}
 
 	cloudprojectContainerRegistryUsersColumnsToDisplay = []string{"id", "user", "email"}
+
+	cloudprojectContainerRegistryPlanCapabilitiesColumnsToDisplay = []string{"id", "name", "vulnerability", "imageStorage", "parallelRequest"}
 
 	//go:embed templates/cloud_container_registry.tmpl
 	cloudContainerRegistryTemplate string
@@ -90,6 +93,10 @@ var (
 		Scope        string `json:"scope,omitempty"`
 		UserClaim    string `json:"userClaim,omitempty"`
 		VerifyCert   bool   `json:"verifyCert,omitempty"`
+	}
+
+	CloudContainerRegistryPlanUpgradeSpec struct {
+		PlanID string `json:"planID"`
 	}
 )
 
@@ -482,4 +489,78 @@ func DeleteContainerRegistryOIDC(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry OIDC configuration deleted successfully")
+}
+
+func ListContainerRegistryPlanCapabilities(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/capabilities/plan", projectID, url.PathEscape(args[0]))
+
+	var plans []map[string]any
+	if err := httpLib.Client.Get(endpoint, &plans); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch container registry plan capabilities: %s", err)
+		return
+	}
+
+	for _, plan := range plans {
+		formatContainerRegistryPlans(plan)
+	}
+
+	plans, err = filtersLib.FilterLines(plans, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(plans, cloudprojectContainerRegistryPlanCapabilitiesColumnsToDisplay, &flags.OutputFormatConfig)
+}
+
+func UpgradeContainerRegistryPlan(_ *cobra.Command, args []string) {
+	if CloudContainerRegistryPlanUpgradeSpec.PlanID == "" {
+		display.OutputError(&flags.OutputFormatConfig, "plan-id flag is required")
+		return
+	}
+
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/plan", projectID, url.PathEscape(args[0]))
+
+	if err := httpLib.Client.Put(endpoint, CloudContainerRegistryPlanUpgradeSpec, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to upgrade container registry plan: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Container registry %s plan upgraded to %s", args[0], CloudContainerRegistryPlanUpgradeSpec.PlanID)
+}
+
+func formatContainerRegistryPlans(plan map[string]any) {
+	// Extract and format registry limits
+	if registryLimits, ok := plan["registryLimits"].(map[string]any); ok {
+		if imageStorage, ok := registryLimits["imageStorage"].(json.Number); ok {
+			imageStorage, err := imageStorage.Int64()
+			if err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "%s", err)
+			}
+
+			plan["imageStorage"] = bytefmt.ByteSize(uint64(imageStorage))
+		}
+		if parallelRequest, ok := registryLimits["parallelRequest"].(json.Number); ok {
+			plan["parallelRequest"] = parallelRequest
+		}
+	}
+
+	// Extract vulnerability feature
+	if features, ok := plan["features"].(map[string]any); ok {
+		if vulnerability, ok := features["vulnerability"].(bool); ok {
+			plan["vulnerability"] = vulnerability
+		}
+	}
 }
