@@ -20,6 +20,8 @@ import (
 var (
 	domainzoneColumnsToDisplay = []string{"name", "dnssecSupported", "hasDnsAnycast"}
 
+	recordColumnsToDisplay = []string{"id", "subDomain", "fieldType", "target", "ttl"}
+
 	//go:embed templates/domainzone.tmpl
 	domainzoneTemplate string
 
@@ -72,6 +74,11 @@ func GetDomainZone(_ *cobra.Command, args []string) {
 func GetRecord(_ *cobra.Command, args []string) {
 	path := fmt.Sprintf("/v1/domain/zone/%s/record", url.PathEscape(args[0]))
 	common.ManageObjectRequest(path, args[1], "")
+}
+
+func ListRecords(_ *cobra.Command, args []string) {
+	path := fmt.Sprintf("/v1/domain/zone/%s/record", url.PathEscape(args[0]))
+	common.ManageListRequest(path, "", recordColumnsToDisplay, flags.GenericFilters)
 }
 
 func RefreshZone(_ *cobra.Command, args []string) {

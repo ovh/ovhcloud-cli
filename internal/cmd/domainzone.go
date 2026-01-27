@@ -46,6 +46,15 @@ func init() {
 	}
 	domainzoneCmd.AddCommand(domainZoneRecordCmd)
 
+	domainZoneRecordListCmd := &cobra.Command{
+		Use:     "list <zone_name>",
+		Aliases: []string{"ls"},
+		Short:   "List all DNS records from your zone",
+		Args:    cobra.ExactArgs(1),
+		Run:     domainzone.ListRecords,
+	}
+	domainZoneRecordCmd.AddCommand(withFilterFlag(domainZoneRecordListCmd))
+
 	domainZoneRecordGetCmd := &cobra.Command{
 		Use:   "get <zone_name> <record_id>",
 		Short: "Get a single DNS record from your zone",

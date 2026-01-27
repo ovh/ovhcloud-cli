@@ -37,6 +37,35 @@ func (ms *MockSuite) TestDomainZoneGetRecord(assert, require *td.T) {
 	}`))
 }
 
+func (ms *MockSuite) TestDomainZoneListRecords(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/domain/zone/example.com/record",
+		httpmock.NewStringResponder(200, `[1, 2]`).Once())
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/domain/zone/example.com/record/1",
+		httpmock.NewStringResponder(200, `{
+				"id": 1,
+				"fieldType": "A",
+				"subDomain": "www",
+				"target": "127.0.0.1",
+				"ttl": 3600,
+				"zone": "example.com"
+			}`).Once())
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/domain/zone/example.com/record/2",
+		httpmock.NewStringResponder(200, `{
+				"id": 2,
+				"fieldType": "MX",
+				"subDomain": "",
+				"target": "mail.example.com",
+				"ttl": 3600,
+				"zone": "example.com"
+			}`).Once())
+
+	out, err := cmd.Execute("domain-zone", "record", "list", "example.com", "--json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[{"id": 1, "fieldType": "A", "subDomain": "www", "target": "127.0.0.1", "ttl": 3600, "zone": "example.com"}, {"id": 2, "fieldType": "MX", "subDomain": "", "target": "mail.example.com", "ttl": 3600, "zone": "example.com"}]`))
+}
+
 func (ms *MockSuite) TestDomainZoneRefresh(assert, require *td.T) {
 	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/domain/zone/example.com/refresh",
 		httpmock.NewStringResponder(200, ``).Once())

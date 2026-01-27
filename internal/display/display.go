@@ -22,10 +22,15 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/term"
 	"github.com/ghodss/yaml"
 	"github.com/ovh/ovhcloud-cli/internal/filters"
 	"gopkg.in/ini.v1"
+)
+
+const (
+	maxCellWidth = 50
 )
 
 func renderCustomFormat(value any, format string) error {
@@ -129,13 +134,17 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 				continue
 			}
 
+			var cellValue string
 			switch val.(type) {
 			case float32, float64:
-				// TODO: default formatting without decimals, may cause issues at some point
-				row = append(row, fmt.Sprintf("%.0f", val))
+				cellValue = fmt.Sprintf("%.0f", val)
 			default:
-				row = append(row, fmt.Sprintf("%v", val))
+				cellValue = fmt.Sprintf("%v", val)
 			}
+
+			// Truncate content if it exceeds max width
+			cellValue = ansi.Truncate(cellValue, maxCellWidth, "…")
+			row = append(row, cellValue)
 		}
 
 		rows = append(rows, row)
@@ -180,7 +189,8 @@ func RenderConfigTable(cfg *ini.File) {
 
 		rows = append(rows, []string{section.Name()})
 		for _, key := range section.Keys() {
-			rows = append(rows, []string{"", key.Name(), key.Value()})
+			value := ansi.Truncate(key.Value(), maxCellWidth, "…")
+			rows = append(rows, []string{"", key.Name(), value})
 		}
 	}
 
