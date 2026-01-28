@@ -2,12 +2,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build !(js && wasm)
+
 package browser
 
 import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
+	"os/exec"
 	"sort"
 	"strings"
 	"time"
@@ -74,30 +78,37 @@ const (
 
 // WizardData holds the state for the creation wizard
 type WizardData struct {
-	step                       WizardStep
-	regions                    []map[string]interface{}
-	flavors                    []map[string]interface{}
-	images                     []map[string]interface{}
-	sshKeys                    []map[string]interface{}
-	privateNetworks            []map[string]interface{}
-	selectedIndex              int    // Current selection index in the list
-	selectedRegion             string // Selected region code
-	selectedFlavor             string // Selected flavor ID
-	selectedFlavorName         string // Selected flavor display name
-	selectedImage              string // Selected image ID
-	selectedImageName          string // Selected image display name
-	selectedSSHKey             string // Selected SSH key ID (empty = no key)
-	selectedSSHKeyName         string // Selected SSH key name
-	selectedPrivateNetwork     string // Selected private network ID (empty = none)
-	selectedPrivateNetworkName string // Selected private network name
-	selectedSubnetId           string // Selected subnet ID for the private network
-	usePublicNetwork           bool   // Whether to attach public network
-	networkMenuIndex           int    // 0 = public toggle, 1 = private network selection
-	instanceName               string // Name for the new instance
-	nameInput                  string // Current input buffer for name
-	isLoading                  bool   // Whether we're loading data
-	loadingMessage             string // Detailed loading message (e.g., "Creating network...")
-	errorMsg                   string // Error message if any
+	step               WizardStep
+	regions            []map[string]interface{}
+	flavors            []map[string]interface{}
+	images             []map[string]interface{}
+	sshKeys            []map[string]interface{}
+	privateNetworks    []map[string]interface{}
+	selectedIndex      int    // Current selection index in the list
+	selectedRegion     string // Selected region code
+	selectedFlavor     string // Selected flavor ID
+	selectedFlavorName string // Selected flavor display name
+	selectedImage      string // Selected image ID
+	selectedImageName  string // Selected image display name
+	selectedSSHKey     string // Selected SSH key ID (empty = no key, "__create_new__" = create)
+	selectedSSHKeyName string // Selected SSH key name
+	// SSH key creation fields
+	creatingSSHKey             bool     // Whether we're in SSH key creation mode
+	newSSHKeyName              string   // Name for the new SSH key
+	newSSHKeyPublicKey         string   // Public key content
+	localPubKeys               []string // List of local .pub files from ~/.ssh
+	sshKeyCreateField          int      // 0 = name, 1 = public key selection, 2 = Create/Cancel
+	selectedLocalKeyIdx        int      // Index of selected local key (-1 = manual input)
+	selectedPrivateNetwork     string   // Selected private network ID (empty = none)
+	selectedPrivateNetworkName string   // Selected private network name
+	selectedSubnetId           string   // Selected subnet ID for the private network
+	usePublicNetwork           bool     // Whether to attach public network
+	networkMenuIndex           int      // 0 = public toggle, 1 = private network selection
+	instanceName               string   // Name for the new instance
+	nameInput                  string   // Current input buffer for name
+	isLoading                  bool     // Whether we're loading data
+	loadingMessage             string   // Detailed loading message (e.g., "Creating network...")
+	errorMsg                   string   // Error message if any
 	// Network creation fields
 	creatingNetwork    bool   // Whether we're in network creation mode
 	newNetworkName     string // Name for the new network
@@ -115,6 +126,7 @@ type WizardData struct {
 	filterMode  bool   // Whether filter input mode is active in wizard
 	filterInput string // Current filter input text for wizard lists
 	// Cleanup tracking - IDs of resources created during wizard
+	createdSSHKeyId     string // ID of SSH key created during wizard
 	createdNetworkId    string // ID of network created during wizard
 	createdSubnetId     string // ID of subnet created during wizard
 	createdGatewayId    string // ID of gateway created during wizard
@@ -143,7 +155,7 @@ type Model struct {
 	notificationExpiry time.Time                // When the notification should disappear
 	projectsList       []map[string]interface{} // Cache of projects for selection
 	wizard             WizardData               // Wizard state for resource creation
-	selectedAction     int                      // Selected action index in detail view (0-4)
+	selectedAction     int                      // Selected action index in detail view (0-5)
 	actionConfirm      bool                     // Whether we're in confirmation mode for an action
 	// Filter mode
 	filterMode  bool   // Whether filter input mode is active
@@ -153,6 +165,9 @@ type Model struct {
 	deleteConfirmInput string                 // User input for delete confirmation
 	// Debug view
 	debugScrollOffset int // Scroll offset for debug log view
+	// Instance data cache
+	imageMap      map[string]string // imageId -> imageName (for instances)
+	floatingIPMap map[string]string // instanceId -> floatingIP address
 }
 
 // Navigation items for the top bar
@@ -240,10 +255,11 @@ type projectsLoadedMsg struct {
 }
 
 type instancesLoadedMsg struct {
-	instances  []map[string]interface{}
-	imageMap   map[string]string // imageId -> imageName
-	err        error
-	forProduct ProductType // The product that requested this data
+	instances     []map[string]interface{}
+	imageMap      map[string]string // imageId -> imageName
+	floatingIPMap map[string]string // instanceId -> floatingIP address
+	err           error
+	forProduct    ProductType // The product that requested this data
 }
 
 type dataLoadedMsg struct {
@@ -284,6 +300,11 @@ type imagesLoadedMsg struct {
 type sshKeysLoadedMsg struct {
 	sshKeys []map[string]interface{}
 	err     error
+}
+
+type sshKeyCreatedMsg struct {
+	sshKey map[string]interface{}
+	err    error
 }
 
 type privateNetworksLoadedMsg struct {
@@ -357,6 +378,12 @@ type instanceActionMsg struct {
 	action     string
 	instanceId string
 	err        error
+}
+
+// sshConnectionMsg is returned when SSH action is requested
+type sshConnectionMsg struct {
+	ip   string
+	user string
 }
 
 // Navigation items for products (shown after project is selected)
@@ -471,6 +498,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sshKeysLoadedMsg:
 		return m.handleSSHKeysLoaded(msg)
 
+	case sshKeyCreatedMsg:
+		return m.handleSSHKeyCreated(msg)
+
 	case privateNetworksLoadedMsg:
 		return m.handlePrivateNetworksLoaded(msg)
 
@@ -508,6 +538,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case instanceActionMsg:
 		return m.handleInstanceAction(msg)
 
+	case sshConnectionMsg:
+		return m.handleSSHConnection(msg)
+
 	case cleanupCompletedMsg:
 		return m.handleCleanupCompleted(msg)
 	}
@@ -532,6 +565,51 @@ func (m Model) handleSetDefaultProject(msg setDefaultProjectMsg) (tea.Model, tea
 	// Schedule clearing the notification after 3 seconds
 	return m, tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
 		return clearNotificationMsg{}
+	})
+}
+
+// handleSSHConnection opens an SSH connection to the instance
+func (m Model) handleSSHConnection(msg sshConnectionMsg) (tea.Model, tea.Cmd) {
+	// Build SSH command - use system defaults (respects ~/.ssh/config)
+	args := []string{
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		fmt.Sprintf("%s@%s", msg.user, msg.ip),
+	}
+
+	// Log the SSH command to debug panel
+	sshCmd := "ssh " + strings.Join(args, " ")
+	httpLib.BrowserDebugLogger.AddEntry(httpLib.DebugLogEntry{
+		Timestamp: time.Now(),
+		Method:    "SSH",
+		URL:       sshCmd,
+	})
+
+	// Execute SSH in the current terminal
+	c := exec.Command("ssh", args...)
+	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return m, tea.ExecProcess(c, func(err error) tea.Msg {
+		if err != nil {
+			// Log SSH error to debug panel
+			httpLib.BrowserDebugLogger.AddEntry(httpLib.DebugLogEntry{
+				Timestamp: time.Now(),
+				Method:    "SSH",
+				URL:       sshCmd,
+				Error:     err.Error(),
+			})
+			// SSH exit code 255 means connection error, but other exit codes
+			// (including non-zero from user commands) should not be treated as SSH errors
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				if exitErr.ExitCode() != 255 {
+					// User exited with non-zero code, not an SSH error
+					return instanceActionMsg{action: "ssh", err: nil}
+				}
+			}
+			return instanceActionMsg{action: "ssh", err: err}
+		}
+		return instanceActionMsg{action: "ssh", err: nil}
 	})
 }
 
@@ -758,6 +836,9 @@ func (m Model) renderDebugView(width int) string {
 			var statusFormatted string
 			if entry.Error != "" {
 				statusFormatted = errorStyle.Render("ERR")
+			} else if entry.Method == "SSH" {
+				// SSH commands don't have HTTP status codes
+				statusFormatted = successStyle.Render("CMD")
 			} else if entry.StatusCode >= 200 && entry.StatusCode < 300 {
 				statusFormatted = successStyle.Render(fmt.Sprintf("%d", entry.StatusCode))
 			} else if entry.StatusCode >= 400 {
@@ -1127,6 +1208,73 @@ func (m Model) renderWizardSSHKeyStep(width int) string {
 	var content strings.Builder
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Background(lipgloss.Color("#2a2a2a"))
+	createKeyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE"))
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Bold(true)
+
+	// If in SSH key creation mode, show the creation form
+	if m.wizard.creatingSSHKey {
+		content.WriteString(titleStyle.Render("Create new SSH key:") + "\n\n")
+
+		inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+		activeInputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+
+		// Name field (field 0)
+		nameLabel := "  Key name: "
+		nameValue := m.wizard.newSSHKeyName
+		if nameValue == "" {
+			nameValue = "_"
+		}
+		if m.wizard.sshKeyCreateField == 0 {
+			content.WriteString(activeInputStyle.Render(nameLabel) + activeInputStyle.Render("["+nameValue+"]") + "\n")
+		} else {
+			content.WriteString(labelStyle.Render(nameLabel) + inputStyle.Render(nameValue) + "\n")
+		}
+
+		// Public key selection (field 1)
+		content.WriteString("\n")
+		pubKeyLabel := "  Public key: "
+		if m.wizard.sshKeyCreateField == 1 {
+			content.WriteString(activeInputStyle.Render(pubKeyLabel) + "\n")
+		} else {
+			content.WriteString(labelStyle.Render(pubKeyLabel) + "\n")
+		}
+
+		// List local .pub files
+		if len(m.wizard.localPubKeys) > 0 {
+			for i, pubKey := range m.wizard.localPubKeys {
+				if m.wizard.sshKeyCreateField == 1 && m.wizard.selectedLocalKeyIdx == i {
+					content.WriteString(selectedStyle.Render("    ▶ 📄 "+pubKey) + "\n")
+				} else {
+					content.WriteString(itemStyle.Render("      📄 "+pubKey) + "\n")
+				}
+			}
+		} else {
+			content.WriteString(itemStyle.Render("      (no .pub files found in ~/.ssh)") + "\n")
+		}
+
+		content.WriteString("\n")
+
+		// Buttons (field 2 = Create, field 3 = Cancel)
+		buttonStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+		activeButtonStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+
+		if m.wizard.sshKeyCreateField == 2 {
+			content.WriteString("  " + activeButtonStyle.Render("[Create]") + "  " + buttonStyle.Render("[Cancel]") + "\n")
+		} else if m.wizard.sshKeyCreateField == 3 {
+			content.WriteString("  " + buttonStyle.Render("[Create]") + "  " + activeButtonStyle.Render("[Cancel]") + "\n")
+		} else {
+			content.WriteString("  " + buttonStyle.Render("[Create]  [Cancel]") + "\n")
+		}
+
+		content.WriteString("\n")
+		hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+		content.WriteString(hintStyle.Render("  Tab/↑↓: Navigate • Enter: Select/Confirm • Esc: Cancel"))
+
+		return content.String()
+	}
+
 	content.WriteString(titleStyle.Render("Select an SSH key:") + "\n")
 
 	// Show filter input if active
@@ -1140,19 +1288,37 @@ func (m Model) renderWizardSSHKeyStep(width int) string {
 		content.WriteString("\n")
 	}
 
-	filtered := m.getFilteredWizardSSHKeys()
-	if len(filtered) == 0 {
-		return content.String() + lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No SSH keys match filter")
+	// Show "Create new key" option first
+	if m.wizard.selectedIndex == 0 {
+		content.WriteString(selectedStyle.Render("▶ ➕ Create new SSH key") + "\n")
+	} else {
+		content.WriteString(createKeyStyle.Render("  ➕ Create new SSH key") + "\n")
 	}
 
-	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
-	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Background(lipgloss.Color("#2a2a2a"))
+	// No key option
+	if m.wizard.selectedIndex == 1 {
+		content.WriteString(selectedStyle.Render("▶ 🚫 No SSH key") + "\n")
+	} else {
+		content.WriteString(itemStyle.Render("  🚫 No SSH key") + "\n")
+	}
 
-	// Determine visible range
-	maxVisible := 10
+	content.WriteString("\n")
+
+	filtered := m.getFilteredWizardSSHKeys()
+	if len(filtered) == 0 && m.wizard.filterInput != "" {
+		return content.String() + lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("  No SSH keys match filter")
+	}
+
+	// Determine visible range (offset by 2 for create and no-key options)
+	maxVisible := 8
+	listStartIdx := 2 // First SSH key is at index 2
 	startIdx := 0
-	if m.wizard.selectedIndex >= maxVisible {
-		startIdx = m.wizard.selectedIndex - maxVisible + 1
+	effectiveIdx := m.wizard.selectedIndex - listStartIdx
+	if effectiveIdx >= maxVisible {
+		startIdx = effectiveIdx - maxVisible + 1
+	}
+	if startIdx < 0 {
+		startIdx = 0
 	}
 	endIdx := startIdx + maxVisible
 	if endIdx > len(filtered) {
@@ -1162,11 +1328,12 @@ func (m Model) renderWizardSSHKeyStep(width int) string {
 	for i := startIdx; i < endIdx; i++ {
 		sshKey := filtered[i]
 		name := getString(sshKey, "name")
+		displayIdx := i + listStartIdx // Actual index in the full list
 
-		if i == m.wizard.selectedIndex {
-			content.WriteString(selectedStyle.Render("▶ "+name) + "\n")
+		if displayIdx == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ 🔑 "+name) + "\n")
 		} else {
-			content.WriteString(itemStyle.Render("  "+name) + "\n")
+			content.WriteString(itemStyle.Render("  🔑 "+name) + "\n")
 		}
 	}
 
@@ -1693,24 +1860,57 @@ func (m Model) renderInstanceDetail(width int) string {
 	status := getStringValue(m.detailData, "status", "Unknown")
 	id := getStringValue(m.detailData, "id", "N/A")
 	region := getStringValue(m.detailData, "region", "N/A")
-	flavorName := getStringValue(m.detailData, "flavorId", "N/A")
-	imageName := getStringValue(m.detailData, "imageId", "N/A")
 	created := getStringValue(m.detailData, "created", "N/A")
 
-	// Get IP addresses
-	ipv4 := "N/A"
-	ipv6 := "N/A"
+	// Get flavor name from nested object or fallback to flavorId
+	flavorName := "N/A"
+	if flavor, ok := m.detailData["flavor"].(map[string]interface{}); ok {
+		flavorName = getStringValue(flavor, "name", "N/A")
+	}
+	if flavorName == "N/A" {
+		flavorName = getStringValue(m.detailData, "flavorId", "N/A")
+	}
+
+	// Get image name from imageMap or fallback to imageId
+	imageId := getStringValue(m.detailData, "imageId", "")
+	imageName := "N/A"
+	if imageId != "" && m.imageMap != nil {
+		if name, ok := m.imageMap[imageId]; ok {
+			imageName = name
+		}
+	}
+	if imageName == "N/A" && imageId != "" {
+		imageName = imageId
+	}
+
+	// Get IP addresses - check all addresses for public and private IPs
+	ipv4Public := ""
+	ipv4Private := ""
+	ipv6Public := ""
+	floatingIP := ""
 	if addresses, ok := m.detailData["ipAddresses"].([]interface{}); ok {
 		for _, addr := range addresses {
 			if addrMap, ok := addr.(map[string]interface{}); ok {
 				ip := getStringValue(addrMap, "ip", "")
 				version := int(getFloatValue(addrMap, "version", 0))
-				if version == 4 && ipv4 == "N/A" {
-					ipv4 = ip
-				} else if version == 6 && ipv6 == "N/A" {
-					ipv6 = ip
+				ipType := getStringValue(addrMap, "type", "")
+				if version == 4 {
+					if ipType == "public" && ipv4Public == "" {
+						ipv4Public = ip
+					} else if ipType == "private" && ipv4Private == "" {
+						ipv4Private = ip
+					}
+				} else if version == 6 && ipType == "public" && ipv6Public == "" {
+					ipv6Public = ip
 				}
 			}
+		}
+	}
+
+	// Check for floating IP
+	if m.floatingIPMap != nil {
+		if fip, ok := m.floatingIPMap[id]; ok {
+			floatingIP = fip
 		}
 	}
 
@@ -1741,8 +1941,26 @@ func (m Model) renderInstanceDetail(width int) string {
 
 	// Right column - Network box
 	networkContent := strings.Builder{}
-	networkContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("IPv4"), valueStyle.Render(ipv4)))
-	networkContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("IPv6"), valueStyle.Render(truncate(ipv6, 25))))
+	// Show floating IP if available
+	if floatingIP != "" {
+		networkContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Floating IP"), valueStyle.Render(floatingIP)))
+	}
+	// Show public IPv4
+	if ipv4Public != "" {
+		networkContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("IPv4 Public"), valueStyle.Render(ipv4Public)))
+	} else if floatingIP == "" {
+		networkContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("IPv4 Public"), valueStyle.Render("N/A")))
+	}
+	// Show private IPv4 if available
+	if ipv4Private != "" {
+		networkContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("IPv4 Private"), valueStyle.Render(ipv4Private)))
+	}
+	// Show IPv6
+	if ipv6Public != "" {
+		networkContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("IPv6"), valueStyle.Render(truncate(ipv6Public, 35))))
+	} else {
+		networkContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("IPv6"), valueStyle.Render("N/A")))
+	}
 
 	networkBox := renderBox("Réseau", networkContent.String(), boxWidth)
 
@@ -1757,7 +1975,7 @@ func (m Model) renderInstanceDetail(width int) string {
 	if strings.ToUpper(status) == "RESCUE" {
 		rescueAction = "Exit Rescue"
 	}
-	actions := []string{"Reboot", rescueAction, stopStartAction, "Console", "Reinstall"}
+	actions := []string{"SSH", "Reboot", rescueAction, stopStartAction, "Console", "Reinstall"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
@@ -2066,7 +2284,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "right":
 		// In DetailView, navigate actions
 		if m.mode == DetailView && m.currentProduct == ProductInstances {
-			if m.selectedAction < 4 { // 5 actions: 0-4
+			if m.selectedAction < 5 { // 6 actions: 0-5
 				m.selectedAction++
 				m.actionConfirm = false
 			}
@@ -2317,7 +2535,7 @@ func (m Model) handleFilterKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.filterInput = ""
 		// Rebuild table with all data
 		if m.currentProduct == ProductInstances {
-			m.table = createInstancesTable(m.currentData, nil, m.width, m.height)
+			m.table = createInstancesTable(m.currentData, m.imageMap, m.floatingIPMap, m.width, m.height)
 		}
 		return m, nil
 
@@ -2351,7 +2569,7 @@ func (m *Model) applyTableFilter() {
 	if m.filterInput == "" {
 		// No filter, show all
 		if m.currentProduct == ProductInstances {
-			m.table = createInstancesTable(m.currentData, nil, m.width, m.height)
+			m.table = createInstancesTable(m.currentData, m.imageMap, m.floatingIPMap, m.width, m.height)
 		}
 		return
 	}
@@ -2368,7 +2586,7 @@ func (m *Model) applyTableFilter() {
 				filtered = append(filtered, item)
 			}
 		}
-		m.table = createInstancesTable(filtered, nil, m.width, m.height)
+		m.table = createInstancesTable(filtered, m.imageMap, m.floatingIPMap, m.width, m.height)
 	}
 }
 
@@ -2381,8 +2599,9 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleCleanupConfirmKeys(key)
 	}
 
-	// 'd' opens debug panel (except when typing in name field)
-	if key == "d" && m.wizard.step != WizardStepName {
+	// 'd' opens debug panel (except when typing in input fields)
+	// Disable debug shortcut when: in name step, filter mode, creating SSH key, or creating network
+	if key == "d" && m.wizard.step != WizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		m.previousMode = m.mode
 		m.mode = DebugView
 		m.debugScrollOffset = 0
@@ -2762,17 +2981,22 @@ func (m Model) handleWizardImageKeys(key string, msg tea.KeyMsg) (tea.Model, tea
 
 // handleWizardSSHKeyKeys handles SSH key step key presses
 func (m Model) handleWizardSSHKeyKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Handle SSH key creation mode
+	if m.wizard.creatingSSHKey {
+		return m.handleSSHKeyCreationKeys(key, msg)
+	}
+
 	// Handle filter mode
 	if m.wizard.filterMode {
 		switch key {
 		case "enter":
 			m.wizard.filterMode = false
-			m.wizard.selectedIndex = 0
+			m.wizard.selectedIndex = 2 // Reset to first SSH key
 			return m, nil
 		case "backspace":
 			if len(m.wizard.filterInput) > 0 {
 				m.wizard.filterInput = m.wizard.filterInput[:len(m.wizard.filterInput)-1]
-				m.wizard.selectedIndex = 0
+				m.wizard.selectedIndex = 2
 			} else {
 				m.wizard.filterMode = false
 			}
@@ -2780,13 +3004,15 @@ func (m Model) handleWizardSSHKeyKeys(key string, msg tea.KeyMsg) (tea.Model, te
 		default:
 			if len(key) == 1 && key[0] >= 32 && key[0] <= 126 {
 				m.wizard.filterInput += key
-				m.wizard.selectedIndex = 0
+				m.wizard.selectedIndex = 2
 			}
 			return m, nil
 		}
 	}
 
 	filtered := m.getFilteredWizardSSHKeys()
+	totalItems := len(filtered) + 2 // +2 for "Create new" and "No key" options
+
 	switch key {
 	case "/":
 		m.wizard.filterMode = true
@@ -2797,27 +3023,183 @@ func (m Model) handleWizardSSHKeyKeys(key string, msg tea.KeyMsg) (tea.Model, te
 			m.wizard.selectedIndex--
 		}
 	case "down", "j":
-		if m.wizard.selectedIndex < len(filtered)-1 {
+		if m.wizard.selectedIndex < totalItems-1 {
 			m.wizard.selectedIndex++
 		}
 	case "enter":
-		if m.wizard.selectedIndex < len(filtered) {
-			sshKey := filtered[m.wizard.selectedIndex]
-			m.wizard.selectedSSHKey = getString(sshKey, "id")
-			m.wizard.selectedSSHKeyName = getString(sshKey, "name")
-			// Go to network configuration
+		if m.wizard.selectedIndex == 0 {
+			// Create new SSH key
+			m.wizard.creatingSSHKey = true
+			m.wizard.newSSHKeyName = ""
+			m.wizard.newSSHKeyPublicKey = ""
+			m.wizard.sshKeyCreateField = 0
+			m.wizard.selectedLocalKeyIdx = 0
+			m.wizard.localPubKeys = listLocalSSHPubKeys()
+			return m, nil
+		} else if m.wizard.selectedIndex == 1 {
+			// No SSH key
+			m.wizard.selectedSSHKey = ""
+			m.wizard.selectedSSHKeyName = "(none)"
 			m.wizard.step = WizardStepNetwork
 			m.wizard.selectedIndex = 0
 			m.wizard.filterInput = ""
 			m.wizard.isLoading = true
 			m.wizard.loadingMessage = "Loading networks..."
 			return m, m.fetchPrivateNetworks()
+		} else {
+			// Existing SSH key selected
+			sshKeyIdx := m.wizard.selectedIndex - 2
+			if sshKeyIdx < len(filtered) {
+				sshKey := filtered[sshKeyIdx]
+				m.wizard.selectedSSHKey = getString(sshKey, "id")
+				m.wizard.selectedSSHKeyName = getString(sshKey, "name")
+				m.wizard.step = WizardStepNetwork
+				m.wizard.selectedIndex = 0
+				m.wizard.filterInput = ""
+				m.wizard.isLoading = true
+				m.wizard.loadingMessage = "Loading networks..."
+				return m, m.fetchPrivateNetworks()
+			}
 		}
 	case "left":
 		// Go back to image selection
 		m.wizard.step = WizardStepImage
 		m.wizard.selectedIndex = 0
 		m.wizard.filterInput = ""
+	}
+	return m, nil
+}
+
+// listLocalSSHPubKeys returns a list of .pub files in ~/.ssh
+func listLocalSSHPubKeys() []string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+	sshDir := home + "/.ssh"
+	files, err := os.ReadDir(sshDir)
+	if err != nil {
+		return nil
+	}
+	var pubKeys []string
+	for _, f := range files {
+		if !f.IsDir() && strings.HasSuffix(f.Name(), ".pub") {
+			pubKeys = append(pubKeys, f.Name())
+		}
+	}
+	return pubKeys
+}
+
+// readLocalSSHPubKey reads the content of a .pub file from ~/.ssh
+func readLocalSSHPubKey(filename string) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	path := home + "/.ssh/" + filename
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(content)), nil
+}
+
+// handleSSHKeyCreationKeys handles key presses in SSH key creation mode
+func (m Model) handleSSHKeyCreationKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch key {
+	case "tab", "down":
+		if m.wizard.sshKeyCreateField == 0 {
+			// Move from name to public key selection
+			m.wizard.sshKeyCreateField = 1
+			m.wizard.selectedLocalKeyIdx = 0
+		} else if m.wizard.sshKeyCreateField == 1 {
+			// In public key list, move down or go to buttons
+			if m.wizard.selectedLocalKeyIdx < len(m.wizard.localPubKeys)-1 {
+				m.wizard.selectedLocalKeyIdx++
+			} else {
+				m.wizard.sshKeyCreateField = 2
+			}
+		} else if m.wizard.sshKeyCreateField == 2 {
+			m.wizard.sshKeyCreateField = 3
+		} else {
+			m.wizard.sshKeyCreateField = 0
+		}
+		return m, nil
+	case "shift+tab", "up":
+		if m.wizard.sshKeyCreateField == 0 {
+			m.wizard.sshKeyCreateField = 3
+		} else if m.wizard.sshKeyCreateField == 1 {
+			// In public key list, move up or go to name
+			if m.wizard.selectedLocalKeyIdx > 0 {
+				m.wizard.selectedLocalKeyIdx--
+			} else {
+				m.wizard.sshKeyCreateField = 0
+			}
+		} else if m.wizard.sshKeyCreateField == 2 {
+			m.wizard.sshKeyCreateField = 1
+			if len(m.wizard.localPubKeys) > 0 {
+				m.wizard.selectedLocalKeyIdx = len(m.wizard.localPubKeys) - 1
+			}
+		} else {
+			m.wizard.sshKeyCreateField = 2
+		}
+		return m, nil
+	case "enter":
+		switch m.wizard.sshKeyCreateField {
+		case 1: // Select public key file
+			if m.wizard.selectedLocalKeyIdx >= 0 && m.wizard.selectedLocalKeyIdx < len(m.wizard.localPubKeys) {
+				filename := m.wizard.localPubKeys[m.wizard.selectedLocalKeyIdx]
+				content, err := readLocalSSHPubKey(filename)
+				if err == nil {
+					m.wizard.newSSHKeyPublicKey = content
+					// Auto-fill name from filename if empty
+					if m.wizard.newSSHKeyName == "" {
+						baseName := strings.TrimSuffix(filename, ".pub")
+						m.wizard.newSSHKeyName = baseName
+					}
+					m.wizard.sshKeyCreateField = 2 // Move to Create button
+				}
+			}
+			return m, nil
+		case 2: // Create button
+			// Validate inputs
+			if m.wizard.newSSHKeyName == "" {
+				m.wizard.errorMsg = "SSH key name is required"
+				return m, nil
+			}
+			if m.wizard.newSSHKeyPublicKey == "" {
+				m.wizard.errorMsg = "Please select a public key file"
+				return m, nil
+			}
+			// Create SSH key via API
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Creating SSH key..."
+			return m, m.createSSHKey()
+		case 3: // Cancel button
+			m.wizard.creatingSSHKey = false
+			m.wizard.newSSHKeyName = ""
+			m.wizard.newSSHKeyPublicKey = ""
+			m.wizard.sshKeyCreateField = 0
+			return m, nil
+		}
+	case "esc":
+		m.wizard.creatingSSHKey = false
+		m.wizard.newSSHKeyName = ""
+		m.wizard.newSSHKeyPublicKey = ""
+		m.wizard.sshKeyCreateField = 0
+		return m, nil
+	case "backspace":
+		if m.wizard.sshKeyCreateField == 0 && len(m.wizard.newSSHKeyName) > 0 {
+			m.wizard.newSSHKeyName = m.wizard.newSSHKeyName[:len(m.wizard.newSSHKeyName)-1]
+		}
+		return m, nil
+	default:
+		// Handle text input for name field only
+		if m.wizard.sshKeyCreateField == 0 {
+			if len(key) == 1 && key[0] >= 32 && key[0] <= 126 {
+				m.wizard.newSSHKeyName += key
+			}
+		}
 	}
 	return m, nil
 }
