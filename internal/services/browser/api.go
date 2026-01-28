@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build !(js && wasm)
+
 package browser
 
 import (
@@ -147,10 +149,38 @@ func (m Model) fetchInstancesData() instancesLoadedMsg {
 		}
 	}
 
+	// Fetch floating IPs from all regions to build instanceId -> floatingIP map
+	floatingIPMap := make(map[string]string)
+	// Get unique regions from instances
+	regionSet := make(map[string]bool)
+	for _, inst := range instances {
+		if region, ok := inst["region"].(string); ok && region != "" {
+			regionSet[region] = true
+		}
+	}
+	// Fetch floating IPs for each region
+	for region := range regionSet {
+		var floatingIPs []map[string]interface{}
+		fipEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip", m.cloudProject, region)
+		if fipErr := httpLib.Client.Get(fipEndpoint, &floatingIPs); fipErr == nil {
+			for _, fip := range floatingIPs {
+				// Check if floating IP is associated to an instance
+				if associatedEntity, ok := fip["associatedEntity"].(map[string]interface{}); ok {
+					if instanceId, ok := associatedEntity["id"].(string); ok && instanceId != "" {
+						if ip, ok := fip["ip"].(string); ok {
+							floatingIPMap[instanceId] = ip
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return instancesLoadedMsg{
-		instances: instances,
-		imageMap:  imageMap,
-		err:       err,
+		instances:     instances,
+		imageMap:      imageMap,
+		floatingIPMap: floatingIPMap,
+		err:           err,
 	}
 }
 
@@ -273,11 +303,18 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 			continue
 		}
 
-		// Fetch containers for this region
-		var containers []map[string]interface{}
+		// Fetch container names for this region
+		var containerNames []string
 		storageEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage", m.cloudProject, regionName)
-		if err := httpLib.Client.Get(storageEndpoint, &containers); err == nil {
-			allContainers = append(allContainers, containers...)
+		if err := httpLib.Client.Get(storageEndpoint, &containerNames); err == nil {
+			// Fetch details for each container
+			for _, name := range containerNames {
+				var container map[string]interface{}
+				detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, regionName, name)
+				if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
+					allContainers = append(allContainers, container)
+				}
+			}
 		}
 	}
 
@@ -295,13 +332,44 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 		}
 	}
 
-	var containers []map[string]interface{}
+	// Try to fetch as array of interfaces first (could be strings or objects)
+	var rawResponse []interface{}
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage", m.cloudProject)
-	err := httpLib.Client.Get(endpoint, &containers)
+	err := httpLib.Client.Get(endpoint, &rawResponse)
+	if err != nil {
+		return dataLoadedMsg{
+			data: nil,
+			err:  err,
+		}
+	}
+
+	// Check if response contains strings (IDs) or objects
+	var containers []map[string]interface{}
+	if len(rawResponse) > 0 {
+		if _, ok := rawResponse[0].(string); ok {
+			// Response contains string IDs, fetch details for each
+			for _, item := range rawResponse {
+				if containerID, ok := item.(string); ok {
+					var container map[string]interface{}
+					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s", m.cloudProject, containerID)
+					if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
+						containers = append(containers, container)
+					}
+				}
+			}
+		} else {
+			// Response contains full objects
+			for _, item := range rawResponse {
+				if obj, ok := item.(map[string]interface{}); ok {
+					containers = append(containers, obj)
+				}
+			}
+		}
+	}
 
 	return dataLoadedMsg{
 		data: containers,
-		err:  err,
+		err:  nil,
 	}
 }
 
@@ -313,13 +381,44 @@ func (m Model) fetchBlockStorageData() dataLoadedMsg {
 		}
 	}
 
-	var volumes []map[string]interface{}
+	// Try to fetch as array of interfaces first (could be strings or objects)
+	var rawResponse []interface{}
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume", m.cloudProject)
-	err := httpLib.Client.Get(endpoint, &volumes)
+	err := httpLib.Client.Get(endpoint, &rawResponse)
+	if err != nil {
+		return dataLoadedMsg{
+			data: nil,
+			err:  err,
+		}
+	}
+
+	// Check if response contains strings (IDs) or objects
+	var volumes []map[string]interface{}
+	if len(rawResponse) > 0 {
+		if _, ok := rawResponse[0].(string); ok {
+			// Response contains string IDs, fetch details for each
+			for _, item := range rawResponse {
+				if volumeID, ok := item.(string); ok {
+					var volume map[string]interface{}
+					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, volumeID)
+					if err := httpLib.Client.Get(detailEndpoint, &volume); err == nil {
+						volumes = append(volumes, volume)
+					}
+				}
+			}
+		} else {
+			// Response contains full objects
+			for _, item := range rawResponse {
+				if obj, ok := item.(map[string]interface{}); ok {
+					volumes = append(volumes, obj)
+				}
+			}
+		}
+	}
 
 	return dataLoadedMsg{
 		data: volumes,
-		err:  err,
+		err:  nil,
 	}
 }
 
@@ -428,8 +527,12 @@ func (m Model) handleInstancesLoaded(msg instancesLoadedMsg) (tea.Model, tea.Cmd
 	// Preserve table cursor position during refresh
 	currentCursor := m.table.Cursor()
 
-	// Create table from instances with image name mapping
-	m.table = createInstancesTable(msg.instances, msg.imageMap, m.width, m.height)
+	// Store maps in model for later use (filtering, etc.)
+	m.imageMap = msg.imageMap
+	m.floatingIPMap = msg.floatingIPMap
+
+	// Create table from instances with image name mapping and floating IP mapping
+	m.table = createInstancesTable(msg.instances, msg.imageMap, msg.floatingIPMap, m.width, m.height)
 	m.currentData = msg.instances // Store raw data for detail viewing
 	m.mode = TableView
 
@@ -480,18 +583,16 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 func createProjectsTable(projects []map[string]interface{}, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Project ID", Width: 40},
-		{Title: "Name", Width: 30},
+		{Title: "Name", Width: 40},
 		{Title: "Status", Width: 15},
-		{Title: "Description", Width: 40},
 	}
 
 	var rows []table.Row
 	for _, project := range projects {
 		row := table.Row{
 			getString(project, "project_id"),
-			getString(project, "projectName"),
-			getString(project, "status"),
 			getString(project, "description"),
+			getString(project, "status"),
 		}
 		rows = append(rows, row)
 	}
@@ -528,7 +629,7 @@ func createProjectsTable(projects []map[string]interface{}, width, height int) t
 }
 
 // createInstancesTable creates a table for displaying instances (like OVHcloud web UI)
-func createInstancesTable(instances []map[string]interface{}, imageMap map[string]string, width, height int) table.Model {
+func createInstancesTable(instances []map[string]interface{}, imageMap map[string]string, floatingIPMap map[string]string, width, height int) table.Model {
 	// Sort instances by name for stable ordering
 	sort.Slice(instances, func(i, j int) bool {
 		nameI := getString(instances[i], "name")
@@ -563,6 +664,14 @@ func createInstancesTable(instances []map[string]interface{}, imageMap map[strin
 						}
 					}
 				}
+			}
+		}
+
+		// If no public IP found, check for floating IP
+		if publicIP == "" && floatingIPMap != nil {
+			instanceId := getString(instance, "id")
+			if fip, ok := floatingIPMap[instanceId]; ok {
+				publicIP = fip + " (FIP)"
 			}
 		}
 
@@ -995,14 +1104,72 @@ func (m Model) handleSSHKeysLoaded(msg sshKeysLoadedMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Add "No SSH Key" option at the beginning
-	noKeyOption := map[string]interface{}{
-		"id":   "",
-		"name": "(No SSH Key)",
-	}
-	m.wizard.sshKeys = append([]map[string]interface{}{noKeyOption}, msg.sshKeys...)
+	// Store SSH keys directly (create and no-key options are handled in rendering)
+	m.wizard.sshKeys = msg.sshKeys
 	m.wizard.selectedIndex = 0
 	return m, nil
+}
+
+// createSSHKey creates a new SSH key in the cloud project
+func (m Model) createSSHKey() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return sshKeyCreatedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		requestBody := map[string]interface{}{
+			"name":      m.wizard.newSSHKeyName,
+			"publicKey": m.wizard.newSSHKeyPublicKey,
+		}
+
+		var sshKey map[string]interface{}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/sshkey", m.cloudProject)
+		err := httpLib.Client.Post(endpoint, requestBody, &sshKey)
+
+		return sshKeyCreatedMsg{
+			sshKey: sshKey,
+			err:    err,
+		}
+	}
+}
+
+// handleSSHKeyCreated processes the result of SSH key creation
+func (m Model) handleSSHKeyCreated(msg sshKeyCreatedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	m.wizard.loadingMessage = ""
+
+	if msg.err != nil {
+		m.wizard.errorMsg = fmt.Sprintf("Failed to create SSH key: %s", msg.err)
+		return m, nil
+	}
+
+	// Extract the created SSH key ID and name
+	sshKeyId := getString(msg.sshKey, "id")
+	sshKeyName := getString(msg.sshKey, "name")
+
+	// Store the SSH key ID for instance creation
+	m.wizard.selectedSSHKey = sshKeyId
+	m.wizard.selectedSSHKeyName = sshKeyName + " (new)"
+	m.wizard.createdSSHKeyId = sshKeyId // Track for cleanup if needed
+	m.wizard.creatingSSHKey = false
+
+	// Add notification
+	m.notification = fmt.Sprintf("✅ SSH key '%s' created successfully!", sshKeyName)
+	m.notificationExpiry = time.Now().Add(3 * time.Second)
+
+	// Go to network step
+	m.wizard.step = WizardStepNetwork
+	m.wizard.selectedIndex = 0
+	m.wizard.filterInput = ""
+	m.wizard.isLoading = true
+	m.wizard.loadingMessage = "Loading networks..."
+
+	return m, tea.Batch(
+		m.fetchPrivateNetworks(),
+		tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		}),
+	)
 }
 
 // fetchPrivateNetworks fetches private networks for the project and region
@@ -1342,7 +1509,7 @@ func (m Model) cleanupCreatedResources() tea.Cmd {
 		var deletedResources []string
 		var errors []string
 
-		// Delete in reverse order of creation: floating IP -> gateway -> instance -> subnet -> network
+		// Delete in reverse order of creation: floating IP -> gateway -> instance -> subnet -> network -> SSH key
 
 		// Delete floating IP if created
 		if m.wizard.createdFloatingIPId != "" {
@@ -1384,6 +1551,17 @@ func (m Model) cleanupCreatedResources() tea.Cmd {
 				errors = append(errors, fmt.Sprintf("Network: %s", err))
 			} else {
 				deletedResources = append(deletedResources, "Network")
+			}
+		}
+
+		// Delete SSH key if created
+		if m.wizard.createdSSHKeyId != "" {
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/sshkey/%s",
+				m.cloudProject, m.wizard.createdSSHKeyId)
+			if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+				errors = append(errors, fmt.Sprintf("SSH Key: %s", err))
+			} else {
+				deletedResources = append(deletedResources, "SSH Key")
 			}
 		}
 
@@ -1729,7 +1907,7 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 			return instanceActionMsg{err: fmt.Errorf("instance ID not found")}
 		}
 
-		actions := []string{"reboot", "rescue", "stop_or_start", "vnc", "reinstall"}
+		actions := []string{"ssh", "reboot", "rescue", "stop_or_start", "vnc", "reinstall"}
 		if actionIndex < 0 || actionIndex >= len(actions) {
 			return instanceActionMsg{err: fmt.Errorf("invalid action index")}
 		}
@@ -1738,6 +1916,64 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 		var err error
 
 		switch action {
+		case "ssh":
+			// Get public IP from instance
+			publicIP := ""
+			if addresses, ok := m.detailData["ipAddresses"].([]interface{}); ok {
+				for _, addr := range addresses {
+					if addrMap, ok := addr.(map[string]interface{}); ok {
+						ipType := getString(addrMap, "type")
+						if ipType == "public" {
+							version := getNumericValue(addrMap, "version")
+							if version == 4 {
+								publicIP = getString(addrMap, "ip")
+								break
+							} else if publicIP == "" {
+								publicIP = getString(addrMap, "ip")
+							}
+						}
+					}
+				}
+			}
+			// If no public IP, check for floating IP
+			if publicIP == "" && m.floatingIPMap != nil {
+				if fip, ok := m.floatingIPMap[instanceId]; ok {
+					publicIP = fip
+				}
+			}
+			if publicIP == "" {
+				return instanceActionMsg{err: fmt.Errorf("no public IP or floating IP found for SSH connection")}
+			}
+			// Return special SSH message with the IP
+			// Try to detect user from image name
+			user := "ubuntu" // Default
+			imageId := getString(m.detailData, "imageId")
+			imageName := ""
+			// First try to get image name from imageMap
+			if m.imageMap != nil {
+				if name, ok := m.imageMap[imageId]; ok {
+					imageName = strings.ToLower(name)
+				}
+			}
+			// Fallback to imageId if no name found
+			if imageName == "" {
+				imageName = strings.ToLower(imageId)
+			}
+			if strings.Contains(imageName, "debian") {
+				user = "debian"
+			} else if strings.Contains(imageName, "centos") {
+				user = "centos"
+			} else if strings.Contains(imageName, "fedora") {
+				user = "fedora"
+			} else if strings.Contains(imageName, "arch") {
+				user = "arch"
+			} else if strings.Contains(imageName, "rocky") {
+				user = "rocky"
+			} else if strings.Contains(imageName, "almalinux") {
+				user = "almalinux"
+			}
+			return sshConnectionMsg{ip: publicIP, user: user}
+
 		case "reboot":
 			// POST /cloud/project/{serviceName}/instance/{instanceId}/reboot
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/reboot", m.cloudProject, instanceId)
@@ -1810,6 +2046,7 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 // handleInstanceAction processes the result of an instance action
 func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) {
 	actionNames := map[string]string{
+		"ssh":       "SSH",
 		"reboot":    "Reboot",
 		"rescue":    "Rescue Mode",
 		"unrescue":  "Exit Rescue",
@@ -1828,13 +2065,27 @@ func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) 
 		// Special case for VNC - the "error" contains the URL
 		if msg.action == "vnc" && strings.HasPrefix(msg.err.Error(), "VNC URL:") {
 			m.notification = fmt.Sprintf("🖥️ %s", msg.err.Error())
+		} else if msg.action == "ssh" && strings.Contains(msg.err.Error(), "255") {
+			// SSH exit code 255 = connection error
+			m.notification = "❌ SSH failed: connection error (check security group, port 22, or SSH key)"
 		} else {
 			m.notification = fmt.Sprintf("❌ %s failed: %s", actionName, msg.err)
 		}
 	} else {
-		m.notification = fmt.Sprintf("✅ %s initiated successfully!", actionName)
+		if msg.action == "ssh" {
+			m.notification = "✅ SSH session ended"
+		} else {
+			m.notification = fmt.Sprintf("✅ %s initiated successfully!", actionName)
+		}
 	}
 	m.notificationExpiry = time.Now().Add(5 * time.Second)
+
+	// For SSH, stay on detail view - don't refresh the list
+	if msg.action == "ssh" {
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		})
+	}
 
 	// Refresh the instances list to see updated status
 	return m, tea.Batch(
