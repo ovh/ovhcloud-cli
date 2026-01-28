@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/browser"
 	"github.com/spf13/cobra"
 )
@@ -24,14 +25,18 @@ Features:
   - Table views for projects, instances, and services
   - Hierarchical navigation through cloud resources
   - Web-like interface in your terminal
+  - Debug mode to view API requests and request IDs
 
 Navigate using:
   - ↑↓: Move through menus/tables
   - Enter: Select item or view details
   - ←/Esc: Go back
+  - d: Toggle debug panel (show API requests)
   - q: Quit`,
 		Run: browser.StartBrowser,
 	}
+
+	browserCmd.Flags().BoolVar(&flags.Debug, "debug", false, "Enable debug mode to view API requests and request IDs")
 
 	rootCmd.AddCommand(browserCmd)
 }

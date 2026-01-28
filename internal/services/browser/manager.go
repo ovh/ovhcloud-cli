@@ -33,7 +33,18 @@ const (
 	EmptyView         // Empty list with creation prompt
 	WizardView        // Multi-step wizard for resource creation
 	DeleteConfirmView // Confirmation dialog for deletion
+	DebugView         // Debug panel showing API requests
 )
+
+// ASCII OVHcloud logo for loading screen
+const ovhcloudASCIILogo = `
+   ____  __      __ _    _        _                    _ 
+  / __ \ \ \    / /| |  | |      | |                  | |
+ | |  | | \ \  / / | |__| |  ___ | |  ___   _   _   __| |
+ | |  | |  \ \/ /  |  __  | / __|| | / _ \ | | | | / _` + "`" + ` |
+ | |__| |   \  /   | |  | || (__ | || (_) || |_| || (_| |
+  \____/     \/    |_|  |_| \___||_| \___/  \__,_| \__,_|
+`
 
 // WizardStep represents the current step in the creation wizard
 type WizardStep int
@@ -118,6 +129,7 @@ type Model struct {
 	width              int
 	height             int
 	mode               ViewMode
+	previousMode       ViewMode // Previous mode to return to from debug view
 	currentProduct     ProductType
 	navIdx             int // Index in navigation bar
 	table              table.Model
@@ -139,6 +151,8 @@ type Model struct {
 	// Delete confirmation
 	deleteTarget       map[string]interface{} // Item to be deleted
 	deleteConfirmInput string                 // User input for delete confirmation
+	// Debug view
+	debugScrollOffset int // Scroll offset for debug log view
 }
 
 // Navigation items for the top bar
@@ -596,6 +610,15 @@ func (m Model) renderContentBox(width int) string {
 		return contentBoxStyle.Width(width - 4).Render(fullContent)
 	}
 
+	// Handle debug view with special title
+	if m.mode == DebugView {
+		titleText = " 🔍 Debug - API Requests "
+		title := productTitleStyle.Render(titleText)
+		contentStr := m.renderDebugView(width - 6)
+		fullContent := title + "\n\n" + contentStr
+		return contentBoxStyle.Width(width - 4).Render(fullContent)
+	}
+
 	// Handle project selection view specially
 	if m.mode == ProjectSelectView || m.currentProduct == ProductProjects {
 		titleText = " 📦 Select a Project "
@@ -616,7 +639,7 @@ func (m Model) renderContentBox(width int) string {
 	var contentStr string
 	switch m.mode {
 	case LoadingView:
-		contentStr = loadingStyle.Render("⏳ Loading data...")
+		contentStr = m.renderLoadingView()
 	case ErrorView:
 		contentStr = errorStyle.Render("❌ Error: " + m.errorMsg)
 	case EmptyView:
@@ -629,12 +652,147 @@ func (m Model) renderContentBox(width int) string {
 		contentStr = m.renderDetailView(width - 6)
 	case DeleteConfirmView:
 		contentStr = m.renderDeleteConfirmView()
+	case DebugView:
+		contentStr = m.renderDebugView(width - 6)
 	}
 
 	// Combine title and content
 	fullContent := title + "\n\n" + contentStr
 
 	return contentBoxStyle.Width(width - 4).Render(fullContent)
+}
+
+// renderLoadingView displays the loading screen
+// Shows ASCII OVHcloud logo only on initial splash screen (loading projects)
+func (m Model) renderLoadingView() string {
+	var content strings.Builder
+
+	// Show splash screen with logo only when loading projects initially
+	if m.currentProduct == ProductProjects && m.cloudProject == "" {
+		// Style for the ASCII logo
+		logoStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7B68EE")).
+			Bold(true)
+
+		// Style for the loading message
+		loadingMsgStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#00FF7F")).
+			Bold(true)
+
+		// Add the ASCII logo
+		content.WriteString(logoStyle.Render(ovhcloudASCIILogo))
+		content.WriteString("\n\n")
+
+		// Add loading message with spinner
+		content.WriteString(loadingMsgStyle.Render("        ⏳ Loading projects..."))
+		content.WriteString("\n")
+	} else {
+		// Simple loading message for other cases
+		content.WriteString(loadingStyle.Render("⏳ Loading data..."))
+	}
+
+	return content.String()
+}
+
+// renderDebugView displays the debug panel with API requests
+func (m Model) renderDebugView(width int) string {
+	var content strings.Builder
+
+	entries := httpLib.BrowserDebugLogger.GetEntries()
+
+	if len(entries) == 0 {
+		emptyStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#888888")).
+			Italic(true)
+		content.WriteString(emptyStyle.Render("  No API requests recorded yet.\n"))
+		content.WriteString(emptyStyle.Render("  Navigate around to see requests appear here.\n"))
+	} else {
+		// Header
+		headerStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7B68EE")).
+			Bold(true)
+		content.WriteString(headerStyle.Render(fmt.Sprintf("  📊 %d API requests recorded\n\n", len(entries))))
+
+		// Styles for different status codes
+		successStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+		errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+		methodStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE")).Bold(true)
+		urlStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+		timeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+		reqIdStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00BFFF"))
+
+		// Calculate visible entries based on scroll offset
+		maxVisible := 15 // Show last 15 entries by default
+		startIdx := len(entries) - maxVisible - m.debugScrollOffset
+		if startIdx < 0 {
+			startIdx = 0
+		}
+		endIdx := startIdx + maxVisible
+		if endIdx > len(entries) {
+			endIdx = len(entries)
+		}
+
+		// Show entries in reverse order (newest first)
+		for i := endIdx - 1; i >= startIdx; i-- {
+			entry := entries[i]
+
+			// Format timestamp
+			timestamp := timeStyle.Render(entry.Timestamp.Format("15:04:05"))
+
+			// Format method
+			method := methodStyle.Render(fmt.Sprintf("%-6s", entry.Method))
+
+			// Format URL (truncate if too long)
+			url := entry.URL
+			maxUrlLen := width - 60
+			if maxUrlLen < 20 {
+				maxUrlLen = 20
+			}
+			if len(url) > maxUrlLen {
+				url = url[:maxUrlLen-3] + "..."
+			}
+			urlFormatted := urlStyle.Render(url)
+
+			// Format status
+			var statusFormatted string
+			if entry.Error != "" {
+				statusFormatted = errorStyle.Render("ERR")
+			} else if entry.StatusCode >= 200 && entry.StatusCode < 300 {
+				statusFormatted = successStyle.Render(fmt.Sprintf("%d", entry.StatusCode))
+			} else if entry.StatusCode >= 400 {
+				statusFormatted = errorStyle.Render(fmt.Sprintf("%d", entry.StatusCode))
+			} else {
+				statusFormatted = warnStyle.Render(fmt.Sprintf("%d", entry.StatusCode))
+			}
+
+			// Format duration
+			duration := timeStyle.Render(fmt.Sprintf("%6s", entry.Duration.Round(time.Millisecond)))
+
+			// Format request ID (display full ID without truncation)
+			reqId := "-"
+			if entry.RequestID != "" {
+				reqId = entry.RequestID
+			}
+			reqIdFormatted := reqIdStyle.Render(reqId)
+
+			content.WriteString(fmt.Sprintf("  %s %s %s → %s %s\n", timestamp, method, urlFormatted, statusFormatted, duration))
+			content.WriteString(fmt.Sprintf("           RequestID: %s\n\n", reqIdFormatted))
+		}
+
+		// Scroll indicator
+		if len(entries) > maxVisible {
+			scrollInfo := timeStyle.Render(fmt.Sprintf("  Showing %d-%d of %d (↑↓ to scroll, 'c' to clear)", startIdx+1, endIdx, len(entries)))
+			content.WriteString(scrollInfo)
+		}
+	}
+
+	// Help text
+	content.WriteString("\n\n")
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	content.WriteString(helpStyle.Render("  Press 'd' or Esc to close • 'c' to clear logs"))
+
+	return content.String()
 }
 
 // renderEmptyView displays an empty state with creation prompt
@@ -1799,17 +1957,17 @@ func (m Model) renderFooter() string {
 		help = "↑↓: Navigate • Enter: Select Project • d: Set Default • q: Quit"
 	case TableView:
 		if m.filterInput != "" {
-			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • Esc: Clear Filter • q: Quit"
+			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
 		} else {
-			help = "←→: Switch Product • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • Del: Delete • p: Change Project • q: Quit"
+			help = "←→: Switch Product • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
 		}
 	case EmptyView:
-		help = "←→: Switch Product • c: Create • p: Change Project • q: Quit"
+		help = "←→: Switch Product • c: Create • d: Debug • p: Change Project • q: Quit"
 	case DetailView:
 		if m.actionConfirm {
 			help = "Enter: Confirm Action • Esc: Cancel"
 		} else {
-			help = "←→: Select Action • Enter: Execute • Esc: Back to List • q: Quit"
+			help = "←→: Select Action • Enter: Execute • d: Debug • Esc: Back to List • q: Quit"
 		}
 	case WizardView:
 		if m.wizard.cleanupPending {
@@ -1817,22 +1975,24 @@ func (m Model) renderFooter() string {
 		} else if m.wizard.filterMode {
 			help = "Type to filter • Enter: Confirm • Esc: Exit filter"
 		} else if m.wizard.step == WizardStepRegion {
-			help = "↑↓: Navigate • /: Filter • Enter: Select • Esc: Cancel"
+			help = "↑↓: Navigate • /: Filter • d: Debug • Enter: Select • Esc: Cancel"
 		} else if m.wizard.step == WizardStepFlavor || m.wizard.step == WizardStepImage || m.wizard.step == WizardStepSSHKey {
-			help = "↑↓: Navigate • /: Filter • Enter: Select • ←: Back • Esc: Cancel"
+			help = "↑↓: Navigate • /: Filter • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == WizardStepNetwork && !m.wizard.creatingNetwork {
-			help = "↑↓: Navigate • /: Filter (networks) • Space: Toggle • Enter: Select • ←: Back • Esc: Cancel"
+			help = "↑↓: Navigate • /: Filter • d: Debug • Space: Toggle • Enter: Select • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == WizardStepFloatingIP {
-			help = "↑↓: Navigate • /: Filter • Enter: Select • ←: Back • Esc: Cancel"
+			help = "↑↓: Navigate • /: Filter • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == WizardStepName {
 			help = "Type: Enter name • Enter: Confirm • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == WizardStepConfirm {
-			help = "←→: Select • Enter: Confirm • Esc: Cancel"
+			help = "←→: Select • d: Debug • Enter: Confirm • Esc: Cancel"
 		} else {
-			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+			help = "↑↓: Navigate • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		}
 	case DeleteConfirmView:
 		help = "Type instance name to confirm • Enter: Delete • Esc: Cancel"
+	case DebugView:
+		help = "↑↓: Scroll • c: Clear logs • d/Esc: Close • q: Quit"
 	default:
 		help = "Enter: Select • q: Quit"
 	}
@@ -1860,6 +2020,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Handle delete confirmation mode
 	if m.mode == DeleteConfirmView {
 		return m.handleDeleteConfirmKeyPress(msg)
+	}
+
+	// Handle debug view mode
+	if m.mode == DebugView {
+		return m.handleDebugKeyPress(msg)
 	}
 
 	// Handle filter mode
@@ -2012,7 +2177,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "d":
-		// Set selected project as default - only in Projects selection view
+		// In Projects selection view: set selected project as default
 		if m.mode == ProjectSelectView || m.currentProduct == ProductProjects {
 			var project map[string]interface{}
 
@@ -2032,6 +2197,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				return m, m.setDefaultProject(projectID, projectName)
 			}
+		} else {
+			// In other views: toggle debug panel
+			m.previousMode = m.mode
+			m.mode = DebugView
+			m.debugScrollOffset = 0
 		}
 		return m, nil
 
@@ -2045,6 +2215,50 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.mode = DeleteConfirmView
 			}
 		}
+		return m, nil
+	}
+
+	return m, nil
+}
+
+// handleDebugKeyPress handles key presses in debug view mode
+func (m Model) handleDebugKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+
+	switch key {
+	case "esc", "d":
+		// Close debug view and return to previous mode
+		m.mode = m.previousMode
+		m.debugScrollOffset = 0
+		return m, nil
+
+	case "q", "ctrl+c":
+		return m, tea.Quit
+
+	case "up", "k":
+		// Scroll up (show older entries)
+		entries := httpLib.BrowserDebugLogger.GetEntries()
+		maxVisible := 15
+		maxOffset := len(entries) - maxVisible
+		if maxOffset < 0 {
+			maxOffset = 0
+		}
+		if m.debugScrollOffset < maxOffset {
+			m.debugScrollOffset++
+		}
+		return m, nil
+
+	case "down", "j":
+		// Scroll down (show newer entries)
+		if m.debugScrollOffset > 0 {
+			m.debugScrollOffset--
+		}
+		return m, nil
+
+	case "c":
+		// Clear debug logs
+		httpLib.BrowserDebugLogger.Clear()
+		m.debugScrollOffset = 0
 		return m, nil
 	}
 
@@ -2165,6 +2379,14 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Handle cleanup confirmation mode
 	if m.wizard.cleanupPending {
 		return m.handleCleanupConfirmKeys(key)
+	}
+
+	// 'd' opens debug panel (except when typing in name field)
+	if key == "d" && m.wizard.step != WizardStepName {
+		m.previousMode = m.mode
+		m.mode = DebugView
+		m.debugScrollOffset = 0
+		return m, nil
 	}
 
 	// Escape cancels the wizard and goes back to instances view
