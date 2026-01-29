@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"strconv"
 
@@ -27,6 +28,8 @@ var (
 	cloudprojectContainerRegistryUsersColumnsToDisplay = []string{"id", "user", "email"}
 
 	cloudprojectContainerRegistryPlanCapabilitiesColumnsToDisplay = []string{"id", "name", "vulnerability", "imageStorage", "parallelRequest"}
+
+	cloudProjectContainerRegistryIPRestrictionsColumnsToDisplay = []string{"ipBlock", "description", "createdAt", "updatedAt"}
 
 	//go:embed templates/cloud_container_registry.tmpl
 	cloudContainerRegistryTemplate string
@@ -97,6 +100,28 @@ var (
 
 	CloudContainerRegistryPlanUpgradeSpec struct {
 		PlanID string `json:"planID"`
+	}
+
+	ContainerRegistryIPRestrictionsAddSpec struct {
+		IPBlock     string
+		Description string
+	}
+	ContainerRegistryIPRestrictionsDeleteSpec struct {
+		IPBlock string
+	}
+)
+
+type (
+	ContainerRegistryIPRestriction struct {
+		CreatedAt   string `json:"createdAt,omitempty"`
+		Description string `json:"description,omitempty"`
+		IPBlock     string `json:"ipBlock"`
+		UpdatedAt   string `json:"updatedAt,omitempty"`
+	}
+
+	ContainerRegistryIPRestrictionInput struct {
+		Description string `json:"description,omitempty"`
+		IPBlock     string `json:"ipBlock"`
 	}
 )
 
@@ -416,13 +441,7 @@ func CreateContainerRegistryOIDC(cmd *cobra.Command, args []string) {
 		CloudContainerRegistryOidcCreateSample,
 		CloudContainerRegistryOidcCreateSpec,
 		assets.CloudOpenapiSchema,
-		[]string{ // Make it empty as it looks like CreateResource function does not support embedded map
-			//"provider.name",
-			//"provider.endpoint",
-			//"provider.clientId",
-			//"provider.clientSecret",
-			//"provider.scope",
-		},
+		[]string{"provider"}, // TODO: Add providers sub variables (name, endpoint...) when CreateResource function supports embedded map
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -563,4 +582,180 @@ func formatContainerRegistryPlans(plan map[string]any) {
 			plan["vulnerability"] = vulnerability
 		}
 	}
+}
+
+// listContainerRegistryIPRestrictions lists IP restrictions for container registry (management or registry)
+func listContainerRegistryIPRestrictions(_ *cobra.Command, args []string, restrictionType string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/ipRestrictions/%s", projectID, url.PathEscape(args[0]), restrictionType)
+
+	var restrictions []ContainerRegistryIPRestriction
+	if err := httpLib.Client.Get(endpoint, &restrictions); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch IP restrictions: %s", err)
+		return
+	}
+
+	objects := make([]map[string]any, 0, len(restrictions))
+	for _, restriction := range restrictions {
+		objects = append(objects, map[string]any{
+			"ipBlock":     restriction.IPBlock,
+			"description": restriction.Description,
+			"createdAt":   restriction.CreatedAt,
+			"updatedAt":   restriction.UpdatedAt,
+		})
+	}
+
+	ipRestrictions, err := filtersLib.FilterLines(objects, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(ipRestrictions, cloudProjectContainerRegistryIPRestrictionsColumnsToDisplay, &flags.OutputFormatConfig)
+}
+
+// ListContainerRegistryIPRestrictionsManagement lists management IP restrictions for container registry
+func ListContainerRegistryIPRestrictionsManagement(cmd *cobra.Command, args []string) {
+	listContainerRegistryIPRestrictions(cmd, args, "management")
+}
+
+// ListContainerRegistryIPRestrictionsRegistry lists registry IP restrictions for container registry
+func ListContainerRegistryIPRestrictionsRegistry(cmd *cobra.Command, args []string) {
+	listContainerRegistryIPRestrictions(cmd, args, "registry")
+}
+
+// addContainerRegistryIPRestriction adds an IP restriction to container registry (management or registry)
+func addContainerRegistryIPRestriction(_ *cobra.Command, args []string, restrictionType string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Validate IP block
+	if ContainerRegistryIPRestrictionsAddSpec.IPBlock == "" {
+		display.OutputError(&flags.OutputFormatConfig, "ip-block flag is required")
+		return
+	}
+
+	if _, _, err := net.ParseCIDR(ContainerRegistryIPRestrictionsAddSpec.IPBlock); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "invalid CIDR notation for ip-block: %s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/ipRestrictions/%s", projectID, url.PathEscape(args[0]), restrictionType)
+
+	// Fetch existing restrictions
+	var restrictions []ContainerRegistryIPRestriction
+	if err := httpLib.Client.Get(endpoint, &restrictions); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch existing IP restrictions: %s", err)
+		return
+	}
+
+	// Check for duplicate IP block
+	for _, restriction := range restrictions {
+		if restriction.IPBlock == ContainerRegistryIPRestrictionsAddSpec.IPBlock {
+			display.OutputError(&flags.OutputFormatConfig, "IP block %s already exists in IP restrictions", ContainerRegistryIPRestrictionsAddSpec.IPBlock)
+			return
+		}
+	}
+
+	// Append new restriction
+	newRestriction := ContainerRegistryIPRestrictionInput{
+		IPBlock:     ContainerRegistryIPRestrictionsAddSpec.IPBlock,
+		Description: ContainerRegistryIPRestrictionsAddSpec.Description,
+	}
+
+	var inputRestrictions []ContainerRegistryIPRestrictionInput
+	for _, restriction := range restrictions {
+		inputRestrictions = append(inputRestrictions, ContainerRegistryIPRestrictionInput{
+			IPBlock:     restriction.IPBlock,
+			Description: restriction.Description,
+		})
+	}
+	inputRestrictions = append(inputRestrictions, newRestriction)
+
+	// PUT updated restrictions
+	if err := httpLib.Client.Put(endpoint, inputRestrictions, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to update IP restrictions: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ IP restriction %s added to %s", ContainerRegistryIPRestrictionsAddSpec.IPBlock, restrictionType)
+}
+
+// AddContainerRegistryIPRestrictionsManagement adds a management IP restriction to container registry
+func AddContainerRegistryIPRestrictionsManagement(cmd *cobra.Command, args []string) {
+	addContainerRegistryIPRestriction(cmd, args, "management")
+}
+
+// AddContainerRegistryIPRestrictionsRegistry adds a registry IP restriction to container registry
+func AddContainerRegistryIPRestrictionsRegistry(cmd *cobra.Command, args []string) {
+	addContainerRegistryIPRestriction(cmd, args, "registry")
+}
+
+// deleteContainerRegistryIPRestriction deletes an IP restriction from container registry (management or registry)
+func deleteContainerRegistryIPRestriction(_ *cobra.Command, args []string, restrictionType string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Validate IP block
+	if ContainerRegistryIPRestrictionsDeleteSpec.IPBlock == "" {
+		display.OutputError(&flags.OutputFormatConfig, "ip-block flag is required")
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s/ipRestrictions/%s", projectID, url.PathEscape(args[0]), restrictionType)
+
+	// Fetch existing restrictions
+	var restrictions []ContainerRegistryIPRestriction
+	if err := httpLib.Client.Get(endpoint, &restrictions); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch existing IP restrictions: %s", err)
+		return
+	}
+
+	// Find and remove the matching IP block
+	inputRestrictions := make([]ContainerRegistryIPRestrictionInput, 0)
+	found := false
+	for _, restriction := range restrictions {
+		if restriction.IPBlock == ContainerRegistryIPRestrictionsDeleteSpec.IPBlock {
+			found = true
+			continue
+		}
+		inputRestrictions = append(inputRestrictions, ContainerRegistryIPRestrictionInput{
+			IPBlock:     restriction.IPBlock,
+			Description: restriction.Description,
+		})
+	}
+
+	if !found {
+		display.OutputError(&flags.OutputFormatConfig, "IP block %s not found in %s IP restrictions", ContainerRegistryIPRestrictionsDeleteSpec.IPBlock, restrictionType)
+		return
+	}
+
+	// PUT updated restrictions
+	if err := httpLib.Client.Put(endpoint, inputRestrictions, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to update IP restrictions: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ IP restriction %s deleted from %s", ContainerRegistryIPRestrictionsDeleteSpec.IPBlock, restrictionType)
+}
+
+// DeleteContainerRegistryIPRestrictionsManagement deletes a management IP restriction from container registry
+func DeleteContainerRegistryIPRestrictionsManagement(cmd *cobra.Command, args []string) {
+	deleteContainerRegistryIPRestriction(cmd, args, "management")
+}
+
+// DeleteContainerRegistryIPRestrictionsRegistry deletes a registry IP restriction from container registry
+func DeleteContainerRegistryIPRestrictionsRegistry(cmd *cobra.Command, args []string) {
+	deleteContainerRegistryIPRestriction(cmd, args, "registry")
 }

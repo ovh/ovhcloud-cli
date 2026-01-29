@@ -33,5 +33,5 @@ ovhcloud cloud container-registry users set-as-admin <registry_id> <user_id> [fl
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry users](ovhcloud_cloud_container-registry_users.md)	 - Manage container registry users in the given cloud project
+* [ovhcloud cloud container-registry users](ovhcloud_cloud_container-registry_users.md)	 - Manage container registry users
 

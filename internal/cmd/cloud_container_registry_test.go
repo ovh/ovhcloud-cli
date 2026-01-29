@@ -641,3 +641,186 @@ func (ms *MockSuite) TestCloudContainerRegistryPlanUpgradeCmd(assert, require *t
 	require.CmpNoError(err)
 	assert.String(out, "✅ Container registry 550e8400-e29b-41d4-a716-446655440000 plan upgraded to c5ddc763-be75-48f7-b7ec-e923ca040bee")
 }
+
+func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsManagementListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/management",
+		httpmock.NewStringResponder(200, `[
+			{
+				"createdAt": "2026-01-23T10:00:00.000Z",
+				"description": "Office network",
+				"ipBlock": "192.0.2.0/24",
+				"updatedAt": "2026-01-23T10:00:00.000Z"
+			},
+			{
+				"createdAt": "2026-01-24T10:00:00.000Z",
+				"description": "VPN network",
+				"ipBlock": "10.0.0.0/8",
+				"updatedAt": "2026-01-24T10:00:00.000Z"
+			}
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "ip-restrictions", "management", "list", "550e8400-e29b-41d4-a716-446655440000", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌──────────────┬────────────────┬──────────────────────────┬──────────────────────────┐
+│   ipBlock    │  description   │        createdAt         │        updatedAt         │
+├──────────────┼────────────────┼──────────────────────────┼──────────────────────────┤
+│ 192.0.2.0/24 │ Office network │ 2026-01-23T10:00:00.000Z │ 2026-01-23T10:00:00.000Z │
+│ 10.0.0.0/8   │ VPN network    │ 2026-01-24T10:00:00.000Z │ 2026-01-24T10:00:00.000Z │
+└──────────────┴────────────────┴──────────────────────────┴──────────────────────────┘
+💡 Use option --json or --yaml to get the raw output with all information`[1:])
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsRegistryListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/registry",
+		httpmock.NewStringResponder(200, `[
+			{
+				"createdAt": "2026-01-23T11:00:00.000Z",
+				"description": "Docker push",
+				"ipBlock": "203.0.113.0/24",
+				"updatedAt": "2026-01-23T11:00:00.000Z"
+			}
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "ip-restrictions", "registry", "list", "550e8400-e29b-41d4-a716-446655440000", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌────────────────┬─────────────┬──────────────────────────┬──────────────────────────┐
+│    ipBlock     │ description │        createdAt         │        updatedAt         │
+├────────────────┼─────────────┼──────────────────────────┼──────────────────────────┤
+│ 203.0.113.0/24 │ Docker push │ 2026-01-23T11:00:00.000Z │ 2026-01-23T11:00:00.000Z │
+└────────────────┴─────────────┴──────────────────────────┴──────────────────────────┘
+💡 Use option --json or --yaml to get the raw output with all information`[1:])
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsManagementAddCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/management",
+		httpmock.NewStringResponder(200, `[
+			{
+				"createdAt": "2026-01-23T10:00:00.000Z",
+				"description": "Office network",
+				"ipBlock": "192.0.2.0/24",
+				"updatedAt": "2026-01-23T10:00:00.000Z"
+			}
+		]`).Once())
+
+	httpmock.RegisterMatcherResponder(
+		http.MethodPut,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/management",
+		tdhttpmock.JSONBody(td.JSON(`[
+			{
+				"description": "Office network",
+				"ipBlock": "192.0.2.0/24"
+			},
+			{
+				"description": "VPN network",
+				"ipBlock": "10.0.0.0/8"
+			}
+		]`)),
+		httpmock.NewStringResponder(204, "").Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "ip-restrictions", "management", "add", "550e8400-e29b-41d4-a716-446655440000", "--ip-block", "10.0.0.0/8", "--description", "VPN network", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ IP restriction 10.0.0.0/8 added to management")
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsManagementAddCmdWithoutDescription(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/management",
+		httpmock.NewStringResponder(200, `[]`).Once())
+
+	httpmock.RegisterMatcherResponder(
+		http.MethodPut,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/management",
+		tdhttpmock.JSONBody(td.JSON(`[
+			{
+				"ipBlock": "192.0.2.0/24"
+			}
+		]`)),
+		httpmock.NewStringResponder(204, "").Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "ip-restrictions", "management", "add", "550e8400-e29b-41d4-a716-446655440000", "--ip-block", "192.0.2.0/24", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ IP restriction 192.0.2.0/24 added to management")
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsRegistryAddCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/registry",
+		httpmock.NewStringResponder(200, `[]`).Once())
+
+	httpmock.RegisterMatcherResponder(
+		http.MethodPut,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/registry",
+		tdhttpmock.JSONBody(td.JSON(`[
+			{
+				"description": "Docker pull",
+				"ipBlock": "203.0.113.0/24"
+			}
+		]`)),
+		httpmock.NewStringResponder(204, "").Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "ip-restrictions", "registry", "add", "550e8400-e29b-41d4-a716-446655440000", "--ip-block", "203.0.113.0/24", "--description", "Docker pull", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ IP restriction 203.0.113.0/24 added to registry")
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsManagementDeleteCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/management",
+		httpmock.NewStringResponder(200, `[
+			{
+				"createdAt": "2026-01-23T10:00:00.000Z",
+				"description": "Office network",
+				"ipBlock": "192.0.2.0/24",
+				"updatedAt": "2026-01-23T10:00:00.000Z"
+			},
+			{
+				"createdAt": "2026-01-24T10:00:00.000Z",
+				"description": "VPN network",
+				"ipBlock": "10.0.0.0/8",
+				"updatedAt": "2026-01-24T10:00:00.000Z"
+			}
+		]`).Once())
+
+	httpmock.RegisterMatcherResponder(
+		http.MethodPut,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/management",
+		tdhttpmock.JSONBody(td.JSON(`[
+			{
+				"description": "Office network",
+				"ipBlock": "192.0.2.0/24"
+			}
+		]`)),
+		httpmock.NewStringResponder(204, "").Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "ip-restrictions", "management", "delete", "550e8400-e29b-41d4-a716-446655440000", "--ip-block", "10.0.0.0/8", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ IP restriction 10.0.0.0/8 deleted from management")
+}
+
+func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsRegistryDeleteCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/registry",
+		httpmock.NewStringResponder(200, `[
+			{
+				"createdAt": "2026-01-23T11:00:00.000Z",
+				"description": "Docker push",
+				"ipBlock": "203.0.113.0/24",
+				"updatedAt": "2026-01-23T11:00:00.000Z"
+			}
+		]`).Once())
+
+	httpmock.RegisterMatcherResponder(
+		http.MethodPut,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/550e8400-e29b-41d4-a716-446655440000/ipRestrictions/registry",
+		tdhttpmock.JSONBody(td.JSON(`[]`)),
+		httpmock.NewStringResponder(204, "").Once())
+
+	out, err := cmd.Execute("cloud", "container-registry", "ip-restrictions", "registry", "delete", "550e8400-e29b-41d4-a716-446655440000", "--ip-block", "203.0.113.0/24", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ IP restriction 203.0.113.0/24 deleted from registry")
+}

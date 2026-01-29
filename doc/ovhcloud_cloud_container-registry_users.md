@@ -1,6 +1,6 @@
 ## ovhcloud cloud container-registry users
 
-Manage container registry users in the given cloud project
+Manage container registry users
 
 ### Options
 

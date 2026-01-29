@@ -38,5 +38,5 @@ ovhcloud cloud container-registry iam enable <registry_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry iam](ovhcloud_cloud_container-registry_iam.md)	 - Manage container registry IAM in the given cloud project
+* [ovhcloud cloud container-registry iam](ovhcloud_cloud_container-registry_iam.md)	 - Manage container registry IAM
 

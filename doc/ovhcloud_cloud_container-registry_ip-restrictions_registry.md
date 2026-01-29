@@ -1,11 +1,11 @@
-## ovhcloud cloud container-registry iam
+## ovhcloud cloud container-registry ip-restrictions registry
 
-Manage container registry IAM
+Manage IP restrictions for container registry artifact manager (Docker, Helm...) access
 
 ### Options
 
 ```
-  -h, --help   help for iam
+  -h, --help   help for registry
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +29,8 @@ Manage container registry IAM
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry](ovhcloud_cloud_container-registry.md)	 - Manage container registries in the given cloud project
-* [ovhcloud cloud container-registry iam disable](ovhcloud_cloud_container-registry_iam_disable.md)	 - Disable IAM for the given container registry
-* [ovhcloud cloud container-registry iam enable](ovhcloud_cloud_container-registry_iam_enable.md)	 - Enable IAM for the given container registry
+* [ovhcloud cloud container-registry ip-restrictions](ovhcloud_cloud_container-registry_ip-restrictions.md)	 - Manage container registry IP restrictions
+* [ovhcloud cloud container-registry ip-restrictions registry add](ovhcloud_cloud_container-registry_ip-restrictions_registry_add.md)	 - Add a registry IP restriction to a container registry
+* [ovhcloud cloud container-registry ip-restrictions registry delete](ovhcloud_cloud_container-registry_ip-restrictions_registry_delete.md)	 - Delete a registry IP restriction from a container registry
+* [ovhcloud cloud container-registry ip-restrictions registry list](ovhcloud_cloud_container-registry_ip-restrictions_registry_list.md)	 - List registry IP restrictions for a container registry
 

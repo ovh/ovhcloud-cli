@@ -1,11 +1,17 @@
-## ovhcloud cloud container-registry iam
+## ovhcloud cloud container-registry ip-restrictions management add
 
-Manage container registry IAM
+Add a management IP restriction to a container registry
+
+```
+ovhcloud cloud container-registry ip-restrictions management add <registry_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for iam
+      --description string   Description for the IP restriction (optional)
+  -h, --help                 help for add
+      --ip-block string      IP block in CIDR notation (e.g., 192.0.2.0/24)
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +35,5 @@ Manage container registry IAM
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry](ovhcloud_cloud_container-registry.md)	 - Manage container registries in the given cloud project
-* [ovhcloud cloud container-registry iam disable](ovhcloud_cloud_container-registry_iam_disable.md)	 - Disable IAM for the given container registry
-* [ovhcloud cloud container-registry iam enable](ovhcloud_cloud_container-registry_iam_enable.md)	 - Enable IAM for the given container registry
+* [ovhcloud cloud container-registry ip-restrictions management](ovhcloud_cloud_container-registry_ip-restrictions_management.md)	 - Manage IP restrictions for container registry Harbor UI and API access
 
