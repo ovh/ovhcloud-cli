@@ -262,10 +262,10 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 		}
 	}
 
-	// First, get regions with S3 storage feature available
-	var regions []map[string]interface{}
+	// First, get region names (API returns array of strings)
+	var regionNames []string
 	regionsEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
-	err := httpLib.Client.Get(regionsEndpoint, &regions)
+	err := httpLib.Client.Get(regionsEndpoint, &regionNames)
 	if err != nil {
 		return dataLoadedMsg{
 			data: nil,
@@ -273,11 +273,13 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 		}
 	}
 
-	// Filter regions with storage-s3 features and fetch containers
+	// Fetch details for each region to check if it has S3 storage feature
 	var allContainers []map[string]interface{}
-	for _, region := range regions {
-		regionName, ok := region["name"].(string)
-		if !ok {
+	for _, regionName := range regionNames {
+		// Get region details to check for S3 feature
+		var region map[string]interface{}
+		regionDetailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s", m.cloudProject, regionName)
+		if err := httpLib.Client.Get(regionDetailEndpoint, &region); err != nil {
 			continue
 		}
 
@@ -303,16 +305,21 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 			continue
 		}
 
-		// Fetch container names for this region
-		var containerNames []string
+		// Fetch containers for this region - API may return array of strings or objects
+		var rawResponse []interface{}
 		storageEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage", m.cloudProject, regionName)
-		if err := httpLib.Client.Get(storageEndpoint, &containerNames); err == nil {
-			// Fetch details for each container
-			for _, name := range containerNames {
-				var container map[string]interface{}
-				detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, regionName, name)
-				if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
-					allContainers = append(allContainers, container)
+		if err := httpLib.Client.Get(storageEndpoint, &rawResponse); err == nil {
+			for _, item := range rawResponse {
+				if containerName, ok := item.(string); ok {
+					// It's a container name, fetch details
+					var container map[string]interface{}
+					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, regionName, containerName)
+					if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
+						allContainers = append(allContainers, container)
+					}
+				} else if containerObj, ok := item.(map[string]interface{}); ok {
+					// It's already a full object
+					allContainers = append(allContainers, containerObj)
 				}
 			}
 		}
