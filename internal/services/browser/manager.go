@@ -262,6 +262,12 @@ type instancesLoadedMsg struct {
 	forProduct    ProductType // The product that requested this data
 }
 
+// instancesEnrichedMsg is sent when floating IPs and images are loaded after initial instances display
+type instancesEnrichedMsg struct {
+	imageMap      map[string]string // imageId -> imageName
+	floatingIPMap map[string]string // instanceId -> floatingIP address
+}
+
 type dataLoadedMsg struct {
 	data       []map[string]interface{}
 	err        error
@@ -284,6 +290,7 @@ type refreshTickMsg struct{}
 // Wizard-related messages
 type regionsLoadedMsg struct {
 	regions []map[string]interface{}
+	images  []map[string]interface{}
 	err     error
 }
 
@@ -447,6 +454,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case instancesLoadedMsg:
 		return m.handleInstancesLoaded(msg)
+
+	case instancesEnrichedMsg:
+		return m.handleInstancesEnriched(msg)
 
 	case dataLoadedMsg:
 		return m.handleDataLoaded(msg)
@@ -858,6 +868,13 @@ func (m Model) renderDebugView(width int) string {
 			reqIdFormatted := reqIdStyle.Render(reqId)
 
 			content.WriteString(fmt.Sprintf("  %s %s %s → %s %s\n", timestamp, method, urlFormatted, statusFormatted, duration))
+			
+			// Show query string if present
+			if entry.QueryString != "" {
+				queryStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+				content.WriteString(fmt.Sprintf("           Query: %s\n", queryStyle.Render(entry.QueryString)))
+			}
+			
 			content.WriteString(fmt.Sprintf("           RequestID: %s\n\n", reqIdFormatted))
 		}
 
@@ -1049,15 +1066,11 @@ func (m Model) renderWizardRegionStep(width int) string {
 	for i := startIdx; i < endIdx; i++ {
 		region := filtered[i]
 		regionName := getString(region, "name")
-		continentCode := getString(region, "continentCode")
-		datacenterLoc := getString(region, "datacenterLocation")
-
-		displayStr := fmt.Sprintf("  %-20s  %s (%s)", regionName, datacenterLoc, continentCode)
 
 		if i == m.wizard.selectedIndex {
-			content.WriteString(selectedStyle.Render("▶ "+displayStr) + "\n")
+			content.WriteString(selectedStyle.Render("▶ " + regionName) + "\n")
 		} else {
-			content.WriteString(itemStyle.Render("  "+displayStr) + "\n")
+			content.WriteString(itemStyle.Render("  " + regionName) + "\n")
 		}
 	}
 
@@ -1469,14 +1482,8 @@ func (m Model) renderWizardNetworkStep(width int) string {
 			name := getString(network, "name")
 			networkId := getString(network, "id")
 
-			// Debug: show subnet info
+			// Just show network name without subnet details
 			subnetInfo := ""
-			if subnets, ok := network["subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
-				subnetId := getString(subnets[0], "id")
-				if subnetId != "" {
-					subnetInfo = fmt.Sprintf(" [%d subnet(s)]", len(subnets))
-				}
-			}
 
 			isSelected := m.wizard.networkMenuIndex == 1 && i == m.wizard.selectedIndex
 

@@ -23,13 +23,14 @@ import (
 
 // DebugLogEntry represents a single API request/response log entry
 type DebugLogEntry struct {
-	Timestamp  time.Time
-	Method     string
-	URL        string
-	StatusCode int
-	RequestID  string
-	Duration   time.Duration
-	Error      string
+	Timestamp   time.Time
+	Method      string
+	URL         string
+	QueryString string
+	StatusCode  int
+	RequestID   string
+	Duration    time.Duration
+	Error       string
 }
 
 // DebugLogger holds the debug log entries for the browser
@@ -116,10 +117,11 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	// Create debug log entry
 	entry := DebugLogEntry{
-		Timestamp: startTime,
-		Method:    req.Method,
-		URL:       req.URL.Path,
-		Duration:  duration,
+		Timestamp:   startTime,
+		Method:      req.Method,
+		URL:         req.URL.Path,
+		QueryString: req.URL.RawQuery,
+		Duration:    duration,
 	}
 
 	if err != nil {

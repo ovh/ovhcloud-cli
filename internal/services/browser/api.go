@@ -120,7 +120,7 @@ func (m Model) fetchProjectsData() projectsLoadedMsg {
 	}
 }
 
-// fetchInstancesData fetches the list of instances and images for name mapping
+// fetchInstancesData fetches the list of instances immediately and returns
 func (m Model) fetchInstancesData() instancesLoadedMsg {
 	if m.cloudProject == "" {
 		return instancesLoadedMsg{
@@ -135,52 +135,63 @@ func (m Model) fetchInstancesData() instancesLoadedMsg {
 		return instancesLoadedMsg{err: err}
 	}
 
-	// Fetch images to build imageId -> imageName map
-	imageMap := make(map[string]string)
-	var images []map[string]interface{}
-	imagesEndpoint := fmt.Sprintf("/v1/cloud/project/%s/image", m.cloudProject)
-	if imgErr := httpLib.Client.Get(imagesEndpoint, &images); imgErr == nil {
-		for _, img := range images {
-			if id, ok := img["id"].(string); ok {
-				if name, ok := img["name"].(string); ok {
-					imageMap[id] = name
+	// Return instances immediately without waiting for images and floating IPs
+	return instancesLoadedMsg{
+		instances:     instances,
+		imageMap:      make(map[string]string),
+		floatingIPMap: make(map[string]string),
+		err:           err,
+	}
+}
+
+// fetchInstancesEnrichedData fetches images and floating IPs in parallel
+func (m Model) fetchInstancesEnrichedData(instances []map[string]interface{}) tea.Cmd {
+	return func() tea.Msg {
+		// Fetch images to build imageId -> imageName map
+		imageMap := make(map[string]string)
+		var images []map[string]interface{}
+		imagesEndpoint := fmt.Sprintf("/v1/cloud/project/%s/image", m.cloudProject)
+		if imgErr := httpLib.Client.Get(imagesEndpoint, &images); imgErr == nil {
+			for _, img := range images {
+				if id, ok := img["id"].(string); ok {
+					if name, ok := img["name"].(string); ok {
+						imageMap[id] = name
+					}
 				}
 			}
 		}
-	}
 
-	// Fetch floating IPs from all regions to build instanceId -> floatingIP map
-	floatingIPMap := make(map[string]string)
-	// Get unique regions from instances
-	regionSet := make(map[string]bool)
-	for _, inst := range instances {
-		if region, ok := inst["region"].(string); ok && region != "" {
-			regionSet[region] = true
+		// Fetch floating IPs from all regions to build instanceId -> floatingIP map
+		floatingIPMap := make(map[string]string)
+		// Get unique regions from instances
+		regionSet := make(map[string]bool)
+		for _, inst := range instances {
+			if region, ok := inst["region"].(string); ok && region != "" {
+				regionSet[region] = true
+			}
 		}
-	}
-	// Fetch floating IPs for each region
-	for region := range regionSet {
-		var floatingIPs []map[string]interface{}
-		fipEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip", m.cloudProject, region)
-		if fipErr := httpLib.Client.Get(fipEndpoint, &floatingIPs); fipErr == nil {
-			for _, fip := range floatingIPs {
-				// Check if floating IP is associated to an instance
-				if associatedEntity, ok := fip["associatedEntity"].(map[string]interface{}); ok {
-					if instanceId, ok := associatedEntity["id"].(string); ok && instanceId != "" {
-						if ip, ok := fip["ip"].(string); ok {
-							floatingIPMap[instanceId] = ip
+		// Fetch floating IPs for each region
+		for region := range regionSet {
+			var floatingIPs []map[string]interface{}
+			fipEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip", m.cloudProject, region)
+			if fipErr := httpLib.Client.Get(fipEndpoint, &floatingIPs); fipErr == nil {
+				for _, fip := range floatingIPs {
+					// Check if floating IP is associated to an instance
+					if associatedEntity, ok := fip["associatedEntity"].(map[string]interface{}); ok {
+						if instanceId, ok := associatedEntity["id"].(string); ok && instanceId != "" {
+							if ip, ok := fip["ip"].(string); ok {
+								floatingIPMap[instanceId] = ip
+							}
 						}
 					}
 				}
 			}
 		}
-	}
 
-	return instancesLoadedMsg{
-		instances:     instances,
-		imageMap:      imageMap,
-		floatingIPMap: floatingIPMap,
-		err:           err,
+		return instancesEnrichedMsg{
+			imageMap:      imageMap,
+			floatingIPMap: floatingIPMap,
+		}
 	}
 }
 
@@ -538,13 +549,34 @@ func (m Model) handleInstancesLoaded(msg instancesLoadedMsg) (tea.Model, tea.Cmd
 	m.imageMap = msg.imageMap
 	m.floatingIPMap = msg.floatingIPMap
 
-	// Create table from instances with image name mapping and floating IP mapping
+	// Create table from instances immediately with empty maps
 	m.table = createInstancesTable(msg.instances, msg.imageMap, msg.floatingIPMap, m.width, m.height)
 	m.currentData = msg.instances // Store raw data for detail viewing
 	m.mode = TableView
 
 	// Restore cursor position if valid
 	if currentCursor >= 0 && currentCursor < len(msg.instances) {
+		m.table.SetCursor(currentCursor)
+	}
+
+	// Fetch images and floating IPs in parallel to enrich the display
+	return m, m.fetchInstancesEnrichedData(msg.instances)
+}
+
+// handleInstancesEnriched processes the enriched instances data (images and floating IPs)
+func (m Model) handleInstancesEnriched(msg instancesEnrichedMsg) (tea.Model, tea.Cmd) {
+	// Preserve cursor position before recreating table
+	currentCursor := m.table.Cursor()
+
+	// Update the maps with enriched data
+	m.imageMap = msg.imageMap
+	m.floatingIPMap = msg.floatingIPMap
+
+	// Recreate the table with enriched data
+	m.table = createInstancesTable(m.currentData, msg.imageMap, msg.floatingIPMap, m.width, m.height)
+
+	// Restore cursor position if valid
+	if currentCursor >= 0 && currentCursor < len(m.currentData) {
 		m.table.SetCursor(currentCursor)
 	}
 
@@ -859,52 +891,39 @@ func getString(m map[string]interface{}, key string) string {
 // Wizard API functions for instance creation
 // ============================================
 
-// fetchRegions fetches available regions for the project
+// fetchRegions fetches available regions by querying all images and extracting unique regions
 func (m Model) fetchRegions() tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
 			return regionsLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
-		// First, get the list of region names (the API returns an array of strings)
-		var regionNames []string
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
-		err := httpLib.Client.Get(endpoint, &regionNames)
+		// Fetch all images to determine available regions
+		var allImages []map[string]interface{}
+		imageEndpoint := fmt.Sprintf("/v1/cloud/project/%s/image", m.cloudProject)
+		err := httpLib.Client.Get(imageEndpoint, &allImages)
 		if err != nil {
 			return regionsLoadedMsg{err: err}
 		}
 
-		// Fetch details for each region and filter those with instance service
+		// Extract unique regions from images
+		regionMap := make(map[string]bool)
 		var instanceRegions []map[string]interface{}
-		for _, regionName := range regionNames {
-			var region map[string]interface{}
-			detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s", m.cloudProject, regionName)
-			if err := httpLib.Client.Get(detailEndpoint, &region); err != nil {
-				continue
-			}
-
-			// Check if region has instance service available and UP
-			services, ok := region["services"].([]interface{})
-			if !ok {
-				continue
-			}
-			for _, svc := range services {
-				if svcMap, ok := svc.(map[string]interface{}); ok {
-					if name, ok := svcMap["name"].(string); ok {
-						if name == "instance" {
-							status, _ := svcMap["status"].(string)
-							if status == "UP" {
-								instanceRegions = append(instanceRegions, region)
-							}
-							break
-						}
-					}
+		for _, image := range allImages {
+			regionStr := getString(image, "region")
+			if regionStr != "" && !regionMap[regionStr] {
+				regionMap[regionStr] = true
+				region := map[string]interface{}{
+					"name": regionStr,
+					"id":   regionStr,
 				}
+				instanceRegions = append(instanceRegions, region)
 			}
 		}
 
 		return regionsLoadedMsg{
 			regions: instanceRegions,
+			images:  allImages, // Cache all images for later use
 			err:     nil,
 		}
 	}
@@ -921,9 +940,8 @@ func (m Model) fetchFlavors(region string) tea.Cmd {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/flavor?region=%s", m.cloudProject, region)
 		err := httpLib.Client.Get(endpoint, &flavors)
 
-		// Sort flavors by vcpus and ram for better display
+		// Filter out unavailable flavors
 		if err == nil {
-			// Filter out unavailable flavors
 			var availableFlavors []map[string]interface{}
 			for _, flavor := range flavors {
 				available, _ := flavor["available"].(bool)
@@ -941,7 +959,7 @@ func (m Model) fetchFlavors(region string) tea.Cmd {
 	}
 }
 
-// fetchImages fetches available images for a specific region
+// fetchImages fetches available images for a specific region (from cache or API)
 func (m Model) fetchImages(region string) tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
@@ -949,11 +967,30 @@ func (m Model) fetchImages(region string) tea.Cmd {
 		}
 
 		var images []map[string]interface{}
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/image?region=%s", m.cloudProject, region)
-		err := httpLib.Client.Get(endpoint, &images)
 
-		// Filter for common/usable images (exclude snapshots, etc.)
-		if err == nil {
+		// Check if we have cached images from region fetch
+		if len(m.wizard.images) > 0 {
+			// Filter cached images by the selected region and public/active status
+			for _, image := range m.wizard.images {
+				imageRegion := getString(image, "region")
+				visibility := getString(image, "visibility")
+				status := getString(image, "status")
+				if imageRegion == region && visibility == "public" && status == "active" {
+					images = append(images, image)
+				}
+			}
+		} else {
+			// Fallback to API if no cached images (shouldn't happen in normal flow)
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/image?region=%s", m.cloudProject, region)
+			err := httpLib.Client.Get(endpoint, &images)
+			if err != nil {
+				return imagesLoadedMsg{
+					images: images,
+					err:    err,
+				}
+			}
+
+			// Filter for common/usable images (exclude snapshots, etc.)
 			var publicImages []map[string]interface{}
 			for _, image := range images {
 				visibility, _ := image["visibility"].(string)
@@ -967,7 +1004,7 @@ func (m Model) fetchImages(region string) tea.Cmd {
 
 		return imagesLoadedMsg{
 			images: images,
-			err:    err,
+			err:    nil,
 		}
 	}
 }
@@ -1048,7 +1085,15 @@ func (m Model) handleRegionsLoaded(msg regionsLoadedMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Sort regions alphabetically by name
+	sort.Slice(msg.regions, func(i, j int) bool {
+		namei := getString(msg.regions[i], "name")
+		namej := getString(msg.regions[j], "name")
+		return namei < namej
+	})
+
 	m.wizard.regions = msg.regions
+	m.wizard.images = msg.images // Cache all images for image selection step
 	m.wizard.selectedIndex = 0
 	return m, nil
 }
@@ -1083,7 +1128,7 @@ func (m Model) handleImagesLoaded(msg imagesLoadedMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// fetchSSHKeys fetches SSH keys for the project
+// fetchSSHKeys fetches SSH keys for the selected region
 func (m Model) fetchSSHKeys() tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
@@ -1091,7 +1136,8 @@ func (m Model) fetchSSHKeys() tea.Cmd {
 		}
 
 		var sshKeys []map[string]interface{}
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/sshkey", m.cloudProject)
+		// Query SSH keys filtered by the selected region
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/sshkey?region=%s", m.cloudProject, m.wizard.selectedRegion)
 		err := httpLib.Client.Get(endpoint, &sshKeys)
 
 		return sshKeysLoadedMsg{
@@ -1197,20 +1243,7 @@ func (m Model) fetchPrivateNetworks() tea.Cmd {
 			}
 		}
 
-		// Fetch subnets for each network
-		for i, network := range networks {
-			networkId := getString(network, "id")
-			if networkId != "" {
-				var subnets []map[string]interface{}
-				subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", m.cloudProject, networkId)
-				subnetErr := httpLib.Client.Get(subnetEndpoint, &subnets)
-				if subnetErr == nil && len(subnets) > 0 {
-					networks[i]["subnets"] = subnets
-					// Debug: Add subnet count to help troubleshoot
-					networks[i]["_subnetCount"] = len(subnets)
-				}
-			}
-		}
+		// Subnets are not needed for the wizard display - just networks
 
 		return privateNetworksLoadedMsg{
 			networks: networks,
@@ -1229,7 +1262,7 @@ func (m Model) handlePrivateNetworksLoaded(msg privateNetworksLoadedMsg) (tea.Mo
 		return m, nil
 	}
 
-	// Filter networks that have a subnet in the selected region
+	// Filter networks available in the selected region
 	var availableNetworks []map[string]interface{}
 	for _, network := range msg.networks {
 		// Check if network has regions that include selected region
@@ -1238,26 +1271,7 @@ func (m Model) handlePrivateNetworksLoaded(msg privateNetworksLoadedMsg) (tea.Mo
 				if regionMap, ok := r.(map[string]interface{}); ok {
 					regionName := getString(regionMap, "region")
 					if regionName == m.wizard.selectedRegion {
-						// Get subnets - the subnet API doesn't have a region field,
-						// subnets belong to the network which is region-specific
-						var networkSubnets []map[string]interface{}
-
-						// Handle subnets as []map[string]interface{} (from our fetch)
-						if subnets, ok := network["subnets"].([]map[string]interface{}); ok {
-							networkSubnets = subnets
-						} else if subnets, ok := network["subnets"].([]interface{}); ok {
-							// Handle subnets as []interface{} (from API directly)
-							for _, subnet := range subnets {
-								if subnetMap, ok := subnet.(map[string]interface{}); ok {
-									networkSubnets = append(networkSubnets, subnetMap)
-								}
-							}
-						}
-
-						if len(networkSubnets) > 0 {
-							network["subnets"] = networkSubnets
-							availableNetworks = append(availableNetworks, network)
-						}
+						availableNetworks = append(availableNetworks, network)
 						break
 					}
 				}
