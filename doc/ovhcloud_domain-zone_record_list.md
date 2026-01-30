@@ -1,11 +1,22 @@
-## ovhcloud domain-zone record
+## ovhcloud domain-zone record list
 
-Retrieve information and manage your DNS records within a zone
+List all DNS records from your zone
+
+```
+ovhcloud domain-zone record list <zone_name> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for record
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -28,10 +39,5 @@ Retrieve information and manage your DNS records within a zone
 
 ### SEE ALSO
 
-* [ovhcloud domain-zone](ovhcloud_domain-zone.md)	 - Retrieve information and manage your domain zones
-* [ovhcloud domain-zone record create](ovhcloud_domain-zone_record_create.md)	 - Create a single DNS record in your zone
-* [ovhcloud domain-zone record delete](ovhcloud_domain-zone_record_delete.md)	 - Delete a single DNS record from your zone
-* [ovhcloud domain-zone record get](ovhcloud_domain-zone_record_get.md)	 - Get a single DNS record from your zone
-* [ovhcloud domain-zone record list](ovhcloud_domain-zone_record_list.md)	 - List all DNS records from your zone
-* [ovhcloud domain-zone record update](ovhcloud_domain-zone_record_update.md)	 - Update a single DNS record from your zone
+* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Retrieve information and manage your DNS records within a zone
 
