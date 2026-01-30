@@ -185,7 +185,8 @@ OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID>
 | List VPS instances (tabular)             | `ovhcloud vps list`                             |
 | Fetch details of a single VPS in JSON    | `ovhcloud vps get <service_id> --json`          |
 | Reinstall a baremetal interactively      | `ovhcloud baremetal reinstall <id> --editor`    |
-| List instances and filter on GRA9 region | `ovhcloud cloud instance list --filter 'region=="GRA9"'`|
+| List instances and filter on GRA9 region | `ovhcloud cloud instance list --filter 'region=="GRA9"'` |
+| Get only the ID of a given MKS node pool | `NP_ID=$(ovhcloud cloud kube nodepool list xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --filter 'name=="my-np-autoscale"' --format 'id' \| xargs)` |
 
 # Available products
 
