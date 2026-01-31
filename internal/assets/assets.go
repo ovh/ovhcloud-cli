@@ -32,6 +32,9 @@ var (
 	//go:embed api-schemas/domain.json
 	DomainOpenapiSchema []byte
 
+	//go:embed api-schemas/emaildomain.json
+	EmaildomainOpenapiSchema []byte
+
 	//go:embed api-schemas/emailmxplan.json
 	EmailmxplanOpenapiSchema []byte
 

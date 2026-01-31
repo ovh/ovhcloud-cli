@@ -1,0 +1,5 @@
+{
+  "from": "alias@example.com",
+  "to": "destination@example.com",
+  "localCopy": false
+}

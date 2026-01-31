@@ -1,11 +1,11 @@
-## ovhcloud email-domain
+## ovhcloud email-domain redirection
 
-Retrieve information and manage your Email Domain services
+Manage email redirections for your domain
 
 ### Options
 
 ```
-  -h, --help   help for email-domain
+  -h, --help   help for redirection
 ```
 
 ### Options inherited from parent commands
@@ -28,8 +28,9 @@ Retrieve information and manage your Email Domain services
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud email-domain get](ovhcloud_email-domain_get.md)	 - Retrieve information of a specific Email Domain
-* [ovhcloud email-domain list](ovhcloud_email-domain_list.md)	 - List your Email Domain services
-* [ovhcloud email-domain redirection](ovhcloud_email-domain_redirection.md)	 - Manage email redirections for your domain
+* [ovhcloud email-domain](ovhcloud_email-domain.md)	 - Retrieve information and manage your Email Domain services
+* [ovhcloud email-domain redirection create](ovhcloud_email-domain_redirection_create.md)	 - Create a new email redirection
+* [ovhcloud email-domain redirection delete](ovhcloud_email-domain_redirection_delete.md)	 - Delete an email redirection
+* [ovhcloud email-domain redirection get](ovhcloud_email-domain_redirection_get.md)	 - Get details of a specific email redirection
+* [ovhcloud email-domain redirection list](ovhcloud_email-domain_redirection_list.md)	 - List all email redirections for a domain
 
