@@ -62,6 +62,7 @@ func init() {
 	initCloudVolumeCommand(cloudCmd)
 	initCloudRancherCommand(cloudCmd)
 	initCloudReferenceCmd(cloudCmd)
+	initCloudSavingsPlanCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
 	rootCmd.AddCommand(cloudCmd)
