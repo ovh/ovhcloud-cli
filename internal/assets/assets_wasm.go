@@ -14,6 +14,7 @@ var (
 	DedicatedcephOpenapiSchema                   []byte
 	DedicatednashaOpenapiSchema                  []byte
 	DomainOpenapiSchema                          []byte
+	EmaildomainOpenapiSchema                     []byte
 	EmailmxplanOpenapiSchema                     []byte
 	EmailproOpenapiSchema                        []byte
 	HostingprivatedatabaseOpenapiSchema          []byte
