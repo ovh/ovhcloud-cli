@@ -284,3 +284,170 @@ func (ms *MockSuite) TestCloudReferenceDatabasesEnginesListCmd(assert, require *
 └────────────┴──────────────────────────────────────────────┴─────────────┴─────────────────────────────┴────────────────┘
 💡 Use option --json or --yaml to get the raw output with all information`[1:])
 }
+
+func (ms *MockSuite) TestCloudReferenceContainerRegistryPlansListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/capabilities/containerRegistry",
+		httpmock.NewStringResponder(200, `[
+			{
+				"regionName": "GRA",
+				"regionType": "REGION-1-AZ",
+				"plans": [
+					{
+						"code": "registry.s-plan-equivalent.hour.consumption",
+						"createdAt": "2019-09-13T15:53:33.599585Z",
+						"updatedAt": "2021-03-29T10:09:03.960847Z",
+						"name": "SMALL",
+						"id": "9f728ba5-998b-4401-ab0f-497cd8bc6a89",
+						"registryLimits": {
+							"imageStorage": 214748364800,
+							"parallelRequest": 15
+						},
+						"features": {
+							"vulnerability": false
+						}
+					},
+					{
+						"code": "registry.m-plan-equivalent.hour.consumption",
+						"createdAt": "2019-09-13T15:53:33.601794Z",
+						"updatedAt": "2023-12-04T11:03:43.109685Z",
+						"name": "MEDIUM",
+						"id": "c5ddc763-be75-48f7-b7ec-e923ca040bee",
+						"registryLimits": {
+							"imageStorage": 644245094400,
+							"parallelRequest": 45
+						},
+						"features": {
+							"vulnerability": true
+						}
+					}
+				]
+			},
+			{
+				"regionName": "DE",
+				"regionType": "REGION-1-AZ",
+				"plans": [
+					{
+						"code": "registry.s-plan-equivalent.hour.consumption",
+						"createdAt": "2019-09-13T15:53:33.599585Z",
+						"updatedAt": "2021-03-29T10:09:03.960847Z",
+						"name": "SMALL",
+						"id": "9f728ba5-998b-4401-ab0f-497cd8bc6a89",
+						"registryLimits": {
+							"imageStorage": 214748364800,
+							"parallelRequest": 15
+						},
+						"features": {
+							"vulnerability": false
+						}
+					},
+					{
+						"code": "registry.m-plan-equivalent.hour.consumption",
+						"createdAt": "2019-09-13T15:53:33.601794Z",
+						"updatedAt": "2023-12-04T11:03:43.109685Z",
+						"name": "MEDIUM",
+						"id": "c5ddc763-be75-48f7-b7ec-e923ca040bee",
+						"registryLimits": {
+							"imageStorage": 644245094400,
+							"parallelRequest": 45
+						},
+						"features": {
+							"vulnerability": true
+						}
+					}
+				]
+			}
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "reference", "container-registry", "list-plans", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌──────────────────────────────────────┬────────┬───────────────┬──────────────┬─────────────────┐
+│                  id                  │  name  │ vulnerability │ imageStorage │ parallelRequest │
+├──────────────────────────────────────┼────────┼───────────────┼──────────────┼─────────────────┤
+│ 9f728ba5-998b-4401-ab0f-497cd8bc6a89 │ SMALL  │ false         │ 200G         │ 15              │
+│ c5ddc763-be75-48f7-b7ec-e923ca040bee │ MEDIUM │ true          │ 600G         │ 45              │
+└──────────────────────────────────────┴────────┴───────────────┴──────────────┴─────────────────┘
+💡 Use option --json or --yaml to get the raw output with all information`[1:])
+}
+
+func (ms *MockSuite) TestCloudReferenceContainerRegistryPlansListCmdWithFilter(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/capabilities/containerRegistry",
+		httpmock.NewStringResponder(200, `[
+			{
+				"regionName": "GRA",
+				"regionType": "REGION-1-AZ",
+				"plans": [
+					{
+						"code": "registry.s-plan-equivalent.hour.consumption",
+						"name": "SMALL",
+						"id": "9f728ba5-998b-4401-ab0f-497cd8bc6a89",
+						"registryLimits": {
+							"imageStorage": 214748364800,
+							"parallelRequest": 15
+						},
+						"features": {
+							"vulnerability": false
+						}
+					},
+					{
+						"code": "registry.m-plan-equivalent.hour.consumption",
+						"name": "MEDIUM",
+						"id": "c5ddc763-be75-48f7-b7ec-e923ca040bee",
+						"registryLimits": {
+							"imageStorage": 644245094400,
+							"parallelRequest": 45
+						},
+						"features": {
+							"vulnerability": true
+						}
+					}
+				]
+			}
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "reference", "container-registry", "list-plans", "--cloud-project", "fakeProjectID", "--filter", `vulnerability==true`)
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌──────────────────────────────────────┬────────┬───────────────┬──────────────┬─────────────────┐
+│                  id                  │  name  │ vulnerability │ imageStorage │ parallelRequest │
+├──────────────────────────────────────┼────────┼───────────────┼──────────────┼─────────────────┤
+│ c5ddc763-be75-48f7-b7ec-e923ca040bee │ MEDIUM │ true          │ 600G         │ 45              │
+└──────────────────────────────────────┴────────┴───────────────┴──────────────┴─────────────────┘
+💡 Use option --json or --yaml to get the raw output with all information`[1:])
+}
+
+func (ms *MockSuite) TestCloudReferenceContainerRegistryRegionsListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/capabilities/containerRegistry",
+		httpmock.NewStringResponder(200, `[
+			{
+				"regionName": "GRA",
+				"regionType": "REGION-1-AZ",
+				"plans": []
+			},
+			{
+				"regionName": "DE",
+				"regionType": "REGION-1-AZ",
+				"plans": []
+			},
+			{
+				"regionName": "EU-WEST-PAR",
+				"regionType": "REGION-3-AZ",
+				"plans": []
+			}
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "reference", "container-registry", "list-regions", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌─────────────┬──────┐
+│    name     │ type │
+├─────────────┼──────┤
+│ GRA         │ 1-AZ │
+│ DE          │ 1-AZ │
+│ EU-WEST-PAR │ 3-AZ │
+└─────────────┴──────┘
+💡 Use option --json or --yaml to get the raw output with all information`[1:])
+}

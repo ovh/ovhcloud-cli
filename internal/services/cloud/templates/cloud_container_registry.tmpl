@@ -14,6 +14,7 @@ _{{index .Result "name"}}_
 ## Registry state
 
 **Version**:     {{index .Result "version"}}
+**Plan**:        {{index .Result "plan" "name"}}
 **Usage**:       {{formatByteSize (index .Result "usage" "used") 2 1024}} / {{formatByteSize (index .Result "usage" "available") 0 1024}}
 **IAM enabled**: {{index .Result "iamEnabled"}}
 

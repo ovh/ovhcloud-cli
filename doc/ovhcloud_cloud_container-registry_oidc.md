@@ -1,11 +1,11 @@
-## ovhcloud cloud reference container-registry
+## ovhcloud cloud container-registry oidc
 
-Fetch container registry reference data in the given cloud project
+Manage container registry OIDC integration
 
 ### Options
 
 ```
-  -h, --help   help for container-registry
+  -h, --help   help for oidc
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +29,9 @@ Fetch container registry reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference container-registry list-plans](ovhcloud_cloud_reference_container-registry_list-plans.md)	 - List available container registry plans in the given cloud project
-* [ovhcloud cloud reference container-registry list-regions](ovhcloud_cloud_reference_container-registry_list-regions.md)	 - List available container registry regions in the given cloud project
+* [ovhcloud cloud container-registry](ovhcloud_cloud_container-registry.md)	 - Manage container registries in the given cloud project
+* [ovhcloud cloud container-registry oidc create](ovhcloud_cloud_container-registry_oidc_create.md)	 - Create a new OIDC configuration for a container registry
+* [ovhcloud cloud container-registry oidc delete](ovhcloud_cloud_container-registry_oidc_delete.md)	 - Delete the OIDC configuration for a container registry
+* [ovhcloud cloud container-registry oidc edit](ovhcloud_cloud_container-registry_oidc_edit.md)	 - Edit the OIDC configuration for a container registry
+* [ovhcloud cloud container-registry oidc get](ovhcloud_cloud_container-registry_oidc_get.md)	 - Get OIDC configuration for a container registry
 

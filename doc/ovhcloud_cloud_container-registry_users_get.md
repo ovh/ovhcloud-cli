@@ -1,11 +1,15 @@
-## ovhcloud cloud reference container-registry
+## ovhcloud cloud container-registry users get
 
-Fetch container registry reference data in the given cloud project
+Get a specific container registry user
+
+```
+ovhcloud cloud container-registry users get <registry_id> <user_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for container-registry
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +33,5 @@ Fetch container registry reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference container-registry list-plans](ovhcloud_cloud_reference_container-registry_list-plans.md)	 - List available container registry plans in the given cloud project
-* [ovhcloud cloud reference container-registry list-regions](ovhcloud_cloud_reference_container-registry_list-regions.md)	 - List available container registry regions in the given cloud project
+* [ovhcloud cloud container-registry users](ovhcloud_cloud_container-registry_users.md)	 - Manage container registry users
 

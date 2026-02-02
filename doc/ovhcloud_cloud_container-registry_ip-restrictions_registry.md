@@ -1,11 +1,11 @@
-## ovhcloud cloud reference container-registry
+## ovhcloud cloud container-registry ip-restrictions registry
 
-Fetch container registry reference data in the given cloud project
+Manage IP restrictions for container registry artifact manager (Docker, Helm...) access
 
 ### Options
 
 ```
-  -h, --help   help for container-registry
+  -h, --help   help for registry
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +29,8 @@ Fetch container registry reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference container-registry list-plans](ovhcloud_cloud_reference_container-registry_list-plans.md)	 - List available container registry plans in the given cloud project
-* [ovhcloud cloud reference container-registry list-regions](ovhcloud_cloud_reference_container-registry_list-regions.md)	 - List available container registry regions in the given cloud project
+* [ovhcloud cloud container-registry ip-restrictions](ovhcloud_cloud_container-registry_ip-restrictions.md)	 - Manage container registry IP restrictions
+* [ovhcloud cloud container-registry ip-restrictions registry add](ovhcloud_cloud_container-registry_ip-restrictions_registry_add.md)	 - Add a registry IP restriction to a container registry
+* [ovhcloud cloud container-registry ip-restrictions registry delete](ovhcloud_cloud_container-registry_ip-restrictions_registry_delete.md)	 - Delete a registry IP restriction from a container registry
+* [ovhcloud cloud container-registry ip-restrictions registry list](ovhcloud_cloud_container-registry_ip-restrictions_registry_list.md)	 - List registry IP restrictions for a container registry
 

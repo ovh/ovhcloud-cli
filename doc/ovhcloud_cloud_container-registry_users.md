@@ -1,11 +1,11 @@
-## ovhcloud cloud reference container-registry
+## ovhcloud cloud container-registry users
 
-Fetch container registry reference data in the given cloud project
+Manage container registry users
 
 ### Options
 
 ```
-  -h, --help   help for container-registry
+  -h, --help   help for users
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +29,10 @@ Fetch container registry reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference container-registry list-plans](ovhcloud_cloud_reference_container-registry_list-plans.md)	 - List available container registry plans in the given cloud project
-* [ovhcloud cloud reference container-registry list-regions](ovhcloud_cloud_reference_container-registry_list-regions.md)	 - List available container registry regions in the given cloud project
+* [ovhcloud cloud container-registry](ovhcloud_cloud_container-registry.md)	 - Manage container registries in the given cloud project
+* [ovhcloud cloud container-registry users create](ovhcloud_cloud_container-registry_users_create.md)	 - Create a new container registry user
+* [ovhcloud cloud container-registry users delete](ovhcloud_cloud_container-registry_users_delete.md)	 - Delete a specific container registry user
+* [ovhcloud cloud container-registry users get](ovhcloud_cloud_container-registry_users_get.md)	 - Get a specific container registry user
+* [ovhcloud cloud container-registry users list](ovhcloud_cloud_container-registry_users_list.md)	 - List your container registry users
+* [ovhcloud cloud container-registry users set-as-admin](ovhcloud_cloud_container-registry_users_set-as-admin.md)	 - Set a specific container registry user as admin
 

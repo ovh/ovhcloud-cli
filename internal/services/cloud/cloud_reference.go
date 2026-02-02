@@ -66,11 +66,22 @@ func ListContainerRegistryPlans(_ *cobra.Command, _ []string) {
 		return
 	}
 
+	// Deduplicate plans by ID and format storage with bytefmt
+	seenPlans := make(map[string]bool)
 	var updatedBody []map[string]any
 	for _, item := range body {
 		for _, plan := range item["plans"].([]any) {
 			planMap := plan.(map[string]any)
-			planMap["region"] = item["regionName"]
+			planID := planMap["id"].(string)
+
+			// Skip if we've already seen this plan
+			if seenPlans[planID] {
+				continue
+			}
+			seenPlans[planID] = true
+
+			formatContainerRegistryPlans(planMap)
+
 			updatedBody = append(updatedBody, planMap)
 		}
 	}
@@ -81,7 +92,44 @@ func ListContainerRegistryPlans(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	display.RenderTable(updatedBody, []string{"region", "id", "name"}, &flags.OutputFormatConfig)
+	display.RenderTable(updatedBody, []string{"id", "name", "vulnerability", "imageStorage", "parallelRequest"}, &flags.OutputFormatConfig)
+}
+
+func ListContainerRegistryRegions(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+	path := fmt.Sprintf("/v1/cloud/project/%s/capabilities/containerRegistry", projectID)
+
+	var body []map[string]any
+	if err := httpLib.Client.Get(path, &body); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch container registry regions: %s", err)
+		return
+	}
+
+	var regions []map[string]any
+	for _, item := range body {
+		regionName := item["regionName"].(string)
+		regionType := item["regionType"].(string)
+
+		// Remove "REGION-" prefix from regionType
+		regionType = strings.TrimPrefix(regionType, "REGION-")
+
+		regions = append(regions, map[string]any{
+			"name": regionName,
+			"type": regionType,
+		})
+	}
+
+	regions, err = filtersLib.FilterLines(regions, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(regions, []string{"name", "type"}, &flags.OutputFormatConfig)
 }
 
 func ListRancherAvailableVersions(cmd *cobra.Command, _ []string) {
