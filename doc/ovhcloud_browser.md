@@ -1,11 +1,11 @@
 ## ovhcloud browser
 
-Launch a TUI simulating the OVHcloud Manager interface
+Launch a TUI for the OVHcloud Manager - Public Cloud universe only
 
 ### Synopsis
 
 Launch an interactive Terminal User Interface that simulates the 
-OVHcloud Manager (https://manager.eu.ovhcloud.com/).
+OVHcloud Manager (https://manager.eu.ovhcloud.com/#/public-cloud/) - Public Cloud universe only.
 
 Navigate through your Public Cloud services using keyboard controls.
 The browser makes direct API calls to fetch and display real data.

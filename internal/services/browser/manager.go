@@ -400,7 +400,7 @@ func getNavItems() []NavItem {
 		{Label: "Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
 		{Label: "Databases", Icon: "🗄️", Product: ProductDatabases, Path: "/databases"},
 		{Label: "Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/s3"},
-		{Label: "Networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
+		{Label: "Private networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
 	}
 }
 
@@ -868,13 +868,13 @@ func (m Model) renderDebugView(width int) string {
 			reqIdFormatted := reqIdStyle.Render(reqId)
 
 			content.WriteString(fmt.Sprintf("  %s %s %s → %s %s\n", timestamp, method, urlFormatted, statusFormatted, duration))
-			
+
 			// Show query string if present
 			if entry.QueryString != "" {
 				queryStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
 				content.WriteString(fmt.Sprintf("           Query: %s\n", queryStyle.Render(entry.QueryString)))
 			}
-			
+
 			content.WriteString(fmt.Sprintf("           RequestID: %s\n\n", reqIdFormatted))
 		}
 
@@ -1068,9 +1068,9 @@ func (m Model) renderWizardRegionStep(width int) string {
 		regionName := getString(region, "name")
 
 		if i == m.wizard.selectedIndex {
-			content.WriteString(selectedStyle.Render("▶ " + regionName) + "\n")
+			content.WriteString(selectedStyle.Render("▶ "+regionName) + "\n")
 		} else {
-			content.WriteString(itemStyle.Render("  " + regionName) + "\n")
+			content.WriteString(itemStyle.Render("  "+regionName) + "\n")
 		}
 	}
 

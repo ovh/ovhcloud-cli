@@ -18,6 +18,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
 
@@ -765,7 +766,7 @@ func createInstancesTable(instances []map[string]interface{}, imageMap map[strin
 			getString(instance, "name"),
 			getString(instance, "region"),
 			flavorName,
-			truncateStr(imageName, 18),
+			ansi.Truncate(imageName, 18, "..."),
 			publicIP,
 			getString(instance, "status"),
 		}
@@ -801,14 +802,6 @@ func createInstancesTable(instances []map[string]interface{}, imageMap map[strin
 	t.SetStyles(s)
 
 	return t
-}
-
-// truncateStr truncates a string to maxLen characters
-func truncateStr(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen-3] + "..."
 }
 
 // createGenericTable creates a generic table for any data

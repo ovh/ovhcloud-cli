@@ -15,9 +15,9 @@ import (
 func init() {
 	browserCmd := &cobra.Command{
 		Use:   "browser",
-		Short: "Launch a TUI simulating the OVHcloud Manager interface",
+		Short: "Launch a TUI for the OVHcloud Manager - Public Cloud universe only",
 		Long: `Launch an interactive Terminal User Interface that simulates the 
-OVHcloud Manager (https://manager.eu.ovhcloud.com/).
+OVHcloud Manager (https://manager.eu.ovhcloud.com/#/public-cloud/) - Public Cloud universe only.
 
 Navigate through your Public Cloud services using keyboard controls.
 The browser makes direct API calls to fetch and display real data.
