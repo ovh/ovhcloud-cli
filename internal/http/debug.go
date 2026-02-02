@@ -10,13 +10,90 @@ package http
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 )
+
+// DebugLogEntry represents a single API request/response log entry
+type DebugLogEntry struct {
+	Timestamp   time.Time
+	Method      string
+	URL         string
+	QueryString string
+	StatusCode  int
+	RequestID   string
+	Duration    time.Duration
+	Error       string
+}
+
+// DebugLogger holds the debug log entries for the browser
+type DebugLogger struct {
+	mu      sync.RWMutex
+	entries []DebugLogEntry
+	maxSize int
+}
+
+// Global debug logger instance
+var BrowserDebugLogger = &DebugLogger{
+	entries: make([]DebugLogEntry, 0),
+	maxSize: 100, // Keep last 100 entries
+}
+
+// AddEntry adds a new log entry
+func (dl *DebugLogger) AddEntry(entry DebugLogEntry) {
+	dl.mu.Lock()
+	defer dl.mu.Unlock()
+
+	dl.entries = append(dl.entries, entry)
+	// Keep only the last maxSize entries
+	if len(dl.entries) > dl.maxSize {
+		dl.entries = dl.entries[len(dl.entries)-dl.maxSize:]
+	}
+}
+
+// GetEntries returns a copy of all log entries
+func (dl *DebugLogger) GetEntries() []DebugLogEntry {
+	dl.mu.RLock()
+	defer dl.mu.RUnlock()
+
+	result := make([]DebugLogEntry, len(dl.entries))
+	copy(result, dl.entries)
+	return result
+}
+
+// Clear removes all log entries
+func (dl *DebugLogger) Clear() {
+	dl.mu.Lock()
+	defer dl.mu.Unlock()
+	dl.entries = make([]DebugLogEntry, 0)
+}
+
+// Format formats a log entry for display
+func (e DebugLogEntry) Format() string {
+	status := fmt.Sprintf("%d", e.StatusCode)
+	if e.Error != "" {
+		status = "ERR"
+	}
+	reqID := e.RequestID
+	if reqID == "" {
+		reqID = "-"
+	}
+	return fmt.Sprintf("[%s] %s %s → %s (%s) RequestID: %s",
+		e.Timestamp.Format("15:04:05"),
+		e.Method,
+		e.URL,
+		status,
+		e.Duration.Round(time.Millisecond),
+		reqID,
+	)
+}
 
 type transport struct {
 	name      string
@@ -24,6 +101,8 @@ type transport struct {
 }
 
 func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
+	startTime := time.Now()
+
 	if flags.Debug {
 		reqData, err := httputil.DumpRequestOut(req, true)
 		if err == nil {
@@ -34,9 +113,28 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	resp, err := t.transport.RoundTrip(req)
+	duration := time.Since(startTime)
+
+	// Create debug log entry
+	entry := DebugLogEntry{
+		Timestamp:   startTime,
+		Method:      req.Method,
+		URL:         req.URL.Path,
+		QueryString: req.URL.RawQuery,
+		Duration:    duration,
+	}
+
 	if err != nil {
+		entry.Error = err.Error()
+		BrowserDebugLogger.AddEntry(entry)
 		return resp, err
 	}
+
+	entry.StatusCode = resp.StatusCode
+	// Extract X-OVH-QUERYID from response headers
+	entry.RequestID = resp.Header.Get("X-OVH-QUERYID")
+
+	BrowserDebugLogger.AddEntry(entry)
 
 	if flags.Debug {
 		respData, err := httputil.DumpResponse(resp, true)
