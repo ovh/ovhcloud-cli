@@ -113,6 +113,14 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	ipRestrictionsEditCmd.MarkFlagsMutuallyExclusive("ips", "editor")
 	ipRestrictionsCmd.AddCommand(ipRestrictionsEditCmd)
 
+	ipRestrictionsCmd.AddCommand(&cobra.Command{
+		Use:   "add-my-ip <cluster_id>",
+		Short: "Add your public IP to the cluster's IP restrictions",
+		Long:  "Automatically detect your public IP address and add it to the cluster's IP restrictions. Requires that IP restrictions are already enabled on the cluster.",
+		Run:   cloud.AddMyIPToKubeRestrictions,
+		Args:  cobra.ExactArgs(1),
+	})
+
 	kubeConfigCmd := &cobra.Command{
 		Use:   "kubeconfig",
 		Short: "Manage the kubeconfig for the given Kubernetes cluster",
@@ -130,6 +138,24 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Use:   "reset <cluster_id>",
 		Short: "Reset the kubeconfig for the given Kubernetes cluster. Certificates will be regenerated and nodes will be reinstalled",
 		Run:   cloud.ResetKubeConfig,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	// k9s command - generate kubeconfig and launch k9s
+	kubeCmd.AddCommand(&cobra.Command{
+		Use:   "k9s <cluster_id>",
+		Short: "Generate kubeconfig and launch k9s for the given Kubernetes cluster",
+		Long:  "Generate kubeconfig, save it to ~/.kube/ovhcloud-<cluster-name>.yaml, and launch k9s with the configuration",
+		Run:   cloud.LaunchK9s,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	// shell command - generate kubeconfig and open interactive shell
+	kubeCmd.AddCommand(&cobra.Command{
+		Use:   "shell <cluster_id>",
+		Short: "Generate kubeconfig and open an interactive shell with kubectl access",
+		Long:  "Generate kubeconfig, save it to ~/.kube/ovhcloud-<cluster-name>.yaml, and open a shell with KUBECONFIG set",
+		Run:   cloud.LaunchKubeShell,
 		Args:  cobra.ExactArgs(1),
 	})
 

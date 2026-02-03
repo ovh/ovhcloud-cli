@@ -2301,3 +2301,669 @@ func (m Model) handleNetworkCreated(msg networkCreatedMsg) (tea.Model, tea.Cmd) 
 		return clearNotificationMsg{}
 	})
 }
+
+// ============================================
+// Kubernetes Actions (kubeconfig, kubectl, k9s)
+// ============================================
+
+// executeKubernetesAction executes an action on the current Kubernetes cluster
+func (m Model) executeKubernetesAction(actionIndex int) tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return kubeActionMsg{err: fmt.Errorf("no cluster selected")}
+		}
+
+		clusterId := getString(m.detailData, "id")
+		clusterName := getString(m.detailData, "name")
+		if clusterId == "" {
+			return kubeActionMsg{err: fmt.Errorf("cluster ID not found")}
+		}
+
+		actions := []string{"kubeconfig", "kubectl", "k9s", "reset_kubeconfig", "add_my_ip", "ip_config"}
+		if actionIndex < 0 || actionIndex >= len(actions) {
+			return kubeActionMsg{err: fmt.Errorf("invalid action index")}
+		}
+
+		action := actions[actionIndex]
+
+		// Special handling for IP config - trigger IP restrictions loading
+		if action == "ip_config" {
+			// Fetch IP restrictions directly and return them
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", m.cloudProject, clusterId)
+			rawIPs, err := httpLib.FetchArray(endpoint, "")
+			if err != nil {
+				return ipRestrictionsLoadedMsg{err: fmt.Errorf("failed to fetch IP restrictions: %w", err)}
+			}
+
+			// Convert to string slice
+			ips := make([]string, 0, len(rawIPs))
+			for _, ip := range rawIPs {
+				if ipStr, ok := ip.(string); ok {
+					ips = append(ips, ipStr)
+				}
+			}
+
+			return ipRestrictionsLoadedMsg{ips: ips}
+		}
+
+		switch action {
+		case "kubeconfig":
+			// Generate and save kubeconfig only
+			configPath, err := generateKubeconfig(m.cloudProject, clusterId, clusterName)
+			if err != nil {
+				return kubeActionMsg{action: action, clusterName: clusterName, err: err}
+			}
+			return kubeActionMsg{action: action, clusterName: clusterName, configPath: configPath}
+
+		case "kubectl":
+			// Check if IP needs to be added to restrictions
+			needsAdd, ipCIDR := checkIPInRestrictions(m.cloudProject, clusterId)
+			if needsAdd {
+				// Return message to ask for confirmation
+				return ipRestrictionCheckMsg{
+					needsAdd:    true,
+					ipCIDR:      ipCIDR,
+					actionIndex: actionIndex,
+					clusterName: clusterName,
+				}
+			}
+
+			// Generate kubeconfig and launch kubectl
+			configPath, err := generateKubeconfig(m.cloudProject, clusterId, clusterName)
+			if err != nil {
+				return kubeActionMsg{action: action, clusterName: clusterName, err: err}
+			}
+			// Return a message that will trigger kubectl launch
+			return kubeConfigMsg{configPath: configPath, clusterName: clusterName}
+
+		case "k9s":
+			// Check if IP needs to be added to restrictions
+			needsAdd, ipCIDR := checkIPInRestrictions(m.cloudProject, clusterId)
+			if needsAdd {
+				// Return message to ask for confirmation
+				return ipRestrictionCheckMsg{
+					needsAdd:    true,
+					ipCIDR:      ipCIDR,
+					actionIndex: actionIndex,
+					clusterName: clusterName,
+				}
+			}
+
+			// Generate kubeconfig and launch k9s
+			configPath, err := generateKubeconfig(m.cloudProject, clusterId, clusterName)
+			if err != nil {
+				return kubeActionMsg{action: action, clusterName: clusterName, err: err}
+			}
+			// Return a message that will trigger k9s launch with special marker
+			return kubeConfigMsg{configPath: configPath, clusterName: clusterName + "\x00k9s"}
+
+		case "reset_kubeconfig":
+			// Reset/regenerate kubeconfig
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig/reset", m.cloudProject, clusterId)
+			err := httpLib.Client.Post(endpoint, nil, nil)
+			if err != nil {
+				return kubeActionMsg{action: action, clusterName: clusterName, err: err}
+			}
+			return kubeActionMsg{action: action, clusterName: clusterName}
+
+		case "add_my_ip":
+			// Add client's public IP to cluster's IP restrictions
+			ipCIDR, err := addMyIPToRestrictions(m.cloudProject, clusterId)
+			if err != nil {
+				return kubeActionMsg{action: action, clusterName: clusterName, err: err}
+			}
+			return kubeActionMsg{action: action, clusterName: clusterName, configPath: ipCIDR}
+		}
+
+		return kubeActionMsg{action: action, clusterName: clusterName, err: fmt.Errorf("unknown action")}
+	}
+}
+
+// executeKubeActionWithIPAdd adds the IP to restrictions and then executes the kubectl/k9s action
+func (m Model) executeKubeActionWithIPAdd(actionIndex int, ipCIDR string) tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return kubeActionMsg{err: fmt.Errorf("no cluster selected")}
+		}
+
+		clusterId := getString(m.detailData, "id")
+		clusterName := getString(m.detailData, "name")
+		if clusterId == "" {
+			return kubeActionMsg{err: fmt.Errorf("cluster ID not found")}
+		}
+
+		// Add IP to restrictions
+		if err := addIPToRestrictions(m.cloudProject, clusterId, ipCIDR); err != nil {
+			return kubeActionMsg{action: "add_ip", clusterName: clusterName, err: err}
+		}
+
+		// Now proceed with the action
+		if actionIndex == 1 { // kubectl
+			configPath, err := generateKubeconfig(m.cloudProject, clusterId, clusterName)
+			if err != nil {
+				return kubeActionMsg{action: "kubectl", clusterName: clusterName, err: err}
+			}
+			return kubeConfigMsg{configPath: configPath, clusterName: clusterName}
+		} else if actionIndex == 2 { // k9s
+			configPath, err := generateKubeconfig(m.cloudProject, clusterId, clusterName)
+			if err != nil {
+				return kubeActionMsg{action: "k9s", clusterName: clusterName, err: err}
+			}
+			return kubeConfigMsg{configPath: configPath, clusterName: clusterName + "\x00k9s"}
+		}
+
+		return kubeActionMsg{err: fmt.Errorf("invalid action")}
+	}
+}
+
+// executeKubernetesActionSkipIPCheck executes kubectl/k9s without checking/adding IP
+func (m Model) executeKubernetesActionSkipIPCheck(actionIndex int) tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return kubeActionMsg{err: fmt.Errorf("no cluster selected")}
+		}
+
+		clusterId := getString(m.detailData, "id")
+		clusterName := getString(m.detailData, "name")
+		if clusterId == "" {
+			return kubeActionMsg{err: fmt.Errorf("cluster ID not found")}
+		}
+
+		// Proceed with the action without adding IP
+		if actionIndex == 1 { // kubectl
+			configPath, err := generateKubeconfig(m.cloudProject, clusterId, clusterName)
+			if err != nil {
+				return kubeActionMsg{action: "kubectl", clusterName: clusterName, err: err}
+			}
+			return kubeConfigMsg{configPath: configPath, clusterName: clusterName}
+		} else if actionIndex == 2 { // k9s
+			configPath, err := generateKubeconfig(m.cloudProject, clusterId, clusterName)
+			if err != nil {
+				return kubeActionMsg{action: "k9s", clusterName: clusterName, err: err}
+			}
+			return kubeConfigMsg{configPath: configPath, clusterName: clusterName + "\x00k9s"}
+		}
+
+		return kubeActionMsg{err: fmt.Errorf("invalid action")}
+	}
+}
+
+// generateKubeconfig fetches kubeconfig from API and saves it to a file
+func generateKubeconfig(projectID, clusterID, clusterName string) (string, error) {
+	// Fetch kubeconfig from API
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig", projectID, clusterID)
+	var kubeConfig map[string]interface{}
+	if err := httpLib.Client.Post(endpoint, nil, &kubeConfig); err != nil {
+		return "", fmt.Errorf("failed to generate kubeconfig: %w", err)
+	}
+
+	content, ok := kubeConfig["content"].(string)
+	if !ok || content == "" {
+		return "", fmt.Errorf("kubeconfig content not found in response")
+	}
+
+	// Sanitize cluster name for filename
+	safeName := sanitizeFilename(clusterName)
+	if safeName == "" {
+		safeName = clusterID[:8] // Use first 8 chars of ID as fallback
+	}
+
+	// Ensure ~/.kube directory exists
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	kubeDir := fmt.Sprintf("%s/.kube", homeDir)
+	if err := os.MkdirAll(kubeDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create .kube directory: %w", err)
+	}
+
+	// Save kubeconfig to file
+	configPath := fmt.Sprintf("%s/ovhcloud-%s.yaml", kubeDir, safeName)
+	if err := os.WriteFile(configPath, []byte(content), 0600); err != nil {
+		return "", fmt.Errorf("failed to write kubeconfig: %w", err)
+	}
+
+	return configPath, nil
+}
+
+// sanitizeFilename removes or replaces characters not suitable for filenames
+func sanitizeFilename(name string) string {
+	// Replace spaces and special characters with dashes
+	result := strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			return r
+		}
+		if r == ' ' {
+			return '-'
+		}
+		return -1 // Remove other characters
+	}, name)
+
+	// Convert to lowercase and trim
+	result = strings.ToLower(strings.Trim(result, "-_"))
+
+	// Limit length
+	if len(result) > 50 {
+		result = result[:50]
+	}
+
+	return result
+}
+
+// addMyIPToRestrictions adds the client's public IP to the cluster's IP restrictions
+func addMyIPToRestrictions(projectID, clusterID string) (string, error) {
+	// Fetch current IP restrictions
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", projectID, clusterID)
+	currentIPs, err := httpLib.FetchArray(endpoint, "")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch IP restrictions: %w", err)
+	}
+
+	// Check if restrictions are enabled (non-empty list)
+	if len(currentIPs) == 0 {
+		return "", fmt.Errorf("IP restrictions are not enabled for this cluster")
+	}
+
+	// Get public IP
+	publicIP, err := getPublicIP()
+	if err != nil {
+		return "", fmt.Errorf("failed to detect your public IP: %w", err)
+	}
+
+	// Add /32 suffix for single IP
+	ipCIDR := publicIP + "/32"
+
+	// Check if IP is already in the list
+	ipList := make([]string, 0, len(currentIPs)+1)
+	for _, ip := range currentIPs {
+		ipStr, ok := ip.(string)
+		if !ok {
+			continue
+		}
+		if ipStr == ipCIDR || ipStr == publicIP {
+			return "", fmt.Errorf("your IP (%s) is already in the restrictions list", ipCIDR)
+		}
+		ipList = append(ipList, ipStr)
+	}
+
+	// Append the new IP
+	ipList = append(ipList, ipCIDR)
+
+	// Update the restrictions
+	body := map[string]any{
+		"ips": ipList,
+	}
+
+	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+		return "", fmt.Errorf("failed to update IP restrictions: %w", err)
+	}
+
+	return ipCIDR, nil
+}
+
+// getPublicIP detects the client's public IPv4 address using OVH's geolocation API
+// Note: Only IPv4 is supported by OVH Managed Kubernetes API server
+func getPublicIP() (string, error) {
+	var geolocation struct {
+		Continent   string `json:"continent"`
+		CountryCode string `json:"countryCode"`
+		IP          string `json:"ip"`
+	}
+
+	if err := httpLib.Client.Post("/v1/me/geolocation", nil, &geolocation); err != nil {
+		return "", fmt.Errorf("failed to detect public IP: %w", err)
+	}
+
+	if geolocation.IP == "" {
+		return "", fmt.Errorf("failed to detect public IP: empty response")
+	}
+
+	// Ensure we got an IPv4 address (contains dots, no colons)
+	if !isIPv4(geolocation.IP) {
+		return "", fmt.Errorf("failed to detect public IPv4: got IPv6 address %s", geolocation.IP)
+	}
+
+	return geolocation.IP, nil
+}
+
+// isIPv4 checks if the given IP string is an IPv4 address
+func isIPv4(ip string) bool {
+	return strings.Contains(ip, ".") && !strings.Contains(ip, ":")
+}
+
+// checkIPInRestrictions checks if the user's IP is in the cluster's IP restrictions.
+// Returns (needsAdd, ipCIDR) - if needsAdd is true, the IP should be added.
+func checkIPInRestrictions(projectID, clusterID string) (bool, string) {
+	// Fetch current IP restrictions
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", projectID, clusterID)
+	currentIPs, err := httpLib.FetchArray(endpoint, "")
+	if err != nil {
+		return false, "" // Can't check, assume OK
+	}
+
+	// If no restrictions are enabled, nothing to check
+	if len(currentIPs) == 0 {
+		return false, ""
+	}
+
+	// Get public IP
+	publicIP, err := getPublicIP()
+	if err != nil {
+		return false, "" // Can't detect IP, assume OK
+	}
+
+	ipCIDR := publicIP + "/32"
+
+	// Check if IP is already in the list
+	for _, ip := range currentIPs {
+		ipStr, ok := ip.(string)
+		if !ok {
+			continue
+		}
+		if ipStr == ipCIDR || ipStr == publicIP {
+			return false, ipCIDR // IP is already in the list
+		}
+	}
+
+	// IP needs to be added
+	return true, ipCIDR
+}
+
+// addIPToRestrictions adds the given IP to the cluster's IP restrictions.
+// Returns error if it fails.
+func addIPToRestrictions(projectID, clusterID, ipCIDR string) error {
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", projectID, clusterID)
+	currentIPs, err := httpLib.FetchArray(endpoint, "")
+	if err != nil {
+		return fmt.Errorf("failed to fetch IP restrictions: %w", err)
+	}
+
+	// Build the new IP list
+	ipList := make([]string, 0, len(currentIPs)+1)
+	for _, ip := range currentIPs {
+		if ipStr, ok := ip.(string); ok {
+			ipList = append(ipList, ipStr)
+		}
+	}
+	ipList = append(ipList, ipCIDR)
+
+	// Update the restrictions
+	body := map[string]any{
+		"ips": ipList,
+	}
+
+	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+		return fmt.Errorf("failed to update IP restrictions: %w", err)
+	}
+
+	return nil
+}
+
+// ============================================
+// IP Restrictions Management Functions
+// ============================================
+
+// fetchIPRestrictions fetches the current IP restrictions for a Kubernetes cluster
+func (m Model) fetchIPRestrictions() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return ipRestrictionsLoadedMsg{err: fmt.Errorf("no cluster selected")}
+		}
+
+		clusterID := getString(m.detailData, "id")
+		if clusterID == "" {
+			return ipRestrictionsLoadedMsg{err: fmt.Errorf("cluster ID not found")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", m.cloudProject, clusterID)
+		rawIPs, err := httpLib.FetchArray(endpoint, "")
+		if err != nil {
+			return ipRestrictionsLoadedMsg{err: fmt.Errorf("failed to fetch IP restrictions: %w", err)}
+		}
+
+		// Convert to string slice
+		ips := make([]string, 0, len(rawIPs))
+		for _, ip := range rawIPs {
+			if ipStr, ok := ip.(string); ok {
+				ips = append(ips, ipStr)
+			}
+		}
+
+		return ipRestrictionsLoadedMsg{ips: ips}
+	}
+}
+
+// updateIPRestrictions updates the IP restrictions list
+func (m Model) updateIPRestrictions(newIPs []string) tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("no cluster selected")}
+		}
+
+		clusterID := getString(m.detailData, "id")
+		if clusterID == "" {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("cluster ID not found")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", m.cloudProject, clusterID)
+		body := map[string]any{
+			"ips": newIPs,
+		}
+
+		if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("failed to update IP restrictions: %w", err)}
+		}
+
+		return ipRestrictionsUpdatedMsg{action: "update"}
+	}
+}
+
+// addIPRestriction adds a new IP to the restrictions list
+func (m Model) addIPRestriction(ip string) tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("no cluster selected")}
+		}
+
+		clusterID := getString(m.detailData, "id")
+		if clusterID == "" {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("cluster ID not found")}
+		}
+
+		// Validate IP format (basic validation)
+		if !isValidIPCIDR(ip) {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("invalid IP/CIDR format: %s", ip)}
+		}
+
+		// Check if IP already exists
+		for _, existing := range m.ipRestrictions {
+			if existing == ip {
+				return ipRestrictionsUpdatedMsg{err: fmt.Errorf("IP %s already exists in restrictions", ip)}
+			}
+		}
+
+		// Add to the list
+		newIPs := make([]string, len(m.ipRestrictions)+1)
+		copy(newIPs, m.ipRestrictions)
+		newIPs[len(m.ipRestrictions)] = ip
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", m.cloudProject, clusterID)
+		body := map[string]any{
+			"ips": newIPs,
+		}
+
+		if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("failed to add IP restriction: %w", err)}
+		}
+
+		return ipRestrictionsUpdatedMsg{action: "add", ip: ip}
+	}
+}
+
+// editIPRestriction replaces an existing IP with a new one
+func (m Model) editIPRestriction(oldIP, newIP string) tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("no cluster selected")}
+		}
+
+		clusterID := getString(m.detailData, "id")
+		if clusterID == "" {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("cluster ID not found")}
+		}
+
+		// Validate new IP format
+		if !isValidIPCIDR(newIP) {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("invalid IP/CIDR format: %s", newIP)}
+		}
+
+		// Build new list with the replacement
+		newIPs := make([]string, 0, len(m.ipRestrictions))
+		found := false
+		for _, ip := range m.ipRestrictions {
+			if ip == oldIP {
+				newIPs = append(newIPs, newIP)
+				found = true
+			} else {
+				newIPs = append(newIPs, ip)
+			}
+		}
+
+		if !found {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("IP %s not found in restrictions", oldIP)}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", m.cloudProject, clusterID)
+		body := map[string]any{
+			"ips": newIPs,
+		}
+
+		if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("failed to edit IP restriction: %w", err)}
+		}
+
+		return ipRestrictionsUpdatedMsg{action: "edit", ip: newIP}
+	}
+}
+
+// deleteIPRestriction removes an IP from the restrictions list
+func (m Model) deleteIPRestriction(ip string) tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("no cluster selected")}
+		}
+
+		clusterID := getString(m.detailData, "id")
+		if clusterID == "" {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("cluster ID not found")}
+		}
+
+		// Build new list without the deleted IP
+		newIPs := make([]string, 0, len(m.ipRestrictions)-1)
+		found := false
+		for _, existingIP := range m.ipRestrictions {
+			if existingIP == ip {
+				found = true
+			} else {
+				newIPs = append(newIPs, existingIP)
+			}
+		}
+
+		if !found {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("IP %s not found in restrictions", ip)}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", m.cloudProject, clusterID)
+		body := map[string]any{
+			"ips": newIPs,
+		}
+
+		if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("failed to delete IP restriction: %w", err)}
+		}
+
+		return ipRestrictionsUpdatedMsg{action: "delete", ip: ip}
+	}
+}
+
+// addMyIPRestriction adds the user's public IP to restrictions
+func (m Model) addMyIPRestriction() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("no cluster selected")}
+		}
+
+		clusterID := getString(m.detailData, "id")
+		if clusterID == "" {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("cluster ID not found")}
+		}
+
+		// Get public IP
+		publicIP, err := getPublicIP()
+		if err != nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("failed to detect your public IP: %w", err)}
+		}
+
+		ipCIDR := publicIP + "/32"
+
+		// Check if IP already exists
+		for _, existing := range m.ipRestrictions {
+			if existing == ipCIDR || existing == publicIP {
+				return ipRestrictionsUpdatedMsg{err: fmt.Errorf("your IP (%s) is already in the restrictions list", ipCIDR)}
+			}
+		}
+
+		// Add to the list
+		newIPs := make([]string, len(m.ipRestrictions)+1)
+		copy(newIPs, m.ipRestrictions)
+		newIPs[len(m.ipRestrictions)] = ipCIDR
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", m.cloudProject, clusterID)
+		body := map[string]any{
+			"ips": newIPs,
+		}
+
+		if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+			return ipRestrictionsUpdatedMsg{err: fmt.Errorf("failed to add IP restriction: %w", err)}
+		}
+
+		return ipRestrictionsUpdatedMsg{action: "add", ip: ipCIDR}
+	}
+}
+
+// isValidIPCIDR performs basic validation of IP/CIDR format
+func isValidIPCIDR(ip string) bool {
+	if ip == "" {
+		return false
+	}
+
+	// Check if it contains a CIDR suffix
+	if strings.Contains(ip, "/") {
+		parts := strings.Split(ip, "/")
+		if len(parts) != 2 {
+			return false
+		}
+		// Basic check for CIDR suffix (0-128 for IPv6, 0-32 for IPv4)
+		cidr := parts[1]
+		if len(cidr) == 0 || len(cidr) > 3 {
+			return false
+		}
+		for _, c := range cidr {
+			if c < '0' || c > '9' {
+				return false
+			}
+		}
+	}
+
+	// Check if IP part contains valid characters (IPv4 or IPv6)
+	ipPart := strings.Split(ip, "/")[0]
+	for _, c := range ipPart {
+		if !((c >= '0' && c <= '9') || c == '.' || c == ':' || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+
+	return true
+}

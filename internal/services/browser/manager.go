@@ -34,10 +34,11 @@ const (
 	DetailView                        // Detail view for a single item
 	LoadingView
 	ErrorView
-	EmptyView         // Empty list with creation prompt
-	WizardView        // Multi-step wizard for resource creation
-	DeleteConfirmView // Confirmation dialog for deletion
-	DebugView         // Debug panel showing API requests
+	EmptyView          // Empty list with creation prompt
+	WizardView         // Multi-step wizard for resource creation
+	DeleteConfirmView  // Confirmation dialog for deletion
+	DebugView          // Debug panel showing API requests
+	IPRestrictionsView // IP restrictions management for Kubernetes
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -157,6 +158,10 @@ type Model struct {
 	wizard             WizardData               // Wizard state for resource creation
 	selectedAction     int                      // Selected action index in detail view (0-5)
 	actionConfirm      bool                     // Whether we're in confirmation mode for an action
+	// IP restriction confirmation for kubectl/k9s
+	ipAddConfirm      bool   // Whether we're asking to add IP to restrictions
+	pendingKubeAction int    // The kubectl/k9s action index waiting for IP confirmation
+	pendingIPCIDR     string // The detected IP that needs to be added
 	// Filter mode
 	filterMode  bool   // Whether filter input mode is active
 	filterInput string // Current filter input text
@@ -168,6 +173,12 @@ type Model struct {
 	// Instance data cache
 	imageMap      map[string]string // imageId -> imageName (for instances)
 	floatingIPMap map[string]string // instanceId -> floatingIP address
+	// IP Restrictions management
+	ipRestrictions       []string // Current IP restrictions list
+	ipRestrictionsIdx    int      // Selected index in IP list
+	ipRestrictionsMode   string   // "list", "add", "edit"
+	ipRestrictionsInput  string   // Input buffer for add/edit
+	ipRestrictionsEditIP string   // Original IP being edited (for replacement)
 }
 
 // Navigation items for the top bar
@@ -393,6 +404,49 @@ type sshConnectionMsg struct {
 	user string
 }
 
+// kubeConfigMsg is returned when kubeconfig generation completes
+type kubeConfigMsg struct {
+	configPath  string
+	clusterName string
+	err         error
+}
+
+// kubeToolLaunchMsg is returned when a kube tool (kubectl/k9s) finishes
+type kubeToolLaunchMsg struct {
+	tool string
+	err  error
+}
+
+// kubeActionMsg is returned when a Kubernetes action completes (non-tool actions)
+type kubeActionMsg struct {
+	action      string
+	clusterName string
+	configPath  string
+	err         error
+}
+
+// ipRestrictionCheckMsg is returned when checking if user's IP is in restrictions
+type ipRestrictionCheckMsg struct {
+	needsAdd    bool   // Whether IP needs to be added
+	ipCIDR      string // The detected IP (with /32)
+	actionIndex int    // The pending action (1=kubectl, 2=k9s)
+	clusterName string
+	err         error
+}
+
+// ipRestrictionsLoadedMsg is returned when IP restrictions are loaded
+type ipRestrictionsLoadedMsg struct {
+	ips []string
+	err error
+}
+
+// ipRestrictionsUpdatedMsg is returned when IP restrictions are updated
+type ipRestrictionsUpdatedMsg struct {
+	action string // "add", "edit", "delete"
+	ip     string // The IP that was affected
+	err    error
+}
+
 // Navigation items for products (shown after project is selected)
 func getNavItems() []NavItem {
 	return []NavItem{
@@ -551,6 +605,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sshConnectionMsg:
 		return m.handleSSHConnection(msg)
 
+	case kubeConfigMsg:
+		return m.handleKubeConfig(msg)
+
+	case kubeToolLaunchMsg:
+		return m.handleKubeToolLaunch(msg)
+
+	case kubeActionMsg:
+		return m.handleKubeAction(msg)
+
+	case ipRestrictionCheckMsg:
+		return m.handleIPRestrictionCheck(msg)
+
+	case ipRestrictionsLoadedMsg:
+		return m.handleIPRestrictionsLoaded(msg)
+
+	case ipRestrictionsUpdatedMsg:
+		return m.handleIPRestrictionsUpdated(msg)
+
 	case cleanupCompletedMsg:
 		return m.handleCleanupCompleted(msg)
 	}
@@ -621,6 +693,221 @@ func (m Model) handleSSHConnection(msg sshConnectionMsg) (tea.Model, tea.Cmd) {
 		}
 		return instanceActionMsg{action: "ssh", err: nil}
 	})
+}
+
+// handleKubeConfig handles kubeconfig generation result and launches kubectl/k9s
+func (m Model) handleKubeConfig(msg kubeConfigMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ Kubeconfig error: %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		})
+	}
+
+	// Check if this is for k9s launch (marked with \x00k9s suffix)
+	tool := "kubectl"
+	if strings.HasSuffix(msg.clusterName, "\x00k9s") {
+		tool = "k9s"
+	}
+
+	// Check if the tool is installed
+	toolPath, err := exec.LookPath(tool)
+	if err != nil {
+		var installHint string
+		if tool == "kubectl" {
+			installHint = "Install with: https://kubernetes.io/docs/tasks/tools/"
+		} else {
+			installHint = "Install with: brew install k9s (or https://k9scli.io/)"
+		}
+		m.notification = fmt.Sprintf("❌ %s not found. %s", tool, installHint)
+		m.notificationExpiry = time.Now().Add(8 * time.Second)
+		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		})
+	}
+
+	// Log the tool launch to debug panel
+	httpLib.BrowserDebugLogger.AddEntry(httpLib.DebugLogEntry{
+		Timestamp: time.Now(),
+		Method:    "EXEC",
+		URL:       fmt.Sprintf("%s (KUBECONFIG=%s)", toolPath, msg.configPath),
+	})
+
+	// Launch the tool with the kubeconfig
+	var c *exec.Cmd
+	if tool == "k9s" {
+		c = exec.Command(toolPath, "--kubeconfig", msg.configPath)
+		c.Stdin = os.Stdin
+		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
+	} else {
+		// For kubectl, launch an interactive shell with KUBECONFIG set
+		// This allows users to run multiple kubectl commands
+		shell := os.Getenv("SHELL")
+		if shell == "" {
+			shell = "/bin/sh"
+		}
+
+		// Create a welcome message that displays in the shell
+		welcomeMsg := fmt.Sprintf(`echo ""
+echo "☸️  OVHcloud Kubernetes Shell"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📁 KUBECONFIG=%s"
+echo ""
+echo "💡 You can now run kubectl commands:"
+echo "   kubectl get nodes"
+echo "   kubectl get pods -A"
+echo "   kubectl cluster-info"
+echo ""
+echo "Type 'exit' to return to the browser."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+exec %s`, msg.configPath, shell)
+
+		c = exec.Command(shell, "-c", welcomeMsg)
+		c.Env = append(os.Environ(), "KUBECONFIG="+msg.configPath)
+		c.Stdin = os.Stdin
+		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
+	}
+
+	return m, tea.ExecProcess(c, func(err error) tea.Msg {
+		return kubeToolLaunchMsg{tool: tool, err: err}
+	})
+}
+
+// handleKubeToolLaunch handles the result of kubectl/k9s execution
+func (m Model) handleKubeToolLaunch(msg kubeToolLaunchMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		// Don't treat normal exit as error
+		if exitErr, ok := msg.err.(*exec.ExitError); ok {
+			if exitErr.ExitCode() == 0 {
+				m.notification = fmt.Sprintf("✅ %s session ended", msg.tool)
+			} else {
+				m.notification = fmt.Sprintf("⚠️ %s exited with code %d", msg.tool, exitErr.ExitCode())
+			}
+		} else {
+			m.notification = fmt.Sprintf("❌ %s error: %s", msg.tool, msg.err)
+		}
+	} else {
+		m.notification = fmt.Sprintf("✅ %s session ended", msg.tool)
+	}
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+
+	return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return clearNotificationMsg{}
+	})
+}
+
+// handleKubeAction handles the result of Kubernetes actions (non-tool actions)
+func (m Model) handleKubeAction(msg kubeActionMsg) (tea.Model, tea.Cmd) {
+	actionNames := map[string]string{
+		"kubeconfig":       "Generate Kubeconfig",
+		"kubectl":          "kubectl",
+		"k9s":              "k9s",
+		"reset_kubeconfig": "Reset Kubeconfig",
+		"add_my_ip":        "Add My IP",
+	}
+
+	actionName := actionNames[msg.action]
+	if actionName == "" {
+		actionName = msg.action
+	}
+
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ %s failed: %s", actionName, msg.err)
+	} else {
+		if msg.action == "kubeconfig" && msg.configPath != "" {
+			m.notification = fmt.Sprintf("✅ Kubeconfig saved to: %s", msg.configPath)
+		} else if msg.action == "reset_kubeconfig" {
+			m.notification = fmt.Sprintf("✅ Kubeconfig reset for cluster '%s'. Nodes will be reinstalled.", msg.clusterName)
+		} else if msg.action == "add_my_ip" && msg.configPath != "" {
+			m.notification = fmt.Sprintf("✅ Added your IP (%s) to cluster IP restrictions", msg.configPath)
+		} else {
+			m.notification = fmt.Sprintf("✅ %s completed successfully!", actionName)
+		}
+	}
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+
+	return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return clearNotificationMsg{}
+	})
+}
+
+// handleIPRestrictionCheck handles the result of checking IP restrictions
+func (m Model) handleIPRestrictionCheck(msg ipRestrictionCheckMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ Failed to check IP restrictions: %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		})
+	}
+
+	if msg.needsAdd {
+		// Show confirmation dialog
+		m.ipAddConfirm = true
+		m.pendingKubeAction = msg.actionIndex
+		m.pendingIPCIDR = msg.ipCIDR
+		m.actionConfirm = false // Reset action confirm
+		return m, nil
+	}
+
+	// IP is already in the list, proceed with action
+	return m, nil
+}
+
+// handleIPRestrictionsLoaded processes loaded IP restrictions
+func (m Model) handleIPRestrictionsLoaded(msg ipRestrictionsLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = DetailView
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		})
+	}
+
+	m.ipRestrictions = msg.ips
+	m.ipRestrictionsIdx = 0
+	m.ipRestrictionsMode = "list"
+	m.ipRestrictionsInput = ""
+	m.mode = IPRestrictionsView
+	return m, nil
+}
+
+// handleIPRestrictionsUpdated processes the result of IP restrictions update
+func (m Model) handleIPRestrictionsUpdated(msg ipRestrictionsUpdatedMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.ipRestrictionsMode = "list"
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		})
+	}
+
+	// Success notification
+	switch msg.action {
+	case "add":
+		m.notification = fmt.Sprintf("✅ Added IP: %s", msg.ip)
+	case "edit":
+		m.notification = fmt.Sprintf("✅ Updated IP: %s", msg.ip)
+	case "delete":
+		m.notification = fmt.Sprintf("✅ Removed IP: %s", msg.ip)
+	default:
+		m.notification = "✅ IP restrictions updated"
+	}
+	m.notificationExpiry = time.Now().Add(3 * time.Second)
+
+	// Refresh the IP restrictions list
+	return m, tea.Batch(
+		m.fetchIPRestrictions(),
+		tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		}),
+	)
 }
 
 // View renders the UI
@@ -703,6 +990,19 @@ func (m Model) renderContentBox(width int) string {
 		titleText = " 🔍 Debug - API Requests "
 		title := productTitleStyle.Render(titleText)
 		contentStr := m.renderDebugView(width - 6)
+		fullContent := title + "\n\n" + contentStr
+		return contentBoxStyle.Width(width - 4).Render(fullContent)
+	}
+
+	// Handle IP restrictions view with special title
+	if m.mode == IPRestrictionsView {
+		clusterName := ""
+		if m.detailData != nil {
+			clusterName = getStringValue(m.detailData, "name", "")
+		}
+		titleText = fmt.Sprintf(" 🔒 IP Restrictions - %s ", clusterName)
+		title := productTitleStyle.Render(titleText)
+		contentStr := m.renderIPRestrictionsView(width - 6)
 		fullContent := title + "\n\n" + contentStr
 		return contentBoxStyle.Width(width - 4).Render(fullContent)
 	}
@@ -889,6 +1189,82 @@ func (m Model) renderDebugView(width int) string {
 	content.WriteString("\n\n")
 	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 	content.WriteString(helpStyle.Render("  Press 'd' or Esc to close • 'c' to clear logs"))
+
+	return content.String()
+}
+
+// renderIPRestrictionsView displays the IP restrictions management view
+func (m Model) renderIPRestrictionsView(width int) string {
+	var content strings.Builder
+
+	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Background(lipgloss.Color("#2a2a2a"))
+	infoStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Italic(true)
+	inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE"))
+
+	// Check if restrictions are enabled
+	if len(m.ipRestrictions) == 0 && m.ipRestrictionsMode == "list" {
+		content.WriteString(infoStyle.Render("  ℹ️  IP restrictions are not enabled for this cluster.") + "\n")
+		content.WriteString(infoStyle.Render("     The API server is accessible from any IP address.") + "\n\n")
+		content.WriteString(infoStyle.Render("  To enable IP restrictions, add at least one IP/CIDR.") + "\n\n")
+	}
+
+	// Mode-specific rendering
+	switch m.ipRestrictionsMode {
+	case "add":
+		content.WriteString(headerStyle.Render("  Add IP/CIDR:") + "\n\n")
+		content.WriteString(infoStyle.Render("  Enter an IP address or CIDR range (e.g., 203.0.113.50/32 or 10.0.0.0/8)") + "\n\n")
+		content.WriteString(inputStyle.Render(fmt.Sprintf("  > %s▌", m.ipRestrictionsInput)) + "\n\n")
+		content.WriteString(itemStyle.Render("  Enter: Confirm • Esc: Cancel • 'm': Add my current IP"))
+		return content.String()
+
+	case "edit":
+		content.WriteString(headerStyle.Render("  Edit IP/CIDR:") + "\n\n")
+		content.WriteString(infoStyle.Render(fmt.Sprintf("  Editing: %s", m.ipRestrictionsEditIP)) + "\n\n")
+		content.WriteString(inputStyle.Render(fmt.Sprintf("  > %s▌", m.ipRestrictionsInput)) + "\n\n")
+		content.WriteString(itemStyle.Render("  Enter: Confirm • Esc: Cancel"))
+		return content.String()
+	}
+
+	// List mode
+	content.WriteString(headerStyle.Render("  Allowed IP addresses/ranges:") + "\n\n")
+
+	if len(m.ipRestrictions) == 0 {
+		content.WriteString(itemStyle.Render("  (none - add IPs to enable restrictions)") + "\n\n")
+	} else {
+		// Display IPs with selection
+		maxVisible := 12
+		startIdx := 0
+		if m.ipRestrictionsIdx >= maxVisible {
+			startIdx = m.ipRestrictionsIdx - maxVisible + 1
+		}
+		endIdx := startIdx + maxVisible
+		if endIdx > len(m.ipRestrictions) {
+			endIdx = len(m.ipRestrictions)
+		}
+
+		for i := startIdx; i < endIdx; i++ {
+			ip := m.ipRestrictions[i]
+			if i == m.ipRestrictionsIdx {
+				content.WriteString(selectedStyle.Render(fmt.Sprintf("  ▶ %s", ip)) + "\n")
+			} else {
+				content.WriteString(itemStyle.Render(fmt.Sprintf("    %s", ip)) + "\n")
+			}
+		}
+
+		// Scroll indicator
+		if len(m.ipRestrictions) > maxVisible {
+			scrollInfo := fmt.Sprintf("\n  Showing %d-%d of %d IPs", startIdx+1, endIdx, len(m.ipRestrictions))
+			content.WriteString(infoStyle.Render(scrollInfo) + "\n")
+		}
+	}
+
+	content.WriteString("\n")
+
+	// Actions help
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	content.WriteString(helpStyle.Render("  a: Add IP • m: Add my IP • e: Edit selected • Del: Remove selected • Esc: Back"))
 
 	return content.String()
 }
@@ -2059,9 +2435,38 @@ func (m Model) renderKubernetesDetail(width int) string {
 
 	configBox := renderBox("Configuration", configContent.String(), boxWidth)
 
-	// Actions
-	actionsContent := "[kubectl config] [Scale] [Upgrade] [Reset Kubeconfig]"
-	actionsBox := renderBox("Actions", actionsContent, width-4)
+	// Actions box with selectable actions (like instances)
+	actions := []string{"Kubeconfig", "kubectl", "k9s", "Reset Kubeconfig", "Add My IP", "IP Restrictions"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.selectedAction {
+			// Selected action - highlighted
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color("#7B68EE")).
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).
+				Padding(0, 1).
+				Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).
+				Padding(0, 1).
+				Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.ipAddConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).
+			Bold(true).
+			Render(fmt.Sprintf("⚠️  Your IP (%s) is not in restrictions. Add it? [y/n]", m.pendingIPCIDR))
+	} else if m.actionConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).
+			Bold(true).
+			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actions[m.selectedAction]))
+	}
+	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
 
 	content.WriteString(actionsBox)
 	content.WriteString("\n\n")
@@ -2218,6 +2623,14 @@ func (m Model) renderFooter() string {
 		help = "Type instance name to confirm • Enter: Delete • Esc: Cancel"
 	case DebugView:
 		help = "↑↓: Scroll • c: Clear logs • d/Esc: Close • q: Quit"
+	case IPRestrictionsView:
+		if m.ipRestrictionsMode == "add" {
+			help = "Type IP/CIDR • Enter: Add • m: Add my IP • Esc: Cancel"
+		} else if m.ipRestrictionsMode == "edit" {
+			help = "Type IP/CIDR • Enter: Save • Esc: Cancel"
+		} else {
+			help = "↑↓: Navigate • a: Add • m: Add my IP • e: Edit • Del: Remove • Esc: Back"
+		}
 	default:
 		help = "Enter: Select • q: Quit"
 	}
@@ -2252,6 +2665,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleDebugKeyPress(msg)
 	}
 
+	// Handle IP restrictions view mode
+	if m.mode == IPRestrictionsView {
+		return m.handleIPRestrictionsKeyPress(msg)
+	}
+
 	// Handle filter mode
 	if m.filterMode {
 		return m.handleFilterKeyPress(msg)
@@ -2279,6 +2697,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// In DetailView for Kubernetes, navigate actions
+		if m.mode == DetailView && m.currentProduct == ProductKubernetes {
+			if m.selectedAction > 0 {
+				m.selectedAction--
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
 		// Navigate to previous product (only when not in project selection)
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
 			if m.navIdx > 0 {
@@ -2292,6 +2718,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// In DetailView, navigate actions
 		if m.mode == DetailView && m.currentProduct == ProductInstances {
 			if m.selectedAction < 5 { // 6 actions: 0-5
+				m.selectedAction++
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
+		// In DetailView for Kubernetes, navigate actions
+		if m.mode == DetailView && m.currentProduct == ProductKubernetes {
+			if m.selectedAction < 5 { // 6 actions: 0-5 (Kubeconfig, kubectl, k9s, Reset, Add My IP, IP Restrictions)
 				m.selectedAction++
 				m.actionConfirm = false
 			}
@@ -2334,12 +2768,36 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// Go back to table view from detail view, or cancel action confirm
 		if m.mode == DetailView {
+			if m.ipAddConfirm {
+				// Cancel IP add confirmation - proceed with action anyway
+				m.ipAddConfirm = false
+				return m, m.executeKubernetesActionSkipIPCheck(m.pendingKubeAction)
+			}
 			if m.actionConfirm {
 				m.actionConfirm = false
 			} else {
 				m.mode = TableView
 				m.selectedAction = 0
 			}
+		}
+		return m, nil
+
+	case "y", "Y":
+		// Handle 'y' for IP restriction confirmation
+		if m.mode == DetailView && m.currentProduct == ProductKubernetes && m.ipAddConfirm {
+			// User confirmed - add IP and proceed with action
+			m.ipAddConfirm = false
+			return m, m.executeKubeActionWithIPAdd(m.pendingKubeAction, m.pendingIPCIDR)
+		}
+		return m, nil
+
+	case "n", "N":
+		// Handle 'n' for IP restriction confirmation - skip adding but proceed
+		if m.mode == DetailView && m.currentProduct == ProductKubernetes && m.ipAddConfirm {
+			m.ipAddConfirm = false
+			m.notification = "Continuing without adding IP..."
+			m.notificationExpiry = time.Now().Add(3 * time.Second)
+			return m, m.executeKubernetesActionSkipIPCheck(m.pendingKubeAction)
 		}
 		return m, nil
 
@@ -2351,6 +2809,27 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				// Confirmed - execute the action
 				m.actionConfirm = false
 				return m, m.executeInstanceAction(m.selectedAction)
+			} else {
+				// Ask for confirmation
+				m.actionConfirm = true
+				return m, nil
+			}
+		} else if m.mode == DetailView && m.currentProduct == ProductKubernetes {
+			// Handle IP restriction confirmation
+			if m.ipAddConfirm {
+				// User confirmed with Enter - add IP and proceed
+				m.ipAddConfirm = false
+				return m, m.executeKubeActionWithIPAdd(m.pendingKubeAction, m.pendingIPCIDR)
+			}
+			// IP Restrictions action (index 5) doesn't need confirmation - it just opens a view
+			if m.selectedAction == 5 {
+				return m, m.executeKubernetesAction(m.selectedAction)
+			}
+			// Execute selected action on Kubernetes cluster
+			if m.actionConfirm {
+				// Confirmed - execute the action
+				m.actionConfirm = false
+				return m, m.executeKubernetesAction(m.selectedAction)
 			} else {
 				// Ask for confirmation
 				m.actionConfirm = true
@@ -2483,6 +2962,124 @@ func (m Model) handleDebugKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "c":
 		// Clear debug logs
 		httpLib.BrowserDebugLogger.Clear()
+		m.debugScrollOffset = 0
+		return m, nil
+	}
+
+	return m, nil
+}
+
+// handleIPRestrictionsKeyPress handles key presses in IP restrictions view
+func (m Model) handleIPRestrictionsKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+
+	// Handle input modes (add/edit)
+	if m.ipRestrictionsMode == "add" || m.ipRestrictionsMode == "edit" {
+		switch key {
+		case "esc":
+			// Cancel and go back to list
+			m.ipRestrictionsMode = "list"
+			m.ipRestrictionsInput = ""
+			return m, nil
+
+		case "enter":
+			if m.ipRestrictionsInput == "" {
+				return m, nil
+			}
+			if m.ipRestrictionsMode == "add" {
+				// Add the new IP
+				return m, m.addIPRestriction(m.ipRestrictionsInput)
+			} else {
+				// Edit the IP
+				return m, m.editIPRestriction(m.ipRestrictionsEditIP, m.ipRestrictionsInput)
+			}
+
+		case "m":
+			// Add my IP shortcut (only in add mode)
+			if m.ipRestrictionsMode == "add" {
+				return m, m.addMyIPRestriction()
+			}
+			return m, nil
+
+		case "backspace":
+			if len(m.ipRestrictionsInput) > 0 {
+				m.ipRestrictionsInput = m.ipRestrictionsInput[:len(m.ipRestrictionsInput)-1]
+			}
+			return m, nil
+
+		default:
+			// Accept valid IP/CIDR characters
+			if len(key) == 1 {
+				c := key[0]
+				// Allow digits, dots, colons (IPv6), slashes (CIDR), and hex letters
+				if (c >= '0' && c <= '9') || c == '.' || c == ':' || c == '/' || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') {
+					m.ipRestrictionsInput += key
+				}
+			}
+			return m, nil
+		}
+	}
+
+	// List mode
+	switch key {
+	case "esc":
+		// Go back to detail view
+		m.mode = DetailView
+		m.ipRestrictions = nil
+		m.ipRestrictionsIdx = 0
+		m.ipRestrictionsMode = "list"
+		return m, nil
+
+	case "q", "ctrl+c":
+		return m, tea.Quit
+
+	case "up", "k":
+		if m.ipRestrictionsIdx > 0 {
+			m.ipRestrictionsIdx--
+		}
+		return m, nil
+
+	case "down", "j":
+		if m.ipRestrictionsIdx < len(m.ipRestrictions)-1 {
+			m.ipRestrictionsIdx++
+		}
+		return m, nil
+
+	case "a":
+		// Enter add mode
+		m.ipRestrictionsMode = "add"
+		m.ipRestrictionsInput = ""
+		return m, nil
+
+	case "m":
+		// Add my IP directly
+		return m, m.addMyIPRestriction()
+
+	case "e":
+		// Enter edit mode for selected IP
+		if len(m.ipRestrictions) > 0 && m.ipRestrictionsIdx < len(m.ipRestrictions) {
+			m.ipRestrictionsMode = "edit"
+			m.ipRestrictionsEditIP = m.ipRestrictions[m.ipRestrictionsIdx]
+			m.ipRestrictionsInput = m.ipRestrictionsEditIP
+		}
+		return m, nil
+
+	case "delete", "backspace", "x":
+		// Delete selected IP
+		if len(m.ipRestrictions) > 0 && m.ipRestrictionsIdx < len(m.ipRestrictions) {
+			ipToDelete := m.ipRestrictions[m.ipRestrictionsIdx]
+			// Adjust index if we're deleting the last item
+			if m.ipRestrictionsIdx >= len(m.ipRestrictions)-1 && m.ipRestrictionsIdx > 0 {
+				m.ipRestrictionsIdx--
+			}
+			return m, m.deleteIPRestriction(ipToDelete)
+		}
+		return m, nil
+
+	case "d":
+		// Open debug view
+		m.previousMode = m.mode
+		m.mode = DebugView
 		m.debugScrollOffset = 0
 		return m, nil
 	}
