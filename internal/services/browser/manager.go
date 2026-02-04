@@ -1324,11 +1324,17 @@ func (m Model) renderNodePoolDetailView(width int) string {
 	updatedAt := getStringValue(m.selectedNodePool, "updatedAt", "N/A")
 
 	// Header
-	headerStyle := lipgloss.NewStyle().
+	headerLabelStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true).
+		Width(15).
+		Align(lipgloss.Left)
+	headerValueStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF")).
 		Bold(true)
-	content.WriteString(headerStyle.Render(fmt.Sprintf("  Node Pool: %s\n", poolName)))
-	content.WriteString(headerStyle.Render(fmt.Sprintf("  Cluster: %s\n\n", clusterName)))
+
+	content.WriteString(fmt.Sprintf("  %s %s\n", headerLabelStyle.Render("Node Pool:"), headerValueStyle.Render(poolName)))
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", headerLabelStyle.Render("Cluster:"), headerValueStyle.Render(clusterName)))
 
 	// Actions with selection highlighting
 	actions := []string{"Scale", "Delete"}
@@ -1363,7 +1369,8 @@ func (m Model) renderNodePoolDetailView(width int) string {
 	// Create styled sections
 	labelStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#888888")).
-		Width(20)
+		Width(20).
+		Align(lipgloss.Left)
 	valueStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#FFFFFF"))
 	successStyle := lipgloss.NewStyle().
@@ -5009,10 +5016,13 @@ func (m Model) handleWizardNetworkKeys(key string, msg tea.KeyMsg) (tea.Model, t
 			m.wizard.filterInput = ""
 		}
 	case "left":
-		// Go back to SSH key selection
+		// Go back to SSH key selection and reload SSH keys
 		m.wizard.step = WizardStepSSHKey
 		m.wizard.selectedIndex = 0
 		m.wizard.filterInput = ""
+		m.wizard.isLoading = true
+		m.wizard.loadingMessage = "Loading SSH keys..."
+		return m, m.fetchSSHKeys()
 	}
 	return m, nil
 }
