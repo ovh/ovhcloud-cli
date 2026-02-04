@@ -40,6 +40,7 @@ Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, O
 * [ovhcloud cloud rancher](ovhcloud_cloud_rancher.md)	 - Manage Rancher services in the given cloud project
 * [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
 * [ovhcloud cloud region](ovhcloud_cloud_region.md)	 - Check regions in the given cloud project
+* [ovhcloud cloud savings-plan](ovhcloud_cloud_savings-plan.md)	 - Manage savings plans for your cloud project
 * [ovhcloud cloud ssh-key](ovhcloud_cloud_ssh-key.md)	 - Manage SSH keys in the given cloud project
 * [ovhcloud cloud storage-block](ovhcloud_cloud_storage-block.md)	 - Manage block storage volumes in the given cloud project
 * [ovhcloud cloud storage-s3](ovhcloud_cloud_storage-s3.md)	 - Manage S3™* compatible storage containers in the given cloud project (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)

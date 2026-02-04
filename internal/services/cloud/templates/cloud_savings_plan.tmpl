@@ -1,0 +1,41 @@
+💰 Savings Plan {{.ServiceName}}
+=======
+
+## General information
+
+| Property | Value |
+| --- | --- |
+| **ID** | {{index .Result "id"}} |
+| **Name** | {{index .Result "displayName"}} |
+| **Status** | {{index .Result "status"}} |
+| **Flavor** | {{index .Result "flavor"}} |
+| **Size** | {{index .Result "size"}} |
+| **Offer ID** | {{index .Result "offerId"}} |
+
+## Period information
+
+| Property | Value |
+| --- | --- |
+| **Period** | {{index .Result "period"}} |
+| **Start Date** | {{index .Result "startDate"}} |
+| **End Date** | {{index .Result "endDate"}} |
+| **Period Start** | {{index .Result "periodStartDate"}} |
+| **Period End** | {{index .Result "periodEndDate"}} |
+| **End Action** | {{index .Result "periodEndAction"}} |
+
+{{if index .Result "terminationDate"}}
+## Termination
+
+**Termination Date**: {{index .Result "terminationDate"}}
+{{end}}
+
+{{if index .Result "plannedChanges"}}
+## Planned Changes
+
+{{range index .Result "plannedChanges"}}
+- **Planned On**: {{.plannedOn}}
+  - Status: {{index .properties "status"}}
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

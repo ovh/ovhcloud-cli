@@ -5,7 +5,6 @@
 package cmd_test
 
 import (
-	"os"
 	"regexp"
 	"testing"
 
@@ -21,10 +20,6 @@ type MockSuite struct{}
 
 func (ms *MockSuite) Setup(t *td.T) error {
 	httpmock.Activate(t)
-
-	oldStdOut := os.Stdout
-	t.Cleanup(func() { os.Stdout = oldStdOut })
-	os.Stdout = nil
 
 	client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", "consumer_key")
 	if err != nil {
@@ -43,7 +38,7 @@ func (ms *MockSuite) PreTest(t *td.T, testName string) error {
 	return nil
 }
 
-func (ms *MockSuite) PostTest(_ *td.T, _ string) error {
+func (ms *MockSuite) PostTest(t *td.T, testName string) error {
 	httpmock.Reset()
 	cmd.PostExecute()
 	return nil
