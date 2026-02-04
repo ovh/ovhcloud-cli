@@ -1746,6 +1746,9 @@ func (m Model) handleSSHKeyCreated(msg sshKeyCreatedMsg) (tea.Model, tea.Cmd) {
 	m.wizard.createdSSHKeyId = sshKeyId // Track for cleanup if needed
 	m.wizard.creatingSSHKey = false
 
+	// Add the newly created SSH key to the list so it appears when navigating back
+	m.wizard.sshKeys = append(m.wizard.sshKeys, msg.sshKey)
+
 	// Add notification
 	m.notification = fmt.Sprintf("✅ SSH key '%s' created successfully!", sshKeyName)
 	m.notificationExpiry = time.Now().Add(3 * time.Second)
@@ -2784,9 +2787,13 @@ func (m Model) createSubnet(networkId string, network map[string]interface{}) te
 			}
 		}
 
-		// Add gateway info to network for display
+		// Add subnet info to network for display and later use
 		network["gateway"] = gateway
 		network["subnet"] = cidr
+		// Store subnet ID in a subnets array (to match the structure from fetchPrivateNetworks)
+		if subnet != nil {
+			network["subnets"] = []map[string]interface{}{subnet}
+		}
 
 		return networkStepMsg{
 			step:      "subnet_created",
@@ -2817,10 +2824,21 @@ func (m Model) handleNetworkCreated(msg networkCreatedMsg) (tea.Model, tea.Cmd) 
 	m.wizard.selectedPrivateNetwork = networkId
 	m.wizard.selectedPrivateNetworkName = networkName
 
+	// Extract subnet ID if available
+	m.wizard.selectedSubnetId = ""
+	if subnets, ok := msg.network["subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
+		m.wizard.selectedSubnetId = getString(subnets[0], "id")
+	} else if subnets, ok := msg.network["subnets"].([]interface{}); ok && len(subnets) > 0 {
+		if subnet, ok := subnets[0].(map[string]interface{}); ok {
+			m.wizard.selectedSubnetId = getString(subnet, "id")
+		}
+	}
+
 	// Add the new network to the list (after "No Network" and "Create New")
 	newNetworkEntry := map[string]interface{}{
-		"id":   networkId,
-		"name": networkName + " (new)",
+		"id":      networkId,
+		"name":    networkName + " (new)",
+		"subnets": msg.network["subnets"],
 	}
 
 	// Insert after the first two options
@@ -2843,6 +2861,27 @@ func (m Model) handleNetworkCreated(msg networkCreatedMsg) (tea.Model, tea.Cmd) 
 	m.wizard.newNetworkCIDR = "10.0.0.0/24"
 	m.wizard.newNetworkDHCP = true
 	m.wizard.networkCreateField = 0
+
+	// Advance to next wizard step based on network configuration
+	if !m.wizard.usePublicNetwork && m.wizard.selectedPrivateNetwork != "" {
+		// Private network only - go to floating IP step
+		m.wizard.step = WizardStepFloatingIP
+		m.wizard.selectedIndex = 0
+		m.wizard.filterInput = ""
+		m.wizard.isLoading = true
+		m.wizard.loadingMessage = "Loading floating IPs..."
+		return m, tea.Batch(
+			m.fetchFloatingIPs(),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+				return clearNotificationMsg{}
+			}),
+		)
+	}
+
+	// Go to name input step
+	m.wizard.step = WizardStepName
+	m.wizard.nameInput = ""
+	m.wizard.filterInput = ""
 
 	return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
 		return clearNotificationMsg{}
