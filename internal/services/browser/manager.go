@@ -3798,7 +3798,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.navIdx = 0
 			// If we have cached projects, show them directly
 			if len(m.projectsList) > 0 {
-				m.table = createProjectsTable(m.projectsList, m.width, m.height)
+				m.table = createProjectsTable(m.projectsList, m.height)
 				m.currentData = m.projectsList
 				m.mode = ProjectSelectView
 				return m, nil

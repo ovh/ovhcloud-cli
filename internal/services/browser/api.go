@@ -323,14 +323,17 @@ func (m Model) fetchKubeRegions() tea.Cmd {
 		if len(regions) == 0 {
 			// Common OVHcloud regions for Kubernetes (with proper region codes)
 			regions = []map[string]interface{}{
-				{"name": "Europe (Paris)", "code": "PAR1", "id": "PAR1"},
+				{"name": "Europe (Warsaw)", "code": "WAW1", "id": "WAW1"},
+				{"name": "Europe (Gravelines)", "code": "GRA11", "id": "GRA11"},
 				{"name": "Europe (Strasbourg)", "code": "SBG5", "id": "SBG5"},
-				{"name": "Europe (Frankfurt)", "code": "FRA1", "id": "FRA1"},
-				{"name": "Europe (London)", "code": "LON1", "id": "LON1"},
-				{"name": "North America (Toronto)", "code": "TOR1", "id": "TOR1"},
-				{"name": "North America (San Jose)", "code": "SJC1", "id": "SJC1"},
-				{"name": "Asia-Pacific (Singapore)", "code": "SIN1", "id": "SIN1"},
+				{"name": "Europe (Frankfurt)", "code": "DE1", "id": "DE1"},
 				{"name": "Asia-Pacific (Sydney)", "code": "SYD1", "id": "SYD1"},
+				{"name": "North America (Beauharnois)", "code": "BHS5", "id": "BHS5"},
+				{"name": "Europe (London)", "code": "UK1", "id": "UK1"},
+				{"name": "Asia-Pacific (Mumbai)", "code": "AP-SOUTH-MUM-1", "id": "AP-SOUTH-MUM-1"},
+				{"name": "Europe (Milan)", "code": "EU-SOUTH-MIL", "id": "EU-SOUTH-MIL"},
+				{"name": "Europe (Paris)", "code": "EU-WEST-PAR", "id": "EU-WEST-PAR"},
+				{"name": "Europe (Roubaix)", "code": "RBX-A", "id": "RBX-A"},
 			}
 		}
 
@@ -938,7 +941,7 @@ func (m Model) handleProjectsLoaded(msg projectsLoadedMsg) (tea.Model, tea.Cmd) 
 	// Store projects list for later use
 	m.projectsList = msg.projects
 	// Create table from projects
-	m.table = createProjectsTable(msg.projects, m.width, m.height)
+	m.table = createProjectsTable(msg.projects, m.height)
 	m.currentData = msg.projects // Store raw data for selection
 	m.mode = ProjectSelectView   // Show project selection view
 
@@ -1092,7 +1095,7 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 }
 
 // createProjectsTable creates a table for displaying projects
-func createProjectsTable(projects []map[string]interface{}, width, height int) table.Model {
+func createProjectsTable(projects []map[string]interface{}, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Project ID", Width: 40},
 		{Title: "Name", Width: 40},
