@@ -183,6 +183,10 @@ var (
 	StyleInfo = lipgloss.NewStyle().
 			Foreground(ColorPrimary).
 			Bold(true)
+
+	// Muted text style
+	StyleMuted = lipgloss.NewStyle().
+			Foreground(ColorMuted)
 )
 
 // RenderBox creates a bordered box with a title.

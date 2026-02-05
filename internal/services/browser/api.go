@@ -7,10 +7,14 @@
 package browser
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -24,6 +28,17 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
+
+// encodeObjectKeyPath encodes an S3 object key for use in a URL path.
+// Object keys may contain slashes (e.g. "folder/file.txt") which must remain
+// as literal path separators. Each segment is individually encoded.
+func encodeObjectKeyPath(key string) string {
+	parts := strings.Split(key, "/")
+	for i, part := range parts {
+		parts[i] = url.PathEscape(part)
+	}
+	return strings.Join(parts, "/")
+}
 
 // fetchDataForPath initiates an API call based on the path
 // It captures the current product to tag the response message
@@ -813,6 +828,433 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 	}
 }
 
+// fetchS3Objects fetches objects for an S3 container
+func (m Model) fetchS3Objects(containerName string, s3URL string) tea.Cmd {
+	return func() tea.Msg {
+		var objects []map[string]interface{}
+
+		if m.cloudProject == "" {
+			return s3ObjectsLoadedMsg{
+				containerName: containerName,
+				objects:       nil,
+				err:           fmt.Errorf("no project selected"),
+			}
+		}
+
+		if s3URL == "" {
+			return s3ObjectsLoadedMsg{
+				containerName: containerName,
+				objects:       nil,
+				err:           fmt.Errorf("container URL not found"),
+			}
+		}
+
+		// Fetch objects list (limit to 100 for now)
+		objectsEndpoint := s3URL + "/object?limit=100"
+		if err := httpLib.Client.Get(objectsEndpoint, &objects); err != nil {
+			return s3ObjectsLoadedMsg{
+				containerName: containerName,
+				objects:       nil,
+				err:           err,
+			}
+		}
+
+		return s3ObjectsLoadedMsg{
+			containerName: containerName,
+			objects:       objects,
+			err:           nil,
+		}
+	}
+}
+
+// copyS3Object copies an S3 object to a new destination
+func (m Model) copyS3Object(containerName, objectKey, s3URL string, destination map[string]interface{}) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3ObjectCopyMsg{
+				err: fmt.Errorf("no project selected"),
+			}
+		}
+
+		if s3URL == "" {
+			return s3ObjectCopyMsg{
+				err: fmt.Errorf("container URL not found"),
+			}
+		}
+
+		// POST to /object/{key}/copy - encode each path segment of the key
+		encodedKey := encodeObjectKeyPath(objectKey)
+		endpoint := s3URL + "/object/" + encodedKey + "/copy"
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, destination, &result); err != nil {
+			return s3ObjectCopyMsg{
+				err: err,
+			}
+		}
+
+		return s3ObjectCopyMsg{
+			containerName: containerName,
+			objectKey:     objectKey,
+			result:        result,
+			err:           nil,
+		}
+	}
+}
+
+// restoreS3Object restores an archived S3 object
+func (m Model) restoreS3Object(containerName, objectKey, s3URL string, params map[string]interface{}) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3ObjectRestoreMsg{
+				err: fmt.Errorf("no project selected"),
+			}
+		}
+
+		if s3URL == "" {
+			return s3ObjectRestoreMsg{
+				err: fmt.Errorf("container URL not found"),
+			}
+		}
+
+		// POST to /object/{key}/restore - encode each path segment of the key
+		encodedKey := encodeObjectKeyPath(objectKey)
+		endpoint := s3URL + "/object/" + encodedKey + "/restore"
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, params, &result); err != nil {
+			return s3ObjectRestoreMsg{
+				err: err,
+			}
+		}
+
+		return s3ObjectRestoreMsg{
+			containerName: containerName,
+			objectKey:     objectKey,
+			result:        result,
+			err:           nil,
+		}
+	}
+}
+
+// deleteS3Object deletes an S3 object
+func (m Model) deleteS3Object(containerName, objectKey, s3URL string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3ObjectDeleteMsg{
+				err: fmt.Errorf("no project selected"),
+			}
+		}
+
+		if s3URL == "" {
+			return s3ObjectDeleteMsg{
+				err: fmt.Errorf("container URL not found"),
+			}
+		}
+
+		// DELETE /object/{key} - encode each path segment of the key
+		encodedKey := encodeObjectKeyPath(objectKey)
+		endpoint := s3URL + "/object/" + encodedKey
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return s3ObjectDeleteMsg{
+				err: err,
+			}
+		}
+
+		return s3ObjectDeleteMsg{
+			containerName: containerName,
+			objectKey:     objectKey,
+			err:           nil,
+		}
+	}
+}
+
+// generateS3PresignedURL generates a presigned URL for an S3 object
+func (m Model) generateS3PresignedURL(containerName, objectKey, s3URL string, method string, expireSeconds int) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3PresignedURLMsg{
+				err: fmt.Errorf("no project selected"),
+			}
+		}
+
+		if s3URL == "" {
+			return s3PresignedURLMsg{
+				err: fmt.Errorf("container URL not found"),
+			}
+		}
+
+		// POST to /presign endpoint
+		endpoint := s3URL + "/presign"
+		params := map[string]interface{}{
+			"method": method,
+			"object": objectKey,
+			"expire": expireSeconds,
+		}
+
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, params, &result); err != nil {
+			return s3PresignedURLMsg{
+				err: err,
+			}
+		}
+
+		url := ""
+		if u, ok := result["url"].(string); ok {
+			url = u
+		}
+
+		return s3PresignedURLMsg{
+			containerName: containerName,
+			objectKey:     objectKey,
+			url:           url,
+			method:        method,
+			result:        result,
+			err:           nil,
+		}
+	}
+}
+
+// downloadS3Object generates a presigned URL and opens it for download
+func (m Model) downloadS3Object(containerName, objectKey, s3URL string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3DownloadMsg{
+				err: fmt.Errorf("no project selected"),
+			}
+		}
+
+		if s3URL == "" {
+			return s3DownloadMsg{
+				err: fmt.Errorf("container URL not found"),
+			}
+		}
+
+		// POST to /presign endpoint to get a download URL
+		endpoint := s3URL + "/presign"
+		params := map[string]interface{}{
+			"method": "GET",
+			"object": objectKey,
+			"expire": 3600, // 1 hour expiry
+		}
+
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, params, &result); err != nil {
+			return s3DownloadMsg{
+				err: err,
+			}
+		}
+
+		url := ""
+		if u, ok := result["url"].(string); ok {
+			url = u
+		}
+
+		return s3DownloadMsg{
+			containerName: containerName,
+			objectKey:     objectKey,
+			url:           url,
+			err:           nil,
+		}
+	}
+}
+
+// uploadS3Object uploads a file to an S3 container using presigned URL
+func (m Model) uploadS3Object(containerName, objectKey, filePath, s3URL string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3UploadMsg{
+				err: fmt.Errorf("no project selected"),
+			}
+		}
+
+		if s3URL == "" {
+			return s3UploadMsg{
+				err: fmt.Errorf("container URL not found"),
+			}
+		}
+
+		// Check if file exists
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			return s3UploadMsg{
+				err: fmt.Errorf("file not found: %s", filePath),
+			}
+		}
+		if fileInfo.IsDir() {
+			return s3UploadMsg{
+				err: fmt.Errorf("path is a directory, not a file: %s", filePath),
+			}
+		}
+
+		// POST to /presign endpoint to get an upload URL
+		endpoint := s3URL + "/presign"
+		params := map[string]interface{}{
+			"method": "PUT",
+			"object": objectKey,
+			"expire": 3600, // 1 hour expiry
+		}
+
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, params, &result); err != nil {
+			return s3UploadMsg{
+				err: fmt.Errorf("failed to get presigned URL: %w", err),
+			}
+		}
+
+		presignedURL := ""
+		if u, ok := result["url"].(string); ok {
+			presignedURL = u
+		}
+		if presignedURL == "" {
+			return s3UploadMsg{
+				err: fmt.Errorf("empty presigned URL returned"),
+			}
+		}
+
+		// Read the file
+		fileData, err := os.ReadFile(filePath)
+		if err != nil {
+			return s3UploadMsg{
+				err: fmt.Errorf("failed to read file: %w", err),
+			}
+		}
+
+		// Upload using PUT request to the presigned URL
+		req, err := http.NewRequest("PUT", presignedURL, bytes.NewReader(fileData))
+		if err != nil {
+			return s3UploadMsg{
+				err: fmt.Errorf("failed to create request: %w", err),
+			}
+		}
+
+		// Set content type based on file extension or use binary
+		req.Header.Set("Content-Type", "application/octet-stream")
+		req.ContentLength = int64(len(fileData))
+
+		// Use signed headers if provided
+		if signedHeaders, ok := result["signedHeaders"].(map[string]interface{}); ok {
+			for k, v := range signedHeaders {
+				if str, ok := v.(string); ok {
+					req.Header.Set(k, str)
+				}
+			}
+		}
+
+		client := &http.Client{Timeout: 5 * time.Minute}
+		resp, err := client.Do(req)
+		if err != nil {
+			return s3UploadMsg{
+				err: fmt.Errorf("upload failed: %w", err),
+			}
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode >= 300 {
+			body, _ := io.ReadAll(resp.Body)
+			return s3UploadMsg{
+				err: fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body)),
+			}
+		}
+
+		return s3UploadMsg{
+			containerName: containerName,
+			objectKey:     objectKey,
+			filePath:      filePath,
+			err:           nil,
+		}
+	}
+}
+
+// saveS3Object downloads an S3 object and saves it to local filesystem
+func (m Model) saveS3Object(containerName, objectKey, destPath, s3URL string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3SaveMsg{
+				err: fmt.Errorf("no project selected"),
+			}
+		}
+
+		if s3URL == "" {
+			return s3SaveMsg{
+				err: fmt.Errorf("container URL not found"),
+			}
+		}
+
+		// POST to /presign endpoint to get a download URL
+		endpoint := s3URL + "/presign"
+		params := map[string]interface{}{
+			"method": "GET",
+			"object": objectKey,
+			"expire": 3600, // 1 hour expiry
+		}
+
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, params, &result); err != nil {
+			return s3SaveMsg{
+				err: fmt.Errorf("failed to get presigned URL: %w", err),
+			}
+		}
+
+		presignedURL := ""
+		if u, ok := result["url"].(string); ok {
+			presignedURL = u
+		}
+		if presignedURL == "" {
+			return s3SaveMsg{
+				err: fmt.Errorf("empty presigned URL returned"),
+			}
+		}
+
+		// Download the file
+		client := &http.Client{Timeout: 10 * time.Minute}
+		resp, err := client.Get(presignedURL)
+		if err != nil {
+			return s3SaveMsg{
+				err: fmt.Errorf("download failed: %w", err),
+			}
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode >= 300 {
+			body, _ := io.ReadAll(resp.Body)
+			return s3SaveMsg{
+				err: fmt.Errorf("download failed with status %d: %s", resp.StatusCode, string(body)),
+			}
+		}
+
+		// Create destination directory if needed
+		destDir := filepath.Dir(destPath)
+		if err := os.MkdirAll(destDir, 0755); err != nil {
+			return s3SaveMsg{
+				err: fmt.Errorf("failed to create directory: %w", err),
+			}
+		}
+
+		// Create destination file
+		outFile, err := os.Create(destPath)
+		if err != nil {
+			return s3SaveMsg{
+				err: fmt.Errorf("failed to create file: %w", err),
+			}
+		}
+		defer outFile.Close()
+
+		// Copy data to file
+		_, err = io.Copy(outFile, resp.Body)
+		if err != nil {
+			return s3SaveMsg{
+				err: fmt.Errorf("failed to write file: %w", err),
+			}
+		}
+
+		return s3SaveMsg{
+			containerName: containerName,
+			objectKey:     objectKey,
+			filePath:      destPath,
+			err:           nil,
+		}
+	}
+}
+
 // fetchBlockStorageData fetches block storage volumes
 func (m Model) fetchBlockStorageData() dataLoadedMsg {
 	if m.cloudProject == "" {
@@ -1060,6 +1502,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.table = createKubernetesTable(msg.data, m.width, m.height)
 	case ProductInstances:
 		m.table = createInstancesTable(msg.data, m.imageMap, m.floatingIPMap, m.width, m.height)
+	case ProductStorage:
+		m.table = createStorageTable(msg.data, m.storagePath, m.width, m.height)
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)
 	}
@@ -1138,6 +1582,169 @@ func createProjectsTable(projects []map[string]interface{}, width, height int) t
 	t.SetStyles(s)
 
 	return t
+}
+
+// createStorageTable creates a table for displaying storage items
+func createStorageTable(data []map[string]interface{}, storagePath string, width, height int) table.Model {
+	var columns []table.Column
+	var rows []table.Row
+
+	// Sort data by name for stable ordering
+	sort.Slice(data, func(i, j int) bool {
+		nameI := getString(data[i], "name")
+		nameJ := getString(data[j], "name")
+		return nameI < nameJ
+	})
+
+	switch storagePath {
+	case "/storage/s3":
+		columns = []table.Column{
+			{Title: "Name", Width: 30},
+			{Title: "Region", Width: 12},
+			{Title: "Objects", Width: 10},
+			{Title: "Size", Width: 15},
+			{Title: "Created", Width: 20},
+		}
+		for _, item := range data {
+			name := getString(item, "name")
+			region := getString(item, "region")
+			objectsCount := getNumericValue(item, "objectsCount")
+			objectsSize := getNumericValue(item, "objectsSize")
+			created := getString(item, "createdAt")
+			if len(created) > 19 {
+				created = created[:19]
+			}
+			rows = append(rows, table.Row{
+				name,
+				region,
+				fmt.Sprintf("%d", int(objectsCount)),
+				formatStorageSize(int64(objectsSize)),
+				created,
+			})
+		}
+
+	case "/storage/swift":
+		columns = []table.Column{
+			{Title: "Name", Width: 30},
+			{Title: "Region", Width: 12},
+			{Title: "Type", Width: 12},
+			{Title: "Objects", Width: 10},
+			{Title: "Size", Width: 15},
+		}
+		for _, item := range data {
+			name := getString(item, "name")
+			region := getString(item, "region")
+			containerType := getString(item, "containerType")
+			if containerType == "" {
+				containerType = "private"
+			}
+			storedObjects := getNumericValue(item, "storedObjects")
+			storedBytes := getNumericValue(item, "storedBytes")
+			rows = append(rows, table.Row{
+				name,
+				region,
+				containerType,
+				fmt.Sprintf("%d", int(storedObjects)),
+				formatStorageSize(int64(storedBytes)),
+			})
+		}
+
+	case "/storage/block":
+		columns = []table.Column{
+			{Title: "Name", Width: 25},
+			{Title: "Region", Width: 12},
+			{Title: "Size (GB)", Width: 10},
+			{Title: "Type", Width: 15},
+			{Title: "Status", Width: 12},
+			{Title: "Attached To", Width: 20},
+		}
+		for _, item := range data {
+			name := getString(item, "name")
+			region := getString(item, "region")
+			size := getNumericValue(item, "size")
+			volType := getString(item, "type")
+			status := getString(item, "status")
+			attachedTo := getVolumeAttachment(item)
+			rows = append(rows, table.Row{
+				name,
+				region,
+				fmt.Sprintf("%d", int(size)),
+				volType,
+				status,
+				attachedTo,
+			})
+		}
+
+	default:
+		// Fallback to generic columns
+		columns = []table.Column{
+			{Title: "Name", Width: 30},
+			{Title: "Region", Width: 15},
+		}
+		for _, item := range data {
+			rows = append(rows, table.Row{
+				getString(item, "name"),
+				getString(item, "region"),
+			})
+		}
+	}
+
+	// Calculate table height
+	tableHeight := height - 18 // Account for tabs, header, footer
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// formatStorageSize formats bytes into human-readable format
+func formatStorageSize(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+// getVolumeAttachment returns the attachment info for a volume
+func getVolumeAttachment(volume map[string]interface{}) string {
+	if attachedTo, ok := volume["attachedTo"].([]interface{}); ok && len(attachedTo) > 0 {
+		if first, ok := attachedTo[0].(string); ok {
+			if len(first) > 18 {
+				return first[:15] + "..."
+			}
+			return first
+		}
+	}
+	return "-"
 }
 
 // createInstancesTable creates a table for displaying instances (like OVHcloud web UI)
@@ -3385,6 +3992,70 @@ type nodePoolScaleMsg struct {
 type nodePoolDeletedMsg struct {
 	result string
 	err    error
+}
+
+type s3ObjectsLoadedMsg struct {
+	containerName string
+	objects       []map[string]interface{}
+	err           error
+}
+
+type s3ObjectCopyMsg struct {
+	containerName string
+	objectKey     string
+	result        map[string]interface{}
+	err           error
+}
+
+type s3ObjectRestoreMsg struct {
+	containerName string
+	objectKey     string
+	result        map[string]interface{}
+	err           error
+}
+
+type s3ObjectDeleteMsg struct {
+	containerName string
+	objectKey     string
+	err           error
+}
+
+type s3PresignedURLMsg struct {
+	containerName string
+	objectKey     string
+	url           string
+	method        string
+	result        map[string]interface{}
+	err           error
+}
+
+type s3DownloadMsg struct {
+	containerName string
+	objectKey     string
+	url           string
+	err           error
+}
+
+type s3UploadMsg struct {
+	containerName string
+	objectKey     string
+	filePath      string
+	err           error
+}
+
+type s3SaveMsg struct {
+	containerName string
+	objectKey     string
+	filePath      string
+	err           error
+}
+
+type storageActionMsg struct {
+	result         string
+	err            error
+	refresh        bool // Refresh container list
+	refreshObjects bool // Refresh objects list
+	goBack         bool // Go back to previous view
 }
 
 type startNodePoolScaleMsg struct {

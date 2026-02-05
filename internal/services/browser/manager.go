@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -45,6 +46,8 @@ const (
 	KubeDeleteConfirmView     // Kubernetes cluster delete confirmation
 	NodePoolScaleView         // Node pool scale view
 	NodePoolDeleteConfirmView // Node pool delete confirmation
+	StorageObjectsView        // Storage objects list view
+	StorageObjectDetailView   // Storage object detail view
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -261,6 +264,19 @@ type Model struct {
 	selectedNodePool        map[string]interface{}              // Currently selected node pool for detail view
 	nodePoolDetailActionIdx int                                 // Selected action index in node pool detail view
 	nodePoolDetailConfirm   bool                                // Whether we're in confirmation mode
+	// Storage data
+	storagePath         string                              // Current storage path (/storage/s3, /storage/swift, /storage/block)
+	s3Objects           map[string][]map[string]interface{} // containerName -> list of objects
+	currentContainer    map[string]interface{}              // Currently selected container (for object browsing)
+	currentObject       map[string]interface{}              // Currently selected object
+	s3ContainerURLs     map[string]string                   // containerName -> API URL for the container
+	selectedObjectIndex int                                 // Currently selected object index in objects view
+	// Upload mode
+	uploadMode      bool   // Whether we're in file upload input mode
+	uploadPathInput string // Current file path input for upload
+	// Save mode (download to local filesystem)
+	saveMode      bool   // Whether we're in file save input mode
+	savePathInput string // Current file path input for save
 }
 
 // Navigation items for the top bar
@@ -722,6 +738,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case switchToNodePoolsViewMsg:
 		return m.handleSwitchToNodePoolsView(msg)
 
+	case s3ObjectsLoadedMsg:
+		return m.handleS3ObjectsLoaded(msg)
+
+	case s3ObjectCopyMsg:
+		return m.handleS3ObjectCopy(msg)
+
+	case s3ObjectRestoreMsg:
+		return m.handleS3ObjectRestore(msg)
+
+	case s3ObjectDeleteMsg:
+		return m.handleS3ObjectDelete(msg)
+
+	case s3PresignedURLMsg:
+		return m.handleS3PresignedURL(msg)
+
+	case s3DownloadMsg:
+		return m.handleS3Download(msg)
+
+	case s3UploadMsg:
+		return m.handleS3Upload(msg)
+
+	case s3SaveMsg:
+		return m.handleS3Save(msg)
+
+	case storageActionMsg:
+		return m.handleStorageAction(msg)
+
 	case startNodePoolWizardMsg:
 		return m.handleStartNodePoolWizard(msg)
 
@@ -986,6 +1029,10 @@ func (m Model) renderContentBox(width int) string {
 		contentStr = m.renderNodePoolScaleView(width - 6)
 	case NodePoolDeleteConfirmView:
 		contentStr = m.renderNodePoolDeleteConfirmView(width - 6)
+	case StorageObjectsView:
+		contentStr = m.renderStorageObjectsView(width - 6)
+	case StorageObjectDetailView:
+		contentStr = m.renderStorageObjectDetailView(width - 6)
 	}
 
 	// Combine title and content
@@ -3148,14 +3195,22 @@ func (m Model) getProductCreationInfo() (string, string) {
 }
 
 func (m Model) renderTable() string {
-	if m.table.Rows() == nil || len(m.table.Rows()) == 0 {
-		if m.filterInput != "" {
-			return lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No results match filter: " + m.filterInput)
-		}
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No data available")
+	var content strings.Builder
+
+	// Render storage type tabs if viewing storage
+	if m.currentProduct == ProductStorage {
+		content.WriteString(m.renderStorageTabs())
+		content.WriteString("\n\n")
 	}
 
-	var content strings.Builder
+	if m.table.Rows() == nil || len(m.table.Rows()) == 0 {
+		if m.filterInput != "" {
+			content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No results match filter: " + m.filterInput))
+			return content.String()
+		}
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No data available"))
+		return content.String()
+	}
 
 	// Show filter indicator if filter is active (but not in edit mode)
 	if m.filterInput != "" && !m.filterMode {
@@ -3165,6 +3220,46 @@ func (m Model) renderTable() string {
 
 	content.WriteString(m.table.View())
 	return content.String()
+}
+
+// renderStorageTabs renders the storage type tabs (S3, Swift, Block)
+func (m Model) renderStorageTabs() string {
+	activeStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00FF7F")).
+		Bold(true).
+		Underline(true)
+
+	inactiveStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888"))
+
+	separatorStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#444444"))
+
+	tabs := []struct {
+		label string
+		path  string
+		key   string
+	}{
+		{"📦 S3", "/storage/s3", "1"},
+		{"🗂️  Swift", "/storage/swift", "2"},
+		{"💾 Block", "/storage/block", "3"},
+	}
+
+	var parts []string
+	for i, tab := range tabs {
+		keyHint := inactiveStyle.Render(fmt.Sprintf("[%s] ", tab.key))
+		if m.storagePath == tab.path {
+			parts = append(parts, keyHint+activeStyle.Render(tab.label))
+		} else {
+			parts = append(parts, keyHint+inactiveStyle.Render(tab.label))
+		}
+		if i < len(tabs)-1 {
+			parts = append(parts, separatorStyle.Render(" │ "))
+		}
+	}
+
+	tabHint := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("  (Tab to cycle)")
+	return strings.Join(parts, "") + tabHint
 }
 
 func (m Model) renderDeleteConfirmView() string {
@@ -3220,6 +3315,8 @@ func (m Model) renderDetailView(width int) string {
 		return m.renderInstanceDetail(width)
 	case ProductKubernetes:
 		return m.renderKubernetesDetail(width)
+	case ProductStorage:
+		return m.renderStorageDetail(width)
 	case ProductProjects:
 		return m.renderProjectDetail(width)
 	default:
@@ -3515,6 +3612,330 @@ func (m Model) renderKubernetesDetail(width int) string {
 	return content.String()
 }
 
+func (m Model) renderStorageDetail(width int) string {
+	// Determine storage type based on storagePath
+	switch m.storagePath {
+	case "/storage/s3":
+		return m.renderS3StorageDetail(width)
+	case "/storage/swift":
+		return m.renderSwiftStorageDetail(width)
+	case "/storage/block":
+		return m.renderBlockStorageDetail(width)
+	default:
+		return m.renderGenericDetail(width)
+	}
+}
+
+func (m Model) renderS3StorageDetail(width int) string {
+	var content strings.Builder
+
+	name := getStringValue(m.detailData, "name", "Unknown")
+	region := getStringValue(m.detailData, "region", "N/A")
+	objectsCount := int(getIntOrFloatValue(m.detailData, "objectsCount", 0))
+	objectsSize := int(getIntOrFloatValue(m.detailData, "objectsSize", 0))
+	created := getStringValue(m.detailData, "createdAt", "N/A")
+	virtualHost := getStringValue(m.detailData, "virtualHost", "")
+
+	// Information box
+	infoContent := strings.Builder{}
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Name:"), valueStyle.Render(name)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Region:"), valueStyle.Render(region)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Created:"), valueStyle.Render(created)))
+	if virtualHost != "" {
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Virtual Host:"), valueStyle.Render(virtualHost)))
+	}
+	infoContent.WriteString(fmt.Sprintf("%s %d\n", labelStyle.Render("Objects:"), objectsCount))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("Total Size:"), valueStyle.Render(formatBytes(int64(objectsSize)))))
+
+	infoBox := renderBox("S3 Container Information", infoContent.String(), width-4)
+	content.WriteString(infoBox)
+	content.WriteString("\n\n")
+
+	// Objects list
+	objects := m.s3Objects[name]
+	if objects == nil || len(objects) == 0 {
+		objectsContent := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Italic(true).Render("Loading objects...")
+		content.WriteString(renderBox(fmt.Sprintf("Objects (0)"), objectsContent, width-4))
+	} else {
+		objectsContent := strings.Builder{}
+
+		// Table header
+		headerStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7B68EE"))
+		objectsContent.WriteString(headerStyle.Render(fmt.Sprintf("%-50s  %12s  %s\n", "Key", "Size", "Last Modified")))
+		objectsContent.WriteString(strings.Repeat("─", width-10) + "\n")
+
+		// List up to 10 objects
+		maxObjects := 10
+		if len(objects) < maxObjects {
+			maxObjects = len(objects)
+		}
+
+		for i := 0; i < maxObjects; i++ {
+			obj := objects[i]
+			key := getStringValue(obj, "key", "")
+			size := int(getIntOrFloatValue(obj, "size", 0))
+			lastModified := getStringValue(obj, "lastModified", "")
+
+			// Truncate key if too long
+			displayKey := key
+			if len(displayKey) > 48 {
+				displayKey = displayKey[:45] + "..."
+			}
+
+			objectsContent.WriteString(fmt.Sprintf("%-50s  %12s  %s\n",
+				displayKey,
+				formatBytes(int64(size)),
+				lastModified))
+		}
+
+		if len(objects) > maxObjects {
+			moreStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Italic(true)
+			objectsContent.WriteString("\n" + moreStyle.Render(fmt.Sprintf("... and %d more objects", len(objects)-maxObjects)))
+		}
+
+		content.WriteString(renderBox(fmt.Sprintf("Objects (%d)", len(objects)), objectsContent.String(), width-4))
+	}
+
+	return content.String()
+}
+
+func (m Model) renderSwiftStorageDetail(width int) string {
+	// Similar to S3 but for Swift containers
+	return m.renderGenericDetail(width)
+}
+
+func (m Model) renderBlockStorageDetail(width int) string {
+	// For block storage volumes
+	return m.renderGenericDetail(width)
+}
+
+func (m Model) renderStorageObjectsView(width int) string {
+	if m.currentContainer == nil {
+		return errorStyle.Render("No container selected")
+	}
+
+	var content strings.Builder
+
+	containerName := getStringValue(m.currentContainer, "name", "Unknown")
+	region := getStringValue(m.currentContainer, "region", "N/A")
+
+	// Header with container info
+	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7B68EE"))
+	content.WriteString(headerStyle.Render(fmt.Sprintf("📦 %s (%s)", containerName, region)))
+	content.WriteString("\n\n")
+
+	// Upload mode input
+	if m.uploadMode {
+		uploadStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+		content.WriteString(uploadStyle.Render("📤 Upload file - Enter path:") + "\n")
+		inputStyle := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#FFFFFF")).Padding(0, 1)
+		content.WriteString(inputStyle.Render(m.uploadPathInput+"▌") + "\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("(Enter to upload, Esc to cancel, Tab for completion)") + "\n\n")
+	}
+
+	objects := m.s3Objects[containerName]
+	if objects == nil || len(objects) == 0 {
+		loadingStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Italic(true)
+		content.WriteString(loadingStyle.Render("No objects found or still loading..."))
+		return content.String()
+	}
+
+	// Render objects table
+	tableHeader := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7B68EE"))
+	content.WriteString(tableHeader.Render(fmt.Sprintf("%-50s  %12s  %15s  %s\n", "Key", "Size", "Storage Class", "Last Modified")))
+	content.WriteString(strings.Repeat("─", width-4) + "\n")
+
+	// Show objects with cursor
+	selectedIdx := m.selectedObjectIndex
+	maxObjects := 15
+	if len(objects) < maxObjects {
+		maxObjects = len(objects)
+	}
+
+	for i := 0; i < maxObjects; i++ {
+		obj := objects[i]
+		key := getStringValue(obj, "key", "")
+		size := int(getIntOrFloatValue(obj, "size", 0))
+		storageClass := getStringValue(obj, "storageClass", "STANDARD")
+		lastModified := getStringValue(obj, "lastModified", "")
+
+		// Truncate long keys
+		if len(key) > 48 {
+			key = key[:45] + "..."
+		}
+		if len(lastModified) > 19 {
+			lastModified = lastModified[:19]
+		}
+
+		// Format size
+		sizeStr := formatBytes(int64(size))
+
+		// Storage class with indicator
+		classStr := storageClass
+		if storageClass == "STANDARD_IA" {
+			classStr = "🧊 ARCHIVED"
+		}
+
+		row := fmt.Sprintf("%-50s  %12s  %15s  %s", key, sizeStr, classStr, lastModified)
+
+		if i == selectedIdx {
+			selectedStyle := lipgloss.NewStyle().
+				Background(lipgloss.Color("#7B68EE")).
+				Foreground(lipgloss.Color("#FFFFFF"))
+			content.WriteString(selectedStyle.Render(row) + "\n")
+		} else {
+			content.WriteString(row + "\n")
+		}
+	}
+
+	if len(objects) > maxObjects {
+		moreStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Italic(true)
+		content.WriteString("\n" + moreStyle.Render(fmt.Sprintf("... and %d more objects", len(objects)-maxObjects)))
+	}
+
+	return content.String()
+}
+
+func (m Model) renderStorageObjectDetailView(width int) string {
+	if m.currentObject == nil || m.currentContainer == nil {
+		return errorStyle.Render("No object selected")
+	}
+
+	var content strings.Builder
+
+	key := getStringValue(m.currentObject, "key", "Unknown")
+	containerName := getStringValue(m.currentContainer, "name", "")
+	region := getStringValue(m.currentContainer, "region", "")
+	size := int(getIntOrFloatValue(m.currentObject, "size", 0))
+	storageClass := getStringValue(m.currentObject, "storageClass", "STANDARD")
+	etag := getStringValue(m.currentObject, "etag", "")
+	lastModified := getStringValue(m.currentObject, "lastModified", "")
+	versionId := getStringValue(m.currentObject, "versionId", "")
+
+	// Object information box
+	infoContent := strings.Builder{}
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Key:"), valueStyle.Render(key)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Container:"), valueStyle.Render(containerName)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Region:"), valueStyle.Render(region)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Size:"), valueStyle.Render(formatBytes(int64(size)))))
+
+	// Storage class with special formatting
+	classDisplay := storageClass
+	if storageClass == "STANDARD_IA" {
+		classDisplay = "🧊 STANDARD_IA (Archived)"
+	} else if storageClass == "HIGH_PERF" {
+		classDisplay = "⚡ HIGH_PERF"
+	}
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Storage Class:"), valueStyle.Render(classDisplay)))
+
+	if etag != "" {
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("ETag:"), valueStyle.Render(etag)))
+	}
+	if lastModified != "" {
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Last Modified:"), valueStyle.Render(lastModified)))
+	}
+	if versionId != "" {
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Version ID:"), valueStyle.Render(versionId)))
+	}
+
+	infoBox := renderBox("Object Information", infoContent.String(), width-4)
+	content.WriteString(infoBox)
+	content.WriteString("\n\n")
+
+	// Restore status for archived objects
+	if restoreStatus, ok := m.currentObject["restoreStatus"].(map[string]interface{}); ok {
+		var restoreContent strings.Builder
+		status := getStringValue(restoreStatus, "status", "")
+		if status == "ongoing" {
+			restoreContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Status:"), statusStoppedStyle.Render("🔄 Restoring...")))
+		} else if status == "completed" {
+			restoreContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Status:"), statusRunningStyle.Render("✅ Restored")))
+			if expiryDate := getStringValue(restoreStatus, "expiryDate", ""); expiryDate != "" {
+				restoreContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Expiry:"), valueStyle.Render(expiryDate)))
+			}
+		}
+		if restoreContent.Len() > 0 {
+			content.WriteString(renderBox("Archive Restore Status", restoreContent.String(), width-4))
+			content.WriteString("\n\n")
+		}
+	}
+
+	// Actions
+	isArchived := storageClass == "STANDARD_IA"
+	var actions []string
+	if isArchived {
+		actions = []string{"Download", "Save", "Copy", "Restore", "Presigned URL", "Delete"}
+	} else {
+		actions = []string{"Download", "Save", "Copy", "Archive", "Presigned URL", "Delete"}
+	}
+
+	// Save mode input
+	if m.saveMode {
+		var saveContent strings.Builder
+		saveStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+		saveContent.WriteString(saveStyle.Render("💾 Save to local filesystem - Enter path:") + "\n")
+		inputStyle := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#FFFFFF")).Padding(0, 1)
+		saveContent.WriteString(inputStyle.Render(m.savePathInput+"▌") + "\n")
+		saveContent.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("(Enter to save, Esc to cancel, Tab for completion)") + "\n")
+		content.WriteString(renderBox("Save Object", saveContent.String(), width-4))
+		content.WriteString("\n\n")
+	}
+
+	actionsContent := m.renderObjectActions(actions)
+	content.WriteString(renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4))
+
+	return content.String()
+}
+
+func (m Model) renderObjectActions(actions []string) string {
+	var parts []string
+
+	buttonStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Background(lipgloss.Color("#444444")).
+		Padding(0, 1)
+
+	selectedStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Background(lipgloss.Color("#7B68EE")).
+		Bold(true).
+		Padding(0, 1)
+
+	dangerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Background(lipgloss.Color("#FF4444")).
+		Padding(0, 1)
+
+	warningStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#000000")).
+		Background(lipgloss.Color("#FFAA00")).
+		Padding(0, 1)
+
+	for i, label := range actions {
+		var style lipgloss.Style
+		if i == m.selectedAction {
+			style = selectedStyle
+		} else if label == "Delete" {
+			style = dangerStyle
+		} else if label == "Restore" || label == "Archive" {
+			style = warningStyle
+		} else {
+			style = buttonStyle
+		}
+		parts = append(parts, style.Render("["+label+"]"))
+	}
+
+	result := strings.Join(parts, " ")
+
+	if m.actionConfirm {
+		actionName := actions[m.selectedAction]
+		confirmStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFAA00"))
+		result += "\n\n" + confirmStyle.Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actionName))
+	}
+
+	return result
+}
+
 func (m Model) renderProjectDetail(width int) string {
 	var content strings.Builder
 
@@ -3638,6 +4059,14 @@ func (m Model) renderFooter() string {
 		} else {
 			help = "←→: Select Action • Enter: Execute • d: Debug • Esc: Back to List • q: Quit"
 		}
+	case StorageObjectsView:
+		help = "↑↓: Navigate • Enter: Details • r: Refresh • Esc: Back to Container • q: Quit"
+	case StorageObjectDetailView:
+		if m.actionConfirm {
+			help = "Enter: Confirm Action • Esc: Cancel"
+		} else {
+			help = "←→: Select Action • Enter: Execute • Esc: Back to Objects • q: Quit"
+		}
 	case WizardView:
 		if m.wizard.cleanupPending {
 			help = "←→: Select • Enter: Confirm • Esc: Keep resources"
@@ -3721,6 +4150,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleNodePoolDeleteConfirmKeyPress(msg)
 	}
 
+	// Handle upload mode input
+	if m.uploadMode && m.mode == StorageObjectsView {
+		return m.handleUploadModeKeyPress(msg)
+	}
+
+	// Handle save mode input
+	if m.saveMode && m.mode == StorageObjectDetailView {
+		return m.handleSaveModeKeyPress(msg)
+	}
+
 	switch msg.String() {
 	case "q", "ctrl+c":
 		return m, tea.Quit
@@ -3743,6 +4182,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView for Kubernetes, navigate actions
 		if m.mode == DetailView && m.currentProduct == ProductKubernetes {
+			if m.selectedAction > 0 {
+				m.selectedAction--
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
+		// In DetailView for Storage, navigate actions
+		if m.mode == DetailView && m.currentProduct == ProductStorage {
+			if m.selectedAction > 0 {
+				m.selectedAction--
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
+		// In StorageObjectDetailView, navigate actions
+		if m.mode == StorageObjectDetailView {
 			if m.selectedAction > 0 {
 				m.selectedAction--
 				m.actionConfirm = false
@@ -3777,6 +4232,35 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// In DetailView for Kubernetes, navigate actions
 		if m.mode == DetailView && m.currentProduct == ProductKubernetes {
 			if m.selectedAction < 5 { // 6 actions: 0-5
+				m.selectedAction++
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
+		// In DetailView for Storage, navigate actions
+		if m.mode == DetailView && m.currentProduct == ProductStorage {
+			maxActions := 3
+			if m.storagePath == "/storage/s3" {
+				maxActions = 3 // View Objects, Presigned URL, Edit, Delete
+			} else if m.storagePath == "/storage/block" {
+				maxActions = 4 // Attach, Detach, Resize, Snapshot, Delete
+			}
+			if m.selectedAction < maxActions {
+				m.selectedAction++
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
+		// In StorageObjectDetailView, navigate actions
+		if m.mode == StorageObjectDetailView {
+			// Standard: Download, Save, Copy, Presigned URL, Delete = 5 actions (0-4)
+			// Archived: Download, Save, Copy, Restore, Presigned URL, Delete = 6 actions (0-5)
+			maxActionIdx := 4 // Standard: last index is 4
+			storageClass := getStringValue(m.currentObject, "storageClass", "STANDARD")
+			if storageClass == "STANDARD_IA" {
+				maxActionIdx = 5 // Archived: last index is 5
+			}
+			if m.selectedAction < maxActionIdx {
 				m.selectedAction++
 				m.actionConfirm = false
 			}
@@ -3842,6 +4326,35 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// Go back to container detail from objects view
+		if m.mode == StorageObjectsView {
+			if m.uploadMode {
+				// Cancel upload mode
+				m.uploadMode = false
+				m.uploadPathInput = ""
+				return m, nil
+			}
+			m.mode = DetailView
+			m.currentContainer = nil
+			return m, nil
+		}
+		// Go back to objects view from object detail, or cancel action confirm
+		if m.mode == StorageObjectDetailView {
+			if m.saveMode {
+				// Cancel save mode
+				m.saveMode = false
+				m.savePathInput = ""
+				return m, nil
+			}
+			if m.actionConfirm {
+				m.actionConfirm = false
+			} else {
+				m.mode = StorageObjectsView
+				m.currentObject = nil
+				m.selectedAction = 0
+			}
+			return m, nil
+		}
 		return m, nil
 
 	case "c":
@@ -3903,6 +4416,121 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.actionConfirm = true
 				return m, nil
 			}
+		} else if m.mode == DetailView && m.currentProduct == ProductStorage {
+			// Execute selected action on storage container
+			// View Objects (index 0) doesn't need confirmation
+			if m.selectedAction == 0 {
+				// View Objects - switch to objects view
+				m.currentContainer = m.detailData
+				m.mode = StorageObjectsView
+				m.selectedObjectIndex = 0 // Reset selection
+				// Fetch objects if not already loaded
+				containerName := getStringValue(m.detailData, "name", "")
+				s3URL := m.getContainerURL(m.detailData)
+				// Store the URL for later use
+				if s3URL != "" {
+					if m.s3ContainerURLs == nil {
+						m.s3ContainerURLs = make(map[string]string)
+					}
+					m.s3ContainerURLs[containerName] = s3URL
+				}
+				if m.s3Objects == nil || m.s3Objects[containerName] == nil {
+					if s3URL != "" {
+						return m, m.fetchS3Objects(containerName, s3URL)
+					}
+				}
+				return m, nil
+			} else if m.actionConfirm {
+				// Confirmed - execute the action
+				m.actionConfirm = false
+				return m, m.executeStorageAction(m.selectedAction)
+			} else if m.isDestructiveStorageAction(m.selectedAction) {
+				// Ask for confirmation for destructive actions
+				m.actionConfirm = true
+				return m, nil
+			} else {
+				// Non-destructive actions execute immediately
+				return m, m.executeStorageAction(m.selectedAction)
+			}
+		} else if m.mode == StorageObjectsView {
+			// Handle upload mode
+			if m.uploadMode {
+				if strings.TrimSpace(m.uploadPathInput) != "" {
+					// Start upload
+					m.uploadMode = false
+					filePath := strings.TrimSpace(m.uploadPathInput)
+					m.uploadPathInput = ""
+
+					// Use the filename as the object key
+					objectKey := filepath.Base(filePath)
+					containerName := getStringValue(m.currentContainer, "name", "")
+					region := getStringValue(m.currentContainer, "region", "")
+					s3URL := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, region, containerName)
+
+					m.notification = fmt.Sprintf("📤 Uploading %s...", objectKey)
+					m.notificationExpiry = time.Now().Add(30 * time.Second)
+					return m, m.uploadS3Object(containerName, objectKey, filePath, s3URL)
+				}
+				return m, nil
+			}
+			// Select an object to view details
+			if m.currentContainer != nil {
+				containerName := getStringValue(m.currentContainer, "name", "")
+				objects := m.s3Objects[containerName]
+				if m.selectedObjectIndex >= 0 && m.selectedObjectIndex < len(objects) {
+					m.currentObject = objects[m.selectedObjectIndex]
+					m.mode = StorageObjectDetailView
+					m.selectedAction = 0
+				}
+			}
+			return m, nil
+		} else if m.mode == StorageObjectDetailView {
+			// Handle save mode input
+			if m.saveMode {
+				if strings.TrimSpace(m.savePathInput) != "" {
+					// Start save/download
+					m.saveMode = false
+					destPath := strings.TrimSpace(m.savePathInput)
+					m.savePathInput = ""
+
+					// Expand ~ to home directory
+					if strings.HasPrefix(destPath, "~/") {
+						if home, err := os.UserHomeDir(); err == nil {
+							destPath = filepath.Join(home, destPath[2:])
+						}
+					}
+
+					objectKey := getStringValue(m.currentObject, "key", "")
+					containerName := getStringValue(m.currentContainer, "name", "")
+					region := getStringValue(m.currentContainer, "region", "")
+					s3URL := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, region, containerName)
+
+					m.notification = fmt.Sprintf("💾 Saving %s...", objectKey)
+					m.notificationExpiry = time.Now().Add(30 * time.Second)
+					return m, m.saveS3Object(containerName, objectKey, destPath, s3URL)
+				}
+				return m, nil
+			}
+			// Check if Save action is selected (index 1)
+			storageClass := getStringValue(m.currentObject, "storageClass", "STANDARD")
+			isSaveAction := m.selectedAction == 1 // Save is always at index 1
+			if isSaveAction && storageClass != "" {
+				// Enter save mode with default filename
+				objectKey := getStringValue(m.currentObject, "key", "")
+				m.saveMode = true
+				m.savePathInput = "~/" + filepath.Base(objectKey)
+				return m, nil
+			}
+			// Execute selected action on object
+			if m.actionConfirm {
+				m.actionConfirm = false
+				return m, m.executeStorageObjectAction(m.selectedAction)
+			} else if m.isDestructiveObjectAction(m.selectedAction) {
+				m.actionConfirm = true
+				return m, nil
+			} else {
+				return m, m.executeStorageObjectAction(m.selectedAction)
+			}
 		} else if m.mode == ProjectSelectView {
 			// Select project and go to products view
 			selectedRow := m.table.Cursor()
@@ -3944,6 +4572,21 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						return m, m.fetchKubeNodePools(kubeId)
 					}
 				}
+
+				// If viewing an S3 container, also load objects
+				if m.currentProduct == ProductStorage && m.storagePath == "/storage/s3" {
+					containerName := getStringValue(m.detailData, "name", "")
+					region := getStringValue(m.detailData, "region", "")
+					if containerName != "" && region != "" {
+						s3URL := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, region, containerName)
+						// Store the URL for later use
+						if m.s3ContainerURLs == nil {
+							m.s3ContainerURLs = make(map[string]string)
+						}
+						m.s3ContainerURLs[containerName] = s3URL
+						return m, m.fetchS3Objects(containerName, s3URL)
+					}
+				}
 			}
 		}
 		return m, nil
@@ -3965,11 +4608,37 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// Storage objects list navigation
+		if m.mode == StorageObjectsView && m.currentContainer != nil {
+			containerName := getStringValue(m.currentContainer, "name", "")
+			objects := m.s3Objects[containerName]
+			if len(objects) > 0 {
+				if msg.String() == "down" || msg.String() == "j" {
+					if m.selectedObjectIndex < len(objects)-1 {
+						m.selectedObjectIndex++
+					}
+				} else if msg.String() == "up" || msg.String() == "k" {
+					if m.selectedObjectIndex > 0 {
+						m.selectedObjectIndex--
+					}
+				}
+			}
+			return m, nil
+		}
 		// Table navigation (works in both ProjectSelectView and TableView)
 		if m.mode == TableView || m.mode == ProjectSelectView {
 			var cmd tea.Cmd
 			m.table, cmd = m.table.Update(msg)
 			return m, cmd
+		}
+		return m, nil
+
+	case "u":
+		// Upload file - only in StorageObjectsView
+		if m.mode == StorageObjectsView && m.currentContainer != nil {
+			m.uploadMode = true
+			m.uploadPathInput = ""
+			return m, nil
 		}
 		return m, nil
 
@@ -4055,6 +4724,53 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.deleteConfirmInput = ""
 				m.mode = DeleteConfirmView
 			}
+		}
+		return m, nil
+
+	case "tab":
+		// Switch storage type (cycle through S3 -> Swift -> Block -> S3)
+		if m.mode == TableView && m.currentProduct == ProductStorage {
+			var newPath string
+			switch m.storagePath {
+			case "/storage/s3":
+				newPath = "/storage/swift"
+			case "/storage/swift":
+				newPath = "/storage/block"
+			case "/storage/block":
+				newPath = "/storage/s3"
+			default:
+				newPath = "/storage/s3"
+			}
+			m.storagePath = newPath
+			m.mode = LoadingView
+			return m, m.fetchDataForPath(newPath)
+		}
+		return m, nil
+
+	case "1":
+		// Switch to S3 storage
+		if m.mode == TableView && m.currentProduct == ProductStorage && m.storagePath != "/storage/s3" {
+			m.storagePath = "/storage/s3"
+			m.mode = LoadingView
+			return m, m.fetchDataForPath("/storage/s3")
+		}
+		return m, nil
+
+	case "2":
+		// Switch to Swift storage
+		if m.mode == TableView && m.currentProduct == ProductStorage && m.storagePath != "/storage/swift" {
+			m.storagePath = "/storage/swift"
+			m.mode = LoadingView
+			return m, m.fetchDataForPath("/storage/swift")
+		}
+		return m, nil
+
+	case "3":
+		// Switch to Block storage
+		if m.mode == TableView && m.currentProduct == ProductStorage && m.storagePath != "/storage/block" {
+			m.storagePath = "/storage/block"
+			m.mode = LoadingView
+			return m, m.fetchDataForPath("/storage/block")
 		}
 		return m, nil
 	}
@@ -5675,6 +6391,11 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	m.detailData = nil
 	m.currentData = nil
 
+	// Initialize storagePath when switching to Storage product
+	if currentNav.Product == ProductStorage {
+		m.storagePath = currentNav.Path
+	}
+
 	// For instances and Kubernetes, start the auto-refresh timer
 	if currentNav.Product == ProductInstances || currentNav.Product == ProductKubernetes {
 		return m, tea.Batch(
@@ -5683,6 +6404,423 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 		)
 	}
 	return m, m.fetchDataForPath(currentNav.Path)
+}
+
+// handleS3ObjectsLoaded handles the loading of S3 objects for a container
+func (m Model) handleS3ObjectsLoaded(msg s3ObjectsLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = "Failed to load objects: " + msg.err.Error()
+		m.notificationExpiry = time.Now().Add(3 * time.Second)
+		return m, nil
+	}
+
+	if m.s3Objects == nil {
+		m.s3Objects = make(map[string][]map[string]interface{})
+	}
+	m.s3Objects[msg.containerName] = msg.objects
+
+	// If we're in objects view, update the display
+	if m.mode == StorageObjectsView && m.currentContainer != nil {
+		containerName := getString(m.currentContainer, "name")
+		if containerName == msg.containerName {
+			m.notification = fmt.Sprintf("Loaded %d objects", len(msg.objects))
+			m.notificationExpiry = time.Now().Add(2 * time.Second)
+		}
+	}
+	return m, nil
+}
+
+// handleS3ObjectCopy handles the result of an S3 object copy operation
+func (m Model) handleS3ObjectCopy(msg s3ObjectCopyMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = "Failed to copy object: " + msg.err.Error()
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ Object '%s' copied successfully", msg.objectKey)
+	m.notificationExpiry = time.Now().Add(3 * time.Second)
+
+	// Refresh the objects list
+	if m.currentContainer != nil {
+		containerName := getString(m.currentContainer, "name")
+		s3URL := ""
+		if m.s3ContainerURLs != nil {
+			s3URL = m.s3ContainerURLs[containerName]
+		}
+		return m, m.fetchS3Objects(containerName, s3URL)
+	}
+	return m, nil
+}
+
+// handleS3ObjectRestore handles the result of an S3 object restore operation
+func (m Model) handleS3ObjectRestore(msg s3ObjectRestoreMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = "Failed to restore object: " + msg.err.Error()
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ Object '%s' restore initiated", msg.objectKey)
+	m.notificationExpiry = time.Now().Add(3 * time.Second)
+
+	// Refresh the objects list
+	if m.currentContainer != nil {
+		containerName := getString(m.currentContainer, "name")
+		s3URL := ""
+		if m.s3ContainerURLs != nil {
+			s3URL = m.s3ContainerURLs[containerName]
+		}
+		return m, m.fetchS3Objects(containerName, s3URL)
+	}
+	return m, nil
+}
+
+// handleS3ObjectDelete handles the result of an S3 object delete operation
+func (m Model) handleS3ObjectDelete(msg s3ObjectDeleteMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = "Failed to delete object: " + msg.err.Error()
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ Object '%s' deleted", msg.objectKey)
+	m.notificationExpiry = time.Now().Add(3 * time.Second)
+
+	// Go back to objects view and refresh
+	m.mode = StorageObjectsView
+	m.currentObject = nil
+
+	if m.currentContainer != nil {
+		containerName := getString(m.currentContainer, "name")
+		s3URL := ""
+		if m.s3ContainerURLs != nil {
+			s3URL = m.s3ContainerURLs[containerName]
+		}
+		return m, m.fetchS3Objects(containerName, s3URL)
+	}
+	return m, nil
+}
+
+// handleS3PresignedURL handles the result of a presigned URL generation
+func (m Model) handleS3PresignedURL(msg s3PresignedURLMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = "Failed to generate presigned URL: " + msg.err.Error()
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	// Show the presigned URL in notification - it will stay longer for copying
+	m.notification = fmt.Sprintf("📋 Presigned URL (%s):\n%s", msg.method, msg.url)
+	m.notificationExpiry = time.Now().Add(30 * time.Second) // Keep visible for 30 seconds
+
+	return m, nil
+}
+
+// handleS3Download handles the download result and opens the URL in the browser
+func (m Model) handleS3Download(msg s3DownloadMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = "Failed to generate download URL: " + msg.err.Error()
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	if msg.url == "" {
+		m.notification = "Failed to get download URL"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	// Open the URL in the system browser
+	var cmd *exec.Cmd
+	switch {
+	case fileExists("/usr/bin/xdg-open"):
+		cmd = exec.Command("xdg-open", msg.url)
+	case fileExists("/usr/bin/open"):
+		cmd = exec.Command("open", msg.url)
+	case fileExists("/usr/bin/wslview"):
+		cmd = exec.Command("wslview", msg.url)
+	default:
+		// Fallback: show URL in notification
+		m.notification = fmt.Sprintf("📥 Download URL (open in browser):\n%s", msg.url)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, nil
+	}
+
+	if err := cmd.Start(); err != nil {
+		m.notification = fmt.Sprintf("📥 Download URL:\n%s", msg.url)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("📥 Opening download for: %s", msg.objectKey)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	return m, nil
+}
+
+// handleS3Upload handles the result of an S3 upload
+func (m Model) handleS3Upload(msg s3UploadMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = "❌ Upload failed: " + msg.err.Error()
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ Uploaded: %s", msg.objectKey)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+
+	// Refresh objects list
+	if m.currentContainer != nil {
+		containerName := getStringValue(m.currentContainer, "name", "")
+		region := getStringValue(m.currentContainer, "region", "")
+		s3URL := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, region, containerName)
+		return m, m.fetchS3Objects(containerName, s3URL)
+	}
+
+	return m, nil
+}
+
+// handleS3Save handles the result of saving an S3 object to local filesystem
+func (m Model) handleS3Save(msg s3SaveMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = "❌ Save failed: " + msg.err.Error()
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ Saved to: %s", msg.filePath)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	return m, nil
+}
+
+// fileExists checks if a file exists
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// handleStorageAction handles the result of a storage action
+func (m Model) handleStorageAction(msg storageActionMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = msg.err.Error()
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	if msg.result != "" {
+		m.notification = msg.result
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+	}
+
+	// Handle navigation and refresh
+	if msg.goBack {
+		if m.mode == StorageObjectDetailView {
+			m.mode = StorageObjectsView
+			m.currentObject = nil
+		} else if m.mode == DetailView {
+			m.mode = TableView
+		}
+	}
+
+	if msg.refresh {
+		// Refresh container list
+		m.mode = LoadingView
+		return m, m.fetchDataForPath(m.storagePath)
+	}
+
+	if msg.refreshObjects && m.currentContainer != nil {
+		containerName := getStringValue(m.currentContainer, "name", "")
+		s3URL := m.getContainerURL(m.currentContainer)
+		return m, m.fetchS3Objects(containerName, s3URL)
+	}
+
+	return m, nil
+}
+
+// Storage helper functions
+
+// getContainerURL returns the API URL for a container
+func (m Model) getContainerURL(container map[string]interface{}) string {
+	containerName := getStringValue(container, "name", "")
+	region := getStringValue(container, "region", "")
+
+	if containerName == "" || region == "" {
+		return ""
+	}
+
+	// Build the URL
+	return fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, region, containerName)
+}
+
+// isDestructiveStorageAction returns true if the action requires confirmation
+func (m Model) isDestructiveStorageAction(actionIdx int) bool {
+	// Storage actions: 0=View Objects, 1=Presigned URL, 2=Edit, 3=Delete
+	// For S3: 0=View Objects, 1=Presigned URL, 2=Edit, 3=Delete
+	// For Swift: 0=View Objects, 1=Edit, 2=Delete
+	// For Block: 0=Attach, 1=Detach, 2=Resize, 3=Snapshot, 4=Delete
+	switch m.storagePath {
+	case "/storage/s3":
+		return actionIdx == 3 // Delete
+	case "/storage/swift":
+		return actionIdx == 2 // Delete
+	case "/storage/block":
+		return actionIdx == 1 || actionIdx == 4 // Detach, Delete
+	default:
+		return actionIdx >= 2
+	}
+}
+
+// executeStorageAction executes the selected action on a storage container
+func (m Model) executeStorageAction(actionIdx int) tea.Cmd {
+	return func() tea.Msg {
+		containerName := getStringValue(m.detailData, "name", "")
+		region := getStringValue(m.detailData, "region", "")
+
+		if containerName == "" {
+			return storageActionMsg{err: fmt.Errorf("container not found")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, region, containerName)
+
+		switch m.storagePath {
+		case "/storage/s3":
+			// S3 actions: 0=View Objects (handled separately), 1=Presigned URL, 2=Edit, 3=Delete
+			switch actionIdx {
+			case 1:
+				// Presigned URL - would require input dialog, for now just show info
+				return storageActionMsg{result: "Use CLI: ovhcloud cloud storage-s3 generate-presigned-url " + containerName}
+			case 2:
+				// Edit - would require input dialog
+				return storageActionMsg{result: "Use CLI: ovhcloud cloud storage-s3 edit " + containerName}
+			case 3:
+				// Delete container
+				if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+					return storageActionMsg{err: fmt.Errorf("failed to delete container: %w", err)}
+				}
+				return storageActionMsg{result: "Container deleted successfully", refresh: true}
+			}
+		case "/storage/swift":
+			// Swift actions: 0=View Objects, 1=Edit, 2=Delete
+			containerId := getStringValue(m.detailData, "id", "")
+			switch actionIdx {
+			case 1:
+				return storageActionMsg{result: "Use CLI: ovhcloud cloud storage-swift edit " + containerId}
+			case 2:
+				endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s", m.cloudProject, containerId)
+				if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+					return storageActionMsg{err: fmt.Errorf("failed to delete container: %w", err)}
+				}
+				return storageActionMsg{result: "Container deleted successfully", refresh: true}
+			}
+		case "/storage/block":
+			// Block actions: 0=Attach, 1=Detach, 2=Resize, 3=Snapshot, 4=Delete
+			volumeId := getStringValue(m.detailData, "id", "")
+			switch actionIdx {
+			case 0:
+				return storageActionMsg{result: "Use CLI: ovhcloud cloud volume attach " + volumeId + " <instance-id>"}
+			case 1:
+				return storageActionMsg{result: "Use CLI: ovhcloud cloud volume detach " + volumeId + " <instance-id>"}
+			case 2:
+				return storageActionMsg{result: "Use CLI: ovhcloud cloud volume resize " + volumeId + " <size>"}
+			case 3:
+				return storageActionMsg{result: "Use CLI: ovhcloud cloud volume snapshot " + volumeId}
+			case 4:
+				endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, volumeId)
+				if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+					return storageActionMsg{err: fmt.Errorf("failed to delete volume: %w", err)}
+				}
+				return storageActionMsg{result: "Volume deleted successfully", refresh: true}
+			}
+		}
+		return storageActionMsg{result: "Action not implemented"}
+	}
+}
+
+// isDestructiveObjectAction returns true if the object action requires confirmation
+func (m Model) isDestructiveObjectAction(actionIdx int) bool {
+	// Object actions for standard: 0=Download, 1=Save, 2=Copy, 3=Archive, 4=Presigned URL, 5=Delete
+	// Object actions for archived: 0=Download, 1=Save, 2=Copy, 3=Restore, 4=Presigned URL, 5=Delete
+	storageClass := getStringValue(m.currentObject, "storageClass", "STANDARD")
+	isArchived := storageClass == "STANDARD_IA"
+	if isArchived {
+		return actionIdx == 3 || actionIdx == 5 // Restore and Delete
+	}
+	return actionIdx == 3 || actionIdx == 5 // Archive and Delete
+}
+
+// executeStorageObjectAction executes the selected action on a storage object
+func (m Model) executeStorageObjectAction(actionIdx int) tea.Cmd {
+	if m.currentObject == nil || m.currentContainer == nil {
+		return func() tea.Msg {
+			return storageActionMsg{err: fmt.Errorf("no object selected")}
+		}
+	}
+
+	objectKey := getStringValue(m.currentObject, "key", "")
+	containerName := getStringValue(m.currentContainer, "name", "")
+	region := getStringValue(m.currentContainer, "region", "")
+
+	if objectKey == "" || containerName == "" {
+		return func() tea.Msg {
+			return storageActionMsg{err: fmt.Errorf("object or container not found")}
+		}
+	}
+
+	s3URL := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, region, containerName)
+
+	// Object actions depend on storage class
+	// For standard objects: 0=Download, 1=Save, 2=Copy, 3=Archive, 4=Presigned URL, 5=Delete
+	// For archived objects: 0=Download, 1=Save, 2=Copy, 3=Restore, 4=Presigned URL, 5=Delete
+
+	storageClass := getStringValue(m.currentObject, "storageClass", "STANDARD")
+	isArchived := storageClass == "STANDARD_IA"
+
+	if isArchived {
+		switch actionIdx {
+		case 0: // Download (open in browser)
+			return m.downloadS3Object(containerName, objectKey, s3URL)
+		case 1: // Save (triggers save mode - handled in key press)
+			return nil // Save mode is handled by key press, this shouldn't be called
+		case 2: // Copy
+			return m.copyS3Object(containerName, objectKey, s3URL, map[string]interface{}{
+				"targetBucket": containerName,
+				"targetKey":    objectKey + "-copy",
+			})
+		case 3: // Restore
+			return m.restoreS3Object(containerName, objectKey, s3URL, map[string]interface{}{
+				"days": 7,
+			})
+		case 4: // Presigned URL
+			return m.generateS3PresignedURL(containerName, objectKey, s3URL, "GET", 3600)
+		case 5: // Delete
+			return m.deleteS3Object(containerName, objectKey, s3URL)
+		}
+	} else {
+		switch actionIdx {
+		case 0: // Download (open in browser)
+			return m.downloadS3Object(containerName, objectKey, s3URL)
+		case 1: // Save (triggers save mode - handled in key press)
+			return nil // Save mode is handled by key press, this shouldn't be called
+		case 2: // Copy
+			return m.copyS3Object(containerName, objectKey, s3URL, map[string]interface{}{
+				"targetBucket": containerName,
+				"targetKey":    objectKey + "-copy",
+			})
+		case 3: // Archive (copy to itself with STANDARD_IA storage class)
+			return m.copyS3Object(containerName, objectKey, s3URL, map[string]interface{}{
+				"targetBucket": containerName,
+				"targetKey":    objectKey,
+				"storageClass": "STANDARD_IA",
+			})
+		case 4: // Presigned URL
+			return m.generateS3PresignedURL(containerName, objectKey, s3URL, "GET", 3600)
+		case 5: // Delete
+			return m.deleteS3Object(containerName, objectKey, s3URL)
+		}
+	}
+	return func() tea.Msg {
+		return storageActionMsg{result: "Action not implemented"}
+	}
 }
 
 // Helper functions
@@ -5750,6 +6888,20 @@ func truncate(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// formatBytes formats a byte count into a human-readable string
+func formatBytes(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
 // ========== Node Pool Wizard Key Handlers ==========
@@ -6161,6 +7313,180 @@ func (m Model) handleNodePoolDeleteConfirmKeyPress(msg tea.KeyMsg) (tea.Model, t
 		char := msg.String()
 		if len(char) == 1 {
 			m.wizard.nodePoolDeleteConfirmInput += char
+		}
+		return m, nil
+	}
+}
+
+func (m Model) handleUploadModeKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		m.uploadMode = false
+		m.uploadPathInput = ""
+		return m, nil
+
+	case "backspace":
+		if len(m.uploadPathInput) > 0 {
+			m.uploadPathInput = m.uploadPathInput[:len(m.uploadPathInput)-1]
+		}
+		return m, nil
+
+	case "enter":
+		if strings.TrimSpace(m.uploadPathInput) != "" {
+			// Start upload
+			m.uploadMode = false
+			filePath := strings.TrimSpace(m.uploadPathInput)
+			m.uploadPathInput = ""
+
+			// Expand ~ to home directory
+			if strings.HasPrefix(filePath, "~/") {
+				if home, err := os.UserHomeDir(); err == nil {
+					filePath = filepath.Join(home, filePath[2:])
+				}
+			}
+
+			// Use the filename as the object key
+			objectKey := filepath.Base(filePath)
+			containerName := getStringValue(m.currentContainer, "name", "")
+			region := getStringValue(m.currentContainer, "region", "")
+			s3URL := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, region, containerName)
+
+			m.notification = fmt.Sprintf("📤 Uploading %s...", objectKey)
+			m.notificationExpiry = time.Now().Add(30 * time.Second)
+			return m, m.uploadS3Object(containerName, objectKey, filePath, s3URL)
+		}
+		return m, nil
+
+	case "tab":
+		// Tab completion for file paths
+		m.uploadPathInput = m.completeFilePath(m.uploadPathInput)
+		return m, nil
+
+	default:
+		// Handle regular character input
+		char := msg.String()
+		if len(char) == 1 {
+			m.uploadPathInput += char
+		} else if msg.Type == tea.KeySpace {
+			m.uploadPathInput += " "
+		}
+		return m, nil
+	}
+}
+
+// completeFilePath provides basic tab completion for file paths
+func (m Model) completeFilePath(input string) string {
+	if input == "" {
+		return input
+	}
+
+	// Expand ~ to home directory for completion
+	expandedInput := input
+	if strings.HasPrefix(input, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			expandedInput = filepath.Join(home, input[2:])
+		}
+	}
+
+	dir := filepath.Dir(expandedInput)
+	prefix := filepath.Base(expandedInput)
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return input
+	}
+
+	var matches []string
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), prefix) {
+			fullPath := filepath.Join(dir, entry.Name())
+			if entry.IsDir() {
+				fullPath += "/"
+			}
+			// Restore ~ prefix if it was used
+			if strings.HasPrefix(input, "~/") {
+				if home, err := os.UserHomeDir(); err == nil {
+					fullPath = "~/" + strings.TrimPrefix(fullPath, home+"/")
+				}
+			}
+			matches = append(matches, fullPath)
+		}
+	}
+
+	if len(matches) == 1 {
+		return matches[0]
+	} else if len(matches) > 1 {
+		// Find common prefix
+		common := matches[0]
+		for _, m := range matches[1:] {
+			for i := 0; i < len(common) && i < len(m); i++ {
+				if common[i] != m[i] {
+					common = common[:i]
+					break
+				}
+			}
+			if len(m) < len(common) {
+				common = common[:len(m)]
+			}
+		}
+		if len(common) > len(input) {
+			return common
+		}
+	}
+
+	return input
+}
+
+func (m Model) handleSaveModeKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		m.saveMode = false
+		m.savePathInput = ""
+		return m, nil
+
+	case "backspace":
+		if len(m.savePathInput) > 0 {
+			m.savePathInput = m.savePathInput[:len(m.savePathInput)-1]
+		}
+		return m, nil
+
+	case "enter":
+		if strings.TrimSpace(m.savePathInput) != "" {
+			// Start save/download
+			m.saveMode = false
+			destPath := strings.TrimSpace(m.savePathInput)
+			m.savePathInput = ""
+
+			// Expand ~ to home directory
+			if strings.HasPrefix(destPath, "~/") {
+				if home, err := os.UserHomeDir(); err == nil {
+					destPath = filepath.Join(home, destPath[2:])
+				}
+			}
+
+			objectKey := getStringValue(m.currentObject, "key", "")
+			containerName := getStringValue(m.currentContainer, "name", "")
+			region := getStringValue(m.currentContainer, "region", "")
+			s3URL := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, region, containerName)
+
+			m.notification = fmt.Sprintf("💾 Saving %s...", objectKey)
+			m.notificationExpiry = time.Now().Add(30 * time.Second)
+			return m, m.saveS3Object(containerName, objectKey, destPath, s3URL)
+		}
+		return m, nil
+
+	case "tab":
+		// Tab completion for file paths
+		m.savePathInput = m.completeFilePath(m.savePathInput)
+		return m, nil
+
+	default:
+		// Handle regular character input
+		char := msg.String()
+		if len(char) == 1 {
+			m.savePathInput += char
+		} else if msg.Type == tea.KeySpace {
+			m.savePathInput += " "
 		}
 		return m, nil
 	}

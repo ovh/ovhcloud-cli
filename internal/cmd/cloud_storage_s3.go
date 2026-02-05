@@ -120,6 +120,48 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(2),
 	})
 
+	// Object copy command
+	objectCopyCmd := &cobra.Command{
+		Use:   "copy <container_name> <object_name>",
+		Short: "Copy an object to a new destination",
+		Long: `Copy an object to a new destination container.
+You can copy to the same container with a different key, or to a different container/region.
+
+Example:
+  ovhcloud cloud storage-s3 object copy my-bucket my-object --destination-container target-bucket --destination-key new-key
+
+Use --editor for interactive editing of copy parameters.`,
+		Run:  cloud.CopyStorageS3Object,
+		Args: cobra.ExactArgs(2),
+	}
+	objectCopyCmd.Flags().String("destination-container", "", "Destination container name")
+	objectCopyCmd.Flags().String("destination-key", "", "Destination object key")
+	objectCopyCmd.Flags().String("destination-region", "", "Destination region (if cross-region copy)")
+	objectCopyCmd.Flags().String("storage-class", "", "Storage class for the copy (HIGH_PERF, STANDARD, STANDARD_IA)")
+	addInteractiveEditorFlag(objectCopyCmd)
+	addFromFileFlag(objectCopyCmd)
+	objectCopyCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	objectCmd.AddCommand(objectCopyCmd)
+
+	// Object restore command
+	objectRestoreCmd := &cobra.Command{
+		Use:   "restore <container_name> <object_name>",
+		Short: "Restore an archived object",
+		Long: `Restore an archived object from STANDARD_IA (cold) storage.
+The object will be temporarily restored for the specified number of days.
+
+Example:
+  ovhcloud cloud storage-s3 object restore my-bucket my-archived-object --days 7 --speed standard`,
+		Run:  cloud.RestoreStorageS3Object,
+		Args: cobra.ExactArgs(2),
+	}
+	objectRestoreCmd.Flags().Int("days", 7, "Number of days to keep the restored object accessible")
+	objectRestoreCmd.Flags().String("speed", "standard", "Restore speed (expedited, standard, bulk)")
+	addInteractiveEditorFlag(objectRestoreCmd)
+	addFromFileFlag(objectRestoreCmd)
+	objectRestoreCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	objectCmd.AddCommand(objectRestoreCmd)
+
 	// Object version commands
 	objectVersionCmd := &cobra.Command{
 		Use:   "version",
@@ -163,6 +205,45 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Run:   cloud.DeleteStorageS3ObjectVersion,
 		Args:  cobra.ExactArgs(3),
 	})
+
+	// Object version copy command
+	objectVersionCopyCmd := &cobra.Command{
+		Use:   "copy <container_name> <object_name> <version_id>",
+		Short: "Copy a specific version of an object to a new destination",
+		Long: `Copy a specific version of an object to a new destination container.
+
+Example:
+  ovhcloud cloud storage-s3 object version copy my-bucket my-object v123 --destination-container target-bucket --destination-key new-key`,
+		Run:  cloud.CopyStorageS3ObjectVersion,
+		Args: cobra.ExactArgs(3),
+	}
+	objectVersionCopyCmd.Flags().String("destination-container", "", "Destination container name")
+	objectVersionCopyCmd.Flags().String("destination-key", "", "Destination object key")
+	objectVersionCopyCmd.Flags().String("destination-region", "", "Destination region (if cross-region copy)")
+	objectVersionCopyCmd.Flags().String("storage-class", "", "Storage class for the copy (HIGH_PERF, STANDARD, STANDARD_IA)")
+	addInteractiveEditorFlag(objectVersionCopyCmd)
+	addFromFileFlag(objectVersionCopyCmd)
+	objectVersionCopyCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	objectVersionCmd.AddCommand(objectVersionCopyCmd)
+
+	// Object version restore command
+	objectVersionRestoreCmd := &cobra.Command{
+		Use:   "restore <container_name> <object_name> <version_id>",
+		Short: "Restore a specific version of an archived object",
+		Long: `Restore a specific version of an archived object from STANDARD_IA (cold) storage.
+The object version will be temporarily restored for the specified number of days.
+
+Example:
+  ovhcloud cloud storage-s3 object version restore my-bucket my-archived-object v123 --days 7 --speed standard`,
+		Run:  cloud.RestoreStorageS3ObjectVersion,
+		Args: cobra.ExactArgs(3),
+	}
+	objectVersionRestoreCmd.Flags().Int("days", 7, "Number of days to keep the restored object accessible")
+	objectVersionRestoreCmd.Flags().String("speed", "standard", "Restore speed (expedited, standard, bulk)")
+	addInteractiveEditorFlag(objectVersionRestoreCmd)
+	addFromFileFlag(objectVersionRestoreCmd)
+	objectVersionRestoreCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	objectVersionCmd.AddCommand(objectVersionRestoreCmd)
 
 	// Presigned URL command
 	presignedURLCmd := &cobra.Command{

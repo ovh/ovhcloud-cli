@@ -101,6 +101,22 @@ var (
 		StorageClass string `json:"storageClass,omitempty"`
 		VersionId    string `json:"versionId,omitempty"`
 	}
+
+	// StorageS3CopyParams holds parameters for object copy operation
+	StorageS3CopyParams struct {
+		Destination struct {
+			ContainerName string `json:"containerName,omitempty"`
+			Key           string `json:"key,omitempty"`
+			Region        string `json:"region,omitempty"`
+		} `json:"destination,omitempty"`
+		StorageClass string `json:"storageClass,omitempty"`
+	}
+
+	// StorageS3RestoreParams holds parameters for object restore operation
+	StorageS3RestoreParams struct {
+		Days         int    `json:"days,omitempty"`
+		GlacierSpeed string `json:"glacierSpeed,omitempty"` // standard, bulk, expedited
+	}
 )
 
 func locateStorageS3Container(projectID, containerName string) (string, map[string]any, error) {
@@ -678,4 +694,128 @@ func GetStorageS3Credentials(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputObject(credentials, args[1], "", &flags.OutputFormatConfig)
+}
+
+// CopyStorageS3Object copies an object to a new destination
+func CopyStorageS3Object(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := foundURL + "/object/" + url.PathEscape(args[1]) + "/copy"
+	result, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/copy",
+		endpoint,
+		`{"destination": {"containerName": "target-bucket", "key": "new-object-key", "region": "GRA"}, "storageClass": "STANDARD"}`,
+		StorageS3CopyParams,
+		assets.CloudOpenapiSchema,
+		nil)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to copy object: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Object %s copied successfully", args[1])
+}
+
+// CopyStorageS3ObjectVersion copies a specific version of an object to a new destination
+func CopyStorageS3ObjectVersion(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := foundURL + "/object/" + url.PathEscape(args[1]) + "/version/" + url.PathEscape(args[2]) + "/copy"
+	result, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/version/{versionId}/copy",
+		endpoint,
+		`{"destination": {"containerName": "target-bucket", "key": "new-object-key", "region": "GRA"}, "storageClass": "STANDARD"}`,
+		StorageS3CopyParams,
+		assets.CloudOpenapiSchema,
+		nil)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to copy object version: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Object version %s copied successfully", args[2])
+}
+
+// RestoreStorageS3Object restores an archived object
+func RestoreStorageS3Object(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := foundURL + "/object/" + url.PathEscape(args[1]) + "/restore"
+	result, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/restore",
+		endpoint,
+		`{"days": 7, "glacierSpeed": "standard"}`,
+		StorageS3RestoreParams,
+		assets.CloudOpenapiSchema,
+		nil)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to restore object: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Object %s restore initiated successfully", args[1])
+}
+
+// RestoreStorageS3ObjectVersion restores a specific version of an archived object
+func RestoreStorageS3ObjectVersion(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := foundURL + "/object/" + url.PathEscape(args[1]) + "/version/" + url.PathEscape(args[2]) + "/restore"
+	result, err := common.CreateResource(
+		cmd,
+		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/version/{versionId}/restore",
+		endpoint,
+		`{"days": 7, "glacierSpeed": "standard"}`,
+		StorageS3RestoreParams,
+		assets.CloudOpenapiSchema,
+		nil)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to restore object version: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Object version %s restore initiated successfully", args[2])
 }
