@@ -1,11 +1,19 @@
-## ovhcloud cloud kube ip-restrictions
+## ovhcloud cloud kube ip-restrictions add-my-ip
 
-Manage IP restrictions for Kubernetes clusters
+Add your public IP to the cluster's IP restrictions
+
+### Synopsis
+
+Automatically detect your public IP address and add it to the cluster's IP restrictions. Requires that IP restrictions are already enabled on the cluster.
+
+```
+ovhcloud cloud kube ip-restrictions add-my-ip <cluster_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for ip-restrictions
+  -h, --help   help for add-my-ip
 ```
 
 ### Options inherited from parent commands
@@ -29,8 +37,5 @@ Manage IP restrictions for Kubernetes clusters
 
 ### SEE ALSO
 
-* [ovhcloud cloud kube](ovhcloud_cloud_kube.md)	 - Manage Kubernetes clusters in the given cloud project
-* [ovhcloud cloud kube ip-restrictions add-my-ip](ovhcloud_cloud_kube_ip-restrictions_add-my-ip.md)	 - Add your public IP to the cluster's IP restrictions
-* [ovhcloud cloud kube ip-restrictions edit](ovhcloud_cloud_kube_ip-restrictions_edit.md)	 - Edit IP restrictions for the given Kubernetes cluster
-* [ovhcloud cloud kube ip-restrictions list](ovhcloud_cloud_kube_ip-restrictions_list.md)	 - List IP restrictions for the given Kubernetes cluster
+* [ovhcloud cloud kube ip-restrictions](ovhcloud_cloud_kube_ip-restrictions.md)	 - Manage IP restrictions for Kubernetes clusters
 

@@ -36,6 +36,7 @@ Manage Kubernetes clusters in the given cloud project
 * [ovhcloud cloud kube edit](ovhcloud_cloud_kube_edit.md)	 - Edit the given Kubernetes cluster
 * [ovhcloud cloud kube get](ovhcloud_cloud_kube_get.md)	 - Get the given Kubernetes cluster
 * [ovhcloud cloud kube ip-restrictions](ovhcloud_cloud_kube_ip-restrictions.md)	 - Manage IP restrictions for Kubernetes clusters
+* [ovhcloud cloud kube k9s](ovhcloud_cloud_kube_k9s.md)	 - Generate kubeconfig and launch k9s for the given Kubernetes cluster
 * [ovhcloud cloud kube kubeconfig](ovhcloud_cloud_kube_kubeconfig.md)	 - Manage the kubeconfig for the given Kubernetes cluster
 * [ovhcloud cloud kube list](ovhcloud_cloud_kube_list.md)	 - List your Kubernetes clusters
 * [ovhcloud cloud kube node](ovhcloud_cloud_kube_node.md)	 - Manage Kubernetes nodes
@@ -45,5 +46,6 @@ Manage Kubernetes clusters in the given cloud project
 * [ovhcloud cloud kube reset](ovhcloud_cloud_kube_reset.md)	 - Reset the given Kubernetes cluster
 * [ovhcloud cloud kube restart](ovhcloud_cloud_kube_restart.md)	 - Restart control plane apiserver to invalidate cache without downtime
 * [ovhcloud cloud kube set-load-balancers-subnet](ovhcloud_cloud_kube_set-load-balancers-subnet.md)	 - Update the load balancers subnet ID for the given Kubernetes cluster
+* [ovhcloud cloud kube shell](ovhcloud_cloud_kube_shell.md)	 - Generate kubeconfig and open an interactive shell with kubectl access
 * [ovhcloud cloud kube update](ovhcloud_cloud_kube_update.md)	 - Update the given Kubernetes cluster
 
