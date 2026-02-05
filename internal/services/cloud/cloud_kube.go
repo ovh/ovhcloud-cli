@@ -5,12 +5,15 @@
 package cloud
 
 import (
+	"bufio"
 	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/url"
+	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
@@ -822,4 +825,334 @@ func UpdateKubeLoadBalancersSubnet(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Load balancers subnet updated successfully")
+}
+
+// LaunchK9s generates kubeconfig and launches k9s for the given cluster
+func LaunchK9s(_ *cobra.Command, args []string) {
+	clusterID := args[0]
+
+	// Check if k9s is installed first (fail fast)
+	k9sPath, err := exec.LookPath("k9s")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "k9s not found. Install with: brew install k9s (or https://k9scli.io/)")
+		return
+	}
+
+	// Check IP restrictions before launching
+	checkAndOfferIPRestriction(clusterID)
+
+	configPath, err := generateAndSaveKubeconfig(clusterID)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	fmt.Printf("☸️  Launching k9s with kubeconfig: %s\n", configPath)
+
+	// Launch k9s with the kubeconfig
+	cmd := exec.Command(k9sPath)
+	cmd.Env = append(os.Environ(), "KUBECONFIG="+configPath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "k9s exited with error: %s", err)
+	}
+}
+
+// LaunchKubeShell generates kubeconfig and launches an interactive shell with kubectl access
+func LaunchKubeShell(_ *cobra.Command, args []string) {
+	clusterID := args[0]
+
+	// Check if kubectl is installed (warn but don't fail)
+	if _, err := exec.LookPath("kubectl"); err != nil {
+		fmt.Println("⚠️  kubectl not found in PATH. Install from: https://kubernetes.io/docs/tasks/tools/")
+		fmt.Println("")
+	}
+
+	// Check IP restrictions before launching
+	checkAndOfferIPRestriction(clusterID)
+
+	configPath, err := generateAndSaveKubeconfig(clusterID)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Determine the user's shell
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+
+	fmt.Println("")
+	fmt.Println("☸️  OVHcloud Kubernetes Shell")
+	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	fmt.Printf("📁 KUBECONFIG=%s\n", configPath)
+	fmt.Println("")
+	fmt.Println("💡 You can now run kubectl commands:")
+	fmt.Println("   kubectl get nodes")
+	fmt.Println("   kubectl get pods -A")
+	fmt.Println("   kubectl cluster-info")
+	fmt.Println("")
+	fmt.Println("Type 'exit' to return.")
+	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	fmt.Println("")
+
+	// Launch shell with KUBECONFIG set
+	cmd := exec.Command(shell)
+	cmd.Env = append(os.Environ(), "KUBECONFIG="+configPath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "shell exited with error: %s", err)
+	}
+}
+
+// generateAndSaveKubeconfig fetches kubeconfig from API and saves it to ~/.kube/
+func generateAndSaveKubeconfig(clusterID string) (string, error) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		return "", err
+	}
+
+	// Fetch kubeconfig from API
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig", projectID, url.PathEscape(clusterID))
+	var kubeConfig map[string]any
+	if err := httpLib.Client.Post(endpoint, nil, &kubeConfig); err != nil {
+		return "", fmt.Errorf("failed to generate kubeconfig: %w", err)
+	}
+
+	content, ok := kubeConfig["content"].(string)
+	if !ok || content == "" {
+		return "", fmt.Errorf("kubeconfig content not found in response")
+	}
+
+	// Get cluster name for the filename
+	clusterEndpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", projectID, url.PathEscape(clusterID))
+	var cluster map[string]any
+	clusterName := clusterID[:8] // fallback to first 8 chars of ID
+	if err := httpLib.Client.Get(clusterEndpoint, &cluster); err == nil {
+		if name, ok := cluster["name"].(string); ok && name != "" {
+			clusterName = sanitizeKubeFilename(name)
+		}
+	}
+
+	// Ensure ~/.kube directory exists
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	kubeDir := fmt.Sprintf("%s/.kube", homeDir)
+	if err := os.MkdirAll(kubeDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create .kube directory: %w", err)
+	}
+
+	// Save kubeconfig to file
+	configPath := fmt.Sprintf("%s/ovhcloud-%s.yaml", kubeDir, clusterName)
+	if err := os.WriteFile(configPath, []byte(content), 0600); err != nil {
+		return "", fmt.Errorf("failed to write kubeconfig: %w", err)
+	}
+
+	return configPath, nil
+}
+
+// sanitizeKubeFilename removes or replaces characters not suitable for filenames
+func sanitizeKubeFilename(name string) string {
+	var result strings.Builder
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			result.WriteRune(r)
+		} else if r == ' ' {
+			result.WriteRune('-')
+		}
+	}
+
+	// Convert to lowercase and trim
+	sanitized := strings.ToLower(strings.Trim(result.String(), "-_"))
+
+	// Limit length
+	if len(sanitized) > 50 {
+		sanitized = sanitized[:50]
+	}
+
+	return sanitized
+}
+
+// GetPublicIP detects the client's public IPv4 address using OVH's geolocation API
+// Note: Only IPv4 is supported by OVH Managed Kubernetes API server
+func GetPublicIP() (string, error) {
+	var geolocation struct {
+		Continent   string `json:"continent"`
+		CountryCode string `json:"countryCode"`
+		IP          string `json:"ip"`
+	}
+
+	if err := httpLib.Client.Post("/v1/me/geolocation", nil, &geolocation); err != nil {
+		return "", fmt.Errorf("failed to detect public IP: %w", err)
+	}
+
+	if geolocation.IP == "" {
+		return "", fmt.Errorf("failed to detect public IP: empty response")
+	}
+
+	// Ensure we got an IPv4 address (contains dots, no colons)
+	if !isIPv4(geolocation.IP) {
+		return "", fmt.Errorf("failed to detect public IPv4: got IPv6 address %s", geolocation.IP)
+	}
+
+	return geolocation.IP, nil
+}
+
+// isIPv4 checks if the given string is a valid IPv4 address
+func isIPv4(ip string) bool {
+	// Simple check: IPv4 addresses contain dots and no colons
+	return strings.Contains(ip, ".") && !strings.Contains(ip, ":")
+}
+
+// checkAndOfferIPRestriction checks if the user's IP is in the cluster's IP restrictions
+// and offers to add it if not. This is called before launching kubectl/k9s/shell.
+func checkAndOfferIPRestriction(clusterID string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		return // Silently skip if we can't get project ID
+	}
+
+	// Fetch current IP restrictions
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", projectID, url.PathEscape(clusterID))
+	currentIPs, err := httpLib.FetchArray(endpoint, "")
+	if err != nil {
+		return // Silently skip if we can't fetch restrictions
+	}
+
+	// If no restrictions are enabled, nothing to check
+	if len(currentIPs) == 0 {
+		return
+	}
+
+	// Get public IP
+	publicIP, err := GetPublicIP()
+	if err != nil {
+		return // Silently skip if we can't detect IP
+	}
+
+	ipCIDR := publicIP + "/32"
+
+	// Check if IP is already in the list
+	for _, ip := range currentIPs {
+		ipStr, ok := ip.(string)
+		if !ok {
+			continue
+		}
+		if ipStr == ipCIDR || ipStr == publicIP {
+			return // IP is already in the list, nothing to do
+		}
+	}
+
+	// IP is not in the list, ask user if they want to add it
+	fmt.Printf("\n⚠️  Your IP (%s) is not in the cluster's IP restrictions.\n", ipCIDR)
+	fmt.Printf("   You may not be able to connect to the cluster API.\n\n")
+	fmt.Printf("Would you like to add your IP to the restrictions? [y/N]: ")
+
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return
+	}
+
+	response = strings.TrimSpace(strings.ToLower(response))
+	if response != "y" && response != "yes" {
+		fmt.Println("Continuing without adding IP...")
+		return
+	}
+
+	// Build the new IP list
+	ipList := make([]string, 0, len(currentIPs)+1)
+	for _, ip := range currentIPs {
+		if ipStr, ok := ip.(string); ok {
+			ipList = append(ipList, ipStr)
+		}
+	}
+	ipList = append(ipList, ipCIDR)
+
+	// Update the restrictions
+	body := map[string]any{
+		"ips": ipList,
+	}
+
+	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+		fmt.Printf("❌ Failed to add IP: %s\n", err)
+		fmt.Println("Continuing anyway...")
+		return
+	}
+
+	fmt.Printf("✅ Added your IP (%s) to cluster IP restrictions.\n\n", ipCIDR)
+}
+
+// AddMyIPToKubeRestrictions adds the client's public IP to the cluster's IP restrictions
+func AddMyIPToKubeRestrictions(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	clusterID := args[0]
+
+	// Fetch current IP restrictions
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", projectID, url.PathEscape(clusterID))
+	currentIPs, err := httpLib.FetchArray(endpoint, "")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch IP restrictions: %s", err)
+		return
+	}
+
+	// Check if restrictions are enabled (non-empty list)
+	if len(currentIPs) == 0 {
+		display.OutputError(&flags.OutputFormatConfig, "IP restrictions are not enabled for this cluster. Enable them first using 'ovhcloud cloud kube ip-restrictions edit'")
+		return
+	}
+
+	// Get public IP
+	publicIP, err := GetPublicIP()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to detect your public IP: %s", err)
+		return
+	}
+
+	// Add /32 suffix for single IP
+	ipCIDR := publicIP + "/32"
+
+	// Check if IP is already in the list
+	ipList := make([]string, 0, len(currentIPs)+1)
+	for _, ip := range currentIPs {
+		ipStr, ok := ip.(string)
+		if !ok {
+			continue
+		}
+		if ipStr == ipCIDR || ipStr == publicIP {
+			display.OutputInfo(&flags.OutputFormatConfig, nil, "Your IP (%s) is already in the restrictions list", ipCIDR)
+			return
+		}
+		ipList = append(ipList, ipStr)
+	}
+
+	// Append the new IP
+	ipList = append(ipList, ipCIDR)
+
+	// Update the restrictions
+	body := map[string]any{
+		"ips": ipList,
+	}
+
+	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to update IP restrictions: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Added your IP (%s) to cluster IP restrictions", ipCIDR)
 }

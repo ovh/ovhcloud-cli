@@ -1,11 +1,19 @@
-## ovhcloud cloud kube ip-restrictions
+## ovhcloud cloud kube k9s
 
-Manage IP restrictions for Kubernetes clusters
+Generate kubeconfig and launch k9s for the given Kubernetes cluster
+
+### Synopsis
+
+Generate kubeconfig, save it to ~/.kube/ovhcloud-<cluster-name>.yaml, and launch k9s with the configuration
+
+```
+ovhcloud cloud kube k9s <cluster_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for ip-restrictions
+  -h, --help   help for k9s
 ```
 
 ### Options inherited from parent commands
@@ -30,7 +38,4 @@ Manage IP restrictions for Kubernetes clusters
 ### SEE ALSO
 
 * [ovhcloud cloud kube](ovhcloud_cloud_kube.md)	 - Manage Kubernetes clusters in the given cloud project
-* [ovhcloud cloud kube ip-restrictions add-my-ip](ovhcloud_cloud_kube_ip-restrictions_add-my-ip.md)	 - Add your public IP to the cluster's IP restrictions
-* [ovhcloud cloud kube ip-restrictions edit](ovhcloud_cloud_kube_ip-restrictions_edit.md)	 - Edit IP restrictions for the given Kubernetes cluster
-* [ovhcloud cloud kube ip-restrictions list](ovhcloud_cloud_kube_ip-restrictions_list.md)	 - List IP restrictions for the given Kubernetes cluster
 
