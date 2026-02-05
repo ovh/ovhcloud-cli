@@ -1,9 +1,9 @@
-## ovhcloud cloud container-registry ip-restrictions management list
+## ovhcloud cloud alerting list
 
-List management IP restrictions for a container registry
+List billing alert configurations
 
 ```
-ovhcloud cloud container-registry ip-restrictions management list <registry_id> [flags]
+ovhcloud cloud alerting list [flags]
 ```
 
 ### Options
@@ -40,5 +40,5 @@ ovhcloud cloud container-registry ip-restrictions management list <registry_id> 
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry ip-restrictions management](ovhcloud_cloud_container-registry_ip-restrictions_management.md)	 - Manage IP restrictions for container registry Harbor UI and API access
+* [ovhcloud cloud alerting](ovhcloud_cloud_alerting.md)	 - Manage billing alert configurations in the given cloud project
 

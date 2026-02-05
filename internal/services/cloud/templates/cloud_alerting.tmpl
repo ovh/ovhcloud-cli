@@ -1,0 +1,17 @@
+🔔 Alerting Configuration {{.ServiceName}}
+=======
+
+## Configuration Details
+
+**Alert ID**:     {{index .Result "id"}}
+**Emails**:       {{index .Result "emails"}}
+**Threshold**:    {{index .Result "formattedMonthlyThreshold" "text"}}
+**Delay**:        {{index .Result "delay"}}s
+**Status**:       {{if index .Result "enabled"}}✅ Enabled{{else}}❌ Disabled{{end}}
+
+**Creation Date**: {{index .Result "creationDate"}}
+**Last Update**:   {{index .Result "lastUpdateDate"}}
+
+---
+
+💡 Use option --json or --yaml to get the raw output with all information

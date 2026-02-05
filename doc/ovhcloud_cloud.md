@@ -29,6 +29,7 @@ Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, O
 ### SEE ALSO
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
+* [ovhcloud cloud alerting](ovhcloud_cloud_alerting.md)	 - Manage billing alert configurations in the given cloud project
 * [ovhcloud cloud container-registry](ovhcloud_cloud_container-registry.md)	 - Manage container registries in the given cloud project
 * [ovhcloud cloud database-service](ovhcloud_cloud_database-service.md)	 - Manage database services in the given cloud project
 * [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project

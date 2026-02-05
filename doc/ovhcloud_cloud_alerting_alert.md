@@ -1,22 +1,11 @@
-## ovhcloud cloud container-registry ip-restrictions management list
+## ovhcloud cloud alerting alert
 
-List management IP restrictions for a container registry
-
-```
-ovhcloud cloud container-registry ip-restrictions management list <registry_id> [flags]
-```
+Manage triggered alerts for a billing alert configuration
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help   help for alert
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +29,7 @@ ovhcloud cloud container-registry ip-restrictions management list <registry_id> 
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry ip-restrictions management](ovhcloud_cloud_container-registry_ip-restrictions_management.md)	 - Manage IP restrictions for container registry Harbor UI and API access
+* [ovhcloud cloud alerting](ovhcloud_cloud_alerting.md)	 - Manage billing alert configurations in the given cloud project
+* [ovhcloud cloud alerting alert get](ovhcloud_cloud_alerting_alert_get.md)	 - Get a specific triggered alert
+* [ovhcloud cloud alerting alert list](ovhcloud_cloud_alerting_alert_list.md)	 - List triggered alerts for a specific alert configuration
 
