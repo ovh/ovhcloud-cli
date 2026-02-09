@@ -74,15 +74,8 @@ func (v *TableView) createTable() table.Model {
 	)
 
 	s := table.DefaultStyles()
-	s.Header = s.Header.
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240")).
-		BorderBottom(true).
-		Bold(true)
-	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
-		Bold(false)
+	s.Header = views.StyleTableHeader
+	s.Selected = views.StyleTableSelected
 	t.SetStyles(s)
 
 	return t

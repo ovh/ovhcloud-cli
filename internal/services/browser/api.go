@@ -9,7 +9,6 @@ package browser
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -22,6 +21,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
 
@@ -274,81 +274,22 @@ func (m Model) fetchKubeRegions() tea.Cmd {
 			}
 		}
 
-		// Try to get regions from capabilities endpoint
-		var capResponse map[string]interface{}
-		capEndpoint := fmt.Sprintf("/v1/cloud/project/%s/capabilities/kube", m.cloudProject)
-		capErr := httpLib.Client.Get(capEndpoint, &capResponse)
-
-		var regions []map[string]interface{}
-
-		// If capabilities endpoint works, use it
-		if capErr == nil && capResponse != nil {
-			if regionsData, ok := capResponse["regions"].([]interface{}); ok {
-				for _, r := range regionsData {
-					if regionMap, ok := r.(map[string]interface{}); ok {
-						regions = append(regions, regionMap)
-					}
-				}
-			}
-		}
-
-		// Fallback: If no regions from capabilities, try to derive from existing Kubernetes instances
-		if len(regions) == 0 {
-			// Fetch existing clusters to extract available regions
-			var clusterIDs []string
-			endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube", m.cloudProject)
-			err := httpLib.Client.Get(endpoint, &clusterIDs)
-
-			if err == nil && len(clusterIDs) > 0 {
-				// Extract regions from existing clusters
-				regionMap := make(map[string]bool)
-				for _, id := range clusterIDs {
-					var cluster map[string]interface{}
-					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", m.cloudProject, id)
-					if clusterErr := httpLib.Client.Get(detailEndpoint, &cluster); clusterErr == nil {
-						if region, ok := cluster["region"].(string); ok && region != "" && !regionMap[region] {
-							regionMap[region] = true
-							regions = append(regions, map[string]interface{}{
-								"name": region,
-								"code": region,
-								"id":   region,
-							})
-						}
-					}
-				}
-			}
-		}
-
-		// Fallback: If still no regions, provide hardcoded common regions as last resort
-		if len(regions) == 0 {
-			// Common OVHcloud regions for Kubernetes (with proper region codes)
-			regions = []map[string]interface{}{
-				{"name": "Europe (Warsaw)", "code": "WAW1", "id": "WAW1"},
-				{"name": "Europe (Gravelines)", "code": "GRA11", "id": "GRA11"},
-				{"name": "Europe (Strasbourg)", "code": "SBG5", "id": "SBG5"},
-				{"name": "Europe (Frankfurt)", "code": "DE1", "id": "DE1"},
-				{"name": "Asia-Pacific (Sydney)", "code": "SYD1", "id": "SYD1"},
-				{"name": "North America (Beauharnois)", "code": "BHS5", "id": "BHS5"},
-				{"name": "Europe (London)", "code": "UK1", "id": "UK1"},
-				{"name": "Asia-Pacific (Mumbai)", "code": "AP-SOUTH-MUM-1", "id": "AP-SOUTH-MUM-1"},
-				{"name": "Europe (Milan)", "code": "EU-SOUTH-MIL", "id": "EU-SOUTH-MIL"},
-				{"name": "Europe (Paris)", "code": "EU-WEST-PAR", "id": "EU-WEST-PAR"},
-				{"name": "Europe (Roubaix)", "code": "RBX-A", "id": "RBX-A"},
+		var regions []string
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/capabilities/kube/regions", m.cloudProject)
+		err := httpLib.Client.Get(endpoint, &regions)
+		if err != nil {
+			return kubeRegionsLoadedMsg{
+				err: fmt.Errorf("failed to fetch Kubernetes regions: %w", err),
 			}
 		}
 
 		if len(regions) == 0 {
 			return kubeRegionsLoadedMsg{
-				err: fmt.Errorf("could not determine available Kubernetes regions"),
+				err: fmt.Errorf("no Kubernetes regions available"),
 			}
 		}
 
-		// Sort regions by name
-		sort.Slice(regions, func(i, j int) bool {
-			iName, _ := regions[i]["name"].(string)
-			jName, _ := regions[j]["name"].(string)
-			return iName < jName
-		})
+		sort.Strings(regions)
 
 		return kubeRegionsLoadedMsg{
 			regions: regions,
@@ -357,58 +298,72 @@ func (m Model) fetchKubeRegions() tea.Cmd {
 	}
 }
 
-// fetchKubeVersions fetches available Kubernetes versions for a specific region
-func (m Model) fetchKubeVersions(region string) tea.Cmd {
+// compareVersions compares two version strings (e.g. "1.29", "1.10") numerically.
+// Returns negative if a < b, zero if equal, positive if a > b.
+func compareVersions(a, b string) int {
+	parsePart := func(s string) []int {
+		var parts []int
+		for _, seg := range strings.Split(s, ".") {
+			n := 0
+			fmt.Sscanf(seg, "%d", &n)
+			parts = append(parts, n)
+		}
+		return parts
+	}
+	pa, pb := parsePart(a), parsePart(b)
+	for i := 0; i < len(pa) && i < len(pb); i++ {
+		if pa[i] != pb[i] {
+			return pa[i] - pb[i]
+		}
+	}
+	return len(pa) - len(pb)
+}
+
+// fetchKubeVersions extracts available Kubernetes versions from the embedded OpenAPI schema.
+// There is no dedicated API route for this, so we extract the version enum from
+// the embedded cloud.json schema.
+func (m Model) fetchKubeVersions() tea.Cmd {
 	return func() tea.Msg {
-		if m.cloudProject == "" {
+		var schema struct {
+			Components struct {
+				Schemas map[string]json.RawMessage `json:"schemas"`
+			} `json:"components"`
+		}
+
+		if err := json.Unmarshal(assets.CloudOpenapiSchema, &schema); err != nil {
 			return kubeVersionsLoadedMsg{
-				err: fmt.Errorf("no cloud project selected"),
+				err: fmt.Errorf("failed to parse embedded API schema: %w", err),
 			}
 		}
 
-		// Try to get versions from capabilities endpoint
-		var response map[string]interface{}
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/capabilities/kube", m.cloudProject)
-		err := httpLib.Client.Get(endpoint, &response)
-
-		var versions []string
-
-		// If capabilities endpoint works, use it
-		if err == nil && response != nil {
-			if versionData, ok := response["versions"].([]interface{}); ok {
-				for _, v := range versionData {
-					if vStr, ok := v.(string); ok {
-						versions = append(versions, vStr)
-					}
-				}
-			}
-		}
-
-		// Fallback: Use common Kubernetes versions
-		if len(versions) == 0 {
-			versions = []string{
-				"1.30",
-				"1.29",
-				"1.28",
-				"1.27",
-				"1.26",
-				"1.25",
-			}
-		}
-
-		if len(versions) == 0 {
+		raw, ok := schema.Components.Schemas["cloud.kube.VersionEnum"]
+		if !ok {
 			return kubeVersionsLoadedMsg{
-				err: fmt.Errorf("no Kubernetes versions available"),
+				err: fmt.Errorf("cloud.kube.VersionEnum not found in API schema"),
 			}
 		}
 
-		// Sort versions (should be in semantic version order)
-		sort.Slice(versions, func(i, j int) bool {
-			return versions[i] > versions[j] // Newest first
+		var enumSchema struct {
+			Enum []string `json:"enum"`
+		}
+		if err := json.Unmarshal(raw, &enumSchema); err != nil {
+			return kubeVersionsLoadedMsg{
+				err: fmt.Errorf("failed to parse VersionEnum schema: %w", err),
+			}
+		}
+
+		if len(enumSchema.Enum) == 0 {
+			return kubeVersionsLoadedMsg{
+				err: fmt.Errorf("no Kubernetes versions found in API schema"),
+			}
+		}
+
+		sort.Slice(enumSchema.Enum, func(i, j int) bool {
+			return compareVersions(enumSchema.Enum[i], enumSchema.Enum[j]) < 0
 		})
 
 		return kubeVersionsLoadedMsg{
-			versions: versions,
+			versions: enumSchema.Enum,
 			err:      nil,
 		}
 	}
@@ -615,39 +570,33 @@ func (m Model) handleKubeAction(msg kubeActionMsg) (tea.Model, tea.Cmd) {
 	m.notification = fmt.Sprintf("✅ %s", msg.result)
 	m.notificationExpiry = time.Now().Add(5 * time.Second)
 
-	// Return to table view after action
-	m.mode = TableView
+	// Stay on the current view (detail page) after action
 	m.selectedAction = 0
 	m.actionConfirm = false
 
 	return m, nil
 }
 
-// handleLaunchK9s launches k9s using tea.ExecProcess
+// handleLaunchK9s starts the async kubeconfig download before launching k9s.
 func (m Model) handleLaunchK9s(msg launchK9sMsg) (tea.Model, tea.Cmd) {
-	// First download the kubeconfig
-	kubeMsg := m.downloadKubeconfig(msg.clusterId)
-	if actionMsg, ok := kubeMsg.(kubeActionMsg); ok && actionMsg.err != nil {
-		m.notification = fmt.Sprintf("❌ Failed to download kubeconfig: %s", actionMsg.err)
+	m.notification = "Downloading kubeconfig..."
+	m.notificationExpiry = time.Now().Add(30 * time.Second)
+	return m, m.downloadKubeconfigForK9s(msg.clusterId)
+}
+
+// handleKubeconfigReadyForK9s launches k9s once the kubeconfig is available.
+func (m Model) handleKubeconfigReadyForK9s(msg kubeconfigReadyForK9sMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ Failed to download kubeconfig: %s", msg.err)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		return m, nil
 	}
 
-	// Get kubeconfig path
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		m.notification = fmt.Sprintf("❌ Failed to get home directory: %s", err)
-		m.notificationExpiry = time.Now().Add(5 * time.Second)
-		return m, nil
-	}
-	kubeconfigPath := filepath.Join(homeDir, ".kube", "config")
-
-	// Create k9s command
 	cmd := exec.Command("k9s", "-n", "all")
-	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfigPath))
+	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", msg.kubeconfigPath))
 
-	// Use tea.ExecProcess to run the command - this properly suspends the TUI
 	return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
+		os.Remove(msg.kubeconfigPath)
 		if err != nil {
 			return kubeActionMsg{err: fmt.Errorf("k9s failed: %w", err)}
 		}
@@ -961,6 +910,24 @@ func (m Model) handleInstancesLoaded(msg instancesLoadedMsg) (tea.Model, tea.Cmd
 		return m, nil
 	}
 
+	// Check if we're refreshing from a detail view.
+	// Two paths: background auto-refresh (detailRefreshId set, mode still DetailView)
+	// or manual 'r' key refresh (_refreshItemId stored in detailData, mode is LoadingView).
+	var refreshItemId, refreshItemName string
+	if m.detailRefreshId != "" && m.mode == DetailView {
+		refreshItemId = m.detailRefreshId
+		refreshItemName = m.detailRefreshName
+	} else if m.detailData != nil {
+		if id, ok := m.detailData["_refreshItemId"].(string); ok {
+			refreshItemId = id
+		}
+		if name, ok := m.detailData["_refreshItemName"].(string); ok {
+			refreshItemName = name
+		}
+	}
+	m.detailRefreshId = ""
+	m.detailRefreshName = ""
+
 	// Debug: dump instances to file
 	if len(msg.instances) > 0 {
 		debugData, _ := json.MarshalIndent(msg.instances[0], "", "  ")
@@ -982,6 +949,18 @@ func (m Model) handleInstancesLoaded(msg instancesLoadedMsg) (tea.Model, tea.Cmd
 	// Restore cursor position if valid
 	if currentCursor >= 0 && currentCursor < len(msg.instances) {
 		m.table.SetCursor(currentCursor)
+	}
+
+	// If we were refreshing from detail view, find the item and return to detail view
+	if refreshItemId != "" {
+		for _, item := range msg.instances {
+			if getString(item, "id") == refreshItemId {
+				m.detailData = item
+				m.currentItemName = refreshItemName
+				m.mode = DetailView
+				break
+			}
+		}
 	}
 
 	// Fetch images and floating IPs in parallel to enrich the display
@@ -1035,9 +1014,14 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Check if we're refreshing from a detail view
+	// Check if we're refreshing from a detail view.
+	// Two paths: background auto-refresh (detailRefreshId set, mode still DetailView)
+	// or manual 'r' key refresh (_refreshItemId stored in detailData, mode is LoadingView).
 	var refreshItemId, refreshItemName string
-	if m.detailData != nil {
+	if m.detailRefreshId != "" && m.mode == DetailView {
+		refreshItemId = m.detailRefreshId
+		refreshItemName = m.detailRefreshName
+	} else if m.detailData != nil {
 		if id, ok := m.detailData["_refreshItemId"].(string); ok {
 			refreshItemId = id
 		}
@@ -1045,6 +1029,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 			refreshItemName = name
 		}
 	}
+	m.detailRefreshId = ""
+	m.detailRefreshName = ""
 
 	// Preserve cursor position from previous table
 	cursorPos := 0
@@ -2654,6 +2640,12 @@ func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) 
 		})
 	}
 
+	// Stay on detail view after action: set refresh IDs so handleDataLoaded returns to detail
+	if m.detailData != nil {
+		m.detailRefreshId = getString(m.detailData, "id")
+		m.detailRefreshName = m.currentItemName
+	}
+
 	// Refresh the instances list to see updated status
 	return m, tea.Batch(
 		m.fetchDataForPath("/instances"),
@@ -2960,6 +2952,11 @@ type startKubeDeleteMsg struct {
 	clusterName string
 }
 
+// startKubeKubeconfigPickerMsg signals to open the directory picker for kubeconfig save location
+type startKubeKubeconfigPickerMsg struct {
+	clusterId string
+}
+
 // executeKubeAction executes an action on the current Kubernetes cluster
 func (m Model) executeKubeAction(actionIndex int) tea.Cmd {
 	return func() tea.Msg {
@@ -2984,7 +2981,7 @@ func (m Model) executeKubeAction(actionIndex int) tea.Cmd {
 
 		switch action {
 		case "kubeconfig":
-			return m.downloadKubeconfig(clusterId)
+			return startKubeKubeconfigPickerMsg{clusterId: clusterId}
 		case "k9s":
 			// Return a message that will trigger k9s launch in the Update handler
 			return launchK9sMsg{clusterId: clusterId}
@@ -3006,43 +3003,44 @@ func (m Model) executeKubeAction(actionIndex int) tea.Cmd {
 	}
 }
 
-// downloadKubeconfig fetches the kubeconfig for a cluster
-func (m Model) downloadKubeconfig(clusterId string) tea.Msg {
-	if m.cloudProject == "" {
-		return kubeActionMsg{err: fmt.Errorf("no cloud project selected")}
-	}
 
-	// Fetch kubeconfig from API (POST to generate it)
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig", m.cloudProject, clusterId)
-	var response map[string]any
-	err := httpLib.Client.Post(endpoint, nil, &response)
-	if err != nil {
-		return kubeActionMsg{err: fmt.Errorf("failed to download kubeconfig: %w", err)}
-	}
+// kubeconfigReadyForK9sMsg signals that the kubeconfig has been downloaded and k9s can be launched.
+type kubeconfigReadyForK9sMsg struct {
+	kubeconfigPath string
+	err            error
+}
 
-	// Extract content from response
-	kubeconfig, ok := response["content"].(string)
-	if !ok {
-		return kubeActionMsg{err: fmt.Errorf("invalid kubeconfig response format")}
-	}
+// downloadKubeconfigForK9s fetches the kubeconfig asynchronously and returns a cmd
+// that emits kubeconfigReadyForK9sMsg when done.
+func (m Model) downloadKubeconfigForK9s(clusterId string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubeconfigReadyForK9sMsg{err: fmt.Errorf("no cloud project selected")}
+		}
 
-	// Save kubeconfig to file
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return kubeActionMsg{err: fmt.Errorf("failed to get home directory: %w", err)}
-	}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig", m.cloudProject, clusterId)
+		var response map[string]any
+		if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
+			return kubeconfigReadyForK9sMsg{err: fmt.Errorf("failed to download kubeconfig: %w", err)}
+		}
 
-	kubeDir := filepath.Join(homeDir, ".kube")
-	if err := os.MkdirAll(kubeDir, 0700); err != nil {
-		return kubeActionMsg{err: fmt.Errorf("failed to create .kube directory: %w", err)}
-	}
+		kubeconfig, ok := response["content"].(string)
+		if !ok {
+			return kubeconfigReadyForK9sMsg{err: fmt.Errorf("invalid kubeconfig response format")}
+		}
 
-	kubeconfigPath := filepath.Join(kubeDir, "config")
-	if err := ioutil.WriteFile(kubeconfigPath, []byte(kubeconfig), 0600); err != nil {
-		return kubeActionMsg{err: fmt.Errorf("failed to save kubeconfig: %w", err)}
-	}
+		f, err := os.CreateTemp("", "ovhcloud-kubeconfig-*.yaml")
+		if err != nil {
+			return kubeconfigReadyForK9sMsg{err: fmt.Errorf("failed to create temp kubeconfig file: %w", err)}
+		}
+		f.Close()
 
-	return kubeActionMsg{result: fmt.Sprintf("Kubeconfig saved to %s", kubeconfigPath)}
+		if err := os.WriteFile(f.Name(), []byte(kubeconfig), 0600); err != nil {
+			return kubeconfigReadyForK9sMsg{err: fmt.Errorf("failed to save kubeconfig: %w", err)}
+		}
+
+		return kubeconfigReadyForK9sMsg{kubeconfigPath: f.Name()}
+	}
 }
 
 // handleStartNodePoolWizard initializes the node pool wizard
@@ -3209,10 +3207,6 @@ func (m Model) fetchKubeUpgradeVersions(clusterId string) tea.Cmd {
 			}
 		}
 
-		if len(versions) == 0 {
-			return kubeUpgradeVersionsLoadedMsg{err: fmt.Errorf("no upgrade versions available")}
-		}
-
 		return kubeUpgradeVersionsLoadedMsg{versions: versions}
 	}
 }
@@ -3227,6 +3221,7 @@ func (m Model) upgradeKubeCluster(clusterId, targetVersion string) tea.Cmd {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/update", m.cloudProject, clusterId)
 		body := map[string]interface{}{
 			"strategy": "LATEST_PATCH",
+			"version":  targetVersion,
 		}
 
 		err := httpLib.Client.Post(endpoint, body, nil)
@@ -3275,7 +3270,13 @@ func (m Model) handleKubeUpgraded(msg kubeUpgradeMsg) (tea.Model, tea.Cmd) {
 
 	m.notification = fmt.Sprintf("✅ %s", msg.result)
 	m.notificationExpiry = time.Now().Add(5 * time.Second)
-	m.mode = TableView
+
+	// Stay on detail view after upgrade
+	if m.detailData != nil {
+		m.detailRefreshId = getString(m.detailData, "id")
+		m.detailRefreshName = m.currentItemName
+	}
+	m.mode = DetailView
 
 	return m, m.fetchDataForPath("/kubernetes")
 }
@@ -3330,7 +3331,13 @@ func (m Model) handleKubePolicyUpdated(msg kubePolicyUpdatedMsg) (tea.Model, tea
 
 	m.notification = fmt.Sprintf("✅ %s", msg.result)
 	m.notificationExpiry = time.Now().Add(5 * time.Second)
-	m.mode = TableView
+
+	// Stay on detail view after policy update
+	if m.detailData != nil {
+		m.detailRefreshId = getString(m.detailData, "id")
+		m.detailRefreshName = m.currentItemName
+	}
+	m.mode = DetailView
 
 	return m, m.fetchDataForPath("/kubernetes")
 }
@@ -3377,6 +3384,47 @@ func (m Model) handleKubeDeleted(msg kubeDeletedMsg) (tea.Model, tea.Cmd) {
 	m.detailData = nil
 
 	return m, m.fetchDataForPath("/kubernetes")
+}
+
+// handleStartKubeKubeconfigPicker opens the directory picker for kubeconfig save location.
+func (m Model) handleStartKubeKubeconfigPicker(msg startKubeKubeconfigPickerMsg) (tea.Model, tea.Cmd) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		homeDir = "."
+	}
+	m.wizard.kubeKubeconfigClusterId = msg.clusterId
+	m.wizard.kubeKubeconfigCurrentDir = homeDir
+	m.wizard.kubeKubeconfigEntries = listSubdirs(homeDir)
+	m.wizard.kubeKubeconfigSelectedIdx = 0
+	m.mode = KubeKubeconfigPickerView
+	return m, nil
+}
+
+// downloadKubeconfigToPath fetches the kubeconfig for a cluster and saves it to destDir/<clusterName>-kubeconfig.yaml.
+func (m Model) downloadKubeconfigToPath(clusterId, clusterName, destDir string) tea.Msg {
+	if m.cloudProject == "" {
+		return kubeActionMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig", m.cloudProject, clusterId)
+	var response map[string]any
+	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
+		return kubeActionMsg{err: fmt.Errorf("failed to download kubeconfig: %w", err)}
+	}
+
+	kubeconfig, ok := response["content"].(string)
+	if !ok {
+		return kubeActionMsg{err: fmt.Errorf("invalid kubeconfig response format")}
+	}
+
+	filename := clusterName + "-kubeconfig.yaml"
+	destPath := filepath.Join(destDir, filename)
+
+	if err := os.WriteFile(destPath, []byte(kubeconfig), 0600); err != nil {
+		return kubeActionMsg{err: fmt.Errorf("failed to save kubeconfig: %w", err)}
+	}
+
+	return kubeActionMsg{result: fmt.Sprintf("Kubeconfig saved to %s", destPath)}
 }
 
 // Node pool action messages

@@ -24,7 +24,7 @@ var (
 	ColorBgDark    = lipgloss.Color("#1a1a1a")
 	ColorBgMedium  = lipgloss.Color("#2a2a2a")
 	ColorBgBorder  = lipgloss.Color("#444444")
-	ColorBgBorder2 = lipgloss.Color("#240")
+	ColorBgBorder2 = lipgloss.Color("240")
 )
 
 // Shared styles for consistent UI rendering

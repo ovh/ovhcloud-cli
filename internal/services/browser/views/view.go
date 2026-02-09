@@ -7,6 +7,8 @@
 package views
 
 import (
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -61,7 +63,7 @@ type Context struct {
 // SetNotification sets a notification message with expiry.
 func (c *Context) SetNotification(msg string, durationSec int) {
 	c.Notification = msg
-	c.NotificationExpiry = int64(durationSec) // Will be converted to proper time
+	c.NotificationExpiry = time.Now().Unix() + int64(durationSec)
 }
 
 // BaseView provides common functionality for views.

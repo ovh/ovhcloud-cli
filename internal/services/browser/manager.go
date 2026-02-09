@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -43,8 +44,10 @@ const (
 	KubeUpgradeView           // Kubernetes cluster upgrade selection
 	KubePolicyEditView        // Kubernetes cluster policy edit
 	KubeDeleteConfirmView     // Kubernetes cluster delete confirmation
-	NodePoolScaleView         // Node pool scale view
-	NodePoolDeleteConfirmView // Node pool delete confirmation
+	NodePoolScaleView              // Node pool scale view
+	NodePoolDeleteConfirmView      // Node pool delete confirmation
+	KubeKubeconfigPickerView       // Directory picker for saving kubeconfig
+	ComingSoonView                 // Coming soon placeholder for unimplemented products
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -157,7 +160,7 @@ type WizardData struct {
 	cleanupPending bool   // Whether we're waiting for cleanup confirmation
 	cleanupError   string // Error message that triggered cleanup prompt
 	// Kubernetes wizard fields
-	kubeRegions             []map[string]interface{} // Available regions for K8s
+	kubeRegions             []string                 // Available regions for K8s
 	kubeVersions            []string                 // Available K8s versions
 	kubeNetworks            []map[string]interface{} // Private networks
 	kubeSubnets             []map[string]interface{} // Subnets for selected network
@@ -221,6 +224,11 @@ type WizardData struct {
 	nodePoolDeletePoolId       string // Node pool ID for deletion
 	nodePoolDeletePoolName     string // Node pool name for confirmation
 	nodePoolDeleteConfirmInput string // User input for confirmation
+	// Kubeconfig file picker fields
+	kubeKubeconfigClusterId   string   // Cluster ID for kubeconfig download
+	kubeKubeconfigCurrentDir  string   // Currently browsed directory
+	kubeKubeconfigEntries     []string // Subdirectory names in current dir
+	kubeKubeconfigSelectedIdx int      // 0="..", 1="[Save here]", 2+= entries
 }
 
 // Model represents the TUI application state
@@ -261,6 +269,9 @@ type Model struct {
 	selectedNodePool        map[string]interface{}              // Currently selected node pool for detail view
 	nodePoolDetailActionIdx int                                 // Selected action index in node pool detail view
 	nodePoolDetailConfirm   bool                                // Whether we're in confirmation mode
+	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
+	detailRefreshId   string
+	detailRefreshName string
 }
 
 // Navigation items for the top bar
@@ -488,7 +499,7 @@ type sshConnectionMsg struct {
 
 // Kubernetes wizard messages
 type kubeRegionsLoadedMsg struct {
-	regions []map[string]interface{}
+	regions []string
 	err     error
 }
 
@@ -596,18 +607,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case refreshTickMsg:
 		// Auto-refresh instances list if we're viewing instances in TableView
 		// Only fetch if we're actually viewing the table, then reschedule
-		if m.currentProduct == ProductInstances && m.mode == TableView {
-			return m, tea.Batch(
-				m.fetchDataForPath("/instances"),
-				m.scheduleRefresh(),
-			)
+		if m.currentProduct == ProductInstances {
+			if m.mode == TableView {
+				return m, tea.Batch(
+					m.fetchDataForPath("/instances"),
+					m.scheduleRefresh(),
+				)
+			}
+			if m.mode == DetailView && m.detailData != nil {
+				m.detailRefreshId = getString(m.detailData, "id")
+				m.detailRefreshName = m.currentItemName
+				return m, tea.Batch(
+					m.fetchDataForPath("/instances"),
+					m.scheduleRefresh(),
+				)
+			}
+			// Keep the timer alive even when not in TableView or DetailView
+			return m, m.scheduleRefresh()
 		}
 		// Auto-refresh Kubernetes list if we're viewing Kubernetes in TableView
-		if m.currentProduct == ProductKubernetes && m.mode == TableView {
-			return m, tea.Batch(
-				m.fetchDataForPath("/kubernetes"),
-				m.scheduleRefresh(),
-			)
+		if m.currentProduct == ProductKubernetes {
+			if m.mode == TableView {
+				return m, tea.Batch(
+					m.fetchDataForPath("/kubernetes"),
+					m.scheduleRefresh(),
+				)
+			}
+			if m.mode == DetailView && m.detailData != nil {
+				m.detailRefreshId = getString(m.detailData, "id")
+				m.detailRefreshName = m.currentItemName
+				return m, tea.Batch(
+					m.fetchDataForPath("/kubernetes"),
+					m.scheduleRefresh(),
+				)
+			}
+			// Keep the timer alive even when not in TableView or DetailView (e.g. NodePoolsView)
+			return m, m.scheduleRefresh()
 		}
 		// Not viewing instances or Kubernetes, don't reschedule (will be started again when switching)
 		return m, nil
@@ -719,6 +754,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case launchK9sMsg:
 		return m.handleLaunchK9s(msg)
 
+	case kubeconfigReadyForK9sMsg:
+		return m.handleKubeconfigReadyForK9s(msg)
+
 	case switchToNodePoolsViewMsg:
 		return m.handleSwitchToNodePoolsView(msg)
 
@@ -752,6 +790,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case kubeDeletedMsg:
 		return m.handleKubeDeleted(msg)
+
+	case startKubeKubeconfigPickerMsg:
+		return m.handleStartKubeKubeconfigPicker(msg)
 
 	// Node pool action messages
 	case startNodePoolScaleMsg:
@@ -857,6 +898,11 @@ func (m Model) View() string {
 	content.WriteString(m.renderHeader())
 	content.WriteString("\n")
 
+	// Add extra spacing when a project is selected
+	if m.cloudProject != "" && m.mode != ProjectSelectView {
+		content.WriteString("\n")
+	}
+
 	// Navigation bar
 	content.WriteString(m.renderNavBar(width))
 	content.WriteString("\n\n")
@@ -873,14 +919,19 @@ func (m Model) View() string {
 
 func (m Model) renderHeader() string {
 	logo := logoStyle.Render("☁ OVHcloud Manager")
+	experimental := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFA500")).
+		Bold(true).
+		Render(" [EXPERIMENTAL]")
+
 	// Show selected project in header if one is selected
 	if m.cloudProject != "" && m.mode != ProjectSelectView {
 		projectInfo := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888")).
 			Render(fmt.Sprintf(" • Project: %s", m.cloudProjectName))
-		return logo + projectInfo
+		return logo + experimental + projectInfo
 	}
-	return logo
+	return logo + experimental
 }
 
 func (m Model) renderNavBar(width int) string {
@@ -986,6 +1037,10 @@ func (m Model) renderContentBox(width int) string {
 		contentStr = m.renderNodePoolScaleView(width - 6)
 	case NodePoolDeleteConfirmView:
 		contentStr = m.renderNodePoolDeleteConfirmView(width - 6)
+	case KubeKubeconfigPickerView:
+		contentStr = m.renderKubeKubeconfigPickerView(width - 6)
+	case ComingSoonView:
+		contentStr = m.renderComingSoonView()
 	}
 
 	// Combine title and content
@@ -1169,6 +1224,32 @@ func (m Model) renderEmptyView() string {
 		content.WriteString(fmt.Sprintf("        %s\n\n", promptStyle.Render("Press 'c' to create one, or run:")))
 		content.WriteString(fmt.Sprintf("        %s\n", cmdStyle.Render(createCmd)))
 	}
+
+	return content.String()
+}
+
+// renderComingSoonView displays a placeholder for products not yet implemented
+func (m Model) renderComingSoonView() string {
+	var content strings.Builder
+
+	navItems := getNavItems()
+	currentNav := navItems[m.navIdx]
+
+	iconStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFA500"))
+
+	textStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888"))
+
+	highlightStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true)
+
+	content.WriteString("\n\n")
+	content.WriteString(fmt.Sprintf("        %s\n\n", iconStyle.Render("🚧")))
+	content.WriteString(fmt.Sprintf("        %s\n\n", highlightStyle.Render(currentNav.Label+" - Coming Soon")))
+	content.WriteString(fmt.Sprintf("        %s\n\n", textStyle.Render("This section is not yet implemented in the browser.")))
+	content.WriteString(fmt.Sprintf("        %s\n", textStyle.Render("Stay tuned for future updates!")))
 
 	return content.String()
 }
@@ -1595,6 +1676,65 @@ func (m Model) renderKubeDeleteConfirmView(width int) string {
 	content.WriteString("\n")
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 	content.WriteString(dimStyle.Render("  Enter to delete (when name matches) • Escape to cancel\n"))
+
+	return content.String()
+}
+
+// renderKubeKubeconfigPickerView displays the directory picker for saving a kubeconfig file.
+func (m Model) renderKubeKubeconfigPickerView(width int) string {
+	var content strings.Builder
+
+	headerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true)
+	content.WriteString(headerStyle.Render("  💾  Save Kubeconfig\n\n"))
+
+	clusterName := getStringValue(m.detailData, "name", "Unknown")
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Cluster:"), valueStyle.Render(clusterName)))
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", labelStyle.Render("Directory:"), valueStyle.Render(m.wizard.kubeKubeconfigCurrentDir)))
+
+	// Build entry list: "..", "[Save here]", then subdirs
+	entries := []struct {
+		label    string
+		isAction bool
+	}{
+		{"  ..", false},
+		{"  [ Save here ]", true},
+	}
+	for _, d := range m.wizard.kubeKubeconfigEntries {
+		entries = append(entries, struct {
+			label    string
+			isAction bool
+		}{"  " + d + "/", false})
+	}
+
+	selectedStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).
+		Foreground(lipgloss.Color("#FFFFFF"))
+	actionStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00FF7F")).
+		Bold(true)
+	normalStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF"))
+
+	for i, e := range entries {
+		var rendered string
+		if i == m.wizard.kubeKubeconfigSelectedIdx {
+			rendered = selectedStyle.Render(fmt.Sprintf("> %s", e.label))
+		} else if e.isAction {
+			rendered = actionStyle.Render(e.label)
+		} else {
+			rendered = normalStyle.Render(e.label)
+		}
+		content.WriteString(rendered + "\n")
+	}
+
+	content.WriteString("\n")
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	filename := clusterName + "-kubeconfig.yaml"
+	content.WriteString(dimStyle.Render(fmt.Sprintf("  File will be saved as: %s\n", filename)))
 
 	return content.String()
 }
@@ -2543,17 +2683,10 @@ func (m Model) renderKubeWizardRegionStep(width int) string {
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
 
 	for i, region := range m.wizard.kubeRegions {
-		regionCode, _ := region["code"].(string)
-		regionName, _ := region["name"].(string)
-
-		if regionName == "" {
-			regionName = regionCode
-		}
-
 		if i == m.wizard.selectedIndex {
-			content.WriteString(selectedStyle.Render("▶ " + regionName + " (" + regionCode + ")"))
+			content.WriteString(selectedStyle.Render("▶ " + region))
 		} else {
-			content.WriteString(listStyle.Render("  " + regionName + " (" + regionCode + ")"))
+			content.WriteString(listStyle.Render("  " + region))
 		}
 		content.WriteString("\n")
 	}
@@ -3139,9 +3272,9 @@ func (m Model) getProductCreationInfo() (string, string) {
 	case ProductDatabases:
 		return "databases", fmt.Sprintf("ovhcloud cloud database-service create --cloud-project %s", m.cloudProject)
 	case ProductStorage:
-		return "storage containers", fmt.Sprintf("ovhcloud cloud storage s3 create --cloud-project %s", m.cloudProject)
+		return "storage containers", fmt.Sprintf("ovhcloud cloud storage-s3 create --cloud-project %s", m.cloudProject)
 	case ProductNetworks:
-		return "private networks", fmt.Sprintf("ovhcloud cloud network create --cloud-project %s", m.cloudProject)
+		return "private networks", fmt.Sprintf("ovhcloud cloud network private create --cloud-project %s", m.cloudProject)
 	default:
 		return "resources", ""
 	}
@@ -3312,7 +3445,7 @@ func (m Model) renderInstanceDetail(width int) string {
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Image"), valueStyle.Render(truncate(imageName, 25))))
 	infoContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("Created"), valueStyle.Render(truncate(created, 25))))
 
-	infoBox := renderBox("Informations", infoContent.String(), boxWidth)
+	infoBox := renderBox("Information", infoContent.String(), boxWidth)
 
 	// Right column - Network box
 	networkContent := strings.Builder{}
@@ -3337,7 +3470,7 @@ func (m Model) renderInstanceDetail(width int) string {
 		networkContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("IPv6"), valueStyle.Render("N/A")))
 	}
 
-	networkBox := renderBox("Réseau", networkContent.String(), boxWidth)
+	networkBox := renderBox("Network", networkContent.String(), boxWidth)
 
 	// Actions box (top) with selectable actions
 	// Change Stop to Start if instance is SHUTOFF
@@ -3375,7 +3508,7 @@ func (m Model) renderInstanceDetail(width int) string {
 			Bold(true).
 			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actions[m.selectedAction]))
 	}
-	actionsBox := renderBox("Actions rapides (←/→ pour naviguer, Enter pour exécuter)", actionsContent, width-4)
+	actionsBox := renderBox("Quick Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
 
 	// Combine everything
 	content.WriteString(actionsBox)
@@ -3662,9 +3795,18 @@ func (m Model) renderFooter() string {
 		help = "Type instance name to confirm • Enter: Delete • Esc: Cancel"
 	case DebugView:
 		help = "↑↓: Scroll • c: Clear logs • d/Esc: Close • q: Quit"
+	case KubeKubeconfigPickerView:
+		help = "↑↓: Navigate • Enter: Open/Select • Esc: Cancel"
+	case ComingSoonView:
+		help = "←→: Switch Product • d: Debug • p: Change Project • q: Quit"
 	default:
 		help = "Enter: Select • q: Quit"
 	}
+
+	// Add experimental warning
+	experimentalNotice := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFA500")).
+		Render("⚠️  Experimental feature - Report bugs at: https://github.com/ovh/ovhcloud-cli/issues")
 
 	// Add notification if present
 	if m.notification != "" && time.Now().Before(m.notificationExpiry) {
@@ -3674,10 +3816,10 @@ func (m Model) renderFooter() string {
 		if strings.HasPrefix(m.notification, "❌") {
 			notificationStyle = notificationStyle.Foreground(lipgloss.Color("#FF6B6B"))
 		}
-		return notificationStyle.Render(m.notification) + "\n" + footerStyle.Render(help)
+		return notificationStyle.Render(m.notification) + "\n" + footerStyle.Render(help) + "\n\n" + experimentalNotice
 	}
 
-	return footerStyle.Render(help)
+	return footerStyle.Render(help) + "\n\n" + experimentalNotice
 }
 
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -3719,6 +3861,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Handle Node pool delete confirmation view
 	if m.mode == NodePoolDeleteConfirmView {
 		return m.handleNodePoolDeleteConfirmKeyPress(msg)
+	}
+
+	// Handle kubeconfig directory picker view
+	if m.mode == KubeKubeconfigPickerView {
+		return m.handleKubeKubeconfigPickerKeyPress(msg)
 	}
 
 	switch msg.String() {
@@ -3919,7 +4066,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.mode = LoadingView
 				m.detailData = nil
 				m.currentData = nil
-				return m, m.fetchDataForPath("/instances")
+				return m, tea.Batch(
+					m.fetchDataForPath("/instances"),
+					m.scheduleRefresh(),
+				)
 			}
 		} else if m.mode == NodePoolsView {
 			// In node pools view, show node pool details
@@ -3998,7 +4148,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			default:
 				return m, nil
 			}
-			return m, m.fetchDataForPath(path)
+			return m, tea.Batch(
+				m.fetchDataForPath(path),
+				m.scheduleRefresh(),
+			)
 		} else if m.mode == TableView {
 			// Refresh table view
 			m.notification = "⟳ Refreshing list..."
@@ -4013,7 +4166,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			default:
 				return m, nil
 			}
-			return m, m.fetchDataForPath(path)
+			return m, tea.Batch(
+				m.fetchDataForPath(path),
+				m.scheduleRefresh(),
+			)
 		}
 		return m, nil
 
@@ -4047,13 +4203,25 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "delete", "backspace":
-		// Delete instance - only in TableView for instances
-		if m.mode == TableView && m.currentProduct == ProductInstances {
+		if m.mode == TableView {
 			selectedRow := m.table.Cursor()
 			if selectedRow >= 0 && selectedRow < len(m.currentData) {
-				m.deleteTarget = m.currentData[selectedRow]
-				m.deleteConfirmInput = ""
-				m.mode = DeleteConfirmView
+				switch m.currentProduct {
+				case ProductInstances:
+					m.deleteTarget = m.currentData[selectedRow]
+					m.deleteConfirmInput = ""
+					m.mode = DeleteConfirmView
+				case ProductKubernetes:
+					cluster := m.currentData[selectedRow]
+					clusterId := getStringValue(cluster, "id", "")
+					clusterName := getStringValue(cluster, "name", "")
+					if clusterId != "" {
+						m.wizard.kubeDeleteClusterId = clusterId
+						m.wizard.kubeDeleteClusterName = clusterName
+						m.wizard.kubeDeleteConfirmInput = ""
+						m.mode = KubeDeleteConfirmView
+					}
+				}
 			}
 		}
 		return m, nil
@@ -5280,15 +5448,12 @@ func (m Model) handleKubeWizardRegionKeys(key string, msg tea.KeyMsg) (tea.Model
 		}
 	case "enter":
 		if m.wizard.selectedIndex >= 0 && m.wizard.selectedIndex < len(m.wizard.kubeRegions) {
-			region := m.wizard.kubeRegions[m.wizard.selectedIndex]
-			if code, ok := region["code"].(string); ok {
-				m.wizard.selectedKubeRegion = code
-			}
+			m.wizard.selectedKubeRegion = m.wizard.kubeRegions[m.wizard.selectedIndex]
 			m.wizard.selectedIndex = 0
 			m.wizard.step = KubeWizardStepVersion
 			m.wizard.isLoading = true
 			m.wizard.loadingMessage = "Loading Kubernetes versions..."
-			return m, m.fetchKubeVersions(m.wizard.selectedKubeRegion)
+			return m, m.fetchKubeVersions()
 		}
 	case "backspace":
 		// Go back (but region is first step, so cancel wizard)
@@ -5671,9 +5836,16 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	navItems := getNavItems()
 	currentNav := navItems[m.navIdx]
 	m.currentProduct = currentNav.Product
-	m.mode = LoadingView
 	m.detailData = nil
 	m.currentData = nil
+
+	// Show coming soon view for unimplemented products
+	if currentNav.Product == ProductDatabases || currentNav.Product == ProductStorage || currentNav.Product == ProductNetworks {
+		m.mode = ComingSoonView
+		return m, nil
+	}
+
+	m.mode = LoadingView
 
 	// For instances and Kubernetes, start the auto-refresh timer
 	if currentNav.Product == ProductInstances || currentNav.Product == ProductKubernetes {
@@ -6004,6 +6176,75 @@ func (m Model) handleKubePolicyEditKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd)
 	}
 
 	return m, nil
+}
+
+// handleKubeKubeconfigPickerKeyPress handles keyboard input for the kubeconfig directory picker.
+func (m Model) handleKubeKubeconfigPickerKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	totalEntries := 2 + len(m.wizard.kubeKubeconfigEntries) // "..", "[Save here]", dirs
+
+	switch msg.String() {
+	case "q", "ctrl+c":
+		return m, tea.Quit
+
+	case "esc":
+		m.mode = DetailView
+		return m, nil
+
+	case "up", "k":
+		if m.wizard.kubeKubeconfigSelectedIdx > 0 {
+			m.wizard.kubeKubeconfigSelectedIdx--
+		}
+		return m, nil
+
+	case "down", "j":
+		if m.wizard.kubeKubeconfigSelectedIdx < totalEntries-1 {
+			m.wizard.kubeKubeconfigSelectedIdx++
+		}
+		return m, nil
+
+	case "enter":
+		idx := m.wizard.kubeKubeconfigSelectedIdx
+		if idx == 0 {
+			// Navigate to parent directory
+			parent := filepath.Dir(m.wizard.kubeKubeconfigCurrentDir)
+			m.wizard.kubeKubeconfigCurrentDir = parent
+			m.wizard.kubeKubeconfigEntries = listSubdirs(parent)
+			m.wizard.kubeKubeconfigSelectedIdx = 0
+		} else if idx == 1 {
+			// Save here: trigger download
+			clusterName := getStringValue(m.detailData, "name", "Unknown")
+			destDir := m.wizard.kubeKubeconfigCurrentDir
+			clusterId := m.wizard.kubeKubeconfigClusterId
+			m.mode = DetailView
+			return m, func() tea.Msg {
+				return m.downloadKubeconfigToPath(clusterId, clusterName, destDir)
+			}
+		} else {
+			// Navigate into selected subdirectory
+			newDir := filepath.Join(m.wizard.kubeKubeconfigCurrentDir, m.wizard.kubeKubeconfigEntries[idx-2])
+			m.wizard.kubeKubeconfigCurrentDir = newDir
+			m.wizard.kubeKubeconfigEntries = listSubdirs(newDir)
+			m.wizard.kubeKubeconfigSelectedIdx = 0
+		}
+		return m, nil
+	}
+
+	return m, nil
+}
+
+// listSubdirs returns a sorted list of subdirectory names in dir (non-hidden only).
+func listSubdirs(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var dirs []string
+	for _, e := range entries {
+		if e.IsDir() && !strings.HasPrefix(e.Name(), ".") {
+			dirs = append(dirs, e.Name())
+		}
+	}
+	return dirs
 }
 
 // handleKubeDeleteConfirmKeyPress handles keyboard input for the delete confirmation view
