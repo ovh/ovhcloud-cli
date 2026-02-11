@@ -45,6 +45,20 @@ var (
 	CloudLoadbalancerCreateSpec struct {
 		FlavorId string `json:"flavorId,omitempty"`
 		Name     string `json:"name,omitempty"`
+		Network  struct {
+			Private struct {
+				FloatingIp struct {
+					Id string `json:"id,omitempty"`
+				} `json:"floatingIp,omitzero"`
+				Gateway struct {
+					Id string `json:"id,omitempty"`
+				} `json:"gateway,omitzero"`
+				Network struct {
+					Id       string `json:"id,omitempty"`
+					SubnetId string `json:"subnetId,omitempty"`
+				} `json:"network,omitzero"`
+			} `json:"private,omitzero"`
+		} `json:"network,omitzero"`
 	}
 
 	CloudLoadbalancerAssociateFloatingIpSpec struct {
@@ -209,7 +223,7 @@ func CreateCloudLoadbalancer(cmd *cobra.Command, args []string) {
 		LoadbalancerCreationExample,
 		CloudLoadbalancerCreateSpec,
 		assets.CloudOpenapiSchema,
-		nil,
+		[]string{"name", "flavorId", "network"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create loadbalancer: %s", err)
@@ -324,7 +338,7 @@ func CreateFloatingIpForLoadbalancer(cmd *cobra.Command, args []string) {
 		LoadbalancerCreateFloatingIpExample,
 		CloudLoadbalancerCreateFloatingIpSpec,
 		assets.CloudOpenapiSchema,
-		nil,
+		[]string{"ip"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create floating IP: %s", err)

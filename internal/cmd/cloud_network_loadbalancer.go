@@ -87,6 +87,10 @@ There are three ways to define the parameters:
 
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Name, "name", "", "Name of the loadbalancer")
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.FlavorId, "flavor", "", "Flavor ID (can be retrieved with 'cloud reference loadbalancer list-flavors <region>')")
+	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.Network.Id, "network-id", "", "Network ID")
+	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.Network.SubnetId, "subnet-id", "", "Subnet ID")
+	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.FloatingIp.Id, "floating-ip", "", "Floating IP ID to associate to the loadbalancer")
+	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.Gateway.Id, "gateway", "", "Gateway ID to associate to the loadbalancer")
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/loadbalancer", "post", cloud.LoadbalancerCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
@@ -557,12 +561,15 @@ func initLogSubCommands(loadbalancerCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(2),
 	})
 
-	logCmd.AddCommand(&cobra.Command{
+	logURLCmd := &cobra.Command{
 		Use:   "generate-url <loadbalancer_id>",
 		Short: "Generate a temporary URL to retrieve logs",
 		Run:   cloud.GenerateCloudLoadbalancerLogURL,
 		Args:  cobra.ExactArgs(1),
-	})
+	}
+	logURLCmd.Flags().StringVar(&cloud.CloudLoadbalancerLogURLSpec.Kind, "kind", "", "Log kind (e.g., haproxy)")
+	logURLCmd.MarkFlagRequired("kind")
+	logCmd.AddCommand(logURLCmd)
 
 	// Log Subscription sub-commands
 	subscriptionCmd := &cobra.Command{

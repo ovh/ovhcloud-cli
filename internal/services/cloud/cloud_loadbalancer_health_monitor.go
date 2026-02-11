@@ -83,7 +83,7 @@ func CreateCloudLoadbalancerHealthMonitor(cmd *cobra.Command, args []string) {
 		LoadbalancerHealthMonitorCreationExample,
 		CloudLoadbalancerHealthMonitorCreateSpec,
 		assets.CloudOpenapiSchema,
-		nil,
+		[]string{"delay", "maxRetries", "monitorType", "name", "poolId", "timeout"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create health monitor: %s", err)

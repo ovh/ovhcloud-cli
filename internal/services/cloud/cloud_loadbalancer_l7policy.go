@@ -114,7 +114,7 @@ func CreateCloudLoadbalancerL7Policy(cmd *cobra.Command, args []string) {
 		LoadbalancerL7PolicyCreationExample,
 		CloudLoadbalancerL7PolicyCreateSpec,
 		assets.CloudOpenapiSchema,
-		nil,
+		[]string{"action", "listenerId"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create L7 policy: %s", err)

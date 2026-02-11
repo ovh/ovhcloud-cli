@@ -80,7 +80,7 @@ func CreateCloudLoadbalancerListener(cmd *cobra.Command, args []string) {
 		LoadbalancerListenerCreationExample,
 		CloudLoadbalancerListenerCreateSpec,
 		assets.CloudOpenapiSchema,
-		nil,
+		[]string{"loadbalancerId", "name", "port", "protocol"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create listener: %s", err)
