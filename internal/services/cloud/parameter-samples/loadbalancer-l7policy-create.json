@@ -1,0 +1,7 @@
+{
+  "action": "redirectToPool",
+  "listenerId": "00000000-0000-0000-0000-000000000000",
+  "name": "my-l7-policy",
+  "position": 1,
+  "redirectPoolId": "00000000-0000-0000-0000-000000000000"
+}

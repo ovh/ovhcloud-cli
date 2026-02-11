@@ -1,0 +1,9 @@
+{
+  "delay": 5,
+  "maxRetries": 3,
+  "maxRetriesDown": 3,
+  "monitorType": "http",
+  "name": "my-health-monitor",
+  "poolId": "00000000-0000-0000-0000-000000000000",
+  "timeout": 5
+}

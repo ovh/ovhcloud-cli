@@ -1,0 +1,14 @@
+📏 L7 rule {{.ServiceName}}
+=======
+
+## General information
+
+**Rule type**:           {{index .Result "ruleType"}}
+**Compare type**:        {{index .Result "compareType"}}
+**Value**:               {{index .Result "value"}}
+**Key**:                 {{index .Result "key"}}
+**Invert**:              {{index .Result "invert"}}
+**Operating status**:    {{index .Result "operatingStatus"}}
+**Provisioning status**: {{index .Result "provisioningStatus"}}
+
+💡 Use option --json or --yaml to get the raw output with all information

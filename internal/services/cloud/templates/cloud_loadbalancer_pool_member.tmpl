@@ -1,0 +1,14 @@
+👤 Pool member {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Address**:             {{index .Result "address"}}
+**Protocol port**:       {{index .Result "protocolPort"}}
+**Weight**:              {{index .Result "weight"}}
+**Operating status**:    {{index .Result "operatingStatus"}}
+**Provisioning status**: {{index .Result "provisioningStatus"}}
+
+💡 Use option --json or --yaml to get the raw output with all information

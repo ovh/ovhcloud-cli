@@ -1,0 +1,5 @@
+{
+  "compareType": "equalTo",
+  "ruleType": "path",
+  "value": "/api"
+}

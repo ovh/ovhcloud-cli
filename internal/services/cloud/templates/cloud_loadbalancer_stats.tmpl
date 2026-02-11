@@ -1,0 +1,10 @@
+📊 Load balancer statistics {{.ServiceName}}
+=======
+
+**Active connections**: {{index .Result "activeConnections"}}
+**Bytes in**:           {{index .Result "bytesIn"}}
+**Bytes out**:          {{index .Result "bytesOut"}}
+**Request errors**:     {{index .Result "requestErrors"}}
+**Total connections**:  {{index .Result "totalConnections"}}
+
+💡 Use option --json or --yaml to get the raw output with all information
