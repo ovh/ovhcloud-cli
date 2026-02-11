@@ -1,0 +1,18 @@
+📋 L7 policy {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Action**:              {{index .Result "action"}}
+**Position**:            {{index .Result "position"}}
+**Listener ID**:         {{index .Result "listenerId"}}
+**Operating status**:    {{index .Result "operatingStatus"}}
+**Provisioning status**: {{index .Result "provisioningStatus"}}
+**Description**:         {{index .Result "description"}}
+{{if index .Result "redirectPoolId"}}**Redirect pool ID**:    {{index .Result "redirectPoolId"}}{{end}}
+{{if index .Result "redirectUrl"}}**Redirect URL**:        {{index .Result "redirectUrl"}}{{end}}
+{{if index .Result "redirectPrefix"}}**Redirect prefix**:     {{index .Result "redirectPrefix"}}{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

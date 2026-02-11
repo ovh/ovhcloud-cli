@@ -132,5 +132,12 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	}))
 
+	loadbalancerReferenceCmd.AddCommand(&cobra.Command{
+		Use:   "get-flavor <region> <flavor_id>",
+		Short: "Get details of a specific loadbalancer flavor",
+		Run:   cloud.GetLoadbalancerFlavor,
+		Args:  cobra.ExactArgs(2),
+	})
+
 	cloudCmd.AddCommand(referenceCmd)
 }

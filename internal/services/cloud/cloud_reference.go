@@ -289,3 +289,22 @@ func ListLoadbalancerFlavors(cmd *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/flavor", projectID, url.PathEscape(args[0]))
 	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "region"}, flags.GenericFilters)
 }
+
+func GetLoadbalancerFlavor(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/flavor/%s",
+		projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+
+	var flavor map[string]any
+	if err := httpLib.Client.Get(endpoint, &flavor); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch loadbalancer flavor: %s", err)
+		return
+	}
+
+	display.OutputObject(flavor, args[1], "", &flags.OutputFormatConfig)
+}
