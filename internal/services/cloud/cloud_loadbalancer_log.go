@@ -19,7 +19,6 @@ import (
 
 var (
 	logSubscriptionColumnsToDisplay = []string{"subscriptionId", "kind", "streamId", "createdAt"}
-	logKindColumnsToDisplay         = []string{"name", "additionalReturnedFields", "displayName"}
 
 	//go:embed templates/cloud_loadbalancer_log_subscription.tmpl
 	cloudLoadbalancerLogSubscriptionTemplate string
@@ -30,6 +29,10 @@ var (
 	CloudLoadbalancerLogSubscriptionCreateSpec struct {
 		Kind     string `json:"kind,omitempty"`
 		StreamId string `json:"streamId,omitempty"`
+	}
+
+	CloudLoadbalancerLogURLSpec struct {
+		Kind string `json:"kind"`
 	}
 )
 
@@ -102,7 +105,7 @@ func CreateCloudLoadbalancerLogSubscription(cmd *cobra.Command, args []string) {
 		LoadbalancerLogSubscriptionCreationExample,
 		CloudLoadbalancerLogSubscriptionCreateSpec,
 		assets.CloudOpenapiSchema,
-		nil,
+		[]string{"kind", "streamId"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create log subscription: %s", err)
@@ -155,12 +158,12 @@ func GenerateCloudLoadbalancerLogURL(_ *cobra.Command, args []string) {
 		projectID, url.PathEscape(region), url.PathEscape(args[0]))
 
 	var result map[string]any
-	if err := httpLib.Client.Post(endpoint, nil, &result); err != nil {
+	if err := httpLib.Client.Post(endpoint, CloudLoadbalancerLogURLSpec, &result); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to generate log URL: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Temporary log URL generated successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Temporary log URL generated successfully: %s", result["url"])
 }
 
 // Log Kind operations
@@ -175,7 +178,13 @@ func ListCloudLoadbalancerLogKinds(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/log/kind",
 		projectID, url.PathEscape(args[0]))
 
-	common.ManageListRequestNoExpand(endpoint, logKindColumnsToDisplay, flags.GenericFilters)
+	var kinds []string
+	if err := httpLib.Client.Get(endpoint, &kinds); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch log kinds: %s", err)
+		return
+	}
+
+	display.OutputObject(map[string]any{"kinds": kinds}, "Log kinds", "", &flags.OutputFormatConfig)
 }
 
 func GetCloudLoadbalancerLogKind(_ *cobra.Command, args []string) {
