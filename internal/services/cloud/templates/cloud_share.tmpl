@@ -1,0 +1,29 @@
+🚀 Share {{.ServiceName}}
+=======
+
+_{{index .Result "description"}}_
+
+## General information
+
+**Name**:              {{index .Result "name"}}
+**ID**:                {{index .Result "id"}}
+**Region**:            {{index .Result "region"}}
+**Type**:              {{index .Result "type"}}
+**Protocol**:          {{index .Result "protocol"}}
+**Status**:            {{index .Result "status"}}
+**Size**:              {{index .Result "size"}}GB
+**Public**:            {{index .Result "isPublic"}}
+**Created at**:        {{index .Result "createdAt"}}
+**Updated at**:        {{index .Result "updatedAt"}}
+
+## Export locations
+{{range index .Result "exportLocations"}}
+- **ID**: {{.id}}, **Path**: {{.path}}
+{{end}}
+
+## Capabilities
+{{range index .Result "capabilities"}}
+- {{.name}}: {{.enabled}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

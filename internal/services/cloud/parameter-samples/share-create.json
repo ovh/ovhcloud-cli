@@ -1,0 +1,6 @@
+{
+    "name": "myshare",
+    "description": "My shared storage",
+    "size": 100,
+    "type": "default"
+}
