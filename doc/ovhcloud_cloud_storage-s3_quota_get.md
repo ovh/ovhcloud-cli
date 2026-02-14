@@ -1,9 +1,9 @@
-## ovhcloud cloud container-registry ip-restrictions management list
+## ovhcloud cloud storage-s3 quota get
 
-List management IP restrictions for a container registry
+Get storage quota for the given region
 
 ```
-ovhcloud cloud container-registry ip-restrictions management list <registry_id> [flags]
+ovhcloud cloud storage-s3 quota get <region> [flags]
 ```
 
 ### Options
@@ -16,7 +16,7 @@ ovhcloud cloud container-registry ip-restrictions management list <registry_id> 
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help                 help for get
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +40,5 @@ ovhcloud cloud container-registry ip-restrictions management list <registry_id> 
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry ip-restrictions management](ovhcloud_cloud_container-registry_ip-restrictions_management.md)	 - Manage IP restrictions for container registry Harbor UI and API access
+* [ovhcloud cloud storage-s3 quota](ovhcloud_cloud_storage-s3_quota.md)	 - Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 

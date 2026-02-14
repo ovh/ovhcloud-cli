@@ -38,6 +38,47 @@ var (
 	//go:embed parameter-samples/storage-s3-presigned-url.json
 	CloudStorageS3PresignedURLExample string
 
+	//go:embed parameter-samples/storage-s3-lifecycle.json
+	CloudStorageS3LifecycleExample string
+
+	StorageS3LifecycleSpec struct {
+		Rules []struct {
+			AbortIncompleteMultipartUpload *struct {
+				DaysAfterInitiation int `json:"daysAfterInitiation,omitempty"`
+			} `json:"abortIncompleteMultipartUpload,omitempty"`
+			Expiration *struct {
+				Days                      int    `json:"days,omitempty"`
+				Date                      string `json:"date,omitempty"`
+				ExpiredObjectDeleteMarker bool   `json:"expiredObjectDeleteMarker,omitempty"`
+			} `json:"expiration,omitempty"`
+			Filter *struct {
+				Prefix string            `json:"prefix,omitempty"`
+				Tags   map[string]string `json:"tags,omitempty"`
+			} `json:"filter,omitempty"`
+			ID                          string `json:"id,omitempty"`
+			NoncurrentVersionExpiration *struct {
+				NoncurrentDays int `json:"noncurrentDays,omitempty"`
+			} `json:"noncurrentVersionExpiration,omitempty"`
+			Status      string `json:"status"`
+			Transitions []struct {
+				Days         int    `json:"days,omitempty"`
+				StorageClass string `json:"storageClass,omitempty"`
+			} `json:"transitions,omitempty"`
+		} `json:"rules,omitempty"`
+	}
+
+	StorageS3CopySpec struct {
+		TargetBucket string `json:"targetBucket,omitempty"`
+		TargetKey    string `json:"targetKey,omitempty"`
+		StorageClass string `json:"storageClass,omitempty"`
+	}
+
+	StorageS3RestoreDays int
+
+	StorageS3QuotaSpec struct {
+		QuotaBytes int64 `json:"quotaBytes"`
+	}
+
 	StorageS3Spec struct {
 		Name       string `json:"name,omitempty"`
 		OwnerId    int    `json:"ownerId,omitempty"`
@@ -678,4 +719,243 @@ func GetStorageS3Credentials(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputObject(credentials, args[1], "", &flags.OutputFormatConfig)
+}
+
+// Lifecycle management
+
+func GetStorageS3Lifecycle(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	var lifecycle map[string]any
+	if err := httpLib.Client.Get(foundURL+"/lifecycle", &lifecycle); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to get lifecycle configuration: %s", err)
+		return
+	}
+
+	display.OutputObject(lifecycle, args[0], "", &flags.OutputFormatConfig)
+}
+
+func EditStorageS3Lifecycle(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/lifecycle",
+		foundURL+"/lifecycle",
+		StorageS3LifecycleSpec,
+		assets.CloudOpenapiSchema,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+}
+
+func DeleteStorageS3Lifecycle(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	if err := httpLib.Client.Delete(foundURL+"/lifecycle", nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete lifecycle configuration: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Lifecycle configuration for container %s deleted successfully", args[0])
+}
+
+// Object copy and restore
+
+func CopyStorageS3Object(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := foundURL + "/object/" + url.PathEscape(args[1]) + "/copy"
+	var result map[string]any
+	if err := httpLib.Client.Post(endpoint, StorageS3CopySpec, &result); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to copy object: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Object %s copied successfully", args[1])
+}
+
+func RestoreStorageS3Object(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := foundURL + "/object/" + url.PathEscape(args[1]) + "/restore"
+	if err := httpLib.Client.Post(endpoint, map[string]any{"days": int(StorageS3RestoreDays)}, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to restore object: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Object %s restore initiated successfully", args[1])
+}
+
+// Object version copy and restore
+
+func CopyStorageS3ObjectVersion(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := foundURL + "/object/" + url.PathEscape(args[1]) + "/version/" + url.PathEscape(args[2]) + "/copy"
+	var result map[string]any
+	if err := httpLib.Client.Post(endpoint, StorageS3CopySpec, &result); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to copy object version: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Object %s version %s copied successfully", args[1], args[2])
+}
+
+func RestoreStorageS3ObjectVersion(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := foundURL + "/object/" + url.PathEscape(args[1]) + "/version/" + url.PathEscape(args[2]) + "/restore"
+	if err := httpLib.Client.Post(endpoint, map[string]any{"days": int(StorageS3RestoreDays)}, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to restore object version: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Object %s version %s restore initiated successfully", args[1], args[2])
+}
+
+// Replication job
+
+func CreateStorageS3ReplicationJob(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	foundURL, _, err := locateStorageS3Container(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	var result map[string]any
+	if err := httpLib.Client.Post(foundURL+"/job/replication", nil, &result); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create replication job: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Replication job created successfully (ID: %s)", result["id"])
+}
+
+// Storage quota
+
+func GetStorageS3Quota(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/quota/storage", projectID, url.PathEscape(args[0]))
+	var quota map[string]any
+	if err := httpLib.Client.Get(endpoint, &quota); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to get storage quota: %s", err)
+		return
+	}
+
+	display.OutputObject(quota, args[0], "", &flags.OutputFormatConfig)
+}
+
+func EditStorageS3Quota(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/quota/storage", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Put(endpoint, StorageS3QuotaSpec, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to update storage quota: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Storage quota for region %s updated successfully", args[0])
+}
+
+func DeleteStorageS3Quota(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/quota/storage", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete storage quota: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Storage quota for region %s deleted successfully", args[0])
 }

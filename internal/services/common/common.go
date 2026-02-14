@@ -204,6 +204,29 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 		return fmt.Errorf("failed to parse arguments from command line: %w", err)
 	}
 
+	// Handle data from file if --from-file flag is used
+	if flags.ParametersFile != "" {
+		log.Print("Flag --from-file used, all other flags will override the file values")
+
+		fd, err := os.Open(flags.ParametersFile)
+		if err != nil {
+			return fmt.Errorf("failed to open given file: %w", err)
+		}
+		defer fd.Close()
+
+		var fileParameters map[string]any
+		if err := json.NewDecoder(fd).Decode(&fileParameters); err != nil {
+			return fmt.Errorf("failed to parse given file: %w", err)
+		}
+
+		// Merge CLI parameters with file parameters (CLI takes precedence)
+		if err := utils.MergeMaps(fileParameters, cliParameters); err != nil {
+			return fmt.Errorf("failed to merge CLI parameters with file parameters: %w", err)
+		}
+
+		cliParameters = fileParameters
+	}
+
 	// Fetch resource
 	var object map[string]any
 	if err := httpLib.Client.Get(url, &object); err != nil {

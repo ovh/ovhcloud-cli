@@ -120,6 +120,29 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(2),
 	})
 
+	objectCopyCmd := &cobra.Command{
+		Use:   "copy <container_name> <object_name>",
+		Short: "Copy the given object to another bucket or key",
+		Run:   cloud.CopyStorageS3Object,
+		Args:  cobra.ExactArgs(2),
+	}
+	objectCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.TargetBucket, "target-bucket", "", "Target bucket name")
+	objectCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.TargetKey, "target-key", "", "Target object key")
+	objectCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.StorageClass, "storage-class", "", "Target storage class (HIGH_PERF, STANDARD, STANDARD_IA)")
+	objectCopyCmd.MarkFlagRequired("target-bucket")
+	objectCopyCmd.MarkFlagRequired("target-key")
+	objectCmd.AddCommand(objectCopyCmd)
+
+	objectRestoreCmd := &cobra.Command{
+		Use:   "restore <container_name> <object_name>",
+		Short: "Restore the given object from archival storage",
+		Run:   cloud.RestoreStorageS3Object,
+		Args:  cobra.ExactArgs(2),
+	}
+	objectRestoreCmd.Flags().IntVar(&cloud.StorageS3RestoreDays, "days", 0, "Number of days the restored object will be available")
+	objectRestoreCmd.MarkFlagRequired("days")
+	objectCmd.AddCommand(objectRestoreCmd)
+
 	// Object version commands
 	objectVersionCmd := &cobra.Command{
 		Use:   "version",
@@ -164,6 +187,29 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(3),
 	})
 
+	objectVersionCopyCmd := &cobra.Command{
+		Use:   "copy <container_name> <object_name> <version_id>",
+		Short: "Copy a specific version of an object to another bucket or key",
+		Run:   cloud.CopyStorageS3ObjectVersion,
+		Args:  cobra.ExactArgs(3),
+	}
+	objectVersionCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.TargetBucket, "target-bucket", "", "Target bucket name")
+	objectVersionCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.TargetKey, "target-key", "", "Target object key")
+	objectVersionCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.StorageClass, "storage-class", "", "Target storage class (HIGH_PERF, STANDARD, STANDARD_IA)")
+	objectVersionCopyCmd.MarkFlagRequired("target-bucket")
+	objectVersionCopyCmd.MarkFlagRequired("target-key")
+	objectVersionCmd.AddCommand(objectVersionCopyCmd)
+
+	objectVersionRestoreCmd := &cobra.Command{
+		Use:   "restore <container_name> <object_name> <version_id>",
+		Short: "Restore a specific version of an object from archival storage",
+		Run:   cloud.RestoreStorageS3ObjectVersion,
+		Args:  cobra.ExactArgs(3),
+	}
+	objectVersionRestoreCmd.Flags().IntVar((*int)(&cloud.StorageS3RestoreDays), "days", 0, "Number of days the restored object will be available")
+	objectVersionRestoreCmd.MarkFlagRequired("days")
+	objectVersionCmd.AddCommand(objectVersionRestoreCmd)
+
 	// Presigned URL command
 	presignedURLCmd := &cobra.Command{
 		Use:   "generate-presigned-url <container_name>",
@@ -188,6 +234,84 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Short: "Add a user to the given storage container with the specified role (admin, deny, readOnly, readWrite)",
 		Run:   cloud.StorageS3AddUser,
 		Args:  cobra.ExactArgs(3),
+	})
+
+	// Lifecycle command
+	lifecycleCmd := &cobra.Command{
+		Use:   "lifecycle",
+		Short: "Manage S3™* compatible storage container lifecycle configuration (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+	}
+	storageS3Cmd.AddCommand(lifecycleCmd)
+
+	lifecycleCmd.AddCommand(&cobra.Command{
+		Use:   "get <container_name>",
+		Short: "Get the lifecycle configuration of the given storage container",
+		Run:   cloud.GetStorageS3Lifecycle,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	lifecycleEditCmd := &cobra.Command{
+		Use:   "edit <container_name>",
+		Short: "Edit the lifecycle configuration of the given storage container",
+		Run:   cloud.EditStorageS3Lifecycle,
+		Args:  cobra.ExactArgs(1),
+	}
+	addInitParameterFileFlag(lifecycleEditCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/lifecycle", "put", cloud.CloudStorageS3LifecycleExample, nil)
+	addInteractiveEditorFlag(lifecycleEditCmd)
+	addFromFileFlag(lifecycleEditCmd)
+	lifecycleEditCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	lifecycleCmd.AddCommand(lifecycleEditCmd)
+
+	lifecycleCmd.AddCommand(&cobra.Command{
+		Use:   "delete <container_name>",
+		Short: "Delete the lifecycle configuration of the given storage container",
+		Run:   cloud.DeleteStorageS3Lifecycle,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	// Replication job command
+	replicationJobCmd := &cobra.Command{
+		Use:   "replication-job",
+		Short: "Manage replication jobs for S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+	}
+	storageS3Cmd.AddCommand(replicationJobCmd)
+
+	replicationJobCmd.AddCommand(&cobra.Command{
+		Use:   "create <container_name>",
+		Short: "Create a replication job on the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+		Run:   cloud.CreateStorageS3ReplicationJob,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	// Quota command
+	quotaCmd := &cobra.Command{
+		Use:   "quota",
+		Short: "Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+	}
+	storageS3Cmd.AddCommand(quotaCmd)
+
+	quotaCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "get <region>",
+		Short: "Get storage quota for the given region",
+		Run:   cloud.GetStorageS3Quota,
+		Args:  cobra.ExactArgs(1),
+	}))
+
+	quotaEditCmd := &cobra.Command{
+		Use:   "edit <region>",
+		Short: "Edit storage quota for the given region",
+		Run:   cloud.EditStorageS3Quota,
+		Args:  cobra.ExactArgs(1),
+	}
+	quotaEditCmd.Flags().Int64Var(&cloud.StorageS3QuotaSpec.QuotaBytes, "quota-bytes", 0, "New quota in bytes")
+	quotaEditCmd.MarkFlagRequired("quota-bytes")
+	quotaCmd.AddCommand(quotaEditCmd)
+
+	quotaCmd.AddCommand(&cobra.Command{
+		Use:   "delete <region>",
+		Short: "Delete storage quota for the given region",
+		Run:   cloud.DeleteStorageS3Quota,
+		Args:  cobra.ExactArgs(1),
 	})
 
 	// Credentials command

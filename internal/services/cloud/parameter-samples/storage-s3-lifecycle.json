@@ -1,0 +1,14 @@
+{
+  "rules": [
+    {
+      "id": "expire-old-objects",
+      "status": "enabled",
+      "filter": {
+        "prefix": "logs/"
+      },
+      "expiration": {
+        "days": 30
+      }
+    }
+  ]
+}
