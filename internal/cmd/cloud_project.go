@@ -19,6 +19,7 @@ func init() {
 		Use:   "project",
 		Short: "Retrieve information and manage your CloudProject services",
 	}
+	cloudprojectCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	// Command to list CloudProject services
 	cloudprojectCmd.AddCommand(withFilterFlag(&cobra.Command{
@@ -46,6 +47,59 @@ func init() {
 	editCloudProjectCmd.Flags().BoolVar(&cloud.CloudProjectSpec.ManualQuota, "manual-quota", false, "Prevent automatic quota upgrade")
 	addInteractiveEditorFlag(editCloudProjectCmd)
 	cloudprojectCmd.AddCommand(editCloudProjectCmd)
+
+	// Project management commands
+	cloudprojectCmd.AddCommand(&cobra.Command{
+		Use:   "service-info",
+		Short: "Get service information for the project",
+		Run:   cloud.GetServiceInfo,
+	})
+
+	changeContactCmd := &cobra.Command{
+		Use:   "change-contact",
+		Short: "Change project contacts",
+		Run:   cloud.ChangeContact,
+	}
+	changeContactCmd.Flags().StringVar(&cloud.ChangeContactSpec.ContactAdmin, "contact-admin", "", "Admin contact NIC handle")
+	changeContactCmd.Flags().StringVar(&cloud.ChangeContactSpec.ContactBilling, "contact-billing", "", "Billing contact NIC handle")
+	changeContactCmd.Flags().StringVar(&cloud.ChangeContactSpec.ContactTech, "contact-tech", "", "Technical contact NIC handle")
+	cloudprojectCmd.AddCommand(changeContactCmd)
+
+	// Termination commands
+	terminationCmd := &cobra.Command{
+		Use:   "termination",
+		Short: "Manage project termination lifecycle",
+	}
+
+	terminationCmd.AddCommand(&cobra.Command{
+		Use:   "init",
+		Short: "Initiate project termination",
+		Long:  "Initiate project termination. A termination token will be returned to confirm the operation.",
+		Run:   cloud.TerminateProject,
+	})
+
+	confirmTerminateCmd := &cobra.Command{
+		Use:   "confirm",
+		Short: "Confirm project termination with token",
+		Run:   cloud.ConfirmTermination,
+	}
+	confirmTerminateCmd.Flags().String("token", "", "Termination token received from init command")
+	confirmTerminateCmd.MarkFlagRequired("token")
+	terminationCmd.AddCommand(confirmTerminateCmd)
+
+	terminationCmd.AddCommand(&cobra.Command{
+		Use:   "cancel",
+		Short: "Cancel a project scheduled for termination",
+		Run:   cloud.RetainProject,
+	})
+
+	cloudprojectCmd.AddCommand(terminationCmd)
+
+	cloudprojectCmd.AddCommand(&cobra.Command{
+		Use:   "unleash",
+		Short: "Unleash a project",
+		Run:   cloud.UnleashProject,
+	})
 
 	initKubeCommand(cloudCmd)
 	initContainerRegistryCommand(cloudCmd)

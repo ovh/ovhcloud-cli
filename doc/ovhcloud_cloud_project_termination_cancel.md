@@ -1,18 +1,15 @@
-## ovhcloud cloud project edit
+## ovhcloud cloud project termination cancel
 
-Edit the given cloud project
+Cancel a project scheduled for termination
 
 ```
-ovhcloud cloud project edit <project_id> [flags]
+ovhcloud cloud project termination cancel [flags]
 ```
 
 ### Options
 
 ```
-      --description string   Description of the project
-      --editor               Use a text editor to define parameters
-  -h, --help                 help for edit
-      --manual-quota         Prevent automatic quota upgrade
+  -h, --help   help for cancel
 ```
 
 ### Options inherited from parent commands
@@ -36,5 +33,5 @@ ovhcloud cloud project edit <project_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Retrieve information and manage your CloudProject services
+* [ovhcloud cloud project termination](ovhcloud_cloud_project_termination.md)	 - Manage project termination lifecycle
 

@@ -21,8 +21,10 @@
 **Renewal type**:           {{index .Result "renewalType"}}
 **Possible renew periods**: {{range index .Result "possibleRenewPeriod"}}{{.}} {{end}}
 
+{{if index .Result "renew"}}
 | Automatic | Forced | Manual Payment | Delete at Expiration | Period |
 | --- | --- | --- | --- | --- |
 | {{index .Result "renew" "automatic"}} | {{index .Result "renew" "forced"}} | {{index .Result "renew" "manualPayment"}} | {{index .Result "renew" "deleteAtExpiration"}} | {{index .Result "renew" "period"}} |
+{{end}}
 
 💡 Use option --json or --yaml to get the raw output with all information

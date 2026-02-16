@@ -1,18 +1,18 @@
-## ovhcloud cloud project edit
+## ovhcloud cloud project change-contact
 
-Edit the given cloud project
+Change project contacts
 
 ```
-ovhcloud cloud project edit <project_id> [flags]
+ovhcloud cloud project change-contact [flags]
 ```
 
 ### Options
 
 ```
-      --description string   Description of the project
-      --editor               Use a text editor to define parameters
-  -h, --help                 help for edit
-      --manual-quota         Prevent automatic quota upgrade
+      --contact-admin string     Admin contact NIC handle
+      --contact-billing string   Billing contact NIC handle
+      --contact-tech string      Technical contact NIC handle
+  -h, --help                     help for change-contact
 ```
 
 ### Options inherited from parent commands

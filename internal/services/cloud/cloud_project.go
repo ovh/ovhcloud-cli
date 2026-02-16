@@ -34,6 +34,13 @@ var (
 		Description string `json:"description,omitempty"`
 		ManualQuota bool   `json:"manualQuota"`
 	}
+
+	// ChangeContactSpec contains the parameters to change project contact
+	ChangeContactSpec struct {
+		ContactAdmin   string `json:"contactAdmin,omitempty"`
+		ContactBilling string `json:"contactBilling,omitempty"`
+		ContactTech    string `json:"contactTech,omitempty"`
+	}
 )
 
 func ListCloudProject(_ *cobra.Command, _ []string) {
@@ -133,4 +140,130 @@ func fetchProjectRegions(projectID string) ([]map[string]any, error) {
 	}
 
 	return regions, nil
+}
+
+// GetServiceInfo gets service information for the given cloud project
+func GetServiceInfo(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	var serviceInfo map[string]any
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/serviceInfos", projectID)
+	if err := httpLib.Client.Get(endpoint, &serviceInfo); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error fetching service info: %s", err)
+		return
+	}
+
+	display.OutputObject(serviceInfo, projectID, common.ServiceInfoTemplate, &flags.OutputFormatConfig)
+}
+
+// ChangeContact changes project contacts
+func ChangeContact(cmd *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Check if any contact flags were actually set
+	if ChangeContactSpec.ContactAdmin == "" && ChangeContactSpec.ContactBilling == "" && ChangeContactSpec.ContactTech == "" {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to change")
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/changeContact", projectID)
+
+	if err := httpLib.Client.Post(endpoint, &ChangeContactSpec, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to change contact: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Contact change request submitted successfully")
+}
+
+// ConfirmTermination confirms project termination
+func ConfirmTermination(cmd *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	token, _ := cmd.Flags().GetString("token")
+	if token == "" {
+		display.OutputError(&flags.OutputFormatConfig, "termination token is required (--token)")
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/confirmTermination", projectID)
+
+	params := map[string]string{"token": token}
+	if err := httpLib.Client.Post(endpoint, params, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to confirm termination: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Project termination confirmed successfully")
+}
+
+// TerminateProject initiates project termination
+func TerminateProject(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/terminate", projectID)
+
+	var response map[string]any
+	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to terminate project: %s", err)
+		return
+	}
+
+	if token, ok := response["token"].(string); ok && token != "" {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Termination initiated. Use token to confirm: %s", token)
+	} else {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Termination initiated successfully")
+	}
+}
+
+// RetainProject retains a project scheduled for termination
+func RetainProject(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/retain", projectID)
+
+	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to retain project: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Project retained successfully")
+}
+
+// UnleashProject unleashes a project
+func UnleashProject(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/unleash", projectID)
+
+	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to unleash project: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Project unleashed successfully")
 }

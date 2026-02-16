@@ -1,18 +1,15 @@
-## ovhcloud cloud project edit
+## ovhcloud cloud project unleash
 
-Edit the given cloud project
+Unleash a project
 
 ```
-ovhcloud cloud project edit <project_id> [flags]
+ovhcloud cloud project unleash [flags]
 ```
 
 ### Options
 
 ```
-      --description string   Description of the project
-      --editor               Use a text editor to define parameters
-  -h, --help                 help for edit
-      --manual-quota         Prevent automatic quota upgrade
+  -h, --help   help for unleash
 ```
 
 ### Options inherited from parent commands
