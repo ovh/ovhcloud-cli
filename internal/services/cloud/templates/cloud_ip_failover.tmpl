@@ -1,0 +1,20 @@
+🌐 Failover IP {{.ServiceName}}
+=======
+
+## General information
+
+**IP**:             {{index .Result "ip"}}
+**Status**:         {{index .Result "status"}}
+**Routed to**:      {{index .Result "routedTo"}}
+
+## Location
+
+**Continent**:      {{index .Result "continentCode"}}
+**Geolocation**:    {{index .Result "geoloc"}}
+
+## Details
+
+**Block**:          {{index .Result "block"}}
+**Sub type**:       {{index .Result "subType"}}
+
+💡 Use option --json or --yaml to get the raw output with all information
