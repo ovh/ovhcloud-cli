@@ -1,0 +1,5 @@
+{
+    "delay": 3600,
+    "emails": ["alerts@example.com"],
+    "monthlyThreshold": 10000
+}
