@@ -1,11 +1,16 @@
-## ovhcloud cloud storage-s3 object
+## ovhcloud cloud storage-s3 object version restore
 
-Manage objects in the given storage container
+Restore a specific version of an object from archival storage
+
+```
+ovhcloud cloud storage-s3 object version restore <container_name> <object_name> <version_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for object
+      --days int   Number of days the restored object will be available
+  -h, --help       help for restore
 ```
 
 ### Options inherited from parent commands
@@ -29,12 +34,5 @@ Manage objects in the given storage container
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage-s3](ovhcloud_cloud_storage-s3.md)	 - Manage S3™* compatible storage containers in the given cloud project (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
-* [ovhcloud cloud storage-s3 object copy](ovhcloud_cloud_storage-s3_object_copy.md)	 - Copy the given object to another bucket or key
-* [ovhcloud cloud storage-s3 object delete](ovhcloud_cloud_storage-s3_object_delete.md)	 - Delete the given object from the storage container
-* [ovhcloud cloud storage-s3 object edit](ovhcloud_cloud_storage-s3_object_edit.md)	 - Edit the given object in the storage container
-* [ovhcloud cloud storage-s3 object get](ovhcloud_cloud_storage-s3_object_get.md)	 - Get a specific object from the given storage container
-* [ovhcloud cloud storage-s3 object list](ovhcloud_cloud_storage-s3_object_list.md)	 - List objects in the given storage container
-* [ovhcloud cloud storage-s3 object restore](ovhcloud_cloud_storage-s3_object_restore.md)	 - Restore the given object from archival storage
 * [ovhcloud cloud storage-s3 object version](ovhcloud_cloud_storage-s3_object_version.md)	 - Manage versions of objects in the given storage container
 
