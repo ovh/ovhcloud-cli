@@ -1,11 +1,15 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer pool delete
 
-Fetch loadbalancer reference data in the given cloud project
+Delete a specific pool
+
+```
+ovhcloud cloud loadbalancer pool delete <pool_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +33,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer pool](ovhcloud_cloud_loadbalancer_pool.md)	 - Manage pools of loadbalancers
 

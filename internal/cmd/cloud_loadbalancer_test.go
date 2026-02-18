@@ -54,6 +54,114 @@ func registerLoadbalancingRegionMocks() {
 }
 
 // ---------------------------------------------------------------------------
+// Loadbalancer – get
+// ---------------------------------------------------------------------------
+
+func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region",
+		httpmock.NewStringResponder(200, `["GRA11", "SBG5", "BHS5"]`))
+
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11",
+		httpmock.NewStringResponder(200, `{
+			"name": "GRA11",
+			"type": "region",
+			"status": "UP",
+			"services": [
+				{
+					"name": "octavialoadbalancer",
+					"status": "UP"
+				}
+			],
+			"countryCode": "fr",
+			"ipCountries": [],
+			"continentCode": "NA",
+			"availabilityZones": [],
+			"datacenterLocation": "GRA11"
+		}`))
+
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5",
+		httpmock.NewStringResponder(200, `{
+			"name": "SBG5",
+			"type": "region",
+			"status": "UP",
+			"services": [
+				{
+					"name": "octavialoadbalancer",
+					"status": "UP"
+				}
+			],
+			"countryCode": "fr",
+			"ipCountries": [],
+			"continentCode": "NA",
+			"availabilityZones": [],
+			"datacenterLocation": "SBG5"
+		}`))
+
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5",
+		httpmock.NewStringResponder(200, `{
+			"name": "BHS5",
+			"type": "region",
+			"status": "UP",
+			"services": [],
+			"countryCode": "ca",
+			"ipCountries": [],
+			"continentCode": "NA",
+			"availabilityZones": [],
+			"datacenterLocation": "BHS5"
+		}`))
+
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/loadbalancer/fakeLB",
+		httpmock.NewStringResponder(200, `{
+			"createdAt": "2024-07-30T08:26:51Z",
+			"flavorId": "f862fa22-6275-4f8f-885e-66a8faf5e44e",
+			"floatingIp": null,
+			"id": "334fc97e-a8db-11f0-944d-0050568ce122",
+			"name": "loadbalancer-sbg5-2024-07-30",
+			"operatingStatus": "online",
+			"provisioningStatus": "active",
+			"region": "SBG5",
+			"updatedAt": "2025-10-14T08:48:33Z",
+			"vipAddress": "1.2.3.4",
+			"vipNetworkId": "3f29f530-a8db-11f0-9ab2-0050568ce122",
+			"vipSubnetId": "44a869c4-a8db-11f0-899f-0050568ce122"
+		}`))
+
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/flavor/f862fa22-6275-4f8f-885e-66a8faf5e44e",
+		httpmock.NewStringResponder(200, `{
+			"id": "f862fa22-6275-4f8f-885e-66a8faf5e44e",
+			"name": "medium",
+			"description": "Medium Load Balancer Flavor"
+		}`))
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "get", "fakeLB", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(cleanWhitespacesHelper(out), `
+  # 🚀 Load balancer fakeLB
+
+  *loadbalancer-sbg5-2024-07-30*
+
+  ## General information
+
+  **Region**:              SBG5
+  **Operating status**:    online
+  **Provisioning status**: active
+  **Flavor**:              medium (ID: f862fa22-6275-4f8f-885e-66a8faf5e44e)
+  **Creation date**:       2024-07-30T08:26:51Z
+
+  ## Technical information
+
+  **VIP address**:        1.2.3.4
+  **VIP network ID**:     3f29f530-a8db-11f0-9ab2-0050568ce122
+  **VIP subnet ID**:      44a869c4-a8db-11f0-899f-0050568ce122
+
+  💡 Use option -o json or -o yaml to get the raw output with all information
+
+`)
+}
+
+// ---------------------------------------------------------------------------
 // Loadbalancer – list
 // ---------------------------------------------------------------------------
 
@@ -84,7 +192,7 @@ func (ms *MockSuite) TestCloudLoadbalancerListCmd(assert, require *td.T) {
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "ls", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
@@ -124,7 +232,7 @@ func (ms *MockSuite) TestCloudLoadbalancerDeleteCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/loadbalancer/lb-sbg-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "delete", "lb-sbg-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "delete", "lb-sbg-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Loadbalancer lb-sbg-001 deleted successfully"
@@ -152,7 +260,7 @@ func (ms *MockSuite) TestCloudLoadbalancerStatsCmd(assert, require *td.T) {
 			"totalConnections": 500
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "stats", "lb-gra-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "stats", "lb-gra-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"activeConnections": 42,
@@ -187,7 +295,7 @@ func (ms *MockSuite) TestCloudLoadbalancerListenerListCmd(assert, require *td.T)
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/listener",
 		httpmock.NewStringResponder(200, `[]`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "listener", "ls", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
@@ -225,7 +333,7 @@ func (ms *MockSuite) TestCloudLoadbalancerListenerGetCmd(assert, require *td.T) 
 			"description": "My HTTP listener"
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "listener", "get", "lis-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "get", "lis-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 🔊 Listener lis-001
@@ -261,7 +369,7 @@ func (ms *MockSuite) TestCloudLoadbalancerListenerDeleteCmd(assert, require *td.
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/listener/lis-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "listener", "delete", "lis-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "delete", "lis-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Listener lis-001 deleted successfully"
@@ -292,7 +400,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolListCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/pool",
 		httpmock.NewStringResponder(200, `[]`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "pool", "ls", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
@@ -326,7 +434,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolGetCmd(assert, require *td.T) {
 			"listenerId": "lis-001"
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "pool", "get", "pool-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "get", "pool-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 🏊 Pool pool-001
@@ -362,7 +470,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolDeleteCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "pool", "delete", "pool-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "delete", "pool-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Pool pool-001 deleted successfully"
@@ -402,7 +510,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListCmd(assert, require *td.
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "pool", "member", "ls", "pool-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "ls", "pool-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
@@ -447,7 +555,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetCmd(assert, require *td.T
 			"provisioningStatus": "active"
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "pool", "member", "get", "pool-001", "mem-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "get", "pool-001", "mem-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 👤 Pool member mem-001
@@ -482,7 +590,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberDeleteCmd(assert, require *t
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001/member/mem-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "pool", "member", "delete", "pool-001", "mem-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "delete", "pool-001", "mem-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Pool member mem-001 deleted successfully"
@@ -513,7 +621,7 @@ func (ms *MockSuite) TestCloudLoadbalancerHealthMonitorListCmd(assert, require *
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/healthMonitor",
 		httpmock.NewStringResponder(200, `[]`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "health-monitor", "ls", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "health-monitor", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
@@ -549,7 +657,7 @@ func (ms *MockSuite) TestCloudLoadbalancerHealthMonitorGetCmd(assert, require *t
 			"provisioningStatus": "active"
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "health-monitor", "get", "hm-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "health-monitor", "get", "hm-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 💓 Health monitor hm-001
@@ -587,7 +695,7 @@ func (ms *MockSuite) TestCloudLoadbalancerHealthMonitorDeleteCmd(assert, require
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/healthMonitor/hm-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "health-monitor", "delete", "hm-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "health-monitor", "delete", "hm-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Health monitor hm-001 deleted successfully"
@@ -618,7 +726,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyListCmd(assert, require *td.T)
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/l7Policy",
 		httpmock.NewStringResponder(200, `[]`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "l7policy", "ls", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
@@ -655,7 +763,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyGetCmd(assert, require *td.T) 
 			"redirectPrefix": ""
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "l7policy", "get", "l7p-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "get", "l7p-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 📋 L7 policy l7p-001
@@ -692,7 +800,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyDeleteCmd(assert, require *td.
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "l7policy", "delete", "l7p-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "delete", "l7p-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ L7 policy l7p-001 deleted successfully"
@@ -724,7 +832,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7RuleListCmd(assert, require *td.T) {
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "l7policy", "l7rule", "ls", "l7p-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "l7rule", "ls", "l7p-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
@@ -762,7 +870,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7RuleGetCmd(assert, require *td.T) {
 			"provisioningStatus": "active"
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "l7policy", "l7rule", "get", "l7p-001", "l7r-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "l7rule", "get", "l7p-001", "l7r-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 📏 L7 rule l7r-001
@@ -797,7 +905,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7RuleDeleteCmd(assert, require *td.T)
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001/l7Rule/l7r-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "l7policy", "l7rule", "delete", "l7p-001", "l7r-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "l7rule", "delete", "l7p-001", "l7r-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ L7 rule l7r-001 deleted successfully"
@@ -813,7 +921,7 @@ func (ms *MockSuite) TestCloudLoadbalancerLogKindListCmd(assert, require *td.T) 
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/log/kind",
 		httpmock.NewStringResponder(200, `["haproxy"]`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "log", "list-kinds", "GRA11", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "log", "list-kinds", "GRA11", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"kinds": [
@@ -835,7 +943,7 @@ func (ms *MockSuite) TestCloudLoadbalancerLogKindGetCmd(assert, require *td.T) {
 			"displayName": "HAProxy logs"
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "log", "get-kind", "GRA11", "haproxy", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "log", "get-kind", "GRA11", "haproxy", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"name": "haproxy",
@@ -861,7 +969,7 @@ func (ms *MockSuite) TestCloudLoadbalancerLogGenerateURLCmd(assert, require *td.
 			"url": "https://logs.example.com/temp/abc123"
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "log", "generate-url", "lb-gra-001", "--kind", "haproxy", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "log", "generate-url", "lb-gra-001", "--kind", "haproxy", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Temporary log URL generated successfully: https://logs.example.com/temp/abc123",
@@ -893,7 +1001,7 @@ func (ms *MockSuite) TestCloudLoadbalancerLogSubscriptionListCmd(assert, require
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "log", "subscription", "ls", "lb-gra-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "log", "subscription", "ls", "lb-gra-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
@@ -927,7 +1035,7 @@ func (ms *MockSuite) TestCloudLoadbalancerLogSubscriptionGetCmd(assert, require 
 			"updatedAt": "2024-01-15T10:30:00Z"
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "log", "subscription", "get", "lb-gra-001", "sub-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "log", "subscription", "get", "lb-gra-001", "sub-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 📝 Log subscription sub-001
@@ -961,7 +1069,7 @@ func (ms *MockSuite) TestCloudLoadbalancerLogSubscriptionDeleteCmd(assert, requi
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/loadbalancer/lb-gra-001/log/subscription/sub-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "log", "subscription", "delete", "lb-gra-001", "sub-001", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "log", "subscription", "delete", "lb-gra-001", "sub-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Log subscription sub-001 deleted successfully"

@@ -1,11 +1,26 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer health-monitor create
 
-Fetch loadbalancer reference data in the given cloud project
+Create a health monitor in the given region
+
+```
+ovhcloud cloud loadbalancer health-monitor create <region> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+      --delay int              Duration between sending probes to members, in seconds
+      --editor                 Use a text editor to define parameters
+      --from-file string       File containing parameters
+  -h, --help                   help for create
+      --init-file string       Create a file with example parameters
+      --max-retries int        Number of successful checks before changing status to ONLINE
+      --max-retries-down int   Number of allowed check failures before changing status to ERROR
+      --monitor-type string    Type of the monitor (http, https, ping, tcp, tls-hello, udp-connect, sctp)
+      --name string            Name of the health monitor
+      --pool-id string         Pool ID
+      --replace                Replace parameters file if it already exists
+      --timeout int            Maximum time in seconds to connect before timeout
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +44,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer health-monitor](ovhcloud_cloud_loadbalancer_health-monitor.md)	 - Manage health monitors of loadbalancers
 

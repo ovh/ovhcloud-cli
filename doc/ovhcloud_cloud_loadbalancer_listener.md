@@ -1,11 +1,11 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer listener
 
-Fetch loadbalancer reference data in the given cloud project
+Manage listeners of loadbalancers
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+  -h, --help   help for listener
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +29,10 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud loadbalancer listener create](ovhcloud_cloud_loadbalancer_listener_create.md)	 - Create a listener in the given region
+* [ovhcloud cloud loadbalancer listener delete](ovhcloud_cloud_loadbalancer_listener_delete.md)	 - Delete a specific listener
+* [ovhcloud cloud loadbalancer listener edit](ovhcloud_cloud_loadbalancer_listener_edit.md)	 - Edit a specific listener
+* [ovhcloud cloud loadbalancer listener get](ovhcloud_cloud_loadbalancer_listener_get.md)	 - Get a specific listener
+* [ovhcloud cloud loadbalancer listener list](ovhcloud_cloud_loadbalancer_listener_list.md)	 - List all listeners
 
