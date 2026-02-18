@@ -1,11 +1,11 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer log
 
-Fetch loadbalancer reference data in the given cloud project
+Manage loadbalancer logs
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+  -h, --help   help for log
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +29,9 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud loadbalancer log generate-url](ovhcloud_cloud_loadbalancer_log_generate-url.md)	 - Generate a temporary URL to retrieve logs
+* [ovhcloud cloud loadbalancer log get-kind](ovhcloud_cloud_loadbalancer_log_get-kind.md)	 - Get a specific log kind
+* [ovhcloud cloud loadbalancer log list-kinds](ovhcloud_cloud_loadbalancer_log_list-kinds.md)	 - List available log kinds
+* [ovhcloud cloud loadbalancer log subscription](ovhcloud_cloud_loadbalancer_log_subscription.md)	 - Manage log subscriptions for a loadbalancer
 

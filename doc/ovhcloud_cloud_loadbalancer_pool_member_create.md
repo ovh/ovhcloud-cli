@@ -1,11 +1,19 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer pool member create
 
-Fetch loadbalancer reference data in the given cloud project
+Create member(s) in a specific pool
+
+```
+ovhcloud cloud loadbalancer pool member create <pool_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+      --editor             Use a text editor to define parameters
+      --from-file string   File containing parameters
+  -h, --help               help for create
+      --init-file string   Create a file with example parameters
+      --replace            Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +37,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer pool member](ovhcloud_cloud_loadbalancer_pool_member.md)	 - Manage members of a loadbalancer pool
 

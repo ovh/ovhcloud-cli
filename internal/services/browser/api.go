@@ -85,7 +85,7 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 			msg.forProduct = product
 			return msg
 		}
-	case "/networks/loadbalancer":
+	case "/loadbalancer":
 		return func() tea.Msg {
 			msg := m.fetchLoadBalancersData()
 			msg.forProduct = product

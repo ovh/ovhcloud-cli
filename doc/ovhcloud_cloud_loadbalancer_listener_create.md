@@ -1,11 +1,23 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer listener create
 
-Fetch loadbalancer reference data in the given cloud project
+Create a listener in the given region
+
+```
+ovhcloud cloud loadbalancer listener create <region> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+      --editor                   Use a text editor to define parameters
+      --from-file string         File containing parameters
+  -h, --help                     help for create
+      --init-file string         Create a file with example parameters
+      --loadbalancer-id string   Loadbalancer ID
+      --name string              Name of the listener
+      --port int                 Port to listen on
+      --protocol string          Protocol (http, https, tcp, udp, sctp, prometheus)
+      --replace                  Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +41,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer listener](ovhcloud_cloud_loadbalancer_listener.md)	 - Manage listeners of loadbalancers
 
