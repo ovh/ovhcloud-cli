@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -19,6 +21,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
 
@@ -229,6 +232,376 @@ func (m Model) fetchKubernetesData() dataLoadedMsg {
 		data: clusters,
 		err:  nil,
 	}
+}
+
+// fetchKubeNodePools fetches the list of node pools for a Kubernetes cluster
+func (m Model) fetchKubeNodePools(kubeId string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubeNodePoolsLoadedMsg{
+				kubeId: kubeId,
+				err:    fmt.Errorf("no cloud project selected"),
+			}
+		}
+
+		// Fetch node pools for the cluster
+		var nodePools []map[string]interface{}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool", m.cloudProject, kubeId)
+		err := httpLib.Client.Get(endpoint, &nodePools)
+		if err != nil {
+			// If node pools fail to load, don't treat it as a fatal error
+			return kubeNodePoolsLoadedMsg{
+				kubeId:    kubeId,
+				nodePools: []map[string]interface{}{},
+				err:       nil,
+			}
+		}
+
+		return kubeNodePoolsLoadedMsg{
+			kubeId:    kubeId,
+			nodePools: nodePools,
+			err:       nil,
+		}
+	}
+}
+
+// fetchKubeRegions fetches available Kubernetes regions for cluster creation
+func (m Model) fetchKubeRegions() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubeRegionsLoadedMsg{
+				err: fmt.Errorf("no cloud project selected"),
+			}
+		}
+
+		var regions []string
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/capabilities/kube/regions", m.cloudProject)
+		err := httpLib.Client.Get(endpoint, &regions)
+		if err != nil {
+			return kubeRegionsLoadedMsg{
+				err: fmt.Errorf("failed to fetch Kubernetes regions: %w", err),
+			}
+		}
+
+		if len(regions) == 0 {
+			return kubeRegionsLoadedMsg{
+				err: fmt.Errorf("no Kubernetes regions available"),
+			}
+		}
+
+		sort.Strings(regions)
+
+		return kubeRegionsLoadedMsg{
+			regions: regions,
+			err:     nil,
+		}
+	}
+}
+
+// compareVersions compares two version strings (e.g. "1.29", "1.10") numerically.
+// Returns negative if a < b, zero if equal, positive if a > b.
+func compareVersions(a, b string) int {
+	parsePart := func(s string) []int {
+		var parts []int
+		for _, seg := range strings.Split(s, ".") {
+			n := 0
+			fmt.Sscanf(seg, "%d", &n)
+			parts = append(parts, n)
+		}
+		return parts
+	}
+	pa, pb := parsePart(a), parsePart(b)
+	for i := 0; i < len(pa) && i < len(pb); i++ {
+		if pa[i] != pb[i] {
+			return pa[i] - pb[i]
+		}
+	}
+	return len(pa) - len(pb)
+}
+
+// fetchKubeVersions extracts available Kubernetes versions from the embedded OpenAPI schema.
+// There is no dedicated API route for this, so we extract the version enum from
+// the embedded cloud.json schema.
+func (m Model) fetchKubeVersions() tea.Cmd {
+	return func() tea.Msg {
+		var schema struct {
+			Components struct {
+				Schemas map[string]json.RawMessage `json:"schemas"`
+			} `json:"components"`
+		}
+
+		if err := json.Unmarshal(assets.CloudOpenapiSchema, &schema); err != nil {
+			return kubeVersionsLoadedMsg{
+				err: fmt.Errorf("failed to parse embedded API schema: %w", err),
+			}
+		}
+
+		raw, ok := schema.Components.Schemas["cloud.kube.VersionEnum"]
+		if !ok {
+			return kubeVersionsLoadedMsg{
+				err: fmt.Errorf("cloud.kube.VersionEnum not found in API schema"),
+			}
+		}
+
+		var enumSchema struct {
+			Enum []string `json:"enum"`
+		}
+		if err := json.Unmarshal(raw, &enumSchema); err != nil {
+			return kubeVersionsLoadedMsg{
+				err: fmt.Errorf("failed to parse VersionEnum schema: %w", err),
+			}
+		}
+
+		if len(enumSchema.Enum) == 0 {
+			return kubeVersionsLoadedMsg{
+				err: fmt.Errorf("no Kubernetes versions found in API schema"),
+			}
+		}
+
+		sort.Slice(enumSchema.Enum, func(i, j int) bool {
+			return compareVersions(enumSchema.Enum[i], enumSchema.Enum[j]) < 0
+		})
+
+		return kubeVersionsLoadedMsg{
+			versions: enumSchema.Enum,
+			err:      nil,
+		}
+	}
+}
+
+// fetchKubeNetworks fetches available private networks for Kubernetes cluster creation
+func (m Model) fetchKubeNetworks() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubeNetworksLoadedMsg{
+				err: fmt.Errorf("no cloud project selected"),
+			}
+		}
+
+		var networks []map[string]interface{}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
+		err := httpLib.Client.Get(endpoint, &networks)
+		if err != nil {
+			return kubeNetworksLoadedMsg{
+				err: fmt.Errorf("failed to fetch networks: %w", err),
+			}
+		}
+
+		// Sort networks by name
+		sort.Slice(networks, func(i, j int) bool {
+			iName, _ := networks[i]["name"].(string)
+			jName, _ := networks[j]["name"].(string)
+			return iName < jName
+		})
+
+		return kubeNetworksLoadedMsg{
+			networks: networks,
+			err:      nil,
+		}
+	}
+}
+
+// fetchKubeSubnets fetches available subnets for a specific network
+func (m Model) fetchKubeSubnets(networkID string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubeSubnetsLoadedMsg{
+				err: fmt.Errorf("no cloud project selected"),
+			}
+		}
+
+		var subnets []map[string]interface{}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", m.cloudProject, networkID)
+		err := httpLib.Client.Get(endpoint, &subnets)
+		if err != nil {
+			return kubeSubnetsLoadedMsg{
+				err: fmt.Errorf("failed to fetch subnets: %w", err),
+			}
+		}
+
+		// Sort subnets by CIDR
+		sort.Slice(subnets, func(i, j int) bool {
+			iCIDR, _ := subnets[i]["cidr"].(string)
+			jCIDR, _ := subnets[j]["cidr"].(string)
+			return iCIDR < jCIDR
+		})
+
+		return kubeSubnetsLoadedMsg{
+			subnets: subnets,
+			err:     nil,
+		}
+	}
+}
+
+// createKubeCluster creates a new Kubernetes cluster
+func (m Model) createKubeCluster(config map[string]interface{}) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubeClusterCreatedMsg{
+				err: fmt.Errorf("no cloud project selected"),
+			}
+		}
+
+		var cluster map[string]interface{}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube", m.cloudProject)
+		err := httpLib.Client.Post(endpoint, config, &cluster)
+		if err != nil {
+			return kubeClusterCreatedMsg{
+				err: fmt.Errorf("failed to create Kubernetes cluster: %w", err),
+			}
+		}
+
+		return kubeClusterCreatedMsg{
+			cluster: cluster,
+			err:     nil,
+		}
+	}
+}
+
+// Kubernetes wizard message handlers
+
+// handleKubeRegionsLoaded handles the regions loaded message for Kubernetes wizard
+func (m Model) handleKubeRegionsLoaded(msg kubeRegionsLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	if msg.err != nil {
+		m.wizard.errorMsg = fmt.Sprintf("Failed to load regions: %s", msg.err)
+		return m, nil
+	}
+
+	m.wizard.kubeRegions = msg.regions
+	if len(msg.regions) == 0 {
+		m.wizard.errorMsg = "No Kubernetes regions available in this project"
+		return m, nil
+	}
+
+	m.wizard.selectedIndex = 0
+	return m, nil
+}
+
+// handleKubeVersionsLoaded handles the versions loaded message for Kubernetes wizard
+func (m Model) handleKubeVersionsLoaded(msg kubeVersionsLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	if msg.err != nil {
+		m.wizard.errorMsg = fmt.Sprintf("Failed to load versions: %s", msg.err)
+		return m, nil
+	}
+
+	m.wizard.kubeVersions = msg.versions
+	if len(msg.versions) == 0 {
+		m.wizard.errorMsg = "No Kubernetes versions available for this region"
+		return m, nil
+	}
+
+	m.wizard.selectedIndex = 0
+	return m, nil
+}
+
+// handleKubeNetworksLoaded handles the networks loaded message for Kubernetes wizard
+func (m Model) handleKubeNetworksLoaded(msg kubeNetworksLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	if msg.err != nil {
+		m.wizard.errorMsg = fmt.Sprintf("Failed to load networks: %s", msg.err)
+		return m, nil
+	}
+
+	m.wizard.kubeNetworks = msg.networks
+	m.wizard.selectedIndex = 0
+	return m, nil
+}
+
+// handleKubeSubnetsLoaded handles the subnets loaded message for Kubernetes wizard
+func (m Model) handleKubeSubnetsLoaded(msg kubeSubnetsLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	if msg.err != nil {
+		m.wizard.errorMsg = fmt.Sprintf("Failed to load subnets: %s", msg.err)
+		return m, nil
+	}
+
+	m.wizard.kubeSubnets = msg.subnets
+	m.wizard.selectedIndex = 0
+	return m, nil
+}
+
+// handleKubeClusterCreated handles the cluster created message
+func (m Model) handleKubeClusterCreated(msg kubeClusterCreatedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	if msg.err != nil {
+		m.wizard.errorMsg = fmt.Sprintf("Failed to create Kubernetes cluster: %s", msg.err)
+		m.notification = fmt.Sprintf("❌ Cluster creation failed: %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	// Success - clear wizard and show notification
+	clusterName, _ := msg.cluster["name"].(string)
+	m.wizard = WizardData{}
+	m.mode = LoadingView
+	m.notification = fmt.Sprintf("✅ Kubernetes cluster '%s' created successfully!", clusterName)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+
+	// Refresh the Kubernetes list
+	return m, m.fetchDataForPath("/kubernetes")
+}
+
+// handleKubeNodePoolsLoaded handles node pools being loaded for detail view
+func (m Model) handleKubeNodePoolsLoaded(msg kubeNodePoolsLoadedMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		// Don't show error for node pools failing to load
+		return m, nil
+	}
+
+	// Store in cache
+	if m.kubeNodePools == nil {
+		m.kubeNodePools = make(map[string][]map[string]interface{})
+	}
+	m.kubeNodePools[msg.kubeId] = msg.nodePools
+
+	return m, nil
+}
+
+// handleKubeAction handles the result of a Kubernetes cluster action
+func (m Model) handleKubeAction(msg kubeActionMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ Action failed: %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ %s", msg.result)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+
+	// Stay on the current view (detail page) after action
+	m.selectedAction = 0
+	m.actionConfirm = false
+
+	return m, nil
+}
+
+// handleLaunchK9s starts the async kubeconfig download before launching k9s.
+func (m Model) handleLaunchK9s(msg launchK9sMsg) (tea.Model, tea.Cmd) {
+	m.notification = "Downloading kubeconfig..."
+	m.notificationExpiry = time.Now().Add(30 * time.Second)
+	return m, m.downloadKubeconfigForK9s(msg.clusterId)
+}
+
+// handleKubeconfigReadyForK9s launches k9s once the kubeconfig is available.
+func (m Model) handleKubeconfigReadyForK9s(msg kubeconfigReadyForK9sMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ Failed to download kubeconfig: %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, nil
+	}
+
+	cmd := exec.Command("k9s", "-n", "all")
+	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", msg.kubeconfigPath))
+
+	return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
+		os.Remove(msg.kubeconfigPath)
+		if err != nil {
+			return kubeActionMsg{err: fmt.Errorf("k9s failed: %w", err)}
+		}
+		return kubeActionMsg{result: "Returned from k9s"}
+	})
 }
 
 // fetchDatabasesData fetches the list of database services
@@ -517,7 +890,7 @@ func (m Model) handleProjectsLoaded(msg projectsLoadedMsg) (tea.Model, tea.Cmd) 
 	// Store projects list for later use
 	m.projectsList = msg.projects
 	// Create table from projects
-	m.table = createProjectsTable(msg.projects, m.width, m.height)
+	m.table = createProjectsTable(msg.projects, m.height)
 	m.currentData = msg.projects // Store raw data for selection
 	m.mode = ProjectSelectView   // Show project selection view
 
@@ -536,6 +909,24 @@ func (m Model) handleInstancesLoaded(msg instancesLoadedMsg) (tea.Model, tea.Cmd
 		m.errorMsg = msg.err.Error()
 		return m, nil
 	}
+
+	// Check if we're refreshing from a detail view.
+	// Two paths: background auto-refresh (detailRefreshId set, mode still DetailView)
+	// or manual 'r' key refresh (_refreshItemId stored in detailData, mode is LoadingView).
+	var refreshItemId, refreshItemName string
+	if m.detailRefreshId != "" && m.mode == DetailView {
+		refreshItemId = m.detailRefreshId
+		refreshItemName = m.detailRefreshName
+	} else if m.detailData != nil {
+		if id, ok := m.detailData["_refreshItemId"].(string); ok {
+			refreshItemId = id
+		}
+		if name, ok := m.detailData["_refreshItemName"].(string); ok {
+			refreshItemName = name
+		}
+	}
+	m.detailRefreshId = ""
+	m.detailRefreshName = ""
 
 	// Debug: dump instances to file
 	if len(msg.instances) > 0 {
@@ -558,6 +949,18 @@ func (m Model) handleInstancesLoaded(msg instancesLoadedMsg) (tea.Model, tea.Cmd
 	// Restore cursor position if valid
 	if currentCursor >= 0 && currentCursor < len(msg.instances) {
 		m.table.SetCursor(currentCursor)
+	}
+
+	// If we were refreshing from detail view, find the item and return to detail view
+	if refreshItemId != "" {
+		for _, item := range msg.instances {
+			if getString(item, "id") == refreshItemId {
+				m.detailData = item
+				m.currentItemName = refreshItemName
+				m.mode = DetailView
+				break
+			}
+		}
 	}
 
 	// Fetch images and floating IPs in parallel to enrich the display
@@ -611,16 +1014,74 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Create generic table
-	m.table = createGenericTable(msg.data, m.width, m.height)
+	// Check if we're refreshing from a detail view.
+	// Two paths: background auto-refresh (detailRefreshId set, mode still DetailView)
+	// or manual 'r' key refresh (_refreshItemId stored in detailData, mode is LoadingView).
+	var refreshItemId, refreshItemName string
+	if m.detailRefreshId != "" && m.mode == DetailView {
+		refreshItemId = m.detailRefreshId
+		refreshItemName = m.detailRefreshName
+	} else if m.detailData != nil {
+		if id, ok := m.detailData["_refreshItemId"].(string); ok {
+			refreshItemId = id
+		}
+		if name, ok := m.detailData["_refreshItemName"].(string); ok {
+			refreshItemName = name
+		}
+	}
+	m.detailRefreshId = ""
+	m.detailRefreshName = ""
+
+	// Preserve cursor position from previous table
+	cursorPos := 0
+	if m.mode == TableView {
+		cursorPos = m.table.Cursor()
+		// Clamp cursor to valid range for new data
+		if cursorPos >= len(msg.data) {
+			cursorPos = len(msg.data) - 1
+		}
+	}
+
+	// Create product-specific table
 	m.currentData = msg.data // Store raw data for detail viewing
+	switch msg.forProduct {
+	case ProductKubernetes:
+		m.table = createKubernetesTable(msg.data, m.width, m.height)
+	case ProductInstances:
+		m.table = createInstancesTable(msg.data, m.imageMap, m.floatingIPMap, m.width, m.height)
+	default:
+		m.table = createGenericTable(msg.data, m.width, m.height)
+	}
+
+	// Restore cursor position if valid
+	if cursorPos >= 0 && cursorPos < len(msg.data) {
+		m.table.SetCursor(cursorPos)
+	}
+
 	m.mode = TableView
+
+	// If we were refreshing from detail view, find the item and return to detail view
+	if refreshItemId != "" {
+		for _, item := range msg.data {
+			if getString(item, "id") == refreshItemId {
+				m.detailData = item
+				m.currentItemName = refreshItemName
+				m.mode = DetailView
+
+				// If it's a Kubernetes cluster, also reload node pools
+				if msg.forProduct == ProductKubernetes {
+					return m, m.fetchKubeNodePools(refreshItemId)
+				}
+				break
+			}
+		}
+	}
 
 	return m, nil
 }
 
 // createProjectsTable creates a table for displaying projects
-func createProjectsTable(projects []map[string]interface{}, width, height int) table.Model {
+func createProjectsTable(projects []map[string]interface{}, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Project ID", Width: 40},
 		{Title: "Name", Width: 40},
@@ -769,6 +1230,81 @@ func createInstancesTable(instances []map[string]interface{}, imageMap map[strin
 			ansi.Truncate(imageName, 18, "..."),
 			publicIP,
 			getString(instance, "status"),
+		}
+		rows = append(rows, row)
+	}
+
+	// Calculate table height: leave room for header(2) + nav(3) + title(3) + footer(3) + borders(4)
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// createKubernetesTable creates a table for Kubernetes clusters
+func createKubernetesTable(clusters []map[string]interface{}, width, height int) table.Model {
+	// Sort clusters by name for stable ordering
+	sort.Slice(clusters, func(i, j int) bool {
+		nameI := getString(clusters[i], "name")
+		nameJ := getString(clusters[j], "name")
+		return nameI < nameJ
+	})
+
+	columns := []table.Column{
+		{Title: "Name", Width: 25},
+		{Title: "Status", Width: 12},
+		{Title: "Region", Width: 10},
+		{Title: "Version", Width: 10},
+		{Title: "Nodes", Width: 6},
+		{Title: "Update Policy", Width: 15},
+	}
+
+	var rows []table.Row
+	for _, cluster := range clusters {
+		status := getString(cluster, "status")
+		statusIcon := "🟢"
+		if status == "INSTALLING" || status == "UPDATING" || status == "RESTARTING" || status == "RESETTING" {
+			statusIcon = "🟡"
+		} else if status == "ERROR" || status == "DELETING" || status == "SUSPENDED" {
+			statusIcon = "🔴"
+		}
+
+		nodesCount := int64(0)
+		if nodes, ok := cluster["nodesCount"].(float64); ok {
+			nodesCount = int64(nodes)
+		}
+
+		row := table.Row{
+			getString(cluster, "name"),
+			statusIcon + " " + status,
+			getString(cluster, "region"),
+			getString(cluster, "version"),
+			fmt.Sprintf("%d", nodesCount),
+			getString(cluster, "updatePolicy"),
 		}
 		rows = append(rows, row)
 	}
@@ -1198,6 +1734,9 @@ func (m Model) handleSSHKeyCreated(msg sshKeyCreatedMsg) (tea.Model, tea.Cmd) {
 	m.wizard.selectedSSHKeyName = sshKeyName + " (new)"
 	m.wizard.createdSSHKeyId = sshKeyId // Track for cleanup if needed
 	m.wizard.creatingSSHKey = false
+
+	// Add the newly created SSH key to the list so it appears when navigating back
+	m.wizard.sshKeys = append(m.wizard.sshKeys, msg.sshKey)
 
 	// Add notification
 	m.notification = fmt.Sprintf("✅ SSH key '%s' created successfully!", sshKeyName)
@@ -2101,6 +2640,12 @@ func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) 
 		})
 	}
 
+	// Stay on detail view after action: set refresh IDs so handleDataLoaded returns to detail
+	if m.detailData != nil {
+		m.detailRefreshId = getString(m.detailData, "id")
+		m.detailRefreshName = m.currentItemName
+	}
+
 	// Refresh the instances list to see updated status
 	return m, tea.Batch(
 		m.fetchDataForPath("/instances"),
@@ -2237,9 +2782,13 @@ func (m Model) createSubnet(networkId string, network map[string]interface{}) te
 			}
 		}
 
-		// Add gateway info to network for display
+		// Add subnet info to network for display and later use
 		network["gateway"] = gateway
 		network["subnet"] = cidr
+		// Store subnet ID in a subnets array (to match the structure from fetchPrivateNetworks)
+		if subnet != nil {
+			network["subnets"] = []map[string]interface{}{subnet}
+		}
 
 		return networkStepMsg{
 			step:      "subnet_created",
@@ -2270,10 +2819,21 @@ func (m Model) handleNetworkCreated(msg networkCreatedMsg) (tea.Model, tea.Cmd) 
 	m.wizard.selectedPrivateNetwork = networkId
 	m.wizard.selectedPrivateNetworkName = networkName
 
+	// Extract subnet ID if available
+	m.wizard.selectedSubnetId = ""
+	if subnets, ok := msg.network["subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
+		m.wizard.selectedSubnetId = getString(subnets[0], "id")
+	} else if subnets, ok := msg.network["subnets"].([]interface{}); ok && len(subnets) > 0 {
+		if subnet, ok := subnets[0].(map[string]interface{}); ok {
+			m.wizard.selectedSubnetId = getString(subnet, "id")
+		}
+	}
+
 	// Add the new network to the list (after "No Network" and "Create New")
 	newNetworkEntry := map[string]interface{}{
-		"id":   networkId,
-		"name": networkName + " (new)",
+		"id":      networkId,
+		"name":    networkName + " (new)",
+		"subnets": msg.network["subnets"],
 	}
 
 	// Insert after the first two options
@@ -2297,7 +2857,743 @@ func (m Model) handleNetworkCreated(msg networkCreatedMsg) (tea.Model, tea.Cmd) 
 	m.wizard.newNetworkDHCP = true
 	m.wizard.networkCreateField = 0
 
+	// Advance to next wizard step based on network configuration
+	if !m.wizard.usePublicNetwork && m.wizard.selectedPrivateNetwork != "" {
+		// Private network only - go to floating IP step
+		m.wizard.step = WizardStepFloatingIP
+		m.wizard.selectedIndex = 0
+		m.wizard.filterInput = ""
+		m.wizard.isLoading = true
+		m.wizard.loadingMessage = "Loading floating IPs..."
+		return m, tea.Batch(
+			m.fetchFloatingIPs(),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+				return clearNotificationMsg{}
+			}),
+		)
+	}
+
+	// Go to name input step
+	m.wizard.step = WizardStepName
+	m.wizard.nameInput = ""
+	m.wizard.filterInput = ""
+
 	return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
 		return clearNotificationMsg{}
 	})
+}
+
+// kubeActionMsg represents the result of a Kubernetes action
+type kubeActionMsg struct {
+	result string
+	err    error
+}
+
+// launchK9sMsg signals that k9s should be launched and the TUI suspended
+type launchK9sMsg struct {
+	clusterId string
+}
+
+// switchToNodePoolsViewMsg signals to switch to node pools management view
+type switchToNodePoolsViewMsg struct {
+	clusterId string
+	region    string
+}
+
+// startNodePoolWizardMsg signals to start the node pool creation wizard
+type startNodePoolWizardMsg struct {
+	clusterId string
+	region    string
+}
+
+// nodePoolCreatedMsg is sent after a node pool is created
+type nodePoolCreatedMsg struct {
+	nodePoolId string
+	err        error
+}
+
+// kubeUpgradeMsg represents the result of a cluster upgrade
+type kubeUpgradeMsg struct {
+	result string
+	err    error
+}
+
+// kubePolicyUpdatedMsg represents the result of an update policy change
+type kubePolicyUpdatedMsg struct {
+	result string
+	err    error
+}
+
+// kubeDeletedMsg represents the result of a cluster deletion
+type kubeDeletedMsg struct {
+	result string
+	err    error
+}
+
+// kubeUpgradeVersionsLoadedMsg contains available upgrade versions
+type kubeUpgradeVersionsLoadedMsg struct {
+	versions []string
+	err      error
+}
+
+// startKubeUpgradeWizardMsg signals to start the upgrade wizard
+type startKubeUpgradeWizardMsg struct {
+	clusterId string
+}
+
+// startKubePolicyEditMsg signals to start policy editing
+type startKubePolicyEditMsg struct {
+	clusterId string
+}
+
+// startKubeDeleteMsg signals to start cluster deletion
+type startKubeDeleteMsg struct {
+	clusterId   string
+	clusterName string
+}
+
+// startKubeKubeconfigPickerMsg signals to open the directory picker for kubeconfig save location
+type startKubeKubeconfigPickerMsg struct {
+	clusterId string
+}
+
+// executeKubeAction executes an action on the current Kubernetes cluster
+func (m Model) executeKubeAction(actionIndex int) tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return kubeActionMsg{err: fmt.Errorf("no cluster selected")}
+		}
+
+		clusterId := getString(m.detailData, "id")
+		if clusterId == "" {
+			return kubeActionMsg{err: fmt.Errorf("cluster ID not found")}
+		}
+
+		clusterName := getString(m.detailData, "name")
+		region := getString(m.detailData, "region")
+
+		actions := []string{"kubeconfig", "k9s", "managepools", "upgrade", "policy", "delete"}
+		if actionIndex < 0 || actionIndex >= len(actions) {
+			return kubeActionMsg{err: fmt.Errorf("invalid action index")}
+		}
+
+		action := actions[actionIndex]
+
+		switch action {
+		case "kubeconfig":
+			return startKubeKubeconfigPickerMsg{clusterId: clusterId}
+		case "k9s":
+			// Return a message that will trigger k9s launch in the Update handler
+			return launchK9sMsg{clusterId: clusterId}
+		case "managepools":
+			// Return a message that will switch to node pools view
+			return switchToNodePoolsViewMsg{clusterId: clusterId, region: region}
+		case "upgrade":
+			// Return a message that will start the upgrade wizard
+			return startKubeUpgradeWizardMsg{clusterId: clusterId}
+		case "policy":
+			// Return a message that will start policy editing
+			return startKubePolicyEditMsg{clusterId: clusterId}
+		case "delete":
+			// Return a message that will start cluster deletion
+			return startKubeDeleteMsg{clusterId: clusterId, clusterName: clusterName}
+		default:
+			return kubeActionMsg{result: fmt.Sprintf("Action '%s' not yet implemented", action)}
+		}
+	}
+}
+
+
+// kubeconfigReadyForK9sMsg signals that the kubeconfig has been downloaded and k9s can be launched.
+type kubeconfigReadyForK9sMsg struct {
+	kubeconfigPath string
+	err            error
+}
+
+// downloadKubeconfigForK9s fetches the kubeconfig asynchronously and returns a cmd
+// that emits kubeconfigReadyForK9sMsg when done.
+func (m Model) downloadKubeconfigForK9s(clusterId string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubeconfigReadyForK9sMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig", m.cloudProject, clusterId)
+		var response map[string]any
+		if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
+			return kubeconfigReadyForK9sMsg{err: fmt.Errorf("failed to download kubeconfig: %w", err)}
+		}
+
+		kubeconfig, ok := response["content"].(string)
+		if !ok {
+			return kubeconfigReadyForK9sMsg{err: fmt.Errorf("invalid kubeconfig response format")}
+		}
+
+		f, err := os.CreateTemp("", "ovhcloud-kubeconfig-*.yaml")
+		if err != nil {
+			return kubeconfigReadyForK9sMsg{err: fmt.Errorf("failed to create temp kubeconfig file: %w", err)}
+		}
+		f.Close()
+
+		if err := os.WriteFile(f.Name(), []byte(kubeconfig), 0600); err != nil {
+			return kubeconfigReadyForK9sMsg{err: fmt.Errorf("failed to save kubeconfig: %w", err)}
+		}
+
+		return kubeconfigReadyForK9sMsg{kubeconfigPath: f.Name()}
+	}
+}
+
+// handleStartNodePoolWizard initializes the node pool wizard
+func (m Model) handleStartNodePoolWizard(msg startNodePoolWizardMsg) (tea.Model, tea.Cmd) {
+	// Reset wizard fields for node pool creation
+	m.wizard.step = NodePoolWizardStepFlavor
+	m.wizard.nodePoolClusterId = msg.clusterId
+	m.wizard.nodePoolName = ""
+	m.wizard.nodePoolNameInput = ""
+	m.wizard.nodePoolFlavorName = ""
+	m.wizard.nodePoolDesiredNodes = 3
+	m.wizard.nodePoolMinNodes = 1
+	m.wizard.nodePoolMaxNodes = 10
+	m.wizard.nodePoolAutoscale = false
+	m.wizard.nodePoolAntiAffinity = false
+	m.wizard.nodePoolMonthlyBilled = false
+	m.wizard.nodePoolSizeFieldIndex = 0
+	m.wizard.nodePoolOptionsFieldIdx = 0
+	m.wizard.nodePoolConfirmBtnIdx = 1
+	m.wizard.selectedIndex = 0
+	m.wizard.isLoading = true
+	m.wizard.loadingMessage = "Loading flavors..."
+	m.mode = WizardView
+
+	// Load flavors for the cluster's region
+	return m, m.loadNodePoolFlavors(msg.clusterId, msg.region)
+}
+
+// loadNodePoolFlavors loads flavors available for node pools
+func (m Model) loadNodePoolFlavors(clusterId, region string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/flavors", m.cloudProject, clusterId)
+		var flavors []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &flavors); err != nil {
+			return nodePoolFlavorsLoadedMsg{err: err}
+		}
+		return nodePoolFlavorsLoadedMsg{flavors: flavors}
+	}
+}
+
+// nodePoolFlavorsLoadedMsg is sent after flavors are loaded
+type nodePoolFlavorsLoadedMsg struct {
+	flavors []map[string]interface{}
+	err     error
+}
+
+// handleNodePoolFlavorsLoaded handles the loaded flavors
+func (m Model) handleNodePoolFlavorsLoaded(msg nodePoolFlavorsLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	if msg.err != nil {
+		m.wizard.errorMsg = fmt.Sprintf("Failed to load flavors: %s", msg.err)
+		return m, nil
+	}
+
+	// Filter flavors to only show available ones
+	var availableFlavors []map[string]interface{}
+	for _, flavor := range msg.flavors {
+		// Check if flavor is available (default to true if field doesn't exist)
+		available := true
+		if avail, ok := flavor["available"].(bool); ok {
+			available = avail
+		}
+		// Also check "isAvailable" field just in case
+		if avail, ok := flavor["isAvailable"].(bool); ok {
+			available = avail
+		}
+		if available {
+			availableFlavors = append(availableFlavors, flavor)
+		}
+	}
+
+	// Sort flavors by name
+	sort.Slice(availableFlavors, func(i, j int) bool {
+		namei := getString(availableFlavors[i], "name")
+		namej := getString(availableFlavors[j], "name")
+		return namei < namej
+	})
+
+	m.wizard.nodePoolFlavors = availableFlavors
+	return m, nil
+}
+
+// createNodePool creates a new node pool
+func (m Model) createNodePool() tea.Cmd {
+	return func() tea.Msg {
+		payload := map[string]interface{}{
+			"name":          m.wizard.nodePoolName,
+			"flavorName":    m.wizard.nodePoolFlavorName,
+			"desiredNodes":  m.wizard.nodePoolDesiredNodes,
+			"minNodes":      m.wizard.nodePoolMinNodes,
+			"maxNodes":      m.wizard.nodePoolMaxNodes,
+			"autoscale":     m.wizard.nodePoolAutoscale,
+			"antiAffinity":  m.wizard.nodePoolAntiAffinity,
+			"monthlyBilled": m.wizard.nodePoolMonthlyBilled,
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool", m.cloudProject, m.wizard.nodePoolClusterId)
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, payload, &result); err != nil {
+			return nodePoolCreatedMsg{err: err}
+		}
+
+		nodePoolId := ""
+		if id, ok := result["id"].(string); ok {
+			nodePoolId = id
+		}
+
+		return nodePoolCreatedMsg{nodePoolId: nodePoolId}
+	}
+}
+
+// handleNodePoolCreated handles the result of node pool creation
+func (m Model) handleNodePoolCreated(msg nodePoolCreatedMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		errMsg := msg.err.Error()
+
+		// Check if it's a duplicate name error - go back to name step
+		if strings.Contains(errMsg, "already exists") || strings.Contains(errMsg, "InvalidDataError") {
+			m.wizard.isLoading = false
+			m.wizard.errorMsg = fmt.Sprintf("This name already exists. Please choose a different name.")
+			m.wizard.step = NodePoolWizardStepName
+			m.mode = WizardView
+			return m, nil
+		}
+
+		// Other errors - return to detail view with notification
+		m.notification = fmt.Sprintf("❌ Failed to create node pool: %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = DetailView
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ Node pool '%s' created successfully", m.wizard.nodePoolName)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	m.mode = DetailView
+
+	// Reload the node pools to show the new one
+	clusterId := m.wizard.nodePoolClusterId
+	m.wizard = WizardData{} // Clear wizard data
+	return m, m.fetchKubeNodePools(clusterId)
+}
+
+// fetchKubeUpgradeVersions fetches available versions for upgrade
+func (m Model) fetchKubeUpgradeVersions(clusterId string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubeUpgradeVersionsLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", m.cloudProject, clusterId)
+		var cluster map[string]interface{}
+		err := httpLib.Client.Get(endpoint, &cluster)
+		if err != nil {
+			return kubeUpgradeVersionsLoadedMsg{err: fmt.Errorf("failed to fetch cluster: %w", err)}
+		}
+
+		// Get available versions from the cluster info
+		var versions []string
+		if nextVersions, ok := cluster["nextUpgradeVersions"].([]interface{}); ok {
+			for _, v := range nextVersions {
+				if vs, ok := v.(string); ok {
+					versions = append(versions, vs)
+				}
+			}
+		}
+
+		return kubeUpgradeVersionsLoadedMsg{versions: versions}
+	}
+}
+
+// upgradeKubeCluster upgrades a Kubernetes cluster to a new version
+func (m Model) upgradeKubeCluster(clusterId, targetVersion string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubeUpgradeMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/update", m.cloudProject, clusterId)
+		body := map[string]interface{}{
+			"strategy": "LATEST_PATCH",
+			"version":  targetVersion,
+		}
+
+		err := httpLib.Client.Post(endpoint, body, nil)
+		if err != nil {
+			return kubeUpgradeMsg{err: fmt.Errorf("failed to upgrade cluster: %w", err)}
+		}
+
+		return kubeUpgradeMsg{result: fmt.Sprintf("Cluster upgrade to %s initiated", targetVersion)}
+	}
+}
+
+// handleKubeUpgradeWizard handles starting the upgrade wizard
+func (m Model) handleKubeUpgradeWizard(msg startKubeUpgradeWizardMsg) (tea.Model, tea.Cmd) {
+	m.wizard.kubeUpgradeClusterId = msg.clusterId
+	m.wizard.kubeUpgradeSelectedIdx = 0
+	m.wizard.isLoading = true
+	m.wizard.loadingMessage = "Loading available versions..."
+	m.mode = KubeUpgradeView
+
+	return m, m.fetchKubeUpgradeVersions(msg.clusterId)
+}
+
+// handleKubeUpgradeVersionsLoaded handles when upgrade versions are loaded
+func (m Model) handleKubeUpgradeVersionsLoaded(msg kubeUpgradeVersionsLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = DetailView
+		return m, nil
+	}
+
+	m.wizard.kubeUpgradeVersions = msg.versions
+	return m, nil
+}
+
+// handleKubeUpgraded handles the result of a cluster upgrade
+func (m Model) handleKubeUpgraded(msg kubeUpgradeMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = DetailView
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ %s", msg.result)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+
+	// Stay on detail view after upgrade
+	if m.detailData != nil {
+		m.detailRefreshId = getString(m.detailData, "id")
+		m.detailRefreshName = m.currentItemName
+	}
+	m.mode = DetailView
+
+	return m, m.fetchDataForPath("/kubernetes")
+}
+
+// handleKubePolicyEdit handles starting the policy edit view
+func (m Model) handleKubePolicyEdit(msg startKubePolicyEditMsg) (tea.Model, tea.Cmd) {
+	m.wizard.kubePolicyClusterId = msg.clusterId
+	// Get current policy from detail data
+	currentPolicy := getString(m.detailData, "updatePolicy")
+	policies := []string{"ALWAYS_UPDATE", "MINIMAL_DOWNTIME", "NEVER_UPDATE"}
+	m.wizard.kubePolicySelectedIdx = 0
+	for i, p := range policies {
+		if p == currentPolicy {
+			m.wizard.kubePolicySelectedIdx = i
+			break
+		}
+	}
+	m.mode = KubePolicyEditView
+
+	return m, nil
+}
+
+// updateKubePolicy updates the cluster update policy
+func (m Model) updateKubePolicy(clusterId, policy string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubePolicyUpdatedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", m.cloudProject, clusterId)
+		body := map[string]interface{}{
+			"updatePolicy": policy,
+		}
+
+		err := httpLib.Client.Put(endpoint, body, nil)
+		if err != nil {
+			return kubePolicyUpdatedMsg{err: fmt.Errorf("failed to update policy: %w", err)}
+		}
+
+		return kubePolicyUpdatedMsg{result: fmt.Sprintf("Update policy changed to %s", policy)}
+	}
+}
+
+// handleKubePolicyUpdated handles the result of a policy update
+func (m Model) handleKubePolicyUpdated(msg kubePolicyUpdatedMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = DetailView
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ %s", msg.result)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+
+	// Stay on detail view after policy update
+	if m.detailData != nil {
+		m.detailRefreshId = getString(m.detailData, "id")
+		m.detailRefreshName = m.currentItemName
+	}
+	m.mode = DetailView
+
+	return m, m.fetchDataForPath("/kubernetes")
+}
+
+// handleKubeDelete handles starting the cluster deletion
+func (m Model) handleKubeDelete(msg startKubeDeleteMsg) (tea.Model, tea.Cmd) {
+	m.wizard.kubeDeleteClusterId = msg.clusterId
+	m.wizard.kubeDeleteClusterName = msg.clusterName
+	m.wizard.kubeDeleteConfirmInput = ""
+	m.mode = KubeDeleteConfirmView
+
+	return m, nil
+}
+
+// deleteKubeCluster deletes a Kubernetes cluster
+func (m Model) deleteKubeCluster(clusterId string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return kubeDeletedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", m.cloudProject, clusterId)
+		err := httpLib.Client.Delete(endpoint, nil)
+		if err != nil {
+			return kubeDeletedMsg{err: fmt.Errorf("failed to delete cluster: %w", err)}
+		}
+
+		return kubeDeletedMsg{result: "Cluster deletion initiated"}
+	}
+}
+
+// handleKubeDeleted handles the result of a cluster deletion
+func (m Model) handleKubeDeleted(msg kubeDeletedMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = DetailView
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ %s", msg.result)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	m.mode = TableView
+	m.detailData = nil
+
+	return m, m.fetchDataForPath("/kubernetes")
+}
+
+// handleStartKubeKubeconfigPicker opens the directory picker for kubeconfig save location.
+func (m Model) handleStartKubeKubeconfigPicker(msg startKubeKubeconfigPickerMsg) (tea.Model, tea.Cmd) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		homeDir = "."
+	}
+	m.wizard.kubeKubeconfigClusterId = msg.clusterId
+	m.wizard.kubeKubeconfigCurrentDir = homeDir
+	m.wizard.kubeKubeconfigEntries = listSubdirs(homeDir)
+	m.wizard.kubeKubeconfigSelectedIdx = 0
+	m.mode = KubeKubeconfigPickerView
+	return m, nil
+}
+
+// downloadKubeconfigToPath fetches the kubeconfig for a cluster and saves it to destDir/<clusterName>-kubeconfig.yaml.
+func (m Model) downloadKubeconfigToPath(clusterId, clusterName, destDir string) tea.Msg {
+	if m.cloudProject == "" {
+		return kubeActionMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig", m.cloudProject, clusterId)
+	var response map[string]any
+	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
+		return kubeActionMsg{err: fmt.Errorf("failed to download kubeconfig: %w", err)}
+	}
+
+	kubeconfig, ok := response["content"].(string)
+	if !ok {
+		return kubeActionMsg{err: fmt.Errorf("invalid kubeconfig response format")}
+	}
+
+	filename := clusterName + "-kubeconfig.yaml"
+	destPath := filepath.Join(destDir, filename)
+
+	if err := os.WriteFile(destPath, []byte(kubeconfig), 0600); err != nil {
+		return kubeActionMsg{err: fmt.Errorf("failed to save kubeconfig: %w", err)}
+	}
+
+	return kubeActionMsg{result: fmt.Sprintf("Kubeconfig saved to %s", destPath)}
+}
+
+// Node pool action messages
+type nodePoolScaleMsg struct {
+	result string
+	err    error
+}
+
+type nodePoolDeletedMsg struct {
+	result string
+	err    error
+}
+
+type startNodePoolScaleMsg struct {
+	clusterId  string
+	nodePoolId string
+	poolName   string
+}
+
+type startNodePoolDeleteMsg struct {
+	clusterId    string
+	nodePoolId   string
+	nodePoolName string
+}
+
+// executeNodePoolAction executes an action on the selected node pool
+func (m Model) executeNodePoolAction(actionIndex int) tea.Cmd {
+	return func() tea.Msg {
+		if m.selectedNodePool == nil || m.detailData == nil {
+			return kubeActionMsg{err: fmt.Errorf("no node pool selected")}
+		}
+
+		clusterId := getString(m.detailData, "id")
+		nodePoolId := getString(m.selectedNodePool, "id")
+		nodePoolName := getString(m.selectedNodePool, "name")
+
+		if clusterId == "" || nodePoolId == "" {
+			return kubeActionMsg{err: fmt.Errorf("cluster or node pool ID not found")}
+		}
+
+		actions := []string{"scale", "delete"}
+		if actionIndex < 0 || actionIndex >= len(actions) {
+			return kubeActionMsg{err: fmt.Errorf("invalid action index")}
+		}
+
+		action := actions[actionIndex]
+
+		switch action {
+		case "scale":
+			return startNodePoolScaleMsg{
+				clusterId:  clusterId,
+				nodePoolId: nodePoolId,
+				poolName:   nodePoolName,
+			}
+		case "delete":
+			return startNodePoolDeleteMsg{
+				clusterId:    clusterId,
+				nodePoolId:   nodePoolId,
+				nodePoolName: nodePoolName,
+			}
+		default:
+			return kubeActionMsg{result: fmt.Sprintf("Action '%s' not yet implemented", action)}
+		}
+	}
+}
+
+// handleStartNodePoolScale handles starting the node pool scale wizard
+func (m Model) handleStartNodePoolScale(msg startNodePoolScaleMsg) (tea.Model, tea.Cmd) {
+	// Store info for scaling
+	m.wizard.nodePoolScaleClusterId = msg.clusterId
+	m.wizard.nodePoolScalePoolId = msg.nodePoolId
+	m.wizard.nodePoolScalePoolName = msg.poolName
+
+	// Get current values from selectedNodePool
+	m.wizard.nodePoolScaleDesired = int(getIntOrFloatValue(m.selectedNodePool, "desiredNodes", 3))
+	m.wizard.nodePoolScaleMin = int(getIntOrFloatValue(m.selectedNodePool, "minNodes", 1))
+	m.wizard.nodePoolScaleMax = int(getIntOrFloatValue(m.selectedNodePool, "maxNodes", 10))
+	m.wizard.nodePoolScaleAutoscale = getBoolValue(m.selectedNodePool, "autoscale", false)
+	m.wizard.nodePoolScaleFieldIdx = 0
+
+	m.mode = NodePoolScaleView
+	return m, nil
+}
+
+// handleStartNodePoolDelete handles starting the node pool deletion
+func (m Model) handleStartNodePoolDelete(msg startNodePoolDeleteMsg) (tea.Model, tea.Cmd) {
+	m.wizard.nodePoolDeleteClusterId = msg.clusterId
+	m.wizard.nodePoolDeletePoolId = msg.nodePoolId
+	m.wizard.nodePoolDeletePoolName = msg.nodePoolName
+	m.wizard.nodePoolDeleteConfirmInput = ""
+	m.mode = NodePoolDeleteConfirmView
+	return m, nil
+}
+
+// scaleNodePool scales a node pool
+func (m Model) scaleNodePool(clusterId, nodePoolId string, desiredNodes, minNodes, maxNodes int, autoscale bool) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return nodePoolScaleMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool/%s", m.cloudProject, clusterId, nodePoolId)
+		body := map[string]interface{}{
+			"desiredNodes": desiredNodes,
+			"minNodes":     minNodes,
+			"maxNodes":     maxNodes,
+			"autoscale":    autoscale,
+		}
+
+		err := httpLib.Client.Put(endpoint, body, nil)
+		if err != nil {
+			return nodePoolScaleMsg{err: fmt.Errorf("failed to scale node pool: %w", err)}
+		}
+
+		return nodePoolScaleMsg{result: "Node pool scaling initiated"}
+	}
+}
+
+// handleNodePoolScaled handles the result of a node pool scale operation
+func (m Model) handleNodePoolScaled(msg nodePoolScaleMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = NodePoolDetailView
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ %s", msg.result)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	m.mode = NodePoolsView
+	m.selectedNodePool = nil
+
+	// Reload node pools
+	clusterId := getString(m.detailData, "id")
+	return m, m.fetchKubeNodePools(clusterId)
+}
+
+// deleteNodePool deletes a node pool
+func (m Model) deleteNodePool(clusterId, nodePoolId string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return nodePoolDeletedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool/%s", m.cloudProject, clusterId, nodePoolId)
+		err := httpLib.Client.Delete(endpoint, nil)
+		if err != nil {
+			return nodePoolDeletedMsg{err: fmt.Errorf("failed to delete node pool: %w", err)}
+		}
+
+		return nodePoolDeletedMsg{result: "Node pool deletion initiated"}
+	}
+}
+
+// handleNodePoolDeleted handles the result of a node pool deletion
+func (m Model) handleNodePoolDeleted(msg nodePoolDeletedMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ %s", msg.err)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = NodePoolDetailView
+		return m, nil
+	}
+
+	m.notification = fmt.Sprintf("✅ %s", msg.result)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	m.mode = NodePoolsView
+	m.selectedNodePool = nil
+
+	// Reload node pools
+	clusterId := getString(m.detailData, "id")
+	return m, m.fetchKubeNodePools(clusterId)
 }
