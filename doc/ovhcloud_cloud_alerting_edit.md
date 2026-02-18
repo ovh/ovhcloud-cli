@@ -1,22 +1,22 @@
-## ovhcloud cloud container-registry ip-restrictions management list
+## ovhcloud cloud alerting edit
 
-List management IP restrictions for a container registry
+Edit a billing alert configuration
 
 ```
-ovhcloud cloud container-registry ip-restrictions management list <registry_id> [flags]
+ovhcloud cloud alerting edit <alert_id> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+      --delay int               Delay between alerts in seconds (minimum 3600)
+      --editor                  Use a text editor to define parameters
+      --emails strings          Email addresses to receive alerts (comma-separated)
+  -h, --help                    help for edit
+      --monthly-threshold int   Monthly threshold value
+      --name string             Alert name
+      --service string          Service of the alert. Allowed: ai_endpoint, all, block_storage, data_platform, instances, instances_gpu, instances_without_gpu, objet_storage, rancher, snapshot
+      --status string           Status of the alert. Allowed: deleted, disabled, ok
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +40,5 @@ ovhcloud cloud container-registry ip-restrictions management list <registry_id> 
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry ip-restrictions management](ovhcloud_cloud_container-registry_ip-restrictions_management.md)	 - Manage IP restrictions for container registry Harbor UI and API access
+* [ovhcloud cloud alerting](ovhcloud_cloud_alerting.md)	 - Manage billing alert configurations in the given cloud project
 

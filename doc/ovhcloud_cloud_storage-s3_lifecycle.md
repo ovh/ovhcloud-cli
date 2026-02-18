@@ -1,22 +1,11 @@
-## ovhcloud cloud container-registry ip-restrictions management list
+## ovhcloud cloud storage-s3 lifecycle
 
-List management IP restrictions for a container registry
-
-```
-ovhcloud cloud container-registry ip-restrictions management list <registry_id> [flags]
-```
+Manage S3™* compatible storage container lifecycle configuration (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help   help for lifecycle
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +29,8 @@ ovhcloud cloud container-registry ip-restrictions management list <registry_id> 
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry ip-restrictions management](ovhcloud_cloud_container-registry_ip-restrictions_management.md)	 - Manage IP restrictions for container registry Harbor UI and API access
+* [ovhcloud cloud storage-s3](ovhcloud_cloud_storage-s3.md)	 - Manage S3™* compatible storage containers in the given cloud project (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+* [ovhcloud cloud storage-s3 lifecycle delete](ovhcloud_cloud_storage-s3_lifecycle_delete.md)	 - Delete the lifecycle configuration of the given storage container
+* [ovhcloud cloud storage-s3 lifecycle edit](ovhcloud_cloud_storage-s3_lifecycle_edit.md)	 - Edit the lifecycle configuration of the given storage container
+* [ovhcloud cloud storage-s3 lifecycle get](ovhcloud_cloud_storage-s3_lifecycle_get.md)	 - Get the lifecycle configuration of the given storage container
 

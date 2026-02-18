@@ -1,22 +1,19 @@
-## ovhcloud cloud container-registry ip-restrictions management list
+## ovhcloud cloud storage-s3 lifecycle edit
 
-List management IP restrictions for a container registry
+Edit the lifecycle configuration of the given storage container
 
 ```
-ovhcloud cloud container-registry ip-restrictions management list <registry_id> [flags]
+ovhcloud cloud storage-s3 lifecycle edit <container_name> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+      --editor             Use a text editor to define parameters
+      --from-file string   File containing parameters
+  -h, --help               help for edit
+      --init-file string   Create a file with example parameters
+      --replace            Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +37,5 @@ ovhcloud cloud container-registry ip-restrictions management list <registry_id> 
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry ip-restrictions management](ovhcloud_cloud_container-registry_ip-restrictions_management.md)	 - Manage IP restrictions for container registry Harbor UI and API access
+* [ovhcloud cloud storage-s3 lifecycle](ovhcloud_cloud_storage-s3_lifecycle.md)	 - Manage S3™* compatible storage container lifecycle configuration (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 

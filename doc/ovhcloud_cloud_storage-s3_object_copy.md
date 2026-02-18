@@ -1,22 +1,18 @@
-## ovhcloud cloud container-registry ip-restrictions management list
+## ovhcloud cloud storage-s3 object copy
 
-List management IP restrictions for a container registry
+Copy the given object to another bucket or key
 
 ```
-ovhcloud cloud container-registry ip-restrictions management list <registry_id> [flags]
+ovhcloud cloud storage-s3 object copy <container_name> <object_name> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help                   help for copy
+      --storage-class string   Target storage class (HIGH_PERF, STANDARD, STANDARD_IA)
+      --target-bucket string   Target bucket name
+      --target-key string      Target object key
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +36,5 @@ ovhcloud cloud container-registry ip-restrictions management list <registry_id> 
 
 ### SEE ALSO
 
-* [ovhcloud cloud container-registry ip-restrictions management](ovhcloud_cloud_container-registry_ip-restrictions_management.md)	 - Manage IP restrictions for container registry Harbor UI and API access
+* [ovhcloud cloud storage-s3 object](ovhcloud_cloud_storage-s3_object.md)	 - Manage objects in the given storage container
 

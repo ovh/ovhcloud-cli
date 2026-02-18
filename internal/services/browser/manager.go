@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -29,15 +30,24 @@ import (
 type ViewMode int
 
 const (
-	ProjectSelectView ViewMode = iota // Initial view to select a project
-	TableView                         // List view for products
-	DetailView                        // Detail view for a single item
+	ProjectSelectView  ViewMode = iota // Initial view to select a project
+	TableView                          // List view for products
+	DetailView                         // Detail view for a single item
+	NodePoolsView                      // Node pools management view
+	NodePoolDetailView                 // Detail view for a single node pool
 	LoadingView
 	ErrorView
-	EmptyView         // Empty list with creation prompt
-	WizardView        // Multi-step wizard for resource creation
-	DeleteConfirmView // Confirmation dialog for deletion
-	DebugView         // Debug panel showing API requests
+	EmptyView                 // Empty list with creation prompt
+	WizardView                // Multi-step wizard for resource creation
+	DeleteConfirmView         // Confirmation dialog for deletion
+	DebugView                 // Debug panel showing API requests
+	KubeUpgradeView           // Kubernetes cluster upgrade selection
+	KubePolicyEditView        // Kubernetes cluster policy edit
+	KubeDeleteConfirmView     // Kubernetes cluster delete confirmation
+	NodePoolScaleView              // Node pool scale view
+	NodePoolDeleteConfirmView      // Node pool delete confirmation
+	KubeKubeconfigPickerView       // Directory picker for saving kubeconfig
+	ComingSoonView                 // Coming soon placeholder for unimplemented products
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -54,6 +64,7 @@ const ovhcloudASCIILogo = `
 type WizardStep int
 
 const (
+	// Instance wizard steps
 	WizardStepRegion WizardStep = iota
 	WizardStepFlavor
 	WizardStepImage
@@ -62,6 +73,20 @@ const (
 	WizardStepFloatingIP // For private network without public network
 	WizardStepName
 	WizardStepConfirm
+	// Kubernetes wizard steps (offset by 100 to avoid conflicts)
+	KubeWizardStepRegion WizardStep = iota + 100
+	KubeWizardStepVersion
+	KubeWizardStepNetwork
+	KubeWizardStepSubnet
+	KubeWizardStepName
+	KubeWizardStepOptions
+	KubeWizardStepConfirm
+	// Node pool wizard steps (offset by 200)
+	NodePoolWizardStepFlavor WizardStep = iota + 200
+	NodePoolWizardStepName
+	NodePoolWizardStepSize
+	NodePoolWizardStepOptions
+	NodePoolWizardStepConfirm
 )
 
 // ProductType represents a product category
@@ -134,6 +159,76 @@ type WizardData struct {
 	// Cleanup confirmation
 	cleanupPending bool   // Whether we're waiting for cleanup confirmation
 	cleanupError   string // Error message that triggered cleanup prompt
+	// Kubernetes wizard fields
+	kubeRegions             []string                 // Available regions for K8s
+	kubeVersions            []string                 // Available K8s versions
+	kubeNetworks            []map[string]interface{} // Private networks
+	kubeSubnets             []map[string]interface{} // Subnets for selected network
+	kubeLBSubnets           []map[string]interface{} // Subnets for load balancers
+	selectedKubeRegion      string                   // Selected region
+	selectedKubeVersion     string                   // Selected K8s version
+	selectedKubeNetwork     string                   // Selected private network ID
+	selectedKubeNetworkName string                   // Selected private network name
+	selectedNodesSubnet     string                   // Selected nodes subnet ID
+	selectedNodesSubnetCIDR string                   // Selected nodes subnet CIDR
+	selectedLBSubnet        string                   // Selected LB subnet ID (empty = same as nodes)
+	selectedLBSubnetCIDR    string                   // Selected LB subnet CIDR
+	kubeName                string                   // Cluster name
+	kubeNameInput           string                   // Current input buffer for name
+	kubePlan                string                   // "free" or "standard"
+	kubeUpdatePolicy        string                   // Update policy
+	kubeProxyMode           string                   // "iptables" or "ipvs"
+	kubePrivateRouting      bool                     // Use private routing as default
+	kubeGatewayIP           string                   // vRack gateway IP
+	kubeGatewayIPInput      string                   // Current input for gateway IP
+	kubeOptionsFieldIndex   int                      // Current field in options step (0-3: plan, policy, proxy, routing flag, 4: gateway IP, 5: buttons)
+	kubeConfirmButtonIndex  int                      // 0 = Cancel, 1 = Create
+	kubeSubnetMenuIndex     int                      // 0 = nodes subnet, 1 = LB subnet selection
+	// Node pool wizard fields
+	nodePoolClusterId       string                   // Cluster ID to add node pool to
+	nodePoolFlavors         []map[string]interface{} // Available flavors for node pool
+	nodePoolName            string                   // Node pool name
+	nodePoolNameInput       string                   // Input buffer for name
+	nodePoolFlavorName      string                   // Selected flavor name
+	nodePoolDesiredNodes    int                      // Desired number of nodes
+	nodePoolMinNodes        int                      // Minimum nodes (for autoscale)
+	nodePoolMaxNodes        int                      // Maximum nodes (for autoscale)
+	nodePoolAutoscale       bool                     // Enable autoscaling
+	nodePoolAntiAffinity    bool                     // Enable anti-affinity
+	nodePoolMonthlyBilled   bool                     // Monthly billing
+	nodePoolSizeFieldIndex  int                      // 0 = desired, 1 = min, 2 = max
+	nodePoolOptionsFieldIdx int                      // 0 = autoscale, 1 = anti-affinity, 2 = monthly
+	nodePoolConfirmBtnIdx   int                      // 0 = Cancel, 1 = Create
+	// Kube upgrade wizard fields
+	kubeUpgradeClusterId   string   // Cluster ID for upgrade
+	kubeUpgradeVersions    []string // Available upgrade versions
+	kubeUpgradeSelectedIdx int      // Selected version index
+	// Kube policy edit fields
+	kubePolicyClusterId   string // Cluster ID for policy edit
+	kubePolicySelectedIdx int    // Selected policy index
+	// Kube delete confirmation fields
+	kubeDeleteClusterId    string // Cluster ID for deletion
+	kubeDeleteClusterName  string // Cluster name for confirmation
+	kubeDeleteConfirmInput string // User input for confirmation
+	// Node pool scale fields
+	nodePoolScaleClusterId string // Cluster ID for scale
+	nodePoolScalePoolId    string // Node pool ID for scale
+	nodePoolScalePoolName  string // Node pool name for display
+	nodePoolScaleDesired   int    // Desired nodes
+	nodePoolScaleMin       int    // Min nodes
+	nodePoolScaleMax       int    // Max nodes
+	nodePoolScaleAutoscale bool   // Autoscale enabled
+	nodePoolScaleFieldIdx  int    // Currently selected field
+	// Node pool delete fields
+	nodePoolDeleteClusterId    string // Cluster ID for deletion
+	nodePoolDeletePoolId       string // Node pool ID for deletion
+	nodePoolDeletePoolName     string // Node pool name for confirmation
+	nodePoolDeleteConfirmInput string // User input for confirmation
+	// Kubeconfig file picker fields
+	kubeKubeconfigClusterId   string   // Cluster ID for kubeconfig download
+	kubeKubeconfigCurrentDir  string   // Currently browsed directory
+	kubeKubeconfigEntries     []string // Subdirectory names in current dir
+	kubeKubeconfigSelectedIdx int      // 0="..", 1="[Save here]", 2+= entries
 }
 
 // Model represents the TUI application state
@@ -168,6 +263,15 @@ type Model struct {
 	// Instance data cache
 	imageMap      map[string]string // imageId -> imageName (for instances)
 	floatingIPMap map[string]string // instanceId -> floatingIP address
+	// Kubernetes data cache
+	kubeNodePools           map[string][]map[string]interface{} // kubeId -> list of node pools
+	nodePoolsSelectedIdx    int                                 // Selected index in node pools view
+	selectedNodePool        map[string]interface{}              // Currently selected node pool for detail view
+	nodePoolDetailActionIdx int                                 // Selected action index in node pool detail view
+	nodePoolDetailConfirm   bool                                // Whether we're in confirmation mode
+	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
+	detailRefreshId   string
+	detailRefreshName string
 }
 
 // Navigation items for the top bar
@@ -393,6 +497,38 @@ type sshConnectionMsg struct {
 	user string
 }
 
+// Kubernetes wizard messages
+type kubeRegionsLoadedMsg struct {
+	regions []string
+	err     error
+}
+
+type kubeVersionsLoadedMsg struct {
+	versions []string
+	err      error
+}
+
+type kubeNetworksLoadedMsg struct {
+	networks []map[string]interface{}
+	err      error
+}
+
+type kubeSubnetsLoadedMsg struct {
+	subnets []map[string]interface{}
+	err     error
+}
+
+type kubeClusterCreatedMsg struct {
+	cluster map[string]interface{}
+	err     error
+}
+
+type kubeNodePoolsLoadedMsg struct {
+	kubeId    string
+	nodePools []map[string]interface{}
+	err       error
+}
+
 // Navigation items for products (shown after project is selected)
 func getNavItems() []NavItem {
 	return []NavItem{
@@ -471,17 +607,48 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case refreshTickMsg:
 		// Auto-refresh instances list if we're viewing instances in TableView
 		// Only fetch if we're actually viewing the table, then reschedule
-		if m.currentProduct == ProductInstances && m.mode == TableView {
-			return m, tea.Batch(
-				m.fetchDataForPath("/instances"),
-				m.scheduleRefresh(),
-			)
+		if m.currentProduct == ProductInstances {
+			if m.mode == TableView {
+				return m, tea.Batch(
+					m.fetchDataForPath("/instances"),
+					m.scheduleRefresh(),
+				)
+			}
+			if m.mode == DetailView && m.detailData != nil {
+				m.detailRefreshId = getString(m.detailData, "id")
+				m.detailRefreshName = m.currentItemName
+				return m, tea.Batch(
+					m.fetchDataForPath("/instances"),
+					m.scheduleRefresh(),
+				)
+			}
+			// Keep the timer alive even when not in TableView or DetailView
+			return m, m.scheduleRefresh()
 		}
-		// Not viewing instances, don't reschedule (will be started again when switching to instances)
+		// Auto-refresh Kubernetes list if we're viewing Kubernetes in TableView
+		if m.currentProduct == ProductKubernetes {
+			if m.mode == TableView {
+				return m, tea.Batch(
+					m.fetchDataForPath("/kubernetes"),
+					m.scheduleRefresh(),
+				)
+			}
+			if m.mode == DetailView && m.detailData != nil {
+				m.detailRefreshId = getString(m.detailData, "id")
+				m.detailRefreshName = m.currentItemName
+				return m, tea.Batch(
+					m.fetchDataForPath("/kubernetes"),
+					m.scheduleRefresh(),
+				)
+			}
+			// Keep the timer alive even when not in TableView or DetailView (e.g. NodePoolsView)
+			return m, m.scheduleRefresh()
+		}
+		// Not viewing instances or Kubernetes, don't reschedule (will be started again when switching)
 		return m, nil
 
 	case creationWizardMsg:
-		// For instances, launch the wizard; for other products, show the CLI command
+		// For instances and Kubernetes, launch the wizard; for other products, show the CLI command
 		if msg.product == ProductInstances {
 			m.mode = WizardView
 			m.wizard = WizardData{
@@ -490,6 +657,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Loading regions...",
 			}
 			return m, m.fetchRegions()
+		} else if msg.product == ProductKubernetes {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:           KubeWizardStepRegion,
+				isLoading:      true,
+				loadingMessage: "Loading Kubernetes regions...",
+			}
+			return m, m.fetchKubeRegions()
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -553,6 +728,92 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case cleanupCompletedMsg:
 		return m.handleCleanupCompleted(msg)
+
+	// Kubernetes wizard messages
+	case kubeRegionsLoadedMsg:
+		return m.handleKubeRegionsLoaded(msg)
+
+	case kubeVersionsLoadedMsg:
+		return m.handleKubeVersionsLoaded(msg)
+
+	case kubeNetworksLoadedMsg:
+		return m.handleKubeNetworksLoaded(msg)
+
+	case kubeSubnetsLoadedMsg:
+		return m.handleKubeSubnetsLoaded(msg)
+
+	case kubeClusterCreatedMsg:
+		return m.handleKubeClusterCreated(msg)
+
+	case kubeNodePoolsLoadedMsg:
+		return m.handleKubeNodePoolsLoaded(msg)
+
+	case kubeActionMsg:
+		return m.handleKubeAction(msg)
+
+	case launchK9sMsg:
+		return m.handleLaunchK9s(msg)
+
+	case kubeconfigReadyForK9sMsg:
+		return m.handleKubeconfigReadyForK9s(msg)
+
+	case switchToNodePoolsViewMsg:
+		return m.handleSwitchToNodePoolsView(msg)
+
+	case startNodePoolWizardMsg:
+		return m.handleStartNodePoolWizard(msg)
+
+	case nodePoolFlavorsLoadedMsg:
+		return m.handleNodePoolFlavorsLoaded(msg)
+
+	case nodePoolCreatedMsg:
+		return m.handleNodePoolCreated(msg)
+
+	// Kubernetes upgrade, policy, delete messages
+	case startKubeUpgradeWizardMsg:
+		return m.handleKubeUpgradeWizard(msg)
+
+	case kubeUpgradeVersionsLoadedMsg:
+		return m.handleKubeUpgradeVersionsLoaded(msg)
+
+	case kubeUpgradeMsg:
+		return m.handleKubeUpgraded(msg)
+
+	case startKubePolicyEditMsg:
+		return m.handleKubePolicyEdit(msg)
+
+	case kubePolicyUpdatedMsg:
+		return m.handleKubePolicyUpdated(msg)
+
+	case startKubeDeleteMsg:
+		return m.handleKubeDelete(msg)
+
+	case kubeDeletedMsg:
+		return m.handleKubeDeleted(msg)
+
+	case startKubeKubeconfigPickerMsg:
+		return m.handleStartKubeKubeconfigPicker(msg)
+
+	// Node pool action messages
+	case startNodePoolScaleMsg:
+		return m.handleStartNodePoolScale(msg)
+
+	case nodePoolScaleMsg:
+		return m.handleNodePoolScaled(msg)
+
+	case startNodePoolDeleteMsg:
+		return m.handleStartNodePoolDelete(msg)
+
+	case nodePoolDeletedMsg:
+		return m.handleNodePoolDeleted(msg)
+
+	case tea.SuspendMsg:
+		// TUI has been suspended
+		return m, nil
+
+	case tea.ResumeMsg:
+		// Program is being resumed
+		return m, nil
 	}
 
 	return m, nil
@@ -637,6 +898,11 @@ func (m Model) View() string {
 	content.WriteString(m.renderHeader())
 	content.WriteString("\n")
 
+	// Add extra spacing when a project is selected
+	if m.cloudProject != "" && m.mode != ProjectSelectView {
+		content.WriteString("\n")
+	}
+
 	// Navigation bar
 	content.WriteString(m.renderNavBar(width))
 	content.WriteString("\n\n")
@@ -653,14 +919,19 @@ func (m Model) View() string {
 
 func (m Model) renderHeader() string {
 	logo := logoStyle.Render("☁ OVHcloud Manager")
+	experimental := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFA500")).
+		Bold(true).
+		Render(" [EXPERIMENTAL]")
+
 	// Show selected project in header if one is selected
 	if m.cloudProject != "" && m.mode != ProjectSelectView {
 		projectInfo := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888")).
 			Render(fmt.Sprintf(" • Project: %s", m.cloudProjectName))
-		return logo + projectInfo
+		return logo + experimental + projectInfo
 	}
-	return logo
+	return logo + experimental
 }
 
 func (m Model) renderNavBar(width int) string {
@@ -691,7 +962,17 @@ func (m Model) renderContentBox(width int) string {
 
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
-		titleText = " 🚀 Create Instance "
+		// Determine which wizard we're in based on the step
+		if m.wizard.step >= 200 {
+			// Node pool wizard
+			titleText = " 🔧 Add Node Pool "
+		} else if m.wizard.step >= 100 {
+			// Kubernetes wizard
+			titleText = " ☸️  Create Kubernetes Cluster "
+		} else {
+			// Instance wizard
+			titleText = " 🚀 Create Instance "
+		}
 		title := productTitleStyle.Render(titleText)
 		contentStr := m.renderWizardView(width - 6)
 		fullContent := title + "\n\n" + contentStr
@@ -738,10 +1019,28 @@ func (m Model) renderContentBox(width int) string {
 		contentStr = m.renderTable()
 	case DetailView:
 		contentStr = m.renderDetailView(width - 6)
+	case NodePoolsView:
+		contentStr = m.renderNodePoolsView(width - 6)
+	case NodePoolDetailView:
+		contentStr = m.renderNodePoolDetailView(width - 6)
 	case DeleteConfirmView:
 		contentStr = m.renderDeleteConfirmView()
 	case DebugView:
 		contentStr = m.renderDebugView(width - 6)
+	case KubeUpgradeView:
+		contentStr = m.renderKubeUpgradeView(width - 6)
+	case KubePolicyEditView:
+		contentStr = m.renderKubePolicyEditView(width - 6)
+	case KubeDeleteConfirmView:
+		contentStr = m.renderKubeDeleteConfirmView(width - 6)
+	case NodePoolScaleView:
+		contentStr = m.renderNodePoolScaleView(width - 6)
+	case NodePoolDeleteConfirmView:
+		contentStr = m.renderNodePoolDeleteConfirmView(width - 6)
+	case KubeKubeconfigPickerView:
+		contentStr = m.renderKubeKubeconfigPickerView(width - 6)
+	case ComingSoonView:
+		contentStr = m.renderComingSoonView()
 	}
 
 	// Combine title and content
@@ -929,6 +1228,632 @@ func (m Model) renderEmptyView() string {
 	return content.String()
 }
 
+// renderComingSoonView displays a placeholder for products not yet implemented
+func (m Model) renderComingSoonView() string {
+	var content strings.Builder
+
+	navItems := getNavItems()
+	currentNav := navItems[m.navIdx]
+
+	iconStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFA500"))
+
+	textStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888"))
+
+	highlightStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true)
+
+	content.WriteString("\n\n")
+	content.WriteString(fmt.Sprintf("        %s\n\n", iconStyle.Render("🚧")))
+	content.WriteString(fmt.Sprintf("        %s\n\n", highlightStyle.Render(currentNav.Label+" - Coming Soon")))
+	content.WriteString(fmt.Sprintf("        %s\n\n", textStyle.Render("This section is not yet implemented in the browser.")))
+	content.WriteString(fmt.Sprintf("        %s\n", textStyle.Render("Stay tuned for future updates!")))
+
+	return content.String()
+}
+
+// renderNodePoolsView displays the node pools management view
+func (m Model) renderNodePoolsView(width int) string {
+	var content strings.Builder
+
+	if m.detailData == nil {
+		return "No cluster selected"
+	}
+
+	clusterName := getStringValue(m.detailData, "name", "Unknown")
+	clusterId := getStringValue(m.detailData, "id", "")
+
+	// Header
+	headerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true)
+	content.WriteString(headerStyle.Render(fmt.Sprintf("  Node Pools - Cluster: %s\n\n", clusterName)))
+
+	// Get node pools for this cluster
+	nodePools := m.kubeNodePools[clusterId]
+
+	if len(nodePools) == 0 {
+		emptyStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#888888")).
+			Italic(true)
+		content.WriteString(emptyStyle.Render("  No node pools found.\n"))
+		content.WriteString("\n")
+		content.WriteString(lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#00FF7F")).
+			Bold(true).
+			Render("  Press 'c' to create a node pool\n"))
+	} else {
+		// Format node pools as a simple table without lipgloss for alignment
+		content.WriteString("\n")
+
+		// Header
+		headerStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7B68EE")).
+			Bold(true)
+
+		header := "  Name                  Status      Flavor           Nodes       Autoscale"
+		content.WriteString(headerStyle.Render(header) + "\n")
+
+		separator := "  " + strings.Repeat("─", 75)
+		content.WriteString(headerStyle.Render(separator) + "\n")
+
+		// Rows
+		selectedStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#000000")).
+			Background(lipgloss.Color("#7B68EE"))
+
+		for i, pool := range nodePools {
+			poolName := getStringValue(pool, "name", "Unknown")
+			poolStatus := getStringValue(pool, "status", "Unknown")
+			flavor := getStringValue(pool, "flavor", "N/A")
+			desiredNodes := getIntOrFloatValue(pool, "desiredNodes", 0)
+			currentNodes := getIntOrFloatValue(pool, "currentNodes", 0)
+			autoscale := getBoolValue(pool, "autoscale", false)
+			minNodes := getIntOrFloatValue(pool, "minNodes", 0)
+			maxNodes := getIntOrFloatValue(pool, "maxNodes", 0)
+
+			// Truncate and pad to exact width
+			nameField := poolName
+			if len(nameField) > 20 {
+				nameField = nameField[:20]
+			}
+			for len(nameField) < 20 {
+				nameField += " "
+			}
+
+			statusField := poolStatus
+			if len(statusField) > 10 {
+				statusField = statusField[:10]
+			}
+			for len(statusField) < 10 {
+				statusField += " "
+			}
+
+			flavorField := flavor
+			if len(flavorField) > 15 {
+				flavorField = flavorField[:15]
+			}
+			for len(flavorField) < 15 {
+				flavorField += " "
+			}
+
+			nodesStr := fmt.Sprintf("%.0f/%.0f", currentNodes, desiredNodes)
+			nodesField := nodesStr
+			for len(nodesField) < 10 {
+				nodesField += " "
+			}
+
+			autoscaleStr := "No"
+			if autoscale {
+				autoscaleStr = fmt.Sprintf("%.0f-%.0f", minNodes, maxNodes)
+			}
+
+			line := "  " + nameField + "  " + statusField + "  " + flavorField + "  " + nodesField + "  " + autoscaleStr
+
+			// Highlight selected row
+			if i == m.nodePoolsSelectedIdx {
+				content.WriteString(selectedStyle.Render(line) + "\n")
+			} else {
+				content.WriteString(line + "\n")
+			}
+		}
+		content.WriteString("\n\n")
+		content.WriteString(lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#888888")).
+			Render("  Press 'c' to create a node pool, Enter to view details, ↑/↓ to navigate, Escape to go back\n"))
+	}
+
+	return content.String()
+}
+
+// handleSwitchToNodePoolsView handles switching to node pools management view
+func (m Model) handleSwitchToNodePoolsView(msg switchToNodePoolsViewMsg) (tea.Model, tea.Cmd) {
+	m.mode = NodePoolsView
+	m.nodePoolsSelectedIdx = 0 // Reset selection
+	m.wizard.nodePoolClusterId = msg.clusterId
+	return m, nil
+}
+
+// renderNodePoolDetailView displays detailed information about a single node pool
+func (m Model) renderNodePoolDetailView(width int) string {
+	var content strings.Builder
+
+	if m.selectedNodePool == nil {
+		return "No node pool selected"
+	}
+
+	// Get cluster info
+	clusterName := getStringValue(m.detailData, "name", "Unknown")
+
+	// Get node pool data
+	poolName := getStringValue(m.selectedNodePool, "name", "Unknown")
+	poolId := getStringValue(m.selectedNodePool, "id", "N/A")
+	poolStatus := getStringValue(m.selectedNodePool, "status", "Unknown")
+	flavor := getStringValue(m.selectedNodePool, "flavor", "N/A")
+	desiredNodes := getIntOrFloatValue(m.selectedNodePool, "desiredNodes", 0)
+	currentNodes := getIntOrFloatValue(m.selectedNodePool, "currentNodes", 0)
+	availableNodes := getIntOrFloatValue(m.selectedNodePool, "availableNodes", 0)
+	upToDateNodes := getIntOrFloatValue(m.selectedNodePool, "upToDateNodes", 0)
+	autoscale := getBoolValue(m.selectedNodePool, "autoscale", false)
+	minNodes := getIntOrFloatValue(m.selectedNodePool, "minNodes", 0)
+	maxNodes := getIntOrFloatValue(m.selectedNodePool, "maxNodes", 0)
+	antiAffinity := getBoolValue(m.selectedNodePool, "antiAffinity", false)
+	monthlyBilled := getBoolValue(m.selectedNodePool, "monthlyBilled", false)
+	createdAt := getStringValue(m.selectedNodePool, "createdAt", "N/A")
+	updatedAt := getStringValue(m.selectedNodePool, "updatedAt", "N/A")
+
+	// Header
+	headerLabelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true).
+		Width(15).
+		Align(lipgloss.Left)
+	headerValueStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true)
+
+	content.WriteString(fmt.Sprintf("  %s %s\n", headerLabelStyle.Render("Node Pool:"), headerValueStyle.Render(poolName)))
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", headerLabelStyle.Render("Cluster:"), headerValueStyle.Render(clusterName)))
+
+	// Actions with selection highlighting
+	actions := []string{"Scale", "Delete"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.nodePoolDetailActionIdx {
+			// Selected action - highlighted
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color("#7B68EE")).
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).
+				Padding(0, 1).
+				Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).
+				Padding(0, 1).
+				Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.nodePoolDetailConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).
+			Bold(true).
+			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actions[m.nodePoolDetailActionIdx]))
+	}
+	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
+	content.WriteString(actionsBox)
+	content.WriteString("\n\n")
+
+	// Create styled sections
+	labelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Width(20).
+		Align(lipgloss.Left)
+	valueStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF"))
+	successStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00FF7F"))
+	warningStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFA500"))
+	errorStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FF6B6B"))
+
+	// Status with color coding
+	statusStyle := valueStyle
+	switch poolStatus {
+	case "READY":
+		statusStyle = successStyle
+	case "INSTALLING", "UPDATING", "REDEPLOYING":
+		statusStyle = warningStyle
+	case "ERROR", "DELETING":
+		statusStyle = errorStyle
+	}
+
+	// Basic Information
+	sectionStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true)
+	content.WriteString(sectionStyle.Render("  Basic Information\n"))
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("ID:"), valueStyle.Render(poolId)))
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Status:"), statusStyle.Render(poolStatus)))
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Flavor:"), valueStyle.Render(flavor)))
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Created:"), valueStyle.Render(createdAt)))
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", labelStyle.Render("Updated:"), valueStyle.Render(updatedAt)))
+
+	// Node Counts
+	content.WriteString(sectionStyle.Render("  Node Counts\n"))
+	content.WriteString(fmt.Sprintf("  %s %.0f\n", labelStyle.Render("Desired Nodes:"), desiredNodes))
+	content.WriteString(fmt.Sprintf("  %s %.0f\n", labelStyle.Render("Current Nodes:"), currentNodes))
+	content.WriteString(fmt.Sprintf("  %s %.0f\n", labelStyle.Render("Available Nodes:"), availableNodes))
+	content.WriteString(fmt.Sprintf("  %s %.0f\n\n", labelStyle.Render("Up-to-Date Nodes:"), upToDateNodes))
+
+	// Configuration
+	content.WriteString(sectionStyle.Render("  Configuration\n"))
+
+	// Autoscale
+	autoscaleStr := "Disabled"
+	if autoscale {
+		autoscaleStr = fmt.Sprintf("Enabled (%.0f - %.0f nodes)", minNodes, maxNodes)
+	}
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Autoscale:"), valueStyle.Render(autoscaleStr)))
+
+	// Anti-affinity
+	antiAffinityStr := "Disabled"
+	if antiAffinity {
+		antiAffinityStr = "Enabled"
+	}
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Anti-Affinity:"), valueStyle.Render(antiAffinityStr)))
+
+	// Billing
+	billingStr := "Hourly"
+	if monthlyBilled {
+		billingStr = "Monthly"
+	}
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", labelStyle.Render("Billing:"), valueStyle.Render(billingStr)))
+
+	// Help text
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	content.WriteString(dimStyle.Render("  ←/→ Navigate actions • Enter Execute • Escape Go back\n"))
+
+	return content.String()
+}
+
+// renderKubeUpgradeView displays the Kubernetes upgrade version selection
+func (m Model) renderKubeUpgradeView(width int) string {
+	var content strings.Builder
+
+	// Header
+	headerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true)
+	content.WriteString(headerStyle.Render("  ⬆️  Upgrade Kubernetes Cluster\n\n"))
+
+	// Show loading if still loading
+	if m.wizard.isLoading {
+		content.WriteString(lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#888888")).
+			Italic(true).
+			Render("  " + m.wizard.loadingMessage + "\n"))
+		return content.String()
+	}
+
+	// Show cluster info
+	clusterName := getStringValue(m.detailData, "name", "Unknown")
+	currentVersion := getStringValue(m.detailData, "version", "Unknown")
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Cluster:"), valueStyle.Render(clusterName)))
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", labelStyle.Render("Current version:"), valueStyle.Render(currentVersion)))
+
+	// Show available versions
+	content.WriteString(headerStyle.Render("  Select target version:\n\n"))
+
+	if len(m.wizard.kubeUpgradeVersions) == 0 {
+		content.WriteString(lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FF6B6B")).
+			Render("  No upgrade versions available. Cluster is up to date.\n"))
+	} else {
+		selectedStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color("#7B68EE")).
+			Foreground(lipgloss.Color("#FFFFFF"))
+		normalStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFFFFF"))
+
+		for i, version := range m.wizard.kubeUpgradeVersions {
+			if i == m.wizard.kubeUpgradeSelectedIdx {
+				content.WriteString(selectedStyle.Render(fmt.Sprintf("  > %s\n", version)))
+			} else {
+				content.WriteString(normalStyle.Render(fmt.Sprintf("    %s\n", version)))
+			}
+		}
+	}
+
+	// Help text
+	content.WriteString("\n")
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	content.WriteString(dimStyle.Render("  ↑/↓ to navigate • Enter to upgrade • Escape to cancel\n"))
+
+	return content.String()
+}
+
+// renderKubePolicyEditView displays the update policy selection
+func (m Model) renderKubePolicyEditView(width int) string {
+	var content strings.Builder
+
+	// Header
+	headerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true)
+	content.WriteString(headerStyle.Render("  ⚙️  Edit Update Policy\n\n"))
+
+	// Show cluster info
+	clusterName := getStringValue(m.detailData, "name", "Unknown")
+	currentPolicy := getStringValue(m.detailData, "updatePolicy", "Unknown")
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Cluster:"), valueStyle.Render(clusterName)))
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", labelStyle.Render("Current policy:"), valueStyle.Render(currentPolicy)))
+
+	// Show policy options
+	content.WriteString(headerStyle.Render("  Select new policy:\n\n"))
+
+	policies := []struct {
+		name        string
+		description string
+	}{
+		{"ALWAYS_UPDATE", "Always update to latest version automatically"},
+		{"MINIMAL_DOWNTIME", "Update with minimal service disruption"},
+		{"NEVER_UPDATE", "Never auto-update, manual updates only"},
+	}
+
+	selectedStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).
+		Foreground(lipgloss.Color("#FFFFFF"))
+	normalStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF"))
+	descStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Italic(true)
+
+	for i, policy := range policies {
+		if i == m.wizard.kubePolicySelectedIdx {
+			content.WriteString(selectedStyle.Render(fmt.Sprintf("  > %s\n", policy.name)))
+		} else {
+			content.WriteString(normalStyle.Render(fmt.Sprintf("    %s\n", policy.name)))
+		}
+		content.WriteString(descStyle.Render(fmt.Sprintf("      %s\n", policy.description)))
+	}
+
+	// Help text
+	content.WriteString("\n")
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	content.WriteString(dimStyle.Render("  ↑/↓ to navigate • Enter to apply • Escape to cancel\n"))
+
+	return content.String()
+}
+
+// renderKubeDeleteConfirmView displays the cluster deletion confirmation
+func (m Model) renderKubeDeleteConfirmView(width int) string {
+	var content strings.Builder
+
+	// Header with warning
+	headerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FF6B6B")).
+		Bold(true)
+	content.WriteString(headerStyle.Render("  ⚠️  Delete Kubernetes Cluster\n\n"))
+
+	// Warning message
+	warningStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFD700"))
+	content.WriteString(warningStyle.Render("  This action is IRREVERSIBLE!\n"))
+	content.WriteString(warningStyle.Render("  All data, node pools, and configurations will be permanently deleted.\n\n"))
+
+	// Show cluster info
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Cluster to delete:"), valueStyle.Render(m.wizard.kubeDeleteClusterName)))
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", labelStyle.Render("Cluster ID:"), valueStyle.Render(m.wizard.kubeDeleteClusterId)))
+
+	// Confirmation input
+	content.WriteString(lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).
+		Render(fmt.Sprintf("  Type '%s' to confirm deletion:\n\n", m.wizard.kubeDeleteClusterName)))
+
+	inputStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00FF7F"))
+	content.WriteString(inputStyle.Render(fmt.Sprintf("  > %s▌\n", m.wizard.kubeDeleteConfirmInput)))
+
+	// Help text
+	content.WriteString("\n")
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	content.WriteString(dimStyle.Render("  Enter to delete (when name matches) • Escape to cancel\n"))
+
+	return content.String()
+}
+
+// renderKubeKubeconfigPickerView displays the directory picker for saving a kubeconfig file.
+func (m Model) renderKubeKubeconfigPickerView(width int) string {
+	var content strings.Builder
+
+	headerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true)
+	content.WriteString(headerStyle.Render("  💾  Save Kubeconfig\n\n"))
+
+	clusterName := getStringValue(m.detailData, "name", "Unknown")
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Cluster:"), valueStyle.Render(clusterName)))
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", labelStyle.Render("Directory:"), valueStyle.Render(m.wizard.kubeKubeconfigCurrentDir)))
+
+	// Build entry list: "..", "[Save here]", then subdirs
+	entries := []struct {
+		label    string
+		isAction bool
+	}{
+		{"  ..", false},
+		{"  [ Save here ]", true},
+	}
+	for _, d := range m.wizard.kubeKubeconfigEntries {
+		entries = append(entries, struct {
+			label    string
+			isAction bool
+		}{"  " + d + "/", false})
+	}
+
+	selectedStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).
+		Foreground(lipgloss.Color("#FFFFFF"))
+	actionStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00FF7F")).
+		Bold(true)
+	normalStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF"))
+
+	for i, e := range entries {
+		var rendered string
+		if i == m.wizard.kubeKubeconfigSelectedIdx {
+			rendered = selectedStyle.Render(fmt.Sprintf("> %s", e.label))
+		} else if e.isAction {
+			rendered = actionStyle.Render(e.label)
+		} else {
+			rendered = normalStyle.Render(e.label)
+		}
+		content.WriteString(rendered + "\n")
+	}
+
+	content.WriteString("\n")
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	filename := clusterName + "-kubeconfig.yaml"
+	content.WriteString(dimStyle.Render(fmt.Sprintf("  File will be saved as: %s\n", filename)))
+
+	return content.String()
+}
+
+// renderNodePoolScaleView displays the node pool scale interface
+func (m Model) renderNodePoolScaleView(width int) string {
+	var content strings.Builder
+
+	// Header
+	headerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7B68EE")).
+		Bold(true)
+	content.WriteString(headerStyle.Render("  📈 Scale Node Pool\n\n"))
+
+	// Show pool info
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", labelStyle.Render("Node Pool:"), valueStyle.Render(m.wizard.nodePoolScalePoolName)))
+
+	// Fields
+	fields := []struct {
+		label    string
+		value    int
+		selected bool
+	}{
+		{"Desired Nodes:", m.wizard.nodePoolScaleDesired, m.wizard.nodePoolScaleFieldIdx == 0},
+		{"Min Nodes:", m.wizard.nodePoolScaleMin, m.wizard.nodePoolScaleFieldIdx == 1},
+		{"Max Nodes:", m.wizard.nodePoolScaleMax, m.wizard.nodePoolScaleFieldIdx == 2},
+	}
+
+	selectedStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).
+		Foreground(lipgloss.Color("#FFFFFF"))
+	normalStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF"))
+
+	for _, field := range fields {
+		if field.selected {
+			content.WriteString(selectedStyle.Render(fmt.Sprintf("  > %s %d", field.label, field.value)) + "\n")
+		} else {
+			content.WriteString(normalStyle.Render(fmt.Sprintf("    %s %d", field.label, field.value)) + "\n")
+		}
+	}
+
+	// Autoscale toggle
+	content.WriteString("\n")
+	autoscaleLabel := "Autoscale:"
+	autoscaleValue := "Disabled"
+	if m.wizard.nodePoolScaleAutoscale {
+		autoscaleValue = "Enabled"
+	}
+	if m.wizard.nodePoolScaleFieldIdx == 3 {
+		content.WriteString(selectedStyle.Render(fmt.Sprintf("  > %s %s", autoscaleLabel, autoscaleValue)) + "\n")
+	} else {
+		content.WriteString(normalStyle.Render(fmt.Sprintf("    %s %s", autoscaleLabel, autoscaleValue)) + "\n")
+	}
+
+	// Buttons
+	content.WriteString("\n")
+	cancelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Padding(0, 1)
+	applyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	if m.wizard.nodePoolScaleFieldIdx == 4 {
+		content.WriteString(selectedStyle.Render("  [Cancel]") + "  " + applyStyle.Render("[Apply]") + "\n")
+	} else if m.wizard.nodePoolScaleFieldIdx == 5 {
+		content.WriteString(cancelStyle.Render("  [Cancel]") + "  " + selectedStyle.Render("[Apply]") + "\n")
+	} else {
+		content.WriteString(cancelStyle.Render("  [Cancel]") + "  " + applyStyle.Render("[Apply]") + "\n")
+	}
+
+	// Help text
+	content.WriteString("\n")
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	content.WriteString(dimStyle.Render("  ↑/↓ Navigate • +/- Adjust value • Space Toggle autoscale • Enter Apply\n"))
+
+	return content.String()
+}
+
+// renderNodePoolDeleteConfirmView displays the node pool deletion confirmation
+func (m Model) renderNodePoolDeleteConfirmView(width int) string {
+	var content strings.Builder
+
+	// Header with warning
+	headerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FF6B6B")).
+		Bold(true)
+	content.WriteString(headerStyle.Render("  ⚠️  Delete Node Pool\n\n"))
+
+	// Warning message
+	warningStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFD700"))
+	content.WriteString(warningStyle.Render("  This action will delete all nodes in this pool!\n\n"))
+
+	// Show pool info
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	content.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Node Pool to delete:"), valueStyle.Render(m.wizard.nodePoolDeletePoolName)))
+	content.WriteString(fmt.Sprintf("  %s %s\n\n", labelStyle.Render("Pool ID:"), valueStyle.Render(m.wizard.nodePoolDeletePoolId)))
+
+	// Confirmation input
+	content.WriteString(lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).
+		Render(fmt.Sprintf("  Type '%s' to confirm deletion:\n\n", m.wizard.nodePoolDeletePoolName)))
+
+	inputStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00FF7F"))
+	content.WriteString(inputStyle.Render(fmt.Sprintf("  > %s▌\n", m.wizard.nodePoolDeleteConfirmInput)))
+
+	// Help text
+	content.WriteString("\n")
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	content.WriteString(dimStyle.Render("  Enter to delete (when name matches) • Escape to cancel\n"))
+
+	return content.String()
+}
+
 // renderWizardView displays the multi-step creation wizard
 func (m Model) renderWizardView(width int) string {
 	var content strings.Builder
@@ -942,17 +1867,29 @@ func (m Model) renderWizardView(width int) string {
 	var steps []string
 	var stepMapping []WizardStep // Maps display index to actual step
 
-	steps = append(steps, "Region", "Flavor", "Image", "SSH Key", "Network")
-	stepMapping = append(stepMapping, WizardStepRegion, WizardStepFlavor, WizardStepImage, WizardStepSSHKey, WizardStepNetwork)
+	// Build steps based on which wizard we're in (determine by first step >= 100)
+	if m.wizard.step >= 200 {
+		// Node pool wizard
+		steps = append(steps, "Flavor", "Name", "Size", "Options", "Confirm")
+		stepMapping = append(stepMapping, NodePoolWizardStepFlavor, NodePoolWizardStepName, NodePoolWizardStepSize, NodePoolWizardStepOptions, NodePoolWizardStepConfirm)
+	} else if m.wizard.step >= 100 {
+		// Kubernetes wizard
+		steps = append(steps, "Region", "Version", "Network", "Name", "Options", "Confirm")
+		stepMapping = append(stepMapping, KubeWizardStepRegion, KubeWizardStepVersion, KubeWizardStepNetwork, KubeWizardStepName, KubeWizardStepOptions, KubeWizardStepConfirm)
+	} else {
+		// Instance wizard
+		steps = append(steps, "Region", "Flavor", "Image", "SSH Key", "Network")
+		stepMapping = append(stepMapping, WizardStepRegion, WizardStepFlavor, WizardStepImage, WizardStepSSHKey, WizardStepNetwork)
 
-	// Add Floating IP step if private network without public network
-	if !m.wizard.usePublicNetwork && m.wizard.selectedPrivateNetwork != "" {
-		steps = append(steps, "Floating IP")
-		stepMapping = append(stepMapping, WizardStepFloatingIP)
+		// Add Floating IP step if private network without public network
+		if !m.wizard.usePublicNetwork && m.wizard.selectedPrivateNetwork != "" {
+			steps = append(steps, "Floating IP")
+			stepMapping = append(stepMapping, WizardStepFloatingIP)
+		}
+
+		steps = append(steps, "Name", "Confirm")
+		stepMapping = append(stepMapping, WizardStepName, WizardStepConfirm)
 	}
-
-	steps = append(steps, "Name", "Confirm")
-	stepMapping = append(stepMapping, WizardStepName, WizardStepConfirm)
 
 	// Find current step index in the display
 	currentStepIdx := 0
@@ -997,13 +1934,7 @@ func (m Model) renderWizardView(width int) string {
 		return content.String()
 	}
 
-	// Error state
-	if m.wizard.errorMsg != "" {
-		content.WriteString(errorStyle.Render("❌ " + m.wizard.errorMsg))
-		return content.String()
-	}
-
-	// Render current step
+	// Render current step (step render functions handle displaying errors in context)
 	switch m.wizard.step {
 	case WizardStepRegion:
 		content.WriteString(m.renderWizardRegionStep(width))
@@ -1021,6 +1952,32 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderWizardNameStep(width))
 	case WizardStepConfirm:
 		content.WriteString(m.renderWizardConfirmStep(width))
+	// Kubernetes wizard steps
+	case KubeWizardStepRegion:
+		content.WriteString(m.renderKubeWizardRegionStep(width))
+	case KubeWizardStepVersion:
+		content.WriteString(m.renderKubeWizardVersionStep(width))
+	case KubeWizardStepNetwork:
+		content.WriteString(m.renderKubeWizardNetworkStep(width))
+	case KubeWizardStepSubnet:
+		content.WriteString(m.renderKubeWizardSubnetStep(width))
+	case KubeWizardStepName:
+		content.WriteString(m.renderKubeWizardNameStep(width))
+	case KubeWizardStepOptions:
+		content.WriteString(m.renderKubeWizardOptionsStep(width))
+	case KubeWizardStepConfirm:
+		content.WriteString(m.renderKubeWizardConfirmStep(width))
+	// Node pool wizard steps
+	case NodePoolWizardStepFlavor:
+		content.WriteString(m.renderNodePoolWizardFlavorStep(width))
+	case NodePoolWizardStepName:
+		content.WriteString(m.renderNodePoolWizardNameStep(width))
+	case NodePoolWizardStepSize:
+		content.WriteString(m.renderNodePoolWizardSizeStep(width))
+	case NodePoolWizardStepOptions:
+		content.WriteString(m.renderNodePoolWizardOptionsStep(width))
+	case NodePoolWizardStepConfirm:
+		content.WriteString(m.renderNodePoolWizardConfirmStep(width))
 	}
 
 	return content.String()
@@ -1709,6 +2666,550 @@ func (m Model) renderWizardConfirmStep(width int) string {
 	return content.String()
 }
 
+// renderKubeWizardRegionStep renders the Kubernetes region selection step
+func (m Model) renderKubeWizardRegionStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select region for Kubernetes cluster:") + "\n\n")
+
+	if m.wizard.isLoading {
+		content.WriteString(loadingStyle.Render("Loading regions..."))
+		return content.String()
+	}
+
+	// Build list of regions
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	for i, region := range m.wizard.kubeRegions {
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + region))
+		} else {
+			content.WriteString(listStyle.Render("  " + region))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • q Cancel"))
+
+	return content.String()
+}
+
+// renderKubeWizardVersionStep renders the Kubernetes version selection step
+func (m Model) renderKubeWizardVersionStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select Kubernetes version:") + "\n\n")
+
+	if m.wizard.isLoading {
+		content.WriteString(loadingStyle.Render("Loading versions..."))
+		return content.String()
+	}
+
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	for i, version := range m.wizard.kubeVersions {
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + version))
+		} else {
+			content.WriteString(listStyle.Render("  " + version))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • q Cancel"))
+
+	return content.String()
+}
+
+// renderKubeWizardNetworkStep renders the Kubernetes network selection step
+func (m Model) renderKubeWizardNetworkStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select private network for Kubernetes:") + "\n\n")
+
+	if m.wizard.isLoading {
+		content.WriteString(loadingStyle.Render("Loading networks..."))
+		return content.String()
+	}
+
+	// Option to not use a private network
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+
+	if m.wizard.selectedIndex == 0 {
+		content.WriteString(selectedStyle.Render("▶ (No private network)"))
+	} else {
+		content.WriteString(listStyle.Render("  (No private network)"))
+	}
+	content.WriteString("\n")
+
+	// List networks
+	for i, network := range m.wizard.kubeNetworks {
+		networkName, _ := network["name"].(string)
+		idx := i + 1
+
+		if idx == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + networkName))
+		} else {
+			content.WriteString(listStyle.Render("  " + networkName))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • q Cancel"))
+
+	return content.String()
+}
+
+// renderKubeWizardSubnetStep renders the Kubernetes subnet selection step
+func (m Model) renderKubeWizardSubnetStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+
+	if m.wizard.kubeSubnetMenuIndex == 0 {
+		content.WriteString(titleStyle.Render("Select nodes subnet:") + "\n\n")
+	} else {
+		content.WriteString(titleStyle.Render("Select load balancer subnet:") + "\n\n")
+	}
+
+	if m.wizard.isLoading {
+		content.WriteString(loadingStyle.Render("Loading subnets..."))
+		return content.String()
+	}
+
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+
+	var subnets []map[string]interface{}
+	var selectedSubnet string
+
+	if m.wizard.kubeSubnetMenuIndex == 0 {
+		subnets = m.wizard.kubeSubnets
+		selectedSubnet = m.wizard.selectedNodesSubnet
+	} else {
+		subnets = m.wizard.kubeSubnets
+		selectedSubnet = m.wizard.selectedLBSubnet
+	}
+
+	// Option to use same as nodes subnet (only for LB subnet selection)
+	if m.wizard.kubeSubnetMenuIndex == 1 {
+		if m.wizard.selectedIndex == 0 {
+			content.WriteString(selectedStyle.Render("▶ (Same as nodes subnet)"))
+		} else {
+			content.WriteString(listStyle.Render("  (Same as nodes subnet)"))
+		}
+		content.WriteString("\n")
+	}
+
+	// List subnets
+	for i, subnet := range subnets {
+		subnetCIDR, _ := subnet["cidr"].(string)
+		idx := i
+		if m.wizard.kubeSubnetMenuIndex == 1 {
+			idx = i + 1 // Offset by 1 for "same as nodes" option
+		}
+
+		var isSelected bool
+		if m.wizard.kubeSubnetMenuIndex == 0 {
+			isSelected = (subnetCIDR == selectedSubnet)
+		} else {
+			isSelected = (subnetCIDR == selectedSubnet)
+		}
+
+		if idx == m.wizard.selectedIndex || isSelected {
+			content.WriteString(selectedStyle.Render("▶ " + subnetCIDR))
+		} else {
+			content.WriteString(listStyle.Render("  " + subnetCIDR))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • q Cancel"))
+
+	return content.String()
+}
+
+// renderKubeWizardNameStep renders the Kubernetes cluster name input step
+func (m Model) renderKubeWizardNameStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Enter cluster name:") + "\n\n")
+
+	// Input box
+	inputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#00FF7F")).
+		Padding(0, 1).
+		Width(40)
+
+	content.WriteString(inputStyle.Render(m.wizard.kubeNameInput) + "\n\n")
+
+	// Validation message
+	if m.wizard.kubeName == "" && len(m.wizard.kubeNameInput) > 0 {
+		validationStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+		content.WriteString(validationStyle.Render("Name must be 3-32 alphanumeric characters"))
+		content.WriteString("\n\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	content.WriteString(helpStyle.Render("Type to enter • Enter Continue • Backspace Clear"))
+
+	return content.String()
+}
+
+// renderKubeWizardOptionsStep renders the Kubernetes advanced options step
+func (m Model) renderKubeWizardOptionsStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Advanced options:") + "\n\n")
+
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+	normalStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+
+	// Plan selection
+	if m.wizard.kubeOptionsFieldIndex == 0 {
+		content.WriteString(selectedStyle.Render("▶ Plan: " + m.wizard.kubePlan))
+	} else {
+		content.WriteString(normalStyle.Render("  Plan: " + m.wizard.kubePlan))
+	}
+	content.WriteString("\n")
+
+	// Update policy
+	if m.wizard.kubeOptionsFieldIndex == 1 {
+		content.WriteString(selectedStyle.Render("▶ Update Policy: " + m.wizard.kubeUpdatePolicy))
+	} else {
+		content.WriteString(normalStyle.Render("  Update Policy: " + m.wizard.kubeUpdatePolicy))
+	}
+	content.WriteString("\n")
+
+	// Kube-proxy mode
+	if m.wizard.kubeOptionsFieldIndex == 2 {
+		content.WriteString(selectedStyle.Render("▶ Kube-proxy Mode: " + m.wizard.kubeProxyMode))
+	} else {
+		content.WriteString(normalStyle.Render("  Kube-proxy Mode: " + m.wizard.kubeProxyMode))
+	}
+	content.WriteString("\n")
+
+	// Private routing flag
+	routingStr := "Disabled"
+	if m.wizard.kubePrivateRouting {
+		routingStr = "Enabled"
+	}
+	if m.wizard.kubeOptionsFieldIndex == 3 {
+		content.WriteString(selectedStyle.Render("▶ Private Routing: " + routingStr))
+	} else {
+		content.WriteString(normalStyle.Render("  Private Routing: " + routingStr))
+	}
+	content.WriteString("\n")
+
+	// Gateway IP (if private routing enabled)
+	if m.wizard.kubePrivateRouting {
+		if m.wizard.kubeOptionsFieldIndex == 4 {
+			content.WriteString(selectedStyle.Render("▶ Gateway IP: " + m.wizard.kubeGatewayIPInput))
+		} else {
+			content.WriteString(normalStyle.Render("  Gateway IP: " + m.wizard.kubeGatewayIPInput))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • q Cancel"))
+
+	return content.String()
+}
+
+// renderKubeWizardConfirmStep renders the Kubernetes cluster confirmation step
+func (m Model) renderKubeWizardConfirmStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Confirm Kubernetes cluster creation:") + "\n\n")
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.kubeName) + "\n")
+	content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(m.wizard.selectedKubeRegion) + "\n")
+	content.WriteString(labelStyle.Render("  Version:") + valueStyle.Render(m.wizard.selectedKubeVersion) + "\n")
+
+	networkDisplay := "(public only)"
+	if m.wizard.selectedKubeNetworkName != "" {
+		networkDisplay = m.wizard.selectedKubeNetworkName
+	}
+	content.WriteString(labelStyle.Render("  Network:") + valueStyle.Render(networkDisplay) + "\n")
+
+	content.WriteString(labelStyle.Render("  Plan:") + valueStyle.Render(m.wizard.kubePlan) + "\n")
+	content.WriteString(labelStyle.Render("  Update Policy:") + valueStyle.Render(m.wizard.kubeUpdatePolicy) + "\n")
+	content.WriteString(labelStyle.Render("  Kube-proxy Mode:") + valueStyle.Render(m.wizard.kubeProxyMode) + "\n")
+
+	routingStr := "Disabled"
+	if m.wizard.kubePrivateRouting {
+		routingStr = "Enabled (" + m.wizard.kubeGatewayIP + ")"
+	}
+	content.WriteString(labelStyle.Render("  Private Routing:") + valueStyle.Render(routingStr) + "\n")
+
+	content.WriteString("\n")
+
+	confirmStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00FF7F"))
+	cancelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FF6B6B"))
+
+	if m.wizard.kubeConfirmButtonIndex == 0 {
+		content.WriteString(confirmStyle.Render("  ▶ [Create Cluster]") + "    ")
+		content.WriteString(cancelStyle.Render("  [Cancel]") + "\n")
+	} else {
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("    [Create Cluster]") + "    ")
+		content.WriteString(cancelStyle.Render("  ▶ [Cancel]") + "\n")
+	}
+
+	return content.String()
+}
+
+// ========== Node Pool Wizard Render Functions ==========
+
+func (m Model) renderNodePoolWizardFlavorStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Add Node Pool - Select Flavor:") + "\n\n")
+
+	if m.wizard.isLoading {
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE")).Render("Loading flavors..."))
+		return content.String()
+	}
+
+	if m.wizard.errorMsg != "" {
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render(m.wizard.errorMsg))
+		return content.String()
+	}
+
+	// Show filter input if in filter mode
+	if m.wizard.filterMode {
+		filterStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+		content.WriteString(filterStyle.Render("Filter: ") + m.wizard.filterInput + "_\n\n")
+	}
+
+	// Apply filter to flavors
+	flavors := m.wizard.nodePoolFlavors
+	if m.wizard.filterInput != "" {
+		var filtered []map[string]interface{}
+		for _, flavor := range flavors {
+			name := getString(flavor, "name")
+			if strings.Contains(strings.ToLower(name), strings.ToLower(m.wizard.filterInput)) {
+				filtered = append(filtered, flavor)
+			}
+		}
+		flavors = filtered
+	}
+
+	if len(flavors) == 0 {
+		if m.wizard.filterInput != "" {
+			content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No flavors match filter"))
+		} else {
+			content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No flavors available"))
+		}
+		return content.String()
+	}
+
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+	normalStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+
+	maxVisible := 10
+	startIdx := 0
+	if m.wizard.selectedIndex >= maxVisible {
+		startIdx = m.wizard.selectedIndex - maxVisible + 1
+	}
+	endIdx := startIdx + maxVisible
+	if endIdx > len(flavors) {
+		endIdx = len(flavors)
+	}
+
+	for i := startIdx; i < endIdx; i++ {
+		flavor := flavors[i]
+		name := getString(flavor, "name")
+		category := getString(flavor, "category")
+
+		// Get specs
+		vcpus := getFloatValue(flavor, "vCPUs", 0)
+		ram := getFloatValue(flavor, "ram", 0) / 1024 // Convert to GB
+
+		label := fmt.Sprintf("%s (%s) - %d vCPU, %.0fGB RAM", name, category, int(vcpus), ram)
+
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render(fmt.Sprintf("  ▶ %s", label)) + "\n")
+		} else {
+			content.WriteString(normalStyle.Render(fmt.Sprintf("    %s", label)) + "\n")
+		}
+	}
+
+	if len(flavors) > maxVisible {
+		content.WriteString(dimStyle.Render(fmt.Sprintf("\n  (%d/%d - scroll for more)", m.wizard.selectedIndex+1, len(flavors))))
+	}
+
+	content.WriteString("\n" + dimStyle.Render("  ↑/↓ Navigate • / Filter • Enter Select • Escape Cancel"))
+
+	return content.String()
+}
+
+func (m Model) renderNodePoolWizardNameStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Add Node Pool - Enter Name:") + "\n\n")
+
+	// Show error if present
+	if m.wizard.errorMsg != "" {
+		errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errorStyle.Render("  ❌ "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+
+	content.WriteString(labelStyle.Render("  Flavor: ") + m.wizard.nodePoolFlavorName + "\n\n")
+	content.WriteString(labelStyle.Render("  Node pool name: ") + inputStyle.Render(m.wizard.nodePoolNameInput+"▌") + "\n")
+
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	content.WriteString("\n" + dimStyle.Render("  Enter to continue • Escape to go back"))
+
+	return content.String()
+}
+
+func (m Model) renderNodePoolWizardSizeStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Add Node Pool - Configure Size:") + "\n\n")
+
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+	normalStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	fields := []struct {
+		label string
+		value int
+	}{
+		{"Desired nodes", m.wizard.nodePoolDesiredNodes},
+		{"Min nodes", m.wizard.nodePoolMinNodes},
+		{"Max nodes", m.wizard.nodePoolMaxNodes},
+	}
+
+	for i, field := range fields {
+		prefix := "    "
+		style := normalStyle
+		if i == m.wizard.nodePoolSizeFieldIndex {
+			prefix = "  ▶ "
+			style = selectedStyle
+		}
+		content.WriteString(style.Render(fmt.Sprintf("%s%s: %d", prefix, field.label, field.value)) + "\n")
+	}
+
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	content.WriteString("\n" + dimStyle.Render("  ↑/↓ Select field • ←/→ Change value • Enter Continue • Escape Back"))
+
+	return content.String()
+}
+
+func (m Model) renderNodePoolWizardOptionsStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Add Node Pool - Options:") + "\n\n")
+
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+	normalStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	options := []struct {
+		label   string
+		enabled bool
+	}{
+		{"Autoscale", m.wizard.nodePoolAutoscale},
+		{"Anti-affinity", m.wizard.nodePoolAntiAffinity},
+		{"Monthly billing", m.wizard.nodePoolMonthlyBilled},
+	}
+
+	for i, opt := range options {
+		prefix := "    "
+		style := normalStyle
+		if i == m.wizard.nodePoolOptionsFieldIdx {
+			prefix = "  ▶ "
+			style = selectedStyle
+		}
+		checkmark := "[ ]"
+		if opt.enabled {
+			checkmark = "[✓]"
+		}
+		content.WriteString(style.Render(fmt.Sprintf("%s%s %s", prefix, checkmark, opt.label)) + "\n")
+	}
+
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	content.WriteString("\n" + dimStyle.Render("  ↑/↓ Select • Space Toggle • Enter Continue • Escape Back"))
+
+	return content.String()
+}
+
+func (m Model) renderNodePoolWizardConfirmStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Confirm Node Pool Creation:") + "\n\n")
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.nodePoolName) + "\n")
+	content.WriteString(labelStyle.Render("  Flavor:") + valueStyle.Render(m.wizard.nodePoolFlavorName) + "\n")
+	content.WriteString(labelStyle.Render("  Desired nodes:") + valueStyle.Render(fmt.Sprintf("%d", m.wizard.nodePoolDesiredNodes)) + "\n")
+	content.WriteString(labelStyle.Render("  Min/Max:") + valueStyle.Render(fmt.Sprintf("%d / %d", m.wizard.nodePoolMinNodes, m.wizard.nodePoolMaxNodes)) + "\n")
+
+	autoscaleStr := "No"
+	if m.wizard.nodePoolAutoscale {
+		autoscaleStr = "Yes"
+	}
+	content.WriteString(labelStyle.Render("  Autoscale:") + valueStyle.Render(autoscaleStr) + "\n")
+
+	antiAffinityStr := "No"
+	if m.wizard.nodePoolAntiAffinity {
+		antiAffinityStr = "Yes"
+	}
+	content.WriteString(labelStyle.Render("  Anti-affinity:") + valueStyle.Render(antiAffinityStr) + "\n")
+
+	monthlyStr := "Hourly"
+	if m.wizard.nodePoolMonthlyBilled {
+		monthlyStr = "Monthly"
+	}
+	content.WriteString(labelStyle.Render("  Billing:") + valueStyle.Render(monthlyStr) + "\n")
+
+	content.WriteString("\n")
+
+	createStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+	cancelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+
+	if m.wizard.nodePoolConfirmBtnIdx == 0 {
+		content.WriteString(createStyle.Render("  ▶ [Create Node Pool]") + "    ")
+		content.WriteString(dimStyle.Render("[Cancel]") + "\n")
+	} else {
+		content.WriteString(dimStyle.Render("    [Create Node Pool]") + "    ")
+		content.WriteString(cancelStyle.Render("▶ [Cancel]") + "\n")
+	}
+
+	return content.String()
+}
+
 // renderCleanupConfirmation renders the cleanup confirmation dialog
 func (m Model) renderCleanupConfirmation(width int) string {
 	var content strings.Builder
@@ -1771,9 +3272,9 @@ func (m Model) getProductCreationInfo() (string, string) {
 	case ProductDatabases:
 		return "databases", fmt.Sprintf("ovhcloud cloud database-service create --cloud-project %s", m.cloudProject)
 	case ProductStorage:
-		return "storage containers", fmt.Sprintf("ovhcloud cloud storage s3 create --cloud-project %s", m.cloudProject)
+		return "storage containers", fmt.Sprintf("ovhcloud cloud storage-s3 create --cloud-project %s", m.cloudProject)
 	case ProductNetworks:
-		return "private networks", fmt.Sprintf("ovhcloud cloud network create --cloud-project %s", m.cloudProject)
+		return "private networks", fmt.Sprintf("ovhcloud cloud network private create --cloud-project %s", m.cloudProject)
 	default:
 		return "resources", ""
 	}
@@ -1944,7 +3445,7 @@ func (m Model) renderInstanceDetail(width int) string {
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Image"), valueStyle.Render(truncate(imageName, 25))))
 	infoContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("Created"), valueStyle.Render(truncate(created, 25))))
 
-	infoBox := renderBox("Informations", infoContent.String(), boxWidth)
+	infoBox := renderBox("Information", infoContent.String(), boxWidth)
 
 	// Right column - Network box
 	networkContent := strings.Builder{}
@@ -1969,7 +3470,7 @@ func (m Model) renderInstanceDetail(width int) string {
 		networkContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("IPv6"), valueStyle.Render("N/A")))
 	}
 
-	networkBox := renderBox("Réseau", networkContent.String(), boxWidth)
+	networkBox := renderBox("Network", networkContent.String(), boxWidth)
 
 	// Actions box (top) with selectable actions
 	// Change Stop to Start if instance is SHUTOFF
@@ -2007,7 +3508,7 @@ func (m Model) renderInstanceDetail(width int) string {
 			Bold(true).
 			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actions[m.selectedAction]))
 	}
-	actionsBox := renderBox("Actions rapides (←/→ pour naviguer, Enter pour exécuter)", actionsContent, width-4)
+	actionsBox := renderBox("Quick Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
 
 	// Combine everything
 	content.WriteString(actionsBox)
@@ -2059,14 +3560,90 @@ func (m Model) renderKubernetesDetail(width int) string {
 
 	configBox := renderBox("Configuration", configContent.String(), boxWidth)
 
-	// Actions
-	actionsContent := "[kubectl config] [Scale] [Upgrade] [Reset Kubeconfig]"
-	actionsBox := renderBox("Actions", actionsContent, width-4)
+	// Actions with selection highlighting
+	actions := []string{"Kubeconfig", "K9s", "Manage Pools", "Upgrade", "Policy", "Delete"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.selectedAction {
+			// Selected action - highlighted
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color("#7B68EE")).
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).
+				Padding(0, 1).
+				Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).
+				Padding(0, 1).
+				Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.actionConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).
+			Bold(true).
+			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actions[m.selectedAction]))
+	}
+	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
 
 	content.WriteString(actionsBox)
 	content.WriteString("\n\n")
 	leftRight := lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", configBox)
 	content.WriteString(leftRight)
+
+	// Node Pools section
+	content.WriteString("\n\n")
+	nodePoolsContent := strings.Builder{}
+
+	nodePools := m.kubeNodePools[id]
+	if len(nodePools) == 0 {
+		nodePoolsContent.WriteString(lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#888888")).
+			Italic(true).
+			Render("Loading node pools..."))
+	} else {
+		for i, pool := range nodePools {
+			poolName := getStringValue(pool, "name", "Unknown")
+			poolStatus := getStringValue(pool, "status", "Unknown")
+			flavor := getStringValue(pool, "flavor", "N/A")
+			desiredNodes := getIntOrFloatValue(pool, "desiredNodes", 0)
+			currentNodes := getIntOrFloatValue(pool, "currentNodes", 0)
+			autoscale := getBoolValue(pool, "autoscale", false)
+
+			// Status icon for pool
+			poolStatusIcon := "🟢"
+			poolStatusStyle := statusRunningStyle
+			if strings.ToLower(poolStatus) != "ready" && strings.ToLower(poolStatus) != "running" {
+				poolStatusIcon = "🟡"
+				poolStatusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+			}
+
+			// Pool header
+			poolHeader := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7B68EE")).Render(poolName)
+			nodePoolsContent.WriteString(fmt.Sprintf("%s  %s\n", poolHeader, poolStatusStyle.Render(poolStatusIcon+" "+poolStatus)))
+
+			// Pool details
+			nodePoolsContent.WriteString(fmt.Sprintf("   %s %s   %s %.0f/%.0f",
+				labelStyle.Render("Flavor:"), valueStyle.Render(flavor),
+				labelStyle.Render("Nodes:"), currentNodes, desiredNodes))
+
+			if autoscale {
+				minNodes := getIntOrFloatValue(pool, "minNodes", 0)
+				maxNodes := getIntOrFloatValue(pool, "maxNodes", 0)
+				nodePoolsContent.WriteString(fmt.Sprintf("   %s %.0f-%.0f",
+					labelStyle.Render("Autoscale:"), minNodes, maxNodes))
+			}
+
+			if i < len(nodePools)-1 {
+				nodePoolsContent.WriteString("\n\n")
+			}
+		}
+	}
+
+	nodePoolsBox := renderBox(fmt.Sprintf("Node Pools (%d)", len(nodePools)), nodePoolsContent.String(), width-4)
+	content.WriteString(nodePoolsBox)
 
 	return content.String()
 }
@@ -2218,9 +3795,18 @@ func (m Model) renderFooter() string {
 		help = "Type instance name to confirm • Enter: Delete • Esc: Cancel"
 	case DebugView:
 		help = "↑↓: Scroll • c: Clear logs • d/Esc: Close • q: Quit"
+	case KubeKubeconfigPickerView:
+		help = "↑↓: Navigate • Enter: Open/Select • Esc: Cancel"
+	case ComingSoonView:
+		help = "←→: Switch Product • d: Debug • p: Change Project • q: Quit"
 	default:
 		help = "Enter: Select • q: Quit"
 	}
+
+	// Add experimental warning
+	experimentalNotice := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFA500")).
+		Render("⚠️  Experimental feature - Report bugs at: https://github.com/ovh/ovhcloud-cli/issues")
 
 	// Add notification if present
 	if m.notification != "" && time.Now().Before(m.notificationExpiry) {
@@ -2230,10 +3816,10 @@ func (m Model) renderFooter() string {
 		if strings.HasPrefix(m.notification, "❌") {
 			notificationStyle = notificationStyle.Foreground(lipgloss.Color("#FF6B6B"))
 		}
-		return notificationStyle.Render(m.notification) + "\n" + footerStyle.Render(help)
+		return notificationStyle.Render(m.notification) + "\n" + footerStyle.Render(help) + "\n\n" + experimentalNotice
 	}
 
-	return footerStyle.Render(help)
+	return footerStyle.Render(help) + "\n\n" + experimentalNotice
 }
 
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -2252,26 +3838,49 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleDebugKeyPress(msg)
 	}
 
-	// Handle filter mode
-	if m.filterMode {
-		return m.handleFilterKeyPress(msg)
+	// Handle Kubernetes upgrade view
+	if m.mode == KubeUpgradeView {
+		return m.handleKubeUpgradeKeyPress(msg)
+	}
+
+	// Handle Kubernetes policy edit view
+	if m.mode == KubePolicyEditView {
+		return m.handleKubePolicyEditKeyPress(msg)
+	}
+
+	// Handle Kubernetes delete confirmation view
+	if m.mode == KubeDeleteConfirmView {
+		return m.handleKubeDeleteConfirmKeyPress(msg)
+	}
+
+	// Handle Node pool scale view
+	if m.mode == NodePoolScaleView {
+		return m.handleNodePoolScaleKeyPress(msg)
+	}
+
+	// Handle Node pool delete confirmation view
+	if m.mode == NodePoolDeleteConfirmView {
+		return m.handleNodePoolDeleteConfirmKeyPress(msg)
+	}
+
+	// Handle kubeconfig directory picker view
+	if m.mode == KubeKubeconfigPickerView {
+		return m.handleKubeKubeconfigPickerKeyPress(msg)
 	}
 
 	switch msg.String() {
 	case "q", "ctrl+c":
 		return m, tea.Quit
 
-	case "/":
-		// Activate filter mode for TableView (instances list)
-		if m.mode == TableView && m.currentProduct == ProductInstances {
-			m.filterMode = true
-			m.filterInput = ""
+	case "left":
+		// In NodePoolDetailView, navigate actions
+		if m.mode == NodePoolDetailView {
+			if m.nodePoolDetailActionIdx > 0 {
+				m.nodePoolDetailActionIdx--
+				m.nodePoolDetailConfirm = false
+			}
 			return m, nil
 		}
-		return m, nil
-
-	case "left":
-		// In DetailView, navigate actions
 		if m.mode == DetailView && m.currentProduct == ProductInstances {
 			if m.selectedAction > 0 {
 				m.selectedAction--
@@ -2279,7 +3888,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// Navigate to previous product (only when not in project selection)
+		// In DetailView for Kubernetes, navigate actions
+		if m.mode == DetailView && m.currentProduct == ProductKubernetes {
+			if m.selectedAction > 0 {
+				m.selectedAction--
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
 			if m.navIdx > 0 {
 				m.navIdx--
@@ -2289,6 +3905,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "right":
+		// In NodePoolDetailView, navigate actions
+		if m.mode == NodePoolDetailView {
+			if m.nodePoolDetailActionIdx < 1 { // 2 actions: Scale, Delete
+				m.nodePoolDetailActionIdx++
+				m.nodePoolDetailConfirm = false
+			}
+			return m, nil
+		}
 		// In DetailView, navigate actions
 		if m.mode == DetailView && m.currentProduct == ProductInstances {
 			if m.selectedAction < 5 { // 6 actions: 0-5
@@ -2297,7 +3921,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// Navigate to next product (only when not in project selection)
+		// In DetailView for Kubernetes, navigate actions
+		if m.mode == DetailView && m.currentProduct == ProductKubernetes {
+			if m.selectedAction < 5 { // 6 actions: 0-5
+				m.selectedAction++
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
 			navItems := getNavItems()
 			if m.navIdx < len(navItems)-1 {
@@ -2314,7 +3945,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.navIdx = 0
 			// If we have cached projects, show them directly
 			if len(m.projectsList) > 0 {
-				m.table = createProjectsTable(m.projectsList, m.width, m.height)
+				m.table = createProjectsTable(m.projectsList, m.height)
 				m.currentData = m.projectsList
 				m.mode = ProjectSelectView
 				return m, nil
@@ -2332,6 +3963,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.applyTableFilter()
 			return m, nil
 		}
+		// Go back to node pools view from node pool detail view, or cancel action confirm
+		if m.mode == NodePoolDetailView {
+			if m.nodePoolDetailConfirm {
+				m.nodePoolDetailConfirm = false
+			} else {
+				m.mode = NodePoolsView
+				m.selectedNodePool = nil
+				m.nodePoolDetailActionIdx = 0
+			}
+			return m, nil
+		}
+		// Go back to detail view from node pools view
+		if m.mode == NodePoolsView {
+			m.mode = DetailView
+			return m, nil
+		}
 		// Go back to table view from detail view, or cancel action confirm
 		if m.mode == DetailView {
 			if m.actionConfirm {
@@ -2340,17 +3987,64 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.mode = TableView
 				m.selectedAction = 0
 			}
+			return m, nil
+		}
+		return m, nil
+
+	case "c":
+		// Create resource - available in TableView, EmptyView, and NodePoolsView
+		if (m.mode == TableView || m.mode == EmptyView) && m.currentProduct != ProductProjects {
+			return m, m.launchCreationWizard()
+		}
+		// Create node pool from NodePoolsView
+		if m.mode == NodePoolsView {
+			clusterId := m.wizard.nodePoolClusterId
+			region := getStringValue(m.detailData, "region", "")
+			return m.handleStartNodePoolWizard(startNodePoolWizardMsg{
+				clusterId: clusterId,
+				region:    region,
+			})
 		}
 		return m, nil
 
 	case "enter":
 		// Handle enter based on current mode
-		if m.mode == DetailView && m.currentProduct == ProductInstances {
+		if m.mode == NodePoolDetailView {
+			// Execute selected action on node pool
+			if m.nodePoolDetailConfirm {
+				// Confirmed - execute the action
+				m.nodePoolDetailConfirm = false
+				return m, m.executeNodePoolAction(m.nodePoolDetailActionIdx)
+			} else {
+				// Ask for confirmation (except for Scale which needs a wizard)
+				if m.nodePoolDetailActionIdx == 0 {
+					// Scale - launch scale view directly
+					return m, m.executeNodePoolAction(0)
+				}
+				m.nodePoolDetailConfirm = true
+				return m, nil
+			}
+		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
 			// Execute selected action on instance
 			if m.actionConfirm {
 				// Confirmed - execute the action
 				m.actionConfirm = false
 				return m, m.executeInstanceAction(m.selectedAction)
+			} else {
+				// Ask for confirmation
+				m.actionConfirm = true
+				return m, nil
+			}
+		} else if m.mode == DetailView && m.currentProduct == ProductKubernetes {
+			// Execute selected action on Kubernetes cluster
+			// Manage Pools (index 2) doesn't need confirmation
+			if m.selectedAction == 2 {
+				// Execute directly without confirmation
+				return m, m.executeKubeAction(m.selectedAction)
+			} else if m.actionConfirm {
+				// Confirmed - execute the action
+				m.actionConfirm = false
+				return m, m.executeKubeAction(m.selectedAction)
 			} else {
 				// Ask for confirmation
 				m.actionConfirm = true
@@ -2372,7 +4066,18 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.mode = LoadingView
 				m.detailData = nil
 				m.currentData = nil
-				return m, m.fetchDataForPath("/instances")
+				return m, tea.Batch(
+					m.fetchDataForPath("/instances"),
+					m.scheduleRefresh(),
+				)
+			}
+		} else if m.mode == NodePoolsView {
+			// In node pools view, show node pool details
+			clusterId := getStringValue(m.detailData, "id", "")
+			nodePools := m.kubeNodePools[clusterId]
+			if m.nodePoolsSelectedIdx >= 0 && m.nodePoolsSelectedIdx < len(nodePools) {
+				m.selectedNodePool = nodePools[m.nodePoolsSelectedIdx]
+				m.mode = NodePoolDetailView
 			}
 		} else if m.mode == TableView {
 			// In table view, show details
@@ -2381,11 +4086,35 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.detailData = m.currentData[selectedRow]
 				m.currentItemName = getStringValue(m.detailData, "name", "Item")
 				m.mode = DetailView
+
+				// If viewing a Kubernetes cluster, also load node pools
+				if m.currentProduct == ProductKubernetes {
+					kubeId := getStringValue(m.detailData, "id", "")
+					if kubeId != "" {
+						return m, m.fetchKubeNodePools(kubeId)
+					}
+				}
 			}
 		}
 		return m, nil
-
 	case "up", "down", "j", "k":
+		// Node pools list navigation
+		if m.mode == NodePoolsView {
+			clusterId := getStringValue(m.detailData, "id", "")
+			nodePools := m.kubeNodePools[clusterId]
+			if len(nodePools) > 0 {
+				if msg.String() == "down" || msg.String() == "j" {
+					if m.nodePoolsSelectedIdx < len(nodePools)-1 {
+						m.nodePoolsSelectedIdx++
+					}
+				} else if msg.String() == "up" || msg.String() == "k" {
+					if m.nodePoolsSelectedIdx > 0 {
+						m.nodePoolsSelectedIdx--
+					}
+				}
+			}
+			return m, nil
+		}
 		// Table navigation (works in both ProjectSelectView and TableView)
 		if m.mode == TableView || m.mode == ProjectSelectView {
 			var cmd tea.Cmd
@@ -2394,10 +4123,53 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case "c":
-		// Create resource - available in TableView and EmptyView
-		if (m.mode == TableView || m.mode == EmptyView) && m.currentProduct != ProductProjects {
-			return m, m.launchCreationWizard()
+	case "r":
+		// Refresh current view
+		if m.mode == DetailView && m.detailData != nil {
+			// Refresh detail view by reloading list and finding the item again
+			itemId := getString(m.detailData, "id")
+			itemName := m.currentItemName
+			m.notification = "⟳ Refreshing..."
+			m.notificationExpiry = time.Now().Add(2 * time.Second)
+			m.mode = LoadingView
+
+			// Store a flag to return to detail view after loading
+			m.detailData = map[string]interface{}{
+				"_refreshItemId":   itemId,
+				"_refreshItemName": itemName,
+			}
+
+			var path string
+			switch m.currentProduct {
+			case ProductInstances:
+				path = "/instances"
+			case ProductKubernetes:
+				path = "/kubernetes"
+			default:
+				return m, nil
+			}
+			return m, tea.Batch(
+				m.fetchDataForPath(path),
+				m.scheduleRefresh(),
+			)
+		} else if m.mode == TableView {
+			// Refresh table view
+			m.notification = "⟳ Refreshing list..."
+			m.notificationExpiry = time.Now().Add(2 * time.Second)
+			m.mode = LoadingView
+			var path string
+			switch m.currentProduct {
+			case ProductInstances:
+				path = "/instances"
+			case ProductKubernetes:
+				path = "/kubernetes"
+			default:
+				return m, nil
+			}
+			return m, tea.Batch(
+				m.fetchDataForPath(path),
+				m.scheduleRefresh(),
+			)
 		}
 		return m, nil
 
@@ -2431,13 +4203,25 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "delete", "backspace":
-		// Delete instance - only in TableView for instances
-		if m.mode == TableView && m.currentProduct == ProductInstances {
+		if m.mode == TableView {
 			selectedRow := m.table.Cursor()
 			if selectedRow >= 0 && selectedRow < len(m.currentData) {
-				m.deleteTarget = m.currentData[selectedRow]
-				m.deleteConfirmInput = ""
-				m.mode = DeleteConfirmView
+				switch m.currentProduct {
+				case ProductInstances:
+					m.deleteTarget = m.currentData[selectedRow]
+					m.deleteConfirmInput = ""
+					m.mode = DeleteConfirmView
+				case ProductKubernetes:
+					cluster := m.currentData[selectedRow]
+					clusterId := getStringValue(cluster, "id", "")
+					clusterName := getStringValue(cluster, "name", "")
+					if clusterId != "" {
+						m.wizard.kubeDeleteClusterId = clusterId
+						m.wizard.kubeDeleteClusterName = clusterName
+						m.wizard.kubeDeleteConfirmInput = ""
+						m.mode = KubeDeleteConfirmView
+					}
+				}
 			}
 		}
 		return m, nil
@@ -2575,15 +4359,21 @@ func (m Model) handleFilterKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *Model) applyTableFilter() {
 	if m.filterInput == "" {
 		// No filter, show all
-		if m.currentProduct == ProductInstances {
+		switch m.currentProduct {
+		case ProductInstances:
 			m.table = createInstancesTable(m.currentData, m.imageMap, m.floatingIPMap, m.width, m.height)
+		case ProductKubernetes:
+			m.table = createKubernetesTable(m.currentData, m.width, m.height)
+		default:
+			m.table = createGenericTable(m.currentData, m.width, m.height)
 		}
 		return
 	}
 
 	filter := strings.ToLower(m.filterInput)
 
-	if m.currentProduct == ProductInstances {
+	switch m.currentProduct {
+	case ProductInstances:
 		var filtered []map[string]interface{}
 		for _, item := range m.currentData {
 			name := strings.ToLower(getStringValue(item, "name", ""))
@@ -2594,6 +4384,20 @@ func (m *Model) applyTableFilter() {
 			}
 		}
 		m.table = createInstancesTable(filtered, m.imageMap, m.floatingIPMap, m.width, m.height)
+	case ProductKubernetes:
+		var filtered []map[string]interface{}
+		for _, item := range m.currentData {
+			name := strings.ToLower(getStringValue(item, "name", ""))
+			status := strings.ToLower(getStringValue(item, "status", ""))
+			region := strings.ToLower(getStringValue(item, "region", ""))
+			version := strings.ToLower(getStringValue(item, "version", ""))
+			if strings.Contains(name, filter) || strings.Contains(status, filter) || strings.Contains(region, filter) || strings.Contains(version, filter) {
+				filtered = append(filtered, item)
+			}
+		}
+		m.table = createKubernetesTable(filtered, m.width, m.height)
+	default:
+		m.table = createGenericTable(m.currentData, m.width, m.height)
 	}
 }
 
@@ -2606,16 +4410,26 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleCleanupConfirmKeys(key)
 	}
 
+	// ctrl+c always quits
+	if key == "ctrl+c" {
+		return m, tea.Quit
+	}
+
+	// 'q' quits (except when typing in input fields)
+	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+		return m, tea.Quit
+	}
+
 	// 'd' opens debug panel (except when typing in input fields)
 	// Disable debug shortcut when: in name step, filter mode, creating SSH key, or creating network
-	if key == "d" && m.wizard.step != WizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		m.previousMode = m.mode
 		m.mode = DebugView
 		m.debugScrollOffset = 0
 		return m, nil
 	}
 
-	// Escape cancels the wizard and goes back to instances view
+	// Escape cancels the wizard and goes back to the product view
 	// But if in filter mode, just exit filter mode
 	if key == "esc" {
 		if m.wizard.filterMode {
@@ -2623,9 +4437,17 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.wizard.filterInput = ""
 			return m, nil
 		}
+
+		// Determine which product we were on and return to it
+		returnPath := "/instances"
+		if m.wizard.step >= 100 {
+			// Kubernetes wizard
+			returnPath = "/kubernetes"
+		}
+
 		m.wizard = WizardData{}
 		m.mode = LoadingView
-		return m, m.fetchDataForPath("/instances")
+		return m, m.fetchDataForPath(returnPath)
 	}
 
 	// Handle each step differently
@@ -2646,6 +4468,32 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleWizardNameKeys(msg)
 	case WizardStepConfirm:
 		return m.handleWizardConfirmKeys(key)
+	// Kubernetes wizard steps
+	case KubeWizardStepRegion:
+		return m.handleKubeWizardRegionKeys(key, msg)
+	case KubeWizardStepVersion:
+		return m.handleKubeWizardVersionKeys(key, msg)
+	case KubeWizardStepNetwork:
+		return m.handleKubeWizardNetworkKeys(key, msg)
+	case KubeWizardStepSubnet:
+		return m.handleKubeWizardSubnetKeys(key, msg)
+	case KubeWizardStepName:
+		return m.handleKubeWizardNameKeys(msg)
+	case KubeWizardStepOptions:
+		return m.handleKubeWizardOptionsKeys(key, msg)
+	case KubeWizardStepConfirm:
+		return m.handleKubeWizardConfirmKeys(key)
+	// Node pool wizard steps
+	case NodePoolWizardStepFlavor:
+		return m.handleNodePoolWizardFlavorKeys(key)
+	case NodePoolWizardStepName:
+		return m.handleNodePoolWizardNameKeys(msg)
+	case NodePoolWizardStepSize:
+		return m.handleNodePoolWizardSizeKeys(key)
+	case NodePoolWizardStepOptions:
+		return m.handleNodePoolWizardOptionsKeys(key)
+	case NodePoolWizardStepConfirm:
+		return m.handleNodePoolWizardConfirmKeys(key)
 	}
 
 	return m, nil
@@ -3336,10 +5184,13 @@ func (m Model) handleWizardNetworkKeys(key string, msg tea.KeyMsg) (tea.Model, t
 			m.wizard.filterInput = ""
 		}
 	case "left":
-		// Go back to SSH key selection
+		// Go back to SSH key selection and reload SSH keys
 		m.wizard.step = WizardStepSSHKey
 		m.wizard.selectedIndex = 0
 		m.wizard.filterInput = ""
+		m.wizard.isLoading = true
+		m.wizard.loadingMessage = "Loading SSH keys..."
+		return m, m.fetchSSHKeys()
 	}
 	return m, nil
 }
@@ -3582,6 +5433,377 @@ func (m Model) handleWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// Kubernetes wizard key handlers
+
+// handleKubeWizardRegionKeys handles key presses in Kubernetes region selection step
+func (m Model) handleKubeWizardRegionKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch key {
+	case "up":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down":
+		if m.wizard.selectedIndex < len(m.wizard.kubeRegions)-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if m.wizard.selectedIndex >= 0 && m.wizard.selectedIndex < len(m.wizard.kubeRegions) {
+			m.wizard.selectedKubeRegion = m.wizard.kubeRegions[m.wizard.selectedIndex]
+			m.wizard.selectedIndex = 0
+			m.wizard.step = KubeWizardStepVersion
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Loading Kubernetes versions..."
+			return m, m.fetchKubeVersions()
+		}
+	case "backspace":
+		// Go back (but region is first step, so cancel wizard)
+		m.wizard = WizardData{}
+		m.mode = LoadingView
+		return m, m.fetchDataForPath("/kubernetes")
+	}
+	return m, nil
+}
+
+// handleKubeWizardVersionKeys handles key presses in Kubernetes version selection step
+func (m Model) handleKubeWizardVersionKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch key {
+	case "up":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down":
+		if m.wizard.selectedIndex < len(m.wizard.kubeVersions)-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if m.wizard.selectedIndex >= 0 && m.wizard.selectedIndex < len(m.wizard.kubeVersions) {
+			m.wizard.selectedKubeVersion = m.wizard.kubeVersions[m.wizard.selectedIndex]
+			m.wizard.selectedIndex = 0
+			m.wizard.step = KubeWizardStepNetwork
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Loading networks..."
+			return m, m.fetchKubeNetworks()
+		}
+	case "backspace":
+		m.wizard.step = KubeWizardStepRegion
+		m.wizard.selectedIndex = 0
+	}
+	return m, nil
+}
+
+// handleKubeWizardNetworkKeys handles key presses in Kubernetes network selection step
+func (m Model) handleKubeWizardNetworkKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	maxIdx := len(m.wizard.kubeNetworks)
+
+	switch key {
+	case "up":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down":
+		if m.wizard.selectedIndex < maxIdx {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if m.wizard.selectedIndex == 0 {
+			// No private network selected
+			m.wizard.selectedKubeNetwork = ""
+			m.wizard.selectedKubeNetworkName = ""
+			m.wizard.step = KubeWizardStepName
+			m.wizard.selectedIndex = 0
+			m.wizard.kubeNameInput = ""
+		} else {
+			// Private network selected
+			netIdx := m.wizard.selectedIndex - 1
+			if netIdx >= 0 && netIdx < len(m.wizard.kubeNetworks) {
+				network := m.wizard.kubeNetworks[netIdx]
+				if id, ok := network["id"].(string); ok {
+					m.wizard.selectedKubeNetwork = id
+				}
+				if name, ok := network["name"].(string); ok {
+					m.wizard.selectedKubeNetworkName = name
+				}
+				// Load subnets for the selected network
+				m.wizard.step = KubeWizardStepSubnet
+				m.wizard.selectedIndex = 0
+				m.wizard.kubeSubnetMenuIndex = 0
+				m.wizard.isLoading = true
+				m.wizard.loadingMessage = "Loading subnets..."
+				return m, m.fetchKubeSubnets(m.wizard.selectedKubeNetwork)
+			}
+		}
+	case "backspace":
+		m.wizard.step = KubeWizardStepVersion
+		m.wizard.selectedIndex = 0
+	}
+	return m, nil
+}
+
+// handleKubeWizardSubnetKeys handles key presses in Kubernetes subnet selection step
+func (m Model) handleKubeWizardSubnetKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	subnetCount := len(m.wizard.kubeSubnets)
+
+	switch key {
+	case "up":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down":
+		maxIdx := subnetCount
+		if m.wizard.kubeSubnetMenuIndex == 1 {
+			maxIdx++ // One extra option for "same as nodes"
+		}
+		if m.wizard.selectedIndex < maxIdx-1 {
+			m.wizard.selectedIndex++
+		}
+	case "tab":
+		// Switch between nodes and LB subnet selection
+		if m.wizard.kubeSubnetMenuIndex == 0 {
+			m.wizard.kubeSubnetMenuIndex = 1
+			m.wizard.selectedIndex = 0
+		} else {
+			// Done with subnet selection, go to name step
+			m.wizard.step = KubeWizardStepName
+			m.wizard.selectedIndex = 0
+			m.wizard.kubeNameInput = ""
+			return m, nil
+		}
+	case "enter":
+		if m.wizard.kubeSubnetMenuIndex == 0 {
+			// Select nodes subnet
+			if m.wizard.selectedIndex >= 0 && m.wizard.selectedIndex < subnetCount {
+				subnet := m.wizard.kubeSubnets[m.wizard.selectedIndex]
+				if cidr, ok := subnet["cidr"].(string); ok {
+					m.wizard.selectedNodesSubnet = cidr
+				}
+				if id, ok := subnet["id"].(string); ok {
+					m.wizard.selectedNodesSubnetCIDR = id
+				}
+			}
+			// Move to LB subnet selection
+			m.wizard.kubeSubnetMenuIndex = 1
+			m.wizard.selectedIndex = 0
+		} else {
+			// Select LB subnet
+			if m.wizard.selectedIndex == 0 {
+				// Use same as nodes subnet
+				m.wizard.selectedLBSubnet = m.wizard.selectedNodesSubnet
+				m.wizard.selectedLBSubnetCIDR = m.wizard.selectedNodesSubnetCIDR
+			} else {
+				subnetIdx := m.wizard.selectedIndex - 1
+				if subnetIdx >= 0 && subnetIdx < subnetCount {
+					subnet := m.wizard.kubeSubnets[subnetIdx]
+					if cidr, ok := subnet["cidr"].(string); ok {
+						m.wizard.selectedLBSubnet = cidr
+					}
+					if id, ok := subnet["id"].(string); ok {
+						m.wizard.selectedLBSubnetCIDR = id
+					}
+				}
+			}
+			// Move to name step
+			m.wizard.step = KubeWizardStepName
+			m.wizard.selectedIndex = 0
+			m.wizard.kubeNameInput = ""
+		}
+	case "backspace":
+		if m.wizard.kubeSubnetMenuIndex == 1 {
+			// Go back to nodes subnet selection
+			m.wizard.kubeSubnetMenuIndex = 0
+			m.wizard.selectedIndex = 0
+		} else {
+			// Go back to network selection
+			m.wizard.step = KubeWizardStepNetwork
+			m.wizard.selectedIndex = 0
+		}
+	}
+	return m, nil
+}
+
+// handleKubeWizardNameKeys handles key presses in Kubernetes cluster name input step
+func (m Model) handleKubeWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		// Validate name
+		name := strings.TrimSpace(m.wizard.kubeNameInput)
+		if len(name) >= 3 && len(name) <= 32 {
+			m.wizard.kubeName = name
+			m.wizard.step = KubeWizardStepOptions
+			m.wizard.selectedIndex = 0
+			m.wizard.kubeOptionsFieldIndex = 0
+			// Set default values for options
+			if m.wizard.kubePlan == "" {
+				m.wizard.kubePlan = "free"
+			}
+			if m.wizard.kubeUpdatePolicy == "" {
+				m.wizard.kubeUpdatePolicy = "ALWAYS_UPDATE"
+			}
+			if m.wizard.kubeProxyMode == "" {
+				m.wizard.kubeProxyMode = "iptables"
+			}
+		}
+	case tea.KeyBackspace:
+		if len(m.wizard.kubeNameInput) > 0 {
+			m.wizard.kubeNameInput = m.wizard.kubeNameInput[:len(m.wizard.kubeNameInput)-1]
+		}
+	case tea.KeyRunes:
+		// Allow alphanumeric and hyphens
+		for _, r := range msg.Runes {
+			if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+				if len(m.wizard.kubeNameInput) < 32 {
+					m.wizard.kubeNameInput += string(r)
+				}
+			}
+		}
+	}
+	return m, nil
+}
+
+// handleKubeWizardOptionsKeys handles key presses in Kubernetes advanced options step
+func (m Model) handleKubeWizardOptionsKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	maxFields := 4
+	if m.wizard.kubePrivateRouting {
+		maxFields = 5
+	}
+
+	switch key {
+	case "up":
+		if m.wizard.kubeOptionsFieldIndex > 0 {
+			m.wizard.kubeOptionsFieldIndex--
+		}
+	case "down":
+		if m.wizard.kubeOptionsFieldIndex < maxFields-1 {
+			m.wizard.kubeOptionsFieldIndex++
+		}
+	case "left", "right":
+		// Toggle or cycle values depending on the field
+		switch m.wizard.kubeOptionsFieldIndex {
+		case 0: // Plan
+			if m.wizard.kubePlan == "free" {
+				m.wizard.kubePlan = "standard"
+			} else {
+				m.wizard.kubePlan = "free"
+			}
+		case 1: // Update policy
+			if m.wizard.kubeUpdatePolicy == "ALWAYS_UPDATE" {
+				m.wizard.kubeUpdatePolicy = "NEVER_UPDATE"
+			} else {
+				m.wizard.kubeUpdatePolicy = "ALWAYS_UPDATE"
+			}
+		case 2: // Kube-proxy mode
+			if m.wizard.kubeProxyMode == "iptables" {
+				m.wizard.kubeProxyMode = "ipvs"
+			} else {
+				m.wizard.kubeProxyMode = "iptables"
+			}
+		case 3: // Private routing toggle
+			m.wizard.kubePrivateRouting = !m.wizard.kubePrivateRouting
+			if m.wizard.kubePrivateRouting && m.wizard.kubeGatewayIP == "" {
+				m.wizard.kubeGatewayIPInput = ""
+			}
+		case 4: // Gateway IP input (if private routing enabled)
+			// Handle as text input
+			if msg.Type == tea.KeyRunes {
+				for _, r := range msg.Runes {
+					if (r >= '0' && r <= '9') || r == '.' {
+						if len(m.wizard.kubeGatewayIPInput) < 15 {
+							m.wizard.kubeGatewayIPInput += string(r)
+						}
+					}
+				}
+			} else if msg.Type == tea.KeyBackspace {
+				if len(m.wizard.kubeGatewayIPInput) > 0 {
+					m.wizard.kubeGatewayIPInput = m.wizard.kubeGatewayIPInput[:len(m.wizard.kubeGatewayIPInput)-1]
+				}
+			}
+		}
+	case "enter":
+		// Validate gateway IP if private routing is enabled
+		if m.wizard.kubePrivateRouting && m.wizard.kubeGatewayIPInput != "" {
+			m.wizard.kubeGatewayIP = m.wizard.kubeGatewayIPInput
+		}
+		m.wizard.step = KubeWizardStepConfirm
+		m.wizard.kubeConfirmButtonIndex = 0
+	case "backspace":
+		if m.wizard.kubeOptionsFieldIndex == 4 {
+			// Clear gateway IP input if focused
+			if len(m.wizard.kubeGatewayIPInput) > 0 {
+				m.wizard.kubeGatewayIPInput = m.wizard.kubeGatewayIPInput[:len(m.wizard.kubeGatewayIPInput)-1]
+			}
+		} else {
+			// Go back to name step
+			m.wizard.step = KubeWizardStepName
+			m.wizard.kubeNameInput = m.wizard.kubeName
+		}
+	}
+	return m, nil
+}
+
+// handleKubeWizardConfirmKeys handles key presses in Kubernetes confirmation step
+func (m Model) handleKubeWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+
+	switch key {
+	case "left", "right", "tab":
+		// Toggle between Create and Cancel
+		if m.wizard.kubeConfirmButtonIndex == 0 {
+			m.wizard.kubeConfirmButtonIndex = 1
+		} else {
+			m.wizard.kubeConfirmButtonIndex = 0
+		}
+	case "enter":
+		if m.wizard.kubeConfirmButtonIndex == 0 {
+			// Create the cluster
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Creating Kubernetes cluster..."
+			return m, m.createKubeClusterWrapper()
+		} else {
+			// Cancel and go back to Kubernetes view
+			m.wizard = WizardData{}
+			m.mode = LoadingView
+			return m, m.fetchDataForPath("/kubernetes")
+		}
+	case "backspace":
+		// Go back to options step
+		m.wizard.step = KubeWizardStepOptions
+		m.wizard.kubeOptionsFieldIndex = 0
+	}
+	return m, nil
+}
+
+// createKubeClusterWrapper wraps the cluster creation with proper data formatting
+func (m Model) createKubeClusterWrapper() tea.Cmd {
+	// Build the creation payload
+	payload := map[string]interface{}{
+		"name":    m.wizard.kubeName,
+		"region":  m.wizard.selectedKubeRegion,
+		"version": m.wizard.selectedKubeVersion,
+		"plan":    m.wizard.kubePlan,
+	}
+
+	// Add network if selected
+	if m.wizard.selectedKubeNetwork != "" {
+		payload["privateNetworkId"] = m.wizard.selectedKubeNetwork
+		payload["nodesSubnetId"] = m.wizard.selectedNodesSubnetCIDR
+		if m.wizard.selectedLBSubnetCIDR != "" {
+			payload["loadBalancersSubnetId"] = m.wizard.selectedLBSubnetCIDR
+		}
+	}
+
+	// Add advanced options
+	payload["updatePolicy"] = m.wizard.kubeUpdatePolicy
+	payload["kubeProxyMode"] = m.wizard.kubeProxyMode
+
+	if m.wizard.kubePrivateRouting && m.wizard.kubeGatewayIP != "" {
+		payload["privateNetworkRouting"] = true
+		payload["gatewayIP"] = m.wizard.kubeGatewayIP
+	}
+
+	return m.createKubeCluster(payload)
+}
+
 // creationWizardMsg is sent when the creation wizard should be launched
 type creationWizardMsg struct {
 	product      ProductType
@@ -3614,12 +5836,19 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	navItems := getNavItems()
 	currentNav := navItems[m.navIdx]
 	m.currentProduct = currentNav.Product
-	m.mode = LoadingView
 	m.detailData = nil
 	m.currentData = nil
 
-	// For instances, also start the auto-refresh timer
-	if currentNav.Product == ProductInstances {
+	// Show coming soon view for unimplemented products
+	if currentNav.Product == ProductDatabases || currentNav.Product == ProductStorage || currentNav.Product == ProductNetworks {
+		m.mode = ComingSoonView
+		return m, nil
+	}
+
+	m.mode = LoadingView
+
+	// For instances and Kubernetes, start the auto-refresh timer
+	if currentNav.Product == ProductInstances || currentNav.Product == ProductKubernetes {
 		return m, tea.Batch(
 			m.fetchDataForPath(currentNav.Path),
 			m.scheduleRefresh(),
@@ -3648,6 +5877,15 @@ func getFloatValue(data map[string]interface{}, key string, defaultVal float64) 
 	return defaultVal
 }
 
+func getBoolValue(data map[string]interface{}, key string, defaultVal bool) bool {
+	if val, ok := data[key]; ok {
+		if b, ok := val.(bool); ok {
+			return b
+		}
+	}
+	return defaultVal
+}
+
 // getIntOrFloatValue extracts a numeric value that could be int or float64 in JSON
 func getIntOrFloatValue(data map[string]interface{}, key string, defaultVal float64) float64 {
 	if val, ok := data[key]; ok {
@@ -3662,6 +5900,11 @@ func getIntOrFloatValue(data map[string]interface{}, key string, defaultVal floa
 			return float64(v)
 		case int32:
 			return float64(v)
+		case json.Number:
+			// Handle json.Number type
+			if f, err := v.Float64(); err == nil {
+				return f
+			}
 		default:
 			// Try to parse as string representation of number
 			if str, ok := val.(string); ok {
@@ -3679,6 +5922,165 @@ func truncate(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// ========== Node Pool Wizard Key Handlers ==========
+
+func (m Model) handleNodePoolWizardFlavorKeys(key string) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+
+	switch key {
+	case "up":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down":
+		if m.wizard.selectedIndex < len(m.wizard.nodePoolFlavors)-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if len(m.wizard.nodePoolFlavors) > 0 {
+			flavor := m.wizard.nodePoolFlavors[m.wizard.selectedIndex]
+			m.wizard.nodePoolFlavorName = getString(flavor, "name")
+			m.wizard.step = NodePoolWizardStepName
+		}
+	case "esc":
+		m.wizard = WizardData{}
+		m.mode = DetailView
+	}
+	return m, nil
+}
+
+func (m Model) handleNodePoolWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyRunes:
+		m.wizard.nodePoolNameInput += string(msg.Runes)
+		m.wizard.errorMsg = "" // Clear error on typing
+	case tea.KeyBackspace:
+		if len(m.wizard.nodePoolNameInput) > 0 {
+			m.wizard.nodePoolNameInput = m.wizard.nodePoolNameInput[:len(m.wizard.nodePoolNameInput)-1]
+		}
+		m.wizard.errorMsg = "" // Clear error on typing
+	case tea.KeyEnter:
+		if m.wizard.nodePoolNameInput != "" {
+			m.wizard.nodePoolName = m.wizard.nodePoolNameInput
+			m.wizard.errorMsg = "" // Clear error when moving forward
+			m.wizard.step = NodePoolWizardStepSize
+		}
+	case tea.KeyEscape:
+		m.wizard.step = NodePoolWizardStepFlavor
+		m.wizard.selectedIndex = 0
+		m.wizard.errorMsg = "" // Clear error when going back
+	}
+	return m, nil
+}
+
+func (m Model) handleNodePoolWizardSizeKeys(key string) (tea.Model, tea.Cmd) {
+	switch key {
+	case "up":
+		if m.wizard.nodePoolSizeFieldIndex > 0 {
+			m.wizard.nodePoolSizeFieldIndex--
+		}
+	case "down":
+		if m.wizard.nodePoolSizeFieldIndex < 2 {
+			m.wizard.nodePoolSizeFieldIndex++
+		}
+	case "left":
+		switch m.wizard.nodePoolSizeFieldIndex {
+		case 0:
+			if m.wizard.nodePoolDesiredNodes > 1 {
+				m.wizard.nodePoolDesiredNodes--
+			}
+		case 1:
+			if m.wizard.nodePoolMinNodes > 0 {
+				m.wizard.nodePoolMinNodes--
+			}
+		case 2:
+			if m.wizard.nodePoolMaxNodes > m.wizard.nodePoolDesiredNodes {
+				m.wizard.nodePoolMaxNodes--
+			}
+		}
+	case "right":
+		switch m.wizard.nodePoolSizeFieldIndex {
+		case 0:
+			if m.wizard.nodePoolDesiredNodes < m.wizard.nodePoolMaxNodes {
+				m.wizard.nodePoolDesiredNodes++
+			}
+		case 1:
+			if m.wizard.nodePoolMinNodes < m.wizard.nodePoolDesiredNodes {
+				m.wizard.nodePoolMinNodes++
+			}
+		case 2:
+			if m.wizard.nodePoolMaxNodes < 100 {
+				m.wizard.nodePoolMaxNodes++
+			}
+		}
+	case "enter":
+		m.wizard.step = NodePoolWizardStepOptions
+		m.wizard.nodePoolOptionsFieldIdx = 0
+	case "esc":
+		m.wizard.step = NodePoolWizardStepName
+	}
+	return m, nil
+}
+
+func (m Model) handleNodePoolWizardOptionsKeys(key string) (tea.Model, tea.Cmd) {
+	switch key {
+	case "up":
+		if m.wizard.nodePoolOptionsFieldIdx > 0 {
+			m.wizard.nodePoolOptionsFieldIdx--
+		}
+	case "down":
+		if m.wizard.nodePoolOptionsFieldIdx < 2 {
+			m.wizard.nodePoolOptionsFieldIdx++
+		}
+	case " ":
+		switch m.wizard.nodePoolOptionsFieldIdx {
+		case 0:
+			m.wizard.nodePoolAutoscale = !m.wizard.nodePoolAutoscale
+		case 1:
+			m.wizard.nodePoolAntiAffinity = !m.wizard.nodePoolAntiAffinity
+		case 2:
+			m.wizard.nodePoolMonthlyBilled = !m.wizard.nodePoolMonthlyBilled
+		}
+	case "enter":
+		m.wizard.step = NodePoolWizardStepConfirm
+		m.wizard.nodePoolConfirmBtnIdx = 0
+	case "esc":
+		m.wizard.step = NodePoolWizardStepSize
+	}
+	return m, nil
+}
+
+func (m Model) handleNodePoolWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+
+	switch key {
+	case "left", "right", "tab":
+		if m.wizard.nodePoolConfirmBtnIdx == 0 {
+			m.wizard.nodePoolConfirmBtnIdx = 1
+		} else {
+			m.wizard.nodePoolConfirmBtnIdx = 0
+		}
+	case "enter":
+		if m.wizard.nodePoolConfirmBtnIdx == 0 {
+			// Create the node pool
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Creating node pool..."
+			return m, m.createNodePool()
+		} else {
+			// Cancel
+			m.wizard = WizardData{}
+			m.mode = DetailView
+		}
+	case "esc":
+		m.wizard.step = NodePoolWizardStepOptions
+	}
+	return m, nil
 }
 
 // getNumericValue extracts a numeric value from a map, handling json.Number type
@@ -3707,4 +6109,300 @@ func getDefaultCloudProject() (string, error) {
 		return "", err
 	}
 	return projectID, nil
+}
+
+// handleKubeUpgradeKeyPress handles keyboard input for the Kubernetes upgrade view
+func (m Model) handleKubeUpgradeKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q", "ctrl+c":
+		return m, tea.Quit
+
+	case "esc":
+		m.mode = DetailView
+		return m, nil
+
+	case "up", "k":
+		if m.wizard.kubeUpgradeSelectedIdx > 0 {
+			m.wizard.kubeUpgradeSelectedIdx--
+		}
+		return m, nil
+
+	case "down", "j":
+		if m.wizard.kubeUpgradeSelectedIdx < len(m.wizard.kubeUpgradeVersions)-1 {
+			m.wizard.kubeUpgradeSelectedIdx++
+		}
+		return m, nil
+
+	case "enter":
+		if len(m.wizard.kubeUpgradeVersions) > 0 {
+			selectedVersion := m.wizard.kubeUpgradeVersions[m.wizard.kubeUpgradeSelectedIdx]
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Initiating upgrade..."
+			return m, m.upgradeKubeCluster(m.wizard.kubeUpgradeClusterId, selectedVersion)
+		}
+		return m, nil
+	}
+
+	return m, nil
+}
+
+// handleKubePolicyEditKeyPress handles keyboard input for the policy edit view
+func (m Model) handleKubePolicyEditKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	policies := []string{"ALWAYS_UPDATE", "MINIMAL_DOWNTIME", "NEVER_UPDATE"}
+
+	switch msg.String() {
+	case "q", "ctrl+c":
+		return m, tea.Quit
+
+	case "esc":
+		m.mode = DetailView
+		return m, nil
+
+	case "up", "k":
+		if m.wizard.kubePolicySelectedIdx > 0 {
+			m.wizard.kubePolicySelectedIdx--
+		}
+		return m, nil
+
+	case "down", "j":
+		if m.wizard.kubePolicySelectedIdx < len(policies)-1 {
+			m.wizard.kubePolicySelectedIdx++
+		}
+		return m, nil
+
+	case "enter":
+		selectedPolicy := policies[m.wizard.kubePolicySelectedIdx]
+		return m, m.updateKubePolicy(m.wizard.kubePolicyClusterId, selectedPolicy)
+	}
+
+	return m, nil
+}
+
+// handleKubeKubeconfigPickerKeyPress handles keyboard input for the kubeconfig directory picker.
+func (m Model) handleKubeKubeconfigPickerKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	totalEntries := 2 + len(m.wizard.kubeKubeconfigEntries) // "..", "[Save here]", dirs
+
+	switch msg.String() {
+	case "q", "ctrl+c":
+		return m, tea.Quit
+
+	case "esc":
+		m.mode = DetailView
+		return m, nil
+
+	case "up", "k":
+		if m.wizard.kubeKubeconfigSelectedIdx > 0 {
+			m.wizard.kubeKubeconfigSelectedIdx--
+		}
+		return m, nil
+
+	case "down", "j":
+		if m.wizard.kubeKubeconfigSelectedIdx < totalEntries-1 {
+			m.wizard.kubeKubeconfigSelectedIdx++
+		}
+		return m, nil
+
+	case "enter":
+		idx := m.wizard.kubeKubeconfigSelectedIdx
+		if idx == 0 {
+			// Navigate to parent directory
+			parent := filepath.Dir(m.wizard.kubeKubeconfigCurrentDir)
+			m.wizard.kubeKubeconfigCurrentDir = parent
+			m.wizard.kubeKubeconfigEntries = listSubdirs(parent)
+			m.wizard.kubeKubeconfigSelectedIdx = 0
+		} else if idx == 1 {
+			// Save here: trigger download
+			clusterName := getStringValue(m.detailData, "name", "Unknown")
+			destDir := m.wizard.kubeKubeconfigCurrentDir
+			clusterId := m.wizard.kubeKubeconfigClusterId
+			m.mode = DetailView
+			return m, func() tea.Msg {
+				return m.downloadKubeconfigToPath(clusterId, clusterName, destDir)
+			}
+		} else {
+			// Navigate into selected subdirectory
+			newDir := filepath.Join(m.wizard.kubeKubeconfigCurrentDir, m.wizard.kubeKubeconfigEntries[idx-2])
+			m.wizard.kubeKubeconfigCurrentDir = newDir
+			m.wizard.kubeKubeconfigEntries = listSubdirs(newDir)
+			m.wizard.kubeKubeconfigSelectedIdx = 0
+		}
+		return m, nil
+	}
+
+	return m, nil
+}
+
+// listSubdirs returns a sorted list of subdirectory names in dir (non-hidden only).
+func listSubdirs(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var dirs []string
+	for _, e := range entries {
+		if e.IsDir() && !strings.HasPrefix(e.Name(), ".") {
+			dirs = append(dirs, e.Name())
+		}
+	}
+	return dirs
+}
+
+// handleKubeDeleteConfirmKeyPress handles keyboard input for the delete confirmation view
+func (m Model) handleKubeDeleteConfirmKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "ctrl+c":
+		return m, tea.Quit
+
+	case "esc":
+		m.mode = DetailView
+		m.wizard.kubeDeleteConfirmInput = ""
+		return m, nil
+
+	case "enter":
+		// Check if the input matches the cluster name
+		if m.wizard.kubeDeleteConfirmInput == m.wizard.kubeDeleteClusterName {
+			return m, m.deleteKubeCluster(m.wizard.kubeDeleteClusterId)
+		}
+		// Input doesn't match - show error notification
+		m.notification = "❌ Cluster name does not match"
+		m.notificationExpiry = time.Now().Add(3 * time.Second)
+		return m, nil
+
+	case "backspace":
+		if len(m.wizard.kubeDeleteConfirmInput) > 0 {
+			m.wizard.kubeDeleteConfirmInput = m.wizard.kubeDeleteConfirmInput[:len(m.wizard.kubeDeleteConfirmInput)-1]
+		}
+		return m, nil
+
+	default:
+		// Handle regular character input
+		char := msg.String()
+		if len(char) == 1 {
+			m.wizard.kubeDeleteConfirmInput += char
+		}
+		return m, nil
+	}
+}
+
+// handleNodePoolScaleKeyPress handles keyboard input for the node pool scale view
+func (m Model) handleNodePoolScaleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		m.mode = NodePoolDetailView
+		m.wizard.nodePoolScaleFieldIdx = 0
+		return m, nil
+
+	case "up", "k":
+		if m.wizard.nodePoolScaleFieldIdx > 0 {
+			m.wizard.nodePoolScaleFieldIdx--
+		}
+		return m, nil
+
+	case "down", "j":
+		if m.wizard.nodePoolScaleFieldIdx < 5 {
+			m.wizard.nodePoolScaleFieldIdx++
+		}
+		return m, nil
+
+	case "+", "=":
+		switch m.wizard.nodePoolScaleFieldIdx {
+		case 0: // Desired nodes
+			if m.wizard.nodePoolScaleDesired < m.wizard.nodePoolScaleMax {
+				m.wizard.nodePoolScaleDesired++
+			}
+		case 1: // Min nodes
+			if m.wizard.nodePoolScaleMin < m.wizard.nodePoolScaleMax {
+				m.wizard.nodePoolScaleMin++
+			}
+		case 2: // Max nodes
+			if m.wizard.nodePoolScaleMax < 100 {
+				m.wizard.nodePoolScaleMax++
+			}
+		}
+		return m, nil
+
+	case "-":
+		switch m.wizard.nodePoolScaleFieldIdx {
+		case 0: // Desired nodes
+			if m.wizard.nodePoolScaleDesired > m.wizard.nodePoolScaleMin {
+				m.wizard.nodePoolScaleDesired--
+			}
+		case 1: // Min nodes
+			if m.wizard.nodePoolScaleMin > 0 {
+				m.wizard.nodePoolScaleMin--
+			}
+		case 2: // Max nodes
+			if m.wizard.nodePoolScaleMax > m.wizard.nodePoolScaleMin && m.wizard.nodePoolScaleMax > m.wizard.nodePoolScaleDesired {
+				m.wizard.nodePoolScaleMax--
+			}
+		}
+		return m, nil
+
+	case " ":
+		// Toggle autoscale on field 3
+		if m.wizard.nodePoolScaleFieldIdx == 3 {
+			m.wizard.nodePoolScaleAutoscale = !m.wizard.nodePoolScaleAutoscale
+		}
+		return m, nil
+
+	case "enter":
+		switch m.wizard.nodePoolScaleFieldIdx {
+		case 4: // Cancel button
+			m.mode = NodePoolDetailView
+			m.wizard.nodePoolScaleFieldIdx = 0
+			return m, nil
+		case 5: // Apply button
+			if m.detailData != nil && m.selectedNodePool != nil {
+				kubeID := getString(m.detailData, "id")
+				nodePoolID := getString(m.selectedNodePool, "id")
+				return m, m.scaleNodePool(
+					kubeID,
+					nodePoolID,
+					m.wizard.nodePoolScaleDesired,
+					m.wizard.nodePoolScaleMin,
+					m.wizard.nodePoolScaleMax,
+					m.wizard.nodePoolScaleAutoscale,
+				)
+			}
+			return m, nil
+		}
+		return m, nil
+	}
+	return m, nil
+}
+
+// handleNodePoolDeleteConfirmKeyPress handles keyboard input for the node pool delete confirmation view
+func (m Model) handleNodePoolDeleteConfirmKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		m.mode = NodePoolDetailView
+		m.wizard.nodePoolDeleteConfirmInput = ""
+		return m, nil
+
+	case "backspace":
+		if len(m.wizard.nodePoolDeleteConfirmInput) > 0 {
+			m.wizard.nodePoolDeleteConfirmInput = m.wizard.nodePoolDeleteConfirmInput[:len(m.wizard.nodePoolDeleteConfirmInput)-1]
+		}
+		return m, nil
+
+	case "enter":
+		// Check if the input matches the node pool name
+		if m.selectedNodePool != nil {
+			poolName := getString(m.selectedNodePool, "name")
+			if m.wizard.nodePoolDeleteConfirmInput == poolName {
+				kubeID := getString(m.detailData, "id")
+				nodePoolID := getString(m.selectedNodePool, "id")
+				return m, m.deleteNodePool(kubeID, nodePoolID)
+			}
+		}
+		return m, nil
+
+	default:
+		// Handle regular character input
+		char := msg.String()
+		if len(char) == 1 {
+			m.wizard.nodePoolDeleteConfirmInput += char
+		}
+		return m, nil
+	}
 }
