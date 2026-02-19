@@ -43,7 +43,7 @@ func (ms *MockSuite) TestIAMTokenListCmd(assert, require *td.T) {
 │ token1 │ First token  │ 2025-01-01T00:00:00Z │
 │ token2 │ Second token │ 2025-01-01T00:00:00Z │
 └────────┴──────────────┴──────────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestIAMPolicyDeleteCmd(assert, require *td.T) {

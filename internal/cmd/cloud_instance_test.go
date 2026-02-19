@@ -120,7 +120,7 @@ func (ms *MockSuite) TestCloudInstanceNullImageCmd(assert, require *td.T) {
   **Max inbound bandwidth**:  250 Mbit/s
   **Max outbound bandwidth**: 250 Mbit/s
 
-  💡 Use option --json or --yaml to get the raw output with all information
+  💡 Use option -o json or -o yaml to get the raw output with all information
 
 `)
 }

@@ -18,7 +18,7 @@ ovhcloud --help
 ovhcloud login
 
 # List your VPS instances as JSON
-ohvcloud vps list --json
+ohvcloud vps list -o json
 ```
 
 Check out the [authentication page](authentication.md) for further information about the authentication means.
@@ -48,16 +48,16 @@ ovhcloud [command] [flags]
 
 ### Global Flags
 
-| Flag              | Description                                          |
-| ----------------- | ---------------------------------------------------- |
-| `--debug`         | Activate debug mode (logs all HTTP‑request details). |
-| `--ignore-errors` | Ignore errors of API calls made when listing items.  |
-| `--format <expr>` | Format output with a [gval] expression.              |
-| `--filter <expr>` | Filter lists output with a [gval] expression.        |
-| `-h`, `--help`    | Display help for `ovhcloud` or a specific command.   |
-| `--interactive`   | Produce interactive (prompt‑based) output.           |
-| `--json`          | Output data in JSON format.                          |
-| `--yaml`          | Output data in YAML format.                          |
+| Flag               | Description                                          |
+| ------------------ | ---------------------------------------------------- |
+| `--debug`          | Activate debug mode (logs all HTTP‑request details). |
+| `--ignore-errors`  | Ignore errors of API calls made when listing items.  |
+| `--filter <expr>`  | Filter lists output with a [gval] expression.        |
+| `-h`, `--help`     | Display help for `ovhcloud` or a specific command.   |
+| `-o interactive`   | Produce interactive (prompt‑based) output.           |
+| `-o json`          | Output data in JSON format.                          |
+| `-o yaml`          | Output data in YAML format.                          |
+| `-o <expr>`        | Format output with a [gval] expression.              |
 
 [gval]: https://github.com/PaesslerAG/gval
 
@@ -69,8 +69,8 @@ ovhcloud [command] [flags]
 
 #### Formatting example
 
-- Extract only one field: `--format 'ip'`
-- Extract an object: `--format '{name: ip}'`
+- Extract only one field: `-o 'ip'`
+- Extract an object: `-o '{name: ip}'`
 
 ---
 
@@ -122,7 +122,7 @@ Below is the full list of primary sub‑commands available at the time of writin
 * [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
 * [ovhcloud xdsl](ovhcloud_xdsl.md)	 - Retrieve information and manage your XDSL services
 
-> **Tip**  Use `--json`, `--yaml`, or `--format` with a gval expression to integrate `ovhcloud` into scripts and automation pipelines.
+> **Tip**  Use `-o json`, `-o yaml`, or `-o <format>` with a gval expression to integrate `ovhcloud` into scripts and automation pipelines.
 
 ---
 
@@ -132,7 +132,7 @@ Below is the full list of primary sub‑commands available at the time of writin
 | ------------------------------------- | ---------------------------------------------- |
 | Log in and save credentials           | `ovhcloud login`                                |
 | List VPS instances (tabular)          | `ovhcloud vps list`                             |
-| Fetch details of a single VPS in JSON | `ovhcloud vps get <service_id> --json`          |
+| Fetch details of a single VPS in JSON | `ovhcloud vps get <service_id> -o json`          |
 | Reinstall a baremetal interactively   | `ovhcloud baremetal reinstall <id> --editor`    |
 
 ---

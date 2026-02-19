@@ -84,7 +84,7 @@ func (ms *MockSuite) TestCloudContainerRegistryListCmd(assert, require *td.T) {
 ├──────────────────────────────────────┼───────────────┼─────────────┼───────┼────────────────┼─────────┼────────┤
 │ 0b1b2dc2-952b-11f0-afd9-0050568ce122 │ ZuperRegistry │ EU-WEST-PAR │ SMALL │ 3-AZ           │ 2.12.2  │ READY  │
 └──────────────────────────────────────┴───────────────┴─────────────┴───────┴────────────────┴─────────┴────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudContainerRegistryGetCmd(assert, require *td.T) {
@@ -142,7 +142,7 @@ func (ms *MockSuite) TestCloudContainerRegistryGetCmd(assert, require *td.T) {
 
   Registry URL https://registry123.gra.container-registry.ovh.net
 
-  💡 Use option --json or --yaml to get the raw output with all information
+  💡 Use option -o json or -o yaml to get the raw output with all information
 
 `)
 }
@@ -186,7 +186,7 @@ func (ms *MockSuite) TestCloudContainerRegistryEditCmd(assert, require *td.T) {
 		}`)),
 		httpmock.NewStringResponder(200, `{"id": "550e8400-e29b-41d4-a716-446655440000"}`).Once())
 
-	out, err := cmd.Execute("cloud", "container-registry", "edit", "550e8400-e29b-41d4-a716-446655440000", "--name", "NewName", "--cloud-project", "fakeProjectID", "--yaml")
+	out, err := cmd.Execute("cloud", "container-registry", "edit", "550e8400-e29b-41d4-a716-446655440000", "--name", "NewName", "--cloud-project", "fakeProjectID", "-o", "yaml")
 
 	require.CmpNoError(err)
 	assert.String(out, `message: ✅ Resource updated successfully
@@ -268,7 +268,7 @@ func (ms *MockSuite) TestCloudContainerRegistryUsersListCmd(assert, require *td.
 │ 1  │ user1      │ user1@example.com │
 │ 2  │ admin-user │ admin@example.com │
 └────┴────────────┴───────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudContainerRegistryUsersGetCmd(assert, require *td.T) {
@@ -291,7 +291,7 @@ func (ms *MockSuite) TestCloudContainerRegistryUsersGetCmd(assert, require *td.T
   **Username**: testuser
   **Email**:    testuser@example.com mailto:testuser@example.com
 
-  💡 Use option --json or --yaml to get the raw output with all information
+  💡 Use option -o json or -o yaml to get the raw output with all information
 
 `)
 }
@@ -625,7 +625,7 @@ func (ms *MockSuite) TestCloudContainerRegistryPlanListCapabilitiesCmd(assert, r
 │ c5ddc763-be75-48f7-b7ec-e923ca040bee │ MEDIUM │ true          │ 600G         │ 45              │
 │ 0dae73df-6c49-47bf-a9d5-6b866c74ac54 │ LARGE  │ true          │ 5T           │ 90              │
 └──────────────────────────────────────┴────────┴───────────────┴──────────────┴─────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudContainerRegistryPlanUpgradeCmd(assert, require *td.T) {
@@ -671,7 +671,7 @@ func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsManagementListCmd(a
 │ 192.0.2.0/24 │ Office network │ 2026-01-23T10:00:00.000Z │ 2026-01-23T10:00:00.000Z │
 │ 10.0.0.0/8   │ VPN network    │ 2026-01-24T10:00:00.000Z │ 2026-01-24T10:00:00.000Z │
 └──────────────┴────────────────┴──────────────────────────┴──────────────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsRegistryListCmd(assert, require *td.T) {
@@ -694,7 +694,7 @@ func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsRegistryListCmd(ass
 ├────────────────┼─────────────┼──────────────────────────┼──────────────────────────┤
 │ 203.0.113.0/24 │ Docker push │ 2026-01-23T11:00:00.000Z │ 2026-01-23T11:00:00.000Z │
 └────────────────┴─────────────┴──────────────────────────┴──────────────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudContainerRegistryIPRestrictionsManagementAddCmd(assert, require *td.T) {

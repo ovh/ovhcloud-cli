@@ -58,14 +58,14 @@ func renderCustomFormat(value any, format string) {
 }
 
 func RenderTable(values []map[string]any, columnsToDisplay []string, outputFormat *OutputFormat) {
-	if outputFormat.CustomFormat != "" {
-		renderCustomFormat(values, outputFormat.CustomFormat)
+	if outputFormat.CustomFormat() != "" {
+		renderCustomFormat(values, outputFormat.CustomFormat())
 		return
 	}
 
 	// If not JSON or YAML output, extract only the columns to display
 	// as the values will be displayed in a table
-	if !outputFormat.JsonOutput && !outputFormat.YamlOutput {
+	if !outputFormat.IsJson() && !outputFormat.IsYaml() {
 		var (
 			selectors       gval.Evaluables
 			extractedValues = make([]map[string]any, 0, len(values))
@@ -138,8 +138,8 @@ func prettyPrintJSON(value any) error {
 }
 
 func OutputObject(value map[string]any, serviceName, templateContent string, outputFormat *OutputFormat) {
-	if outputFormat.CustomFormat != "" {
-		renderCustomFormat(value, outputFormat.CustomFormat)
+	if outputFormat.CustomFormat() != "" {
+		renderCustomFormat(value, outputFormat.CustomFormat())
 		return
 	}
 

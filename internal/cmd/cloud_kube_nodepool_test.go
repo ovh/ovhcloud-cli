@@ -43,7 +43,7 @@ func (ms *MockSuite) TestCloudKubeNodepoolListCmd(assert, require *td.T) {
 │ rototo  │ nodepool-2025-12-04 │ b3-8   │ 2            │ READY     │
 │ rototo2 │ nodepool-2025-12-05 │ b3-8   │ 3            │ UPSCALING │
 └─────────┴─────────────────────┴────────┴──────────────┴───────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 // Get a Nodepool.
@@ -146,7 +146,7 @@ func (ms *MockSuite) TestCloudKubeNodepoolGetCmd(assert, require *td.T) {
   **Taints**:
   **Unschedulable**: false
 
-  💡 Use option --json or --yaml to get the raw output with all information
+  💡 Use option -o json or -o yaml to get the raw output with all information
 
 `)
 }

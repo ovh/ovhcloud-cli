@@ -37,8 +37,7 @@ var (
 		"from-file",
 		"init-file",
 		"replace",
-		"interactive",
-		"format",
+		"output",
 		"debug",
 	}
 
@@ -108,18 +107,17 @@ func initRootCmd() {
 
 	rootCmd.PersistentFlags().BoolVarP(&flags.Debug, "debug", "d", false, "Activate debug mode (will log all HTTP requests details)")
 	rootCmd.PersistentFlags().BoolVarP(&flags.IgnoreErrors, "ignore-errors", "e", false, "Ignore errors in API calls when it is not fatal to the execution")
-	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.JsonOutput, "json", "j", false, "Output in JSON")
-	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.YamlOutput, "yaml", "y", false, "Output in YAML")
-	rootCmd.PersistentFlags().BoolVarP(&flags.OutputFormatConfig.InteractiveOutput, "interactive", "i", false, "Interactive output")
-	rootCmd.PersistentFlags().StringVarP(&flags.OutputFormatConfig.CustomFormat, "format", "f", "", `Output value according to given format (expression using https://github.com/PaesslerAG/gval syntax)
+	rootCmd.PersistentFlags().StringVarP(&flags.OutputFormatConfig.Output, "output", "o", "", `Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
 Examples:
-  --format 'id' (to extract a single field)
-  --format 'nested.field.subfield' (to extract a nested field)
-  --format '[id, 'name']' (to extract multiple fields as an array)
-  --format '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
-  --format 'name+","+type' (to extract and concatenate fields in a string)
-  --format '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)`)
-	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml", "interactive", "format")
+  --output json
+  --output yaml
+  --output interactive
+  --output 'id' (to extract a single field)
+  --output 'nested.field.subfield' (to extract a nested field)
+  --output '[id, "name"]' (to extract multiple fields as an array)
+  --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
+  --output 'name+","+type' (to extract and concatenate fields in a string)
+  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)`)
 
 	var newVersionMessage atomic.Pointer[string]
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {

@@ -61,7 +61,7 @@ func (ms *MockSuite) TestDomainZoneListRecords(assert, require *td.T) {
 				"zone": "example.com"
 			}`).Once())
 
-	out, err := cmd.Execute("domain-zone", "record", "list", "example.com", "--json")
+	out, err := cmd.Execute("domain-zone", "record", "list", "example.com", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"id": 1, "fieldType": "A", "subDomain": "www", "target": "127.0.0.1", "ttl": 3600, "zone": "example.com"}, {"id": 2, "fieldType": "MX", "subDomain": "", "target": "mail.example.com", "ttl": 3600, "zone": "example.com"}]`))
 }

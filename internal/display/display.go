@@ -76,20 +76,20 @@ func renderCustomFormat(value any, format string) error {
 
 func RenderTable(values []map[string]any, columnsToDisplay []string, outputFormat *OutputFormat) {
 	switch {
-	case outputFormat.CustomFormat != "":
-		if err := renderCustomFormat(values, outputFormat.CustomFormat); err != nil {
+	case outputFormat.CustomFormat() != "":
+		if err := renderCustomFormat(values, outputFormat.CustomFormat()); err != nil {
 			exitError("error rendering custom format: %s", err)
 		}
 		return
-	case outputFormat.InteractiveOutput:
+	case outputFormat.IsInteractive():
 		displayInteractive(values)
 		return
-	case outputFormat.YamlOutput:
+	case outputFormat.IsYaml():
 		if err := prettyPrintYAML(values); err != nil {
 			exitError("error displaying YAML results: %s", err)
 		}
 		return
-	case outputFormat.JsonOutput:
+	case outputFormat.IsJson():
 		if err := prettyPrintJSON(values); err != nil {
 			exitError("error displaying JSON results: %s", err)
 		}
@@ -173,7 +173,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		Headers(columnsTitles...).
 		Rows(rows...)
 
-	outputf("%s%s", t, "\n💡 Use option --json or --yaml to get the raw output with all information")
+	outputf("%s%s", t, "\n💡 Use option -o json or -o yaml to get the raw output with all information")
 }
 
 func RenderConfigTable(cfg *ini.File) {
@@ -248,28 +248,28 @@ func prettyPrintYAML(value any) error {
 
 func OutputObject(value map[string]any, serviceName, templateContent string, outputFormat *OutputFormat) {
 	// Force JSON rendering if no template defined
-	if templateContent == "" && !outputFormat.YamlOutput &&
-		!outputFormat.InteractiveOutput && outputFormat.CustomFormat == "" {
-		outputFormat.JsonOutput = true
+	if templateContent == "" && !outputFormat.IsYaml() &&
+		!outputFormat.IsInteractive() && outputFormat.CustomFormat() == "" {
+		outputFormat.Output = "json"
 	}
 
 	switch {
-	case outputFormat.CustomFormat != "":
-		if err := renderCustomFormat(value, outputFormat.CustomFormat); err != nil {
+	case outputFormat.CustomFormat() != "":
+		if err := renderCustomFormat(value, outputFormat.CustomFormat()); err != nil {
 			exitError("error rendering custom format: %s", err)
 		}
 		return
-	case outputFormat.YamlOutput:
+	case outputFormat.IsYaml():
 		if err := prettyPrintYAML(value); err != nil {
 			exitError("error displaying YAML results: %s", err)
 		}
 		return
-	case outputFormat.JsonOutput:
+	case outputFormat.IsJson():
 		if err := prettyPrintJSON(value); err != nil {
 			exitError("error displaying JSON results: %s", err)
 		}
 		return
-	case outputFormat.InteractiveOutput:
+	case outputFormat.IsInteractive():
 		displayInteractive(value)
 		return
 	default:
@@ -332,7 +332,7 @@ func outputf(message string, params ...any) {
 
 func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
 	switch {
-	case outputFormat.CustomFormat != "":
+	case outputFormat.CustomFormat() != "":
 		data, err := json.Marshal(msg)
 		if err != nil {
 			exitError("error marshalling message: %s", err)
@@ -342,21 +342,21 @@ func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
 			exitError("error unmarshalling message: %s", err)
 		}
 
-		if err := renderCustomFormat(m, outputFormat.CustomFormat); err != nil {
+		if err := renderCustomFormat(m, outputFormat.CustomFormat()); err != nil {
 			exitError("error rendering custom format: %s", err)
 		}
 
-	case outputFormat.YamlOutput:
+	case outputFormat.IsYaml():
 		if err := prettyPrintYAML(msg); err != nil {
 			exitError("error displaying YAML results: %s", err)
 		}
 
-	case outputFormat.JsonOutput:
+	case outputFormat.IsJson():
 		if err := prettyPrintJSON(msg); err != nil {
 			exitError(err.Error())
 		}
 
-	case outputFormat.InteractiveOutput:
+	case outputFormat.IsInteractive():
 		displayInteractive(msg)
 
 	default:

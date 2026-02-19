@@ -119,7 +119,7 @@ func (ms *MockSuite) TestCloudSavingsPlanListCmdJSONFormat(assert, require *td.T
 		httpmock.NewStringResponder(200, mockSavingsPlansList),
 	)
 
-	out, err := cmd.Execute("cloud", "savings-plan", "list", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "savings-plan", "list", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 
 	var result []map[string]any

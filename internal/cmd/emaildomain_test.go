@@ -31,7 +31,7 @@ func (ms *MockSuite) TestEmailDomainList(assert, require *td.T) {
 			"offer": "email-domain-pack"
 		}`).Once())
 
-	out, err := cmd.Execute("email-domain", "list", "--json")
+	out, err := cmd.Execute("email-domain", "list", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
@@ -60,7 +60,7 @@ func (ms *MockSuite) TestEmailDomainRedirectionList(assert, require *td.T) {
 			"localCopy": true
 		}`).Once())
 
-	out, err := cmd.Execute("email-domain", "redirection", "list", "example.com", "--json")
+	out, err := cmd.Execute("email-domain", "redirection", "list", "example.com", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
@@ -78,7 +78,7 @@ func (ms *MockSuite) TestEmailDomainRedirectionGet(assert, require *td.T) {
 			"localCopy": false
 		}`).Once())
 
-	out, err := cmd.Execute("email-domain", "redirection", "get", "example.com", "12345", "--json")
+	out, err := cmd.Execute("email-domain", "redirection", "get", "example.com", "12345", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{

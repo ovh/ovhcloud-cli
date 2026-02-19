@@ -141,7 +141,7 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 
 	out, err := cmd.Execute("cloud", "network", "private", "create", "BHS5", "--cloud-project", "fakeProjectID",
 		"--gateway-model", "s", "--gateway-name", "TestFromTheCLI", "--name", "TestFromTheCLI", "--subnet-cidr",
-		"10.0.0.2/24", "--subnet-ip-version", "4", "--wait", "--subnet-enable-gateway-ip", "--yaml")
+		"10.0.0.2/24", "--subnet-ip-version", "4", "--wait", "--subnet-enable-gateway-ip", "-o", "yaml")
 	require.CmpNoError(err)
 	assert.String(out, `details:
   id: pn-example
@@ -189,7 +189,7 @@ func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmd(assert, require *td.
 	)
 
 	out, err := cmd.Execute("cloud", "network", "private", "subnet", "create", "pn-123456", "--cloud-project", "fakeProjectID",
-		"--network", "192.168.1.0/24", "--start", "192.168.1.12", "--end", "192.168.1.24", "--region", "BHS5", "--json")
+		"--network", "192.168.1.0/24", "--start", "192.168.1.12", "--end", "192.168.1.24", "--region", "BHS5", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Subnet 5e625f90-9ec3-11f0-9f75-0050568ce122 created successfully",
@@ -309,7 +309,7 @@ func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
   **VIP network ID**:     3f29f530-a8db-11f0-9ab2-0050568ce122
   **VIP subnet ID**:      44a869c4-a8db-11f0-899f-0050568ce122
 
-  💡 Use option --json or --yaml to get the raw output with all information
+  💡 Use option -o json or -o yaml to get the raw output with all information
 
 `)
 }
