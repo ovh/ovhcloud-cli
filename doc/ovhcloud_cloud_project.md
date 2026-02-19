@@ -5,7 +5,8 @@ Retrieve information and manage your CloudProject services
 ### Options
 
 ```
-  -h, --help   help for project
+      --cloud-project string   Cloud project ID
+  -h, --help                   help for project
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +30,11 @@ Retrieve information and manage your CloudProject services
 ### SEE ALSO
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
+* [ovhcloud cloud project change-contact](ovhcloud_cloud_project_change-contact.md)	 - Change project contacts
 * [ovhcloud cloud project edit](ovhcloud_cloud_project_edit.md)	 - Edit the given cloud project
 * [ovhcloud cloud project get](ovhcloud_cloud_project_get.md)	 - Retrieve information of a specific cloud project
 * [ovhcloud cloud project list](ovhcloud_cloud_project_list.md)	 - List your cloud projects
+* [ovhcloud cloud project service-info](ovhcloud_cloud_project_service-info.md)	 - Get service information for the project
+* [ovhcloud cloud project termination](ovhcloud_cloud_project_termination.md)	 - Manage project termination lifecycle
+* [ovhcloud cloud project unleash](ovhcloud_cloud_project_unleash.md)	 - Unleash a project
 

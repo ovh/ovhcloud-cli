@@ -1,18 +1,19 @@
-## ovhcloud cloud project edit
+## ovhcloud cloud project termination init
 
-Edit the given cloud project
+Initiate project termination
+
+### Synopsis
+
+Initiate project termination. A termination token will be returned to confirm the operation.
 
 ```
-ovhcloud cloud project edit <project_id> [flags]
+ovhcloud cloud project termination init [flags]
 ```
 
 ### Options
 
 ```
-      --description string   Description of the project
-      --editor               Use a text editor to define parameters
-  -h, --help                 help for edit
-      --manual-quota         Prevent automatic quota upgrade
+  -h, --help   help for init
 ```
 
 ### Options inherited from parent commands
@@ -36,5 +37,5 @@ ovhcloud cloud project edit <project_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Retrieve information and manage your CloudProject services
+* [ovhcloud cloud project termination](ovhcloud_cloud_project_termination.md)	 - Manage project termination lifecycle
 

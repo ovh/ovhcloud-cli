@@ -1,18 +1,15 @@
-## ovhcloud cloud project edit
+## ovhcloud cloud project service-info
 
-Edit the given cloud project
+Get service information for the project
 
 ```
-ovhcloud cloud project edit <project_id> [flags]
+ovhcloud cloud project service-info [flags]
 ```
 
 ### Options
 
 ```
-      --description string   Description of the project
-      --editor               Use a text editor to define parameters
-  -h, --help                 help for edit
-      --manual-quota         Prevent automatic quota upgrade
+  -h, --help   help for service-info
 ```
 
 ### Options inherited from parent commands
