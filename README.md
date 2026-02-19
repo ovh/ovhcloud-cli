@@ -129,12 +129,9 @@ Global options:
 
 ```
   -d, --debug           Activate debug mode (will log all HTTP requests details)
-  -f, --format string   Output value according to given format (expression using gval format)
   -h, --help            help for ovhcloud
   -e, --ignore-errors   Ignore errors in API calls when it is not fatal to the execution
-  -i, --interactive     Interactive output
-  -j, --json            Output in JSON
-  -y, --yaml            Output in YAML
+  -o, --output          Output in JSON, YAML, interactive or custom format (expression using gval format)
 ```
 
 ## Authenticating the CLI
@@ -183,10 +180,10 @@ OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID>
 | ---------------------------------------- | ----------------------------------------------- |
 | Log in and save credentials              | `ovhcloud login`                                |
 | List VPS instances (tabular)             | `ovhcloud vps list`                             |
-| Fetch details of a single VPS in JSON    | `ovhcloud vps get <service_id> --json`          |
+| Fetch details of a single VPS in JSON    | `ovhcloud vps get <service_id> -o json`         |
 | Reinstall a baremetal interactively      | `ovhcloud baremetal reinstall <id> --editor`    |
 | List instances and filter on GRA9 region | `ovhcloud cloud instance list --filter 'region=="GRA9"'` |
-| Get only the ID of a given MKS node pool | `NP_ID=$(ovhcloud cloud kube nodepool list xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --filter 'name=="my-np-autoscale"' --format 'id' \| xargs)` |
+| Get only the ID of a given MKS node pool | `NP_ID=$(ovhcloud cloud kube nodepool list xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --filter 'name=="my-np-autoscale"' -o 'id' \| xargs)` |
 
 # Available products
 

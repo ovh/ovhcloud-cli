@@ -22,7 +22,7 @@ func (ms *MockSuite) TestVpsListCmd(assert, require *td.T) {
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/vps/vps-67890",
 		httpmock.NewStringResponder(200, `{"name": "vps-67890", "displayName": "VPS 67890", "state": "stopped", "zone": "Region OpenStack: os-gra1"}`).Once())
 
-	out, err := cmd.Execute("vps", "ls", "--json")
+	out, err := cmd.Execute("vps", "ls", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
@@ -48,7 +48,7 @@ func (ms *MockSuite) TestVpsGetCmd(assert, require *td.T) {
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/vps/vps-67890/datacenter",
 		httpmock.NewStringResponder(200, `{"country": "fr", "name": "os-gra1", "longName": "Region OpenStack: os-gra1"}`).Once())
 
-	out, err := cmd.Execute("vps", "get", "vps-67890", "--json")
+	out, err := cmd.Execute("vps", "get", "vps-67890", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{

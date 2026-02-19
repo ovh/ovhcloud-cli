@@ -32,7 +32,7 @@ func (ms *MockSuite) TestOauth2ClientCreateCmd(assert, require *td.T) {
 
 	out, err := cmd.Execute("account", "api", "oauth2", "client", "create", "--name", "test-client",
 		"--flow", "AUTHORIZATION_CODE", "--callback-urls", "https://example.com/callback",
-		"--description", "Test OAuth2 client", "--json")
+		"--description", "Test OAuth2 client", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`
 		{

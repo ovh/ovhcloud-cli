@@ -117,7 +117,7 @@ func (ms *MockSuite) TestCloudStorageS3BulkDeletePrefixCmd(assert, require *td.T
 		httpmock.NewStringResponder(200, ``),
 	)
 
-	out, err := cmd.Execute("cloud", "storage-s3", "bulk-delete", "fakeContainer", "--cloud-project", "fakeProjectID", "--prefix", "logs/", "--json")
+	out, err := cmd.Execute("cloud", "storage-s3", "bulk-delete", "fakeContainer", "--cloud-project", "fakeProjectID", "--prefix", "logs/", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Objects deleted successfully"}`))
 }
@@ -138,7 +138,7 @@ func (ms *MockSuite) TestCloudStorageS3LifecycleGetCmd(assert, require *td.T) {
 			]
 		}`))
 
-	out, err := cmd.Execute("cloud", "storage-s3", "lifecycle", "get", "fakeContainer", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "storage-s3", "lifecycle", "get", "fakeContainer", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"rules": [
@@ -159,7 +159,7 @@ func (ms *MockSuite) TestCloudStorageS3LifecycleDeleteCmd(assert, require *td.T)
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/lifecycle",
 		httpmock.NewStringResponder(200, ``))
 
-	out, err := cmd.Execute("cloud", "storage-s3", "lifecycle", "delete", "fakeContainer", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "storage-s3", "lifecycle", "delete", "fakeContainer", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Lifecycle configuration for container fakeContainer deleted successfully"}`))
 }
@@ -176,7 +176,7 @@ func (ms *MockSuite) TestCloudStorageS3ObjectCopyCmd(assert, require *td.T) {
 		"--cloud-project", "fakeProjectID",
 		"--target-bucket", "destBucket",
 		"--target-key", "dest/myobject.txt",
-		"--json")
+		"-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Object myobject.txt copied successfully",
@@ -195,7 +195,7 @@ func (ms *MockSuite) TestCloudStorageS3ObjectRestoreCmd(assert, require *td.T) {
 	out, err := cmd.Execute("cloud", "storage-s3", "object", "restore", "fakeContainer", "myobject.txt",
 		"--cloud-project", "fakeProjectID",
 		"--days", "7",
-		"--json")
+		"-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Object myobject.txt restore initiated successfully"}`))
 }
@@ -212,7 +212,7 @@ func (ms *MockSuite) TestCloudStorageS3ObjectVersionCopyCmd(assert, require *td.
 		"--cloud-project", "fakeProjectID",
 		"--target-bucket", "destBucket",
 		"--target-key", "dest/myobject.txt",
-		"--json")
+		"-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Object myobject.txt version v1 copied successfully",
@@ -231,7 +231,7 @@ func (ms *MockSuite) TestCloudStorageS3ObjectVersionRestoreCmd(assert, require *
 	out, err := cmd.Execute("cloud", "storage-s3", "object", "version", "restore", "fakeContainer", "myobject.txt", "v1",
 		"--cloud-project", "fakeProjectID",
 		"--days", "14",
-		"--json")
+		"-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Object myobject.txt version v1 restore initiated successfully"}`))
 }
@@ -243,7 +243,7 @@ func (ms *MockSuite) TestCloudStorageS3ReplicationJobCmd(assert, require *td.T) 
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/job/replication",
 		httpmock.NewStringResponder(200, `{"id": "job-123"}`))
 
-	out, err := cmd.Execute("cloud", "storage-s3", "replication-job", "create", "fakeContainer", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "storage-s3", "replication-job", "create", "fakeContainer", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Replication job created successfully (ID: job-123)",
@@ -261,7 +261,7 @@ func (ms *MockSuite) TestCloudStorageS3QuotaGetCmd(assert, require *td.T) {
 			"objectCount": 42
 		}`))
 
-	out, err := cmd.Execute("cloud", "storage-s3", "quota", "get", "BHS", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "storage-s3", "quota", "get", "BHS", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"bytesUsed": 1048576,
@@ -277,7 +277,7 @@ func (ms *MockSuite) TestCloudStorageS3QuotaEditCmd(assert, require *td.T) {
 		tdhttpmock.JSONBody(td.JSON(`{"quotaBytes": 21474836480}`)),
 		httpmock.NewStringResponder(200, ``))
 
-	out, err := cmd.Execute("cloud", "storage-s3", "quota", "edit", "BHS", "--cloud-project", "fakeProjectID", "--quota-bytes", "21474836480", "--json")
+	out, err := cmd.Execute("cloud", "storage-s3", "quota", "edit", "BHS", "--cloud-project", "fakeProjectID", "--quota-bytes", "21474836480", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Storage quota for region BHS updated successfully"}`))
 }
@@ -287,7 +287,7 @@ func (ms *MockSuite) TestCloudStorageS3QuotaDeleteCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/quota/storage",
 		httpmock.NewStringResponder(200, ``))
 
-	out, err := cmd.Execute("cloud", "storage-s3", "quota", "delete", "BHS", "--cloud-project", "fakeProjectID", "--json")
+	out, err := cmd.Execute("cloud", "storage-s3", "quota", "delete", "BHS", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Storage quota for region BHS deleted successfully"}`))
 }
@@ -362,7 +362,7 @@ func (ms *MockSuite) TestCloudStorageS3BulkDeleteAllCmd(assert, require *td.T) {
 		httpmock.NewStringResponder(200, ``),
 	)
 
-	out, err := cmd.Execute("cloud", "storage-s3", "bulk-delete", "fakeContainer", "--cloud-project", "fakeProjectID", "--all", "--json")
+	out, err := cmd.Execute("cloud", "storage-s3", "bulk-delete", "fakeContainer", "--cloud-project", "fakeProjectID", "--all", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Objects deleted successfully"}`))
 }

@@ -9,10 +9,20 @@ var (
 	ResultString string
 )
 
-// // Common flags used by all subcommands to control output format (json, yaml)
+// OutputFormat controls the output format of the CLI.
+// The Output field can be "json", "yaml", "interactive", or a custom gval expression.
 type OutputFormat struct {
-	JsonOutput, YamlOutput, InteractiveOutput bool
-	CustomFormat                              string
+	Output string
+}
+
+func (o *OutputFormat) IsJson() bool        { return o.Output == "json" }
+func (o *OutputFormat) IsYaml() bool        { return o.Output == "yaml" }
+func (o *OutputFormat) IsInteractive() bool { return o.Output == "interactive" }
+func (o *OutputFormat) CustomFormat() string {
+	if o.Output != "" && !o.IsJson() && !o.IsYaml() && !o.IsInteractive() {
+		return o.Output
+	}
+	return ""
 }
 
 type OutputMessage struct {

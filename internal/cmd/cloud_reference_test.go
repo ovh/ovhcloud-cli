@@ -34,7 +34,7 @@ func (ms *MockSuite) TestCloudReferenceRancherVersionsListCmd(assert, require *t
 			}
 		]`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "rancher", "list-versions", "--json", "--cloud-project", "fakeProjectID", "--filter", `status=="AVAILABLE"`)
+	out, err := cmd.Execute("cloud", "reference", "rancher", "list-versions", "-o", "json", "--cloud-project", "fakeProjectID", "--filter", `status=="AVAILABLE"`)
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
@@ -64,7 +64,7 @@ func (ms *MockSuite) TestCloudReferenceRancherPlansListCmd(assert, require *td.T
 			}
 		]`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "rancher", "list-plans", "--cloud-project", "fakeProjectID", "--format", "name")
+	out, err := cmd.Execute("cloud", "reference", "rancher", "list-plans", "--cloud-project", "fakeProjectID", "-o", "name")
 
 	require.CmpNoError(err)
 	assert.String(out, `"OVHCLOUD_EDITION"
@@ -95,7 +95,7 @@ func (ms *MockSuite) TestCloudReferenceRancherPlansListCmdWithNil(assert, requir
 │ OVHCLOUD_EDITION │ AVAILABLE │         │
 │ STANDARD         │ AVAILABLE │         │
 └──────────────────┴───────────┴─────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudReferenceDatabasesPlansListCmd(assert, require *td.T) {
@@ -148,7 +148,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesPlansListCmd(assert, require *td
 │ production │ Production grade plan │ STABLE │ P14D            │
 │ advanced   │ Advanced grade plan   │ STABLE │ P30D            │
 └────────────┴───────────────────────┴────────┴─────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudReferenceDatabasesFlavorsListCmd(assert, require *td.T) {
@@ -214,7 +214,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesFlavorsListCmd(assert, require *
 │ db2-free │ 0    │ 0 MB   │ 512 MB  │
 │ db2-2    │ 1    │ 2 GB   │ 10 GB   │
 └──────────┴──────┴────────┴─────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudReferenceDatabasesEnginesListCmd(assert, require *td.T) {
@@ -282,7 +282,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesEnginesListCmd(assert, require *
 │ mysql      │ Relational Database Management System        │ operational │ 8                           │ 8              │
 │ mongodb    │ Document-Based Database Management System    │ operational │ 4.4 | 5.0 | 6.0 | 7.0 | 8.0 │ 8.0            │
 └────────────┴──────────────────────────────────────────────┴─────────────┴─────────────────────────────┴────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudReferenceContainerRegistryPlansListCmd(assert, require *td.T) {
@@ -368,7 +368,7 @@ func (ms *MockSuite) TestCloudReferenceContainerRegistryPlansListCmd(assert, req
 │ 9f728ba5-998b-4401-ab0f-497cd8bc6a89 │ SMALL  │ false         │ 200G         │ 15              │
 │ c5ddc763-be75-48f7-b7ec-e923ca040bee │ MEDIUM │ true          │ 600G         │ 45              │
 └──────────────────────────────────────┴────────┴───────────────┴──────────────┴─────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudReferenceContainerRegistryPlansListCmdWithFilter(assert, require *td.T) {
@@ -415,7 +415,7 @@ func (ms *MockSuite) TestCloudReferenceContainerRegistryPlansListCmdWithFilter(a
 ├──────────────────────────────────────┼────────┼───────────────┼──────────────┼─────────────────┤
 │ c5ddc763-be75-48f7-b7ec-e923ca040bee │ MEDIUM │ true          │ 600G         │ 45              │
 └──────────────────────────────────────┴────────┴───────────────┴──────────────┴─────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudReferenceContainerRegistryRegionsListCmd(assert, require *td.T) {
@@ -449,5 +449,5 @@ func (ms *MockSuite) TestCloudReferenceContainerRegistryRegionsListCmd(assert, r
 │ DE          │ 1-AZ │
 │ EU-WEST-PAR │ 3-AZ │
 └─────────────┴──────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }

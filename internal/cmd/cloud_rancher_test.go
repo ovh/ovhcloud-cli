@@ -51,7 +51,7 @@ func (ms *MockSuite) TestCloudRancherCreateCmdJSONFormat(assert, require *td.T) 
 		httpmock.NewStringResponder(200, `{"id": "rancher-12345"}`),
 	)
 
-	out, err := cmd.Execute("cloud", "rancher", "create", "--cloud-project", "fakeProjectID", "--name", "test-rancher", "--plan", "OVHCLOUD_EDITION", "--version", "2.11.3", "--json")
+	out, err := cmd.Execute("cloud", "rancher", "create", "--cloud-project", "fakeProjectID", "--name", "test-rancher", "--plan", "OVHCLOUD_EDITION", "--version", "2.11.3", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"details":{"id": "rancher-12345"}, "message": "✅ Rancher test-rancher created successfully (id: rancher-12345)"}`))
 }
@@ -72,7 +72,7 @@ func (ms *MockSuite) TestCloudRancherCreateCmdYAMLFormat(assert, require *td.T) 
 		httpmock.NewStringResponder(200, `{"id": "rancher-12345"}`),
 	)
 
-	out, err := cmd.Execute("cloud", "rancher", "create", "--cloud-project", "fakeProjectID", "--name", "test-rancher", "--plan", "OVHCLOUD_EDITION", "--version", "2.11.3", "--yaml")
+	out, err := cmd.Execute("cloud", "rancher", "create", "--cloud-project", "fakeProjectID", "--name", "test-rancher", "--plan", "OVHCLOUD_EDITION", "--version", "2.11.3", "-o", "yaml")
 	require.CmpNoError(err)
 	assert.String(out, `details:
   id: rancher-12345
@@ -96,7 +96,7 @@ func (ms *MockSuite) TestCloudRancherCreateCmdCustomFormat(assert, require *td.T
 		httpmock.NewStringResponder(200, `{"id": "rancher-12345"}`),
 	)
 
-	out, err := cmd.Execute("cloud", "rancher", "create", "--cloud-project", "fakeProjectID", "--name", "test-rancher", "--plan", "OVHCLOUD_EDITION", "--version", "2.11.3", "--format", "[details.id]")
+	out, err := cmd.Execute("cloud", "rancher", "create", "--cloud-project", "fakeProjectID", "--name", "test-rancher", "--plan", "OVHCLOUD_EDITION", "--version", "2.11.3", "-o", "[details.id]")
 	require.CmpNoError(err)
 	assert.String(out, `["rancher-12345"]`)
 }

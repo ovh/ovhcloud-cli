@@ -42,5 +42,5 @@ func (ms *MockSuite) TestBaremetalListCompatibleOSCmd(assert, require *td.T) {
 │ ovh    │ byoi_64                │
 │ ovh    │ byolinux_64            │
 └────────┴────────────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }

@@ -41,7 +41,7 @@ func (ms *MockSuite) TestCloudProjectListCmd(assert, require *td.T) {
 │ project-1  │ Test Project 1 │ ok     │ First test project  │
 │ project-2  │ Test Project 2 │ ok     │ Second test project │
 └────────────┴────────────────┴────────┴─────────────────────┘
-💡 Use option --json or --yaml to get the raw output with all information`[1:])
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 // TestCloudProjectListCmdAlias tests the "cloud project ls" command alias
@@ -165,7 +165,7 @@ func (ms *MockSuite) TestCloudProjectServiceInfoCmd(assert, require *td.T) {
 			"contactBilling": "billing-nic"
 		}`).Once())
 
-	out, err := cmd.Execute("cloud", "project", "service-info", "--cloud-project", "test-project", "--json")
+	out, err := cmd.Execute("cloud", "project", "service-info", "--cloud-project", "test-project", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("serviceId"))

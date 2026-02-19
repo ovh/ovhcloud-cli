@@ -134,7 +134,7 @@ func (ms *MockSuite) TestCloudDatabaseEditCmd(assert, require *td.T) {
 		httpmock.NewStringResponder(200, `{"id": "0f0c43f0-979a-11f0-94fd-0050568ce122"}`),
 	)
 
-	out, err := cmd.Execute("cloud", "database-service", "edit", "fakeDatabaseID", "--cloud-project", "fakeProjectID", "--version", "8", "--plan", "discovery", "--yaml")
+	out, err := cmd.Execute("cloud", "database-service", "edit", "fakeDatabaseID", "--cloud-project", "fakeProjectID", "--version", "8", "--plan", "discovery", "-o", "yaml")
 
 	require.CmpNoError(err)
 	assert.String(out, `message: ✅ Resource updated successfully

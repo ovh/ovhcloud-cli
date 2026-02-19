@@ -41,7 +41,7 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 		Args: cobra.NoArgs,
 	})
 	imageListCmd.Flags().StringVarP(&region, "region", "r", "", "Region to filter images (e.g., GRA9, BHS5)")
-	imageListCmd.Flags().StringVarP(&osType, "os-type", "o", "", "OS type to filter images (baremetal-linux, bsd, linux, windows)")
+	imageListCmd.Flags().StringVarP(&osType, "os-type", "t", "", "OS type to filter images (baremetal-linux, bsd, linux, windows)")
 	referenceCmd.AddCommand(imageListCmd)
 
 	// Container registry reference commands
