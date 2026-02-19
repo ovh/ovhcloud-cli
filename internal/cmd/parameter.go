@@ -16,7 +16,90 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/openapi"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
+
+const inputFlagAnnotation = "ovhcloud/input-flag"
+
+func init() {
+	cobra.AddTemplateFunc("inputFlags", func(cmd *cobra.Command) string {
+		return flagUsagesByAnnotation(cmd, true)
+	})
+	cobra.AddTemplateFunc("nonInputFlags", func(cmd *cobra.Command) string {
+		return flagUsagesByAnnotation(cmd, false)
+	})
+	cobra.AddTemplateFunc("hasInputFlags", func(cmd *cobra.Command) bool {
+		has := false
+		cmd.LocalFlags().VisitAll(func(f *pflag.Flag) {
+			if _, ok := f.Annotations[inputFlagAnnotation]; ok && !f.Hidden {
+				has = true
+			}
+		})
+		return has
+	})
+}
+
+func flagUsagesByAnnotation(cmd *cobra.Command, wantInput bool) string {
+	fs := pflag.NewFlagSet("filtered", pflag.ContinueOnError)
+	cmd.LocalFlags().VisitAll(func(f *pflag.Flag) {
+		_, isInput := f.Annotations[inputFlagAnnotation]
+		if isInput == wantInput && !f.Hidden {
+			fs.AddFlag(f)
+		}
+	})
+	return strings.TrimRight(fs.FlagUsages(), " \t\n")
+}
+
+func markAsInputFlag(cmd *cobra.Command, name string) {
+	f := cmd.Flags().Lookup(name)
+	if f == nil {
+		return
+	}
+	if f.Annotations == nil {
+		f.Annotations = map[string][]string{}
+	}
+	f.Annotations[inputFlagAnnotation] = []string{"true"}
+}
+
+// inputFlagsUsageTemplate is a custom usage template that separates input-method
+// flags (--from-file, --editor, --init-file, --replace) from command-specific flags.
+var inputFlagsUsageTemplate = `Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
+
+Available Commands:{{range $cmds}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{else}}{{range $group := .Groups}}
+
+{{.Title}}{{range $cmds}}{{if (and (eq .GroupID $group.ID) (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if not .AllChildCommandsHaveGroup}}
+
+Additional Commands:{{range $cmds}}{{if (and (eq .GroupID "") (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{nonInputFlags . | trimTrailingWhitespaces}}{{if hasInputFlags .}}
+
+Input Flags:
+{{inputFlags . | trimTrailingWhitespaces}}{{end}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`
+
+func applyInputFlagsTemplate(cmd *cobra.Command) {
+	cmd.SetUsageTemplate(inputFlagsUsageTemplate)
+}
 
 var (
 	paramFile        string
@@ -25,10 +108,14 @@ var (
 
 func addInteractiveEditorFlag(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define parameters")
+	markAsInputFlag(cmd, "editor")
+	applyInputFlagsTemplate(cmd)
 }
 
 func addFromFileFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing parameters")
+	markAsInputFlag(cmd, "from-file")
+	applyInputFlagsTemplate(cmd)
 }
 
 func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, method, defaultContent string, replaceValueFn func(*cobra.Command, []string) (map[string]any, error)) {
@@ -38,6 +125,9 @@ func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, me
 
 	cmd.Flags().StringVar(&paramFile, "init-file", "", "Create a file with example parameters")
 	cmd.Flags().BoolVar(&replaceParamFile, "replace", false, "Replace parameters file if it already exists")
+	markAsInputFlag(cmd, "init-file")
+	markAsInputFlag(cmd, "replace")
+	applyInputFlagsTemplate(cmd)
 	cmd.PreRun = func(_ *cobra.Command, args []string) {
 		if paramFile == "" {
 			return
