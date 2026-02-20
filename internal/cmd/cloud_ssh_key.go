@@ -31,5 +31,15 @@ func initCloudSSHKeyCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
+	sshKeyCreateCmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a new SSH key",
+		Run:   cloud.CreateCloudSSHKey,
+	}
+	sshKeyCreateCmd.Flags().StringVar(&cloud.SSHKeyCreationParameters.Name, "name", "", "Name for the SSH key to create")
+	sshKeyCreateCmd.Flags().StringVar(&cloud.SSHKeyCreationParameters.PublicKey, "public-key", "", "Public key for the SSH key to create")
+	sshKeyCreateCmd.Flags().StringVar(&cloud.SSHKeyCreationParameters.Region, "region", "", "Region for the SSH key to create (optional)")
+	sshKeyCmd.AddCommand(sshKeyCreateCmd)
+
 	cloudCmd.AddCommand(sshKeyCmd)
 }
