@@ -28,8 +28,8 @@ var (
 
 	// sshKeyCreationParameters holds the parameters for creating a new SSH key.
 	SSHKeyCreationParameters struct {
-		Name      string `json:"name"`
-		PublicKey string `json:"publicKey"`
+		Name      string `json:"name,omitempty"`
+		PublicKey string `json:"publicKey,omitempty"`
 		Region    string `json:"region,omitempty"`
 	}
 )
