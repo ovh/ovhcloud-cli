@@ -13,8 +13,10 @@ _{{index .Result "description"}}_
 **Status**:            {{index .Result "status"}}
 **Size**:              {{index .Result "size"}}GB
 **Public**:            {{index .Result "isPublic"}}
+**Network ID**:        {{index .Result "networkId"}}
+**Share Network ID**:  {{index .Result "shareNetworkId"}}
+**Subnet ID**:         {{index .Result "subnetId"}}
 **Created at**:        {{index .Result "createdAt"}}
-**Updated at**:        {{index .Result "updatedAt"}}
 
 ## Export locations
 {{range index .Result "exportLocations"}}

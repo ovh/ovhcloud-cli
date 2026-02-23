@@ -130,8 +130,11 @@ func getShareCreateCmd() *cobra.Command {
 	}
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Description, "description", "", "Share description")
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Name, "name", "", "Share name")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.NetworkId, "network-id", "", "Network ID")
 	shareCreateCmd.Flags().IntVar(&cloud.ShareSpec.Size, "size", 0, "Share size (in GB)")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Type, "type", "", "Share type (default)")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.SnapshotId, "snapshot-id", "", "Snapshot ID to create the share from")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.SubnetId, "subnet-id", "", "Subnet ID")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Type, "type", "", "Share type (standard-1az)")
 
 	addInitParameterFileFlag(shareCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/share", "post", cloud.ShareCreateExample, nil)
 	addInteractiveEditorFlag(shareCreateCmd)
@@ -148,11 +151,10 @@ func getShareAclCreateCmd() *cobra.Command {
 		Run:   cloud.CreateShareAcl,
 		Args:  cobra.ExactArgs(1),
 	}
-	shareAclCreateCmd.Flags().StringVar(&cloud.ShareAclSpec.AccessType, "access-type", "", "Access type (cert, ip, user)")
 	shareAclCreateCmd.Flags().StringVar(&cloud.ShareAclSpec.AccessTo, "access-to", "", "Access to (e.g., IP address or CIDR)")
 	shareAclCreateCmd.Flags().StringVar(&cloud.ShareAclSpec.AccessLevel, "access-level", "", "Access level (ro, rw)")
 
-	addInitParameterFileFlag(shareAclCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/share/{id}/acl", "post", cloud.ShareAclCreateExample, nil)
+	addInitParameterFileFlag(shareAclCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/share/{shareId}/acl", "post", cloud.ShareAclCreateExample, nil)
 	addInteractiveEditorFlag(shareAclCreateCmd)
 	addFromFileFlag(shareAclCreateCmd)
 	shareAclCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
@@ -170,7 +172,7 @@ func getShareSnapshotCreateCmd() *cobra.Command {
 	shareSnapshotCreateCmd.Flags().StringVar(&cloud.ShareSnapshotSpec.Description, "description", "", "Snapshot description")
 	shareSnapshotCreateCmd.Flags().StringVar(&cloud.ShareSnapshotSpec.Name, "name", "", "Snapshot name")
 
-	addInitParameterFileFlag(shareSnapshotCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/share/{id}/snapshot", "post", cloud.ShareSnapshotCreateExample, nil)
+	addInitParameterFileFlag(shareSnapshotCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/share/{shareId}/snapshot", "post", cloud.ShareSnapshotCreateExample, nil)
 	addInteractiveEditorFlag(shareSnapshotCreateCmd)
 	addFromFileFlag(shareSnapshotCreateCmd)
 	shareSnapshotCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")

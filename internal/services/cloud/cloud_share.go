@@ -43,15 +43,17 @@ var (
 	ShareSpec struct {
 		Description string `json:"description,omitempty"`
 		Name        string `json:"name,omitempty"`
+		NetworkId   string `json:"networkId,omitempty"`
 		NewSize     int    `json:"newSize,omitempty"`
 		Size        int    `json:"size,omitempty"`
+		SnapshotId  string `json:"snapshotId,omitempty"`
+		SubnetId    string `json:"subnetId,omitempty"`
 		Type        string `json:"type,omitempty"`
 	}
 
 	ShareAclSpec struct {
 		AccessLevel string `json:"accessLevel,omitempty"`
 		AccessTo    string `json:"accessTo,omitempty"`
-		AccessType  string `json:"accessType,omitempty"`
 	}
 
 	ShareSnapshotSpec struct {
@@ -171,7 +173,7 @@ func EditShare(cmd *cobra.Command, args []string) {
 
 	if err := common.EditResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/share/{id}",
+		"/cloud/project/{serviceName}/region/{regionName}/share/{shareId}",
 		endpoint,
 		ShareSpec,
 		assets.CloudOpenapiSchema,
@@ -227,12 +229,12 @@ func CreateShareAcl(cmd *cobra.Command, args []string) {
 
 	acl, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/share/{id}/acl",
+		"/cloud/project/{serviceName}/region/{regionName}/share/{shareId}/acl",
 		endpoint+"/acl",
 		ShareAclCreateExample,
 		ShareAclSpec,
 		assets.CloudOpenapiSchema,
-		[]string{"accessType", "accessTo", "accessLevel"},
+		[]string{"accessTo", "accessLevel"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -289,7 +291,7 @@ func CreateShareSnapshot(cmd *cobra.Command, args []string) {
 
 	snapshot, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/share/{id}/snapshot",
+		"/cloud/project/{serviceName}/region/{regionName}/share/{shareId}/snapshot",
 		endpoint+"/snapshot",
 		ShareSnapshotCreateExample,
 		ShareSnapshotSpec,

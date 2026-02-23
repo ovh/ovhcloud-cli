@@ -1,6 +1,8 @@
 {
     "name": "myshare",
     "description": "My shared storage",
+    "networkId": "00000000-0000-0000-0000-000000000000",
     "size": 100,
-    "type": "default"
+    "subnetId": "00000000-0000-0000-0000-000000000000",
+    "type": "standard-1az"
 }
