@@ -7,6 +7,7 @@ package cloud
 import (
 	_ "embed"
 	"fmt"
+	"net/url"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
@@ -90,4 +91,21 @@ func CreateCloudSSHKey(cmd *cobra.Command, _ []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ SSH key successfully created")
+}
+
+func DeleteCloudSSHKey(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/sshkey/%s", projectID, url.PathEscape(args[0]))
+
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error deleting SSH key %q: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ SSH key successfully deleted")
 }
