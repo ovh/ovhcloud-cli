@@ -31,6 +31,7 @@ Manage SSH keys in the given cloud project
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud ssh-key create](ovhcloud_cloud_ssh-key_create.md)	 - Create a new SSH key
+* [ovhcloud cloud ssh-key delete](ovhcloud_cloud_ssh-key_delete.md)	 - Delete a SSH key
 * [ovhcloud cloud ssh-key get](ovhcloud_cloud_ssh-key_get.md)	 - Get information about a SSH key
 * [ovhcloud cloud ssh-key list](ovhcloud_cloud_ssh-key_list.md)	 - List SSH keys
 
