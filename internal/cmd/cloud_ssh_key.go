@@ -46,5 +46,12 @@ func initCloudSSHKeyCommand(cloudCmd *cobra.Command) {
 	sshKeyCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	sshKeyCmd.AddCommand(sshKeyCreateCmd)
 
+	sshKeyCmd.AddCommand(&cobra.Command{
+		Use:   "delete <ssh_key_id>",
+		Short: "Delete a SSH key",
+		Run:   cloud.DeleteCloudSSHKey,
+		Args:  cobra.ExactArgs(1),
+	})
+
 	cloudCmd.AddCommand(sshKeyCmd)
 }
