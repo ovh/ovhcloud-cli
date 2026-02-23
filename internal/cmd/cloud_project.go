@@ -105,6 +105,7 @@ func init() {
 	initContainerRegistryCommand(cloudCmd)
 	initCloudDatabaseCommand(cloudCmd)
 	initInstanceCommand(cloudCmd)
+	initCloudLoadbalancerCommand(cloudCmd)
 	initCloudNetworkCommand(cloudCmd)
 	initCloudOperationCommand(cloudCmd)
 	initCloudQuotaCommand(cloudCmd)

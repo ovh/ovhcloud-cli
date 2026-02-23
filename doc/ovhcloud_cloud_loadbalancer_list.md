@@ -1,9 +1,9 @@
-## ovhcloud cloud network loadbalancer list
+## ovhcloud cloud loadbalancer list
 
 List your loadbalancers
 
 ```
-ovhcloud cloud network loadbalancer list [flags]
+ovhcloud cloud loadbalancer list [flags]
 ```
 
 ### Options
@@ -40,5 +40,5 @@ ovhcloud cloud network loadbalancer list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network loadbalancer](ovhcloud_cloud_network_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
 
