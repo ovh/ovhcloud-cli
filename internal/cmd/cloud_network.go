@@ -299,9 +299,8 @@ There are three ways to define the parameters:
 	privateNetworkCreateCmd.Flags().StringSliceVar(&cloud.CloudNetworkSpec.Subnet.CliHostRoutes, "subnet-host-routes", nil, "Host routes for the subnet in format destination:nextHop")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(privateNetworkCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/network", "post", cloud.PrivateNetworkCreationExample, nil)
+	addParameterFileFlags(privateNetworkCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/network", "post", cloud.PrivateNetworkCreationExample, nil)
 	addInteractiveEditorFlag(privateNetworkCreateCmd)
-	addFromFileFlag(privateNetworkCreateCmd)
 	privateNetworkCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for network creation to be done before exiting")
 	privateNetworkCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
@@ -361,9 +360,8 @@ There are three ways to define the parameters:
 	privateNetworkSubnetCreateCmd.Flags().StringVar(&cloud.CloudNetworkSubnetSpec.Region, "region", "", "Region for the subnet")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(privateNetworkSubnetCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/network/private/{networkId}/subnet", "post", cloud.PrivateNetworkSubnetCreationExample, nil)
+	addParameterFileFlags(privateNetworkSubnetCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/network/private/{networkId}/subnet", "post", cloud.PrivateNetworkSubnetCreationExample, nil)
 	addInteractiveEditorFlag(privateNetworkSubnetCreateCmd)
-	addFromFileFlag(privateNetworkSubnetCreateCmd)
 	privateNetworkSubnetCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return privateNetworkSubnetCreateCmd
@@ -442,9 +440,8 @@ There are three ways to define the parameters:
 	gatewayCreateCmd.Flags().StringSliceVar(&cloud.CloudGatewaySpec.Network.Subnet.CliHostRoutes, "subnet-host-routes", nil, "Host routes for the subnet in format destination:nextHop")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(gatewayCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/gateway", "post", cloud.GatewayCreationExample, nil)
+	addParameterFileFlags(gatewayCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/gateway", "post", cloud.GatewayCreationExample, nil)
 	addInteractiveEditorFlag(gatewayCreateCmd)
-	addFromFileFlag(gatewayCreateCmd)
 	gatewayCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for gateway creation to be done before exiting")
 	gatewayCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 

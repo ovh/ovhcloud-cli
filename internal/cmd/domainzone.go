@@ -74,9 +74,8 @@ func init() {
 	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.Target, "target", "", "Target of the record")
 	domainZoneRecordPostCmd.Flags().IntVar(&domainzone.CreateRecordSpec.TTL, "ttl", 0, "TTL of the record")
 
-	addInitParameterFileFlag(domainZoneRecordPostCmd, assets.DomainOpenapiSchema, "/domain/zone/{zoneName}/record", "post", domainzone.RecordCreateExample, nil)
+	addParameterFileFlags(domainZoneRecordPostCmd, false, assets.DomainOpenapiSchema, "/domain/zone/{zoneName}/record", "post", domainzone.RecordCreateExample, nil)
 	addInteractiveEditorFlag(domainZoneRecordPostCmd)
-	addFromFileFlag(domainZoneRecordPostCmd)
 	domainZoneRecordPostCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	domainZoneRecordCmd.AddCommand(domainZoneRecordPostCmd)
@@ -91,9 +90,8 @@ func init() {
 	domainZoneRecordPutCmd.Flags().StringVar(&domainzone.UpdateRecordSpec.Target, "target", "", "New target to apply")
 	domainZoneRecordPutCmd.Flags().IntVar(&domainzone.UpdateRecordSpec.TTL, "ttl", 0, "New TTL to apply")
 
-	addInitParameterFileFlag(domainZoneRecordPutCmd, assets.DomainOpenapiSchema, "/domain/zone/{zoneName}/record/{id}", "put", domainzone.RecordUpdateExample, nil)
+	addParameterFileFlags(domainZoneRecordPutCmd, false, assets.DomainOpenapiSchema, "/domain/zone/{zoneName}/record/{id}", "put", domainzone.RecordUpdateExample, nil)
 	addInteractiveEditorFlag(domainZoneRecordPutCmd)
-	addFromFileFlag(domainZoneRecordPutCmd)
 	domainZoneRecordPutCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	domainZoneRecordCmd.AddCommand(domainZoneRecordPutCmd)
