@@ -112,14 +112,16 @@ func addInteractiveEditorFlag(cmd *cobra.Command) {
 	applyInputFlagsTemplate(cmd)
 }
 
-func addFromFileFlag(cmd *cobra.Command) {
+func addParameterFileFlags(cmd *cobra.Command, skipInit bool, openapiSchema []byte, path, method, defaultContent string, replaceValueFn func(*cobra.Command, []string) (map[string]any, error)) {
+	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
+		return
+	}
+
 	cmd.Flags().StringVar(&flags.ParametersFile, "from-file", "", "File containing parameters")
 	markAsInputFlag(cmd, "from-file")
 	applyInputFlagsTemplate(cmd)
-}
 
-func addInitParameterFileFlag(cmd *cobra.Command, openapiSchema []byte, path, method, defaultContent string, replaceValueFn func(*cobra.Command, []string) (map[string]any, error)) {
-	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
+	if skipInit {
 		return
 	}
 
@@ -246,9 +248,8 @@ There are three ways to define the creation parameters:
 	}
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(createCmd, openAPISchema, path, "post", bodyExample, nil)
+	addParameterFileFlags(createCmd, false, openAPISchema, path, "post", bodyExample, nil)
 	addInteractiveEditorFlag(createCmd)
-	addFromFileFlag(createCmd)
 	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return createCmd

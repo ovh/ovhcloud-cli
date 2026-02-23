@@ -300,9 +300,8 @@ There are three ways to define the creation parameters:
 	userCreateCmd.Flags().StringVar(&iam.UserSpec.Type, "type", "", "Type of the user (ROOT, SERVICE, USER)")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(userCreateCmd, assets.MeOpenapiSchema, "/me/identity/user", "post", iam.UserCreateExample, nil)
+	addParameterFileFlags(userCreateCmd, false, assets.MeOpenapiSchema, "/me/identity/user", "post", iam.UserCreateExample, nil)
 	addInteractiveEditorFlag(userCreateCmd)
-	addFromFileFlag(userCreateCmd)
 	userCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return userCreateCmd
@@ -358,9 +357,8 @@ There are three ways to define the editing parameters:
 	userEditCmd.Flags().StringVar(&iam.UserSpec.Group, "group", "", "Group of the user")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(userEditCmd, assets.MeOpenapiSchema, "/me/identity/user", "post", iam.UserEditExample, nil)
+	addParameterFileFlags(userEditCmd, false, assets.MeOpenapiSchema, "/me/identity/user", "post", iam.UserEditExample, nil)
 	addInteractiveEditorFlag(userEditCmd)
-	addFromFileFlag(userEditCmd)
 	userEditCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return userEditCmd

@@ -69,9 +69,8 @@ func init() {
 	createRedirectionCmd.Flags().StringVar(&emaildomain.RedirectionSpec.To, "to", "", "Destination email address")
 	createRedirectionCmd.Flags().BoolVar(&emaildomain.RedirectionSpec.LocalCopy, "local-copy", false, "Keep a local copy of the email")
 
-	addInitParameterFileFlag(createRedirectionCmd, assets.EmaildomainOpenapiSchema, "/email/domain/{serviceName}/redirection", "post", emaildomain.RedirectionCreateExample, nil)
+	addParameterFileFlags(createRedirectionCmd, false, assets.EmaildomainOpenapiSchema, "/email/domain/{serviceName}/redirection", "post", emaildomain.RedirectionCreateExample, nil)
 	addInteractiveEditorFlag(createRedirectionCmd)
-	addFromFileFlag(createRedirectionCmd)
 	createRedirectionCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	emaildomainRedirectionCmd.AddCommand(createRedirectionCmd)

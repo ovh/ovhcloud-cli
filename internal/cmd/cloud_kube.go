@@ -363,9 +363,8 @@ There are three ways to define the creation parameters:
 	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.UDPTimeout, "customization.kube-proxy.ipvs.udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(kubeCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube", "post", cloud.CloudKubeCreationExample, nil)
+	addParameterFileFlags(kubeCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube", "post", cloud.CloudKubeCreationExample, nil)
 	addInteractiveEditorFlag(kubeCreateCmd)
-	addFromFileFlag(kubeCreateCmd)
 	kubeCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return kubeCreateCmd
@@ -449,9 +448,8 @@ There are three ways to define the reset parameters:
 	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.UDPTimeout, "customization.kube-proxy.ipvs.udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(kubeResetCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/reset", "post", cloud.CloudKubeResetExample, nil)
+	addParameterFileFlags(kubeResetCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/reset", "post", cloud.CloudKubeResetExample, nil)
 	addInteractiveEditorFlag(kubeResetCmd)
-	addFromFileFlag(kubeResetCmd)
 	kubeResetCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return kubeResetCmd
@@ -565,9 +563,8 @@ There are three ways to define the creation parameters:
 	nodepoolCreateCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Template.Spec.Unschedulable, "template-unschedulable", false, "Set the nodes as unschedulable")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(nodepoolCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/nodepool", "post", cloud.CloudKubeNodePoolCreationExample, cloud.GetKubeFlavorInteractiveSelector)
+	addParameterFileFlags(nodepoolCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/nodepool", "post", cloud.CloudKubeNodePoolCreationExample, cloud.GetKubeFlavorInteractiveSelector)
 	addInteractiveEditorFlag(nodepoolCreateCmd)
-	addFromFileFlag(nodepoolCreateCmd)
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
 		nodepoolCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
 		nodepoolCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
@@ -633,9 +630,8 @@ There are three ways to define the parameters:
 	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.UsernamePrefix, "username-prefix", "", "Prefix prepended to username claims")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(createCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect", "post", cloud.CloudKubeOIDCCreationExample, nil)
+	addParameterFileFlags(createCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect", "post", cloud.CloudKubeOIDCCreationExample, nil)
 	addInteractiveEditorFlag(createCmd)
-	addFromFileFlag(createCmd)
 	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return createCmd

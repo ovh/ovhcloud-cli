@@ -39,9 +39,8 @@ func initCloudUserCommand(cloudCmd *cobra.Command) {
 	}
 	userCreateCmd.Flags().StringVar(&cloud.UserSpec.Description, "description", "", "Description of the user")
 	userCreateCmd.Flags().StringArrayVar(&cloud.UserSpec.Roles, "roles", nil, "Roles assigned to the user")
-	addInitParameterFileFlag(userCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/user", "post", cloud.UserCreateExample, nil)
+	addParameterFileFlags(userCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/user", "post", cloud.UserCreateExample, nil)
 	addInteractiveEditorFlag(userCreateCmd)
-	addFromFileFlag(userCreateCmd)
 	userCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	userCmd.AddCommand(userCreateCmd)
 
@@ -73,9 +72,8 @@ func initCloudUserCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	}
 	s3PolicyCreateCmd.Flags().StringVar(&cloud.StorageS3ContainerPolicySpec.Policy, "policy", "", "Policy in JSON format")
-	addInitParameterFileFlag(s3PolicyCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/user/{userId}/policy", "post", cloud.CloudStorageS3ContainerPolicyExample, nil)
+	addParameterFileFlags(s3PolicyCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/user/{userId}/policy", "post", cloud.CloudStorageS3ContainerPolicyExample, nil)
 	addInteractiveEditorFlag(s3PolicyCreateCmd)
-	addFromFileFlag(s3PolicyCreateCmd)
 	s3PolicyCreateCmd.MarkFlagsMutuallyExclusive("policy", "from-file", "editor")
 	s3PolicyCmd.AddCommand(s3PolicyCreateCmd)
 
