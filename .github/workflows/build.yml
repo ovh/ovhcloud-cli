@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ '1.24.x', '1.25.x' ]
+        go-version: [ '1.24.x', '1.25.x', '1.26.x' ]
 
     steps:
       - uses: actions/checkout@v5
@@ -18,6 +18,10 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Install dependencies
         run: go get ./...
+      - name: Check documentation is up to date
+        run: |
+          make doc
+          git diff --exit-code || (echo "Documentation is out of date. Please run 'make doc' and commit the result." && exit 1)
       - name: Build binary
         run: make
       - name: Build WASM binary
