@@ -1,9 +1,9 @@
-## ovhcloud cloud network loadbalancer edit
+## ovhcloud cloud loadbalancer edit
 
 Edit the given loadbalancer
 
 ```
-ovhcloud cloud network loadbalancer edit <loadbalancer_id> [flags]
+ovhcloud cloud loadbalancer edit <loadbalancer_id> [flags]
 ```
 
 ### Options
@@ -37,5 +37,5 @@ ovhcloud cloud network loadbalancer edit <loadbalancer_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network loadbalancer](ovhcloud_cloud_network_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
 

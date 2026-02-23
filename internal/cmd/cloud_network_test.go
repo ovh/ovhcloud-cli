@@ -288,7 +288,7 @@ func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
 			"description": "Medium Load Balancer Flavor"
 		}`))
 
-	out, err := cmd.Execute("cloud", "network", "loadbalancer", "get", "fakeLB", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "get", "fakeLB", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 🚀 Load balancer fakeLB

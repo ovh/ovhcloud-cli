@@ -1,12 +1,12 @@
-## ovhcloud cloud network
+## ovhcloud cloud loadbalancer
 
-Manage networks in the given cloud project
+Manage loadbalancers in the given cloud project
 
 ### Options
 
 ```
       --cloud-project string   Cloud project ID
-  -h, --help                   help for network
+  -h, --help                   help for loadbalancer
 ```
 
 ### Options inherited from parent commands
@@ -30,7 +30,7 @@ Manage networks in the given cloud project
 ### SEE ALSO
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
-* [ovhcloud cloud network gateway](ovhcloud_cloud_network_gateway.md)	 - Manage gateways in the given cloud project
-* [ovhcloud cloud network private](ovhcloud_cloud_network_private.md)	 - Manage private networks in the given cloud project
-* [ovhcloud cloud network public](ovhcloud_cloud_network_public.md)	 - Manage public networks in the given cloud project
+* [ovhcloud cloud loadbalancer edit](ovhcloud_cloud_loadbalancer_edit.md)	 - Edit the given loadbalancer
+* [ovhcloud cloud loadbalancer get](ovhcloud_cloud_loadbalancer_get.md)	 - Get a specific loadbalancer
+* [ovhcloud cloud loadbalancer list](ovhcloud_cloud_loadbalancer_list.md)	 - List your loadbalancers
 
