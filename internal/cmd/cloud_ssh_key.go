@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -39,6 +40,10 @@ func initCloudSSHKeyCommand(cloudCmd *cobra.Command) {
 	sshKeyCreateCmd.Flags().StringVar(&cloud.SSHKeyCreationParameters.Name, "name", "", "Name for the SSH key to create")
 	sshKeyCreateCmd.Flags().StringVar(&cloud.SSHKeyCreationParameters.PublicKey, "public-key", "", "Public key for the SSH key to create")
 	sshKeyCreateCmd.Flags().StringVar(&cloud.SSHKeyCreationParameters.Region, "region", "", "Region for the SSH key to create (optional)")
+	addInitParameterFileFlag(sshKeyCreateCmd, assets.CloudOpenapiSchema, "/v1/cloud/project/{serviceName}/sshkey", "post", cloud.SSHKeyCreationExample, nil)
+	addInteractiveEditorFlag(sshKeyCreateCmd)
+	addFromFileFlag(sshKeyCreateCmd)
+	sshKeyCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	sshKeyCmd.AddCommand(sshKeyCreateCmd)
 
 	cloudCmd.AddCommand(sshKeyCmd)

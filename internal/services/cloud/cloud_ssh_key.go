@@ -24,14 +24,14 @@ var (
 	cloudSSHKeyTemplate string
 
 	//go:embed parameter-samples/ssh-key-create.json
-	sshKeyCreationExample string
+	SSHKeyCreationExample string
 
 	// sshKeyCreationParameters holds the parameters for creating a new SSH key.
-	SSHKeyCreationParameters = struct {
-		Name      string `json:"name,omitempty"`
-		PublicKey string `json:"publicKey,omitempty"`
-		Region    string `json:"region,omitzero"`
-	}{}
+	SSHKeyCreationParameters struct {
+		Name      string `json:"name"`
+		PublicKey string `json:"publicKey"`
+		Region    string `json:"region,omitempty"`
+	}
 )
 
 func ListCloudSSHKeys(_ *cobra.Command, _ []string) {
@@ -79,7 +79,7 @@ func CreateCloudSSHKey(cmd *cobra.Command, _ []string) {
 		cmd,
 		"/v1/cloud/project/{serviceName}/sshkey",
 		endpoint,
-		sshKeyCreationExample,
+		SSHKeyCreationExample,
 		SSHKeyCreationParameters,
 		assets.CloudOpenapiSchema,
 		[]string{"name", "publicKey"},
