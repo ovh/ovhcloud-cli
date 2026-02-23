@@ -1,9 +1,9 @@
-## ovhcloud cloud network loadbalancer get
+## ovhcloud cloud loadbalancer get
 
 Get a specific loadbalancer
 
 ```
-ovhcloud cloud network loadbalancer get <loadbalancer_id> [flags]
+ovhcloud cloud loadbalancer get <loadbalancer_id> [flags]
 ```
 
 ### Options
@@ -33,5 +33,5 @@ ovhcloud cloud network loadbalancer get <loadbalancer_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network loadbalancer](ovhcloud_cloud_network_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
 
