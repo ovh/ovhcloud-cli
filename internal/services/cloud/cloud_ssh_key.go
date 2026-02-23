@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"fmt"
 
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -21,6 +22,16 @@ var (
 
 	//go:embed templates/cloud_ssh_key.tmpl
 	cloudSSHKeyTemplate string
+
+	//go:embed parameter-samples/ssh-key-create.json
+	SSHKeyCreationExample string
+
+	// sshKeyCreationParameters holds the parameters for creating a new SSH key.
+	SSHKeyCreationParameters struct {
+		Name      string `json:"name,omitempty"`
+		PublicKey string `json:"publicKey,omitempty"`
+		Region    string `json:"region,omitempty"`
+	}
 )
 
 func ListCloudSSHKeys(_ *cobra.Command, _ []string) {
@@ -54,4 +65,29 @@ func GetCloudSSHKey(_ *cobra.Command, args []string) {
 	}
 
 	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/sshkey", projectID), args[0], cloudSSHKeyTemplate)
+}
+
+func CreateCloudSSHKey(cmd *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/sshkey", projectID)
+	_, err = common.CreateResource(
+		cmd,
+		"/v1/cloud/project/{serviceName}/sshkey",
+		endpoint,
+		SSHKeyCreationExample,
+		SSHKeyCreationParameters,
+		assets.CloudOpenapiSchema,
+		[]string{"name", "publicKey"},
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create SSH key: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ SSH key successfully created")
 }
