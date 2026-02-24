@@ -18,6 +18,5 @@ Please delete options that are not relevant.
 
 - [ ] My code follows the style guidelines of this project
 - [ ] I have commented my code
-- [ ] I updated the documentation by running `make doc`
 - [ ] I ran `go mod tidy`
 - [ ] I have added tests that prove my fix is effective or that my feature works
