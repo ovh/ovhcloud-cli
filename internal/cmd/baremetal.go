@@ -132,9 +132,8 @@ Please note that all parameters are not compatible with all OSes.
 		Run:        baremetal.ReinstallBaremetal,
 	}
 
-	addInitParameterFileFlag(reinstallBaremetalCmd, assets.BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetal.BaremetalInstallationExample, nil)
+	addParameterFileFlags(reinstallBaremetalCmd, false, assets.BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetal.BaremetalInstallationExample, nil)
 	addInteractiveEditorFlag(reinstallBaremetalCmd)
-	addFromFileFlag(reinstallBaremetalCmd)
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.OperatingSystem, "os", "", "Operating system to install")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.ConfigDriveUserData, "config-drive-user-data", "", "Config Drive UserData")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.EfiBootloaderPath, "efi-bootloader-path", "", "Path of the EFI bootloader from the OS installed on the server")
@@ -180,7 +179,7 @@ Please note that all parameters are not compatible with all OSes.
 	}
 	baremetalBootSetScriptCmd.Flags().StringVar(&baremetal.EditBaremetalParams.BootScript, "script", "", "Boot script to set on the baremetal")
 	addInteractiveEditorFlag(baremetalBootSetScriptCmd)
-	addFromFileFlag(baremetalBootSetScriptCmd)
+	addParameterFileFlags(baremetalBootSetScriptCmd, true, nil, "", "", "", nil)
 	baremetalBootSetScriptCmd.MarkFlagsOneRequired("script", "from-file", "editor")
 	baremetalBootSetScriptCmd.MarkFlagsMutuallyExclusive("script", "from-file", "editor")
 	baremetalBootCmd.AddCommand(baremetalBootSetScriptCmd)

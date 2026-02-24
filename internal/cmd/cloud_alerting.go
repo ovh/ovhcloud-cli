@@ -45,9 +45,8 @@ func initCloudAlertingCommand(cloudCmd *cobra.Command) {
 	alertingCreateCmd.Flags().Int64Var(&cloud.AlertingConfigSpec.MonthlyThreshold, "monthly-threshold", 0, "Monthly threshold value")
 	alertingCreateCmd.Flags().StringVar(&cloud.AlertingConfigSpec.Name, "name", "", "Alert name")
 	alertingCreateCmd.Flags().StringVar(&cloud.AlertingConfigSpec.Service, "service", "", "Service of the alert. Allowed: ai_endpoint, all, block_storage, data_platform, instances, instances_gpu, instances_without_gpu, objet_storage, rancher, snapshot")
-	addInitParameterFileFlag(alertingCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/alerting", "post", cloud.AlertingConfigCreateExample, nil)
+	addParameterFileFlags(alertingCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/alerting", "post", cloud.AlertingConfigCreateExample, nil)
 	addInteractiveEditorFlag(alertingCreateCmd)
-	addFromFileFlag(alertingCreateCmd)
 	alertingCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	alertingCmd.AddCommand(alertingCreateCmd)
 

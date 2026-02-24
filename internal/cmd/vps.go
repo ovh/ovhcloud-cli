@@ -357,9 +357,8 @@ func init() {
 	vpsReinstallCmd.Flags().BoolVar(&vps.VpsReinstallSpec.InstallRTM, "install-rtm", false, "Install RTM during reinstallation")
 	vpsReinstallCmd.Flags().StringVar(&vps.VpsReinstallSpec.PublicSshKey, "public-ssh-key", "", "Public SSH key to pre-install on your VPS")
 	vpsReinstallCmd.Flags().StringVar(&vps.VpsReinstallSpec.SshKey, "ssh-key", "", "SSH key name to pre-install on your VPS (name can be found running 'ovhcloud account ssh-key list')")
-	addInitParameterFileFlag(vpsReinstallCmd, assets.VpsOpenapiSchema, "/vps/{serviceName}/rebuild", "post", vps.VpsReinstallExample, nil)
+	addParameterFileFlags(vpsReinstallCmd, false, assets.VpsOpenapiSchema, "/vps/{serviceName}/rebuild", "post", vps.VpsReinstallExample, nil)
 	addInteractiveEditorFlag(vpsReinstallCmd)
-	addFromFileFlag(vpsReinstallCmd)
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
 		vpsReinstallCmd.Flags().BoolVar(&vps.VpsImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
 		vpsReinstallCmd.Flags().BoolVar(&vps.VpsSSHKeyViaInteractiveSelector, "ssh-key-selector", false, "Use the interactive SSH key selector")

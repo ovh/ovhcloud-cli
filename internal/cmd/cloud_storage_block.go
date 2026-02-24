@@ -178,9 +178,8 @@ func getVolumeCreateCmd() *cobra.Command {
 	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.SnapshotId, "snapshot-id", "", "Snapshot ID to create the volume from")
 	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.Type, "type", "", "Volume type (classic, classic-luks, classic-multiattach, high-speed, high-speed-gen2, high-speed-gen2-luks, high-speed-luks)")
 
-	addInitParameterFileFlag(volumeCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/volume", "post", cloud.VolumeCreateExample, nil)
+	addParameterFileFlags(volumeCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/volume", "post", cloud.VolumeCreateExample, nil)
 	addInteractiveEditorFlag(volumeCreateCmd)
-	addFromFileFlag(volumeCreateCmd)
 	volumeCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for volume creation to be done before exiting")
 	volumeCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 

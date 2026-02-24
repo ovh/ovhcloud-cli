@@ -128,9 +128,8 @@ There are three ways to define the creation parameters:
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.UserData, "user-data", "", "Configuration information or scripts to use upon launch")
 
 	// Common flags for other mean to define parameters
-	addInitParameterFileFlag(instanceCreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance", "post", cloud.CloudInstanceCreationExample, cloud.GetInstanceFlavorAndImageInteractiveSelector)
+	addParameterFileFlags(instanceCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance", "post", cloud.CloudInstanceCreationExample, cloud.GetInstanceFlavorAndImageInteractiveSelector)
 	addInteractiveEditorFlag(instanceCreateCmd)
-	addFromFileFlag(instanceCreateCmd)
 	instanceCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for instance creation to be done before exiting")
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
 		instanceCreateCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
@@ -279,9 +278,8 @@ There are three ways to define the installation parameters:
 		Run:  cloud.ReinstallInstance,
 		Args: cobra.MaximumNArgs(1),
 	}
-	addInitParameterFileFlag(reinstallCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", nil)
+	addParameterFileFlags(reinstallCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", nil)
 	addInteractiveEditorFlag(reinstallCmd)
-	addFromFileFlag(reinstallCmd)
 	reinstallCmd.Flags().StringVar(&cloud.InstanceImageID, "image", "", "Image to use for reinstallation")
 	reinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {

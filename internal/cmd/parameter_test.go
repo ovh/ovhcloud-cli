@@ -147,10 +147,10 @@ func TestCreateCmdUsageTemplate_NoInputFlags(t *testing.T) {
 	}
 }
 
-func TestAddFromFileFlag_AnnotatesAndAppliesTemplate(t *testing.T) {
+func TestAddParameterFileFlags_FromFileFlag(t *testing.T) {
 	cmd := &cobra.Command{Use: "create", Run: func(*cobra.Command, []string) {}}
 
-	addFromFileFlag(cmd)
+	addParameterFileFlags(cmd, true, nil, "", "", "", nil)
 
 	f := cmd.Flags().Lookup("from-file")
 	if f == nil {
@@ -175,10 +175,10 @@ func TestAddInteractiveEditorFlag_AnnotatesAndAppliesTemplate(t *testing.T) {
 	}
 }
 
-func TestAddInitParameterFileFlag_AnnotatesFlags(t *testing.T) {
+func TestAddParameterFileFlags_InitFlags(t *testing.T) {
 	cmd := &cobra.Command{Use: "create", Run: func(*cobra.Command, []string) {}}
 
-	addInitParameterFileFlag(cmd, nil, "/test", "post", "{}", nil)
+	addParameterFileFlags(cmd, false, nil, "/test", "post", "{}", nil)
 
 	for _, name := range []string{"init-file", "replace"} {
 		f := cmd.Flags().Lookup(name)
