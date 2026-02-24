@@ -136,9 +136,8 @@ There are three ways to define the creation parameters:
 	rancherCreateCmd.Flags().BoolVar(cloud.RancherSpec.TargetSpec.IAMAuthEnabled, "iam-auth-enabled", false, "Allow Rancher to use identities managed by OVHcloud IAM (Identity and Access Management) to control access")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(rancherCreateCmd, assets.CloudV2OpenapiSchema, "/cloud/project/{serviceName}/rancher", "post", cloud.CloudRancherCreationExample, nil)
+	addParameterFileFlags(rancherCreateCmd, false, assets.CloudV2OpenapiSchema, "/cloud/project/{serviceName}/rancher", "post", cloud.CloudRancherCreationExample, nil)
 	addInteractiveEditorFlag(rancherCreateCmd)
-	addFromFileFlag(rancherCreateCmd)
 	rancherCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return rancherCreateCmd

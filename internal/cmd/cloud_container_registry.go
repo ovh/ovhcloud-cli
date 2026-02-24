@@ -50,9 +50,8 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistrySpec.Name, "name", "", "Name of the container registry")
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistrySpec.PlanID, "plan-id", "", "Plan ID for the container registry. Available plans can be listed with 'ovhcloud cloud reference container-registry list-plans'")
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistrySpec.Region, "region", "", "Region for the container registry (e.g., DE, GRA, BHS)")
-	addInitParameterFileFlag(createCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry", "post", cloud.CloudContainerRegistryCreateSample, nil)
+	addParameterFileFlags(createCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry", "post", cloud.CloudContainerRegistryCreateSample, nil)
 	addInteractiveEditorFlag(createCmd)
-	addFromFileFlag(createCmd)
 	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	registryCmd.AddCommand(createCmd)
 
@@ -101,9 +100,8 @@ func initContainerRegistryUsersCommand(registryCmd *cobra.Command) {
 	}
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryUserSpec.Email, "email", "", "User email")
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryUserSpec.Login, "login", "", "User login")
-	addInitParameterFileFlag(createCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryId}/users", "post", cloud.CloudContainerRegistryUserCreateSample, nil)
+	addParameterFileFlags(createCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryId}/users", "post", cloud.CloudContainerRegistryUserCreateSample, nil)
 	addInteractiveEditorFlag(createCmd)
-	addFromFileFlag(createCmd)
 	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	usersCmd.AddCommand(createCmd)
 
@@ -137,9 +135,8 @@ func initContainerRegistryIAMCommand(registryCmd *cobra.Command) {
 		Run:   cloud.EnableContainerRegistryIAM,
 	}
 	enableCmd.Flags().BoolVar(&cloud.CloudContainerRegistryIamSpec.DeleteUsers, "delete-users", false, "Delete existing container registry users when enabling IAM")
-	addInitParameterFileFlag(enableCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryId}/iam", "post", cloud.CloudContainerRegistryIamEnableSample, nil)
+	addParameterFileFlags(enableCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryId}/iam", "post", cloud.CloudContainerRegistryIamEnableSample, nil)
 	addInteractiveEditorFlag(enableCmd)
-	addFromFileFlag(enableCmd)
 	enableCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	iamCmd.AddCommand(enableCmd)
 
@@ -277,9 +274,8 @@ func initContainerRegistryOIDCCommand(registryCmd *cobra.Command) {
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.UserClaim, "user-claim", "", "OIDC claim containing the username")
 	createCmd.Flags().BoolVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.AutoOnboard, "auto-onboard", false, "Automatically create users on first login")
 	createCmd.Flags().BoolVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.VerifyCert, "verify-cert", false, "Verify the provider TLS certificate")
-	addInitParameterFileFlag(createCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryID}/openIdConnect", "post", cloud.CloudContainerRegistryOidcCreateSample, nil)
+	addParameterFileFlags(createCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryID}/openIdConnect", "post", cloud.CloudContainerRegistryOidcCreateSample, nil)
 	addInteractiveEditorFlag(createCmd)
-	addFromFileFlag(createCmd)
 	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	oidcCmd.AddCommand(createCmd)
 

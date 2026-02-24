@@ -222,9 +222,8 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	presignedURLCmd.Flags().IntVar(&cloud.StorageS3PresignedURLParams.Expire, "expire", 60, "Expiration time in seconds for the presigned URL")
 	presignedURLCmd.Flags().StringVar(&cloud.StorageS3PresignedURLParams.VersionId, "version-id", "", "Version ID of the object (if applicable)")
 	presignedURLCmd.Flags().StringVar(&cloud.StorageS3PresignedURLParams.StorageClass, "storage-class", "", "Storage class for the object (HIGH_PERF, STANDARD, STANDARD_IA)")
-	addInitParameterFileFlag(presignedURLCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/presign", "post", cloud.CloudStorageS3PresignedURLExample, nil)
+	addParameterFileFlags(presignedURLCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/presign", "post", cloud.CloudStorageS3PresignedURLExample, nil)
 	addInteractiveEditorFlag(presignedURLCmd)
-	addFromFileFlag(presignedURLCmd)
 	presignedURLCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	storageS3Cmd.AddCommand(presignedURLCmd)
 
@@ -256,9 +255,8 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Run:   cloud.EditStorageS3Lifecycle,
 		Args:  cobra.ExactArgs(1),
 	}
-	addInitParameterFileFlag(lifecycleEditCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/lifecycle", "put", cloud.CloudStorageS3LifecycleExample, nil)
+	addParameterFileFlags(lifecycleEditCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/lifecycle", "put", cloud.CloudStorageS3LifecycleExample, nil)
 	addInteractiveEditorFlag(lifecycleEditCmd)
-	addFromFileFlag(lifecycleEditCmd)
 	lifecycleEditCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	lifecycleCmd.AddCommand(lifecycleEditCmd)
 
@@ -410,9 +408,8 @@ There are three ways to define the creation parameters:
 	s3CreateCmd.Flags().StringVar(&cloud.StorageS3Spec.Versioning.Status, "versioning-status", "", "Versioning status (disabled, enabled, suspended)")
 
 	// Common flags for other means to define parameters
-	addInitParameterFileFlag(s3CreateCmd, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage", "post", cloud.CloudStorageS3CreationExample, nil)
+	addParameterFileFlags(s3CreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage", "post", cloud.CloudStorageS3CreationExample, nil)
 	addInteractiveEditorFlag(s3CreateCmd)
-	addFromFileFlag(s3CreateCmd)
 	s3CreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
 	return s3CreateCmd
