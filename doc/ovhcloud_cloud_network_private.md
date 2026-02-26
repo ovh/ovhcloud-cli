@@ -5,7 +5,8 @@ Manage private networks in the given cloud project
 ### Options
 
 ```
-  -h, --help   help for private
+  -h, --help            help for private
+      --region string   Filter by region or specify the region of the network
 ```
 
 ### Options inherited from parent commands
@@ -32,9 +33,7 @@ Manage private networks in the given cloud project
 * [ovhcloud cloud network](ovhcloud_cloud_network.md)	 - Manage networks in the given cloud project
 * [ovhcloud cloud network private create](ovhcloud_cloud_network_private_create.md)	 - Create a private network in the given cloud project
 * [ovhcloud cloud network private delete](ovhcloud_cloud_network_private_delete.md)	 - Delete a specific private network
-* [ovhcloud cloud network private edit](ovhcloud_cloud_network_private_edit.md)	 - Edit the given private network
 * [ovhcloud cloud network private get](ovhcloud_cloud_network_private_get.md)	 - Get a specific private network
 * [ovhcloud cloud network private list](ovhcloud_cloud_network_private_list.md)	 - List your private networks
-* [ovhcloud cloud network private region](ovhcloud_cloud_network_private_region.md)	 - Manage regions in a specific private network
 * [ovhcloud cloud network private subnet](ovhcloud_cloud_network_private_subnet.md)	 - Manage subnets in a specific private network
 

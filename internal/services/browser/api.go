@@ -814,7 +814,7 @@ func (m Model) fetchBlockStorageData() dataLoadedMsg {
 	}
 }
 
-// fetchPrivateNetworksData fetches private networks
+// fetchPrivateNetworksData fetches private networks across all regions
 func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 	if m.cloudProject == "" {
 		return dataLoadedMsg{
@@ -822,17 +822,41 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 		}
 	}
 
+	// Fetch all regions
+	var regionNames []string
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	if err := httpLib.Client.Get(regionEndpoint, &regionNames); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+
+	regions := make([]any, len(regionNames))
+	for i, r := range regionNames {
+		regions[i] = r
+	}
+
+	// Fetch networks in all regions
+	allRegionNetworks, err := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/network", regions, true)
+	if err != nil {
+		return dataLoadedMsg{err: err}
+	}
+
+	// Flatten and filter private networks
 	var networks []map[string]interface{}
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
-	err := httpLib.Client.Get(endpoint, &networks)
+	for _, regionNetworks := range allRegionNetworks {
+		for _, network := range regionNetworks {
+			if v, ok := network["visibility"]; ok && v == "private" {
+				networks = append(networks, network)
+			}
+		}
+	}
 
 	return dataLoadedMsg{
 		data: networks,
-		err:  err,
+		err:  nil,
 	}
 }
 
-// fetchPublicNetworksData fetches public networks
+// fetchPublicNetworksData fetches public networks across all regions
 func (m Model) fetchPublicNetworksData() dataLoadedMsg {
 	if m.cloudProject == "" {
 		return dataLoadedMsg{
@@ -840,13 +864,37 @@ func (m Model) fetchPublicNetworksData() dataLoadedMsg {
 		}
 	}
 
+	// Fetch all regions
+	var regionNames []string
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	if err := httpLib.Client.Get(regionEndpoint, &regionNames); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+
+	regions := make([]any, len(regionNames))
+	for i, r := range regionNames {
+		regions[i] = r
+	}
+
+	// Fetch networks in all regions
+	allRegionNetworks, err := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/network", regions, true)
+	if err != nil {
+		return dataLoadedMsg{err: err}
+	}
+
+	// Flatten and filter public networks
 	var networks []map[string]interface{}
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/public", m.cloudProject)
-	err := httpLib.Client.Get(endpoint, &networks)
+	for _, regionNetworks := range allRegionNetworks {
+		for _, network := range regionNetworks {
+			if v, ok := network["visibility"]; ok && v == "public" {
+				networks = append(networks, network)
+			}
+		}
+	}
 
 	return dataLoadedMsg{
 		data: networks,
-		err:  err,
+		err:  nil,
 	}
 }
 
@@ -1765,7 +1813,7 @@ func (m Model) fetchPrivateNetworks() tea.Cmd {
 		}
 
 		var networks []map[string]interface{}
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network", m.cloudProject, m.wizard.selectedRegion)
 		err := httpLib.Client.Get(endpoint, &networks)
 
 		if err != nil {
@@ -1775,10 +1823,16 @@ func (m Model) fetchPrivateNetworks() tea.Cmd {
 			}
 		}
 
-		// Subnets are not needed for the wizard display - just networks
+		// Filter to private networks only
+		var privateNetworks []map[string]interface{}
+		for _, network := range networks {
+			if v, ok := network["visibility"]; ok && v == "private" {
+				privateNetworks = append(privateNetworks, network)
+			}
+		}
 
 		return privateNetworksLoadedMsg{
-			networks: networks,
+			networks: privateNetworks,
 			err:      err,
 		}
 	}
@@ -1794,22 +1848,8 @@ func (m Model) handlePrivateNetworksLoaded(msg privateNetworksLoadedMsg) (tea.Mo
 		return m, nil
 	}
 
-	// Filter networks available in the selected region
-	var availableNetworks []map[string]interface{}
-	for _, network := range msg.networks {
-		// Check if network has regions that include selected region
-		if regions, ok := network["regions"].([]interface{}); ok {
-			for _, r := range regions {
-				if regionMap, ok := r.(map[string]interface{}); ok {
-					regionName := getString(regionMap, "region")
-					if regionName == m.wizard.selectedRegion {
-						availableNetworks = append(availableNetworks, network)
-						break
-					}
-				}
-			}
-		}
-	}
+	// Networks are already filtered by region (fetched from regional endpoint)
+	availableNetworks := msg.networks
 
 	// Build the list: No Network, Create New, then existing networks
 	noNetworkOption := map[string]interface{}{
@@ -2098,8 +2138,8 @@ func (m Model) cleanupCreatedResources() tea.Cmd {
 
 		// Delete network if created (this will also delete the subnet)
 		if m.wizard.createdNetworkId != "" {
-			endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s",
-				m.cloudProject, m.wizard.createdNetworkId)
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s",
+				m.cloudProject, m.wizard.selectedRegion, m.wizard.createdNetworkId)
 			if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 				errors = append(errors, fmt.Sprintf("Network: %s", err))
 			} else {
@@ -2662,29 +2702,38 @@ func (m Model) createPrivateNetwork() tea.Cmd {
 			return networkCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
-		// Step 1: Create the private network
+		// Step 1: Create the private network using the regional API
 		networkBody := map[string]interface{}{
-			"name":    m.wizard.newNetworkName,
-			"vlanId":  m.wizard.newNetworkVlanId,
-			"regions": []string{m.wizard.selectedRegion},
+			"name":   m.wizard.newNetworkName,
+			"vlanId": m.wizard.newNetworkVlanId,
 		}
 
-		var network map[string]interface{}
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
-		err := httpLib.Client.Post(endpoint, networkBody, &network)
+		var operation map[string]interface{}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network", m.cloudProject, m.wizard.selectedRegion)
+		err := httpLib.Client.Post(endpoint, networkBody, &operation)
 		if err != nil {
 			return networkCreatedMsg{err: fmt.Errorf("failed to create network: %w", err)}
 		}
 
-		networkId := getString(network, "id")
-		if networkId == "" {
+		// The regional API returns an operation object; extract the resource ID
+		resourceId := getString(operation, "resourceId")
+		if resourceId == "" {
+			// Try to get the ID directly if the response is a network object
+			resourceId = getString(operation, "id")
+		}
+		if resourceId == "" {
 			return networkCreatedMsg{err: fmt.Errorf("network created but ID not returned")}
+		}
+
+		network := map[string]interface{}{
+			"id":   resourceId,
+			"name": m.wizard.newNetworkName,
 		}
 
 		// Return step message to continue with subnet creation
 		return networkStepMsg{
 			step:      "network_created",
-			networkId: networkId,
+			networkId: resourceId,
 			network:   network,
 		}
 	}
@@ -2739,19 +2788,23 @@ func (m Model) createSubnet(networkId string, network map[string]interface{}) te
 		dhcpEnd := baseIP + ".254"
 
 		subnetBody := map[string]interface{}{
-			"region":    m.wizard.selectedRegion,
-			"network":   cidr,
-			"noGateway": false,
-			"dhcp":      m.wizard.newNetworkDHCP,
+			"name":            m.wizard.newNetworkName + "-subnet",
+			"cidr":            cidr,
+			"ipVersion":       4,
+			"enableDhcp":      m.wizard.newNetworkDHCP,
+			"enableGatewayIp": true,
+			"gatewayIp":       gateway,
 		}
 
-		// Only add IP pool if DHCP is enabled
+		// Only add allocation pools if DHCP is enabled
 		if m.wizard.newNetworkDHCP {
-			subnetBody["start"] = dhcpStart
-			subnetBody["end"] = dhcpEnd
+			subnetBody["allocationPools"] = []map[string]string{
+				{"start": dhcpStart, "end": dhcpEnd},
+			}
 		}
 
-		subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", m.cloudProject, networkId)
+		subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
+			m.cloudProject, m.wizard.selectedRegion, networkId)
 
 		// Retry creating subnet with exponential backoff (network needs to activate)
 		var subnet map[string]interface{}

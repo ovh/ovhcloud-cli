@@ -5,7 +5,8 @@ Manage public networks in the given cloud project
 ### Options
 
 ```
-  -h, --help   help for public
+  -h, --help            help for public
+      --region string   Filter by region or specify the region of the network
 ```
 
 ### Options inherited from parent commands

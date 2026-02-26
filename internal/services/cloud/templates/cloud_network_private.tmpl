@@ -5,23 +5,15 @@ _{{index .Result "name"}}_
 
 ## General information
 
-**Status**:  {{index .Result "status"}}
-**Type**:    {{index .Result "type"}}
-**vlan ID**: {{index .Result "vlanId"}}
+**Status**:     {{index .Result "status"}}
+**Visibility**: {{index .Result "visibility"}}
+**vlan ID**:    {{index .Result "vlanId"}}
 
-## Regional networks information
+{{if index .Result "subnets"}}## Subnets
 
-{{range index .Result "regions"}}
-### Network {{.openstackId}}
-
-**Region**: {{.region}}
-**Status**: {{.status}}
-
-{{if .subnets}}**Subnets**
-| Name | CIDR | Gateway IP |
-| --- | --- | --- |
-{{ range .subnets }}| {{.name}} | {{.cidr}} | {{.gatewayIp}} |
-{{end}}
+| ID | Name | CIDR | Gateway IP | DHCP | IP Version |
+| --- | --- | --- | --- | --- | --- |
+{{range index .Result "subnets"}}| {{.id}} | {{.name}} | {{.cidr}} | {{.gatewayIp}} | {{.dhcpEnabled}} | {{.ipVersion}} |
 {{end}}
 {{end}}
 
