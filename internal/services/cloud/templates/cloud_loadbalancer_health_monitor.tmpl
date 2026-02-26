@@ -1,0 +1,17 @@
+💓 Health monitor {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Monitor type**:        {{index .Result "monitorType"}}
+**Pool ID**:             {{index .Result "poolId"}}
+**Delay**:               {{index .Result "delay"}}s
+**Timeout**:             {{index .Result "timeout"}}s
+**Max retries**:         {{index .Result "maxRetries"}}
+**Max retries down**:    {{index .Result "maxRetriesDown"}}
+**Operating status**:    {{index .Result "operatingStatus"}}
+**Provisioning status**: {{index .Result "provisioningStatus"}}
+
+💡 Use option --json or --yaml to get the raw output with all information

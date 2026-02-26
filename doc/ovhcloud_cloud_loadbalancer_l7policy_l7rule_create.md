@@ -1,11 +1,23 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer l7policy l7rule create
 
-Fetch loadbalancer reference data in the given cloud project
+Create an L7 rule in a specific L7 policy
+
+```
+ovhcloud cloud loadbalancer l7policy l7rule create <l7policy_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+      --compare-type string   Comparison type (contains, endsWith, equalTo, regex, startsWith)
+      --editor                Use a text editor to define parameters
+      --from-file string      File containing parameters
+  -h, --help                  help for create
+      --init-file string      Create a file with example parameters
+      --key string            Key to use for comparison
+      --replace               Replace parameters file if it already exists
+      --rule-type string      Rule type (cookie, fileType, header, hostName, path, sslConnHasCert, sslDNField, sslVerifyResult)
+      --value string          Value to compare
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +41,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer l7policy l7rule](ovhcloud_cloud_loadbalancer_l7policy_l7rule.md)	 - Manage L7 rules of a loadbalancer L7 policy
 

@@ -1,11 +1,21 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer health-monitor edit
 
-Fetch loadbalancer reference data in the given cloud project
+Edit a specific health monitor
+
+```
+ovhcloud cloud loadbalancer health-monitor edit <health_monitor_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+      --delay int              Duration between sending probes to members, in seconds
+      --editor                 Use a text editor to define parameters
+  -h, --help                   help for edit
+      --max-retries int        Number of successful checks before changing status to ONLINE
+      --max-retries-down int   Number of allowed check failures before changing status to ERROR
+      --name string            Name of the health monitor
+      --timeout int            Maximum time in seconds to connect before timeout
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +39,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer health-monitor](ovhcloud_cloud_loadbalancer_health-monitor.md)	 - Manage health monitors of loadbalancers
 

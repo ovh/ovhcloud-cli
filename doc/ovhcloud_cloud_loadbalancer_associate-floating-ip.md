@@ -1,11 +1,21 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer associate-floating-ip
 
-Fetch loadbalancer reference data in the given cloud project
+Associate an existing floating IP to a loadbalancer
+
+```
+ovhcloud cloud loadbalancer associate-floating-ip <loadbalancer_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+      --editor                  Use a text editor to define parameters
+      --floating-ip-id string   Floating IP ID
+      --from-file string        File containing parameters
+  -h, --help                    help for associate-floating-ip
+      --init-file string        Create a file with example parameters
+      --ip string               Private loadbalancer IP to associate the floating IP with
+      --replace                 Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +39,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
 

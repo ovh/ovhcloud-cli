@@ -1,11 +1,24 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer l7policy edit
 
-Fetch loadbalancer reference data in the given cloud project
+Edit a specific L7 policy
+
+```
+ovhcloud cloud loadbalancer l7policy edit <l7policy_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+      --action string             L7 policy action
+      --description string        Description
+      --editor                    Use a text editor to define parameters
+  -h, --help                      help for edit
+      --listener-id string        Listener ID
+      --name string               Name of the L7 policy
+      --position int              Position on the listener
+      --redirect-pool-id string   Redirect pool ID
+      --redirect-prefix string    Redirect prefix URL
+      --redirect-url string       Redirect URL
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +42,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer l7policy](ovhcloud_cloud_loadbalancer_l7policy.md)	 - Manage L7 policies of loadbalancers
 
