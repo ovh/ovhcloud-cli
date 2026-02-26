@@ -1,0 +1,15 @@
+🔊 Listener {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**Protocol**:            {{index .Result "protocol"}}
+**Port**:                {{index .Result "port"}}
+**Operating status**:    {{index .Result "operatingStatus"}}
+**Provisioning status**: {{index .Result "provisioningStatus"}}
+**Default pool ID**:     {{index .Result "defaultPoolId"}}
+**Description**:         {{index .Result "description"}}
+
+💡 Use option --json or --yaml to get the raw output with all information

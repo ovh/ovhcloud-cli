@@ -1,11 +1,11 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer pool member
 
-Fetch loadbalancer reference data in the given cloud project
+Manage members of a loadbalancer pool
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+  -h, --help   help for member
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +29,10 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer pool](ovhcloud_cloud_loadbalancer_pool.md)	 - Manage pools of loadbalancers
+* [ovhcloud cloud loadbalancer pool member create](ovhcloud_cloud_loadbalancer_pool_member_create.md)	 - Create member(s) in a specific pool
+* [ovhcloud cloud loadbalancer pool member delete](ovhcloud_cloud_loadbalancer_pool_member_delete.md)	 - Delete a specific pool member
+* [ovhcloud cloud loadbalancer pool member edit](ovhcloud_cloud_loadbalancer_pool_member_edit.md)	 - Edit a specific pool member
+* [ovhcloud cloud loadbalancer pool member get](ovhcloud_cloud_loadbalancer_pool_member_get.md)	 - Get a specific pool member
+* [ovhcloud cloud loadbalancer pool member list](ovhcloud_cloud_loadbalancer_pool_member_list.md)	 - List members of a specific pool
 

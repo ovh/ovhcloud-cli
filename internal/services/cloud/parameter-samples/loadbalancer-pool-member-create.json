@@ -1,0 +1,10 @@
+{
+  "members": [
+    {
+      "address": "10.0.0.1",
+      "name": "my-member",
+      "protocolPort": 80,
+      "weight": 1
+    }
+  ]
+}

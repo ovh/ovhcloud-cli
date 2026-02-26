@@ -1,11 +1,15 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer l7policy l7rule get
 
-Fetch loadbalancer reference data in the given cloud project
+Get a specific L7 rule
+
+```
+ovhcloud cloud loadbalancer l7policy l7rule get <l7policy_id> <l7rule_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +33,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer l7policy l7rule](ovhcloud_cloud_loadbalancer_l7policy_l7rule.md)	 - Manage L7 rules of a loadbalancer L7 policy
 

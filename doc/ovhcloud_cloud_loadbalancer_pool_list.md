@@ -1,11 +1,22 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer pool list
 
-Fetch loadbalancer reference data in the given cloud project
+List all pools
+
+```
+ovhcloud cloud loadbalancer pool list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +40,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer pool](ovhcloud_cloud_loadbalancer_pool.md)	 - Manage pools of loadbalancers
 

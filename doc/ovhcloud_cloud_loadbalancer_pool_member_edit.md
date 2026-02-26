@@ -1,11 +1,18 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer pool member edit
 
-Fetch loadbalancer reference data in the given cloud project
+Edit a specific pool member
+
+```
+ovhcloud cloud loadbalancer pool member edit <pool_id> <member_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+      --editor        Use a text editor to define parameters
+  -h, --help          help for edit
+      --name string   Name of the member
+      --weight int    Weight of the member (1-256)
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +36,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer pool member](ovhcloud_cloud_loadbalancer_pool_member.md)	 - Manage members of a loadbalancer pool
 

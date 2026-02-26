@@ -1,11 +1,11 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer health-monitor
 
-Fetch loadbalancer reference data in the given cloud project
+Manage health monitors of loadbalancers
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+  -h, --help   help for health-monitor
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +29,10 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud loadbalancer health-monitor create](ovhcloud_cloud_loadbalancer_health-monitor_create.md)	 - Create a health monitor in the given region
+* [ovhcloud cloud loadbalancer health-monitor delete](ovhcloud_cloud_loadbalancer_health-monitor_delete.md)	 - Delete a specific health monitor
+* [ovhcloud cloud loadbalancer health-monitor edit](ovhcloud_cloud_loadbalancer_health-monitor_edit.md)	 - Edit a specific health monitor
+* [ovhcloud cloud loadbalancer health-monitor get](ovhcloud_cloud_loadbalancer_health-monitor_get.md)	 - Get a specific health monitor
+* [ovhcloud cloud loadbalancer health-monitor list](ovhcloud_cloud_loadbalancer_health-monitor_list.md)	 - List all health monitors
 

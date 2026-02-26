@@ -1,11 +1,27 @@
-## ovhcloud cloud reference loadbalancer
+## ovhcloud cloud loadbalancer l7policy create
 
-Fetch loadbalancer reference data in the given cloud project
+Create an L7 policy in the given region
+
+```
+ovhcloud cloud loadbalancer l7policy create <region> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for loadbalancer
+      --action string             L7 policy action (redirectToPool, redirectToUrl, redirectPrefix, reject)
+      --description string        Description
+      --editor                    Use a text editor to define parameters
+      --from-file string          File containing parameters
+  -h, --help                      help for create
+      --init-file string          Create a file with example parameters
+      --listener-id string        Listener ID
+      --name string               Name of the L7 policy
+      --position int              Position on the listener
+      --redirect-pool-id string   Redirect pool ID
+      --redirect-prefix string    Redirect prefix URL
+      --redirect-url string       Redirect URL
+      --replace                   Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands
@@ -29,7 +45,5 @@ Fetch loadbalancer reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference loadbalancer get-flavor](ovhcloud_cloud_reference_loadbalancer_get-flavor.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud reference loadbalancer list-flavors](ovhcloud_cloud_reference_loadbalancer_list-flavors.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer l7policy](ovhcloud_cloud_loadbalancer_l7policy.md)	 - Manage L7 policies of loadbalancers
 
