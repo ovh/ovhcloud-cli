@@ -49,26 +49,14 @@ ovhcloud cloud network private create <region> [flags]
 ### Options
 
 ```
-      --editor                                   Use a text editor to define parameters
-      --from-file string                         File containing parameters
-      --gateway-model string                     Gateway model (s, m, l, xl, 2xl, 3xl)
-      --gateway-name string                      Name of the gateway
-  -h, --help                                     help for create
-      --init-file string                         Create a file with example parameters
-      --name string                              Name of the private network
-      --replace                                  Replace parameters file if it already exists
-      --subnet-allocation-pools strings          Allocation pools for the subnet in format start:end
-      --subnet-cidr string                       CIDR of the subnet
-      --subnet-dns-name-servers strings          DNS name servers for the subnet
-      --subnet-enable-dhcp                       Enable DHCP for the subnet
-      --subnet-enable-gateway-ip                 Set a gateway ip for the subnet
-      --subnet-gateway-ip string                 Gateway IP address for the subnet
-      --subnet-host-routes strings               Host routes for the subnet in format destination:nextHop
-      --subnet-ip-version int                    IP version (4 or 6)
-      --subnet-name string                       Name of the subnet
-      --subnet-use-default-public-dns-resolver   Use default DNS resolver for the subnet
-      --vlan-id int                              VLAN ID for the private network
-      --wait                                     Wait for network creation to be done before exiting
+      --editor             Use a text editor to define parameters
+      --from-file string   File containing parameters
+  -h, --help               help for create
+      --init-file string   Create a file with example parameters
+      --name string        Name of the private network
+      --replace            Replace parameters file if it already exists
+      --vlan-id int        VLAN ID for the private network
+      --wait               Wait for network creation to be done before exiting
 ```
 
 ### Options inherited from parent commands
@@ -88,6 +76,7 @@ ovhcloud cloud network private create <region> [flags]
                                  --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --region string          Filter by region or specify the region of the network
 ```
 
 ### SEE ALSO

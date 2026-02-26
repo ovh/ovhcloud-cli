@@ -1,0 +1,33 @@
+🚀 Subnet {{.ServiceName}}
+=======
+
+_{{index .Result "name"}}_
+
+## General information
+
+**CIDR**:         {{index .Result "cidr"}}
+**IP Version**:   {{index .Result "ipVersion"}}
+**Gateway IP**:   {{index .Result "gatewayIp"}}
+**DHCP Enabled**: {{index .Result "dhcpEnabled"}}
+
+## DNS Name Servers
+
+{{ range index .Result "dnsNameServers" }}- {{.}}
+{{end}}
+
+## Allocation Pools
+
+| Start | End |
+| --- | --- |
+{{ range index .Result "allocationPools" }}| {{.start}} | {{.end}} |
+{{end}}
+
+{{if index .Result "hostRoutes"}}## Host Routes
+
+| Destination | Next Hop |
+| --- | --- |
+{{ range index .Result "hostRoutes" }}| {{.destination}} | {{.nextHop}} |
+{{end}}
+{{end}}
+
+💡 Use option --json or --yaml to get the raw output with all information

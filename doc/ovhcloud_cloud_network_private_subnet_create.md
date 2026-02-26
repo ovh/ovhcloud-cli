@@ -9,7 +9,7 @@ There are three ways to define the parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud network private subnet create <network_id> --network 192.168.1.0/24 --start 192.168.1.12 --end 192.168.1.24 --region GRA9
+	ovhcloud cloud network private subnet create <network_id> --region GRA9 --name MySubnet --cidr 192.168.1.0/24 --ip-version 4
 
 2. Using a configuration file:
 
@@ -28,7 +28,7 @@ There are three ways to define the parameters:
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovhcloud cloud network private subnet create <network_id> --from-file ./params.json --region BHS5
+	ovhcloud cloud network private subnet create <network_id> --from-file ./params.json --name MySubnet
 
 3. Using your default text editor:
 
@@ -39,7 +39,7 @@ There are three ways to define the parameters:
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud network private subnet create <network_id> --editor --region DE1
+	ovhcloud cloud network private subnet create <network_id> --editor --name MySubnet
 
 
 ```
@@ -49,17 +49,21 @@ ovhcloud cloud network private subnet create <network_id> [flags]
 ### Options
 
 ```
-      --dhcp               Enable DHCP for the subnet
-      --editor             Use a text editor to define parameters
-      --end string         Last IP for this region (eg: 192.168.1.24)
-      --from-file string   File containing parameters
-  -h, --help               help for create
-      --init-file string   Create a file with example parameters
-      --network string     Global network CIDR (eg: 192.168.1.0/24)
-      --no-gateway         Use this flag if you don't want to set a default gateway IP
-      --region string      Region for the subnet
-      --replace            Replace parameters file if it already exists
-      --start string       First IP for this region (eg: 192.168.1.12)
+      --allocation-pools strings          Allocation pools for the subnet in format start:end
+      --cidr string                       CIDR of the subnet (eg: 192.168.1.0/24)
+      --dns-name-servers strings          DNS name servers for the subnet
+      --editor                            Use a text editor to define parameters
+      --enable-dhcp                       Enable DHCP for the subnet
+      --enable-gateway-ip                 Set a gateway IP for the subnet
+      --from-file string                  File containing parameters
+      --gateway-ip string                 Gateway IP address for the subnet
+  -h, --help                              help for create
+      --host-routes strings               Host routes for the subnet in format destination:nextHop
+      --init-file string                  Create a file with example parameters
+      --ip-version int                    IP version (4 or 6)
+      --name string                       Name of the subnet
+      --replace                           Replace parameters file if it already exists
+      --use-default-public-dns-resolver   Use default DNS resolver for the subnet
 ```
 
 ### Options inherited from parent commands
@@ -79,6 +83,7 @@ ovhcloud cloud network private subnet create <network_id> [flags]
                                  --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --region string          Filter by region or specify the region of the network
 ```
 
 ### SEE ALSO
