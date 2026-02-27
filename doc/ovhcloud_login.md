@@ -6,10 +6,18 @@ Login to your OVHcloud account to create API credentials
 ovhcloud login [flags]
 ```
 
+### Examples
+
+```
+ovhcloud login
+ovhcloud login --profile work
+```
+
 ### Options
 
 ```
-  -h, --help   help for login
+  -h, --help             help for login
+      --profile string   Store credentials under the given profile name
 ```
 
 ### Options inherited from parent commands

@@ -22,6 +22,10 @@ var (
 )
 
 func ShowConfig(_ *cobra.Command, _ []string) {
+	// If in profile mode, show which profile is active
+	if profileName := config.GetActiveProfileName(flags.CliConfig, flags.Profile); profileName != "" && !config.IsDefaultProfile(profileName) {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "Active profile: %s\n", profileName)
+	}
 	display.RenderConfigTable(flags.CliConfig)
 }
 
@@ -31,6 +35,15 @@ func SetConfig(_ *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "unknown configuration field %q, customizable fields are: %s", args[0], allowedKeys)
 		return
 	}
+
+	// In profile mode, write to the active profile section (unless it's the default profile)
+	if profileName := config.GetActiveProfileName(flags.CliConfig, flags.Profile); profileName != "" && !config.IsDefaultProfile(profileName) {
+		if err := config.SetProfileConfigValue(flags.CliConfig, flags.CliConfigPath, profileName, args[0], args[1]); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to set configuration: %s", err)
+		}
+		return
+	}
+
 	if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, "", args[0], args[1]); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to set configuration: %s", err)
 		return
@@ -56,6 +69,14 @@ func SetEndpoint(_ *cobra.Command, args []string) {
 		}
 
 		endpoint = args[0]
+	}
+
+	// In profile mode, write endpoint to the active profile section (unless it's the default profile)
+	if profileName := config.GetActiveProfileName(flags.CliConfig, flags.Profile); profileName != "" && !config.IsDefaultProfile(profileName) {
+		if err := config.SetProfileConfigValue(flags.CliConfig, flags.CliConfigPath, profileName, "endpoint", endpoint); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to set API endpoint configuration: %s", err)
+		}
+		return
 	}
 
 	if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, "", "endpoint", endpoint); err != nil {

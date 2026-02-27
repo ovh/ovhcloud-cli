@@ -140,6 +140,8 @@ OVHcloud CLI requires authentication to be able to make API calls. There are sev
 
 Check out the [authentication page](./doc/authentication.md) for further information about the configuration and the authentication means.
 
+You can also manage multiple OVHcloud accounts using [profiles](./doc/profiles.md). Profiles let you store credentials for several accounts in a single configuration file and switch between them with `ovhcloud config profile switch <name>` or the `--profile` flag.
+
 * Interactive login:
 ```sh
 # Log in and create API credentials (interactive)
