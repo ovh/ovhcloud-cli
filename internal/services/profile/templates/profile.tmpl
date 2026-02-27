@@ -1,0 +1,6 @@
+# Profile: {{ .Result.profile }}
+
+| Key | Value |
+|-----|-------|
+{{ range $k, $v := .Result }}{{ if ne $k "profile" }}| {{ $k }} | {{ $v }} |
+{{ end }}{{ end }}

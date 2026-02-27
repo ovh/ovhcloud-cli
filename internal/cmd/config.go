@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/services/config"
+	"github.com/ovh/ovhcloud-cli/internal/services/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -42,6 +43,46 @@ func init() {
 		Args:                  cobra.ExactArgs(1),
 		DisableFlagsInUseLine: true,
 	})
+
+	// Profile management subcommands
+	profileCmd := &cobra.Command{
+		Use:   "profile",
+		Short: "Manage CLI profiles for multiple accounts",
+	}
+
+	profileCmd.AddCommand(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List available profiles",
+		Run:     profile.ListProfiles,
+	})
+
+	profileCmd.AddCommand(&cobra.Command{
+		Use:   "show [profile-name]",
+		Short: "Show a profile's configuration (defaults to the active profile)",
+		Run:   profile.ShowProfile,
+		Args:  cobra.MaximumNArgs(1),
+	})
+
+	profileCmd.AddCommand(&cobra.Command{
+		Use:                   "switch <profile-name>",
+		Short:                 "Switch the active profile",
+		Example:               "ovhcloud config profile switch personal",
+		Run:                   profile.SwitchProfile,
+		Args:                  cobra.ExactArgs(1),
+		DisableFlagsInUseLine: true,
+	})
+
+	profileCmd.AddCommand(&cobra.Command{
+		Use:                   "delete <profile-name>",
+		Short:                 "Delete a profile from the configuration",
+		Example:               "ovhcloud config profile delete personal",
+		Run:                   profile.DeleteProfile,
+		Args:                  cobra.ExactArgs(1),
+		DisableFlagsInUseLine: true,
+	})
+
+	configCmd.AddCommand(profileCmd)
 
 	rootCmd.AddCommand(configCmd)
 }

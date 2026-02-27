@@ -39,6 +39,7 @@ var (
 		"replace",
 		"output",
 		"debug",
+		"profile",
 	}
 
 	wasmHiddenCommands = []string{
@@ -74,6 +75,8 @@ func PostExecute() {
 	// Reset all flags to default values
 	flags.GenericFilters = nil
 	flags.OutputFormatConfig = display.OutputFormat{}
+	flags.Profile = ""
+	config.ActiveProfileOverride = ""
 	flags.ParametersViaEditor = false
 	flags.ParametersFile = ""
 
@@ -107,6 +110,7 @@ func initRootCmd() {
 
 	rootCmd.PersistentFlags().BoolVarP(&flags.Debug, "debug", "d", false, "Activate debug mode (will log all HTTP requests details)")
 	rootCmd.PersistentFlags().BoolVarP(&flags.IgnoreErrors, "ignore-errors", "e", false, "Ignore errors in API calls when it is not fatal to the execution")
+	rootCmd.PersistentFlags().StringVar(&flags.Profile, "profile", "", "Use a specific profile from the configuration file")
 	rootCmd.PersistentFlags().StringVarP(&flags.OutputFormatConfig.Output, "output", "o", "", `Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
 Examples:
   --output json
@@ -121,6 +125,16 @@ Examples:
 
 	var newVersionMessage atomic.Pointer[string]
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		// Make the --profile flag available to the config package for
+		// profile-aware config reads (e.g. default_cloud_project)
+		config.ActiveProfileOverride = flags.Profile
+
+		// Initialize API client with profile support (deferred from init() so
+		// that the --profile flag value is available after cobra parses args)
+		if httplib.Client == nil {
+			httplib.InitClientWithProfile(flags.CliConfig, flags.Profile)
+		}
+
 		// Check if a new version is available in a separate goroutine
 		// Don't do it when running in WASM binary
 		if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
@@ -170,8 +184,6 @@ Examples:
 }
 
 func init() {
-	httplib.InitClient()
-
 	// Load configuration files by order of increasing priority. All configuration
 	// files are optional. Only load file from user home if home could be resolve
 	flags.CliConfig, flags.CliConfigPath = config.LoadINI()

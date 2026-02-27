@@ -31,6 +31,9 @@ var (
 	CliConfig     *ini.File
 	CliConfigPath string
 
+	// Profile name override from --profile flag
+	Profile string
+
 	// Flag to indicate whether the command should use the editor for input parameters
 	ParametersViaEditor bool
 

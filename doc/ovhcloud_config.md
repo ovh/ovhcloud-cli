@@ -11,24 +11,26 @@ Manage your CLI configuration
 ### Options inherited from parent commands
 
 ```
-  -d, --debug           Activate debug mode (will log all HTTP requests details)
-  -e, --ignore-errors   Ignore errors in API calls when it is not fatal to the execution
-  -o, --output string   Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
-                        Examples:
-                          --output json
-                          --output yaml
-                          --output interactive
-                          --output 'id' (to extract a single field)
-                          --output 'nested.field.subfield' (to extract a nested field)
-                          --output '[id, "name"]' (to extract multiple fields as an array)
-                          --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
-                          --output 'name+","+type' (to extract and concatenate fields in a string)
-                          --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+  -d, --debug            Activate debug mode (will log all HTTP requests details)
+  -e, --ignore-errors    Ignore errors in API calls when it is not fatal to the execution
+  -o, --output string    Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
+                         Examples:
+                           --output json
+                           --output yaml
+                           --output interactive
+                           --output 'id' (to extract a single field)
+                           --output 'nested.field.subfield' (to extract a nested field)
+                           --output '[id, "name"]' (to extract multiple fields as an array)
+                           --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
+                           --output 'name+","+type' (to extract and concatenate fields in a string)
+                           --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --profile string   Use a specific profile from the configuration file
 ```
 
 ### SEE ALSO
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
+* [ovhcloud config profile](ovhcloud_config_profile.md)	 - Manage CLI profiles for multiple accounts
 * [ovhcloud config set](ovhcloud_config_set.md)	 - Set a value in the CLI configuration
 * [ovhcloud config set-endpoint](ovhcloud_config_set-endpoint.md)	 - Configure CLI to use the given API endpoint (EU, CA, US), or a specific URL (e.g. https://eu.api.ovh.com/v1)
 * [ovhcloud config show](ovhcloud_config_show.md)	 - Show CLI configuration
