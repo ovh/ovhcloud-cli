@@ -24,6 +24,7 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Use:   "private",
 		Short: "Manage private networks in the given cloud project",
 	}
+	privateNetworkCmd.PersistentFlags().StringVar(&cloud.CloudNetworkRegionFilter, "region", "", "Filter by region or specify the region of the network")
 	networkCmd.AddCommand(privateNetworkCmd)
 
 	privateNetworkListCmd := &cobra.Command{
@@ -34,22 +35,13 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 	}
 	privateNetworkCmd.AddCommand(withFilterFlag(privateNetworkListCmd))
 
-	privateNetworkCmd.AddCommand(&cobra.Command{
+	privateNetworkGetCmd := &cobra.Command{
 		Use:   "get <network_id>",
 		Short: "Get a specific private network",
 		Run:   cloud.GetPrivateNetwork,
 		Args:  cobra.ExactArgs(1),
-	})
-
-	privateNetworkEditCmd := &cobra.Command{
-		Use:   "edit <network_id>",
-		Short: "Edit the given private network",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.EditPrivateNetwork,
 	}
-	privateNetworkEditCmd.Flags().StringVar(&cloud.CloudNetworkName, "name", "", "Name of the private network")
-	addInteractiveEditorFlag(privateNetworkEditCmd)
-	privateNetworkCmd.AddCommand(privateNetworkEditCmd)
+	privateNetworkCmd.AddCommand(privateNetworkGetCmd)
 
 	privateNetworkCmd.AddCommand(getPrivateNetworkCreationCmd())
 
@@ -60,27 +52,6 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	// Private network region commands
-	privateNetworkRegionCmd := &cobra.Command{
-		Use:   "region",
-		Short: "Manage regions in a specific private network",
-	}
-	privateNetworkCmd.AddCommand(privateNetworkRegionCmd)
-
-	privateNetworkRegionCmd.AddCommand(&cobra.Command{
-		Use:   "delete <network_id> <region>",
-		Short: "Delete the given region from a private network",
-		Run:   cloud.DeletePrivateNetworkRegion,
-		Args:  cobra.ExactArgs(2),
-	})
-
-	privateNetworkRegionCmd.AddCommand(&cobra.Command{
-		Use:   "add <network_id> <region>",
-		Short: "Add a region to a private network",
-		Run:   cloud.AddPrivateNetworkRegion,
-		Args:  cobra.ExactArgs(2),
-	})
-
 	// Private network subnet commands
 	privateNetworkSubnetCmd := &cobra.Command{
 		Use:   "subnet",
@@ -88,34 +59,24 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 	}
 	privateNetworkCmd.AddCommand(privateNetworkSubnetCmd)
 
-	privateNetworkSubnetCmd.AddCommand(withFilterFlag(&cobra.Command{
+	subnetListCmd := &cobra.Command{
 		Use:     "list <network_id>",
 		Aliases: []string{"ls"},
 		Short:   "List subnets in a private network",
 		Run:     cloud.ListPrivateNetworkSubnets,
 		Args:    cobra.ExactArgs(1),
-	}))
+	}
+	privateNetworkSubnetCmd.AddCommand(withFilterFlag(subnetListCmd))
 
-	privateNetworkSubnetCmd.AddCommand(&cobra.Command{
+	subnetGetCmd := &cobra.Command{
 		Use:   "get <network_id> <subnet_id>",
 		Short: "Get a specific subnet in a private network",
 		Run:   cloud.GetPrivateNetworkSubnet,
 		Args:  cobra.ExactArgs(2),
-	})
+	}
+	privateNetworkSubnetCmd.AddCommand(subnetGetCmd)
 
 	privateNetworkSubnetCmd.AddCommand(getSubnetCreationCmd())
-
-	privateNetworkSubnetEditCmd := &cobra.Command{
-		Use:   "edit <network_id> <subnet_id>",
-		Short: "Edit a specific subnet in a private network",
-		Run:   cloud.EditPrivateNetworkSubnet,
-		Args:  cobra.ExactArgs(2),
-	}
-	privateNetworkSubnetEditCmd.Flags().BoolVar(&cloud.CloudNetworkSubnetEditSpec.Dhcp, "enable-dhcp", false, "Enable DHCP (set to true if you don't want to set a default gateway IP)")
-	privateNetworkSubnetEditCmd.Flags().BoolVar(&cloud.CloudNetworkSubnetEditSpec.DisableGateway, "disable-gateway", false, "Set to true if you want to disable the default gateway")
-	privateNetworkSubnetEditCmd.Flags().StringVar(&cloud.CloudNetworkSubnetEditSpec.GatewayIp, "gateway-ip", "", "Gateway IP address")
-	addInteractiveEditorFlag(privateNetworkSubnetEditCmd)
-	privateNetworkSubnetCmd.AddCommand(privateNetworkSubnetEditCmd)
 
 	privateNetworkSubnetCmd.AddCommand(&cobra.Command{
 		Use:   "delete <network_id> <subnet_id>",
@@ -129,6 +90,7 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Use:   "public",
 		Short: "Manage public networks in the given cloud project",
 	}
+	publicNetworkCmd.PersistentFlags().StringVar(&cloud.CloudNetworkRegionFilter, "region", "", "Filter by region or specify the region of the network")
 	networkCmd.AddCommand(publicNetworkCmd)
 
 	publicNetworkListCmd := &cobra.Command{
@@ -139,12 +101,13 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 	}
 	publicNetworkCmd.AddCommand(withFilterFlag(publicNetworkListCmd))
 
-	publicNetworkCmd.AddCommand(&cobra.Command{
+	publicNetworkGetCmd := &cobra.Command{
 		Use:   "get <network_id>",
 		Short: "Get a specific public network",
 		Run:   cloud.GetPublicNetwork,
 		Args:  cobra.ExactArgs(1),
-	})
+	}
+	publicNetworkCmd.AddCommand(publicNetworkGetCmd)
 
 	// Gateway commands
 	gatewayCmd := &cobra.Command{
@@ -283,21 +246,6 @@ There are three ways to define the parameters:
 	privateNetworkCreateCmd.Flags().StringVar(&cloud.CloudNetworkSpec.Name, "name", "", "Name of the private network")
 	privateNetworkCreateCmd.Flags().IntVar(&cloud.CloudNetworkSpec.VlanId, "vlan-id", 0, "VLAN ID for the private network")
 
-	privateNetworkCreateCmd.Flags().StringVar(&cloud.CloudNetworkSpec.Gateway.Model, "gateway-model", "", "Gateway model (s, m, l, xl, 2xl, 3xl)")
-	privateNetworkCreateCmd.Flags().StringVar(&cloud.CloudNetworkSpec.Gateway.Name, "gateway-name", "", "Name of the gateway")
-
-	privateNetworkCreateCmd.Flags().StringVar(&cloud.CloudNetworkSpec.Subnet.Name, "subnet-name", "", "Name of the subnet")
-	privateNetworkCreateCmd.Flags().StringVar(&cloud.CloudNetworkSpec.Subnet.Cidr, "subnet-cidr", "", "CIDR of the subnet")
-	privateNetworkCreateCmd.Flags().IntVar(&cloud.CloudNetworkSpec.Subnet.IPVersion, "subnet-ip-version", 0, "IP version (4 or 6)")
-	privateNetworkCreateCmd.Flags().BoolVar(&cloud.CloudNetworkSpec.Subnet.EnableDhcp, "subnet-enable-dhcp", false, "Enable DHCP for the subnet")
-	privateNetworkCreateCmd.Flags().BoolVar(&cloud.CloudNetworkSpec.Subnet.EnableGatewayIp, "subnet-enable-gateway-ip", false, "Set a gateway ip for the subnet")
-	privateNetworkCreateCmd.Flags().StringVar(&cloud.CloudNetworkSpec.Subnet.GatewayIp, "subnet-gateway-ip", "", "Gateway IP address for the subnet")
-	privateNetworkCreateCmd.Flags().BoolVar(&cloud.CloudNetworkSpec.Subnet.UseDefaultPublicDNSResolver, "subnet-use-default-public-dns-resolver", false, "Use default DNS resolver for the subnet")
-
-	privateNetworkCreateCmd.Flags().StringSliceVar(&cloud.CloudNetworkSpec.Subnet.DnsNameServers, "subnet-dns-name-servers", nil, "DNS name servers for the subnet")
-	privateNetworkCreateCmd.Flags().StringSliceVar(&cloud.CloudNetworkSpec.Subnet.CliAllocationPools, "subnet-allocation-pools", nil, "Allocation pools for the subnet in format start:end")
-	privateNetworkCreateCmd.Flags().StringSliceVar(&cloud.CloudNetworkSpec.Subnet.CliHostRoutes, "subnet-host-routes", nil, "Host routes for the subnet in format destination:nextHop")
-
 	// Common flags for other means to define parameters
 	addParameterFileFlags(privateNetworkCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/network", "post", cloud.PrivateNetworkCreationExample, nil)
 	addInteractiveEditorFlag(privateNetworkCreateCmd)
@@ -316,7 +264,7 @@ There are three ways to define the parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud network private subnet create <network_id> --network 192.168.1.0/24 --start 192.168.1.12 --end 192.168.1.24 --region GRA9
+	ovhcloud cloud network private subnet create <network_id> --region GRA9 --name MySubnet --cidr 192.168.1.0/24 --ip-version 4
 
 2. Using a configuration file:
 
@@ -335,7 +283,7 @@ There are three ways to define the parameters:
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovhcloud cloud network private subnet create <network_id> --from-file ./params.json --region BHS5
+	ovhcloud cloud network private subnet create <network_id> --from-file ./params.json --name MySubnet
 
 3. Using your default text editor:
 
@@ -346,21 +294,25 @@ There are three ways to define the parameters:
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud network private subnet create <network_id> --editor --region DE1
+	ovhcloud cloud network private subnet create <network_id> --editor --name MySubnet
 `,
 		Run:  cloud.CreatePrivateNetworkSubnet,
 		Args: cobra.ExactArgs(1),
 	}
 
-	privateNetworkSubnetCreateCmd.Flags().BoolVar(&cloud.CloudNetworkSubnetSpec.DHCP, "dhcp", false, "Enable DHCP for the subnet")
-	privateNetworkSubnetCreateCmd.Flags().BoolVar(&cloud.CloudNetworkSubnetSpec.NoGateway, "no-gateway", false, "Use this flag if you don't want to set a default gateway IP")
-	privateNetworkSubnetCreateCmd.Flags().StringVar(&cloud.CloudNetworkSubnetSpec.Network, "network", "", "Global network CIDR (eg: 192.168.1.0/24)")
-	privateNetworkSubnetCreateCmd.Flags().StringVar(&cloud.CloudNetworkSubnetSpec.Start, "start", "", "First IP for this region (eg: 192.168.1.12)")
-	privateNetworkSubnetCreateCmd.Flags().StringVar(&cloud.CloudNetworkSubnetSpec.End, "end", "", "Last IP for this region (eg: 192.168.1.24)")
-	privateNetworkSubnetCreateCmd.Flags().StringVar(&cloud.CloudNetworkSubnetSpec.Region, "region", "", "Region for the subnet")
+	privateNetworkSubnetCreateCmd.Flags().StringVar(&cloud.CloudNetworkSubnetSpec.Name, "name", "", "Name of the subnet")
+	privateNetworkSubnetCreateCmd.Flags().StringVar(&cloud.CloudNetworkSubnetSpec.Cidr, "cidr", "", "CIDR of the subnet (eg: 192.168.1.0/24)")
+	privateNetworkSubnetCreateCmd.Flags().IntVar(&cloud.CloudNetworkSubnetSpec.IPVersion, "ip-version", 0, "IP version (4 or 6)")
+	privateNetworkSubnetCreateCmd.Flags().BoolVar(&cloud.CloudNetworkSubnetSpec.EnableDhcp, "enable-dhcp", false, "Enable DHCP for the subnet")
+	privateNetworkSubnetCreateCmd.Flags().BoolVar(&cloud.CloudNetworkSubnetSpec.EnableGatewayIp, "enable-gateway-ip", false, "Set a gateway IP for the subnet")
+	privateNetworkSubnetCreateCmd.Flags().StringVar(&cloud.CloudNetworkSubnetSpec.GatewayIp, "gateway-ip", "", "Gateway IP address for the subnet")
+	privateNetworkSubnetCreateCmd.Flags().BoolVar(&cloud.CloudNetworkSubnetSpec.UseDefaultPublicDNSResolver, "use-default-public-dns-resolver", false, "Use default DNS resolver for the subnet")
+	privateNetworkSubnetCreateCmd.Flags().StringSliceVar(&cloud.CloudNetworkSubnetSpec.DnsNameServers, "dns-name-servers", nil, "DNS name servers for the subnet")
+	privateNetworkSubnetCreateCmd.Flags().StringSliceVar(&cloud.CloudNetworkSubnetSpec.CliAllocationPools, "allocation-pools", nil, "Allocation pools for the subnet in format start:end")
+	privateNetworkSubnetCreateCmd.Flags().StringSliceVar(&cloud.CloudNetworkSubnetSpec.CliHostRoutes, "host-routes", nil, "Host routes for the subnet in format destination:nextHop")
 
 	// Common flags for other means to define parameters
-	addParameterFileFlags(privateNetworkSubnetCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/network/private/{networkId}/subnet", "post", cloud.PrivateNetworkSubnetCreationExample, nil)
+	addParameterFileFlags(privateNetworkSubnetCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/network/{networkId}/subnet", "post", cloud.PrivateNetworkSubnetCreationExample, nil)
 	addInteractiveEditorFlag(privateNetworkSubnetCreateCmd)
 	privateNetworkSubnetCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 
