@@ -23,6 +23,8 @@ ohvcloud vps list -o json
 
 Check out the [authentication page](authentication.md) for further information about the authentication means.
 
+You can manage multiple OVHcloud accounts using [profiles](profiles.md). Create a profile with `ovhcloud login --profile <name>`, switch between them with `ovhcloud config profile switch <name>`, or use `--profile <name>` on any command.
+
 ### Generate Shell Completion
 
 ```bash

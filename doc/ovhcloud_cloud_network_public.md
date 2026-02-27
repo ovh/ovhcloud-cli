@@ -26,6 +26,7 @@ Manage public networks in the given cloud project
                                  --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --profile string         Use a specific profile from the configuration file
 ```
 
 ### SEE ALSO

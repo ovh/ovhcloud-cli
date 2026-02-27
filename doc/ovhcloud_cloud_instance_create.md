@@ -112,6 +112,7 @@ ovhcloud cloud instance create <region (e.g. GRA9, BHS5, SBG3)> [flags]
                                  --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --profile string         Use a specific profile from the configuration file
 ```
 
 ### SEE ALSO
