@@ -11,10 +11,13 @@ import (
 
 func init() {
 	loginCmd := &cobra.Command{
-		Use:   "login",
-		Short: "Login to your OVHcloud account to create API credentials",
-		Run:   login.Login,
+		Use:     "login",
+		Short:   "Login to your OVHcloud account to create API credentials",
+		Example: "ovhcloud login\novhcloud login --profile work",
+		Run:     login.Login,
 	}
+
+	loginCmd.Flags().StringVar(&login.LoginProfileFlag, "profile", "", "Store credentials under the given profile name")
 
 	// Disable parent pre-run that verifies if the API client is correctly initialized
 	loginCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {}

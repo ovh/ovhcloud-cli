@@ -15,6 +15,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// LoginProfileFlag is set by the --profile flag on the login command.
+var LoginProfileFlag string
+
 func Login(_ *cobra.Command, _ []string) {
 	selectedRegion := display.RunLoginPicker("Which OVHcloud API do you want to login to ?", []string{"EU", "CA", "US", "Custom endpoint"})
 
@@ -53,16 +56,53 @@ func Login(_ *cobra.Command, _ []string) {
 		flags.CliConfigPath = path
 	}
 
-	// Set API endpoint to use in config
-	configSection := fmt.Sprintf("ovh-%s", strings.ToLower(selectedRegion))
+	// Determine the endpoint value
+	endpoint := fmt.Sprintf("ovh-%s", strings.ToLower(selectedRegion))
 	if customEndpoint {
-		selectedRegion = credentials["endpoint"]
+		endpoint = credentials["endpoint"]
 		delete(credentials, "endpoint")
-		configSection = selectedRegion
+	}
+
+	// If a profile name is provided, store credentials in the profile section
+	if LoginProfileFlag != "" {
+		if config.IsDefaultProfile(LoginProfileFlag) {
+			display.OutputError(&flags.OutputFormatConfig, "%q is a reserved profile name, please choose a different name", config.DefaultProfileName)
+			return
+		}
+
+		// Store endpoint in the profile section
+		if err := config.SetProfileConfigValue(flags.CliConfig, flags.CliConfigPath, LoginProfileFlag, "endpoint", endpoint); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to write profile endpoint: %s", err)
+			return
+		}
+
+		// Store credentials in the profile section
+		for k, v := range credentials {
+			if err := config.SetProfileConfigValue(flags.CliConfig, flags.CliConfigPath, LoginProfileFlag, k, v); err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "failed to write profile configuration %q: %s", k, err)
+				return
+			}
+		}
+
+		// If no active profile is set yet, set this one as active
+		if !config.IsProfileMode(flags.CliConfig, "") {
+			if err := config.SetActiveProfile(flags.CliConfig, flags.CliConfigPath, LoginProfileFlag); err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "failed to set active profile: %s", err)
+				return
+			}
+		}
+
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "Credentials saved to profile %q", LoginProfileFlag)
+		return
+	}
+
+	// Legacy mode: store credentials in endpoint section
+	configSection := endpoint
+	if !customEndpoint {
+		selectedRegion = strings.ToUpper(selectedRegion)
 	}
 	serviceconfig.SetEndpoint(nil, []string{selectedRegion})
 
-	// Set credentials in config
 	for k, v := range credentials {
 		if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, configSection, k, v); err != nil {
 			display.OutputError(&flags.OutputFormatConfig, "failed to write configuration %q: %s", k, err)

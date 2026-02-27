@@ -542,8 +542,6 @@ func getNavItems() []NavItem {
 
 // StartBrowser is the entry point for the browser TUI
 func StartBrowser(cmd *cobra.Command, args []string) {
-	httpLib.InitClient()
-
 	// Reset creation command
 	CreationCommand = ""
 

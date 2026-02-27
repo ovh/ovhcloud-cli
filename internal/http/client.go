@@ -14,16 +14,22 @@ import (
 	"runtime"
 
 	"github.com/ovh/go-ovh/ovh"
+	"github.com/ovh/ovhcloud-cli/internal/config"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/version"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+	"gopkg.in/ini.v1"
 )
 
 // OVH API client
 var Client *ovh.Client
 
 func InitClient() {
+	InitClientWithProfile(nil, "")
+}
+
+func InitClientWithProfile(cfg *ini.File, profileOverride string) {
 	var err error
 
 	// Init API client
@@ -35,14 +41,25 @@ func InitClient() {
 		Client.UserAgent = os.Getenv("OVH_USER_AGENT")
 		Client.SetEndpoint(os.Getenv("OVH_ENDPOINT"))
 	} else {
-		Client, err = ovh.NewDefaultClient()
+		profileName := config.GetActiveProfileName(cfg, profileOverride)
+		if profileName != "" && !config.IsDefaultProfile(profileName) {
+			// Profile mode: read credentials from the profile section
+			var endpoint, appKey, appSecret, consumerKey string
+			endpoint, appKey, appSecret, consumerKey, err = config.GetProfileCredentials(cfg, profileName)
+			if err == nil {
+				Client, err = ovh.NewClient(endpoint, appKey, appSecret, consumerKey)
+			}
+		} else {
+			// Legacy mode: let go-ovh read from env/config files
+			Client, err = ovh.NewDefaultClient()
+		}
 		if Client != nil {
 			Client.UserAgent = "ovh-cli/" + version.Version
 		}
 	}
 	if err != nil {
 		log.Printf(`OVHcloud API client not initialized, please run "ovhcloud login" to authenticate (%s)`, err)
-	} else {
+	} else if Client != nil {
 		Client.Client.Transport = NewTransport("OVH", http.DefaultTransport)
 	}
 }
