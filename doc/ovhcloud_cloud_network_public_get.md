@@ -29,6 +29,7 @@ ovhcloud cloud network public get <network_id> [flags]
                                  --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --region string          Filter by region or specify the region of the network
 ```
 
 ### SEE ALSO

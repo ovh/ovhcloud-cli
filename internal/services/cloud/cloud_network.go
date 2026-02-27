@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
@@ -23,8 +24,9 @@ import (
 )
 
 var (
-	cloudprojectNetworkColumnsToDisplay = []string{"id", "name", "openstackId", "region", "status"}
-	cloudprojectGatewayColumnsToDisplay = []string{"id", "name", "region", "model", "status"}
+	cloudprojectPrivateNetworkColumnsToDisplay = []string{"id", "name", "region", "visibility", "vlanId"}
+	cloudprojectPublicNetworkColumnsToDisplay  = []string{"id", "name", "region"}
+	cloudprojectGatewayColumnsToDisplay        = []string{"id", "name", "region", "model", "status"}
 
 	//go:embed templates/cloud_network_private.tmpl
 	cloudNetworkPrivateTemplate string
@@ -35,8 +37,11 @@ var (
 	//go:embed templates/cloud_network_gateway.tmpl
 	cloudGatewayTemplate string
 
-	// CloudNetworkName is used to store the name of the cloud network
-	CloudNetworkName string
+	//go:embed templates/cloud_network_private_subnet.tmpl
+	cloudNetworkPrivateSubnetTemplate string
+
+	// CloudNetworkRegionFilter is used to filter networks by region
+	CloudNetworkRegionFilter string
 
 	//go:embed parameter-samples/private-network-create.json
 	PrivateNetworkCreationExample string
@@ -74,42 +79,24 @@ var (
 	}
 
 	CloudNetworkSpec struct {
-		Name    string `json:"name,omitempty"`
-		VlanId  int    `json:"vlanId,omitempty"`
-		Gateway struct {
-			Model string `json:"model,omitempty"`
-			Name  string `json:"name,omitempty"`
-		} `json:"gateway,omitzero"`
-		Subnet struct {
-			Name                        string                         `json:"name,omitempty"`
-			Cidr                        string                         `json:"cidr,omitempty"`
-			EnableDhcp                  bool                           `json:"enableDhcp"`
-			EnableGatewayIp             bool                           `json:"enableGatewayIp"`
-			GatewayIp                   string                         `json:"gatewayIp,omitempty"`
-			DnsNameServers              []string                       `json:"dnsNameServers,omitempty"`
-			UseDefaultPublicDNSResolver bool                           `json:"useDefaultPublicDNSResolver,omitempty"`
-			IPVersion                   int                            `json:"ipVersion,omitempty"`
-			AllocationPools             []PrivateNetworkAllocationPool `json:"allocationPools,omitempty"`
-			HostRoutes                  []PrivateNetworkHostRoute      `json:"hostRoutes,omitempty"`
-
-			CliAllocationPools []string `json:"-"`
-			CliHostRoutes      []string `json:"-"`
-		} `json:"subnet,omitzero"`
-	}
-
-	CloudNetworkSubnetEditSpec struct {
-		Dhcp           bool   `json:"dhcp"`
-		DisableGateway bool   `json:"disableGateway"`
-		GatewayIp      string `json:"gatewayIp,omitempty"`
+		Name   string `json:"name,omitempty"`
+		VlanId int    `json:"vlanId,omitempty"`
 	}
 
 	CloudNetworkSubnetSpec struct {
-		DHCP      bool   `json:"dhcp"`
-		NoGateway bool   `json:"noGateway"`
-		Network   string `json:"network"`
-		Start     string `json:"start"`
-		End       string `json:"end"`
-		Region    string `json:"region"`
+		Name                        string                         `json:"name,omitempty"`
+		Cidr                        string                         `json:"cidr,omitempty"`
+		IPVersion                   int                            `json:"ipVersion,omitempty"`
+		EnableDhcp                  bool                           `json:"enableDhcp"`
+		EnableGatewayIp             bool                           `json:"enableGatewayIp"`
+		GatewayIp                   string                         `json:"gatewayIp,omitempty"`
+		DnsNameServers              []string                       `json:"dnsNameServers,omitempty"`
+		UseDefaultPublicDNSResolver bool                           `json:"useDefaultPublicDNSResolver,omitempty"`
+		AllocationPools             []PrivateNetworkAllocationPool `json:"allocationPools,omitempty"`
+		HostRoutes                  []PrivateNetworkHostRoute      `json:"hostRoutes,omitempty"`
+
+		CliAllocationPools []string `json:"-"`
+		CliHostRoutes      []string `json:"-"`
 	}
 
 	GatewayInterfaceSpec struct {
@@ -127,119 +114,150 @@ type (
 		Destination string `json:"destination,omitempty"`
 		NextHop     string `json:"nextHop,omitempty"`
 	}
-
-	NetworkRegionDetails struct {
-		OpenstackID string `json:"openstackId"`
-		Region      string `json:"region"`
-	}
-
-	PrivateNetwork struct {
-		ID      string                 `json:"id"`
-		Regions []NetworkRegionDetails `json:"regions"`
-	}
 )
 
 func ListPrivateNetworks(_ *cobra.Command, _ []string) {
+	listNetworksByVisibility("private", cloudprojectPrivateNetworkColumnsToDisplay)
+}
+
+func listNetworksByVisibility(visibility string, columns []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	body, err := httpLib.FetchExpandedArray(fmt.Sprintf("/v1/cloud/project/%s/network/private", projectID), "id")
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
-		return
-	}
+	var regions []any
 
-	flattenedBody := []map[string]any{}
-
-	for _, line := range body {
-		regions := line["regions"].([]any)
-
-		for _, region := range regions {
-			region := region.(map[string]any)
-
-			flattenedBody = append(flattenedBody, map[string]any{
-				"id":          line["id"],
-				"name":        line["name"],
-				"vlanId":      line["vlanId"],
-				"openstackId": region["openstackId"],
-				"region":      region["region"],
-				"status":      region["status"],
-				"type":        line["type"],
-			})
+	// If a region filter is set, use only that region
+	if CloudNetworkRegionFilter != "" {
+		regions = []any{CloudNetworkRegionFilter}
+	} else {
+		// Fetch regions with network feature available
+		regions, err = getCloudRegionsWithFeatureAvailable(projectID, "network")
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch regions with network feature available: %s", err)
+			return
 		}
 	}
 
-	body, err = filtersLib.FilterLines(flattenedBody, flags.GenericFilters)
+	// Fetch networks in targeted regions
+	baseURL := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
+	networks, err := httpLib.FetchObjectsParallel[[]map[string]any](baseURL+"/%s/network", regions, true)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch networks: %s", err)
+		return
+	}
+
+	// Flatten networks in a single array and filter by visibility
+	var allNetworks []map[string]any
+	for i, regionNetworks := range networks {
+		for _, network := range regionNetworks {
+			if v, ok := network["visibility"]; ok && v == visibility {
+				// Ensure the region field is set for table display
+				if _, ok := network["region"]; !ok {
+					network["region"] = fmt.Sprint(regions[i])
+				}
+				allNetworks = append(allNetworks, network)
+			}
+		}
+	}
+
+	// Filter results
+	allNetworks, err = filtersLib.FilterLines(allNetworks, flags.GenericFilters)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
 	}
 
-	display.RenderTable(body, cloudprojectNetworkColumnsToDisplay, &flags.OutputFormatConfig)
+	display.RenderTable(allNetworks, columns, &flags.OutputFormatConfig)
+}
+
+func findNetwork(networkID string) (string, map[string]any, error) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		return "", nil, err
+	}
+
+	// If a region is provided, go directly to that region
+	if CloudNetworkRegionFilter != "" {
+		var (
+			network  map[string]any
+			endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s",
+				projectID, url.PathEscape(CloudNetworkRegionFilter), url.PathEscape(networkID))
+		)
+		if err := httpLib.Client.Get(endpoint, &network); err != nil {
+			return "", nil, fmt.Errorf("network %s not found in region %s: %w", networkID, CloudNetworkRegionFilter, err)
+		}
+		return endpoint, network, nil
+	}
+
+	// Fetch regions with network feature available
+	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to fetch regions with network feature available: %w", err)
+	}
+
+	// Search for the given network in all regions in parallel
+	type networkResult struct {
+		endpoint string
+		network  map[string]any
+	}
+
+	var (
+		wg     sync.WaitGroup
+		result = make(chan networkResult, 1)
+	)
+
+	for _, region := range regions {
+		wg.Add(1)
+		go func(r string) {
+			defer wg.Done()
+			var (
+				network  map[string]any
+				endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s",
+					projectID, url.PathEscape(r), url.PathEscape(networkID))
+			)
+			if err := httpLib.Client.Get(endpoint, &network); err == nil {
+				select {
+				case result <- networkResult{endpoint: endpoint, network: network}:
+				default:
+				}
+			}
+		}(region.(string))
+	}
+
+	// Close the channel once all goroutines are done
+	go func() {
+		wg.Wait()
+		close(result)
+	}()
+
+	if found, ok := <-result; ok {
+		return found.endpoint, found.network, nil
+	}
+
+	return "", nil, errors.New("no network found with given ID")
 }
 
 func GetPrivateNetwork(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-	path := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
-
-	var object map[string]any
-	if err := httpLib.Client.Get(path, &object); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", path, err)
-		return
-	}
-
-	for _, region := range object["regions"].([]any) {
-		region := region.(map[string]any)
-
-		// Skip regions without openstackId
-		if openstackId, ok := region["openstackId"]; !ok || openstackId == nil {
-			continue
-		}
-
-		// Fetch subnets of region network
-		path = fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
-			projectID,
-			url.PathEscape(region["region"].(string)),
-			url.PathEscape(region["openstackId"].(string)),
-		)
-		var subnets []map[string]any
-		if err := httpLib.Client.Get(path, &subnets); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", path, err)
-			return
-		}
-
-		region["subnets"] = subnets
-	}
-
-	display.OutputObject(object, args[0], cloudNetworkPrivateTemplate, &flags.OutputFormatConfig)
-}
-
-func EditPrivateNetwork(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	networkID := args[0]
+	foundURL, object, err := findNetwork(networkID)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if err := common.EditResource(
-		cmd,
-		"/cloud/project/{serviceName}/network/private/{networkId}",
-		fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0])),
-		map[string]any{
-			"name": CloudNetworkName,
-		},
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+	// Fetch subnets of the network
+	var subnets []map[string]any
+	if err := httpLib.Client.Get(foundURL+"/subnet", &subnets); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error fetching subnets: %s", err)
 		return
 	}
+
+	object["subnets"] = subnets
+
+	display.OutputObject(object, networkID, cloudNetworkPrivateTemplate, &flags.OutputFormatConfig)
 }
 
 func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
@@ -247,32 +265,6 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
-	}
-
-	// Transform CLI flags into the CloudNetworkSpec structure
-	for _, allocationPool := range CloudNetworkSpec.Subnet.CliAllocationPools {
-		parts := strings.Split(allocationPool, ":")
-		if len(parts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "invalid allocation pool format, expected start:end, got %s", allocationPool)
-			return
-		}
-
-		CloudNetworkSpec.Subnet.AllocationPools = append(CloudNetworkSpec.Subnet.AllocationPools, PrivateNetworkAllocationPool{
-			Start: parts[0],
-			End:   parts[1],
-		})
-	}
-	for _, hostRoute := range CloudNetworkSpec.Subnet.CliHostRoutes {
-		parts := strings.Split(hostRoute, ":")
-		if len(parts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "invalid host route format, expected destination:nextHop, got %s", hostRoute)
-			return
-		}
-
-		CloudNetworkSpec.Subnet.HostRoutes = append(CloudNetworkSpec.Subnet.HostRoutes, PrivateNetworkHostRoute{
-			Destination: parts[0],
-			NextHop:     parts[1],
-		})
 	}
 
 	// Create resource
@@ -285,7 +277,7 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 		PrivateNetworkCreationExample,
 		CloudNetworkSpec,
 		assets.CloudOpenapiSchema,
-		[]string{"name", "subnet"})
+		[]string{"name"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create private network: %s", err)
 		return
@@ -304,170 +296,96 @@ You can check the status of the operation with: 'ovhcloud cloud operation get %[
 		return
 	}
 
-	// Fetch all private networks
-	var networks []PrivateNetwork
-	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/network/private", projectID), &networks); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch private networks: %s", err)
-		return
-	}
-
-	// Find the created network
-	var (
-		foundNetwork       *PrivateNetwork
-		foundRegionNetwork *NetworkRegionDetails
-	)
-
-eachNetwork:
-	for _, network := range networks {
-		for _, regionDetails := range network.Regions {
-			if regionDetails.OpenstackID == networkID && regionDetails.Region == region {
-				foundNetwork = &network
-				foundRegionNetwork = &regionDetails
-				break eachNetwork
-			}
-		}
-	}
-
-	if foundNetwork == nil {
-		display.OutputError(&flags.OutputFormatConfig, "created network not found, this is unexpected")
-		return
-	}
-
-	// Fetch subnets of created network
-	endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet", projectID, url.PathEscape(region), url.PathEscape(foundRegionNetwork.OpenstackID))
-	var subnets []map[string]any
-	if err := httpLib.Client.Get(endpoint, &subnets); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch subnets of created network: %s", err)
-		return
-	}
-
-	// Fetch gateway of created subnets and prepare output
-	var outputSubnets []map[string]any
-	for _, subnet := range subnets {
-		endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway?subnetId=%s",
-			projectID,
-			url.PathEscape(region),
-			url.PathEscape(subnet["id"].(string)),
-		)
-
-		var gateways []map[string]any
-		if err := httpLib.Client.Get(endpoint, &gateways); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to fetch gateways of created network: %s", err)
-			return
-		}
-
-		var outputGateways []map[string]any
-		for _, gateway := range gateways {
-			outputGateway := map[string]any{
-				"id":   gateway["id"],
-				"name": gateway["name"],
-			}
-			outputGateways = append(outputGateways, outputGateway)
-		}
-
-		outputSubnets = append(outputSubnets, map[string]any{
-			"id":       subnet["id"],
-			"name":     subnet["name"],
-			"gateways": outputGateways,
-		})
-	}
-
-	networkObject := map[string]any{
-		"id":          foundNetwork.ID,
-		"openstackId": foundRegionNetwork.OpenstackID,
-		"region":      foundRegionNetwork.Region,
-		"subnets":     outputSubnets,
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, networkObject, "✅ Network %s created successfully (Openstack ID: %s)", foundNetwork.ID, foundRegionNetwork.OpenstackID)
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Network %s created successfully in region %s", networkID, region)
 }
 
 func DeletePrivateNetwork(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	networkID := args[0]
+	foundURL, _, err := findNetwork(networkID)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", projectID, url.PathEscape(args[0]))
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	if err := httpLib.Client.Delete(foundURL, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete private network: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Private network %s deleted successfully", args[0])
-}
-
-func DeletePrivateNetworkRegion(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/region/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete private network region: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Private network %s region %s deleted successfully", args[0], args[1])
-}
-
-func AddPrivateNetworkRegion(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/region", projectID, url.PathEscape(args[0]))
-	if err := httpLib.Client.Post(endpoint, map[string]string{"region": args[1]}, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to add private network region: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Private network %s region %s added successfully", args[0], args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Private network %s deleted successfully", networkID)
 }
 
 func ListPrivateNetworkSubnets(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	networkID := args[0]
+	foundURL, _, err := findNetwork(networkID)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", projectID, url.PathEscape(args[0]))
-
-	common.ManageListRequestNoExpand(endpoint, []string{"id", "cidr", "gatewayIp", "dhcpEnabled"}, flags.GenericFilters)
+	common.ManageListRequestNoExpand(foundURL+"/subnet", []string{"id", "name", "cidr", "gatewayIp", "dhcpEnabled", "ipVersion"}, flags.GenericFilters)
 }
 
 func GetPrivateNetworkSubnet(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	networkID := args[0]
+	subnetID := args[1]
+	foundURL, _, err := findNetwork(networkID)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", projectID, url.PathEscape(args[0]))
-	common.ManageObjectRequest(endpoint, args[1], "")
+	var object map[string]any
+	if err := httpLib.Client.Get(foundURL+"/subnet/"+url.PathEscape(subnetID), &object); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error fetching subnet %s: %s", subnetID, err)
+		return
+	}
+
+	display.OutputObject(object, subnetID, cloudNetworkPrivateSubnetTemplate, &flags.OutputFormatConfig)
 }
 
 func CreatePrivateNetworkSubnet(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	networkID := args[0]
+	foundURL, _, err := findNetwork(networkID)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
+	}
+
+	// Transform CLI flags into the CloudNetworkSubnetSpec structure
+	for _, allocationPool := range CloudNetworkSubnetSpec.CliAllocationPools {
+		parts := strings.Split(allocationPool, ":")
+		if len(parts) != 2 {
+			display.OutputError(&flags.OutputFormatConfig, "invalid allocation pool format, expected start:end, got %s", allocationPool)
+			return
+		}
+
+		CloudNetworkSubnetSpec.AllocationPools = append(CloudNetworkSubnetSpec.AllocationPools, PrivateNetworkAllocationPool{
+			Start: parts[0],
+			End:   parts[1],
+		})
+	}
+	for _, hostRoute := range CloudNetworkSubnetSpec.CliHostRoutes {
+		parts := strings.Split(hostRoute, ":")
+		if len(parts) != 2 {
+			display.OutputError(&flags.OutputFormatConfig, "invalid host route format, expected destination:nextHop, got %s", hostRoute)
+			return
+		}
+
+		CloudNetworkSubnetSpec.HostRoutes = append(CloudNetworkSubnetSpec.HostRoutes, PrivateNetworkHostRoute{
+			Destination: parts[0],
+			NextHop:     parts[1],
+		})
 	}
 
 	subnet, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/network/private/{networkId}/subnet",
-		fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", projectID, url.PathEscape(args[0])),
+		"/cloud/project/{serviceName}/region/{regionName}/network/{networkId}/subnet",
+		foundURL+"/subnet",
 		PrivateNetworkSubnetCreationExample,
 		CloudNetworkSubnetSpec,
 		assets.CloudOpenapiSchema,
-		[]string{"dhcp", "network", "start", "end", "region", "noGateway"})
+		[]string{"name", "cidr", "ipVersion"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create subnet: %s", err)
 		return
@@ -476,133 +394,46 @@ func CreatePrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, subnet, "✅ Subnet %s created successfully", subnet["id"])
 }
 
-func EditPrivateNetworkSubnet(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
-
-	if err := common.EditResource(
-		cmd,
-		"/cloud/project/{serviceName}/network/private/{networkId}/subnet/{subnetId}",
-		endpoint,
-		CloudNetworkSubnetEditSpec,
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-}
-
 func DeletePrivateNetworkSubnet(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	networkID := args[0]
+	subnetID := args[1]
+	foundURL, _, err := findNetwork(networkID)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	endpoint := foundURL + "/subnet/" + url.PathEscape(subnetID)
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete private network subnet: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Private network %s subnet %s deleted successfully", args[0], args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Subnet %s deleted successfully from network %s", subnetID, networkID)
 }
 
 func ListPublicNetworks(_ *cobra.Command, _ []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	var body []map[string]any
-	err = httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/network/public", projectID), &body)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
-		return
-	}
-
-	flattenedBody := []map[string]any{}
-
-	for _, line := range body {
-		regions := line["regions"].([]any)
-
-		for _, region := range regions {
-			region := region.(map[string]any)
-
-			flattenedBody = append(flattenedBody, map[string]any{
-				"id":          line["id"],
-				"name":        line["name"],
-				"vlanId":      line["vlanId"],
-				"openstackId": region["openstackId"],
-				"region":      region["region"],
-				"status":      region["status"],
-				"type":        line["type"],
-			})
-		}
-	}
-
-	body, err = filtersLib.FilterLines(flattenedBody, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(body, cloudprojectNetworkColumnsToDisplay, &flags.OutputFormatConfig)
+	listNetworksByVisibility("public", cloudprojectPublicNetworkColumnsToDisplay)
 }
 
 func GetPublicNetwork(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	networkID := args[0]
+	foundURL, object, err := findNetwork(networkID)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var allNetworks []map[string]any
-	err = httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/network/public", projectID), &allNetworks)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch public networks: %s", err)
+	// Fetch subnets of the network
+	var subnets []map[string]any
+	if err := httpLib.Client.Get(foundURL+"/subnet", &subnets); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error fetching subnets: %s", err)
 		return
 	}
 
-	var object map[string]any
-	for _, network := range allNetworks {
-		networkID := network["id"].(string)
-		if networkID == args[0] {
-			object = network
-			break
-		}
-	}
+	object["subnets"] = subnets
 
-	if object == nil {
-		display.OutputError(&flags.OutputFormatConfig, "no public network found with ID %q", args[0])
-		return
-	}
-
-	for _, region := range object["regions"].([]any) {
-		region := region.(map[string]any)
-
-		// Fetch subnets of region network
-		path := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
-			projectID,
-			url.PathEscape(region["region"].(string)),
-			url.PathEscape(region["openstackId"].(string)),
-		)
-		var subnets []map[string]any
-		if err := httpLib.Client.Get(path, &subnets); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", path, err)
-			return
-		}
-
-		region["subnets"] = subnets
-	}
-
-	display.OutputObject(object, args[0], cloudNetworkPublicTemplate, &flags.OutputFormatConfig)
+	display.OutputObject(object, networkID, cloudNetworkPublicTemplate, &flags.OutputFormatConfig)
 }
 
 func ListGateways(_ *cobra.Command, _ []string) {

@@ -19,17 +19,7 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
-				"gateway": {
-					"model": "s",
-					"name": "TestFromTheCLI"
-				},
-				"name": "TestFromTheCLI",
-				"subnet": {
-					"cidr": "10.0.0.2/24",
-					"enableDhcp": false,
-					"enableGatewayIp": true,
-					"ipVersion": 4
-				}
+				"name": "TestFromTheCLI"
 			}`),
 		),
 		httpmock.NewStringResponder(200, `{"id": "operation-12345"}`),
@@ -66,23 +56,14 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 		}`),
 	)
 
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/network/private",
-		httpmock.NewStringResponder(200, `[
-			{
-				"id": "pn-example",
-				"name": "TestFromTheCLI",
-				"vlanId": 1234,
-				"regions": [
-					{
-						"region": "BHS5",
-						"status": "ACTIVE",
-						"openstackId": "80c1de3e-9b09-11f0-993b-0050568ce122"
-					}
-				],
-				"type": "private",
-				"status": "ACTIVE"
-			}
-		]`),
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/80c1de3e-9b09-11f0-993b-0050568ce122",
+		httpmock.NewStringResponder(200, `{
+			"id": "80c1de3e-9b09-11f0-993b-0050568ce122",
+			"name": "TestFromTheCLI",
+			"region": "BHS5",
+			"visibility": "private",
+			"vlanId": 1234
+		}`),
 	)
 
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/80c1de3e-9b09-11f0-993b-0050568ce122/subnet",
@@ -140,34 +121,34 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 	)
 
 	out, err := cmd.Execute("cloud", "network", "private", "create", "BHS5", "--cloud-project", "fakeProjectID",
-		"--gateway-model", "s", "--gateway-name", "TestFromTheCLI", "--name", "TestFromTheCLI", "--subnet-cidr",
-		"10.0.0.2/24", "--subnet-ip-version", "4", "--wait", "--subnet-enable-gateway-ip", "-o", "yaml")
+		"--name", "TestFromTheCLI", "--wait", "-o", "yaml")
 	require.CmpNoError(err)
-	assert.String(out, `details:
-  id: pn-example
-  openstackId: 80c1de3e-9b09-11f0-993b-0050568ce122
-  region: BHS5
-  subnets:
-  - gateways:
-    - id: e7045f34-8f2b-41a4-a734-97b7b0e323de
-      name: TestFromTheCLI
-    id: c59a3fdc-9b0f-11f0-ac97-0050568ce122
-    name: TestFromTheCLI
-message: '✅ Network pn-example created successfully (Openstack ID: 80c1de3e-9b09-11f0-993b-0050568ce122)'
+	assert.String(out, `message: ✅ Network 80c1de3e-9b09-11f0-993b-0050568ce122 created successfully in region
+  BHS5
 `)
 }
 
 func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmd(assert, require *td.T) {
+	// findNetwork will look up the network by region
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/pn-123456",
+		httpmock.NewStringResponder(200, `{
+			"id": "pn-123456",
+			"name": "test-network",
+			"region": "BHS5",
+			"visibility": "private",
+			"vlanId": 0
+		}`),
+	)
+
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/network/private/pn-123456/subnet",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/pn-123456/subnet",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
-				"dhcp": false,
-				"end": "192.168.1.24",
-				"network": "192.168.1.0/24",
-				"noGateway": false,
-				"region": "BHS5",
-				"start": "192.168.1.12"
+				"name": "my-subnet",
+				"cidr": "192.168.1.0/24",
+				"ipVersion": 4,
+				"enableDhcp": true,
+				"enableGatewayIp": true
 			}`),
 		),
 		httpmock.NewStringResponder(200, `
@@ -175,21 +156,21 @@ func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmd(assert, require *td.
 				"cidr": "192.168.1.0/24",
 				"gatewayIp": "192.168.1.1",
 				"id": "5e625f90-9ec3-11f0-9f75-0050568ce122",
-				"ipPools": [
+				"name": "my-subnet",
+				"ipVersion": 4,
+				"dhcpEnabled": true,
+				"allocationPools": [
 					{
-						"dhcp": false,
-						"end": "192.168.1.24",
-						"network": "192.168.1.0/24",
-						"region": "BHS5",
-						"start": "192.168.1.12"
+						"start": "192.168.1.2",
+						"end": "192.168.1.254"
 					}
 				]
 			}`,
 		),
 	)
 
-	out, err := cmd.Execute("cloud", "network", "private", "subnet", "create", "pn-123456", "--cloud-project", "fakeProjectID",
-		"--network", "192.168.1.0/24", "--start", "192.168.1.12", "--end", "192.168.1.24", "--region", "BHS5", "-o", "json")
+	out, err := cmd.Execute("cloud", "network", "private", "subnet", "create", "pn-123456", "--region", "BHS5", "--cloud-project", "fakeProjectID",
+		"--name", "my-subnet", "--cidr", "192.168.1.0/24", "--ip-version", "4", "--enable-dhcp", "--enable-gateway-ip", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Subnet 5e625f90-9ec3-11f0-9f75-0050568ce122 created successfully",
@@ -197,13 +178,13 @@ func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmd(assert, require *td.
 			"cidr": "192.168.1.0/24",
 			"gatewayIp": "192.168.1.1",
 			"id": "5e625f90-9ec3-11f0-9f75-0050568ce122",
-			"ipPools": [
+			"name": "my-subnet",
+			"ipVersion": 4,
+			"dhcpEnabled": true,
+			"allocationPools": [
 				{
-					"dhcp": false,
-					"end": "192.168.1.24",
-					"network": "192.168.1.0/24",
-					"region": "BHS5",
-					"start": "192.168.1.12"
+					"start": "192.168.1.2",
+					"end": "192.168.1.254"
 				}
 			]
 		}
