@@ -213,6 +213,7 @@ OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID>
 |                                       | login                           | Partially  |
 | **Infra Meta**                        | location                        | Partially  |
 | **Network**                           | ip                              | Partially  |
+|                                       | ip firewall                     | Yes        |
 |                                       | overthebox                      | Partially  |
 |                                       | vrack                           | Partially  |
 |                                       | vrackservices                   | Partially  |

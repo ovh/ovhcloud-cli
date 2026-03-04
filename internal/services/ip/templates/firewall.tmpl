@@ -1,0 +1,10 @@
+Firewall {{.ServiceName}}
+=======
+
+| Key            | Value                                 |
+| -------------- | ------------------------------------- |
+| IP on Firewall | {{index .Result "ipOnFirewall"}}      |
+| Enabled        | {{index .Result "enabled"}}           |
+| State          | {{index .Result "state"}}             |
+
+💡 Use option -o json or -o yaml to get the raw output with all information

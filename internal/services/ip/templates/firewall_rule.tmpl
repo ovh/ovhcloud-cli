@@ -1,0 +1,20 @@
+Rule #{{index .Result "sequence"}}
+=======
+
+| Key              | Value                                      |
+| ---------------- | ------------------------------------------ |
+| Sequence         | {{index .Result "sequence"}}               |
+| Action           | {{index .Result "action"}}                 |
+| Protocol         | {{index .Result "protocol"}}               |
+| Source           | {{index .Result "source"}}                 |
+| Destination      | {{index .Result "destination"}}            |
+| Destination Port | {{index .Result "destinationPort"}}        |
+| Source Port      | {{index .Result "sourcePort"}}             |
+| Rule             | {{index .Result "rule"}}                   |
+| State            | {{index .Result "state"}}                  |
+| Creation Date    | {{index .Result "creationDate"}}           |
+| TCP Option       | {{index .Result "tcpOption"}}              |
+| Fragments        | {{index .Result "fragments"}}              |
+| L3 Packet Length | {{index .Result "l3PacketLength"}}         |
+
+💡 Use option -o json or -o yaml to get the raw output with all information
