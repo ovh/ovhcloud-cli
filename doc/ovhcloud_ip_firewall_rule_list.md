@@ -1,11 +1,22 @@
-## ovhcloud ip
+## ovhcloud ip firewall rule list
 
-Retrieve information and manage your IP services
+List firewall rules for the given IP
+
+```
+ovhcloud ip firewall rule list <ip_block> <ip> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for ip
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -29,10 +40,5 @@ Retrieve information and manage your IP services
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud ip edit](ovhcloud_ip_edit.md)	 - Edit the given IP
-* [ovhcloud ip firewall](ovhcloud_ip_firewall.md)	 - Manage firewall (Edge Firewall) on the given IP
-* [ovhcloud ip get](ovhcloud_ip_get.md)	 - Retrieve information of a specific Ip
-* [ovhcloud ip list](ovhcloud_ip_list.md)	 - List your Ip services
-* [ovhcloud ip reverse](ovhcloud_ip_reverse.md)	 - Manage reverses on the given IP
+* [ovhcloud ip firewall rule](ovhcloud_ip_firewall_rule.md)	 - Manage firewall rules
 
