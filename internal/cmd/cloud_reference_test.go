@@ -451,3 +451,75 @@ func (ms *MockSuite) TestCloudReferenceContainerRegistryRegionsListCmd(assert, r
 └─────────────┴──────┘
 💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
+
+func (ms *MockSuite) TestCloudReferenceFlavorsListCmdJSON(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/flavor",
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "flavor-id-1",
+				"name": "b2-7",
+				"region": "GRA9",
+				"osType": "linux",
+				"available": true
+			},
+			{
+				"id": "flavor-id-2",
+				"name": "b2-15",
+				"region": "GRA9",
+				"osType": "linux",
+				"available": true
+			}
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "reference", "list-flavors", "-o", "json", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[
+		{
+			"id": "flavor-id-1",
+			"name": "b2-7",
+			"region": "GRA9",
+			"osType": "linux",
+			"available": true
+		},
+		{
+			"id": "flavor-id-2",
+			"name": "b2-15",
+			"region": "GRA9",
+			"osType": "linux",
+			"available": true
+		}
+	]`))
+}
+
+func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorsListCmdJSON(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA9/loadbalancing/flavor",
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "lb-flavor-id-1",
+				"name": "small",
+				"region": "GRA9"
+			},
+			{
+				"id": "lb-flavor-id-2",
+				"name": "medium",
+				"region": "GRA9"
+			}
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "reference", "loadbalancer", "list-flavors", "GRA9", "-o", "json", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[
+		{
+			"id": "lb-flavor-id-1",
+			"name": "small",
+			"region": "GRA9"
+		},
+		{
+			"id": "lb-flavor-id-2",
+			"name": "medium",
+			"region": "GRA9"
+		}
+	]`))
+}
