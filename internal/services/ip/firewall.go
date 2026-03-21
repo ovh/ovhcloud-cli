@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/editor"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
@@ -44,18 +45,14 @@ var (
 	firewallRuleTemplate string
 
 	FirewallRuleSpec struct {
-		Action              string `json:"action"`
-		Protocol            string `json:"protocol"`
-		Sequence            int    `json:"sequence"`
-		Source              string `json:"source,omitempty"`
-		DestinationPort     int    `json:"destinationPort,omitempty"`
-		DestinationPortFrom int    `json:"-"`
-		DestinationPortTo   int    `json:"-"`
-		SourcePort          int    `json:"sourcePort,omitempty"`
-		SourcePortFrom      int    `json:"-"`
-		SourcePortTo        int    `json:"-"`
-		TCPFragments        bool   `json:"-"`
-		TCPOption           string `json:"-"`
+		Action          string `json:"action"`
+		Protocol        string `json:"protocol"`
+		Sequence        int    `json:"sequence"`
+		Source          string `json:"source,omitempty"`
+		DestinationPort int    `json:"destinationPort,omitempty"`
+		SourcePort      int    `json:"sourcePort,omitempty"`
+		TCPFragments    bool   `json:"-"`
+		TCPOption       string `json:"-"`
 	}
 )
 
@@ -216,12 +213,17 @@ func GetFirewallRule(_ *cobra.Command, args []string) {
 func CreateFirewallRule(cmd *cobra.Command, args []string) error {
 	apiURL := fmt.Sprintf("/v1/ip/%s/firewall/%s/rule", url.PathEscape(args[0]), url.PathEscape(args[1]))
 
-	// If --from-file or pipe: load base params, merge explicit CLI flags on top, POST directly
-	usingFile := flags.ParametersFile != "" || utils.IsInputFromPipe()
+	// If --editor, --from-file or pipe: load base params, merge explicit CLI flags on top, POST directly
+	usingFile := flags.ParametersViaEditor || flags.ParametersFile != "" || utils.IsInputFromPipe()
 	if usingFile {
 		var fileData []byte
 		var err error
-		if utils.IsInputFromPipe() {
+		if flags.ParametersViaEditor {
+			fileData, err = editor.EditValueWithEditor([]byte(FirewallRuleCreateExample))
+			if err != nil {
+				return fmt.Errorf("failed to edit parameters using editor: %w", err)
+			}
+		} else if utils.IsInputFromPipe() {
 			scanner := bufio.NewScanner(os.Stdin)
 			for scanner.Scan() {
 				fileData = append(fileData, scanner.Bytes()...)
@@ -257,20 +259,8 @@ func CreateFirewallRule(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("destination-port") {
 			body["destinationPort"] = FirewallRuleSpec.DestinationPort
 		}
-		if cmd.Flags().Changed("destination-port-from") || cmd.Flags().Changed("destination-port-to") {
-			body["destinationPortRange"] = map[string]int{
-				"from": FirewallRuleSpec.DestinationPortFrom,
-				"to":   FirewallRuleSpec.DestinationPortTo,
-			}
-		}
 		if cmd.Flags().Changed("source-port") {
 			body["sourcePort"] = FirewallRuleSpec.SourcePort
-		}
-		if cmd.Flags().Changed("source-port-from") || cmd.Flags().Changed("source-port-to") {
-			body["sourcePortRange"] = map[string]int{
-				"from": FirewallRuleSpec.SourcePortFrom,
-				"to":   FirewallRuleSpec.SourcePortTo,
-			}
 		}
 		if cmd.Flags().Changed("tcp-fragments") || cmd.Flags().Changed("tcp-option") {
 			tcpOpt := map[string]any{}
@@ -328,7 +318,7 @@ func CreateFirewallRule(cmd *cobra.Command, args []string) error {
 	tcpUDP := FirewallRuleSpec.Protocol == "tcp" || FirewallRuleSpec.Protocol == "udp"
 
 	if !tcpUDP {
-		for _, portFlag := range []string{"destination-port", "destination-port-from", "destination-port-to", "source-port", "source-port-from", "source-port-to"} {
+		for _, portFlag := range []string{"destination-port", "source-port"} {
 			if cmd.Flags().Changed(portFlag) {
 				return fmt.Errorf("port options are only valid for TCP and UDP protocols")
 			}
@@ -356,20 +346,10 @@ func CreateFirewallRule(cmd *cobra.Command, args []string) error {
 
 	if cmd.Flags().Changed("destination-port") {
 		body["destinationPort"] = FirewallRuleSpec.DestinationPort
-	} else if cmd.Flags().Changed("destination-port-from") || cmd.Flags().Changed("destination-port-to") {
-		body["destinationPortRange"] = map[string]int{
-			"from": FirewallRuleSpec.DestinationPortFrom,
-			"to":   FirewallRuleSpec.DestinationPortTo,
-		}
 	}
 
 	if cmd.Flags().Changed("source-port") {
 		body["sourcePort"] = FirewallRuleSpec.SourcePort
-	} else if cmd.Flags().Changed("source-port-from") || cmd.Flags().Changed("source-port-to") {
-		body["sourcePortRange"] = map[string]int{
-			"from": FirewallRuleSpec.SourcePortFrom,
-			"to":   FirewallRuleSpec.SourcePortTo,
-		}
 	}
 
 	if FirewallRuleSpec.Protocol == "tcp" {
