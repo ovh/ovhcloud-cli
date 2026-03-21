@@ -37,23 +37,19 @@ ovhcloud ip firewall rule create <ip_block> <ip> [flags]
 ### Options
 
 ```
-      --action string               Action: deny or permit (required)
-      --destination-port int        Destination port (TCP/UDP only)
-      --destination-port-from int   Destination port range start (mutually exclusive with --destination-port)
-      --destination-port-to int     Destination port range end
-      --editor                      Use a text editor to define parameters
-      --from-file string            File containing parameters
-  -h, --help                        help for create
-      --init-file string            Create a file with example parameters
-      --protocol string             Protocol: ah, esp, gre, icmp, ipv4, tcp, udp (required)
-      --replace                     Replace parameters file if it already exists
-      --sequence int                Rule priority 0-19 (required) (default -1)
-      --source string               Source IP/CIDR (defaults to any)
-      --source-port int             Source port (TCP/UDP only)
-      --source-port-from int        Source port range start (mutually exclusive with --source-port)
-      --source-port-to int          Source port range end
-      --tcp-fragments               TCP fragments option
-      --tcp-option string           TCP option: established or syn (TCP only)
+      --action string          Action: deny or permit (required)
+      --destination-port int   Destination port (TCP/UDP only)
+      --editor                 Use a text editor to define parameters
+      --from-file string       File containing parameters
+  -h, --help                   help for create
+      --init-file string       Create a file with example parameters
+      --protocol string        Protocol: ah, esp, gre, icmp, ipv4, tcp, udp (required)
+      --replace                Replace parameters file if it already exists
+      --sequence int           Rule priority 0-19 (required) (default -1)
+      --source string          Source IP/CIDR (defaults to any)
+      --source-port int        Source port (TCP/UDP only)
+      --tcp-fragments          TCP fragments option
+      --tcp-option string      TCP option: established or syn (TCP only)
 ```
 
 ### Options inherited from parent commands
