@@ -1,0 +1,14 @@
+🚀 Autobackup Workflow {{.ServiceName}}
+=======
+
+## General information
+
+**Name**:                {{index .Result "name"}}
+**Instance ID**:         {{index .Result "instanceId"}}
+**Cron**:                {{index .Result "cron"}}
+**Rotation**:            {{index .Result "rotation"}}
+**Backup name**:         {{index .Result "backupName"}}
+**Created at**:          {{index .Result "createdAt"}}
+**Next execution time**: {{index .Result "nextExecutionTime"}}
+
+💡 Use option -o json or -o yaml to get the raw output with all information
