@@ -112,6 +112,37 @@ func addInteractiveEditorFlag(cmd *cobra.Command) {
 	applyInputFlagsTemplate(cmd)
 }
 
+// markFlagsMutuallyExclusive is a safe wrapper around cmd.MarkFlagsMutuallyExclusive
+// that silently skips flags not registered on the command. This avoids panics when
+// flags are conditionally excluded (e.g. in WASM builds). If fewer than 2 flags
+// remain after filtering, the call is skipped entirely.
+func markFlagsMutuallyExclusive(cmd *cobra.Command, flagNames ...string) {
+	var existing []string
+	for _, name := range flagNames {
+		if cmd.Flags().Lookup(name) != nil {
+			existing = append(existing, name)
+		}
+	}
+	if len(existing) >= 2 {
+		cmd.MarkFlagsMutuallyExclusive(existing...)
+	}
+}
+
+// markFlagsOneRequired is a safe wrapper around cmd.MarkFlagsOneRequired that
+// silently skips flags not registered on the command. If no flags remain after
+// filtering, the call is skipped entirely.
+func markFlagsOneRequired(cmd *cobra.Command, flagNames ...string) {
+	var existing []string
+	for _, name := range flagNames {
+		if cmd.Flags().Lookup(name) != nil {
+			existing = append(existing, name)
+		}
+	}
+	if len(existing) >= 1 {
+		cmd.MarkFlagsOneRequired(existing...)
+	}
+}
+
 func addParameterFileFlags(cmd *cobra.Command, skipInit bool, openapiSchema []byte, path, method, defaultContent string, replaceValueFn func(*cobra.Command, []string) (map[string]any, error)) {
 	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
 		return
@@ -250,7 +281,7 @@ There are three ways to define the creation parameters:
 	// Common flags for other means to define parameters
 	addParameterFileFlags(createCmd, false, openAPISchema, path, "post", bodyExample, nil)
 	addInteractiveEditorFlag(createCmd)
-	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(createCmd, "from-file", "editor")
 
 	return createCmd
 }

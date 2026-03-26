@@ -181,7 +181,7 @@ func getVolumeCreateCmd() *cobra.Command {
 	addParameterFileFlags(volumeCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/volume", "post", cloud.VolumeCreateExample, nil)
 	addInteractiveEditorFlag(volumeCreateCmd)
 	volumeCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for volume creation to be done before exiting")
-	volumeCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(volumeCreateCmd, "from-file", "editor")
 
 	return volumeCreateCmd
 }

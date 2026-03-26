@@ -76,7 +76,7 @@ func init() {
 
 	addParameterFileFlags(domainZoneRecordPostCmd, false, assets.DomainOpenapiSchema, "/domain/zone/{zoneName}/record", "post", domainzone.RecordCreateExample, nil)
 	addInteractiveEditorFlag(domainZoneRecordPostCmd)
-	domainZoneRecordPostCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(domainZoneRecordPostCmd, "from-file", "editor")
 
 	domainZoneRecordCmd.AddCommand(domainZoneRecordPostCmd)
 
@@ -92,7 +92,7 @@ func init() {
 
 	addParameterFileFlags(domainZoneRecordPutCmd, false, assets.DomainOpenapiSchema, "/domain/zone/{zoneName}/record/{id}", "put", domainzone.RecordUpdateExample, nil)
 	addInteractiveEditorFlag(domainZoneRecordPutCmd)
-	domainZoneRecordPutCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(domainZoneRecordPutCmd, "from-file", "editor")
 
 	domainZoneRecordCmd.AddCommand(domainZoneRecordPutCmd)
 

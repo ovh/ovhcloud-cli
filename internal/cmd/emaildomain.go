@@ -71,7 +71,7 @@ func init() {
 
 	addParameterFileFlags(createRedirectionCmd, false, assets.EmaildomainOpenapiSchema, "/email/domain/{serviceName}/redirection", "post", emaildomain.RedirectionCreateExample, nil)
 	addInteractiveEditorFlag(createRedirectionCmd)
-	createRedirectionCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(createRedirectionCmd, "from-file", "editor")
 
 	emaildomainRedirectionCmd.AddCommand(createRedirectionCmd)
 

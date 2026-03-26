@@ -110,7 +110,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	}
 	ipRestrictionsEditCmd.Flags().StringSliceVar(&cloud.KubeIPRestrictions, "ips", nil, "List of IPs to restrict access to the Kubernetes cluster")
 	addInteractiveEditorFlag(ipRestrictionsEditCmd)
-	ipRestrictionsEditCmd.MarkFlagsMutuallyExclusive("ips", "editor")
+	markFlagsMutuallyExclusive(ipRestrictionsEditCmd, "ips", "editor")
 	ipRestrictionsCmd.AddCommand(ipRestrictionsEditCmd)
 
 	kubeConfigCmd := &cobra.Command{
@@ -365,7 +365,7 @@ There are three ways to define the creation parameters:
 	// Common flags for other means to define parameters
 	addParameterFileFlags(kubeCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube", "post", cloud.CloudKubeCreationExample, nil)
 	addInteractiveEditorFlag(kubeCreateCmd)
-	kubeCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(kubeCreateCmd, "from-file", "editor")
 
 	return kubeCreateCmd
 }
@@ -450,7 +450,7 @@ There are three ways to define the reset parameters:
 	// Common flags for other means to define parameters
 	addParameterFileFlags(kubeResetCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/reset", "post", cloud.CloudKubeResetExample, nil)
 	addInteractiveEditorFlag(kubeResetCmd)
-	kubeResetCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(kubeResetCmd, "from-file", "editor")
 
 	return kubeResetCmd
 }
@@ -567,8 +567,8 @@ There are three ways to define the creation parameters:
 	addInteractiveEditorFlag(nodepoolCreateCmd)
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
 		nodepoolCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
-		nodepoolCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	}
+	markFlagsMutuallyExclusive(nodepoolCreateCmd, "from-file", "editor")
 
 	return nodepoolCreateCmd
 }
@@ -632,7 +632,7 @@ There are three ways to define the parameters:
 	// Common flags for other means to define parameters
 	addParameterFileFlags(createCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect", "post", cloud.CloudKubeOIDCCreationExample, nil)
 	addInteractiveEditorFlag(createCmd)
-	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(createCmd, "from-file", "editor")
 
 	return createCmd
 }

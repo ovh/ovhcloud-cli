@@ -42,7 +42,7 @@ func initCloudSSHKeyCommand(cloudCmd *cobra.Command) {
 	sshKeyCreateCmd.Flags().StringVar(&cloud.SSHKeyCreationParameters.Region, "region", "", "Region for the SSH key to create (optional)")
 	addParameterFileFlags(sshKeyCreateCmd, false, assets.CloudOpenapiSchema, "/v1/cloud/project/{serviceName}/sshkey", "post", cloud.SSHKeyCreationExample, nil)
 	addInteractiveEditorFlag(sshKeyCreateCmd)
-	sshKeyCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(sshKeyCreateCmd, "from-file", "editor")
 	sshKeyCmd.AddCommand(sshKeyCreateCmd)
 
 	sshKeyCmd.AddCommand(&cobra.Command{
