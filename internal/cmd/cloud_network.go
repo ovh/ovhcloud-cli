@@ -250,7 +250,7 @@ There are three ways to define the parameters:
 	addParameterFileFlags(privateNetworkCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/network", "post", cloud.PrivateNetworkCreationExample, nil)
 	addInteractiveEditorFlag(privateNetworkCreateCmd)
 	privateNetworkCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for network creation to be done before exiting")
-	privateNetworkCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(privateNetworkCreateCmd, "from-file", "editor")
 
 	return privateNetworkCreateCmd
 }
@@ -314,7 +314,7 @@ There are three ways to define the parameters:
 	// Common flags for other means to define parameters
 	addParameterFileFlags(privateNetworkSubnetCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/network/{networkId}/subnet", "post", cloud.PrivateNetworkSubnetCreationExample, nil)
 	addInteractiveEditorFlag(privateNetworkSubnetCreateCmd)
-	privateNetworkSubnetCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(privateNetworkSubnetCreateCmd, "from-file", "editor")
 
 	return privateNetworkSubnetCreateCmd
 }
@@ -395,13 +395,13 @@ There are three ways to define the parameters:
 	addParameterFileFlags(gatewayCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/gateway", "post", cloud.GatewayCreationExample, nil)
 	addInteractiveEditorFlag(gatewayCreateCmd)
 	gatewayCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for gateway creation to be done before exiting")
-	gatewayCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(gatewayCreateCmd, "from-file", "editor")
 
 	// Add a flag to specify the network ID if creating in an existing private network
 	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.ExistingNetworkID, "network-id", "", "ID of the existing private network to create the gateway in")
 	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.ExistingSubnetID, "subnet-id", "", "ID of the existing subnet to create the gateway in")
-	gatewayCreateCmd.MarkFlagsMutuallyExclusive("network-name", "network-id")
-	gatewayCreateCmd.MarkFlagsMutuallyExclusive("subnet-name", "subnet-id")
+	markFlagsMutuallyExclusive(gatewayCreateCmd, "network-name", "network-id")
+	markFlagsMutuallyExclusive(gatewayCreateCmd, "subnet-name", "subnet-id")
 
 	return gatewayCreateCmd
 }

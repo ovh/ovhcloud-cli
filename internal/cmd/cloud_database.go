@@ -119,7 +119,7 @@ There are two ways to define the creation parameters:
 	databaseCreateCmd.Flags().IntVar(&cloud.DatabaseSpec.Disk.Size, "disk-size", 0, "Disk size (GB)")
 	databaseCreateCmd.Flags().StringVar(&cloud.DatabaseSpec.ForkFrom.BackupID, "fork-from.backup-id", "", "Backup ID (not compatible with fork-from.point-in-time)")
 	databaseCreateCmd.Flags().StringVar(&cloud.DatabaseSpec.ForkFrom.PointInTime, "fork-from.point-in-time", "", "Point in time to restore from (not compatible with fork-from.backup-id)")
-	databaseCreateCmd.MarkFlagsMutuallyExclusive("fork-from.backup-id", "fork-from.point-in-time")
+	markFlagsMutuallyExclusive(databaseCreateCmd, "fork-from.backup-id", "fork-from.point-in-time")
 	databaseCreateCmd.Flags().StringVar(&cloud.DatabaseSpec.ForkFrom.ServiceID, "fork-from.service-id", "", "Service ID that owns the backups")
 	databaseCreateCmd.Flags().StringVar(&cloud.DatabaseSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
 	databaseCreateCmd.Flags().StringVar(&cloud.DatabaseSpec.Plan, "plan", "", "Database plan (you can get the list of available plans using 'ovhcloud cloud reference database list-plans')")
@@ -137,9 +137,9 @@ There are two ways to define the creation parameters:
 
 	// Nodes list definition
 	databaseCreateCmd.Flags().StringSliceVar(&cloud.DatabaseSpec.CLINodesList, "nodes-list", nil, "List of nodes (format: flavor1:region1,flavor2:region2...)")
-	databaseCreateCmd.MarkFlagsMutuallyExclusive("nodes-pattern.flavor", "nodes-list")
-	databaseCreateCmd.MarkFlagsMutuallyExclusive("nodes-pattern.number", "nodes-list")
-	databaseCreateCmd.MarkFlagsMutuallyExclusive("nodes-pattern.region", "nodes-list")
+	markFlagsMutuallyExclusive(databaseCreateCmd, "nodes-pattern.flavor", "nodes-list")
+	markFlagsMutuallyExclusive(databaseCreateCmd, "nodes-pattern.number", "nodes-list")
+	markFlagsMutuallyExclusive(databaseCreateCmd, "nodes-pattern.region", "nodes-list")
 
 	// Common flags for other mean to define parameters
 	addInteractiveEditorFlag(databaseCreateCmd)

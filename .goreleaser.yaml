@@ -18,6 +18,8 @@ builds:
     binary: ovhcloud
     env:
       - CGO_ENABLED=0
+    flags:
+    - -trimpath
     ldflags:
       - -s -w -extldflags -static -X github.com/ovh/ovhcloud-cli/internal/version.Version={{.Tag}}
     goos:
@@ -30,6 +32,8 @@ builds:
     binary: ovhcloud
     env:
       - CGO_ENABLED=0
+    flags:
+    - -trimpath
     ldflags:
       - -s -w -extldflags -static -X github.com/ovh/ovhcloud-cli/internal/version.Version={{.Tag}}
     goos:
