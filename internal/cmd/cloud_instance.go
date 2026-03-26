@@ -77,19 +77,19 @@ There are three ways to define the creation parameters:
 	// Boot options
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.ImageID, "boot-from.image", "", "Image ID to boot from (you can use 'ovhcloud cloud reference list-images' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.VolumeID, "boot-from.volume", "", "Volume ID to boot from")
-	instanceCreateCmd.MarkFlagsMutuallyExclusive("boot-from.image", "boot-from.volume")
+	markFlagsMutuallyExclusive(instanceCreateCmd, "boot-from.image", "boot-from.volume")
 
 	// Private Network - Floating IP
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.FloatingIp.ID, "network.private.floating-ip.id", "", "ID of an existing floating IP")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.FloatingIpCreate.Description, "network.private.floating-ip.create.description", "", "Description for the floating IP to create")
-	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.floating-ip.id", "network.private.floating-ip.create.description")
+	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.floating-ip.id", "network.private.floating-ip.create.description")
 
 	// Private Network - Gateway
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.Gateway.ID, "network.private.gateway.id", "", "ID of the existing gateway to attach to the private network")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.GatewayCreate.Model, "network.private.gateway.create.model", "", "Model for the gateway to create (s, m, l)")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.GatewayCreate.Name, "network.private.gateway.create.name", "", "Name for the gateway to create")
-	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.gateway.id", "network.private.gateway.create.model")
-	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.gateway.id", "network.private.gateway.create.name")
+	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.gateway.id", "network.private.gateway.create.model")
+	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.gateway.id", "network.private.gateway.create.name")
 
 	// Private network - IP
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.IP, "network.private.ip", "", "Instance IP in the private network")
@@ -104,12 +104,12 @@ There are three ways to define the creation parameters:
 	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.Subnet.EnableDhcp, "network.private.create.subnet-enable-dhcp", false, "Enable DHCP for the subnet to create")
 	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.Subnet.IPVersion, "network.private.create.subnet-ip-version", 0, "IP version for the subnet to create")
 	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.VlanID, "network.private.create.vlan-id", 0, "VLAN ID for the private network to create")
-	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.id", "network.private.create.name")
+	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.id", "network.private.create.name")
 
 	// Network - Public
 	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceCreationParameters.Network.Public, "network.public", false, "Set the new instance as public")
-	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.id", "network.public")
-	instanceCreateCmd.MarkFlagsMutuallyExclusive("network.private.create.name", "network.public")
+	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.id", "network.public")
+	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.create.name", "network.public")
 
 	// Autobackup
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Autobackup.Cron, "backup-cron", "", "Autobackup Unix Cron pattern (eg: '0 0 * * *')")
@@ -121,8 +121,8 @@ There are three ways to define the creation parameters:
 	// SSH Key Creation
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.SshKeyCreate.Name, "ssh-key.create.name", "", "Name for the SSH key to create")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.SshKeyCreate.PublicKey, "ssh-key.create.public-key", "", "Public key for the SSH key to create")
-	instanceCreateCmd.MarkFlagsMutuallyExclusive("ssh-key.name", "ssh-key.create.name")
-	instanceCreateCmd.MarkFlagsMutuallyExclusive("ssh-key.name", "ssh-key.create.public-key")
+	markFlagsMutuallyExclusive(instanceCreateCmd, "ssh-key.name", "ssh-key.create.name")
+	markFlagsMutuallyExclusive(instanceCreateCmd, "ssh-key.name", "ssh-key.create.public-key")
 
 	// User Data
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.UserData, "user-data", "", "Configuration information or scripts to use upon launch")
@@ -135,7 +135,7 @@ There are three ways to define the creation parameters:
 		instanceCreateCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
 		instanceCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
 	}
-	instanceCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(instanceCreateCmd, "from-file", "editor")
 
 	return instanceCreateCmd
 }
@@ -284,8 +284,8 @@ There are three ways to define the installation parameters:
 	reinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
 		reinstallCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector to define installation parameters")
-		reinstallCmd.MarkFlagsMutuallyExclusive("from-file", "editor", "image-selector")
 	}
+	markFlagsMutuallyExclusive(reinstallCmd, "from-file", "editor", "image-selector")
 	instanceCmd.AddCommand(reinstallCmd)
 
 	instanceCmd.AddCommand(&cobra.Command{
