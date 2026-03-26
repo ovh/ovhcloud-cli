@@ -80,7 +80,7 @@ func init() {
 	oauth2CreateCmd.Flags().StringVar(&account.Oauth2ClientSpec.Name, "name", "", "Name of the OAuth2 client")
 	addParameterFileFlags(oauth2CreateCmd, false, assets.MeOpenapiSchema, "/me/api/oauth2/client", "post", account.Oauth2ClientCreateSample, nil)
 	addInteractiveEditorFlag(oauth2CreateCmd)
-	oauth2CreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(oauth2CreateCmd, "from-file", "editor")
 
 	oauth2ClientCmd.AddCommand(oauth2CreateCmd)
 

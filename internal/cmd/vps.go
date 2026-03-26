@@ -362,8 +362,8 @@ func init() {
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
 		vpsReinstallCmd.Flags().BoolVar(&vps.VpsImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
 		vpsReinstallCmd.Flags().BoolVar(&vps.VpsSSHKeyViaInteractiveSelector, "ssh-key-selector", false, "Use the interactive SSH key selector")
-		vpsReinstallCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
 	}
+	markFlagsMutuallyExclusive(vpsReinstallCmd, "from-file", "editor")
 	vpsReinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
 	vpsCmd.AddCommand(vpsReinstallCmd)
 

@@ -52,7 +52,7 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistrySpec.Region, "region", "", "Region for the container registry (e.g., DE, GRA, BHS)")
 	addParameterFileFlags(createCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry", "post", cloud.CloudContainerRegistryCreateSample, nil)
 	addInteractiveEditorFlag(createCmd)
-	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(createCmd, "from-file", "editor")
 	registryCmd.AddCommand(createCmd)
 
 	registryCmd.AddCommand(&cobra.Command{
@@ -102,7 +102,7 @@ func initContainerRegistryUsersCommand(registryCmd *cobra.Command) {
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryUserSpec.Login, "login", "", "User login")
 	addParameterFileFlags(createCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryId}/users", "post", cloud.CloudContainerRegistryUserCreateSample, nil)
 	addInteractiveEditorFlag(createCmd)
-	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(createCmd, "from-file", "editor")
 	usersCmd.AddCommand(createCmd)
 
 	usersCmd.AddCommand(&cobra.Command{
@@ -137,7 +137,7 @@ func initContainerRegistryIAMCommand(registryCmd *cobra.Command) {
 	enableCmd.Flags().BoolVar(&cloud.CloudContainerRegistryIamSpec.DeleteUsers, "delete-users", false, "Delete existing container registry users when enabling IAM")
 	addParameterFileFlags(enableCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryId}/iam", "post", cloud.CloudContainerRegistryIamEnableSample, nil)
 	addInteractiveEditorFlag(enableCmd)
-	enableCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(enableCmd, "from-file", "editor")
 	iamCmd.AddCommand(enableCmd)
 
 	iamCmd.AddCommand(&cobra.Command{
@@ -276,7 +276,7 @@ func initContainerRegistryOIDCCommand(registryCmd *cobra.Command) {
 	createCmd.Flags().BoolVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.VerifyCert, "verify-cert", false, "Verify the provider TLS certificate")
 	addParameterFileFlags(createCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryID}/openIdConnect", "post", cloud.CloudContainerRegistryOidcCreateSample, nil)
 	addInteractiveEditorFlag(createCmd)
-	createCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(createCmd, "from-file", "editor")
 	oidcCmd.AddCommand(createCmd)
 
 	editCmd := &cobra.Command{
