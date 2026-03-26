@@ -148,7 +148,7 @@ Please note that all parameters are not compatible with all OSes.
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.SshKey, "ssh-key", "", "SSH public key")
 	reinstallBaremetalCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
-	reinstallBaremetalCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "from-file", "editor")
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
 
 	// List boots and their options
@@ -180,8 +180,8 @@ Please note that all parameters are not compatible with all OSes.
 	baremetalBootSetScriptCmd.Flags().StringVar(&baremetal.EditBaremetalParams.BootScript, "script", "", "Boot script to set on the baremetal")
 	addInteractiveEditorFlag(baremetalBootSetScriptCmd)
 	addParameterFileFlags(baremetalBootSetScriptCmd, true, nil, "", "", "", nil)
-	baremetalBootSetScriptCmd.MarkFlagsOneRequired("script", "from-file", "editor")
-	baremetalBootSetScriptCmd.MarkFlagsMutuallyExclusive("script", "from-file", "editor")
+	markFlagsOneRequired(baremetalBootSetScriptCmd, "script", "from-file", "editor")
+	markFlagsMutuallyExclusive(baremetalBootSetScriptCmd, "script", "from-file", "editor")
 	baremetalBootCmd.AddCommand(baremetalBootSetScriptCmd)
 
 	baremetalListInterventionsCmd := &cobra.Command{

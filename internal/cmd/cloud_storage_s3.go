@@ -68,8 +68,8 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	bulkDeleteCmd.Flags().StringSliceVar(&cloud.StorageS3ObjectsToDelete, "objects", nil, "List of objects to delete (format is '<object_name>' or '<object_name>:<version_id>'")
 	bulkDeleteCmd.Flags().BoolVar(&cloud.StorageS3BulkDeleteAll, "all", false, "Delete all objects in the container")
 	bulkDeleteCmd.Flags().StringVar(&cloud.StorageS3BulkDeletePrefix, "prefix", "", "Prefix to filter objects to delete")
-	bulkDeleteCmd.MarkFlagsOneRequired("objects", "all", "prefix")
-	bulkDeleteCmd.MarkFlagsMutuallyExclusive("objects", "all", "prefix")
+	markFlagsOneRequired(bulkDeleteCmd, "objects", "all", "prefix")
+	markFlagsMutuallyExclusive(bulkDeleteCmd, "objects", "all", "prefix")
 
 	storageS3Cmd.AddCommand(bulkDeleteCmd)
 
@@ -224,7 +224,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	presignedURLCmd.Flags().StringVar(&cloud.StorageS3PresignedURLParams.StorageClass, "storage-class", "", "Storage class for the object (HIGH_PERF, STANDARD, STANDARD_IA)")
 	addParameterFileFlags(presignedURLCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/presign", "post", cloud.CloudStorageS3PresignedURLExample, nil)
 	addInteractiveEditorFlag(presignedURLCmd)
-	presignedURLCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(presignedURLCmd, "from-file", "editor")
 	storageS3Cmd.AddCommand(presignedURLCmd)
 
 	// Add user to bucket command
@@ -257,7 +257,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	}
 	addParameterFileFlags(lifecycleEditCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/lifecycle", "put", cloud.CloudStorageS3LifecycleExample, nil)
 	addInteractiveEditorFlag(lifecycleEditCmd)
-	lifecycleEditCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(lifecycleEditCmd, "from-file", "editor")
 	lifecycleCmd.AddCommand(lifecycleEditCmd)
 
 	lifecycleCmd.AddCommand(&cobra.Command{
@@ -410,7 +410,7 @@ There are three ways to define the creation parameters:
 	// Common flags for other means to define parameters
 	addParameterFileFlags(s3CreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage", "post", cloud.CloudStorageS3CreationExample, nil)
 	addInteractiveEditorFlag(s3CreateCmd)
-	s3CreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(s3CreateCmd, "from-file", "editor")
 
 	return s3CreateCmd
 }
