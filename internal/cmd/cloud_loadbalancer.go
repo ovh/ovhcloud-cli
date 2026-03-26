@@ -129,7 +129,7 @@ There are three ways to define the parameters:
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/loadbalancer", "post", cloud.LoadbalancerCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
-	cmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
 }
@@ -147,7 +147,7 @@ func getLoadbalancerAssociateFloatingIpCmd() *cobra.Command {
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/loadbalancer/{loadBalancerId}/associateFloatingIp", "post", cloud.LoadbalancerAssociateFloatingIpExample, nil)
 	addInteractiveEditorFlag(cmd)
-	cmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
 }
@@ -164,7 +164,7 @@ func getLoadbalancerCreateFloatingIpCmd() *cobra.Command {
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/loadbalancer/{loadBalancerId}/floatingIp", "post", cloud.LoadbalancerCreateFloatingIpExample, nil)
 	addInteractiveEditorFlag(cmd)
-	cmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
 }
@@ -230,7 +230,7 @@ func getListenerCreationCmd() *cobra.Command {
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/listener", "post", cloud.LoadbalancerListenerCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
-	cmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
 }
@@ -298,7 +298,7 @@ func getPoolCreationCmd() *cobra.Command {
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool", "post", cloud.LoadbalancerPoolCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
-	cmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
 }
@@ -356,7 +356,7 @@ func getPoolMemberCreationCmd() *cobra.Command {
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool/{poolId}/member", "post", cloud.LoadbalancerPoolMemberCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
-	cmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
 }
@@ -426,7 +426,7 @@ func getHealthMonitorCreationCmd() *cobra.Command {
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/healthMonitor", "post", cloud.LoadbalancerHealthMonitorCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
-	cmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
 }
@@ -503,7 +503,7 @@ func getL7PolicyCreationCmd() *cobra.Command {
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy", "post", cloud.LoadbalancerL7PolicyCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
-	cmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
 }
@@ -568,7 +568,7 @@ func getL7RuleCreationCmd() *cobra.Command {
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy/{l7PolicyId}/l7Rule", "post", cloud.LoadbalancerL7RuleCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
-	cmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
 }
@@ -651,7 +651,7 @@ func getLogSubscriptionCreationCmd() *cobra.Command {
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/loadbalancer/{loadBalancerId}/log/subscription", "post", cloud.LoadbalancerLogSubscriptionCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
-	cmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
 }

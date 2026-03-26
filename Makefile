@@ -9,10 +9,10 @@ BUILD_CMD = CGO_ENABLED=0 go build
 all: build
 
 build:
-	${BUILD_CMD} -ldflags "${LD_FLAGS}" -o ovhcloud ./cmd/ovhcloud
+	${BUILD_CMD} -trimpath -ldflags "${LD_FLAGS}" -o ovhcloud ./cmd/ovhcloud
 
 wasm:
-	GOOS=js GOARCH=wasm ${BUILD_CMD} -ldflags "${LD_FLAGS}" -o ovhcloud.wasm ./cmd/ovhcloud
+	GOOS=js GOARCH=wasm ${BUILD_CMD} -trimpath -ldflags "${LD_FLAGS}" -o ovhcloud.wasm ./cmd/ovhcloud
 
 test:
 	go test -v ./...

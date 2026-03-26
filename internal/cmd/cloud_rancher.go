@@ -138,7 +138,7 @@ There are three ways to define the creation parameters:
 	// Common flags for other means to define parameters
 	addParameterFileFlags(rancherCreateCmd, false, assets.CloudV2OpenapiSchema, "/cloud/project/{serviceName}/rancher", "post", cloud.CloudRancherCreationExample, nil)
 	addInteractiveEditorFlag(rancherCreateCmd)
-	rancherCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(rancherCreateCmd, "from-file", "editor")
 
 	return rancherCreateCmd
 }

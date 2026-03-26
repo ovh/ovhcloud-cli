@@ -302,7 +302,7 @@ There are three ways to define the creation parameters:
 	// Common flags for other means to define parameters
 	addParameterFileFlags(userCreateCmd, false, assets.MeOpenapiSchema, "/me/identity/user", "post", iam.UserCreateExample, nil)
 	addInteractiveEditorFlag(userCreateCmd)
-	userCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(userCreateCmd, "from-file", "editor")
 
 	return userCreateCmd
 }
@@ -359,7 +359,7 @@ There are three ways to define the editing parameters:
 	// Common flags for other means to define parameters
 	addParameterFileFlags(userEditCmd, false, assets.MeOpenapiSchema, "/me/identity/user", "post", iam.UserEditExample, nil)
 	addInteractiveEditorFlag(userEditCmd)
-	userEditCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(userEditCmd, "from-file", "editor")
 
 	return userEditCmd
 }
