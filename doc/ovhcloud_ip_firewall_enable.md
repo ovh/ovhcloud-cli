@@ -1,11 +1,15 @@
-## ovhcloud ip
+## ovhcloud ip firewall enable
 
-Retrieve information and manage your IP services
+Enable the firewall on the given IP
+
+```
+ovhcloud ip firewall enable <ip_block> <ip> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for ip
+  -h, --help   help for enable
 ```
 
 ### Options inherited from parent commands
@@ -29,10 +33,5 @@ Retrieve information and manage your IP services
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud ip edit](ovhcloud_ip_edit.md)	 - Edit the given IP
 * [ovhcloud ip firewall](ovhcloud_ip_firewall.md)	 - Manage firewall (Edge Firewall) on the given IP
-* [ovhcloud ip get](ovhcloud_ip_get.md)	 - Retrieve information of a specific Ip
-* [ovhcloud ip list](ovhcloud_ip_list.md)	 - List your Ip services
-* [ovhcloud ip reverse](ovhcloud_ip_reverse.md)	 - Manage reverses on the given IP
 
