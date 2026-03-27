@@ -1,11 +1,11 @@
-## ovhcloud ip
+## ovhcloud ip firewall
 
-Retrieve information and manage your IP services
+Manage firewall (Edge Firewall) on the given IP
 
 ### Options
 
 ```
-  -h, --help   help for ip
+  -h, --help   help for firewall
 ```
 
 ### Options inherited from parent commands
@@ -29,10 +29,12 @@ Retrieve information and manage your IP services
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud ip edit](ovhcloud_ip_edit.md)	 - Edit the given IP
-* [ovhcloud ip firewall](ovhcloud_ip_firewall.md)	 - Manage firewall (Edge Firewall) on the given IP
-* [ovhcloud ip get](ovhcloud_ip_get.md)	 - Retrieve information of a specific Ip
-* [ovhcloud ip list](ovhcloud_ip_list.md)	 - List your Ip services
-* [ovhcloud ip reverse](ovhcloud_ip_reverse.md)	 - Manage reverses on the given IP
+* [ovhcloud ip](ovhcloud_ip.md)	 - Retrieve information and manage your IP services
+* [ovhcloud ip firewall add](ovhcloud_ip_firewall_add.md)	 - Add an IP to the firewall
+* [ovhcloud ip firewall delete](ovhcloud_ip_firewall_delete.md)	 - Remove IP and all rules from firewall
+* [ovhcloud ip firewall disable](ovhcloud_ip_firewall_disable.md)	 - Disable the firewall on the given IP
+* [ovhcloud ip firewall enable](ovhcloud_ip_firewall_enable.md)	 - Enable the firewall on the given IP
+* [ovhcloud ip firewall get](ovhcloud_ip_firewall_get.md)	 - Get firewall status for a specific IP
+* [ovhcloud ip firewall list](ovhcloud_ip_firewall_list.md)	 - List IPs registered on the firewall
+* [ovhcloud ip firewall rule](ovhcloud_ip_firewall_rule.md)	 - Manage firewall rules
 
