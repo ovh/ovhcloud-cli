@@ -32,5 +32,26 @@ func init() {
 		Run:   supporttickets.GetSupportTickets,
 	})
 
+	// Command to list messages for a support ticket
+	supportticketsMessagesCmd := &cobra.Command{
+		Use:     "messages <ticket_id>",
+		Aliases: []string{"msgs"},
+		Short:   "List messages for a support ticket",
+		Args:    cobra.ExactArgs(1),
+		Run:     supporttickets.ListSupportTicketMessages,
+	}
+	supportticketsCmd.AddCommand(withFilterFlag(supportticketsMessagesCmd))
+
+	// Command to reply to a support ticket
+	supportticketsReplyCmd := &cobra.Command{
+		Use:   "reply <ticket_id>",
+		Short: "Reply to a support ticket",
+		Args:  cobra.ExactArgs(1),
+		Run:   supporttickets.ReplySupportTicket,
+	}
+	supportticketsReplyCmd.Flags().StringVar(&supporttickets.ReplySpec.Body, "body", "", "Text body of the ticket reply")
+	_ = supportticketsReplyCmd.MarkFlagRequired("body")
+	supportticketsCmd.AddCommand(supportticketsReplyCmd)
+
 	rootCmd.AddCommand(supportticketsCmd)
 }
