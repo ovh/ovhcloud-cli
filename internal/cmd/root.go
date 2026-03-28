@@ -125,6 +125,14 @@ Examples:
 
 	var newVersionMessage atomic.Pointer[string]
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		// Skip authentication for the completion command and its subcommands
+		// (e.g. "ovhcloud completion bash") — no API access is needed.
+		for c := cmd; c != nil; c = c.Parent() {
+			if c.Name() == "completion" {
+				return
+			}
+		}
+
 		// Make the --profile flag available to the config package for
 		// profile-aware config reads (e.g. default_cloud_project)
 		config.ActiveProfileOverride = flags.Profile
