@@ -1,11 +1,22 @@
-## ovhcloud support-tickets
+## ovhcloud support-tickets messages
 
-Retrieve information and manage your support tickets
+List messages for a support ticket
+
+```
+ovhcloud support-tickets messages <ticket_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for support-tickets
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for messages
 ```
 
 ### Options inherited from parent commands
@@ -29,9 +40,5 @@ Retrieve information and manage your support tickets
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud support-tickets get](ovhcloud_support-tickets_get.md)	 - Retrieve information of a specific support ticket
-* [ovhcloud support-tickets list](ovhcloud_support-tickets_list.md)	 - List your support tickets
-* [ovhcloud support-tickets messages](ovhcloud_support-tickets_messages.md)	 - List messages for a support ticket
-* [ovhcloud support-tickets reply](ovhcloud_support-tickets_reply.md)	 - Reply to a support ticket
+* [ovhcloud support-tickets](ovhcloud_support-tickets.md)	 - Retrieve information and manage your support tickets
 
