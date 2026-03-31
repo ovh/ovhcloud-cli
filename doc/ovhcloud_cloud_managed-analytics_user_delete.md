@@ -1,22 +1,15 @@
-## ovhcloud cloud database-service list
+## ovhcloud cloud managed-analytics user delete
 
-List your database services
+Delete a specific user in the given managed analytics service
 
 ```
-ovhcloud cloud database-service list [flags]
+ovhcloud cloud managed-analytics user delete <service_id> <user_id> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +34,5 @@ ovhcloud cloud database-service list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database-service](ovhcloud_cloud_database-service.md)	 - Manage database services in the given cloud project
+* [ovhcloud cloud managed-analytics user](ovhcloud_cloud_managed-analytics_user.md)	 - Manage users in a specific managed analytics service
 

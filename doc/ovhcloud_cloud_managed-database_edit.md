@@ -1,29 +1,28 @@
-## ovhcloud cloud database-service edit
+## ovhcloud cloud managed-database edit
 
-Edit a specific database service
+Edit a specific managed database service
 
 ### Synopsis
 
-Use this command to edit a database service in the given public cloud project.
+Use this command to edit a managed database service in the given public cloud project.
 There are two ways to define the edition parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud database-service edit <cluster_id> --description "My database"
+	ovhcloud cloud managed-database edit <service_id> --description "My database"
 
 2. Using your default text editor:
 
-	ovhcloud cloud database-service edit <cluster_id> --editor
-
+	ovhcloud cloud managed-database edit <service_id> --editor
   The CLI will open your default text editor to update the parameters. When saving the file, the edition will be applied.
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud database-service edit <cluster_id> --editor --description "My database cluster"
+	ovhcloud cloud managed-database edit <service_id> --editor --description "My database cluster"
 
 
 ```
-ovhcloud cloud database-service edit <cluster_id> [flags]
+ovhcloud cloud managed-database edit <service_id> [flags]
 ```
 
 ### Options
@@ -65,5 +64,5 @@ ovhcloud cloud database-service edit <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database-service](ovhcloud_cloud_database-service.md)	 - Manage database services in the given cloud project
+* [ovhcloud cloud managed-database](ovhcloud_cloud_managed-database.md)	 - Manage managed database services in the given cloud project
 

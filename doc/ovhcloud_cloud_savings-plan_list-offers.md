@@ -21,7 +21,7 @@ ovhcloud cloud savings-plan list-offers [flags]
       --deployment-type string   Deployment type: 1AZ or 3AZ (default: 1AZ) (default "1AZ")
       --filter stringArray       Filter results by any property using https://github.com/PaesslerAG/gval syntax
                                  Examples:
-                                   --filter 'state="running"'
+                                   --filter 'state=="running"'
                                    --filter 'name=~"^my.*"'
                                    --filter 'nested.property.subproperty>10'
                                    --filter 'startDate>="2023-12-01"'

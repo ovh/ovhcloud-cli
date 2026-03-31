@@ -1,22 +1,15 @@
-## ovhcloud cloud database-service database list
+## ovhcloud cloud managed-analytics backup get
 
-List all databases in the given database service
+Get a specific backup in the given managed analytics service
 
 ```
-ovhcloud cloud database-service database list <cluster_id> [flags]
+ovhcloud cloud managed-analytics backup get <service_id> <backup_id> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +34,5 @@ ovhcloud cloud database-service database list <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database-service database](ovhcloud_cloud_database-service_database.md)	 - Manage databases in a specific database service
+* [ovhcloud cloud managed-analytics backup](ovhcloud_cloud_managed-analytics_backup.md)	 - Manage backups in a specific managed analytics service
 
