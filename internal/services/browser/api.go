@@ -9,6 +9,7 @@ package browser
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -620,7 +621,7 @@ func (m Model) fetchDatabasesData(category string) dataLoadedMsg {
 
 	// First, get the list of database service IDs (the API returns an array of strings)
 	var serviceIDs []string
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/service?category=%s", m.cloudProject, category)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/service?category=%s", m.cloudProject, url.QueryEscape(category))
 	err := httpLib.Client.Get(endpoint, &serviceIDs)
 	if err != nil {
 		return dataLoadedMsg{
