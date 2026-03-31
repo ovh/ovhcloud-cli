@@ -214,7 +214,7 @@ func ListManagedDatabaseNodeFlavors(_ *cobra.Command, _ []string) {
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database plans: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database node flavors: %s", err)
 		return
 	}
 
@@ -296,7 +296,7 @@ func ListManagedAnalyticsPlans(_ *cobra.Command, _ []string) {
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database plans: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch analytics plans: %s", err)
 		return
 	}
 
@@ -324,7 +324,7 @@ func ListManagedAnalyticsNodeFlavors(_ *cobra.Command, _ []string) {
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database plans: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch analytics node flavors: %s", err)
 		return
 	}
 
@@ -361,7 +361,7 @@ func ListManagedAnalyticsEngines(_ *cobra.Command, _ []string) {
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
 	var body map[string]any
 	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database engines: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch analytics engines: %s", err)
 		return
 	}
 
