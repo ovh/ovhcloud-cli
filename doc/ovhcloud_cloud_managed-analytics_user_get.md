@@ -1,16 +1,15 @@
-## ovhcloud cloud database-service database create
+## ovhcloud cloud managed-analytics user get
 
-Create a new database in the given database service
+Get a specific user in the given managed analytics service
 
 ```
-ovhcloud cloud database-service database create <cluster_id> [flags]
+ovhcloud cloud managed-analytics user get <service_id> <user_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help          help for create
-      --name string   Name of the database to create
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -35,5 +34,5 @@ ovhcloud cloud database-service database create <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database-service database](ovhcloud_cloud_database-service_database.md)	 - Manage databases in a specific database service
+* [ovhcloud cloud managed-analytics user](ovhcloud_cloud_managed-analytics_user.md)	 - Manage users in a specific managed analytics service
 

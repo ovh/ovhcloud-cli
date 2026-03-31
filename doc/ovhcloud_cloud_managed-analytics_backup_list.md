@@ -1,15 +1,22 @@
-## ovhcloud cloud database-service database delete
+## ovhcloud cloud managed-analytics backup list
 
-Delete a specific database in the given database service
+List all backups in the given managed analytics service
 
 ```
-ovhcloud cloud database-service database delete <cluster_id> <database_id> [flags]
+ovhcloud cloud managed-analytics backup list <service_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +41,5 @@ ovhcloud cloud database-service database delete <cluster_id> <database_id> [flag
 
 ### SEE ALSO
 
-* [ovhcloud cloud database-service database](ovhcloud_cloud_database-service_database.md)	 - Manage databases in a specific database service
+* [ovhcloud cloud managed-analytics backup](ovhcloud_cloud_managed-analytics_backup.md)	 - Manage backups in a specific managed analytics service
 

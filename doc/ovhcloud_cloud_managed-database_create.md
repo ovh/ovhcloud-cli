@@ -1,30 +1,29 @@
-## ovhcloud cloud database-service create
+## ovhcloud cloud managed-database create
 
-Create a new database service
+Create a new managed database service
 
 ### Synopsis
 
-Use this command to create a database service in the given public cloud project.
+Use this command to create a managed database service in the given public cloud project.
 There are two ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud database-service create --engine mysql --version 8 --plan essential  --nodes-list "db1-4:DE"
+	ovhcloud cloud managed-database create --engine mysql --version 8 --plan essential --nodes-pattern.flavor db1-4 --nodes-pattern.region DE
 
 2. Using your default text editor:
 
-	ovhcloud cloud database-service create --engine kafka --editor
-
+	ovhcloud cloud managed-database create --engine mysql --editor
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud database-service create --engine mysql --editor --version 8
+	ovhcloud cloud managed-database create --engine mysql --editor --version 8
 
 
 ```
-ovhcloud cloud database-service create [flags]
+ovhcloud cloud managed-database create [flags]
 ```
 
 ### Options
@@ -35,7 +34,7 @@ ovhcloud cloud database-service create [flags]
       --description string               Database description
       --disk-size int                    Disk size (GB)
       --editor                           Use a text editor to define parameters
-      --engine string                    Database engine (you can get the list of available engines using 'ovhcloud cloud reference database list-engines')
+      --engine string                    Database engine (you can get the list of available engines using 'ovhcloud cloud reference managed-database list-engines')
       --fork-from.backup-id string       Backup ID (not compatible with fork-from.point-in-time)
       --fork-from.point-in-time string   Point in time to restore from (not compatible with fork-from.backup-id)
       --fork-from.service-id string      Service ID that owns the backups
@@ -47,9 +46,9 @@ ovhcloud cloud database-service create [flags]
       --nodes-pattern.flavor string      Flavor of all nodes
       --nodes-pattern.number int         Number of nodes
       --nodes-pattern.region string      Region of all nodes
-      --plan string                      Database plan (you can get the list of available plans using 'ovhcloud cloud reference database list-plans')
+      --plan string                      Database plan (you can get the list of available plans using 'ovhcloud cloud reference managed-database list-plans')
       --subnet-id string                 Private subnet ID in which the cluster is deployed
-      --version string                   Database version (you can get the list of available versions using 'ovhcloud cloud reference database list-engines')
+      --version string                   Database version (you can get the list of available versions using 'ovhcloud cloud reference managed-database list-engines')
 ```
 
 ### Options inherited from parent commands
@@ -74,5 +73,5 @@ ovhcloud cloud database-service create [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database-service](ovhcloud_cloud_database-service.md)	 - Manage database services in the given cloud project
+* [ovhcloud cloud managed-database](ovhcloud_cloud_managed-database.md)	 - Manage managed database services in the given cloud project
 

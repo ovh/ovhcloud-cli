@@ -1,15 +1,22 @@
-## ovhcloud cloud database-service get
+## ovhcloud cloud reference managed-analytics list-node-flavors
 
-Get a specific database service
+List available analytics node flavors in the given cloud project
 
 ```
-ovhcloud cloud database-service get <cluster_id> [flags]
+ovhcloud cloud reference managed-analytics list-node-flavors [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list-node-flavors
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +41,5 @@ ovhcloud cloud database-service get <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database-service](ovhcloud_cloud_database-service.md)	 - Manage database services in the given cloud project
+* [ovhcloud cloud reference managed-analytics](ovhcloud_cloud_reference_managed-analytics.md)	 - Fetch managed analytics reference data in the given cloud project
 

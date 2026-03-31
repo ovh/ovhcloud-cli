@@ -1,15 +1,21 @@
-## ovhcloud cloud database-service delete
+## ovhcloud cloud managed-analytics topic edit
 
-Delete a specific database service
+Edit a topic in the given managed analytics service
 
 ```
-ovhcloud cloud database-service delete <cluster_id> [flags]
+ovhcloud cloud managed-analytics topic edit <service_id> <topic_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+      --editor                    Use a text editor to define parameters
+  -h, --help                      help for edit
+      --min-insync-replicas int   Minimum insync replicas
+      --partitions int            Number of partitions
+      --replication int           Number of replications
+      --retention-bytes int       Retention size in bytes (-1 for unlimited)
+      --retention-hours int       Retention duration in hours (-1 for unlimited)
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +40,5 @@ ovhcloud cloud database-service delete <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud database-service](ovhcloud_cloud_database-service.md)	 - Manage database services in the given cloud project
+* [ovhcloud cloud managed-analytics topic](ovhcloud_cloud_managed-analytics_topic.md)	 - Manage topics in a specific managed analytics service
 
