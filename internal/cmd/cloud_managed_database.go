@@ -220,7 +220,7 @@ There are two ways to define the creation parameters:
 	managedDatabaseCreateCmd.Flags().IntVar(&cloud.ManagedDatabaseSpec.Disk.Size, "disk-size", 0, "Disk size (GB)")
 	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.ForkFrom.BackupID, "fork-from.backup-id", "", "Backup ID (not compatible with fork-from.point-in-time)")
 	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.ForkFrom.PointInTime, "fork-from.point-in-time", "", "Point in time to restore from (not compatible with fork-from.backup-id)")
-	managedDatabaseCreateCmd.MarkFlagsMutuallyExclusive("fork-from.backup-id", "fork-from.point-in-time")
+	markFlagsMutuallyExclusive(managedDatabaseCreateCmd, "fork-from.backup-id", "fork-from.point-in-time")
 	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.ForkFrom.ServiceID, "fork-from.service-id", "", "Service ID that owns the backups")
 	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
 	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.Plan, "plan", "", "Database plan (you can get the list of available plans using 'ovhcloud cloud reference managed-database list-plans')")
@@ -238,9 +238,9 @@ There are two ways to define the creation parameters:
 
 	// Nodes list definition
 	managedDatabaseCreateCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.CLINodesList, "nodes-list", nil, "List of nodes (format: flavor1:region1,flavor2:region2...)")
-	managedDatabaseCreateCmd.MarkFlagsMutuallyExclusive("nodes-pattern.flavor", "nodes-list")
-	managedDatabaseCreateCmd.MarkFlagsMutuallyExclusive("nodes-pattern.number", "nodes-list")
-	managedDatabaseCreateCmd.MarkFlagsMutuallyExclusive("nodes-pattern.region", "nodes-list")
+	markFlagsMutuallyExclusive(managedDatabaseCreateCmd, "nodes-pattern.flavor", "nodes-list")
+	markFlagsMutuallyExclusive(managedDatabaseCreateCmd, "nodes-pattern.number", "nodes-list")
+	markFlagsMutuallyExclusive(managedDatabaseCreateCmd, "nodes-pattern.region", "nodes-list")
 
 	// Common flags for other mean to define parameters
 	addInteractiveEditorFlag(managedDatabaseCreateCmd)
