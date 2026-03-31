@@ -339,6 +339,7 @@ There are two ways to define the creation parameters:
 	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.ForkFrom.BackupID, "fork-from.backup-id", "", "Backup ID (not compatible with fork-from.point-in-time)")
 	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.ForkFrom.PointInTime, "fork-from.point-in-time", "", "Point in time to restore from (not compatible with fork-from.backup-id)")
 	managedAnalyticsCreateCmd.MarkFlagsMutuallyExclusive("fork-from.backup-id", "fork-from.point-in-time")
+	markFlagsMutuallyExclusive(managedAnalyticsCreateCmd, "fork-from.backup-id", "fork-from.point-in-time")
 	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.ForkFrom.ServiceID, "fork-from.service-id", "", "Service ID that owns the backups")
 	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
 	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.Plan, "plan", "", "Analytics plan (you can get the list of available plans using 'ovhcloud cloud reference managed-analytics list-plans')")
@@ -356,9 +357,9 @@ There are two ways to define the creation parameters:
 
 	// Nodes list definition
 	managedAnalyticsCreateCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsSpec.CLINodesList, "nodes-list", nil, "List of nodes (format: flavor1:region1,flavor2:region2...)")
-	managedAnalyticsCreateCmd.MarkFlagsMutuallyExclusive("nodes-pattern.flavor", "nodes-list")
-	managedAnalyticsCreateCmd.MarkFlagsMutuallyExclusive("nodes-pattern.number", "nodes-list")
-	managedAnalyticsCreateCmd.MarkFlagsMutuallyExclusive("nodes-pattern.region", "nodes-list")
+	markFlagsMutuallyExclusive(managedAnalyticsCreateCmd, "nodes-pattern.flavor", "nodes-list")
+	markFlagsMutuallyExclusive(managedAnalyticsCreateCmd, "nodes-pattern.number", "nodes-list")
+	markFlagsMutuallyExclusive(managedAnalyticsCreateCmd, "nodes-pattern.region", "nodes-list")
 
 	// Common flags for other mean to define parameters
 	addInteractiveEditorFlag(managedAnalyticsCreateCmd)
