@@ -13,7 +13,7 @@ _{{index .Result "description"}}_
 ## Cluster state
 
 **Status**:         {{index .Result "status"}}
-**Usable storage**: {{index .Result "storage" "size" "value"}}{{index .Result "storage" "size" "unit"}}
+**Usable storage**: {{index .Result "storage" "size" "value"}} {{index .Result "storage" "size" "unit"}}
 **Network type**:   {{index .Result "networkType"}}
 
 Endpoints: {{range index .Result "endpoints"}}
