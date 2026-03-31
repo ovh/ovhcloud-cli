@@ -89,8 +89,8 @@ func resetSubCommandFlagValues(root *cobra.Command) {
 	for _, c := range root.Commands() {
 		c.Flags().VisitAll(func(f *pflag.Flag) {
 			if f.Changed {
-				if f.Value.Type() == "stringArray" {
-					// Special handling for stringArray for which we cannot
+				if f.Value.Type() == "stringArray" || f.Value.Type() == "stringSlice" {
+					// Special handling for stringArray/stringSlice for which we cannot
 					// use DefValue since it is equal to "[]".
 					if r, ok := f.Value.(pflag.SliceValue); ok {
 						r.Replace(nil)
@@ -239,7 +239,7 @@ func withFilterFlag(c *cobra.Command) *cobra.Command {
 		nil,
 		`Filter results by any property using https://github.com/PaesslerAG/gval syntax
 Examples:
-  --filter 'state="running"'
+  --filter 'state=="running"'
   --filter 'name=~"^my.*"'
   --filter 'nested.property.subproperty>10'
   --filter 'startDate>="2023-12-01"'

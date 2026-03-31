@@ -1,0 +1,8 @@
+{
+  "name": "my-topic",
+  "partitions": 3,
+  "replication": 1,
+  "minInsyncReplicas": 1,
+  "retentionBytes": -1,
+  "retentionHours": 168
+}

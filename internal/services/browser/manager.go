@@ -44,10 +44,10 @@ const (
 	KubeUpgradeView           // Kubernetes cluster upgrade selection
 	KubePolicyEditView        // Kubernetes cluster policy edit
 	KubeDeleteConfirmView     // Kubernetes cluster delete confirmation
-	NodePoolScaleView              // Node pool scale view
-	NodePoolDeleteConfirmView      // Node pool delete confirmation
-	KubeKubeconfigPickerView       // Directory picker for saving kubeconfig
-	ComingSoonView                 // Coming soon placeholder for unimplemented products
+	NodePoolScaleView         // Node pool scale view
+	NodePoolDeleteConfirmView // Node pool delete confirmation
+	KubeKubeconfigPickerView  // Directory picker for saving kubeconfig
+	ComingSoonView            // Coming soon placeholder for unimplemented products
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -95,7 +95,8 @@ type ProductType int
 const (
 	ProductInstances ProductType = iota
 	ProductKubernetes
-	ProductDatabases
+	ProductManagedDatabases
+	ProductManagedAnalytics
 	ProductStorage
 	ProductNetworks
 	ProductProjects
@@ -534,7 +535,8 @@ func getNavItems() []NavItem {
 	return []NavItem{
 		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
 		{Label: "Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
-		{Label: "Databases", Icon: "🗄️", Product: ProductDatabases, Path: "/databases"},
+		{Label: "Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
+		{Label: "Managed Analytics", Icon: "📈", Product: ProductManagedAnalytics, Path: "/analytics"},
 		{Label: "Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/s3"},
 		{Label: "Private networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
 	}
@@ -3267,8 +3269,10 @@ func (m Model) getProductCreationInfo() (string, string) {
 		return "instances", fmt.Sprintf("ovhcloud cloud instance create --cloud-project %s", m.cloudProject)
 	case ProductKubernetes:
 		return "Kubernetes clusters", fmt.Sprintf("ovhcloud cloud kube create --cloud-project %s", m.cloudProject)
-	case ProductDatabases:
-		return "databases", fmt.Sprintf("ovhcloud cloud database-service create --cloud-project %s", m.cloudProject)
+	case ProductManagedDatabases:
+		return "databases", fmt.Sprintf("ovhcloud cloud managed-database create --cloud-project %s", m.cloudProject)
+	case ProductManagedAnalytics:
+		return "analytics", fmt.Sprintf("ovhcloud cloud managed-analytics create --cloud-project %s", m.cloudProject)
 	case ProductStorage:
 		return "storage containers", fmt.Sprintf("ovhcloud cloud storage-s3 create --cloud-project %s", m.cloudProject)
 	case ProductNetworks:
@@ -5838,7 +5842,7 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	m.currentData = nil
 
 	// Show coming soon view for unimplemented products
-	if currentNav.Product == ProductDatabases || currentNav.Product == ProductStorage || currentNav.Product == ProductNetworks {
+	if currentNav.Product == ProductStorage || currentNav.Product == ProductNetworks {
 		m.mode = ComingSoonView
 		return m, nil
 	}

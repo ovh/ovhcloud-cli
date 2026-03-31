@@ -138,7 +138,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesPlansListCmd(assert, require *td
 			]
 		}`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "database", "list-plans", "--cloud-project", "fakeProjectID", "--filter", `lifecycle.startDate>"2022-01-01"`)
+	out, err := cmd.Execute("cloud", "reference", "managed-database", "list-plans", "--cloud-project", "fakeProjectID", "--filter", `lifecycle.startDate>"2022-01-01"`)
 
 	require.CmpNoError(err)
 	assert.String(out, `
@@ -204,7 +204,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesFlavorsListCmd(assert, require *
 			]
 		}`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "database", "list-node-flavors", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "reference", "managed-database", "list-node-flavors", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `
@@ -271,7 +271,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesEnginesListCmd(assert, require *
 			]
 		}`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "database", "list-engines", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "reference", "managed-database", "list-engines", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `

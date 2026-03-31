@@ -51,7 +51,13 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 		}
 	case "/databases":
 		return func() tea.Msg {
-			msg := m.fetchDatabasesData()
+			msg := m.fetchDatabasesData("operational")
+			msg.forProduct = product
+			return msg
+		}
+	case "/analytics":
+		return func() tea.Msg {
+			msg := m.fetchDatabasesData("analysis")
 			msg.forProduct = product
 			return msg
 		}
@@ -604,8 +610,8 @@ func (m Model) handleKubeconfigReadyForK9s(msg kubeconfigReadyForK9sMsg) (tea.Mo
 	})
 }
 
-// fetchDatabasesData fetches the list of database services
-func (m Model) fetchDatabasesData() dataLoadedMsg {
+// fetchDatabasesData fetches the list of database services filtered by category
+func (m Model) fetchDatabasesData(category string) dataLoadedMsg {
 	if m.cloudProject == "" {
 		return dataLoadedMsg{
 			err: fmt.Errorf("no cloud project selected"),
@@ -614,7 +620,7 @@ func (m Model) fetchDatabasesData() dataLoadedMsg {
 
 	// First, get the list of database service IDs (the API returns an array of strings)
 	var serviceIDs []string
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/service", m.cloudProject)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/service?category=%s", m.cloudProject, category)
 	err := httpLib.Client.Get(endpoint, &serviceIDs)
 	if err != nil {
 		return dataLoadedMsg{
