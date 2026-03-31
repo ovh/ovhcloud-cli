@@ -1,0 +1,10 @@
+{
+  "description": "Example kafka cluster",
+  "nodesPattern": {
+    "flavor": "db1-4",
+    "number": 1,
+    "region": "GRA"
+  },
+  "plan": "production",
+  "version": "4.0"
+}
