@@ -11,7 +11,7 @@ ovhcloud cloud managed-analytics topic create <service_id> [flags]
 ```
       --editor                    Use a text editor to define parameters
   -h, --help                      help for create
-      --min-insync-replicas int   Minimum insync replicas
+      --min-insync-replicas int   Minimum in-sync replicas
       --name string               Topic name
       --partitions int            Number of partitions
       --replication int           Number of replications

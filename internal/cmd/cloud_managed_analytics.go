@@ -544,7 +544,7 @@ func managedAnalyticsTopicCreateCmd() *cobra.Command {
 
 	topicCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsTopicSpec.Name, "name", "", "Topic name")
 	topicCreateCmd.MarkFlagRequired("name")
-	topicCreateCmd.Flags().IntVar(&cloud.ManagedAnalyticsTopicSpec.MinInsyncReplicas, "min-insync-replicas", 0, "Minimum insync replicas")
+	topicCreateCmd.Flags().IntVar(&cloud.ManagedAnalyticsTopicSpec.MinInsyncReplicas, "min-insync-replicas", 0, "Minimum in-sync replicas")
 	topicCreateCmd.Flags().IntVar(&cloud.ManagedAnalyticsTopicSpec.Partitions, "partitions", 0, "Number of partitions")
 	topicCreateCmd.Flags().IntVar(&cloud.ManagedAnalyticsTopicSpec.Replication, "replication", 0, "Number of replications")
 	topicCreateCmd.Flags().IntVar(&cloud.ManagedAnalyticsTopicSpec.RetentionBytes, "retention-bytes", 0, "Retention size in bytes (-1 for unlimited)")
@@ -563,7 +563,7 @@ func managedAnalyticsTopicEditCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 	}
 
-	topicEditCmd.Flags().IntVar(&cloud.ManagedAnalyticsTopicSpec.MinInsyncReplicas, "min-insync-replicas", 0, "Minimum insync replicas")
+	topicEditCmd.Flags().IntVar(&cloud.ManagedAnalyticsTopicSpec.MinInsyncReplicas, "min-insync-replicas", 0, "Minimum in-sync replicas")
 	topicEditCmd.Flags().IntVar(&cloud.ManagedAnalyticsTopicSpec.Partitions, "partitions", 0, "Number of partitions")
 	topicEditCmd.Flags().IntVar(&cloud.ManagedAnalyticsTopicSpec.Replication, "replication", 0, "Number of replications")
 	topicEditCmd.Flags().IntVar(&cloud.ManagedAnalyticsTopicSpec.RetentionBytes, "retention-bytes", 0, "Retention size in bytes (-1 for unlimited)")
