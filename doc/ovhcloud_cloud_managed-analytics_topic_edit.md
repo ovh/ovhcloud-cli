@@ -11,7 +11,7 @@ ovhcloud cloud managed-analytics topic edit <service_id> <topic_id> [flags]
 ```
       --editor                    Use a text editor to define parameters
   -h, --help                      help for edit
-      --min-insync-replicas int   Minimum insync replicas
+      --min-insync-replicas int   Minimum in-sync replicas
       --partitions int            Number of partitions
       --replication int           Number of replications
       --retention-bytes int       Retention size in bytes (-1 for unlimited)
