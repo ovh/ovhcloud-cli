@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"regexp"
+	"strings"
 
 	"github.com/PaesslerAG/gval"
 	"github.com/PaesslerAG/jsonpath"
@@ -83,7 +85,8 @@ func FilterLines(values []map[string]any, filters []string) ([]map[string]any, e
 
 	var evs gval.Evaluables
 	for _, filter := range filters {
-		evaluator, err := gval.Full(AdditionalEvaluators...).NewEvaluable(filter)
+		normalizedFilter := normalizeRegexFilters(filter)
+		evaluator, err := gval.Full(AdditionalEvaluators...).NewEvaluable(normalizedFilter)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse filter %q: %s", filter, err)
 		}
@@ -111,4 +114,42 @@ func FilterLines(values []map[string]any, filters []string) ([]map[string]any, e
 	}
 
 	return rows, nil
+}
+
+var (
+	regexFilterMatcherDouble = regexp.MustCompile(`(=~|!~)\s*"(.*?)"`)
+	regexFilterMatcherSingle = regexp.MustCompile(`(=~|!~)\s*'(.*?)'`)
+)
+
+func normalizeRegexFilters(filter string) string {
+	withDouble := regexFilterMatcherDouble.ReplaceAllStringFunc(filter, func(match string) string {
+		return normalizeRegexMatch(match, regexFilterMatcherDouble, `"`)
+	})
+
+	return regexFilterMatcherSingle.ReplaceAllStringFunc(withDouble, func(match string) string {
+		return normalizeRegexMatch(match, regexFilterMatcherSingle, `'`)
+	})
+}
+
+func normalizeRegexMatch(match string, re *regexp.Regexp, quote string) string {
+	parts := re.FindStringSubmatch(match)
+	if len(parts) != 3 {
+		return match
+	}
+
+	operator, pattern := parts[1], parts[2]
+
+	if _, err := regexp.Compile(pattern); err == nil {
+		return match
+	}
+
+	globRegex := globToRegex(pattern)
+	return fmt.Sprintf("%s %s%s%s", operator, quote, globRegex, quote)
+}
+
+func globToRegex(pattern string) string {
+	escaped := regexp.QuoteMeta(pattern)
+	escaped = strings.ReplaceAll(escaped, "\\*", ".*")
+	escaped = strings.ReplaceAll(escaped, "\\?", ".")
+	return escaped
 }

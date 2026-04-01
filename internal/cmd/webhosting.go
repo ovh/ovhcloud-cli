@@ -44,8 +44,8 @@ func init() {
 		Args:  cobra.ExactArgs(1),
 		Run:   webhosting.EditWebHosting,
 	}
-	webhostingEditCmd.Flags().StringVar(&webhosting.WebHostingSpec.DisplayName, "display-name", "", "Display name of the WebHosting")
-	webhostingEditCmd.Flags().BoolVar(&webhosting.WebHostingClearDisplayName, "clear-display-name", false, "Clear the display name (set default value)")
+	webhostingEditCmd.Flags().StringVar(&webhosting.WebHostingDisplayName, "display-name", "", "Display name of the WebHosting")
+	webhostingEditCmd.Flags().BoolVar(&webhosting.WebHostingClearDisplayName, "clear-display-name", false, "Clear the display name (reset to service name)")
 	addInteractiveEditorFlag(webhostingEditCmd)
 	webhostingCmd.AddCommand(webhostingEditCmd)
 
@@ -90,7 +90,7 @@ func init() {
 	attachedDomainAddCmd.Flags().StringVar(&webhosting.AttachedDomainIPLocation, "ip-location", "", "Change attached domain's DNS to the IP of the country (allowed: BE, CA, CZ, DE, ES, FI, FR, IE, IT, LT, NL, PL, PT, UK)")
 	attachedDomainAddCmd.Flags().StringVar(&webhosting.AttachedDomainOwnLog, "own-log", "", "Domain to separate the logs on")
 	attachedDomainAddCmd.Flags().BoolVar(&webhosting.AttachedDomainBypassDNS, "bypass-dns", false, "If set to true, DNS zone will not be updated by the operation")
-	addFromFileFlag(attachedDomainAddCmd)
+	addParameterFileFlags(attachedDomainAddCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(attachedDomainAddCmd)
 	attachedDomainCmd.AddCommand(attachedDomainAddCmd)
 
@@ -188,7 +188,7 @@ func init() {
 	cronCreateCmd.Flags().StringVar(&webhosting.CronLanguage, "language", "", "Language")
 	cronCreateCmd.Flags().StringVar(&webhosting.CronEmail, "email", "", "Email for stderr")
 	cronCreateCmd.Flags().StringVar(&webhosting.CronDesc, "description", "", "Description")
-	addFromFileFlag(cronCreateCmd)
+	addParameterFileFlags(cronCreateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(cronCreateCmd)
 	cronCmd.AddCommand(cronCreateCmd)
 
@@ -284,7 +284,7 @@ func init() {
 	dbCreateCmd.Flags().StringVar(&webhosting.DatabasePassword, "password", "", "Database password")
 	dbCreateCmd.Flags().StringVar(&webhosting.DatabaseVersion, "version", "", "Database version (allowed: 10, 10.1, 10.11, 10.2, 10.3, 10.4, 10.5, 10.6, 11, 12, 13, 15, 3.2, 3.4, 4.0, 5.1, 5.5, 5.6, 5.7, 6.0, 7.0, 8.0, 8.4, 9.4, 9.5, 9.6)")
 	dbCreateCmd.Flags().StringVar(&webhosting.DatabaseQuota, "quota", "", "Database quota (allowed: 25, 100, 200, 256, 400, 512, 800, 1024)")
-	addFromFileFlag(dbCreateCmd)
+	addParameterFileFlags(dbCreateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(dbCreateCmd)
 	dbCmd.AddCommand(dbCreateCmd)
 
@@ -342,7 +342,7 @@ func init() {
 	}
 	dbCopyRestoreCmd.Flags().StringVar(&webhosting.DatabaseCopyID, "copy-id", "", "Copy ID to restore")
 	dbCopyRestoreCmd.Flags().BoolVar(&webhosting.DatabaseFlush, "flush", false, "Flush database before restore")
-	addFromFileFlag(dbCopyRestoreCmd)
+	addParameterFileFlags(dbCopyRestoreCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(dbCopyRestoreCmd)
 	dbCopyCmd.AddCommand(dbCopyRestoreCmd)
 	dbCmd.AddCommand(dbCopyCmd)
@@ -370,7 +370,7 @@ func init() {
 	}
 	dbDumpCreateCmd.Flags().StringVar(&webhosting.DatabaseDumpDate, "date", "", "Dump type (allowed: daily.1, now, weekly.1)")
 	dbDumpCreateCmd.Flags().BoolVar(&webhosting.DatabaseSendEmail, "send-email", true, "Send email when dump is ready")
-	addFromFileFlag(dbDumpCreateCmd)
+	addParameterFileFlags(dbDumpCreateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(dbDumpCreateCmd)
 	dbDumpCmd.AddCommand(dbDumpCreateCmd)
 	dbDumpDeleteCmd := &cobra.Command{
@@ -397,7 +397,7 @@ func init() {
 	}
 	dbRestoreCmd.Flags().StringVar(&webhosting.DatabaseDumpDate, "date", "", "Dump type to restore (allowed: daily.1, now, weekly.1)")
 	dbRestoreCmd.Flags().BoolVar(&webhosting.DatabaseSendEmail, "send-email", false, "Send email when restore completes")
-	addFromFileFlag(dbRestoreCmd)
+	addParameterFileFlags(dbRestoreCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(dbRestoreCmd)
 	dbCmd.AddCommand(dbRestoreCmd)
 
@@ -410,7 +410,7 @@ func init() {
 	dbImportCmd.Flags().StringVar(&webhosting.DatabaseDocumentID, "document-id", "", "Document ID from /me/documents")
 	dbImportCmd.Flags().BoolVar(&webhosting.DatabaseFlush, "flush", false, "Flush database before import")
 	dbImportCmd.Flags().BoolVar(&webhosting.DatabaseSendEmail, "send-email", false, "Send email when done")
-	addFromFileFlag(dbImportCmd)
+	addParameterFileFlags(dbImportCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(dbImportCmd)
 	dbCmd.AddCommand(dbImportCmd)
 
@@ -431,7 +431,7 @@ func init() {
 		Run:   webhosting.RequestDatabaseAction,
 	}
 	dbActionCmd.Flags().StringVar(&webhosting.DatabaseAction, "action", "", "Action to request (allowed: CHECK_QUOTA)")
-	addFromFileFlag(dbActionCmd)
+	addParameterFileFlags(dbActionCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(dbActionCmd)
 	dbCmd.AddCommand(dbActionCmd)
 
@@ -554,7 +554,7 @@ func init() {
 	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
 	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
 	extraSQLServiceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
-	addFromFileFlag(extraSQLServiceInfoUpdateCmd)
+	addParameterFileFlags(extraSQLServiceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(extraSQLServiceInfoUpdateCmd)
 	extraSQLServiceInfoCmd.AddCommand(extraSQLServiceInfoUpdateCmd)
 	extraSQLCmd.AddCommand(extraSQLServiceInfoCmd)
@@ -592,7 +592,7 @@ func init() {
 	envCreateCmd.Flags().StringVar(&webhosting.EnvVarKey, "key", "", "Variable name")
 	envCreateCmd.Flags().StringVar(&webhosting.EnvVarType, "type", "", "Variable type (allowed: integer, password, string)")
 	envCreateCmd.Flags().StringVar(&webhosting.EnvVarValue, "value", "", "Variable value")
-	addFromFileFlag(envCreateCmd)
+	addParameterFileFlags(envCreateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(envCreateCmd)
 	envCmd.AddCommand(envCreateCmd)
 	envUpdateCmd := &cobra.Command{
@@ -643,7 +643,7 @@ func init() {
 	moduleInstallCmd.Flags().StringVar(&webhosting.ModuleLanguage, "language", "", "Language")
 	moduleInstallCmd.Flags().StringVar(&webhosting.ModuleAdmin, "admin", "", "Admin login")
 	moduleInstallCmd.Flags().StringVar(&webhosting.ModulePassword, "admin-password", "", "Admin password")
-	addFromFileFlag(moduleInstallCmd)
+	addParameterFileFlags(moduleInstallCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(moduleInstallCmd)
 	moduleCmd.AddCommand(moduleInstallCmd)
 	moduleDeleteCmd := &cobra.Command{
@@ -728,7 +728,7 @@ func init() {
 	ovhConfigChangeCmd.Flags().StringVar(&webhosting.OvhConfigEnvironment, "environment", "", "Environment (production, development, ...)")
 	ovhConfigChangeCmd.Flags().StringVar(&webhosting.OvhConfigHTTPFirewall, "http-firewall", "", "HTTP firewall mode (none, security, ...)")
 	ovhConfigChangeCmd.Flags().StringVar(&webhosting.OvhConfigContainer, "container", "", "Container image")
-	addFromFileFlag(ovhConfigChangeCmd)
+	addParameterFileFlags(ovhConfigChangeCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(ovhConfigChangeCmd)
 	ovhConfigCmd.AddCommand(ovhConfigChangeCmd)
 	ovhConfigRollbackCmd := &cobra.Command{
@@ -802,7 +802,7 @@ func init() {
 	ownLogUserCreateCmd.Flags().StringVar(&webhosting.OwnLogUserLogin, "login", "", "User login used to connect to logs.ovh.net")
 	ownLogUserCreateCmd.Flags().StringVar(&webhosting.OwnLogUserPassword, "password", "", "User password (required)")
 	ownLogUserCreateCmd.Flags().StringVar(&webhosting.OwnLogUserDescription, "description", "", "Description for this user (required)")
-	addFromFileFlag(ownLogUserCreateCmd)
+	addParameterFileFlags(ownLogUserCreateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(ownLogUserCreateCmd)
 	ownLogUserCmd.AddCommand(ownLogUserCreateCmd)
 	ownLogUserUpdateCmd := &cobra.Command{
@@ -878,7 +878,7 @@ func init() {
 	runtimeCreateCmd.Flags().StringVar(&webhosting.RuntimeAppBootstrap, "app-bootstrap", "", "Application bootstrap script")
 	runtimeCreateCmd.Flags().BoolVar(&webhosting.RuntimeIsDefault, "runtime-default", false, "Set as default runtime")
 	runtimeCreateCmd.Flags().StringSliceVar(&webhosting.RuntimeDomains, "domain", []string{}, "Domains to attach")
-	addFromFileFlag(runtimeCreateCmd)
+	addParameterFileFlags(runtimeCreateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(runtimeCreateCmd)
 	runtimeCmd.AddCommand(runtimeCreateCmd)
 	runtimeUpdateCmd := &cobra.Command{
@@ -935,7 +935,7 @@ func init() {
 	websiteCreateCmd.Flags().StringVar(&webhosting.WebsitePath, "path", "", "Deployment path")
 	websiteCreateCmd.Flags().StringVar(&webhosting.WebsiteVcsURL, "vcs-url", "", "Repository URL")
 	websiteCreateCmd.Flags().StringVar(&webhosting.WebsiteBranch, "branch", "", "Branch to deploy")
-	addFromFileFlag(websiteCreateCmd)
+	addParameterFileFlags(websiteCreateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(websiteCreateCmd)
 	websiteCmd.AddCommand(websiteCreateCmd)
 	websiteCapabilitiesCmd := &cobra.Command{
@@ -1106,7 +1106,7 @@ func init() {
 	cdnDomainOptionAddCmd.Flags().StringSliceVar(&webhosting.CdnOptionConfigResources, "resource", nil, "Resource URI (repeatable)")
 	cdnDomainOptionAddCmd.Flags().IntVar(&webhosting.CdnOptionConfigStatusCode, "status-code", 0, "Redirection HTTP status code")
 	cdnDomainOptionAddCmd.Flags().IntVar(&webhosting.CdnOptionConfigTTL, "ttl", 0, "Cache time in seconds")
-	addFromFileFlag(cdnDomainOptionAddCmd)
+	addParameterFileFlags(cdnDomainOptionAddCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(cdnDomainOptionAddCmd)
 	cdnDomainOptionCmd.AddCommand(cdnDomainOptionAddCmd)
 	cdnDomainOptionGetCmd := &cobra.Command{
@@ -1134,7 +1134,7 @@ func init() {
 	cdnDomainOptionUpdateCmd.Flags().StringSliceVar(&webhosting.CdnOptionConfigResources, "resource", nil, "Resource URI (repeatable)")
 	cdnDomainOptionUpdateCmd.Flags().IntVar(&webhosting.CdnOptionConfigStatusCode, "status-code", 0, "Redirection HTTP status code")
 	cdnDomainOptionUpdateCmd.Flags().IntVar(&webhosting.CdnOptionConfigTTL, "ttl", 0, "Cache time in seconds")
-	addFromFileFlag(cdnDomainOptionUpdateCmd)
+	addParameterFileFlags(cdnDomainOptionUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(cdnDomainOptionUpdateCmd)
 	cdnDomainOptionCmd.AddCommand(cdnDomainOptionUpdateCmd)
 	cdnDomainOptionDeleteCmd := &cobra.Command{
@@ -1173,7 +1173,7 @@ func init() {
 	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
 	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
 	cdnServiceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
-	addFromFileFlag(cdnServiceInfoUpdateCmd)
+	addParameterFileFlags(cdnServiceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(cdnServiceInfoUpdateCmd)
 	cdnServiceInfoCmd.AddCommand(cdnServiceInfoUpdateCmd)
 	cdnCmd.AddCommand(cdnServiceInfoCmd)
@@ -1232,7 +1232,7 @@ func init() {
 	userCreateCmd.Flags().StringVar(&webhosting.UserLogin, "login", "", "FTP/SSH login")
 	userCreateCmd.Flags().StringVar(&webhosting.UserPassword, "password", "", "FTP/SSH password")
 	userCreateCmd.Flags().StringVar(&webhosting.UserSSHState, "ssh-state", "", "SSH state (allowed: active, none)")
-	addFromFileFlag(userCreateCmd)
+	addParameterFileFlags(userCreateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(userCreateCmd)
 	userCmd.AddCommand(userCreateCmd)
 	userUpdateCmd := &cobra.Command{
@@ -1299,7 +1299,7 @@ func init() {
 	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
 	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
 	serviceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
-	addFromFileFlag(serviceInfoUpdateCmd)
+	addParameterFileFlags(serviceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(serviceInfoUpdateCmd)
 	serviceInfoCmd.AddCommand(serviceInfoUpdateCmd)
 	webhostingCmd.AddCommand(serviceInfoCmd)
@@ -1334,7 +1334,7 @@ func init() {
 	localSeoVisibilityCmd.Flags().StringVar(&webhosting.LocalSEOName, "name", "", "Name of the location")
 	localSeoVisibilityCmd.Flags().StringVar(&webhosting.LocalSEOStreet, "street", "", "Street of the location")
 	localSeoVisibilityCmd.Flags().StringVar(&webhosting.LocalSEOZip, "zip", "", "Zip code of the location")
-	addFromFileFlag(localSeoVisibilityCmd)
+	addParameterFileFlags(localSeoVisibilityCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(localSeoVisibilityCmd)
 	localSeoCmd.AddCommand(localSeoVisibilityCmd)
 
@@ -1407,7 +1407,7 @@ func init() {
 	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
 	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
 	localSeoLocationServiceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
-	addFromFileFlag(localSeoLocationServiceInfoUpdateCmd)
+	addParameterFileFlags(localSeoLocationServiceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(localSeoLocationServiceInfoUpdateCmd)
 	localSeoLocationServiceInfoCmd.AddCommand(localSeoLocationServiceInfoUpdateCmd)
 	localSeoLocationCmd.AddCommand(localSeoLocationServiceInfoCmd)
@@ -1446,7 +1446,7 @@ func init() {
 	}
 	allowedOffers := strings.Join(webhosting.SupportedBoostOffers, ", ")
 	boostCmd.Flags().StringVar(&webhosting.BoostOffer, "offer", "", fmt.Sprintf("Boost offer (allowed: %s)", allowedOffers))
-	addFromFileFlag(boostCmd)
+	addParameterFileFlags(boostCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(boostCmd)
 	webhostingCmd.AddCommand(boostCmd)
 
@@ -1457,7 +1457,7 @@ func init() {
 		Run:   webhosting.RestoreSnapshot,
 	}
 	restoreSnapshotCmd.Flags().StringVar(&webhosting.RestoreBackup, "backup", "", "Backup to restore (allowed: daily.1, daily.2, daily.3, weekly.1, weekly.2)")
-	addFromFileFlag(restoreSnapshotCmd)
+	addParameterFileFlags(restoreSnapshotCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(restoreSnapshotCmd)
 	webhostingCmd.AddCommand(restoreSnapshotCmd)
 
@@ -1506,7 +1506,7 @@ func init() {
 		Args:  cobra.ExactArgs(2),
 		Run:   webhosting.CallWebHostingAPI,
 	}
-	addFromFileFlag(apiCallCmd)
+	addParameterFileFlags(apiCallCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(apiCallCmd)
 	apiCmd.AddCommand(apiCallCmd)
 	webhostingCmd.AddCommand(apiCmd)

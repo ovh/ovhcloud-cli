@@ -19,7 +19,7 @@ import (
 
 func (ms *MockSuite) TestWebhostingDomainAddCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/attachedDomain",
 		tdhttpmock.JSONBody(td.JSON(`{
 			"domain": "example.com",
 			"path": "/www",
@@ -36,9 +36,26 @@ func (ms *MockSuite) TestWebhostingDomainAddCmd(assert, require *td.T) {
 	assert.String(out, "✅ Domain attached")
 }
 
+func (ms *MockSuite) TestWebhostingEditClearDisplayName(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/hosting/web/myservice",
+		httpmock.NewStringResponder(200, `{"displayName":"My Service"}`),
+	)
+	httpmock.RegisterMatcherResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v1/hosting/web/myservice",
+		tdhttpmock.JSONBody(td.JSON(`{"displayName":""}`)),
+		httpmock.NewStringResponder(200, `{}`),
+	)
+
+	out, err := cmd.Execute("webhosting", "edit", "myservice", "--clear-display-name")
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ Resource updated successfully")
+}
+
 func (ms *MockSuite) TestWebhostingDomainDigStatusCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com/digStatus",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/attachedDomain/example.com/digStatus",
 		httpmock.NewStringResponder(200, `{
 			"domain": "example.com",
 			"recommendedIps": {
@@ -55,7 +72,7 @@ func (ms *MockSuite) TestWebhostingDomainDigStatusCmd(assert, require *td.T) {
 		}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "domain", "dig-status", "myservice", "example.com", "--json")
+	out, err := cmd.Execute("webhosting", "domain", "dig-status", "myservice", "example.com", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
@@ -76,11 +93,11 @@ func (ms *MockSuite) TestWebhostingDomainDigStatusCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingDomainFindCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/attachedDomain?domain=example.com",
+		"https://eu.api.ovh.com/v1/hosting/web/attachedDomain?domain=example.com",
 		httpmock.NewStringResponder(200, `["hosting1"]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "domain", "find", "example.com", "--json")
+	out, err := cmd.Execute("webhosting", "domain", "find", "example.com", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"domain":"example.com","serviceName":"hosting1"}]`))
@@ -88,11 +105,11 @@ func (ms *MockSuite) TestWebhostingDomainFindCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingDomainAvailableOfferCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/availableOffer?domain=example.com",
+		"https://eu.api.ovh.com/v1/hosting/web/availableOffer?domain=example.com",
 		httpmock.NewStringResponder(200, `["start","pro"]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "domain", "available-offer", "example.com", "--json")
+	out, err := cmd.Execute("webhosting", "domain", "available-offer", "example.com", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"domain":"example.com","offer":"start"},{"domain":"example.com","offer":"pro"}]`))
@@ -100,11 +117,11 @@ func (ms *MockSuite) TestWebhostingDomainAvailableOfferCmd(assert, require *td.T
 
 func (ms *MockSuite) TestWebhostingIncidentCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/incident",
+		"https://eu.api.ovh.com/v1/hosting/web/incident",
 		httpmock.NewStringResponder(200, `["incident1","incident2"]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "incident", "--json")
+	out, err := cmd.Execute("webhosting", "incident", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"incident":"incident1"},{"incident":"incident2"}]`))
@@ -112,7 +129,7 @@ func (ms *MockSuite) TestWebhostingIncidentCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCronCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cron",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cron",
 		tdhttpmock.JSONBody(td.JSON(`{
 			"command": "echo ok",
 			"frequency": "0 0 * * *",
@@ -137,11 +154,11 @@ func (ms *MockSuite) TestWebhostingCronCreateCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCronAvailableLanguages(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cronAvailableLanguage",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cronAvailableLanguage",
 		httpmock.NewStringResponder(200, `["php8.1","python3"]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "cron", "available-languages", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "cron", "available-languages", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"language":"php8.1"},{"language":"python3"}]`))
@@ -149,7 +166,7 @@ func (ms *MockSuite) TestWebhostingCronAvailableLanguages(assert, require *td.T)
 
 func (ms *MockSuite) TestWebhostingDatabaseDumpCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/database/db1/dump",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/database/db1/dump",
 		tdhttpmock.JSONBody(td.JSON(`{
 			"date": "yesterday",
 			"sendEmail": true
@@ -165,7 +182,7 @@ func (ms *MockSuite) TestWebhostingDatabaseDumpCreateCmd(assert, require *td.T) 
 
 func (ms *MockSuite) TestWebhostingDatabaseDumpGetCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/database/db1/dump/123",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/database/db1/dump/123",
 		httpmock.NewStringResponder(200, `{
 			"id": 123,
 			"status": "created",
@@ -177,7 +194,7 @@ func (ms *MockSuite) TestWebhostingDatabaseDumpGetCmd(assert, require *td.T) {
 		}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "db", "dump", "get", "myservice", "db1", "123", "--json")
+	out, err := cmd.Execute("webhosting", "db", "dump", "get", "myservice", "db1", "123", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
@@ -194,11 +211,11 @@ func (ms *MockSuite) TestWebhostingDatabaseDumpGetCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingDatabaseStatsCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/database/db1/statistics?period=daily&type=statement",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/database/db1/statistics?period=daily&type=statement",
 		httpmock.NewStringResponder(200, `[{"timestamp":1700000000,"value":12}]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "db", "stats", "myservice", "db1", "--period", "daily", "--type", "statement", "--json")
+	out, err := cmd.Execute("webhosting", "db", "stats", "myservice", "db1", "--period", "daily", "--type", "statement", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"timestamp":"2023-11-14T22:13:20Z","value":12}]`))
@@ -206,11 +223,11 @@ func (ms *MockSuite) TestWebhostingDatabaseStatsCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingAPICallCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/token",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/token",
 		httpmock.NewStringResponder(200, `{"token":"abc123"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "api", "call", "GET", "/hosting/web/myservice/token", "--json")
+	out, err := cmd.Execute("webhosting", "api", "call", "GET", "/hosting/web/myservice/token", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"details":{"token":"abc123"}}`))
@@ -218,7 +235,7 @@ func (ms *MockSuite) TestWebhostingAPICallCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingWebsiteCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/website",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/website",
 		tdhttpmock.JSONBody(td.JSON(`{
 			"path": "/www",
 			"vcsBranch": "main",
@@ -239,7 +256,7 @@ func (ms *MockSuite) TestWebhostingWebsiteCreateCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingUserCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/user",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/user",
 		tdhttpmock.JSONBody(td.JSON(`{
 			"home": "/home/site",
 			"login": "user1",
@@ -262,7 +279,7 @@ func (ms *MockSuite) TestWebhostingUserCreateCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingSSLCreationCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com/ssl",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/attachedDomain/example.com/ssl",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -274,7 +291,7 @@ func (ms *MockSuite) TestWebhostingSSLCreationCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingRuntimeCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/runtime",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/runtime",
 		tdhttpmock.JSONBody(td.JSON(`{
 			"name": "app",
 			"type": "nodejs",
@@ -303,11 +320,11 @@ func (ms *MockSuite) TestWebhostingRuntimeCreateCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingDomainPurgeAndDelete(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com/purgeCache",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/attachedDomain/example.com/purgeCache",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/attachedDomain/example.com",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -322,11 +339,11 @@ func (ms *MockSuite) TestWebhostingDomainPurgeAndDelete(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingDomainUpdate(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/attachedDomain/example.com",
 		httpmock.NewStringResponder(200, `{"domain":"example.com","path":"/old"}`),
 	)
 	httpmock.RegisterResponder(http.MethodPut,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/attachedDomain/example.com",
 		func(req *http.Request) (*http.Response, error) {
 			var body map[string]any
 			if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
@@ -350,7 +367,7 @@ func (ms *MockSuite) TestWebhostingDomainUpdate(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCronDelete(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cron/12",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cron/12",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -361,11 +378,11 @@ func (ms *MockSuite) TestWebhostingCronDelete(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingModuleList(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/module",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/module",
 		httpmock.NewStringResponder(200, `[123]`),
 	)
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/module/123",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/module/123",
 		httpmock.NewStringResponder(200, `{
 			"id": 123,
 			"moduleId": 2277,
@@ -378,15 +395,15 @@ func (ms *MockSuite) TestWebhostingModuleList(assert, require *td.T) {
 	)
 
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/moduleList",
+		"https://eu.api.ovh.com/v1/hosting/web/moduleList",
 		httpmock.NewStringResponder(200, `[2277]`),
 	)
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/moduleList/2277",
+		"https://eu.api.ovh.com/v1/hosting/web/moduleList/2277",
 		httpmock.NewStringResponder(200, `{"id":2277,"name":"WordPress","latest":true}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "module", "list", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "module", "list", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{
@@ -403,16 +420,16 @@ func (ms *MockSuite) TestWebhostingModuleList(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingModuleInstallByName(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/moduleList",
+		"https://eu.api.ovh.com/v1/hosting/web/moduleList",
 		httpmock.NewStringResponder(200, `[10]`),
 	)
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/moduleList/10",
+		"https://eu.api.ovh.com/v1/hosting/web/moduleList/10",
 		httpmock.NewStringResponder(200, `{"id":10,"name":"WordPress","latest":true}`),
 	)
 
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/module",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/module",
 		tdhttpmock.JSONBody(td.JSON(`{
 			"moduleId": 10,
 			"domain": "example.com",
@@ -439,15 +456,15 @@ func (ms *MockSuite) TestWebhostingModuleInstallByName(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOvhConfigList(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ovhConfig",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ovhConfig",
 		httpmock.NewStringResponder(200, `[1]`),
 	)
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ovhConfig/1",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ovhConfig/1",
 		httpmock.NewStringResponder(200, `{"id":1,"path":"/","engineName":"php","engineVersion":"8.1","environment":"production","status":"active"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "ovh-config", "list", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "ovh-config", "list", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"engineName":"php","engineVersion":"8.1","environment":"production","id":1,"path":"/","status":"active"}]`))
@@ -455,11 +472,11 @@ func (ms *MockSuite) TestWebhostingOvhConfigList(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOvhConfigGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ovhConfig/1",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ovhConfig/1",
 		httpmock.NewStringResponder(200, `{"id":1,"path":"/","engineName":"php"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "ovh-config", "get", "myservice", "1", "--json")
+	out, err := cmd.Execute("webhosting", "ovh-config", "get", "myservice", "1", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"engineName":"php","id":1,"path":"/"}`))
@@ -467,7 +484,7 @@ func (ms *MockSuite) TestWebhostingOvhConfigGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOvhConfigChange(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ovhConfig/1/changeConfiguration",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ovhConfig/1/changeConfiguration",
 		tdhttpmock.JSONBody(td.JSON(`{"engineName":"php","engineVersion":"8.1","environment":"production","httpFirewall":"security","container":"stable"}`)),
 		httpmock.NewStringResponder(200, `{"id":123}`),
 	)
@@ -478,7 +495,7 @@ func (ms *MockSuite) TestWebhostingOvhConfigChange(assert, require *td.T) {
 		"--environment", "production",
 		"--http-firewall", "security",
 		"--container", "stable",
-		"--json",
+		"-o", "json",
 	)
 
 	require.CmpNoError(err)
@@ -495,14 +512,14 @@ func (ms *MockSuite) TestWebhostingOvhConfigChangeFromFile(assert, require *td.T
 	require.CmpNoError(tmp.Close())
 
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ovhConfig/1/changeConfiguration",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ovhConfig/1/changeConfiguration",
 		tdhttpmock.JSONBody(td.JSON(`{"engineName":"php","engineVersion":"8.2"}`)),
 		httpmock.NewStringResponder(200, `{"id":555}`),
 	)
 
 	out, err := cmd.Execute("webhosting", "ovh-config", "change", "myservice", "1",
 		"--from-file", tmp.Name(),
-		"--json",
+		"-o", "json",
 	)
 
 	require.CmpNoError(err)
@@ -511,14 +528,14 @@ func (ms *MockSuite) TestWebhostingOvhConfigChangeFromFile(assert, require *td.T
 
 func (ms *MockSuite) TestWebhostingOvhConfigRollback(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ovhConfig/1/rollback",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ovhConfig/1/rollback",
 		tdhttpmock.JSONBody(td.JSON(`{"rollbackId":5}`)),
 		httpmock.NewStringResponder(200, `{"id":200}`),
 	)
 
 	out, err := cmd.Execute("webhosting", "ovh-config", "rollback", "myservice", "1",
 		"--rollback-id", "5",
-		"--json",
+		"-o", "json",
 	)
 
 	require.CmpNoError(err)
@@ -527,11 +544,11 @@ func (ms *MockSuite) TestWebhostingOvhConfigRollback(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOvhConfigCapabilities(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ovhConfigCapabilities",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ovhConfigCapabilities",
 		httpmock.NewStringResponder(200, `[{"version":"8.2","containerImage":["stable","legacy"]}]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "ovh-config", "capabilities", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "ovh-config", "capabilities", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"entries":[{"containerImage":["stable","legacy"],"version":"8.2"}]}`))
@@ -539,11 +556,11 @@ func (ms *MockSuite) TestWebhostingOvhConfigCapabilities(assert, require *td.T) 
 
 func (ms *MockSuite) TestWebhostingOvhConfigRecommended(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ovhConfigRecommendedValues",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ovhConfigRecommendedValues",
 		httpmock.NewStringResponder(200, `{"engineName":"php","engineVersion":"8.1","environment":"production","httpFirewall":"security","container":"stable"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "ovh-config", "recommended", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "ovh-config", "recommended", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"container":"stable","engineName":"php","engineVersion":"8.1","environment":"production","httpFirewall":"security"}`))
@@ -551,11 +568,11 @@ func (ms *MockSuite) TestWebhostingOvhConfigRecommended(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOvhConfigRefresh(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ovhConfigRefresh",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ovhConfigRefresh",
 		httpmock.NewStringResponder(200, `{"id":777}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "ovh-config", "refresh", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "ovh-config", "refresh", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"id":777}`))
@@ -563,19 +580,19 @@ func (ms *MockSuite) TestWebhostingOvhConfigRefresh(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOwnLogList(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs",
 		httpmock.NewStringResponder(200, `[1,2]`),
 	)
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs/1",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs/1",
 		httpmock.NewStringResponder(200, `{"id":1,"fqdn":"logs1","status":"ok","logs":"https://logs1","stats":"https://stats1"}`),
 	)
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs/2",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs/2",
 		httpmock.NewStringResponder(200, `{"id":2,"fqdn":"logs2","status":"ok","logs":"https://logs2","stats":"https://stats2"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "own-log", "list", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "own-log", "list", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"fqdn":"logs1","id":1,"logs":"https://logs1","stats":"https://stats1","status":"ok"},{"fqdn":"logs2","id":2,"logs":"https://logs2","stats":"https://stats2","status":"ok"}]`))
@@ -583,11 +600,11 @@ func (ms *MockSuite) TestWebhostingOwnLogList(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOwnLogGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs/1",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs/1",
 		httpmock.NewStringResponder(200, `{"id":1,"fqdn":"logs1"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "own-log", "get", "myservice", "1", "--json")
+	out, err := cmd.Execute("webhosting", "own-log", "get", "myservice", "1", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"fqdn":"logs1","id":1}`))
@@ -595,15 +612,15 @@ func (ms *MockSuite) TestWebhostingOwnLogGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOwnLogUserList(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs/1/userLogs",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs/1/userLogs",
 		httpmock.NewStringResponder(200, `["user1"]`),
 	)
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs/1/userLogs/user1",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs/1/userLogs/user1",
 		httpmock.NewStringResponder(200, `{"login":"user1","description":"desc","status":"ok","creationDate":"2025-01-01T00:00:00Z"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "own-log", "user", "list", "myservice", "1", "--json")
+	out, err := cmd.Execute("webhosting", "own-log", "user", "list", "myservice", "1", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"creationDate":"2025-01-01T00:00:00Z","description":"desc","login":"user1","status":"ok"}]`))
@@ -611,11 +628,11 @@ func (ms *MockSuite) TestWebhostingOwnLogUserList(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOwnLogUserGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs/1/userLogs/user1",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs/1/userLogs/user1",
 		httpmock.NewStringResponder(200, `{"login":"user1","description":"desc"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "own-log", "user", "get", "myservice", "1", "user1", "--json")
+	out, err := cmd.Execute("webhosting", "own-log", "user", "get", "myservice", "1", "user1", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"description":"desc","login":"user1"}`))
@@ -623,7 +640,7 @@ func (ms *MockSuite) TestWebhostingOwnLogUserGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOwnLogUserCreate(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs/1/userLogs",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs/1/userLogs",
 		tdhttpmock.JSONBody(td.JSON(`{"login":"user1","password":"Passw0rd!","description":"desc"}`)),
 		httpmock.NewStringResponder(200, `{"login":"user1"}`),
 	)
@@ -632,7 +649,7 @@ func (ms *MockSuite) TestWebhostingOwnLogUserCreate(assert, require *td.T) {
 		"--login", "user1",
 		"--password", "Passw0rd!",
 		"--description", "desc",
-		"--json",
+		"-o", "json",
 	)
 
 	require.CmpNoError(err)
@@ -641,7 +658,7 @@ func (ms *MockSuite) TestWebhostingOwnLogUserCreate(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOwnLogUserUpdate(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPut,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs/1/userLogs/user1",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs/1/userLogs/user1",
 		tdhttpmock.JSONBody(td.JSON(`{"description":"new"}`)),
 		httpmock.NewStringResponder(200, `{}`),
 	)
@@ -656,7 +673,7 @@ func (ms *MockSuite) TestWebhostingOwnLogUserUpdate(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOwnLogUserDelete(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs/1/userLogs/user1",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs/1/userLogs/user1",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -668,7 +685,7 @@ func (ms *MockSuite) TestWebhostingOwnLogUserDelete(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOwnLogUserChangePassword(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/ownLogs/1/userLogs/user1/changePassword",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/ownLogs/1/userLogs/user1/changePassword",
 		tdhttpmock.JSONBody(td.JSON(`{"password":"NewPass!"}`)),
 		httpmock.NewStringResponder(200, `{}`),
 	)
@@ -683,11 +700,11 @@ func (ms *MockSuite) TestWebhostingOwnLogUserChangePassword(assert, require *td.
 
 func (ms *MockSuite) TestWebhostingRuntimeAvailableTypes(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/runtimeAvailableTypes",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/runtimeAvailableTypes",
 		httpmock.NewStringResponder(200, `["nodejs-18","php-8.2"]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "runtime", "available-types", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "runtime", "available-types", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"types":[{"type":"nodejs-18"},{"type":"php-8.2"}]}`))
@@ -695,12 +712,12 @@ func (ms *MockSuite) TestWebhostingRuntimeAvailableTypes(assert, require *td.T) 
 
 func (ms *MockSuite) TestWebhostingRequestAction(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/request",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/request",
 		tdhttpmock.JSONBody(td.JSON(`{"action":"FLUSH_CACHE"}`)),
 		httpmock.NewStringResponder(200, `{"id":555}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "request-action", "myservice", "--action", "FLUSH_CACHE", "--json")
+	out, err := cmd.Execute("webhosting", "request-action", "myservice", "--action", "FLUSH_CACHE", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"id":555}`))
@@ -708,7 +725,7 @@ func (ms *MockSuite) TestWebhostingRequestAction(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingModuleInstall(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/module",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/module",
 		tdhttpmock.JSONBody(td.JSON(`{
 			"moduleId": 10,
 			"domain": "example.com",
@@ -735,15 +752,15 @@ func (ms *MockSuite) TestWebhostingModuleInstall(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingModuleCatalogList(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/moduleList?active=true",
+		"https://eu.api.ovh.com/v1/hosting/web/moduleList?active=true",
 		httpmock.NewStringResponder(200, `[1]`),
 	)
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/moduleList/1",
+		"https://eu.api.ovh.com/v1/hosting/web/moduleList/1",
 		httpmock.NewStringResponder(200, `{"id":1,"name":"WordPress","branch":"stable","version":"6.5","active":true,"latest":true}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "module", "catalog", "list", "--json")
+	out, err := cmd.Execute("webhosting", "module", "catalog", "list", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"active":true,"branch":"stable","id":1,"latest":true,"name":"WordPress","version":"6.5"}]`))
@@ -751,11 +768,11 @@ func (ms *MockSuite) TestWebhostingModuleCatalogList(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingModuleCatalogGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/moduleList/1",
+		"https://eu.api.ovh.com/v1/hosting/web/moduleList/1",
 		httpmock.NewStringResponder(200, `{"id":1,"name":"WordPress"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "module", "catalog", "get", "1", "--json")
+	out, err := cmd.Execute("webhosting", "module", "catalog", "get", "1", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"id":1,"name":"WordPress"}`))
@@ -763,11 +780,11 @@ func (ms *MockSuite) TestWebhostingModuleCatalogGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingOfferCapabilities(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/offerCapabilities?offer=START",
+		"https://eu.api.ovh.com/v1/hosting/web/offerCapabilities?offer=START",
 		httpmock.NewStringResponder(200, `{"support":"email","datacenter":"ovh"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "offer", "capabilities", "START", "--json")
+	out, err := cmd.Execute("webhosting", "offer", "capabilities", "START", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"datacenter":"ovh","support":"email"}`))
@@ -775,11 +792,11 @@ func (ms *MockSuite) TestWebhostingOfferCapabilities(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingVcsSupported(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/vcs/supported",
+		"https://eu.api.ovh.com/v1/hosting/web/vcs/supported",
 		httpmock.NewStringResponder(200, `["github"]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "offer", "vcs-supported", "--json")
+	out, err := cmd.Execute("webhosting", "offer", "vcs-supported", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"platform":"github"}]`))
@@ -787,11 +804,11 @@ func (ms *MockSuite) TestWebhostingVcsSupported(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingAbuseState(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/abuseState",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/abuseState",
 		httpmock.NewStringResponder(200, `{"status":"clean"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "abuse-state", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "abuse-state", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"status":"clean"}`))
@@ -799,7 +816,7 @@ func (ms *MockSuite) TestWebhostingAbuseState(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingRuntimeDelete(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/runtime/77",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/runtime/77",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -810,7 +827,7 @@ func (ms *MockSuite) TestWebhostingRuntimeDelete(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingWebsiteDeploy(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/website/5/deploy",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/website/5/deploy",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -821,18 +838,18 @@ func (ms *MockSuite) TestWebhostingWebsiteDeploy(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingWebsiteCreationCapabilities(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/websiteCreationCapabilities",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/websiteCreationCapabilities",
 		httpmock.NewStringResponder(200, `{"allowedWebsites":5,"existingWebsites":2}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "website", "creation-capabilities", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "website", "creation-capabilities", "myservice", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"allowedWebsites":5,"existingWebsites":2}`))
 }
 
 func (ms *MockSuite) TestWebhostingWebsiteDelete(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/website/5?deleteFiles=false",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/website/5?deleteFiles=false",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -845,7 +862,7 @@ func (ms *MockSuite) TestWebhostingWebsiteDeleteWithFiles(assert, require *td.T)
 	defer func() { webhosting.WebsiteDeleteFiles = false }()
 
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/website/5?deleteFiles=true",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/website/5?deleteFiles=true",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -854,16 +871,70 @@ func (ms *MockSuite) TestWebhostingWebsiteDeleteWithFiles(assert, require *td.T)
 	assert.String(out, "✅ Website deleted")
 }
 
+func (ms *MockSuite) TestWebhostingWebsiteList(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/website",
+		httpmock.NewStringResponder(200, `[8224]`),
+	)
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/website/8224",
+		httpmock.NewStringResponder(200, `{"id":8224,"name":"Website-www","path":"www","vcsUrl":"","vcsBranch":"","status":"created","domains":[]}`),
+	)
+
+	out, err := cmd.Execute("webhosting", "website", "list", "myservice", "-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[{"id":8224,"name":"Website-www","path":"www","vcsUrl":"","vcsBranch":"","status":"created","domains":[]}]`))
+}
+
+func (ms *MockSuite) TestWebhostingWebsiteGet(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/website/8224",
+		httpmock.NewStringResponder(200, `{"id":8224,"name":"Website-www","path":"www","vcsUrl":"","vcsBranch":"","status":"created","domains":[]}`),
+	)
+
+	out, err := cmd.Execute("webhosting", "website", "get", "myservice", "8224", "-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"id":8224,"name":"Website-www","path":"www","vcsUrl":"","vcsBranch":"","status":"created","domains":[]}`))
+}
+
+func (ms *MockSuite) TestWebhostingWebsiteUpdateEmptyBranch(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/website/8224",
+		func(req *http.Request) (*http.Response, error) {
+			var body map[string]any
+			json.NewDecoder(req.Body).Decode(&body)
+			// --branch "" must be sent as an explicit empty string, not omitted
+			assert.Cmp(body, map[string]any{"vcsBranch": ""})
+			return httpmock.NewStringResponse(200, `null`), nil
+		},
+	)
+
+	out, err := cmd.Execute("webhosting", "website", "update", "myservice", "8224", "--branch", "")
+	require.CmpNoError(err)
+	assert.String(out, "✅ Resource updated successfully")
+}
+
+func (ms *MockSuite) TestWebhostingRuntimeAvailableTypesAsObjects(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/runtimeAvailableTypes",
+		httpmock.NewStringResponder(200, `[{"type":"phpfpm-8.3"},{"type":"nodejs-18"}]`),
+	)
+
+	out, err := cmd.Execute("webhosting", "runtime", "available-types", "myservice", "-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"types":[{"type":"phpfpm-8.3"},{"type":"nodejs-18"}]}`))
+}
+
 func (ms *MockSuite) TestWebhostingVcsWebhooks(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/vcs/webhooks?path=%2Fwww&vcs=github",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/vcs/webhooks?path=%2Fwww&vcs=github",
 		httpmock.NewStringResponder(200, `{"push":"https://hook"}`),
 	)
 
 	out, err := cmd.Execute("webhosting", "vcs", "webhooks", "myservice",
 		"--path", "/www",
 		"--vcs", "github",
-		"--json",
+		"-o", "json",
 	)
 
 	require.CmpNoError(err)
@@ -872,11 +943,11 @@ func (ms *MockSuite) TestWebhostingVcsWebhooks(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingSSLGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com/ssl",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/attachedDomain/example.com/ssl",
 		httpmock.NewStringResponder(200, `{"provider":"LETSENCRYPT","status":"creating"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "ssl", "get", "myservice", "example.com", "--json")
+	out, err := cmd.Execute("webhosting", "ssl", "get", "myservice", "example.com", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"provider":"LETSENCRYPT","status":"creating"}`))
@@ -884,7 +955,7 @@ func (ms *MockSuite) TestWebhostingSSLGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingSSLDelete(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/attachedDomain/example.com/ssl",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/attachedDomain/example.com/ssl",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -895,7 +966,7 @@ func (ms *MockSuite) TestWebhostingSSLDelete(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingUserChangePassword(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/user/user1/changePassword",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/user/user1/changePassword",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -906,11 +977,11 @@ func (ms *MockSuite) TestWebhostingUserChangePassword(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingEnvVarUpdate(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/envVar/A",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/envVar/A",
 		httpmock.NewStringResponder(200, `{"key":"A","type":"plain","value":"1"}`),
 	)
 	httpmock.RegisterMatcherResponder(http.MethodPut,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/envVar/A",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/envVar/A",
 		tdhttpmock.JSONBody(td.JSON(`{"value":"2"}`)),
 		httpmock.NewStringResponder(200, `{}`),
 	)
@@ -922,7 +993,7 @@ func (ms *MockSuite) TestWebhostingEnvVarUpdate(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingBoostAndSnapshot(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/requestBoost",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/requestBoost",
 		func(req *http.Request) (*http.Response, error) {
 			var body map[string]any
 			require.CmpNoError(json.NewDecoder(req.Body).Decode(&body))
@@ -931,7 +1002,7 @@ func (ms *MockSuite) TestWebhostingBoostAndSnapshot(assert, require *td.T) {
 		},
 	)
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/restoreSnapshot",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/restoreSnapshot",
 		tdhttpmock.JSONBody(td.JSON(`{"backup":"daily"}`)),
 		httpmock.NewStringResponder(200, `{}`),
 	)
@@ -947,7 +1018,7 @@ func (ms *MockSuite) TestWebhostingBoostAndSnapshot(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingUnblockTCPOut(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/unblockTCPOut",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/unblockTCPOut",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -958,11 +1029,11 @@ func (ms *MockSuite) TestWebhostingUnblockTCPOut(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingBoostHistoryCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/boostHistory",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/boostHistory",
 		httpmock.NewStringResponder(200, `["2025-01-01T00:00:00Z"]`),
 	)
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/boostHistory/2025-01-01T00:00:00Z",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/boostHistory/2025-01-01T00:00:00Z",
 		httpmock.NewStringResponder(200, `{
 			"date": "2025-01-01T00:00:00Z",
 			"offer": "perf1",
@@ -971,7 +1042,7 @@ func (ms *MockSuite) TestWebhostingBoostHistoryCmd(assert, require *td.T) {
 		}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "boost-history", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "boost-history", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
@@ -988,11 +1059,11 @@ func (ms *MockSuite) TestWebhostingBoostHistoryCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCdnAvailableOptions(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/availableOptions",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/availableOptions",
 		httpmock.NewStringResponder(200, `[{"type":"cache","category":"rule","maxItems":5,"config":{"ttl":{"message":"time to live"}}}]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "cdn", "available-options", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "cdn", "available-options", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"options":[{"type":"cache","category":"rule","maxItems":5,"config":{"ttl":{"message":"time to live"}}}]}`))
@@ -1000,11 +1071,11 @@ func (ms *MockSuite) TestWebhostingCdnAvailableOptions(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCdnDomainStatistics(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/domain/example.com/statistics?period=week",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/domain/example.com/statistics?period=week",
 		httpmock.NewStringResponder(200, `[{"name":"requests","unit":"hits","points":[{"timestamp":"2024-01-01T00:00:00Z","value":10}]}]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "cdn", "domain", "statistics", "myservice", "example.com", "--period", "week", "--json")
+	out, err := cmd.Execute("webhosting", "cdn", "domain", "statistics", "myservice", "example.com", "--period", "week", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"series":[{"name":"requests","points":[{"timestamp":"2024-01-01T00:00:00Z","value":10}],"unit":"hits"}]}`))
@@ -1012,11 +1083,11 @@ func (ms *MockSuite) TestWebhostingCdnDomainStatistics(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCdnServiceInfoGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/serviceInfos",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/serviceInfos",
 		httpmock.NewStringResponder(200, `{"serviceId":123}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "cdn", "service-info", "get", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "cdn", "service-info", "get", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"serviceId":123}`))
@@ -1024,7 +1095,7 @@ func (ms *MockSuite) TestWebhostingCdnServiceInfoGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCdnServiceInfoUpdate(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/serviceInfosUpdate",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/serviceInfosUpdate",
 		func(req *http.Request) (*http.Response, error) {
 			var body map[string]any
 			require.CmpNoError(json.NewDecoder(req.Body).Decode(&body))
@@ -1041,11 +1112,11 @@ func (ms *MockSuite) TestWebhostingCdnServiceInfoUpdate(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCdnDomainList(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/domain",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/domain",
 		httpmock.NewStringResponder(200, `[{"name":"cdn.example.com","status":"ok"}]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "cdn", "domain", "list", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "cdn", "domain", "list", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"name":"cdn.example.com","status":"ok"}]`))
@@ -1053,11 +1124,11 @@ func (ms *MockSuite) TestWebhostingCdnDomainList(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCdnDomainOptionList(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/domain/example.com/option",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/domain/example.com/option",
 		httpmock.NewStringResponder(200, `[{"name":"cacheRule","type":"cache","enabled":true}]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "cdn", "domain", "option", "list", "myservice", "example.com", "--json")
+	out, err := cmd.Execute("webhosting", "cdn", "domain", "option", "list", "myservice", "example.com", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"enabled":true,"name":"cacheRule","type":"cache"}]`))
@@ -1065,7 +1136,7 @@ func (ms *MockSuite) TestWebhostingCdnDomainOptionList(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCdnDomainOptionAdd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/domain/example.com/option",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/domain/example.com/option",
 		func(req *http.Request) (*http.Response, error) {
 			var body map[string]any
 			require.CmpNoError(json.NewDecoder(req.Body).Decode(&body))
@@ -1084,7 +1155,7 @@ func (ms *MockSuite) TestWebhostingCdnDomainOptionAdd(assert, require *td.T) {
 		"--type", "cache",
 		"--enabled",
 		"--ttl", "120",
-		"--json",
+		"-o", "json",
 	)
 
 	require.CmpNoError(err)
@@ -1093,11 +1164,11 @@ func (ms *MockSuite) TestWebhostingCdnDomainOptionAdd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCdnDomainOptionGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/domain/example.com/option/cacheRule",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/domain/example.com/option/cacheRule",
 		httpmock.NewStringResponder(200, `{"name":"cacheRule","type":"cache","enabled":true}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "cdn", "domain", "option", "get", "myservice", "example.com", "cacheRule", "--json")
+	out, err := cmd.Execute("webhosting", "cdn", "domain", "option", "get", "myservice", "example.com", "cacheRule", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"enabled":true,"name":"cacheRule","type":"cache"}`))
@@ -1105,7 +1176,7 @@ func (ms *MockSuite) TestWebhostingCdnDomainOptionGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCdnDomainOptionUpdate(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPut,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/domain/example.com/option/cacheRule",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/domain/example.com/option/cacheRule",
 		func(req *http.Request) (*http.Response, error) {
 			var body map[string]any
 			require.CmpNoError(json.NewDecoder(req.Body).Decode(&body))
@@ -1125,7 +1196,7 @@ func (ms *MockSuite) TestWebhostingCdnDomainOptionUpdate(assert, require *td.T) 
 
 func (ms *MockSuite) TestWebhostingCdnDomainOptionDelete(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/domain/example.com/option/cacheRule",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/domain/example.com/option/cacheRule",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -1137,11 +1208,11 @@ func (ms *MockSuite) TestWebhostingCdnDomainOptionDelete(assert, require *td.T) 
 
 func (ms *MockSuite) TestWebhostingCdnOperationList(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/operation",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/operation",
 		httpmock.NewStringResponder(200, `[{"id":1,"function":"deploy","status":"todo"}]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "cdn", "operation", "list", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "cdn", "operation", "list", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"function":"deploy","id":1,"status":"todo"}]`))
@@ -1149,11 +1220,11 @@ func (ms *MockSuite) TestWebhostingCdnOperationList(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCdnOperationGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn/operation/42",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn/operation/42",
 		httpmock.NewStringResponder(200, `{"id":42,"function":"deploy","status":"todo"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "cdn", "operation", "get", "myservice", "42", "--json")
+	out, err := cmd.Execute("webhosting", "cdn", "operation", "get", "myservice", "42", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"function":"deploy","id":42,"status":"todo"}`))
@@ -1161,7 +1232,7 @@ func (ms *MockSuite) TestWebhostingCdnOperationGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingModuleDelete(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/module/10",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/module/10",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -1172,7 +1243,7 @@ func (ms *MockSuite) TestWebhostingModuleDelete(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingDatabaseCopyRestore(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/database/db1/copyRestore",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/database/db1/copyRestore",
 		tdhttpmock.JSONBody(td.JSON(`{"copyId":"123","flushDatabase":true}`)),
 		httpmock.NewStringResponder(200, `{}`),
 	)
@@ -1184,7 +1255,7 @@ func (ms *MockSuite) TestWebhostingDatabaseCopyRestore(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingDatabaseCopyGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/database/db1/copy/abc",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/database/db1/copy/abc",
 		httpmock.NewStringResponder(200, `{
 			"id": "abc",
 			"status": "done",
@@ -1194,7 +1265,7 @@ func (ms *MockSuite) TestWebhostingDatabaseCopyGet(assert, require *td.T) {
 		}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "db", "copy", "get", "myservice", "db1", "abc", "--json")
+	out, err := cmd.Execute("webhosting", "db", "copy", "get", "myservice", "db1", "abc", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
@@ -1208,11 +1279,11 @@ func (ms *MockSuite) TestWebhostingDatabaseCopyGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingDatabaseAvailableTypes(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/databaseAvailableType",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/databaseAvailableType",
 		httpmock.NewStringResponder(200, `["mysql","postgresql"]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "db", "available-type", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "db", "available-type", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"type":"mysql"},{"type":"postgresql"}]`))
@@ -1220,11 +1291,11 @@ func (ms *MockSuite) TestWebhostingDatabaseAvailableTypes(assert, require *td.T)
 
 func (ms *MockSuite) TestWebhostingDatabaseCapabilities(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/database/db1/capabilities",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/database/db1/capabilities",
 		httpmock.NewStringResponder(200, `{"changePassword":true,"delete":false}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "db", "capabilities", "myservice", "db1", "--json")
+	out, err := cmd.Execute("webhosting", "db", "capabilities", "myservice", "db1", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"changePassword":true,"delete":false}`))
@@ -1232,11 +1303,11 @@ func (ms *MockSuite) TestWebhostingDatabaseCapabilities(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingDatabaseAvailableVersions(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/databaseAvailableVersion?type=mysql",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/databaseAvailableVersion?type=mysql",
 		httpmock.NewStringResponder(200, `{"default":"8.0","list":["5.7","8.0"]}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "db", "available-version", "myservice", "--type", "mysql", "--json")
+	out, err := cmd.Execute("webhosting", "db", "available-version", "myservice", "--type", "mysql", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"default":"8.0","list":["5.7","8.0"]}`))
@@ -1244,7 +1315,7 @@ func (ms *MockSuite) TestWebhostingDatabaseAvailableVersions(assert, require *td
 
 func (ms *MockSuite) TestWebhostingDatabaseCreationCapabilities(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/databaseCreationCapabilities",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/databaseCreationCapabilities",
 		httpmock.NewStringResponder(200, `[{
 			"type": "sqlpro",
 			"isolation": "shared",
@@ -1254,7 +1325,7 @@ func (ms *MockSuite) TestWebhostingDatabaseCreationCapabilities(assert, require 
 		}]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "db", "creation-capabilities", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "db", "creation-capabilities", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{
@@ -1270,11 +1341,11 @@ func (ms *MockSuite) TestWebhostingDatabaseCreationCapabilities(assert, require 
 
 func (ms *MockSuite) TestWebhostingEmailInfoCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/email",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/email",
 		httpmock.NewStringResponder(200, `{"email":"alerts@example.com","state":"ok","bounce":1,"sentToday":5,"sent":100,"maxPerDay":200}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "email", "info", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "email", "info", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"email":"alerts@example.com","state":"ok","bounce":1,"sentToday":5,"sent":100,"maxPerDay":200}`))
@@ -1282,11 +1353,11 @@ func (ms *MockSuite) TestWebhostingEmailInfoCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingEmailUpdateCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/email",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/email",
 		httpmock.NewStringResponder(200, `{"email":"old@example.com"}`),
 	)
 	httpmock.RegisterResponder(http.MethodPut,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/email",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/email",
 		func(req *http.Request) (*http.Response, error) {
 			var body map[string]any
 			require.CmpNoError(json.NewDecoder(req.Body).Decode(&body))
@@ -1303,11 +1374,11 @@ func (ms *MockSuite) TestWebhostingEmailUpdateCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingEmailBouncesCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/email/bounces?limit=2",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/email/bounces?limit=2",
 		httpmock.NewStringResponder(200, `[{"date":1700000000,"to":"bounce@example.com","message":"error"}]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "email", "bounces", "myservice", "--limit", "2", "--json")
+	out, err := cmd.Execute("webhosting", "email", "bounces", "myservice", "--limit", "2", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"date":"2023-11-14T22:13:20Z","message":"error","to":"bounce@example.com"}]`))
@@ -1315,7 +1386,7 @@ func (ms *MockSuite) TestWebhostingEmailBouncesCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingEmailRequestCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/email/request",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/email/request",
 		tdhttpmock.JSONBody(td.JSON(`{"action":"BLOCK"}`)),
 		httpmock.NewStringResponder(200, `"ok"`),
 	)
@@ -1328,11 +1399,11 @@ func (ms *MockSuite) TestWebhostingEmailRequestCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingEmailVolumesCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/email/volumes",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/email/volumes",
 		httpmock.NewStringResponder(200, `[{"date":1700000000,"volume":42}]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "email", "volumes", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "email", "volumes", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"date":"2023-11-14T22:13:20Z","volume":42}]`))
@@ -1340,11 +1411,11 @@ func (ms *MockSuite) TestWebhostingEmailVolumesCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingEmailOptionListCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/emailOption",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/emailOption",
 		httpmock.NewStringResponder(200, `[123]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "email-option", "list", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "email-option", "list", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"id":"123"}]`))
@@ -1352,11 +1423,11 @@ func (ms *MockSuite) TestWebhostingEmailOptionListCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingEmailOptionGetCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/emailOption/123",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/emailOption/123",
 		httpmock.NewStringResponder(200, `{"id":123,"domain":"example.com","creationDate":"2025-01-01T00:00:00Z"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "email-option", "get", "myservice", "123", "--json")
+	out, err := cmd.Execute("webhosting", "email-option", "get", "myservice", "123", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"creationDate":"2025-01-01T00:00:00Z","domain":"example.com","id":123}`))
@@ -1364,7 +1435,7 @@ func (ms *MockSuite) TestWebhostingEmailOptionGetCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingEmailOptionServiceInfoCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/emailOption/123/serviceInfos",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/emailOption/123/serviceInfos",
 		httpmock.NewStringResponder(200, `{
 			"serviceId": 42,
 			"renew": {
@@ -1377,7 +1448,7 @@ func (ms *MockSuite) TestWebhostingEmailOptionServiceInfoCmd(assert, require *td
 		}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "email-option", "service-info", "myservice", "123", "--json")
+	out, err := cmd.Execute("webhosting", "email-option", "service-info", "myservice", "123", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"serviceId":42,"renew":{"automatic":null,"deleteAtExpiration":null,"forced":null,"manualPayment":null,"period":null}}`))
@@ -1385,7 +1456,7 @@ func (ms *MockSuite) TestWebhostingEmailOptionServiceInfoCmd(assert, require *td
 
 func (ms *MockSuite) TestWebhostingEmailOptionTerminateCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/emailOption/123/terminate",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/emailOption/123/terminate",
 		httpmock.NewStringResponder(200, `"done"`),
 	)
 
@@ -1397,11 +1468,11 @@ func (ms *MockSuite) TestWebhostingEmailOptionTerminateCmd(assert, require *td.T
 
 func (ms *MockSuite) TestWebhostingExtraSqlListCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/extraSqlPerso",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/extraSqlPerso",
 		httpmock.NewStringResponder(200, `["sqlA","sqlB"]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "extra-sql", "list", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "extra-sql", "list", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"id":"sqlA"},{"id":"sqlB"}]`))
@@ -1409,11 +1480,11 @@ func (ms *MockSuite) TestWebhostingExtraSqlListCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingExtraSqlGetCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/extraSqlPerso/sqlA",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/extraSqlPerso/sqlA",
 		httpmock.NewStringResponder(200, `{"name":"sqlA","status":"ok","database":4}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "extra-sql", "get", "myservice", "sqlA", "--json")
+	out, err := cmd.Execute("webhosting", "extra-sql", "get", "myservice", "sqlA", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"database":4,"name":"sqlA","status":"ok"}`))
@@ -1421,11 +1492,11 @@ func (ms *MockSuite) TestWebhostingExtraSqlGetCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingExtraSqlDatabasesCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/extraSqlPerso/sqlA/databases",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/extraSqlPerso/sqlA/databases",
 		httpmock.NewStringResponder(200, `["db1","db2"]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "extra-sql", "databases", "myservice", "sqlA", "--json")
+	out, err := cmd.Execute("webhosting", "extra-sql", "databases", "myservice", "sqlA", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"database":"db1"},{"database":"db2"}]`))
@@ -1433,11 +1504,11 @@ func (ms *MockSuite) TestWebhostingExtraSqlDatabasesCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingExtraSqlServiceInfoGetCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/extraSqlPerso/sqlA/serviceInfos",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/extraSqlPerso/sqlA/serviceInfos",
 		httpmock.NewStringResponder(200, `{"state":"ok","quantity":1}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "extra-sql", "service-info", "get", "myservice", "sqlA", "--json")
+	out, err := cmd.Execute("webhosting", "extra-sql", "service-info", "get", "myservice", "sqlA", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"quantity":1,"state":"ok"}`))
@@ -1445,7 +1516,7 @@ func (ms *MockSuite) TestWebhostingExtraSqlServiceInfoGetCmd(assert, require *td
 
 func (ms *MockSuite) TestWebhostingExtraSqlServiceInfoUpdateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/extraSqlPerso/sqlA/serviceInfosUpdate",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/extraSqlPerso/sqlA/serviceInfosUpdate",
 		tdhttpmock.JSONBody(td.JSON(`{"renew":{"automatic":true,"period":12}}`)),
 		httpmock.NewStringResponder(200, `{}`),
 	)
@@ -1461,7 +1532,7 @@ func (ms *MockSuite) TestWebhostingExtraSqlServiceInfoUpdateCmd(assert, require 
 
 func (ms *MockSuite) TestWebhostingExtraSqlTerminateCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/extraSqlPerso/sqlA/terminate",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/extraSqlPerso/sqlA/terminate",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -1473,11 +1544,11 @@ func (ms *MockSuite) TestWebhostingExtraSqlTerminateCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingSSHKeyGetCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/key/ssh",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/key/ssh",
 		httpmock.NewStringResponder(200, `{"publicKey":"ssh-rsa AAA"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "ssh-key", "get", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "ssh-key", "get", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"publicKey":"ssh-rsa AAA"}`))
@@ -1485,11 +1556,11 @@ func (ms *MockSuite) TestWebhostingSSHKeyGetCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingSSHKeyCreateCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/key/ssh",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/key/ssh",
 		httpmock.NewStringResponder(200, `{"publicKey":"ssh-rsa AAA"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "ssh-key", "create", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "ssh-key", "create", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"publicKey":"ssh-rsa AAA"}`))
@@ -1497,11 +1568,11 @@ func (ms *MockSuite) TestWebhostingSSHKeyCreateCmd(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingServiceInfoGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/serviceInfos",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/serviceInfos",
 		httpmock.NewStringResponder(200, `{"state":"ok"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "service-info", "get", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "service-info", "get", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"state":"ok"}`))
@@ -1509,7 +1580,7 @@ func (ms *MockSuite) TestWebhostingServiceInfoGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingServiceInfoUpdate(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPut,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/serviceInfos",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/serviceInfos",
 		tdhttpmock.JSONBody(td.JSON(`{"renew":{"automatic":true}}`)),
 		httpmock.NewStringResponder(200, `{}`),
 	)
@@ -1522,11 +1593,11 @@ func (ms *MockSuite) TestWebhostingServiceInfoUpdate(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingLocalSeoDirectories(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/localSeo/directoriesList?country=FR&offer=LOCAL",
+		"https://eu.api.ovh.com/v1/hosting/web/localSeo/directoriesList?country=FR&offer=LOCAL",
 		httpmock.NewStringResponder(200, `{"searchEngines":[{"code":"GOOGLE","displayName":"Google"}]}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "local-seo", "directories", "--country", "FR", "--offer", "LOCAL", "--json")
+	out, err := cmd.Execute("webhosting", "local-seo", "directories", "--country", "FR", "--offer", "LOCAL", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"searchEngines":[{"code":"GOOGLE","displayName":"Google"}]}`))
@@ -1534,11 +1605,11 @@ func (ms *MockSuite) TestWebhostingLocalSeoDirectories(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingLocalSeoEmailAvailability(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/localSeo/emailAvailability?email=test%40example.com",
+		"https://eu.api.ovh.com/v1/hosting/web/localSeo/emailAvailability?email=test%40example.com",
 		httpmock.NewStringResponder(200, `{"availability":"available"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "local-seo", "email-availability", "--email", "test@example.com", "--json")
+	out, err := cmd.Execute("webhosting", "local-seo", "email-availability", "--email", "test@example.com", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"availability":"available"}`))
@@ -1546,11 +1617,11 @@ func (ms *MockSuite) TestWebhostingLocalSeoEmailAvailability(assert, require *td
 
 func (ms *MockSuite) TestWebhostingLocalSeoEmailAvailabilityService(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/localSeo/emailAvailability?email=test%40example.com",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/localSeo/emailAvailability?email=test%40example.com",
 		httpmock.NewStringResponder(200, `{"availability":"alreadyUsed","serviceName":"myservice"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "local-seo", "email-availability", "myservice", "--email", "test@example.com", "--json")
+	out, err := cmd.Execute("webhosting", "local-seo", "email-availability", "myservice", "--email", "test@example.com", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"availability":"alreadyUsed","serviceName":"myservice"}`))
@@ -1558,7 +1629,7 @@ func (ms *MockSuite) TestWebhostingLocalSeoEmailAvailabilityService(assert, requ
 
 func (ms *MockSuite) TestWebhostingLocalSeoVisibilityCheck(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/localSeo/visibilityCheck",
+		"https://eu.api.ovh.com/v1/hosting/web/localSeo/visibilityCheck",
 		tdhttpmock.JSONBody(td.JSON(`{"country":"FR","name":"My shop","street":"1 rue","zip":"75001"}`)),
 		httpmock.NewStringResponder(200, `{"alreadyManaged":false,"searchData":{"id":1,"token":"abc","name":"My shop"}}`),
 	)
@@ -1568,7 +1639,7 @@ func (ms *MockSuite) TestWebhostingLocalSeoVisibilityCheck(assert, require *td.T
 		"--name", "My shop",
 		"--street", "1 rue",
 		"--zip", "75001",
-		"--json",
+		"-o", "json",
 	)
 
 	require.CmpNoError(err)
@@ -1577,7 +1648,7 @@ func (ms *MockSuite) TestWebhostingLocalSeoVisibilityCheck(assert, require *td.T
 
 func (ms *MockSuite) TestWebhostingLocalSeoVisibilityCheckNotFound(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/localSeo/visibilityCheck",
+		"https://eu.api.ovh.com/v1/hosting/web/localSeo/visibilityCheck",
 		httpmock.NewStringResponder(400, `{"message":"Location not found","httpCode":400,"errorCode":"notFound"}`),
 	)
 
@@ -1586,7 +1657,7 @@ func (ms *MockSuite) TestWebhostingLocalSeoVisibilityCheckNotFound(assert, requi
 		"--name", "Unknown",
 		"--street", "1 rue",
 		"--zip", "75001",
-		"--json",
+		"-o", "json",
 	)
 
 	require.CmpNoError(err)
@@ -1595,14 +1666,14 @@ func (ms *MockSuite) TestWebhostingLocalSeoVisibilityCheckNotFound(assert, requi
 
 func (ms *MockSuite) TestWebhostingLocalSeoVisibilityResult(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/localSeo/visibilityCheckResult?directory=GOOGLE&id=1&token=abc",
+		"https://eu.api.ovh.com/v1/hosting/web/localSeo/visibilityCheckResult?directory=GOOGLE&id=1&token=abc",
 		httpmock.NewStringResponder(200, `[{"name":"My shop","city":"Paris","listingUrl":"https://example.com"}]`),
 	)
 
 	out, err := cmd.Execute("webhosting", "local-seo", "visibility-result", "1",
 		"--directory", "GOOGLE",
 		"--token", "abc",
-		"--json",
+		"-o", "json",
 	)
 
 	require.CmpNoError(err)
@@ -1611,11 +1682,11 @@ func (ms *MockSuite) TestWebhostingLocalSeoVisibilityResult(assert, require *td.
 
 func (ms *MockSuite) TestWebhostingLocalSeoAccountList(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/localSeo/account",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/localSeo/account",
 		httpmock.NewStringResponder(200, `[1,2]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "local-seo", "account", "list", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "local-seo", "account", "list", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"id":"1"},{"id":"2"}]`))
@@ -1623,11 +1694,11 @@ func (ms *MockSuite) TestWebhostingLocalSeoAccountList(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingLocalSeoAccountGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/localSeo/account/1",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/localSeo/account/1",
 		httpmock.NewStringResponder(200, `{"id":1,"email":"user@example.com","status":"ok"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "local-seo", "account", "get", "myservice", "1", "--json")
+	out, err := cmd.Execute("webhosting", "local-seo", "account", "get", "myservice", "1", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"email":"user@example.com","id":1,"status":"ok"}`))
@@ -1635,7 +1706,7 @@ func (ms *MockSuite) TestWebhostingLocalSeoAccountGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingLocalSeoAccountLogin(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/localSeo/account/1/login",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/localSeo/account/1/login",
 		httpmock.NewStringResponder(200, `"https://sso.example.com"`),
 	)
 
@@ -1647,11 +1718,11 @@ func (ms *MockSuite) TestWebhostingLocalSeoAccountLogin(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingLocalSeoLocationList(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/localSeo/location",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/localSeo/location",
 		httpmock.NewStringResponder(200, `[10]`),
 	)
 
-	out, err := cmd.Execute("webhosting", "local-seo", "location", "list", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "local-seo", "location", "list", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"id":"10"}]`))
@@ -1659,11 +1730,11 @@ func (ms *MockSuite) TestWebhostingLocalSeoLocationList(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingLocalSeoLocationGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/localSeo/location/10",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/localSeo/location/10",
 		httpmock.NewStringResponder(200, `{"id":10,"name":"Shop","status":"ok"}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "local-seo", "location", "get", "myservice", "10", "--json")
+	out, err := cmd.Execute("webhosting", "local-seo", "location", "get", "myservice", "10", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"id":10,"name":"Shop","status":"ok"}`))
@@ -1671,7 +1742,7 @@ func (ms *MockSuite) TestWebhostingLocalSeoLocationGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingLocalSeoLocationServiceInfoUpdate(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/localSeo/location/10/serviceInfosUpdate",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/localSeo/location/10/serviceInfosUpdate",
 		tdhttpmock.JSONBody(td.JSON(`{"renew":{"automatic":true}}`)),
 		httpmock.NewStringResponder(200, `{}`),
 	)
@@ -1686,7 +1757,7 @@ func (ms *MockSuite) TestWebhostingLocalSeoLocationServiceInfoUpdate(assert, req
 
 func (ms *MockSuite) TestWebhostingLocalSeoLocationTerminate(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/localSeo/location/10/terminate",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/localSeo/location/10/terminate",
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
@@ -1698,7 +1769,7 @@ func (ms *MockSuite) TestWebhostingLocalSeoLocationTerminate(assert, require *td
 
 func (ms *MockSuite) TestWebhostingCdnGet(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cdn",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cdn",
 		httpmock.NewStringResponder(200, `{
 			"domain": "cdn.example.com",
 			"type": "basic",
@@ -1709,7 +1780,7 @@ func (ms *MockSuite) TestWebhostingCdnGet(assert, require *td.T) {
 		}`),
 	)
 
-	out, err := cmd.Execute("webhosting", "cdn", "get", "myservice", "--json")
+	out, err := cmd.Execute("webhosting", "cdn", "get", "myservice", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
@@ -1724,7 +1795,7 @@ func (ms *MockSuite) TestWebhostingCdnGet(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingDatabaseImport(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/database/db1/import",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/database/db1/import",
 		tdhttpmock.JSONBody(td.JSON(`{"documentId":"doc123","flushDatabase":true,"sendEmail":true}`)),
 		httpmock.NewStringResponder(200, `{}`),
 	)
@@ -1736,7 +1807,7 @@ func (ms *MockSuite) TestWebhostingDatabaseImport(assert, require *td.T) {
 
 func (ms *MockSuite) TestWebhostingCronUpdate(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPut,
-		"https://eu.api.ovh.com/1.0/hosting/web/myservice/cron/12",
+		"https://eu.api.ovh.com/v1/hosting/web/myservice/cron/12",
 		func(req *http.Request) (*http.Response, error) {
 			var body map[string]any
 			require.CmpNoError(json.NewDecoder(req.Body).Decode(&body))
