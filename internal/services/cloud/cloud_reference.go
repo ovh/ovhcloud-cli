@@ -176,7 +176,7 @@ func ListRancherAvailablePlans(cmd *cobra.Command, _ []string) {
 	common.ManageListRequestNoExpand(endpoint, []string{"name", "status", "message"}, flags.GenericFilters)
 }
 
-func ListManagedDatabasesPlans(_ *cobra.Command, _ []string) {
+func ListManagedDatabasePlans(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
