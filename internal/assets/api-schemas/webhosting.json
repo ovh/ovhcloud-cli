@@ -2090,8 +2090,7 @@
           },
           "displayName": {
             "type": "string",
-            "description": "Set the name displayed in ManagerV6 for your hosting (max 50 chars)",
-            "nullable": true
+            "description": "Set the name displayed in ManagerV6 for your hosting (max 50 chars, empty string resets to service name)"
           },
           "filer": {
             "type": "string",
@@ -2375,8 +2374,7 @@
           },
           "displayName": {
             "type": "string",
-            "description": "Set the name displayed in ManagerV6 for your hosting (max 50 chars)",
-            "nullable": true
+            "description": "Set the name displayed in ManagerV6 for your hosting (max 50 chars, empty string resets to service name)"
           },
           "filer": {
             "type": "string",

@@ -135,9 +135,10 @@ var (
 	sslTemplate string
 
 	WebHostingSpec struct {
-		DisplayName string `json:"displayName,omitempty"`
+		DisplayName *string `json:"displayName,omitempty"`
 	}
 
+	WebHostingDisplayName      string
 	WebHostingClearDisplayName bool
 
 	// Attached domains
@@ -334,6 +335,14 @@ func GetWebHosting(_ *cobra.Command, args []string) {
 }
 
 func EditWebHosting(cmd *cobra.Command, args []string) {
+	switch {
+	case WebHostingClearDisplayName:
+		empty := ""
+		WebHostingSpec.DisplayName = &empty
+	case cmd.Flags().Changed("display-name"):
+		WebHostingSpec.DisplayName = &WebHostingDisplayName
+	}
+
 	if err := common.EditResource(
 		cmd,
 		"/hosting/web/{serviceName}",
@@ -348,12 +357,12 @@ func EditWebHosting(cmd *cobra.Command, args []string) {
 
 func serviceEndpoint(serviceName, suffix string) string {
 	if suffix == "" {
-		return fmt.Sprintf("/hosting/web/%s", url.PathEscape(serviceName))
+		return fmt.Sprintf("/v1/hosting/web/%s", url.PathEscape(serviceName))
 	}
 	if strings.HasPrefix(suffix, "/") {
-		return fmt.Sprintf("/hosting/web/%s%s", url.PathEscape(serviceName), suffix)
+		return fmt.Sprintf("/v1/hosting/web/%s%s", url.PathEscape(serviceName), suffix)
 	}
-	return fmt.Sprintf("/hosting/web/%s/%s", url.PathEscape(serviceName), suffix)
+	return fmt.Sprintf("/v1/hosting/web/%s/%s", url.PathEscape(serviceName), suffix)
 }
 
 func renderDetails(body any) {
@@ -367,7 +376,7 @@ func ListAttachedDomains(cmd *cobra.Command, args []string) {
 }
 
 func FindHostingByDomain(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/hosting/web/attachedDomain?domain=%s", url.QueryEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/hosting/web/attachedDomain?domain=%s", url.QueryEscape(args[0]))
 	var services []string
 	if err := httpLib.Client.Get(endpoint, &services); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to find hosting for domain: %s", err)
@@ -385,7 +394,7 @@ func FindHostingByDomain(_ *cobra.Command, args []string) {
 }
 
 func ListAvailableHostingOffers(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/hosting/web/availableOffer?domain=%s", url.QueryEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/hosting/web/availableOffer?domain=%s", url.QueryEscape(args[0]))
 	var offers []string
 	if err := httpLib.Client.Get(endpoint, &offers); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch available offers: %s", err)
@@ -404,7 +413,7 @@ func ListAvailableHostingOffers(_ *cobra.Command, args []string) {
 
 func ListHostingIncidents(_ *cobra.Command, _ []string) {
 	var incidents []string
-	if err := httpLib.Client.Get("/hosting/web/incident", &incidents); err != nil {
+	if err := httpLib.Client.Get("/v1/hosting/web/incident", &incidents); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch incidents: %s", err)
 		return
 	}
@@ -779,8 +788,12 @@ func ListEmailBounces(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("%s?limit=%d", serviceEndpoint(args[0], "email/bounces"), EmailBounceLimit)
 	var bounces []map[string]any
 	if err := httpLib.Client.Get(endpoint, &bounces); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch bounces: %s", err)
-		return
+		if ovhErr, ok := err.(*ovh.APIError); ok && ovhErr.Code == 404 {
+			bounces = []map[string]any{}
+		} else {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch bounces: %s", err)
+			return
+		}
 	}
 
 	for _, bounce := range bounces {
@@ -1094,13 +1107,13 @@ func ListDatabaseDumps(_ *cobra.Command, args []string) {
 
 	display.RenderTable(dumps, []string{"id", "date", "type", "status", "urlPreview preview"}, &flags.OutputFormatConfig)
 
-	if len(downloadLinks) > 0 && !flags.OutputFormatConfig.JsonOutput && !flags.OutputFormatConfig.YamlOutput && flags.OutputFormatConfig.CustomFormat == "" {
+	if len(downloadLinks) > 0 && !flags.OutputFormatConfig.IsJson() && !flags.OutputFormatConfig.IsYaml() && flags.OutputFormatConfig.CustomFormat() == "" {
 		var builder strings.Builder
 		builder.WriteString("\nFull download URLs:\n")
 		for i, link := range downloadLinks {
 			builder.WriteString(fmt.Sprintf("  %d. %s\n", i+1, link))
 		}
-		display.OutputInfo(&flags.OutputFormatConfig, nil, safeMessageString(builder.String()))
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "%s", safeMessageString(builder.String()))
 	}
 }
 
@@ -1128,8 +1141,8 @@ func GetDatabaseDump(_ *cobra.Command, args []string) {
 
 	display.OutputObject(dump, args[2], databaseDumpTemplate, &flags.OutputFormatConfig)
 
-	if fullURL != "" && !flags.OutputFormatConfig.JsonOutput && !flags.OutputFormatConfig.YamlOutput && flags.OutputFormatConfig.CustomFormat == "" {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, safeMessageString("Download URL: "+fullURL))
+	if fullURL != "" && !flags.OutputFormatConfig.IsJson() && !flags.OutputFormatConfig.IsYaml() && flags.OutputFormatConfig.CustomFormat() == "" {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "%s", safeMessageString("Download URL: "+fullURL))
 	}
 }
 
@@ -1491,7 +1504,7 @@ func ListModuleCatalog(_ *cobra.Command, _ []string) {
 }
 
 func GetModuleCatalog(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/hosting/web/moduleList/%s", url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/hosting/web/moduleList/%s", url.PathEscape(args[0]))
 	var module map[string]any
 	if err := httpLib.Client.Get(endpoint, &module); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch module catalog entry: %s", err)
@@ -1501,7 +1514,7 @@ func GetModuleCatalog(_ *cobra.Command, args []string) {
 }
 
 func GetOfferCapabilities(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/hosting/web/offerCapabilities?offer=%s", url.QueryEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/hosting/web/offerCapabilities?offer=%s", url.QueryEscape(args[0]))
 	var capabilities map[string]any
 	if err := httpLib.Client.Get(endpoint, &capabilities); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch offer capabilities: %s", err)
@@ -1512,7 +1525,7 @@ func GetOfferCapabilities(_ *cobra.Command, args []string) {
 
 func ListSupportedVcs(_ *cobra.Command, _ []string) {
 	var vcs []string
-	if err := httpLib.Client.Get("/hosting/web/vcs/supported", &vcs); err != nil {
+	if err := httpLib.Client.Get("/v1/hosting/web/vcs/supported", &vcs); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch supported VCS platforms: %s", err)
 		return
 	}
@@ -1559,7 +1572,7 @@ func fetchModuleInfos(moduleIDs []int) (map[int]map[string]any, error) {
 		}
 		seen[id] = struct{}{}
 
-		endpoint := fmt.Sprintf("/hosting/web/moduleList/%d", id)
+		endpoint := fmt.Sprintf("/v1/hosting/web/moduleList/%d", id)
 		var moduleInfo map[string]any
 		if err := httpLib.Client.Get(endpoint, &moduleInfo); err != nil {
 			return nil, fmt.Errorf("failed to fetch module catalog entry %d: %w", id, err)
@@ -1570,7 +1583,7 @@ func fetchModuleInfos(moduleIDs []int) (map[int]map[string]any, error) {
 }
 
 func fetchFullModuleCatalog() (map[int]map[string]any, error) {
-	items, err := httpLib.FetchExpandedArray("/hosting/web/moduleList", "")
+	items, err := httpLib.FetchExpandedArray("/v1/hosting/web/moduleList", "")
 	if err != nil {
 		return nil, err
 	}
@@ -1585,7 +1598,7 @@ func fetchFullModuleCatalog() (map[int]map[string]any, error) {
 }
 
 func fetchModuleCatalogWithFilters(query url.Values) ([]map[string]any, error) {
-	path := "/hosting/web/moduleList"
+	path := "/v1/hosting/web/moduleList"
 	if encoded := query.Encode(); encoded != "" {
 		path += "?" + encoded
 	}
@@ -1595,7 +1608,7 @@ func fetchModuleCatalogWithFilters(query url.Values) ([]map[string]any, error) {
 		return nil, fmt.Errorf("failed to fetch module ids: %w", err)
 	}
 
-	objects, err := httpLib.FetchObjectsParallel[map[string]any]("/hosting/web/moduleList/%s", ids, flags.IgnoreErrors)
+	objects, err := httpLib.FetchObjectsParallel[map[string]any]("/v1/hosting/web/moduleList/%s", ids, flags.IgnoreErrors)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch module catalog entries: %w", err)
 	}
@@ -2045,7 +2058,16 @@ func ListRuntimeAvailableTypes(_ *cobra.Command, args []string) {
 
 	var rows []map[string]any
 	for _, entry := range types {
-		rows = append(rows, map[string]any{"type": fmt.Sprintf("%v", entry)})
+		obj, ok := entry.(map[string]any)
+		if !ok {
+			rows = append(rows, map[string]any{"type": fmt.Sprintf("%v", entry)})
+			continue
+		}
+		if t, exists := obj["type"]; exists {
+			rows = append(rows, map[string]any{"type": fmt.Sprintf("%v", t)})
+		} else {
+			rows = append(rows, obj)
+		}
 	}
 
 	rows, err = filtersLib.FilterLines(rows, flags.GenericFilters)
@@ -2227,13 +2249,13 @@ func CreateWebsite(cmd *cobra.Command, args []string) {
 
 func UpdateWebsite(cmd *cobra.Command, args []string) {
 	params := map[string]any{}
-	if WebsitePath != "" {
+	if cmd.Flags().Changed("path") {
 		params["path"] = WebsitePath
 	}
-	if WebsiteVcsURL != "" {
+	if cmd.Flags().Changed("vcs-url") {
 		params["vcsUrl"] = WebsiteVcsURL
 	}
-	if WebsiteBranch != "" {
+	if cmd.Flags().Changed("branch") {
 		params["vcsBranch"] = WebsiteBranch
 	}
 
@@ -2970,7 +2992,7 @@ func ListLocalSeoDirectories(_ *cobra.Command, _ []string) {
 	query.Set("country", LocalSEOCountry)
 	query.Set("offer", LocalSEOOffer)
 
-	endpoint := fmt.Sprintf("/hosting/web/localSeo/directoriesList?%s", query.Encode())
+	endpoint := fmt.Sprintf("/v1/hosting/web/localSeo/directoriesList?%s", query.Encode())
 	var directories map[string]any
 	if err := httpLib.Client.Get(endpoint, &directories); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch directories: %s", err)
@@ -2992,7 +3014,7 @@ func CheckLocalSeoEmailAvailability(_ *cobra.Command, args []string) {
 	var endpoint string
 	label := LocalSEOEmail
 	if len(args) == 0 {
-		endpoint = fmt.Sprintf("/hosting/web/localSeo/emailAvailability?%s", query.Encode())
+		endpoint = fmt.Sprintf("/v1/hosting/web/localSeo/emailAvailability?%s", query.Encode())
 	} else {
 		endpoint = fmt.Sprintf("%s?%s", serviceEndpoint(args[0], "localSeo/emailAvailability"), query.Encode())
 		label = fmt.Sprintf("%s • %s", args[0], LocalSEOEmail)
@@ -3024,7 +3046,7 @@ func RunLocalSeoVisibilityCheck(cmd *cobra.Command, _ []string) {
 	result, err := common.CreateResource(
 		cmd,
 		"/hosting/web/localSeo/visibilityCheck",
-		"/hosting/web/localSeo/visibilityCheck",
+		"/v1/hosting/web/localSeo/visibilityCheck",
 		localSeoVisibilityExample,
 		params,
 		assets.WebhostingOpenapiSchema,
@@ -3063,7 +3085,7 @@ func GetLocalSeoVisibilityResult(_ *cobra.Command, args []string) {
 	query.Set("id", args[0])
 	query.Set("token", LocalSEOToken)
 
-	endpoint := fmt.Sprintf("/hosting/web/localSeo/visibilityCheckResult?%s", query.Encode())
+	endpoint := fmt.Sprintf("/v1/hosting/web/localSeo/visibilityCheckResult?%s", query.Encode())
 	var results []map[string]any
 	if err := httpLib.Client.Get(endpoint, &results); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch visibility results: %s", err)
@@ -3337,6 +3359,9 @@ func CallWebHostingAPI(cmd *cobra.Command, args []string) {
 	path := args[1]
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
+	}
+	if !strings.HasPrefix(path, "/v1/") {
+		path = "/v1" + path
 	}
 
 	var (

@@ -9,11 +9,13 @@ Edit the given WebHosting
 ### Options
 
 ```
-      --clear-display-name    Clear the display name (set default value)
+      --clear-display-name    Clear the display name (reset to service name)
       --display-name string   Display name of the WebHosting
       --editor                Use a text editor to define parameters
   -h, --help                  help for edit
 ```
+
+Passing `--clear-display-name` sends an empty display name, which makes the service use its default name (the service identifier).
 
 ### Options inherited from parent commands
 
