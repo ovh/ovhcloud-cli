@@ -2,10 +2,6 @@
 
 Retrieve information and manage your WebHosting services
 
-```
-  ovhcloud webhosting [command]
-```
-
 ### Options
 
 ```
@@ -63,8 +59,9 @@ Retrieve information and manage your WebHosting services
 * [ovhcloud webhosting ssl](ovhcloud_webhosting_ssl.md)	 - Manage SSL
 * [ovhcloud webhosting tasks](ovhcloud_webhosting_tasks.md)	 - Manage tasks
 * [ovhcloud webhosting terminate](ovhcloud_webhosting_terminate.md)	 - Terminate service
-* [ovhcloud webhosting token](ovhcloud_webhosting_token.md)	 - Use to link an external domain. This token must be added to a TXT record on your DNS zone using the ovhcontrol subdomain.
-* [ovhcloud webhosting unblock-tcp-out](ovhcloud_webhosting_unblock-tcp-out.md)	 - Request a reset of outgoing TCP restrictions applied to your hosting service.
-* [ovhcloud webhosting user](ovhcloud_webhosting_user.md)	 - Create and manage the FTP/SSH users allowed to access your web hosting space.
+* [ovhcloud webhosting token](ovhcloud_webhosting_token.md)	 - Get DNS verification token
+* [ovhcloud webhosting unblock-tcp-out](ovhcloud_webhosting_unblock-tcp-out.md)	 - Unblock outgoing TCP connections
+* [ovhcloud webhosting user](ovhcloud_webhosting_user.md)	 - Manage FTP/SSH users
 * [ovhcloud webhosting vcs](ovhcloud_webhosting_vcs.md)	 - Manage VCS integrations
 * [ovhcloud webhosting website](ovhcloud_webhosting_website.md)	 - Manage websites deployments
+
