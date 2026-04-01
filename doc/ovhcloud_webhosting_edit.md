@@ -3,7 +3,7 @@
 Edit the given WebHosting
 
 ```
-  ovhcloud webhosting edit <service_name> [flags]
+ovhcloud webhosting edit <service_name> [flags]
 ```
 
 ### Options
@@ -14,8 +14,6 @@ Edit the given WebHosting
       --editor                Use a text editor to define parameters
   -h, --help                  help for edit
 ```
-
-Passing `--clear-display-name` sends an empty display name, which makes the service use its default name (the service identifier).
 
 ### Options inherited from parent commands
 
@@ -39,3 +37,4 @@ Passing `--clear-display-name` sends an empty display name, which makes the serv
 ### SEE ALSO
 
 * [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+

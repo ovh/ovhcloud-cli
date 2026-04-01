@@ -3,7 +3,7 @@
 List your WebHosting services
 
 ```
-  ovhcloud webhosting list [flags]
+ovhcloud webhosting list [flags]
 ```
 
 ### Options
@@ -41,3 +41,4 @@ List your WebHosting services
 ### SEE ALSO
 
 * [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+
