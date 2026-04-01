@@ -100,7 +100,7 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 	managedDatabaseReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:   "list-plans",
 		Short: "List available database plans in the given cloud project",
-		Run:   cloud.ListManagedDatabasesPlans,
+		Run:   cloud.ListManagedDatabasePlans,
 		Args:  cobra.NoArgs,
 	}))
 

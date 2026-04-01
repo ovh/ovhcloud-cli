@@ -677,7 +677,7 @@ func ListManagedDatabaseRoles(_ *cobra.Command, args []string) {
 	}
 
 	if !slices.Contains(ManagedDatabaseRoleValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseValidEngines, ", "))
+		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseRoleValidEngines, ", "))
 		return
 	}
 
