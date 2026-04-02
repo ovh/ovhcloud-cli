@@ -133,6 +133,10 @@ var (
 	vcsWebhooksTemplate string
 	//go:embed templates/ssl.tmpl
 	sslTemplate string
+	//go:embed templates/ssl_service.tmpl
+	sslServiceTemplate string
+	//go:embed templates/ssl_report.tmpl
+	sslReportTemplate string
 
 	WebHostingSpec struct {
 		DisplayName *string `json:"displayName,omitempty"`
@@ -159,6 +163,7 @@ var (
 	CronLanguage  string
 	CronEmail     string
 	CronDesc      string
+	CronStatus    string
 
 	// Database
 	DatabaseType             string
@@ -215,6 +220,7 @@ var (
 	WebsiteVcsURL      string
 	WebsiteBranch      string
 	WebsiteDeleteFiles bool
+	WebsiteDeployReset bool
 
 	// Users
 	UserLogin          string
@@ -239,7 +245,12 @@ var (
 	BoostOffer       string
 	RestoreBackup    string
 	StatisticsPeriod string
-	StatisticsType   string
+
+	// SSL service-level
+	SSLCertificate string
+	SSLChain       string
+	SSLKey         string
+	StatisticsType string
 
 	// OVH Config
 	OvhConfigPathFilter     string
@@ -322,8 +333,7 @@ const ovhConfigChangeExample = `{
 const ownLogUserCreateExample = `{
   "login": "",
   "password": "",
-  "description": "",
-  "ownLogsId": 0
+  "description": ""
 }`
 
 func ListWebHosting(_ *cobra.Command, _ []string) {
@@ -588,6 +598,9 @@ func CreateCron(cmd *cobra.Command, args []string) {
 	if CronDesc != "" {
 		params["description"] = CronDesc
 	}
+	if CronStatus != "" {
+		params["status"] = CronStatus
+	}
 
 	endpoint := serviceEndpoint(args[0], "cron")
 	const defaultCronExample = `{
@@ -595,7 +608,8 @@ func CreateCron(cmd *cobra.Command, args []string) {
   "frequency": "",
   "language": "",
   "email": "",
-  "description": ""
+  "description": "",
+  "status": ""
 }`
 	if _, err := common.CreateResource(
 		cmd,
@@ -629,6 +643,9 @@ func UpdateCron(cmd *cobra.Command, args []string) {
 	}
 	if CronDesc != "" {
 		params["description"] = CronDesc
+	}
+	if CronStatus != "" {
+		params["status"] = CronStatus
 	}
 
 	endpoint := serviceEndpoint(args[0], fmt.Sprintf("cron/%s", url.PathEscape(args[1])))
@@ -2249,12 +2266,6 @@ func CreateWebsite(cmd *cobra.Command, args []string) {
 
 func UpdateWebsite(cmd *cobra.Command, args []string) {
 	params := map[string]any{}
-	if cmd.Flags().Changed("path") {
-		params["path"] = WebsitePath
-	}
-	if cmd.Flags().Changed("vcs-url") {
-		params["vcsUrl"] = WebsiteVcsURL
-	}
 	if cmd.Flags().Changed("branch") {
 		params["vcsBranch"] = WebsiteBranch
 	}
@@ -2285,6 +2296,9 @@ func DeleteWebsite(_ *cobra.Command, args []string) {
 func DeployWebsite(_ *cobra.Command, args []string) {
 	endpoint := serviceEndpoint(args[0], fmt.Sprintf("website/%s/deploy", url.PathEscape(args[1])))
 	body := map[string]any{}
+	if WebsiteDeployReset {
+		body["reset"] = true
+	}
 	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to trigger deployment: %s", err)
 		return
@@ -2393,6 +2407,71 @@ func ListSSLAttachedDomains(_ *cobra.Command, args []string) {
 	}
 	payload := map[string]any{"certificates": certificates}
 	display.OutputObject(payload, args[0], sslResourceCertificatesTemplate, &flags.OutputFormatConfig)
+}
+
+// SSL service-level endpoints
+
+func GetServiceSSL(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "ssl")
+	var body map[string]any
+	if err := httpLib.Client.Get(endpoint, &body); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to get SSL: %s", err)
+		return
+	}
+	if body == nil {
+		body = map[string]any{}
+	}
+	display.OutputObject(body, args[0], sslServiceTemplate, &flags.OutputFormatConfig)
+}
+
+func CreateServiceSSL(_ *cobra.Command, args []string) {
+	body := map[string]any{}
+	if SSLCertificate != "" {
+		body["certificate"] = SSLCertificate
+	}
+	if SSLChain != "" {
+		body["chain"] = SSLChain
+	}
+	if SSLKey != "" {
+		body["key"] = SSLKey
+	}
+	endpoint := serviceEndpoint(args[0], "ssl")
+	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create SSL: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ SSL creation requested")
+}
+
+func DeleteServiceSSL(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "ssl")
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete SSL: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ SSL deleted")
+}
+
+func RegenerateServiceSSL(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "ssl/regenerate")
+	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to regenerate SSL: %s", err)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ SSL regeneration requested")
+}
+
+func GetSSLReport(_ *cobra.Command, args []string) {
+	endpoint := serviceEndpoint(args[0], "ssl/report")
+	var body map[string]any
+	if err := httpLib.Client.Get(endpoint, &body); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to get SSL report: %s", err)
+		return
+	}
+	if body == nil {
+		body = map[string]any{}
+	}
+	display.OutputObject(body, args[0], sslReportTemplate, &flags.OutputFormatConfig)
 }
 
 // CDN
@@ -2826,9 +2905,6 @@ func UpdateUser(cmd *cobra.Command, args []string) {
 	params := map[string]any{}
 	if UserHome != "" {
 		params["home"] = UserHome
-	}
-	if UserPassword != "" {
-		params["password"] = UserPassword
 	}
 	if UserSSHState != "" {
 		params["sshState"] = UserSSHState

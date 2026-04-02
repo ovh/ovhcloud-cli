@@ -16,6 +16,7 @@ ovhcloud webhosting cron update <service_name> <id> [flags]
       --frequency string     Frequency (crontab format)
   -h, --help                 help for update
       --language string      Language
+      --status string        Status (allowed: disabled, enabled, suspended)
 ```
 
 ### Options inherited from parent commands

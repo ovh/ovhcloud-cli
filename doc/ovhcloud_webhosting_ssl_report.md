@@ -1,16 +1,15 @@
-## ovhcloud webhosting website deploy
+## ovhcloud webhosting ssl report
 
-Trigger a deployment
+Get the SSL report
 
 ```
-ovhcloud webhosting website deploy <service_name> <id> [flags]
+ovhcloud webhosting ssl report <service_name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help    help for deploy
-      --reset   Reset files before deploying
+  -h, --help   help for report
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +33,5 @@ ovhcloud webhosting website deploy <service_name> <id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud webhosting website](ovhcloud_webhosting_website.md)	 - Manage websites deployments
+* [ovhcloud webhosting ssl](ovhcloud_webhosting_ssl.md)	 - Manage SSL
 

@@ -188,6 +188,7 @@ func init() {
 	cronCreateCmd.Flags().StringVar(&webhosting.CronLanguage, "language", "", "Language")
 	cronCreateCmd.Flags().StringVar(&webhosting.CronEmail, "email", "", "Email for stderr")
 	cronCreateCmd.Flags().StringVar(&webhosting.CronDesc, "description", "", "Description")
+	cronCreateCmd.Flags().StringVar(&webhosting.CronStatus, "status", "", "Status (allowed: disabled, enabled, suspended)")
 	addParameterFileFlags(cronCreateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(cronCreateCmd)
 	cronCmd.AddCommand(cronCreateCmd)
@@ -203,6 +204,7 @@ func init() {
 	cronUpdateCmd.Flags().StringVar(&webhosting.CronLanguage, "language", "", "Language")
 	cronUpdateCmd.Flags().StringVar(&webhosting.CronEmail, "email", "", "Email for stderr")
 	cronUpdateCmd.Flags().StringVar(&webhosting.CronDesc, "description", "", "Description")
+	cronUpdateCmd.Flags().StringVar(&webhosting.CronStatus, "status", "", "Status (allowed: disabled, enabled, suspended)")
 	addInteractiveEditorFlag(cronUpdateCmd)
 	cronCmd.AddCommand(cronUpdateCmd)
 
@@ -951,8 +953,6 @@ func init() {
 		Args:  cobra.ExactArgs(2),
 		Run:   webhosting.UpdateWebsite,
 	}
-	websiteUpdateCmd.Flags().StringVar(&webhosting.WebsitePath, "path", "", "Deployment path")
-	websiteUpdateCmd.Flags().StringVar(&webhosting.WebsiteVcsURL, "vcs-url", "", "Repository URL")
 	websiteUpdateCmd.Flags().StringVar(&webhosting.WebsiteBranch, "branch", "", "Branch to deploy")
 	addInteractiveEditorFlag(websiteUpdateCmd)
 	websiteCmd.AddCommand(websiteUpdateCmd)
@@ -970,6 +970,7 @@ func init() {
 		Args:  cobra.ExactArgs(2),
 		Run:   webhosting.DeployWebsite,
 	}
+	websiteDeployCmd.Flags().BoolVar(&webhosting.WebsiteDeployReset, "reset", false, "Reset files before deploying")
 	websiteCmd.AddCommand(websiteDeployCmd)
 	websiteDeploymentCmd := &cobra.Command{Use: "deployment", Short: "Manage website deployments"}
 	websiteDeploymentListCmd := &cobra.Command{
@@ -1039,6 +1040,46 @@ func init() {
 		Run:   webhosting.ListSSLAttachedDomains,
 	}
 	sslCmd.AddCommand(withFilterFlag(sslDomainsCmd))
+
+	// Service-level SSL commands
+	sslServiceGetCmd := &cobra.Command{
+		Use:   "service-get <service_name>",
+		Short: "Get the service-level SSL certificate",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetServiceSSL,
+	}
+	sslCmd.AddCommand(sslServiceGetCmd)
+	sslServiceCreateCmd := &cobra.Command{
+		Use:   "service-create <service_name>",
+		Short: "Create or import a service-level SSL certificate",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.CreateServiceSSL,
+	}
+	sslServiceCreateCmd.Flags().StringVar(&webhosting.SSLCertificate, "certificate", "", "SSL certificate (PEM)")
+	sslServiceCreateCmd.Flags().StringVar(&webhosting.SSLChain, "chain", "", "SSL certificate chain (PEM)")
+	sslServiceCreateCmd.Flags().StringVar(&webhosting.SSLKey, "key", "", "SSL private key (PEM)")
+	sslCmd.AddCommand(sslServiceCreateCmd)
+	sslServiceDeleteCmd := &cobra.Command{
+		Use:   "service-delete <service_name>",
+		Short: "Delete the service-level SSL certificate",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.DeleteServiceSSL,
+	}
+	sslCmd.AddCommand(sslServiceDeleteCmd)
+	sslRegenerateCmd := &cobra.Command{
+		Use:   "regenerate <service_name>",
+		Short: "Regenerate the service-level SSL certificate",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.RegenerateServiceSSL,
+	}
+	sslCmd.AddCommand(sslRegenerateCmd)
+	sslReportCmd := &cobra.Command{
+		Use:   "report <service_name>",
+		Short: "Get the SSL report",
+		Args:  cobra.ExactArgs(1),
+		Run:   webhosting.GetSSLReport,
+	}
+	sslCmd.AddCommand(sslReportCmd)
 	webhostingCmd.AddCommand(sslCmd)
 
 	// CDN
@@ -1231,7 +1272,7 @@ func init() {
 	userCreateCmd.Flags().StringVar(&webhosting.UserHome, "home", "", "Home directory for the FTP/SSH user")
 	userCreateCmd.Flags().StringVar(&webhosting.UserLogin, "login", "", "FTP/SSH login")
 	userCreateCmd.Flags().StringVar(&webhosting.UserPassword, "password", "", "FTP/SSH password")
-	userCreateCmd.Flags().StringVar(&webhosting.UserSSHState, "ssh-state", "", "SSH state (allowed: active, none)")
+	userCreateCmd.Flags().StringVar(&webhosting.UserSSHState, "ssh-state", "", "SSH state (allowed: active, none, sftponly)")
 	addParameterFileFlags(userCreateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(userCreateCmd)
 	userCmd.AddCommand(userCreateCmd)
@@ -1242,8 +1283,7 @@ func init() {
 		Run:   webhosting.UpdateUser,
 	}
 	userUpdateCmd.Flags().StringVar(&webhosting.UserHome, "home", "", "Home directory for the FTP/SSH user")
-	userUpdateCmd.Flags().StringVar(&webhosting.UserPassword, "password", "", "FTP/SSH password")
-	userUpdateCmd.Flags().StringVar(&webhosting.UserSSHState, "ssh-state", "", "SSH state (allowed: active, none)")
+	userUpdateCmd.Flags().StringVar(&webhosting.UserSSHState, "ssh-state", "", "SSH state (allowed: active, none, sftponly)")
 	addInteractiveEditorFlag(userUpdateCmd)
 	userCmd.AddCommand(userUpdateCmd)
 	userDeleteCmd := &cobra.Command{

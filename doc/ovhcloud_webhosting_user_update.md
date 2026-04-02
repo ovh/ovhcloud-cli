@@ -12,8 +12,7 @@ ovhcloud webhosting user update <service_name> <login> [flags]
       --editor             Use a text editor to define parameters
   -h, --help               help for update
       --home string        Home directory for the FTP/SSH user
-      --password string    FTP/SSH password
-      --ssh-state string   SSH state (allowed: active, none)
+      --ssh-state string   SSH state (allowed: active, none, sftponly)
 ```
 
 ### Options inherited from parent commands

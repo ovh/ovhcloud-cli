@@ -1,16 +1,18 @@
-## ovhcloud webhosting website deploy
+## ovhcloud webhosting ssl service-create
 
-Trigger a deployment
+Create or import a service-level SSL certificate
 
 ```
-ovhcloud webhosting website deploy <service_name> <id> [flags]
+ovhcloud webhosting ssl service-create <service_name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help    help for deploy
-      --reset   Reset files before deploying
+      --certificate string   SSL certificate (PEM)
+      --chain string         SSL certificate chain (PEM)
+  -h, --help                 help for service-create
+      --key string           SSL private key (PEM)
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +36,5 @@ ovhcloud webhosting website deploy <service_name> <id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud webhosting website](ovhcloud_webhosting_website.md)	 - Manage websites deployments
+* [ovhcloud webhosting ssl](ovhcloud_webhosting_ssl.md)	 - Manage SSL
 
