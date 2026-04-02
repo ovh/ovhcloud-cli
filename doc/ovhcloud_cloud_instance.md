@@ -32,10 +32,13 @@ Manage instances in the given cloud project
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud instance activate-monthly-billing](ovhcloud_cloud_instance_activate-monthly-billing.md)	 - Activate monthly billing for the given instance
+* [ovhcloud cloud instance application-access](ovhcloud_cloud_instance_application-access.md)	 - Get application access credentials for the given instance
+* [ovhcloud cloud instance autobackup](ovhcloud_cloud_instance_autobackup.md)	 - Manage automatic backup workflows for instances
 * [ovhcloud cloud instance create](ovhcloud_cloud_instance_create.md)	 - Create a new instance
 * [ovhcloud cloud instance delete](ovhcloud_cloud_instance_delete.md)	 - Delete the given instance
 * [ovhcloud cloud instance exit-rescue](ovhcloud_cloud_instance_exit-rescue.md)	 - Exit the given instance from rescue mode
 * [ovhcloud cloud instance get](ovhcloud_cloud_instance_get.md)	 - Get a specific instance
+* [ovhcloud cloud instance group](ovhcloud_cloud_instance_group.md)	 - Manage instance groups
 * [ovhcloud cloud instance interface](ovhcloud_cloud_instance_interface.md)	 - Manage interfaces of the given instance
 * [ovhcloud cloud instance list](ovhcloud_cloud_instance_list.md)	 - List your instances
 * [ovhcloud cloud instance reboot](ovhcloud_cloud_instance_reboot.md)	 - Reboot the given instance

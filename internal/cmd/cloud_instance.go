@@ -405,5 +405,95 @@ There are three ways to define the installation parameters:
 		Args:  cobra.ExactArgs(1),
 	})
 
+	// Instance group subcommands
+	groupCmd := &cobra.Command{
+		Use:   "group",
+		Short: "Manage instance groups",
+	}
+	instanceCmd.AddCommand(groupCmd)
+
+	groupCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List all instance groups in the current cloud project",
+		Run:     cloud.ListInstanceGroups,
+		Args:    cobra.NoArgs,
+	}))
+
+	groupCmd.AddCommand(&cobra.Command{
+		Use:   "get <group_id>",
+		Short: "Get a specific instance group",
+		Run:   cloud.GetInstanceGroup,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	createGroupCmd := &cobra.Command{
+		Use:   "create <name> <region>",
+		Short: "Create an instance group",
+		Run:   cloud.CreateInstanceGroup,
+		Args:  cobra.ExactArgs(2),
+	}
+	createGroupCmd.Flags().StringVarP(&cloud.InstanceGroupType, "type", "t", "affinity", "Group type: affinity or anti-affinity (default is affinity)")
+	groupCmd.AddCommand(createGroupCmd)
+
+	groupCmd.AddCommand(&cobra.Command{
+		Use:   "delete <group_id>",
+		Short: "Delete a specific instance group",
+		Run:   cloud.DeleteInstanceGroup,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	// Autobackup subcommands
+	autobackupCmd := &cobra.Command{
+		Use:   "autobackup",
+		Short: "Manage automatic backup workflows for instances",
+	}
+	instanceCmd.AddCommand(autobackupCmd)
+
+	autobackupCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list <instance_id>",
+		Aliases: []string{"ls"},
+		Short:   "List automatic backup workflows for the given instance",
+		Run:     cloud.ListAutobackups,
+		Args:    cobra.ExactArgs(1),
+	}))
+
+	autobackupCmd.AddCommand(&cobra.Command{
+		Use:   "get <instance_id> <backup_workflow_id>",
+		Short: "Get details of an automatic backup workflow",
+		Run:   cloud.GetAutobackup,
+		Args:  cobra.ExactArgs(2),
+	})
+
+	createAutobackupCmd := &cobra.Command{
+		Use:   "create <instance_id>",
+		Short: "Create an automatic backup workflow for the given instance",
+		Run:   cloud.CreateAutobackup,
+		Args:  cobra.ExactArgs(1),
+	}
+	createAutobackupCmd.Flags().StringVar(&cloud.AutobackupCreateParams.Cron, "cron", "", "Unix Cron pattern (e.g. '0 0 * * *')")
+	createAutobackupCmd.Flags().IntVar(&cloud.AutobackupCreateParams.Rotation, "rotation", 0, "Number of backups to keep")
+	createAutobackupCmd.Flags().StringVar(&cloud.AutobackupCreateParams.Name, "name", "", "Workflow name")
+	_ = createAutobackupCmd.MarkFlagRequired("cron")
+	_ = createAutobackupCmd.MarkFlagRequired("rotation")
+	_ = createAutobackupCmd.MarkFlagRequired("name")
+	autobackupCmd.AddCommand(createAutobackupCmd)
+
+	autobackupCmd.AddCommand(&cobra.Command{
+		Use:   "delete <instance_id> <backup_workflow_id>",
+		Short: "Delete an automatic backup workflow",
+		Run:   cloud.DeleteAutobackup,
+		Args:  cobra.ExactArgs(2),
+	})
+
+	// Application access subcommand
+	instanceCmd.AddCommand(&cobra.Command{
+		Use:   "application-access <instance_id>",
+		Short: "Get application access credentials for the given instance",
+		Long:  `Get the credentials to access the application installed on the given instance (e.g. WordPress, GitLab, etc.)`,
+		Run:   cloud.GetInstanceApplicationAccess,
+		Args:  cobra.ExactArgs(1),
+	})
+
 	cloudCmd.AddCommand(instanceCmd)
 }
