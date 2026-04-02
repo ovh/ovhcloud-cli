@@ -191,3 +191,66 @@ func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmd(assert, require *td.
 	}`))
 }
 
+func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmdInferIPVersion(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/pn-123456",
+		httpmock.NewStringResponder(200, `{
+			"id": "pn-123456",
+			"name": "test-network",
+			"region": "BHS5",
+			"visibility": "private",
+			"vlanId": 0
+		}`),
+	)
+
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/pn-123456/subnet",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"name": "my-subnet",
+				"cidr": "192.168.1.0/24",
+				"ipVersion": 4,
+				"enableDhcp": true,
+				"enableGatewayIp": true
+			}`),
+		),
+		httpmock.NewStringResponder(200, `
+			{
+				"cidr": "192.168.1.0/24",
+				"gatewayIp": "192.168.1.1",
+				"id": "subnet-inferred-v4",
+				"name": "my-subnet",
+				"ipVersion": 4,
+				"dhcpEnabled": true,
+				"allocationPools": [
+					{
+						"start": "192.168.1.2",
+						"end": "192.168.1.254"
+					}
+				]
+			}`,
+		),
+	)
+
+	// Note: --ip-version is NOT provided, it should be inferred from the CIDR
+	out, err := cmd.Execute("cloud", "network", "private", "subnet", "create", "pn-123456", "--region", "BHS5", "--cloud-project", "fakeProjectID",
+		"--name", "my-subnet", "--cidr", "192.168.1.0/24", "--enable-dhcp", "--enable-gateway-ip", "-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Subnet subnet-inferred-v4 created successfully",
+		"details": {
+			"cidr": "192.168.1.0/24",
+			"gatewayIp": "192.168.1.1",
+			"id": "subnet-inferred-v4",
+			"name": "my-subnet",
+			"ipVersion": 4,
+			"dhcpEnabled": true,
+			"allocationPools": [
+				{
+					"start": "192.168.1.2",
+					"end": "192.168.1.254"
+				}
+			]
+		}
+	}`))
+}
+
