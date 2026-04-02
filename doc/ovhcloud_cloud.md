@@ -47,6 +47,7 @@ Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, O
 * [ovhcloud cloud savings-plan](ovhcloud_cloud_savings-plan.md)	 - Manage savings plans for your cloud project
 * [ovhcloud cloud ssh-key](ovhcloud_cloud_ssh-key.md)	 - Manage SSH keys in the given cloud project
 * [ovhcloud cloud storage-block](ovhcloud_cloud_storage-block.md)	 - Manage block storage volumes in the given cloud project
+* [ovhcloud cloud storage-file](ovhcloud_cloud_storage-file.md)	 - Manage file storage shares in the given cloud project
 * [ovhcloud cloud storage-s3](ovhcloud_cloud_storage-s3.md)	 - Manage S3™* compatible storage containers in the given cloud project (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 * [ovhcloud cloud storage-swift](ovhcloud_cloud_storage-swift.md)	 - Manage SWIFT storage containers in the given cloud project
 * [ovhcloud cloud user](ovhcloud_cloud_user.md)	 - Manage users in the given cloud project
