@@ -11,9 +11,9 @@ ovhcloud cloud loadbalancer edit <loadbalancer_id> [flags]
 ```
       --description string   Description of the loadbalancer
       --editor               Use a text editor to define parameters
-      --flavor string        Flavor ID of the loadbalancer (can be retrieved with 'cloud reference loadbalancer list-flavors <region>')
   -h, --help                 help for edit
       --name string          Name of the loadbalancer
+      --size string          Size of the loadbalancer (e.g. small, medium, large) or flavor UUID
 ```
 
 ### Options inherited from parent commands
