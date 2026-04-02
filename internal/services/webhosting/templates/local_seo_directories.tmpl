@@ -1,0 +1,37 @@
+🗺️ Local SEO Directories {{.ServiceName}}
+================================
+
+{{ $engines := index .Result "searchEngines" -}}
+{{ if $engines }}
+### 🔍 Search Engines
+{{ range $engines -}}
+- **{{index . "displayName"}}** (`{{index . "code"}}`)
+{{ end -}}
+{{ else }}
+### 🔍 Search Engines
+No search engines available.
+{{ end }}
+
+{{ $nav := index .Result "navigationSystems" -}}
+{{ if $nav }}
+### 🧭 Navigation Systems
+{{ range $nav -}}
+- **{{index . "displayName"}}** (`{{index . "code"}}`)
+{{ end -}}
+{{ else }}
+### 🧭 Navigation Systems
+No navigation systems available.
+{{ end }}
+
+{{ $social := index .Result "socialNetworks" -}}
+{{ if $social }}
+### 💬 Social Networks
+{{ range $social -}}
+- **{{index . "displayName"}}** (`{{index . "code"}}`)
+{{ end -}}
+{{ else }}
+### 💬 Social Networks
+No social networks available.
+{{ end }}
+
+💡 Use option -o json or -o yaml to get the raw output with directory codes.

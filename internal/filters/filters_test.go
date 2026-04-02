@@ -83,3 +83,15 @@ func TestFilterLines_EmptyValues(t *testing.T) {
 	td.CmpNoError(t, err)
 	td.CmpEmpty(t, result)
 }
+
+func TestFilterLines_RegexWithWildcards(t *testing.T) {
+	values := []map[string]any{
+		{"id": 1, "name": "my-test-hosting"},
+		{"id": 2, "name": "prod-hosting"},
+	}
+
+	result, err := FilterLines(values, []string{`name=~"*test*"`})
+
+	td.CmpNoError(t, err)
+	td.Cmp(t, result, values[0:1])
+}

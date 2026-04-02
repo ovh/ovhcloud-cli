@@ -1,0 +1,26 @@
+📡 DNS Status Check
+====================
+
+**Domain**: {{index .Result "domain"}}
+
+{{ $ips := index .Result "recommendedIps" -}}
+{{ if $ips -}}
+{{ if index $ips "recommendedIpV4" -}}
+**Recommended IPv4**: {{join (index $ips "recommendedIpV4")}}
+{{ end -}}
+{{ if index $ips "recommendedIpV6" -}}
+**Recommended IPv6**: {{join (index $ips "recommendedIpV6")}}
+{{ end -}}
+{{ end -}}
+
+{{ $records := index .Result "records" -}}
+{{ if $records -}}
+## Records
+{{ range $hostname, $record := $records -}}
+- **{{$hostname}}** ({{index $record "type"}}): DNS configured = {{index $record "dnsConfigured"}}, OVH IP = {{index $record "isOvhIp"}}
+{{ end -}}
+{{ else -}}
+No DNS records detected.
+{{ end }}
+
+💡 Use option -o json or -o yaml to get the raw output with all information
