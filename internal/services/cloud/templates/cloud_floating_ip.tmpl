@@ -1,0 +1,15 @@
+🌐 Floating IP {{.ServiceName}}
+=======
+
+## General information
+
+**IP**:             {{index .Result "ip"}}
+**Status**:         {{index .Result "status"}}
+**Region**:         {{index .Result "region"}}
+**Network ID**:     {{index .Result "networkId"}}
+
+## Associated entity
+
+**Entity**:         {{index .Result "associatedEntity"}}
+
+💡 Use option -o json or -o yaml to get the raw output with all information

@@ -1,23 +1,15 @@
-## ovhcloud cloud loadbalancer pool member create
+## ovhcloud cloud floating-ip delete
 
-Create member(s) in a specific pool
+Delete a floating IP
 
 ```
-ovhcloud cloud loadbalancer pool member create <pool_id> [flags]
+ovhcloud cloud floating-ip delete <floating_ip_id> [flags]
 ```
 
 ### Options
 
 ```
-      --address string      IP address of the member
-      --editor              Use a text editor to define parameters
-      --from-file string    File containing parameters
-  -h, --help                help for create
-      --init-file string    Create a file with example parameters
-      --name string         Name of the member
-      --protocol-port int   Protocol port number of the member
-      --replace             Replace parameters file if it already exists
-      --weight int          Weight of the member (1-256)
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -38,9 +30,10 @@ ovhcloud cloud loadbalancer pool member create <pool_id> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
+      --region string          Filter by region or specify the region of the floating IP
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud loadbalancer pool member](ovhcloud_cloud_loadbalancer_pool_member.md)	 - Manage members of a loadbalancer pool
+* [ovhcloud cloud floating-ip](ovhcloud_cloud_floating-ip.md)	 - Manage floating IPs in the given cloud project
 

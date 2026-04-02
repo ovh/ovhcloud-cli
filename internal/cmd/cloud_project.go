@@ -120,6 +120,7 @@ func init() {
 	initCloudReferenceCmd(cloudCmd)
 	initCloudSavingsPlanCommand(cloudCmd)
 	initCloudIPFailoverCommand(cloudCmd)
+	initCloudFloatingIPCommand(cloudCmd)
 	initCloudAlertingCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)

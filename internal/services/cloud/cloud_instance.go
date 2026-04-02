@@ -322,6 +322,10 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	if s := &InstanceCreationParameters.Network.Private.NetworkCreate.Subnet; s.IPVersion == 0 && s.CIDR != "" {
+		s.IPVersion = ipVersionFromCIDR(s.CIDR)
+	}
+
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance", projectID, region)
 	operation, err := common.CreateResource(
 		cmd,

@@ -10,6 +10,7 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
+	"github.com/maxatome/tdhttpmock"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
 )
 
@@ -272,6 +273,66 @@ func (ms *MockSuite) TestCloudLoadbalancerStatsCmd(assert, require *td.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Loadbalancer – create with --size name resolution
+// ---------------------------------------------------------------------------
+
+func (ms *MockSuite) TestCloudLoadbalancerCreateWithSizeCmd(assert, require *td.T) {
+	// Mock flavor list for size resolution
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/flavor",
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+				"name": "small",
+				"region": "GRA11"
+			},
+			{
+				"id": "ffffffff-bbbb-cccc-dddd-eeeeeeeeeeee",
+				"name": "medium",
+				"region": "GRA11"
+			}
+		]`))
+
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/loadbalancer",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"name": "my-lb",
+			"flavorId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+			"network": {
+				"private": {
+					"network": {
+						"id": "net-001",
+						"subnetId": "sub-001"
+					}
+				}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{
+			"id": "lb-new-001",
+			"name": "my-lb",
+			"region": "GRA11"
+		}`),
+	)
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "create", "GRA11",
+		"--cloud-project", "fakeProjectID",
+		"--name", "my-lb",
+		"--size", "small",
+		"--network-id", "net-001",
+		"--subnet-id", "sub-001",
+		"-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Loadbalancer created successfully (ID: lb-new-001)",
+		"details": {
+			"id": "lb-new-001",
+			"name": "my-lb",
+			"region": "GRA11"
+		}
+	}`))
+}
+
+// ---------------------------------------------------------------------------
 // Listener – list
 // ---------------------------------------------------------------------------
 
@@ -296,6 +357,40 @@ func (ms *MockSuite) TestCloudLoadbalancerListenerListCmd(assert, require *td.T)
 		httpmock.NewStringResponder(200, `[]`))
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[
+		{
+			"id": "lis-001",
+			"name": "my-listener",
+			"protocol": "http",
+			"port": 80,
+			"operatingStatus": "online",
+			"provisioningStatus": "active"
+		}
+	]`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerListenerListWithLoadbalancerIDCmd(assert, require *td.T) {
+	registerLoadbalancingRegionMocks()
+
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/listener?loadbalancerId=lb-gra-001",
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "lis-001",
+				"name": "my-listener",
+				"protocol": "http",
+				"port": 80,
+				"operatingStatus": "online",
+				"provisioningStatus": "active"
+			}
+		]`))
+
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/listener?loadbalancerId=lb-gra-001",
+		httpmock.NewStringResponder(200, `[]`))
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "ls", "--cloud-project", "fakeProjectID", "--loadbalancer-id", "lb-gra-001", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
@@ -594,6 +689,71 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberDeleteCmd(assert, require *t
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Pool member mem-001 deleted successfully"
+	}`))
+}
+
+// ---------------------------------------------------------------------------
+// Pool Member – create with flags
+// ---------------------------------------------------------------------------
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolMemberCreateWithFlagsCmd(assert, require *td.T) {
+	registerLoadbalancingRegionMocks()
+
+	// Locate pool
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001",
+		httpmock.NewStringResponder(200, `{"id":"pool-001"}`))
+
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001/member",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"members": [
+				{
+					"address": "10.0.0.42",
+					"name": "my-member",
+					"protocolPort": 8080,
+					"weight": 5
+				}
+			]
+		}`)),
+		httpmock.NewStringResponder(200, `{
+			"members": [
+				{
+					"id": "mem-new-001",
+					"address": "10.0.0.42",
+					"name": "my-member",
+					"protocolPort": 8080,
+					"weight": 5,
+					"operatingStatus": "online",
+					"provisioningStatus": "active"
+				}
+			]
+		}`),
+	)
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "create", "pool-001",
+		"--cloud-project", "fakeProjectID",
+		"--address", "10.0.0.42",
+		"--name", "my-member",
+		"--protocol-port", "8080",
+		"--weight", "5",
+		"-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Pool member(s) created successfully",
+		"details": {
+			"members": [
+				{
+					"id": "mem-new-001",
+					"address": "10.0.0.42",
+					"name": "my-member",
+					"protocolPort": 8080,
+					"weight": 5,
+					"operatingStatus": "online",
+					"provisioningStatus": "active"
+				}
+			]
+		}
 	}`))
 }
 
