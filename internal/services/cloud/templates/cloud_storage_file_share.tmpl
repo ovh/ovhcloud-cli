@@ -1,0 +1,20 @@
+🚀 Share {{.ServiceName}}
+=======
+
+_{{index .Result "description"}}_
+
+## General information
+
+**Name**:              {{index .Result "name"}}
+**Region**:            {{index .Result "region"}}
+**Availability zone**: {{index .Result "availabilityZone"}}
+**Protocol**:          {{index .Result "protocol"}}
+**Type**:              {{index .Result "type"}}
+**Status**:            {{index .Result "status"}}
+**Size**:              {{index .Result "size"}}GB
+**Public**:            {{index .Result "isPublic"}}
+**Network ID**:        {{index .Result "networkId"}}
+**Subnet ID**:         {{index .Result "subnetId"}}
+**Created at**:        {{index .Result "createdAt"}}
+
+💡 Use option -o json or -o yaml to get the raw output with all information
