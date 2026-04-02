@@ -34,4 +34,9 @@ Manage SSL
 * [ovhcloud webhosting ssl delete](ovhcloud_webhosting_ssl_delete.md)	 - Delete SSL for an attached domain
 * [ovhcloud webhosting ssl domains](ovhcloud_webhosting_ssl_domains.md)	 - List SSL domains
 * [ovhcloud webhosting ssl get](ovhcloud_webhosting_ssl_get.md)	 - Get SSL info for an attached domain
+* [ovhcloud webhosting ssl regenerate](ovhcloud_webhosting_ssl_regenerate.md)	 - Regenerate the service-level SSL certificate
+* [ovhcloud webhosting ssl report](ovhcloud_webhosting_ssl_report.md)	 - Get the SSL report
+* [ovhcloud webhosting ssl service-create](ovhcloud_webhosting_ssl_service-create.md)	 - Create or import a service-level SSL certificate
+* [ovhcloud webhosting ssl service-delete](ovhcloud_webhosting_ssl_service-delete.md)	 - Delete the service-level SSL certificate
+* [ovhcloud webhosting ssl service-get](ovhcloud_webhosting_ssl_service-get.md)	 - Get the service-level SSL certificate
 

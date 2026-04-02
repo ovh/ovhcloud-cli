@@ -9,11 +9,9 @@ ovhcloud webhosting website update <service_name> <id> [flags]
 ### Options
 
 ```
-      --branch string    Branch to deploy
-      --editor           Use a text editor to define parameters
-  -h, --help             help for update
-      --path string      Deployment path
-      --vcs-url string   Repository URL
+      --branch string   Branch to deploy
+      --editor          Use a text editor to define parameters
+  -h, --help            help for update
 ```
 
 ### Options inherited from parent commands

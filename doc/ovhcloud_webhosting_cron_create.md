@@ -17,6 +17,7 @@ ovhcloud webhosting cron create <service_name> [flags]
       --from-file string     File containing parameters
   -h, --help                 help for create
       --language string      Language
+      --status string        Status (allowed: disabled, enabled, suspended)
 ```
 
 ### Options inherited from parent commands

@@ -15,7 +15,7 @@ ovhcloud webhosting user create <service_name> [flags]
       --home string        Home directory for the FTP/SSH user
       --login string       FTP/SSH login
       --password string    FTP/SSH password
-      --ssh-state string   SSH state (allowed: active, none)
+      --ssh-state string   SSH state (allowed: active, none, sftponly)
 ```
 
 ### Options inherited from parent commands
