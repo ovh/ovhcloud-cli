@@ -17,7 +17,7 @@ _{{index .Result "description"}}_
 **Network type**:   {{index .Result "networkType"}}
 
 Endpoints: {{range index .Result "endpoints"}}
-- {{.uri}}
+- {{replace (replace .uri "<" "\\<") ">" "\\>"}}
 {{end}}
 
 ### Nodes
