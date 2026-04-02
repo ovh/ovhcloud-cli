@@ -1,0 +1,8 @@
+{
+  "name": "my-share",
+  "description": "My file share",
+  "size": 100,
+  "type": "default_share_type",
+  "networkId": "00000000-0000-0000-0000-000000000000",
+  "subnetId": "00000000-0000-0000-0000-000000000000"
+}
