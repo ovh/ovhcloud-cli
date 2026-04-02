@@ -32,6 +32,8 @@ release:
 
 schemas:
 	@if [ -z "$(UNIVERSE)" ]; then echo "Usage: make schemas UNIVERSE=<name> (e.g. cloud, domain, vps)"; exit 1; fi
-	curl -s https://eu.api.ovh.com/v1/$(UNIVERSE).json?format=openapi3 | jq 'del(.paths[] | .[]["x-code-samples"])' > internal/assets/api-schemas/$(UNIVERSE).json
+	@tmp=$$(mktemp internal/assets/api-schemas/$(UNIVERSE).json.XXXXXX) && \
+	curl -s "https://eu.api.ovh.com/v1/$(UNIVERSE).json?format=openapi3" | jq 'del(.paths[] | .[]["x-code-samples"])' > "$$tmp" && \
+	mv "$$tmp" internal/assets/api-schemas/$(UNIVERSE).json
 
 .PHONY: all wasm doc schemas

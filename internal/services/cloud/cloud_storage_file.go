@@ -192,12 +192,14 @@ func DeleteShare(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	var task map[string]any
+	if err := httpLib.Client.Delete(endpoint, &task); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete share: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Share %s deleted successfully", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, task, "✅ Share %s deletion started successfully (operation ID: %s)", args[0], task["id"])
+
 }
 
 // ACL commands
