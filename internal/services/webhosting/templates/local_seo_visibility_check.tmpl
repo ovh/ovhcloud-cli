@@ -1,0 +1,28 @@
+🔎 Local SEO Visibility Check {{.ServiceName}}
+===================================
+
+{{ if index .Result "notFound" }}
+⚠️ No matching directory listing was found for this location.
+
+{{ with index .Result "message" -}}
+**Details**: {{.}}
+{{- end }}
+{{ else }}
+{{ $data := index .Result "searchData" -}}
+{{ if $data }}
+**Check ID**: {{index $data "id"}}  
+**Token**: `{{index $data "token"}}`
+
+**Location**: {{index $data "name"}}  
+**Address**: {{index $data "street"}} {{index $data "streetNo"}} – {{index $data "zip"}} {{index $data "city"}}  
+**Country**: {{index $data "country"}}
+{{ end }}
+
+{{ if index .Result "alreadyManaged" }}
+⚠️ This location is already managed in Local SEO.
+{{ else }}
+✅ The location can be onboarded.
+{{ end }}
+
+💡 Keep the check ID and token handy to fetch the detailed visibility result.
+{{ end }}

@@ -9,6 +9,7 @@ ovhcloud webhosting edit <service_name> [flags]
 ### Options
 
 ```
+      --clear-display-name    Clear the display name (reset to service name)
       --display-name string   Display name of the WebHosting
       --editor                Use a text editor to define parameters
   -h, --help                  help for edit

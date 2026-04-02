@@ -1,0 +1,14 @@
+🧰 Database Capabilities {{.ServiceName}}
+============================
+
+| Feature              | Enabled |
+| -------------------- | ------- |
+| Change password      | {{index .Result "changePassword"}} |
+| Change rights        | {{index .Result "changeRight"}} |
+| Delete               | {{index .Result "delete"}} |
+| Dump                 | {{index .Result "dump"}} |
+| Import dump          | {{index .Result "import"}} |
+| Restore              | {{index .Result "restore"}} |
+| Use private database | {{index .Result "usePrivateDatabase"}} |
+
+💡 Use option -o json or -o yaml to get the raw output with all information

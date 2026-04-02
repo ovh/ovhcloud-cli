@@ -1,0 +1,16 @@
+🔐 Hosted SSL {{.ServiceName}}
+==============================
+
+{{- $ssl := .Result }}
+{{- if not $ssl }}
+No SSL information available.
+{{- else }}
+- Provider: {{with (index $ssl "provider")}}{{.}}{{else}}N/A{{end}}
+- Type: {{with (index $ssl "type")}}{{.}}{{else}}N/A{{end}}
+- Status: {{with (index $ssl "status")}}{{.}}{{else}}N/A{{end}}
+- Regenerable: {{with (index $ssl "regenerable")}}{{.}}{{else}}N/A{{end}}
+- Report bound: {{with (index $ssl "isReportable")}}{{.}}{{else}}N/A{{end}}
+- Task ID: {{with (index $ssl "taskId")}}{{.}}{{else}}N/A{{end}}
+{{- end }}
+
+💡 Use option -o json or -o yaml to inspect the raw payload.
