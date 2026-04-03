@@ -103,7 +103,8 @@ func init() {
 
 	initKubeCommand(cloudCmd)
 	initContainerRegistryCommand(cloudCmd)
-	initCloudDatabaseCommand(cloudCmd)
+	initManagedDatabaseCommand(cloudCmd)
+	initManagedAnalyticsCommand(cloudCmd)
 	initInstanceCommand(cloudCmd)
 	initCloudLoadbalancerCommand(cloudCmd)
 	initCloudNetworkCommand(cloudCmd)

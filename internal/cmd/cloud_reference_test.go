@@ -138,7 +138,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesPlansListCmd(assert, require *td
 			]
 		}`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "database", "list-plans", "--cloud-project", "fakeProjectID", "--filter", `lifecycle.startDate>"2022-01-01"`)
+	out, err := cmd.Execute("cloud", "reference", "managed-database", "list-plans", "--cloud-project", "fakeProjectID", "--filter", `lifecycle.startDate>"2022-01-01"`)
 
 	require.CmpNoError(err)
 	assert.String(out, `
@@ -204,7 +204,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesFlavorsListCmd(assert, require *
 			]
 		}`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "database", "list-node-flavors", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "reference", "managed-database", "list-node-flavors", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `
@@ -271,7 +271,7 @@ func (ms *MockSuite) TestCloudReferenceDatabasesEnginesListCmd(assert, require *
 			]
 		}`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "database", "list-engines", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "reference", "managed-database", "list-engines", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `
@@ -522,4 +522,177 @@ func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorsListCmdJSON(assert, re
 			"region": "GRA9"
 		}
 	]`))
+}
+
+func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorGetCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA9/loadbalancing/flavor/lb-flavor-id-1",
+		httpmock.NewStringResponder(200, `{
+			"id": "lb-flavor-id-1",
+			"name": "small",
+			"region": "GRA9"
+		}`).Once())
+
+	out, err := cmd.Execute("cloud", "reference", "loadbalancer", "get-flavor", "GRA9", "lb-flavor-id-1", "-o", "json", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"id": "lb-flavor-id-1",
+		"name": "small",
+		"region": "GRA9"
+	}`))
+}
+
+func (ms *MockSuite) TestCloudReferenceManagedAnalyticsPlansListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
+		httpmock.NewStringResponder(200, `{
+			"plans": [
+				{
+					"lifecycle": {
+						"status": "STABLE",
+						"startDate": "2023-12-07"
+					},
+					"name": "essential",
+					"description": "Essential plan",
+					"backupRetention": "P2D",
+					"order": 1,
+					"tags": []
+				},
+				{
+					"lifecycle": {
+						"status": "STABLE",
+						"startDate": "2023-12-07"
+					},
+					"name": "business",
+					"description": "Business plan",
+					"backupRetention": "P14D",
+					"order": 2,
+					"tags": []
+				}
+			]
+		}`).Once())
+
+	out, err := cmd.Execute("cloud", "reference", "managed-analytics", "list-plans", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌───────────┬────────────────┬────────┬─────────────────┐
+│   name    │  description   │ status │ backupRetention │
+├───────────┼────────────────┼────────┼─────────────────┤
+│ essential │ Essential plan │ STABLE │ P2D             │
+│ business  │ Business plan  │ STABLE │ P14D            │
+└───────────┴────────────────┴────────┴─────────────────┘
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+}
+
+func (ms *MockSuite) TestCloudReferenceManagedAnalyticsNodeFlavorsListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
+		httpmock.NewStringResponder(200, `{
+			"flavors": [
+				{
+					"lifecycle": {
+						"status": "STABLE",
+						"startDate": "2023-12-07"
+					},
+					"name": "db2-free",
+					"core": 0,
+					"memory": 0,
+					"storage": 512,
+					"specifications": {
+						"core": 0,
+						"memory": {
+							"unit": "MB",
+							"value": 0
+						},
+						"storage": {
+							"unit": "MB",
+							"value": 512
+						}
+					},
+					"order": 0,
+					"tags": []
+				},
+				{
+					"lifecycle": {
+						"status": "STABLE",
+						"startDate": "2023-12-07"
+					},
+					"name": "db2-4",
+					"core": 2,
+					"memory": 4,
+					"storage": 20,
+					"specifications": {
+						"core": 2,
+						"memory": {
+							"unit": "GB",
+							"value": 4
+						},
+						"storage": {
+							"unit": "GB",
+							"value": 20
+						}
+					},
+					"order": 1,
+					"tags": []
+				}
+			]
+		}`).Once())
+
+	out, err := cmd.Execute("cloud", "reference", "managed-analytics", "list-node-flavors", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌──────────┬──────┬────────┬─────────┐
+│   name   │ core │ memory │ storage │
+├──────────┼──────┼────────┼─────────┤
+│ db2-free │ 0    │ 0 MB   │ 512 MB  │
+│ db2-4    │ 2    │ 4 GB   │ 20 GB   │
+└──────────┴──────┴────────┴─────────┘
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+}
+
+func (ms *MockSuite) TestCloudReferenceManagedAnalyticsEnginesListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
+		httpmock.NewStringResponder(200, `{
+			"engines": [
+				{
+					"name": "postgresql",
+					"storage": "replicated",
+					"versions": ["17"],
+					"defaultVersion": "17",
+					"description": "object-relational database management system",
+					"sslModes": ["require"],
+					"category": "operational"
+				},
+				{
+					"name": "kafka",
+					"storage": "distributed",
+					"versions": ["3.7", "3.8"],
+					"defaultVersion": "3.8",
+					"description": "distributed event streaming platform",
+					"sslModes": ["required"],
+					"category": "analysis"
+				},
+				{
+					"name": "opensearch",
+					"storage": "distributed",
+					"versions": ["2"],
+					"defaultVersion": "2",
+					"description": "search and analytics engine",
+					"sslModes": ["required"],
+					"category": "analysis"
+				}
+			]
+		}`).Once())
+
+	out, err := cmd.Execute("cloud", "reference", "managed-analytics", "list-engines", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌────────────┬──────────────────────────────────────┬──────────┬───────────┬────────────────┐
+│    name    │             description              │ category │ versions  │ defaultVersion │
+├────────────┼──────────────────────────────────────┼──────────┼───────────┼────────────────┤
+│ kafka      │ Distributed Event Streaming Platform │ analysis │ 3.7 | 3.8 │ 3.8            │
+│ opensearch │ Search And Analytics Engine          │ analysis │ 2         │ 2              │
+└────────────┴──────────────────────────────────────┴──────────┴───────────┴────────────────┘
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }

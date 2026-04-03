@@ -1,0 +1,10 @@
+{
+  "description": "Example mysql database",
+  "nodesPattern": {
+    "flavor": "db1-4",
+    "number": 1,
+    "region": "GRA"
+  },
+  "plan": "production",
+  "version": "8"
+}

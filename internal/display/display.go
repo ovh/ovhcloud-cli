@@ -33,6 +33,10 @@ const (
 	maxCellWidth = 50
 )
 
+var (
+	ExitFunc = os.Exit
+)
+
 func renderCustomFormat(value any, format string) error {
 	ev, err := gval.Full(filters.AdditionalEvaluators...).NewEvaluable(format)
 	if err != nil {
@@ -322,7 +326,7 @@ func exitError(message string, params ...any) {
 	resultString := fmt.Sprintf("🛑 "+message, params...)
 	fmt.Println(resultString)
 	ResultError = errors.New(resultString)
-	os.Exit(1)
+	ExitFunc(1)
 }
 
 func outputf(message string, params ...any) {
@@ -365,10 +369,10 @@ func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
 
 	if msg.Error {
 		ResultError = errors.New(msg.Message)
-		os.Exit(1)
+		ExitFunc(1)
 	} else if msg.Warning {
 		ResultError = errors.New(msg.Message)
-		os.Exit(0)
+		ExitFunc(0)
 	}
 }
 

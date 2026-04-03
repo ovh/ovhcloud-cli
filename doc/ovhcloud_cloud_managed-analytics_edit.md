@@ -1,0 +1,68 @@
+## ovhcloud cloud managed-analytics edit
+
+Edit a specific managed analytics service
+
+### Synopsis
+
+Use this command to edit a managed analytics service in the given public cloud project.
+There are two ways to define the edition parameters:
+
+1. Using only CLI flags:
+
+	ovhcloud cloud managed-analytics edit <service_id> --description "My analytics service"
+
+2. Using your default text editor:
+
+	ovhcloud cloud managed-analytics edit <service_id> --editor
+  The CLI will open your default text editor to update the parameters. When saving the file, the edition will be applied.
+
+  Note that it is also possible to override values in the presented examples using command line flags like the following:
+
+	ovhcloud cloud managed-analytics edit <service_id> --editor --description "My analytics service"
+
+
+```
+ovhcloud cloud managed-analytics edit <service_id> [flags]
+```
+
+### Options
+
+```
+      --backups-regions strings   Regions on which the backups are stored
+      --backups-time string       Time on which backups start every day
+      --deletion-protection       Enable deletion protection
+      --description string        Description of the cluster
+      --editor                    Use a text editor to define parameters
+      --enable-prometheus         Enable Prometheus
+      --flavor string             The VM flavor used for this cluster
+  -h, --help                      help for edit
+      --ip-restrictions strings   IP blocks authorized to access the cluster (CIDR format)
+      --maintenance-time string   Time on which maintenances can start every day
+      --plan string               Plan of the cluster
+      --version string            Version of the engine deployed on the cluster
+```
+
+### Options inherited from parent commands
+
+```
+      --cloud-project string   Cloud project ID
+  -d, --debug                  Activate debug mode (will log all HTTP requests details)
+  -e, --ignore-errors          Ignore errors in API calls when it is not fatal to the execution
+  -o, --output string          Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
+                               Examples:
+                                 --output json
+                                 --output yaml
+                                 --output interactive
+                                 --output 'id' (to extract a single field)
+                                 --output 'nested.field.subfield' (to extract a nested field)
+                                 --output '[id, "name"]' (to extract multiple fields as an array)
+                                 --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
+                                 --output 'name+","+type' (to extract and concatenate fields in a string)
+                                 --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --profile string         Use a specific profile from the configuration file
+```
+
+### SEE ALSO
+
+* [ovhcloud cloud managed-analytics](ovhcloud_cloud_managed-analytics.md)	 - Manage managed analytics services in the given cloud project
+
