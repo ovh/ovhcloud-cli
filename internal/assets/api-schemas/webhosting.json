@@ -905,6 +905,49 @@
             "type": "boolean",
             "description": "Whether to put the attached domain in the SSL certificate",
             "nullable": true
+          },
+          "capabilities": {
+            "type": "array",
+            "description": "Available operations on this attached domain",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "href": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "method": {
+                  "type": "string"
+                }
+              }
+            },
+            "readOnly": true
+          },
+          "isFlushable": {
+            "type": "boolean",
+            "description": "Whether cache can be flushed for this domain",
+            "readOnly": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Attached domain status",
+            "readOnly": true
+          },
+          "taskId": {
+            "type": "integer",
+            "description": "Task ID currently running on this domain",
+            "nullable": true,
+            "readOnly": true
+          },
+          "vcsStatus": {
+            "type": "string",
+            "description": "VCS deployment status",
+            "readOnly": true
           }
         }
       },
@@ -2047,8 +2090,7 @@
           },
           "displayName": {
             "type": "string",
-            "description": "Set the name displayed in ManagerV6 for your hosting (max 50 chars)",
-            "nullable": true
+            "description": "Set the name displayed in ManagerV6 for your hosting (max 50 chars, empty string resets to service name)"
           },
           "filer": {
             "type": "string",
@@ -2332,8 +2374,7 @@
           },
           "displayName": {
             "type": "string",
-            "description": "Set the name displayed in ManagerV6 for your hosting (max 50 chars)",
-            "nullable": true
+            "description": "Set the name displayed in ManagerV6 for your hosting (max 50 chars, empty string resets to service name)"
           },
           "filer": {
             "type": "string",
@@ -14970,7 +15011,7 @@
         ]
       }
     },
-    "/hosting/web/{serviceName}/ssl": {
+    "/hosting/web/{serviceName}/attachedDomain/{domain}/ssl": {
       "delete": {
         "summary": "Delete a hosted SSL",
         "security": [
@@ -14983,6 +15024,15 @@
             "in": "path",
             "name": "serviceName",
             "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "domain",
+            "description": "Domain",
             "required": true,
             "schema": {
               "type": "string"
@@ -15030,6 +15080,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "path",
+            "name": "domain",
+            "description": "Domain",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -15058,7 +15117,7 @@
         ]
       },
       "post": {
-        "summary": "Create the free default HostedSsl OR import your own SSL on your hosting",
+        "summary": "Create the free default HostedSsl",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -15073,18 +15132,17 @@
             "schema": {
               "type": "string"
             }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/hosting.web.SSLInput"
-              }
+          },
+          {
+            "in": "path",
+            "name": "domain",
+            "description": "Domain",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
             "description": "successful operation",
@@ -15111,144 +15169,7 @@
         ]
       }
     },
-    "/hosting/web/{serviceName}/ssl/domains": {
-      "get": {
-        "summary": "Get list of domains linked to the hosted SSL",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "webHosting:apiovh:ssl/get",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/hosting/web/{serviceName}/ssl/regenerate": {
-      "post": {
-        "summary": "Regenerate a hosted SSL",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/hosting.web.SSL"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "webHosting:apiovh:ssl/regenerate",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/hosting/web/{serviceName}/ssl/report": {
-      "get": {
-        "summary": "Get hosted SSL report properties",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "serviceName",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/hosting.web.ssl.Report"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "green",
-            "label": "Stable production version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "webHosting:apiovh:ssl/get",
-            "required": true
-          }
-        ]
-      }
-    },
+
     "/hosting/web/{serviceName}/statistics": {
       "get": {
         "summary": "Get statistics about this web hosting",

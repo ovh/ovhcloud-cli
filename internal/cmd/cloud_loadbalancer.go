@@ -40,7 +40,7 @@ func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
 	}
 	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Name, "name", "", "Name of the loadbalancer")
 	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Description, "description", "", "Description of the loadbalancer")
-	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.FlavorId, "flavor", "", "Flavor ID of the loadbalancer (can be retrieved with 'cloud reference loadbalancer list-flavors <region>')")
+	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Size, "size", "", "Size of the loadbalancer (e.g. small, medium, large) or flavor UUID")
 	addInteractiveEditorFlag(editLoadbalancerCmd)
 	loadbalancerCmd.AddCommand(editLoadbalancerCmd)
 
@@ -114,14 +114,14 @@ There are three ways to define the parameters:
 
 3. Using only CLI flags:
 
-	ovhcloud cloud loadbalancer create <region> --name my-lb --flavor <flavor_id>
+	ovhcloud cloud loadbalancer create <region> --name my-lb --size small
 `,
 		Run:  cloud.CreateCloudLoadbalancer,
 		Args: cobra.ExactArgs(1),
 	}
 
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Name, "name", "", "Name of the loadbalancer")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.FlavorId, "flavor", "", "Flavor ID (can be retrieved with 'cloud reference loadbalancer list-flavors <region>')")
+	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Size, "size", "", "Size of the loadbalancer (e.g. small, medium, large) or flavor UUID")
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.Network.Id, "network-id", "", "Network ID")
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.Network.SubnetId, "subnet-id", "", "Subnet ID")
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.FloatingIp.Id, "floating-ip", "", "Floating IP ID to associate to the loadbalancer")
@@ -178,12 +178,14 @@ func initListenerSubCommands(loadbalancerCmd *cobra.Command) {
 	}
 	loadbalancerCmd.AddCommand(listenerCmd)
 
-	listenerCmd.AddCommand(withFilterFlag(&cobra.Command{
+	listenerListCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List all listeners",
 		Run:     cloud.ListCloudLoadbalancerListeners,
-	}))
+	}
+	listenerListCmd.Flags().StringVar(&cloud.CloudLoadbalancerListenerLoadbalancerIDFilter, "loadbalancer-id", "", "Filter listeners by loadbalancer ID")
+	listenerCmd.AddCommand(withFilterFlag(listenerListCmd))
 
 	listenerCmd.AddCommand(&cobra.Command{
 		Use:   "get <listener_id>",
@@ -353,6 +355,11 @@ func getPoolMemberCreationCmd() *cobra.Command {
 		Run:   cloud.CreateCloudLoadbalancerPoolMember,
 		Args:  cobra.ExactArgs(1),
 	}
+
+	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolMemberCreateSpec.Address, "address", "", "IP address of the member")
+	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolMemberCreateSpec.Name, "name", "", "Name of the member")
+	cmd.Flags().IntVar(&cloud.CloudLoadbalancerPoolMemberCreateSpec.ProtocolPort, "protocol-port", 0, "Protocol port number of the member")
+	cmd.Flags().IntVar(&cloud.CloudLoadbalancerPoolMemberCreateSpec.Weight, "weight", 0, "Weight of the member (1-256)")
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool/{poolId}/member", "post", cloud.LoadbalancerPoolMemberCreationExample, nil)
 	addInteractiveEditorFlag(cmd)

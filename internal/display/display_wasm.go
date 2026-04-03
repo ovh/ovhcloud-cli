@@ -164,6 +164,26 @@ func outputf(message string, params ...any) {
 	}
 }
 
+func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
+	if msg.Error {
+		exitError("%s", msg.Message)
+		return
+	}
+	if msg.Warning {
+		exitError("%s", msg.Message)
+		return
+	}
+
+	if msg.Details != nil {
+		if err := prettyPrintJSON(msg.Details); err != nil {
+			exitError("error displaying JSON results: %s", err)
+		}
+		return
+	}
+
+	outputf("%s", msg.Message)
+}
+
 func OutputInfo(outputFormat *OutputFormat, details any, message string, params ...any) {
 	outputf(message, params...)
 }

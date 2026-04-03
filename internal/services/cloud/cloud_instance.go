@@ -18,6 +18,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/editor"
+	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/openapi"
@@ -34,6 +35,29 @@ var (
 
 	//go:embed templates/cloud_instance_interface.tmpl
 	cloudInstanceInterfaceTemplate string
+
+	//go:embed templates/cloud_instance_application_access.tmpl
+	cloudInstanceApplicationAccessTemplate string
+
+	//go:embed templates/cloud_instance_autobackup.tmpl
+	cloudInstanceAutobackupTemplate string
+
+	autobackupColumnsToDisplay = []string{"id", "name", "instanceId", "cron", "rotation", "nextExecutionTime"}
+
+	AutobackupCreateParams struct {
+		InstanceID        string `json:"instanceId"`
+		Name              string `json:"name"`
+		Cron              string `json:"cron"`
+		Rotation          int    `json:"rotation"`
+		MaxExecutionCount *int   `json:"maxExecutionCount,omitempty"`
+	}
+
+	//go:embed templates/cloud_instance_group.tmpl
+	cloudInstanceGroupTemplate string
+
+	instanceGroupColumnsToDisplay = []string{"id", "name", "type", "region", "instance_ids"}
+
+	InstanceGroupType string
 
 	//go:embed parameter-samples/instance-create.json
 	CloudInstanceCreationExample string
@@ -296,6 +320,10 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		if flavor, ok := interactiveParams["flavor"]; ok {
 			InstanceCreationParameters.Flavor.ID = flavor.(map[string]any)["id"].(string)
 		}
+	}
+
+	if s := &InstanceCreationParameters.Network.Private.NetworkCreate.Subnet; s.IPVersion == 0 && s.CIDR != "" {
+		s.IPVersion = ipVersionFromCIDR(s.CIDR)
 	}
 
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance", projectID, region)
@@ -895,4 +923,211 @@ func DeleteInstanceSnapshot(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot successfully deleted")
+}
+
+// Application Access
+
+func GetInstanceApplicationAccess(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/applicationAccess", projectID, url.PathEscape(args[0]))
+
+	var response map[string]any
+	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error getting application access for instance %q: %s", args[0], err)
+		return
+	}
+
+	display.OutputObject(response, args[0], cloudInstanceApplicationAccessTemplate, &flags.OutputFormatConfig)
+}
+
+// Autobackup
+
+func getInstanceRegion(projectID, instanceID string) (string, error) {
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(instanceID))
+	var instance map[string]any
+	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
+		return "", fmt.Errorf("failed to fetch instance details: %w", err)
+	}
+	region, ok := instance["region"].(string)
+	if !ok || region == "" {
+		return "", fmt.Errorf("could not determine instance region")
+	}
+	return region, nil
+}
+
+func ListAutobackups(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	region, err := getInstanceRegion(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup", projectID, url.PathEscape(region))
+
+	var backups []map[string]any
+	if err := httpLib.Client.Get(endpoint, &backups); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error listing autobackups: %s", err)
+		return
+	}
+
+	// Filter by instance ID
+	filtered := make([]map[string]any, 0)
+	for _, b := range backups {
+		if id, ok := b["instanceId"].(string); ok && id == args[0] {
+			filtered = append(filtered, b)
+		}
+	}
+
+	filtered, err = filtersLib.FilterLines(filtered, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(filtered, autobackupColumnsToDisplay, &flags.OutputFormatConfig)
+}
+
+func GetAutobackup(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	region, err := getInstanceRegion(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup", projectID, url.PathEscape(region))
+	common.ManageObjectRequest(endpoint, args[1], cloudInstanceAutobackupTemplate)
+}
+
+func CreateAutobackup(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	region, err := getInstanceRegion(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	params := AutobackupCreateParams
+	params.InstanceID = args[0]
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup", projectID, url.PathEscape(region))
+
+	var response map[string]any
+	if err := httpLib.Client.Post(endpoint, params, &response); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error creating autobackup for instance %q: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Autobackup workflow created with ID: %s", response["id"])
+}
+
+func DeleteAutobackup(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	region, err := getInstanceRegion(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup/%s", projectID, url.PathEscape(region), url.PathEscape(args[1]))
+
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error deleting autobackup %q: %s", args[1], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Autobackup workflow deleted")
+}
+
+// Instance Groups
+
+func ListInstanceGroups(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageListRequestNoExpand(fmt.Sprintf("/v1/cloud/project/%s/instance/group", projectID), instanceGroupColumnsToDisplay, flags.GenericFilters)
+}
+
+func GetInstanceGroup(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/instance/group", projectID), args[0], cloudInstanceGroupTemplate)
+}
+
+func CreateInstanceGroup(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	if InstanceGroupType != "affinity" && InstanceGroupType != "anti-affinity" {
+		display.OutputError(&flags.OutputFormatConfig, "invalid group type: %q. Use 'affinity' or 'anti-affinity'.", InstanceGroupType)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/group", projectID)
+	body := map[string]any{
+		"name":   args[0],
+		"region": args[1],
+		"type":   InstanceGroupType,
+	}
+
+	var response map[string]any
+	if err := httpLib.Client.Post(endpoint, body, &response); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error creating instance group: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Instance group created with ID: %s", response["id"])
+}
+
+func DeleteInstanceGroup(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/group/%s", projectID, url.PathEscape(args[0]))
+
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error deleting instance group %q: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance group successfully deleted")
 }

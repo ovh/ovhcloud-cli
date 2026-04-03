@@ -113,6 +113,7 @@ func init() {
 	initCloudRegionCommand(cloudCmd)
 	initCloudSSHKeyCommand(cloudCmd)
 	initCloudUserCommand(cloudCmd)
+	initCloudStorageFileCommand(cloudCmd)
 	initCloudStorageS3Command(cloudCmd)
 	initCloudStorageSwiftCommand(cloudCmd)
 	initCloudVolumeCommand(cloudCmd)
@@ -120,6 +121,7 @@ func init() {
 	initCloudReferenceCmd(cloudCmd)
 	initCloudSavingsPlanCommand(cloudCmd)
 	initCloudIPFailoverCommand(cloudCmd)
+	initCloudFloatingIPCommand(cloudCmd)
 	initCloudAlertingCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)

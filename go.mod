@@ -16,6 +16,7 @@ require (
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/google/uuid v1.6.0
 	github.com/jarcoal/httpmock v1.4.1
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/maxatome/go-testdeep v1.15.0

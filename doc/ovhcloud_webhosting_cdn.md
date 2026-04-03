@@ -1,0 +1,38 @@
+## ovhcloud webhosting cdn
+
+Manage CDN
+
+### Options
+
+```
+  -h, --help   help for cdn
+```
+
+### Options inherited from parent commands
+
+```
+  -d, --debug            Activate debug mode (will log all HTTP requests details)
+  -e, --ignore-errors    Ignore errors in API calls when it is not fatal to the execution
+  -o, --output string    Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
+                         Examples:
+                           --output json
+                           --output yaml
+                           --output interactive
+                           --output 'id' (to extract a single field)
+                           --output 'nested.field.subfield' (to extract a nested field)
+                           --output '[id, "name"]' (to extract multiple fields as an array)
+                           --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
+                           --output 'name+","+type' (to extract and concatenate fields in a string)
+                           --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --profile string   Use a specific profile from the configuration file
+```
+
+### SEE ALSO
+
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting cdn available-options](ovhcloud_webhosting_cdn_available-options.md)	 - List available CDN options
+* [ovhcloud webhosting cdn domain](ovhcloud_webhosting_cdn_domain.md)	 - Manage CDN domains
+* [ovhcloud webhosting cdn get](ovhcloud_webhosting_cdn_get.md)	 - Get CDN info
+* [ovhcloud webhosting cdn operation](ovhcloud_webhosting_cdn_operation.md)	 - Manage CDN operations
+* [ovhcloud webhosting cdn service-info](ovhcloud_webhosting_cdn_service-info.md)	 - Manage CDN service info
+

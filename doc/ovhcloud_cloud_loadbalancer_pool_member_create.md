@@ -9,11 +9,15 @@ ovhcloud cloud loadbalancer pool member create <pool_id> [flags]
 ### Options
 
 ```
-      --editor             Use a text editor to define parameters
-      --from-file string   File containing parameters
-  -h, --help               help for create
-      --init-file string   Create a file with example parameters
-      --replace            Replace parameters file if it already exists
+      --address string      IP address of the member
+      --editor              Use a text editor to define parameters
+      --from-file string    File containing parameters
+  -h, --help                help for create
+      --init-file string    Create a file with example parameters
+      --name string         Name of the member
+      --protocol-port int   Protocol port number of the member
+      --replace             Replace parameters file if it already exists
+      --weight int          Weight of the member (1-256)
 ```
 
 ### Options inherited from parent commands

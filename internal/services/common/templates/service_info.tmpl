@@ -3,28 +3,34 @@
 
 ## Service details
 
-**Domain**:                   {{index .Result "domain"}}
-**Service ID**:               {{index .Result "serviceId"}}
-**Status**:                   {{index .Result "status"}}
-**Creation date**:            {{index .Result "creation"}}
-**Expiration date**:          {{index .Result "expiration"}}
-**Engaged up to**:            {{index .Result "engagedUpTo"}}
-**Can delete at expiration**: {{index .Result "canDeleteAtExpiration"}}
+{{ $resource := index .Result "resource" -}}
+**Service**:                 {{- if $resource -}}{{or (index $resource "displayName") (index $resource "name")}}{{else}}{{or (index .Result "domain") (index .Result "serviceName")}}{{end}}
+
+**Service ID**:              {{index .Result "serviceId"}}
+**Status**:                  {{or (index .Result "state") (index .Result "status")}}
+**Creation date**:           {{or (index .Result "creationDate") (index .Result "creation")}}
+**Expiration date**:         {{or (index .Result "expirationDate") (index .Result "expiration")}}
+**Engaged up to**:           {{or (index .Result "engagementDate") (index .Result "engagedUpTo")}}
+**Can delete at expiration**: {{or (index .Result "canDeleteAtExpiration") (index .Result "renew" "deleteAtExpiration")}}
 
 **Contacts**:
 - Admin:   {{index .Result "contactAdmin"}}
 - Billing: {{index .Result "contactBilling"}}
 - Tech:    {{index .Result "contactTech"}}
 
+{{ $renew := index .Result "renew" -}}
+{{ if $renew }}
 ### Renewal details
 
-**Renewal type**:           {{index .Result "renewalType"}}
-**Possible renew periods**: {{range index .Result "possibleRenewPeriod"}}{{.}} {{end}}
+**Renewal mode**:           {{index $renew "mode"}}
+**Possible modes**:         {{range index $renew "possibleModes"}}{{.}} {{end}}
+**Interval**:               {{index $renew "interval"}}
+**Possible intervals**:     {{range index $renew "possibleIntervals"}}{{.}} {{end}}
+**Day of month**:           {{index $renew "dayOfMonth"}}
 
-{{if index .Result "renew"}}
-| Automatic | Forced | Manual Payment | Delete at Expiration | Period |
+| Manual Payment | Forced | Automatic Renewal | Delete at Expiration | Period |
 | --- | --- | --- | --- | --- |
-| {{index .Result "renew" "automatic"}} | {{index .Result "renew" "forced"}} | {{index .Result "renew" "manualPayment"}} | {{index .Result "renew" "deleteAtExpiration"}} | {{index .Result "renew" "period"}} |
-{{end}}
+| {{index $renew "manualPayment"}} | {{index $renew "forced"}} | {{index $renew "automatic"}} | {{index $renew "deleteAtExpiration"}} | {{index $renew "period"}} |
+{{ end }}
 
 💡 Use option -o json or -o yaml to get the raw output with all information

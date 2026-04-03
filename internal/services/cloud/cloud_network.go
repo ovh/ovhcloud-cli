@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/url"
 	"strings"
 	"sync"
@@ -378,6 +379,10 @@ func CreatePrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 		})
 	}
 
+	if CloudNetworkSubnetSpec.IPVersion == 0 && CloudNetworkSubnetSpec.Cidr != "" {
+		CloudNetworkSubnetSpec.IPVersion = ipVersionFromCIDR(CloudNetworkSubnetSpec.Cidr)
+	}
+
 	subnet, err := common.CreateResource(
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/network/{networkId}/subnet",
@@ -577,6 +582,10 @@ func CreateGateway(cmd *cobra.Command, args []string) {
 		endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway", projectID, url.PathEscape(region))
 	}
 
+	if CloudGatewaySpec.Network.Subnet.IPVersion == 0 && CloudGatewaySpec.Network.Subnet.Cidr != "" {
+		CloudGatewaySpec.Network.Subnet.IPVersion = ipVersionFromCIDR(CloudGatewaySpec.Network.Subnet.Cidr)
+	}
+
 	// Create resource
 	task, err := common.CreateResource(
 		cmd,
@@ -697,4 +706,17 @@ func DeleteGatewayInterface(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Gateway %s interface %s deleted successfully", args[0], args[1])
+}
+
+// ipVersionFromCIDR returns 4 or 6 based on the CIDR string.
+// Returns 0 if the CIDR cannot be parsed.
+func ipVersionFromCIDR(cidr string) int {
+	ip, _, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return 0
+	}
+	if ip.To4() != nil {
+		return 4
+	}
+	return 6
 }

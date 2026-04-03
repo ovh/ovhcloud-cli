@@ -1,0 +1,78 @@
+📦 Offer Capabilities {{.ServiceName}}
+=============================
+
+**Attached domains**: {{index .Result "attachedDomains"}}
+
+**Extra users**: {{index .Result "extraUsers"}}
+
+**Env vars**: {{index .Result "envVars"}}
+
+**Runtimes**: {{index .Result "runtimes"}}
+
+**Module one-click**: {{index .Result "moduleOneClick"}}
+
+**Files browser**: {{index .Result "filesBrowser"}}
+
+**SSH**: {{index .Result "ssh"}}
+
+**Cron tab**: {{index .Result "crontab"}}
+
+**Sites recommended**: {{index .Result "sitesRecommended"}}
+
+{{ with $disk := index .Result "disk" -}}
+**Disk**: {{index $disk "value"}} {{index $disk "unit"}} ({{index $disk "type"}})
+
+{{- end }}
+{{ with $traffic := index .Result "traffic" -}}
+**Traffic**: {{$traffic}}
+
+{{- end }}
+
+### 📧 Emails
+
+{{ with $email := index .Result "emails" -}}
+Quota: {{index (index $email "quota") "value"}} {{index (index $email "quota") "unit"}}
+
+Available: {{index $email "available"}}
+
+{{- end }}
+
+### 🗄️ Databases
+
+{{ $databases := index .Result "databases" -}}
+{{- if $databases }}
+| Type | Isolation | Available | Quota |
+|------|-----------|-----------|-------|
+{{- range $databases }}
+| {{index . "type"}} | {{index . "isolation"}} | {{index . "available"}} | {{index (index . "quota") "value"}} {{index (index . "quota") "unit"}} |
+{{- end }}
+{{ else }}
+No database capability details.
+{{- end }}
+
+{{ with $priv := index .Result "privateDatabases" -}}
+### 🔐 Private Databases
+
+| Type | Isolation | Available | Quota |
+|------|-----------|-----------|-------|
+{{- range $priv }}
+| {{index . "type"}} | {{index . "isolation"}} | {{index . "available"}} | {{index (index . "quota") "value"}} {{index (index . "quota") "unit"}} |
+{{- end }}
+{{- end }}
+
+### 💻 Languages
+
+{{- with $languages := index .Result "languages" }}
+{{- range $lang, $versions := $languages }}
+**{{ $lang | toTitle }}**:
+{{- if $versions }}
+{{- range $versions }}
+- {{.}}
+{{- end }}
+{{- else }} N/A
+{{- end }}
+
+{{- end }}
+{{- end }}
+
+💡 Use option -o json or -o yaml to get the raw output with all information
