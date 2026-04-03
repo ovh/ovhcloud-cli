@@ -1589,7 +1589,7 @@ func (m Model) fetchImages(region string) tea.Cmd {
 // deleteInstance deletes an instance by its ID
 func (m Model) deleteInstance(instanceId string) tea.Cmd {
 	return func() tea.Msg {
-		endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", m.cloudProject, instanceId)
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", m.cloudProject, instanceId)
 		err := httpLib.Client.Delete(endpoint, nil)
 		if err != nil {
 			return instanceDeletedMsg{err: fmt.Errorf("failed to delete instance: %w", err)}
@@ -2128,7 +2128,7 @@ func (m Model) cleanupCreatedResources() tea.Cmd {
 
 		// Delete instance if created
 		if m.wizard.createdInstanceId != "" {
-			endpoint := fmt.Sprintf("/cloud/project/%s/instance/%s", m.cloudProject, m.wizard.createdInstanceId)
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", m.cloudProject, m.wizard.createdInstanceId)
 			if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 				errors = append(errors, fmt.Sprintf("Instance: %s", err))
 			} else {

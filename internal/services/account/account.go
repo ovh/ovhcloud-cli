@@ -35,7 +35,7 @@ var (
 )
 
 func GetMe(_ *cobra.Command, _ []string) {
-	common.ManageObjectRequest("/me", "", meTemplate)
+	common.ManageObjectRequest("/v1/me", "", meTemplate)
 }
 
 func ListSSHKeys(_ *cobra.Command, _ []string) {
