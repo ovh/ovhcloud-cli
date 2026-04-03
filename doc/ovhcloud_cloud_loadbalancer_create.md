@@ -25,7 +25,7 @@ There are three ways to define the parameters:
 
 3. Using only CLI flags:
 
-	ovhcloud cloud loadbalancer create <region> --name my-lb --flavor <flavor_id>
+	ovhcloud cloud loadbalancer create <region> --name my-lb --size small
 
 
 ```
@@ -36,7 +36,6 @@ ovhcloud cloud loadbalancer create <region> [flags]
 
 ```
       --editor               Use a text editor to define parameters
-      --flavor string        Flavor ID (can be retrieved with 'cloud reference loadbalancer list-flavors <region>')
       --floating-ip string   Floating IP ID to associate to the loadbalancer
       --from-file string     File containing parameters
       --gateway string       Gateway ID to associate to the loadbalancer
@@ -45,6 +44,7 @@ ovhcloud cloud loadbalancer create <region> [flags]
       --name string          Name of the loadbalancer
       --network-id string    Network ID
       --replace              Replace parameters file if it already exists
+      --size string          Size of the loadbalancer (e.g. small, medium, large) or flavor UUID
       --subnet-id string     Subnet ID
 ```
 
