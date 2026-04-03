@@ -13,7 +13,7 @@ ovhcloud webhosting module catalog list [flags]
       --branch string        Filter by branch (allowed: old, stable, testing)
       --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
                              Examples:
-                               --filter 'state="running"'
+                               --filter 'state=="running"'
                                --filter 'name=~"^my.*"'
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'

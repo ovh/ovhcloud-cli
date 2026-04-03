@@ -90,31 +90,59 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 	rancherPlansListCmd.Flags().StringP("rancher-id", "r", "", "Rancher service ID to filter available plans")
 	rancherReferenceCmd.AddCommand(rancherPlansListCmd)
 
-	// Databases reference commands
-	databaseReferenceCmd := &cobra.Command{
-		Use:   "database",
-		Short: "Fetch database reference data in the given cloud project",
+	// Managed Databases reference commands
+	managedDatabaseReferenceCmd := &cobra.Command{
+		Use:   "managed-database",
+		Short: "Fetch managed database reference data in the given cloud project",
 	}
-	referenceCmd.AddCommand(databaseReferenceCmd)
+	referenceCmd.AddCommand(managedDatabaseReferenceCmd)
 
-	databaseReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+	managedDatabaseReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:   "list-plans",
 		Short: "List available database plans in the given cloud project",
-		Run:   cloud.ListDatabasesPlans,
+		Run:   cloud.ListManagedDatabasePlans,
 		Args:  cobra.NoArgs,
 	}))
 
-	databaseReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+	managedDatabaseReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:   "list-node-flavors",
 		Short: "List available database node flavors in the given cloud project",
-		Run:   cloud.ListDatabasesNodeFlavors,
+		Run:   cloud.ListManagedDatabaseNodeFlavors,
 		Args:  cobra.NoArgs,
 	}))
 
-	databaseReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+	managedDatabaseReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:   "list-engines",
 		Short: "List available database engines in the given cloud project",
-		Run:   cloud.ListDatabaseEngines,
+		Run:   cloud.ListManagedDatabaseEngines,
+		Args:  cobra.NoArgs,
+	}))
+
+	// Managed Analytics reference commands
+	managedAnalyticsReferenceCmd := &cobra.Command{
+		Use:   "managed-analytics",
+		Short: "Fetch managed analytics reference data in the given cloud project",
+	}
+	referenceCmd.AddCommand(managedAnalyticsReferenceCmd)
+
+	managedAnalyticsReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-plans",
+		Short: "List available analytics plans in the given cloud project",
+		Run:   cloud.ListManagedAnalyticsPlans,
+		Args:  cobra.NoArgs,
+	}))
+
+	managedAnalyticsReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-node-flavors",
+		Short: "List available analytics node flavors in the given cloud project",
+		Run:   cloud.ListManagedAnalyticsNodeFlavors,
+		Args:  cobra.NoArgs,
+	}))
+
+	managedAnalyticsReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-engines",
+		Short: "List available analytics engines in the given cloud project",
+		Run:   cloud.ListManagedAnalyticsEngines,
 		Args:  cobra.NoArgs,
 	}))
 

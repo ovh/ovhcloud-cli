@@ -13,6 +13,7 @@ import (
 	"github.com/maxatome/go-testdeep/td"
 	"github.com/ovh/go-ovh/ovh"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
+	"github.com/ovh/ovhcloud-cli/internal/display"
 	httplib "github.com/ovh/ovhcloud-cli/internal/http"
 )
 
@@ -20,6 +21,7 @@ type MockSuite struct{}
 
 func (ms *MockSuite) Setup(t *td.T) error {
 	httpmock.Activate(t)
+	display.ExitFunc = func(int) {}
 
 	client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", "consumer_key")
 	if err != nil {
