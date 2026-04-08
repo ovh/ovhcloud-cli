@@ -11,7 +11,7 @@ import (
 
 func initCloudStorageSwiftCommand(cloudCmd *cobra.Command) {
 	storageSwiftCmd := &cobra.Command{
-		Use:   "storage-swift",
+		Use:   "swift",
 		Short: "Manage SWIFT storage containers in the given cloud project",
 	}
 	storageSwiftCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
