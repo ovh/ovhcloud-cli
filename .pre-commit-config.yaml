@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: generate-docs
+        name: Generate CLI documentation
+        entry: make doc
+        language: system
+        pass_filenames: false
