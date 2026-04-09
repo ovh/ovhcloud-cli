@@ -81,50 +81,27 @@ func EditVolume(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if cmd.Flags().NFlag() == 0 {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
+	// Fetch the volume to get its region for the region-scoped endpoint
+	var volume map[string]any
+	if err := httpLib.Client.Get(
+		fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
+		&volume,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume: %s", err)
 		return
 	}
 
-	// Build PUT body with only the fields explicitly provided by the user
-	body := make(map[string]any)
-	if cmd.Flags().Changed("name") {
-		body["name"] = VolumeEditSpec.Name
-	}
-	if cmd.Flags().Changed("description") {
-		body["description"] = VolumeEditSpec.Description
-	}
-	if cmd.Flags().Changed("type") {
-		body["type"] = VolumeEditSpec.Type
-	}
-	if cmd.Flags().Changed("size") {
-		body["size"] = VolumeEditSpec.Size
-	}
-
-	// Use the region-scoped endpoint when --type or --size is provided,
-	// otherwise use the project-scoped endpoint for name/description changes
-	var endpoint string
-	if cmd.Flags().Changed("type") || cmd.Flags().Changed("size") {
-		// Fetch the volume to get its region (required for the region-scoped endpoint)
-		var volume map[string]any
-		if err := httpLib.Client.Get(
-			fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
-			&volume,
-		); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume: %s", err)
-			return
-		}
-		region := volume["region"].(string)
-		endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume/%s", projectID, url.PathEscape(region), url.PathEscape(args[0]))
-	} else {
-		endpoint = fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0]))
-	}
-	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to update volume: %s", err)
+	region := volume["region"].(string)
+	if err := common.EditResource(
+		cmd,
+		"/cloud/project/{serviceName}/region/{regionName}/volume/{volumeId}",
+		fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume/%s", projectID, url.PathEscape(region), url.PathEscape(args[0])),
+		VolumeEditSpec,
+		assets.CloudOpenapiSchema,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s updated successfully", args[0])
 }
 
 func CreateVolume(cmd *cobra.Command, args []string) {
