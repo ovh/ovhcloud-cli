@@ -13,7 +13,7 @@ import (
 func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	// Storage commands
 	storageS3Cmd := &cobra.Command{
-		Use:   "storage-s3",
+		Use:   "object",
 		Short: "Manage S3™* compatible storage containers in the given cloud project (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 	}
 	storageS3Cmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
@@ -360,37 +360,37 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud storage-s3 create BHS --name mynewContainer
+	ovhcloud cloud storage object create BHS --name mynewContainer
 
 2. Using a configuration file:
 
   First you can generate an example of parameters file using the following command:
 
-	ovhcloud cloud storage-s3 create --init-file ./params.json
+	ovhcloud cloud storage object create --init-file ./params.json
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
   After editing the file to set the correct creation parameters, run:
 
-	ovhcloud cloud storage-s3 create GRA --from-file ./params.json
+	ovhcloud cloud storage object create GRA --from-file ./params.json
 
   Note that you can also pipe the content of the parameters file, like the following:
 
-	cat ./params.json | ovhcloud cloud storage-s3 create GRA
+	cat ./params.json | ovhcloud cloud storage object create GRA
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovhcloud cloud storage-s3 create GRA --from-file ./params.json --name nameoverriden
+	ovhcloud cloud storage object create GRA --from-file ./params.json --name nameoverriden
 
 3. Using your default text editor:
 
-	ovhcloud cloud storage-s3 create GRA --editor
+	ovhcloud cloud storage object create GRA --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud storage-s3 create GRA --editor --name nameoverriden
+	ovhcloud cloud storage object create GRA --editor --name nameoverriden
 
 *S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.
 `,

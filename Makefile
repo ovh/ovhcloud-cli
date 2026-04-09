@@ -36,4 +36,8 @@ schemas:
 	curl -s "https://eu.api.ovh.com/v1/$(UNIVERSE).json?format=openapi3" | jq 'del(.paths[] | .[]["x-code-samples"])' > "$$tmp" && \
 	mv "$$tmp" internal/assets/api-schemas/$(UNIVERSE).json
 
-.PHONY: all wasm doc schemas
+setup:
+	curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/latest/download/prek-installer.sh | sh
+	prek install
+
+.PHONY: all wasm doc schemas setup
