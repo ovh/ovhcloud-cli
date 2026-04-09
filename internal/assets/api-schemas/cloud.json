@@ -3140,9 +3140,44 @@
         "type": "object",
         "description": "Replication storage job",
         "properties": {
+          "completed": {
+            "type": "integer",
+            "description": "Number of successfully replicated objects",
+            "readOnly": true
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Job creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "failed": {
+            "type": "integer",
+            "description": "Number of failed replicated objects",
+            "readOnly": true
+          },
           "id": {
             "type": "string",
             "description": "Job ID",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.storage.StorageJobReplicationStatusEnum"
+              }
+            ],
+            "description": "Job replication status",
+            "readOnly": true
+          },
+          "stuck": {
+            "type": "integer",
+            "description": "Number of stuck replicated objects",
+            "readOnly": true
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of objects to replicate",
             "readOnly": true
           }
         }
@@ -7037,6 +7072,11 @@
           "enableDhcp": {
             "type": "boolean",
             "description": "Enable DHCP on the private network"
+          },
+          "enableGatewayIP": {
+            "type": "boolean",
+            "description": "Enable gateway IP",
+            "nullable": true
           },
           "ipVersion": {
             "type": "integer",
@@ -23865,6 +23905,16 @@
         "type": "object",
         "description": "Share Quota",
         "properties": {
+          "maxShareBackupGigabytes": {
+            "type": "integer",
+            "description": "Maximum share backup gigabytes",
+            "readOnly": true
+          },
+          "maxShareBackups": {
+            "type": "integer",
+            "description": "Maximum number of share backups",
+            "readOnly": true
+          },
           "maxShareSizePerShare": {
             "type": "integer",
             "description": "Maximum share size of a share",
@@ -23883,6 +23933,16 @@
           "maxSharesNumber": {
             "type": "integer",
             "description": "Maximum number of shares in the quota",
+            "readOnly": true
+          },
+          "usedShareBackupGigabytes": {
+            "type": "integer",
+            "description": "Used share backup gigabytes",
+            "readOnly": true
+          },
+          "usedShareBackups": {
+            "type": "integer",
+            "description": "Used number of share backups",
             "readOnly": true
           },
           "usedShareSizeTotal": {
@@ -25507,6 +25567,17 @@
           "ONEZONE_IA",
           "STANDARD",
           "STANDARD_IA"
+        ]
+      },
+      "cloud.storage.StorageJobReplicationStatusEnum": {
+        "type": "string",
+        "description": "Storage job replication status",
+        "enum": [
+          "Active",
+          "Completed",
+          "Created",
+          "Failed",
+          "Preparing"
         ]
       },
       "cloud.storage.TypeEnum": {
@@ -281333,6 +281404,72 @@
       }
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/job/replication": {
+      "get": {
+        "operationId": "getReplicationJobsOnStorageContainer",
+        "summary": "Get replication jobs on S3™* compatible buckets",
+        "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/cloud.StorageJobReplication"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/storage/job/replication/get",
+            "required": true
+          }
+        ]
+      },
       "post": {
         "operationId": "createReplicationJobOnStorageContainer",
         "summary": "Create replication job on S3™* compatible buckets",
