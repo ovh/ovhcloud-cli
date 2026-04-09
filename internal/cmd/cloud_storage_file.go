@@ -12,7 +12,7 @@ import (
 
 func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 	storageFileCmd := &cobra.Command{
-		Use:   "storage-file",
+		Use:   "file",
 		Short: "Manage file storage shares in the given cloud project",
 	}
 	storageFileCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")

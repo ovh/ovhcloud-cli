@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
@@ -40,6 +39,13 @@ var (
 		Size             int    `json:"size,omitempty"`
 		SnapshotId       string `json:"snapshotId,omitempty"`
 		Type             string `json:"type,omitempty"`
+	}
+
+	VolumeEditSpec struct {
+		Description string `json:"description,omitempty"`
+		Name        string `json:"name,omitempty"`
+		Size        int    `json:"size,omitempty"`
+		Type        string `json:"type,omitempty"`
 	}
 
 	VolumeSnapShotSpec struct {
@@ -75,11 +81,22 @@ func EditVolume(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// Fetch the volume to get its region for the region-scoped endpoint
+	var volume map[string]any
+	if err := httpLib.Client.Get(
+		fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
+		&volume,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume: %s", err)
+		return
+	}
+
+	region := volume["region"].(string)
 	if err := common.EditResource(
 		cmd,
-		"/cloud/project/{serviceName}/volume/{volumeId}",
-		fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
-		VolumeSpec,
+		"/cloud/project/{serviceName}/region/{regionName}/volume/{volumeId}",
+		fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume/%s", projectID, url.PathEscape(region), url.PathEscape(args[0])),
+		VolumeEditSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -235,35 +252,6 @@ func DeleteVolumeSnapshot(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot %s deleted successfully", args[0])
 }
 
-func UpsizeVolume(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	size, err := strconv.Atoi(args[1])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-	if size <= 0 {
-		display.OutputError(&flags.OutputFormatConfig, "size must be a positive integer")
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s/upsize", projectID, url.PathEscape(args[0]))
-	if err := httpLib.Client.Post(
-		endpoint,
-		map[string]int{"size": size},
-		nil,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to upsize volume: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s upscaled successfully to %dGB", args[0], size)
-}
 
 func findVolumeBackup(backupId string) (string, map[string]any, error) {
 	projectID, err := getConfiguredCloudProject()

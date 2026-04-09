@@ -13,7 +13,7 @@ import (
 
 func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	storageBlockCmd := &cobra.Command{
-		Use:   "storage-block",
+		Use:   "block",
 		Short: "Manage block storage volumes in the given cloud project",
 	}
 	storageBlockCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
@@ -39,8 +39,10 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.EditVolume,
 		Args:  cobra.ExactArgs(1),
 	}
-	volumeEditCmd.Flags().StringVar(&cloud.VolumeSpec.Description, "description", "", "Volume description")
-	volumeEditCmd.Flags().StringVar(&cloud.VolumeSpec.Name, "name", "", "Volume name")
+	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Description, "description", "", "Volume description")
+	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Name, "name", "", "Volume name")
+	volumeEditCmd.Flags().IntVar(&cloud.VolumeEditSpec.Size, "size", 0, "Volume size (in GB, can only be increased)")
+	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Type, "type", "", "Volume type (classic, classic-luks, classic-multiattach, high-speed, high-speed-gen2, high-speed-gen2-luks, high-speed-luks)")
 	addInteractiveEditorFlag(volumeEditCmd)
 	storageBlockCmd.AddCommand(volumeEditCmd)
 
@@ -65,13 +67,6 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Use:   "detach <volume_id> <instance_id>",
 		Short: "Detach the given volume from the given instance",
 		Run:   cloud.DetachVolumeFromInstance,
-		Args:  cobra.ExactArgs(2),
-	})
-
-	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "upsize <volume_id> <new_size (GB)>",
-		Short: "Upsize the given volume",
-		Run:   cloud.UpsizeVolume,
 		Args:  cobra.ExactArgs(2),
 	})
 
