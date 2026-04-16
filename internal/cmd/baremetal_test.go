@@ -10,6 +10,17 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
 )
 
+func (ms *MockSuite) TestBaremetalIPMIResetSessionsCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/features/ipmi/resetSessions",
+		httpmock.NewStringResponder(200, `{}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "ipmi", "reset-sessions", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "IPMI sessions reset")
+}
+
 func (ms *MockSuite) TestBaremetalListCompatibleOSCmd(assert, require *td.T) {
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/install/compatibleTemplates",
 		httpmock.NewStringResponder(200, `{
