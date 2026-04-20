@@ -1124,6 +1124,15 @@
             "description": "Kubernetes cluster customization",
             "nullable": true
           },
+          "ipAllocationPolicy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeIpAllocationPolicy"
+              }
+            ],
+            "description": "IP allocation policy. This field is optional.",
+            "nullable": true
+          },
           "kubeProxyMode": {
             "allOf": [
               {
@@ -1293,6 +1302,15 @@
             "description": "Kubernetes cluster api server customization",
             "nullable": true
           },
+          "cilium": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeCustomizationCilium"
+              }
+            ],
+            "description": "Kubernetes cluster cilium customization",
+            "nullable": true
+          },
           "kubeProxy": {
             "allOf": [
               {
@@ -1348,6 +1366,171 @@
           "AlwaysPullImages",
           "NodeRestriction"
         ]
+      },
+      "cloud.ProjectKubeCustomizationCilium": {
+        "type": "object",
+        "description": "Cilium customization",
+        "properties": {
+          "clusterMesh": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeCustomizationCiliumClusterMesh"
+              }
+            ],
+            "description": "ClusterMesh customization.",
+            "nullable": true
+          },
+          "hubble": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeCustomizationCiliumHubble"
+              }
+            ],
+            "description": "Hubble customization.",
+            "nullable": true
+          }
+        }
+      },
+      "cloud.ProjectKubeCustomizationCiliumClusterMesh": {
+        "type": "object",
+        "description": "ClusterMesh customization",
+        "properties": {
+          "apiServer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeCustomizationCiliumClusterMeshApiServer"
+              }
+            ],
+            "description": "API server customization",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable cluster mesh",
+            "nullable": true
+          }
+        }
+      },
+      "cloud.ProjectKubeCustomizationCiliumClusterMeshApiServer": {
+        "type": "object",
+        "description": "ClusterMesh customization",
+        "properties": {
+          "nodePort": {
+            "type": "integer",
+            "description": "Node port",
+            "nullable": true
+          },
+          "serviceType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeCustomizationCiliumClusterMeshApiServerServiceTypeEnum"
+              }
+            ],
+            "description": "Service type",
+            "nullable": true
+          }
+        }
+      },
+      "cloud.ProjectKubeCustomizationCiliumClusterMeshApiServerServiceTypeEnum": {
+        "type": "string",
+        "description": "Type of service for clustermesh api server",
+        "enum": [
+          "LoadBalancer",
+          "NodePort"
+        ]
+      },
+      "cloud.ProjectKubeCustomizationCiliumHubble": {
+        "type": "object",
+        "description": "Hubble customization",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable hubble",
+            "nullable": true
+          },
+          "relay": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeCustomizationCiliumHubbleRelay"
+              }
+            ],
+            "description": "Relay customization",
+            "nullable": true
+          },
+          "ui": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeCustomizationCiliumHubbleUI"
+              }
+            ],
+            "description": "Hubble UI customization",
+            "nullable": true
+          }
+        }
+      },
+      "cloud.ProjectKubeCustomizationCiliumHubbleRelay": {
+        "type": "object",
+        "description": "Hubble relay customization",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable relay",
+            "nullable": true
+          }
+        }
+      },
+      "cloud.ProjectKubeCustomizationCiliumHubbleUI": {
+        "type": "object",
+        "description": "Hubble UI customization",
+        "properties": {
+          "backendResources": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeCustomizationCiliumHubbleUIResources"
+              }
+            ],
+            "description": "Hubble UI Backend Resources requests and limits customizations",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable Hubble UI",
+            "nullable": true
+          },
+          "frontendResources": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeCustomizationCiliumHubbleUIResources"
+              }
+            ],
+            "description": "Hubble UI Frontend Resources requests and limits customizations",
+            "nullable": true
+          }
+        }
+      },
+      "cloud.ProjectKubeCustomizationCiliumHubbleUIResources": {
+        "type": "object",
+        "description": "Hubble UI Resources customization",
+        "properties": {
+          "limits": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeResources"
+              }
+            ],
+            "description": "Resources limits customizations",
+            "nullable": true
+          },
+          "requests": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeResources"
+              }
+            ],
+            "description": "Resources requests customizations",
+            "nullable": true
+          }
+        }
       },
       "cloud.ProjectKubeCustomizationKubeProxy": {
         "type": "object",
@@ -1433,6 +1616,30 @@
             "description": "udpTimeout is the timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S'). The default value is 'PT0S', which preserves the current timeout value on the system",
             "nullable": true,
             "format": "duration"
+          }
+        }
+      },
+      "cloud.ProjectKubeIpAllocationPolicy": {
+        "type": "object",
+        "description": "IP allocation policy.",
+        "properties": {
+          "podsIpv4Cidr": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4Block"
+              }
+            ],
+            "description": "CIDR used for pods ip allocation",
+            "nullable": true
+          },
+          "servicesIpv4Cidr": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipv4Block"
+              }
+            ],
+            "description": "CIDR used for services ip allocation",
+            "nullable": true
           }
         }
       },
@@ -1741,6 +1948,14 @@
             ],
             "description": "Kubernetes cluster customization"
           },
+          "ipAllocationPolicy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeIpAllocationPolicy"
+              }
+            ],
+            "description": "IP allocation policy. This field is optional."
+          },
           "kubeProxyMode": {
             "allOf": [
               {
@@ -1797,6 +2012,22 @@
               }
             ],
             "description": "Worker nodes reset policy, default is delete"
+          }
+        }
+      },
+      "cloud.ProjectKubeResources": {
+        "type": "object",
+        "description": "Kubernetes resources definitions",
+        "properties": {
+          "cpu": {
+            "type": "string",
+            "description": "cpu resource (format according to Kubernetes specification. e.g. cpu: 500m)",
+            "nullable": true
+          },
+          "memory": {
+            "type": "string",
+            "description": "memory resource (format according to Kubernetes specification. e.g. memory: 512Mi)",
+            "nullable": true
           }
         }
       },
@@ -2909,9 +3140,44 @@
         "type": "object",
         "description": "Replication storage job",
         "properties": {
+          "completed": {
+            "type": "integer",
+            "description": "Number of successfully replicated objects",
+            "readOnly": true
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Job creation date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "failed": {
+            "type": "integer",
+            "description": "Number of failed replicated objects",
+            "readOnly": true
+          },
           "id": {
             "type": "string",
             "description": "Job ID",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.storage.StorageJobReplicationStatusEnum"
+              }
+            ],
+            "description": "Job replication status",
+            "readOnly": true
+          },
+          "stuck": {
+            "type": "integer",
+            "description": "Number of stuck replicated objects",
+            "readOnly": true
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of objects to replicate",
             "readOnly": true
           }
         }
@@ -6804,7 +7070,13 @@
             "description": "Subnet range in CIDR notation"
           },
           "enableDhcp": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Enable DHCP on the private network"
+          },
+          "enableGatewayIP": {
+            "type": "boolean",
+            "description": "Enable gateway IP",
+            "nullable": true
           },
           "ipVersion": {
             "type": "integer",
@@ -6887,6 +7159,16 @@
             "nullable": true,
             "readOnly": true
           },
+          "flavor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.flavor.Flavor"
+              }
+            ],
+            "description": "Instance flavor",
+            "nullable": true,
+            "readOnly": true
+          },
           "flavorId": {
             "type": "string",
             "description": "Instance flavor id",
@@ -6895,6 +7177,16 @@
           "id": {
             "type": "string",
             "description": "Instance id",
+            "readOnly": true
+          },
+          "image": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.image.Image"
+              }
+            ],
+            "description": "Instance image",
+            "nullable": true,
             "readOnly": true
           },
           "imageId": {
@@ -6942,6 +7234,23 @@
           "region": {
             "type": "string",
             "description": "Instance id",
+            "readOnly": true
+          },
+          "rescuePassword": {
+            "type": "string",
+            "description": "Rescue password if instance is in RESCUE status",
+            "nullable": true,
+            "format": "password",
+            "readOnly": true
+          },
+          "sshKey": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.sshkey.SshKeyDetail"
+              }
+            ],
+            "description": "Instance SSH key",
+            "nullable": true,
             "readOnly": true
           },
           "sshKeyId": {
@@ -7078,121 +7387,6 @@
           }
         }
       },
-      "cloud.instance.InstanceDetail": {
-        "type": "object",
-        "description": "InstanceDetail",
-        "properties": {
-          "availabilityZone": {
-            "type": "string",
-            "description": "Availability zone of the instance",
-            "nullable": true,
-            "readOnly": true
-          },
-          "created": {
-            "type": "string",
-            "description": "Instance creation date",
-            "format": "date-time",
-            "readOnly": true
-          },
-          "currentMonthOutgoingTraffic": {
-            "type": "integer",
-            "description": "Instance outgoing network traffic for the current month (in bytes)",
-            "nullable": true,
-            "readOnly": true
-          },
-          "flavor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.flavor.Flavor"
-              }
-            ],
-            "description": "Instance flavor",
-            "readOnly": true
-          },
-          "id": {
-            "type": "string",
-            "description": "Instance id",
-            "readOnly": true
-          },
-          "image": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.image.Image"
-              }
-            ],
-            "description": "Instance image",
-            "readOnly": true
-          },
-          "ipAddresses": {
-            "type": "array",
-            "description": "Instance IP addresses",
-            "items": {
-              "$ref": "#/components/schemas/cloud.instance.IpAddress"
-            },
-            "readOnly": true
-          },
-          "monthlyBilling": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.instance.MonthlyBilling"
-              }
-            ],
-            "description": "Instance monthly billing status",
-            "nullable": true,
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Instance name",
-            "readOnly": true
-          },
-          "operationIds": {
-            "type": "array",
-            "description": "Ids of pending public cloud operations",
-            "items": {
-              "type": "string"
-            },
-            "readOnly": true
-          },
-          "planCode": {
-            "type": "string",
-            "description": "Order plan code",
-            "nullable": true,
-            "readOnly": true
-          },
-          "region": {
-            "type": "string",
-            "description": "Instance id",
-            "readOnly": true
-          },
-          "rescuePassword": {
-            "type": "string",
-            "description": "Rescue password if instance is in RESCUE status",
-            "nullable": true,
-            "format": "password",
-            "readOnly": true
-          },
-          "sshKey": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.sshkey.SshKeyDetail"
-              }
-            ],
-            "description": "Instance SSH key",
-            "nullable": true,
-            "readOnly": true
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.instance.InstanceStatusEnum"
-              }
-            ],
-            "description": "Instance status",
-            "readOnly": true
-          }
-        }
-      },
       "cloud.instance.InstanceFlavor": {
         "type": "object",
         "description": "Flavor of the instance",
@@ -7325,6 +7519,15 @@
         "type": "object",
         "description": "Instance",
         "properties": {
+          "actions": {
+            "type": "array",
+            "description": "Actions that can be done on the instance",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.Action"
+            },
+            "readOnly": true
+          },
           "addresses": {
             "type": "array",
             "description": "Instance IP addresses",
@@ -7347,6 +7550,25 @@
             "nullable": true,
             "readOnly": true
           },
+          "backups": {
+            "type": "array",
+            "description": "Instance Backups",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.InstanceBackup"
+            },
+            "readOnly": true
+          },
+          "flavor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceFlavor"
+              }
+            ],
+            "description": "Instance flavor",
+            "nullable": true,
+            "readOnly": true
+          },
           "flavorId": {
             "type": "string",
             "description": "Flavor id",
@@ -7364,6 +7586,16 @@
             "format": "uuid",
             "readOnly": true
           },
+          "image": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.InstanceImage"
+              }
+            ],
+            "description": "Instance image",
+            "nullable": true,
+            "readOnly": true
+          },
           "imageId": {
             "type": "string",
             "description": "Image id",
@@ -7371,14 +7603,44 @@
             "format": "uuid",
             "readOnly": true
           },
+          "login": {
+            "type": "string",
+            "description": "User and address to SSH to your instance",
+            "nullable": true,
+            "readOnly": true
+          },
           "name": {
             "type": "string",
             "description": "Instance name",
             "readOnly": true
           },
+          "pendingTask": {
+            "type": "boolean",
+            "description": "A task is pending for the instance",
+            "nullable": true,
+            "readOnly": true
+          },
+          "pricings": {
+            "type": "array",
+            "description": "Instance Price",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.InstancePrice"
+            },
+            "readOnly": true
+          },
           "region": {
             "type": "string",
             "description": "Instance region",
+            "readOnly": true
+          },
+          "regionType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.RegionTypeEnum"
+              }
+            ],
+            "description": "Type of the region",
             "readOnly": true
           },
           "sshKey": {
@@ -7402,6 +7664,15 @@
               }
             ],
             "description": "Instance task state",
+            "readOnly": true
+          },
+          "volumes": {
+            "type": "array",
+            "description": "Instance volumes",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/cloud.instance.InstanceVolume"
+            },
             "readOnly": true
           }
         }
@@ -7509,166 +7780,6 @@
           "UNSHELVING",
           "VERIFY_RESIZE"
         ]
-      },
-      "cloud.instance.InstanceSummary": {
-        "type": "object",
-        "description": "Instance",
-        "properties": {
-          "actions": {
-            "type": "array",
-            "description": "Actions that can be done on the instance",
-            "items": {
-              "$ref": "#/components/schemas/cloud.instance.Action"
-            },
-            "readOnly": true
-          },
-          "addresses": {
-            "type": "array",
-            "description": "Instance IP addresses",
-            "items": {
-              "$ref": "#/components/schemas/cloud.instance.InstanceAddress"
-            },
-            "readOnly": true
-          },
-          "attachedVolumes": {
-            "type": "array",
-            "description": "Volumes attached to the instance",
-            "items": {
-              "$ref": "#/components/schemas/cloud.instance.InstanceSummaryVolumeValue"
-            },
-            "readOnly": true
-          },
-          "availabilityZone": {
-            "type": "string",
-            "description": "Availability zone of the instance",
-            "nullable": true,
-            "readOnly": true
-          },
-          "backups": {
-            "type": "array",
-            "description": "Instance Backups",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/cloud.instance.InstanceBackup"
-            },
-            "readOnly": true
-          },
-          "flavor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.instance.InstanceFlavor"
-              }
-            ],
-            "description": "Instance flavor",
-            "nullable": true,
-            "readOnly": true
-          },
-          "flavorId": {
-            "type": "string",
-            "description": "Flavor id",
-            "format": "uuid",
-            "readOnly": true
-          },
-          "flavorName": {
-            "type": "string",
-            "description": "Flavor name",
-            "readOnly": true
-          },
-          "id": {
-            "type": "string",
-            "description": "Instance id",
-            "format": "uuid",
-            "readOnly": true
-          },
-          "image": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.instance.InstanceImage"
-              }
-            ],
-            "description": "Instance image",
-            "nullable": true,
-            "readOnly": true
-          },
-          "imageId": {
-            "type": "string",
-            "description": "Image id",
-            "nullable": true,
-            "format": "uuid",
-            "readOnly": true
-          },
-          "login": {
-            "type": "string",
-            "description": "User and address to SSH to your instance",
-            "nullable": true,
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Instance name",
-            "readOnly": true
-          },
-          "pendingTask": {
-            "type": "boolean",
-            "description": "A task is pending for the instance",
-            "readOnly": true
-          },
-          "pricings": {
-            "type": "array",
-            "description": "Instance Price",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/cloud.instance.InstancePrice"
-            },
-            "readOnly": true
-          },
-          "region": {
-            "type": "string",
-            "description": "Instance region",
-            "readOnly": true
-          },
-          "regionType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.RegionTypeEnum"
-              }
-            ],
-            "description": "Type of the region",
-            "readOnly": true
-          },
-          "sshKey": {
-            "type": "string",
-            "description": "Instance SSH key name",
-            "readOnly": true
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.instance.InstanceStatusEnum"
-              }
-            ],
-            "description": "Instance status",
-            "readOnly": true
-          },
-          "taskState": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/cloud.instance.InstanceSummaryTaskStateEnum"
-              }
-            ],
-            "description": "Instance task state",
-            "readOnly": true
-          },
-          "volumes": {
-            "type": "array",
-            "description": "Instance volumes",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/cloud.instance.InstanceVolume"
-            },
-            "readOnly": true
-          }
-        }
       },
       "cloud.instance.InstanceSummaryTaskStateEnum": {
         "type": "string",
@@ -8082,7 +8193,7 @@
           "block": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/ip"
+                "$ref": "#/components/schemas/ipBlock"
               }
             ],
             "description": "IP block",
@@ -8124,6 +8235,7 @@
           "routedTo": {
             "type": "string",
             "description": "Instance where ip is routed to",
+            "nullable": true,
             "readOnly": true
           },
           "status": {
@@ -8299,6 +8411,16 @@
           "id": {
             "type": "string",
             "description": "Cluster ID",
+            "readOnly": true
+          },
+          "ipAllocationPolicy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.ProjectKubeIpAllocationPolicy"
+              }
+            ],
+            "description": "IP allocation policy",
+            "nullable": true,
             "readOnly": true
           },
           "isUpToDate": {
@@ -9107,11 +9229,11 @@
         "type": "string",
         "description": "List of available versions for installation",
         "enum": [
-          "1.30",
           "1.31",
           "1.32",
           "1.33",
-          "1.34"
+          "1.34",
+          "1.35"
         ]
       },
       "cloud.loadbalancing.AssociateFloatingIp": {
@@ -10807,7 +10929,12 @@
             "description": "Network name"
           },
           "subnet": {
-            "$ref": "#/components/schemas/cloud.network.CreateSubnetSummary"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.network.CreateSubnetSummary"
+              }
+            ],
+            "nullable": true
           },
           "vlanId": {
             "type": "integer",
@@ -10815,8 +10942,7 @@
           }
         },
         "required": [
-          "name",
-          "subnet"
+          "name"
         ]
       },
       "cloud.network.CreateNetworkForGatewaySummary": {
@@ -11293,7 +11419,8 @@
         "enum": [
           "ACTIVE",
           "BUILDING",
-          "DELETING"
+          "DELETING",
+          "ERROR"
         ]
       },
       "cloud.network.NetworkTypeEnum": {
@@ -12466,6 +12593,23 @@
             "type": "string",
             "description": "Network region",
             "nullable": true,
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.network.NetworkStatusEnum"
+              }
+            ],
+            "description": "Network status",
+            "readOnly": true
+          },
+          "subnetIds": {
+            "type": "array",
+            "description": "Network subnet ids",
+            "items": {
+              "type": "string"
+            },
             "readOnly": true
           },
           "visibility": {
@@ -21624,6 +21768,8 @@
         "enum": [
           "cassandra",
           "clickhouse",
+          "clickhouseHttps",
+          "clickhouseMysql",
           "grafana",
           "graphite",
           "influxdb",
@@ -23760,6 +23906,16 @@
         "type": "object",
         "description": "Share Quota",
         "properties": {
+          "maxShareBackupGigabytes": {
+            "type": "integer",
+            "description": "Maximum share backup gigabytes",
+            "readOnly": true
+          },
+          "maxShareBackups": {
+            "type": "integer",
+            "description": "Maximum number of share backups",
+            "readOnly": true
+          },
           "maxShareSizePerShare": {
             "type": "integer",
             "description": "Maximum share size of a share",
@@ -23778,6 +23934,16 @@
           "maxSharesNumber": {
             "type": "integer",
             "description": "Maximum number of shares in the quota",
+            "readOnly": true
+          },
+          "usedShareBackupGigabytes": {
+            "type": "integer",
+            "description": "Used share backup gigabytes",
+            "readOnly": true
+          },
+          "usedShareBackups": {
+            "type": "integer",
+            "description": "Used number of share backups",
             "readOnly": true
           },
           "usedShareSizeTotal": {
@@ -24302,6 +24468,12 @@
         "type": "object",
         "description": "Share",
         "properties": {
+          "availabilityZone": {
+            "type": "string",
+            "description": "Availability zone",
+            "nullable": true,
+            "readOnly": true
+          },
           "capabilities": {
             "type": "array",
             "description": "Share capabilities",
@@ -24411,6 +24583,11 @@
         "type": "object",
         "description": "Create a share",
         "properties": {
+          "availabilityZone": {
+            "type": "string",
+            "description": "Availability zone for the share (required in 3AZ regions)",
+            "nullable": true
+          },
           "description": {
             "type": "string",
             "description": "Share description",
@@ -25393,6 +25570,17 @@
           "STANDARD_IA"
         ]
       },
+      "cloud.storage.StorageJobReplicationStatusEnum": {
+        "type": "string",
+        "description": "Storage job replication status",
+        "enum": [
+          "Active",
+          "Completed",
+          "Created",
+          "Failed",
+          "Preparing"
+        ]
+      },
       "cloud.storage.TypeEnum": {
         "type": "string",
         "description": "TypeEnum",
@@ -25929,7 +26117,9 @@
           "creating",
           "deleted",
           "deleting",
-          "ok"
+          "disabled",
+          "ok",
+          "updating"
         ]
       },
       "cloud.volume.Snapshot": {
@@ -26089,6 +26279,7 @@
           "awaiting-transfer",
           "backing-up",
           "creating",
+          "deleted",
           "deleting",
           "detaching",
           "downloading",
@@ -26103,6 +26294,7 @@
           "reserved",
           "restoring-backup",
           "retyping",
+          "snapshotting",
           "uploading"
         ]
       },
@@ -27784,7 +27976,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/cloud.instance.InstanceDetail"
+                    "$ref": "#/components/schemas/cloud.instance.Instance"
                   }
                 }
               }
@@ -53359,8 +53551,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -53733,8 +53925,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -53781,8 +53973,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -54154,8 +54346,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -54538,8 +54730,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -54917,8 +55109,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -55303,8 +55495,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -55682,8 +55874,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -56060,8 +56252,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -56435,8 +56627,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -56826,8 +57018,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -57211,8 +57403,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -57589,8 +57781,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -57973,8 +58165,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -58031,8 +58223,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -58414,8 +58606,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -58790,8 +58982,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -59169,8 +59361,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -59553,8 +59745,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -59611,8 +59803,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -59994,8 +60186,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -60373,8 +60565,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -60758,8 +60950,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -61146,8 +61338,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -61530,8 +61722,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -61920,8 +62112,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -62303,8 +62495,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -62689,8 +62881,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -63068,8 +63260,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -63454,8 +63646,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -63840,8 +64032,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -64226,8 +64418,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -64620,8 +64812,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -65000,8 +65192,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -65386,8 +65578,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -65762,8 +65954,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -66138,8 +66330,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -66529,8 +66721,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -66907,8 +67099,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -67286,8 +67478,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -67670,8 +67862,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -67728,8 +67920,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -68111,8 +68303,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -68505,8 +68697,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -68890,8 +69082,8 @@
         },
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -262982,7 +263174,8 @@
             "required": true
           }
         ],
-        "x-response-identifier": "id"
+        "x-response-identifier": "id",
+        "x-expanded-response": "CloudInstanceInstance"
       },
       "post": {
         "summary": "Create a new instance",
@@ -263018,7 +263211,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/cloud.instance.InstanceDetail"
+                  "$ref": "#/components/schemas/cloud.instance.Instance"
                 }
               }
             }
@@ -263394,7 +263587,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/cloud.instance.InstanceDetail"
+                  "$ref": "#/components/schemas/cloud.instance.Instance"
                 }
               }
             }
@@ -263504,7 +263697,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/cloud.instance.InstanceDetail"
+                  "$ref": "#/components/schemas/cloud.instance.Instance"
                 }
               }
             }
@@ -263930,7 +264123,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/cloud.instance.InstanceDetail"
+                  "$ref": "#/components/schemas/cloud.instance.Instance"
                 }
               }
             }
@@ -264058,7 +264251,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/cloud.instance.InstanceDetail"
+                  "$ref": "#/components/schemas/cloud.instance.Instance"
                 }
               }
             }
@@ -273825,7 +274018,8 @@
             "required": true
           }
         ],
-        "x-response-identifier": "id"
+        "x-response-identifier": "id",
+        "x-expanded-response": "CloudInstanceInstanceList"
       },
       "post": {
         "operationId": "createInstanceOnRegion",
@@ -273872,7 +274066,7 @@
                     "flavor": {
                       "id": "e81b46f8-1159-4e14-b0ba-cad655e6540b"
                     },
-                    "name": "foo",
+                    "name": "my-b3-8",
                     "network": {
                       "public": true
                     },
@@ -273890,7 +274084,7 @@
                     "flavor": {
                       "id": "e81b46f8-1159-4e14-b0ba-cad655e6540b"
                     },
-                    "name": "foo",
+                    "name": "my-b3-8",
                     "network": {
                       "private": {
                         "floatingIpCreate": {
@@ -274032,7 +274226,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/cloud.instance.InstanceSummary"
+                  "$ref": "#/components/schemas/cloud.instance.InstanceList"
                 }
               }
             }
@@ -281003,6 +281197,14 @@
           },
           {
             "in": "query",
+            "name": "noObjects",
+            "description": "Do not return container objects",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
             "name": "prefix",
             "description": "List objects whose key begins with this prefix",
             "schema": {
@@ -281203,6 +281405,72 @@
       }
     },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/job/replication": {
+      "get": {
+        "operationId": "getReplicationJobsOnStorageContainer",
+        "summary": "Get replication jobs on S3™* compatible buckets",
+        "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/cloud.StorageJobReplication"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/storage/job/replication/get",
+            "required": true
+          }
+        ]
+      },
       "post": {
         "operationId": "createReplicationJobOnStorageContainer",
         "summary": "Create replication job on S3™* compatible buckets",
