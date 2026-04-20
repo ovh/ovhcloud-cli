@@ -187,7 +187,7 @@ There are three ways to define the creation parameters:
 	ipFirewallRuleCreateCmd.Flags().StringVar(&ip.FirewallRuleSpec.TCPOption, "tcp-option", "", "TCP option: established or syn (TCP only)")
 	addParameterFileFlags(ipFirewallRuleCreateCmd, false, assets.IpOpenapiSchema, "/ip/{ip}/firewall/{ipOnFirewall}/rule", "post", ip.FirewallRuleCreateExample, nil)
 	addInteractiveEditorFlag(ipFirewallRuleCreateCmd)
-	ipFirewallRuleCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(ipFirewallRuleCreateCmd, "from-file", "editor")
 	ipFirewallRuleCmd.AddCommand(ipFirewallRuleCreateCmd)
 
 	ipFirewallRuleCmd.AddCommand(&cobra.Command{
