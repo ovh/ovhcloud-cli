@@ -448,7 +448,7 @@ func (ms *MockSuite) TestCloudKubeResetCmd(assert, require *td.T) {
 	)
 
 	require.CmpNoError(err)
-	assert.Contains(out, "reset")
+	assert.Contains(out, "Kubernetes cluster is being reset")
 }
 
 // TestCloudKubeResetCmdMissingClusterID tests that resetting a kube without a cluster_id argument results in an error.
@@ -506,7 +506,7 @@ func (ms *MockSuite) TestCloudKubeResetWithBothIPAllocationPolicyCIDRs(assert, r
 	)
 
 	require.CmpNoError(err)
-	assert.Contains(out, "reset")
+	assert.Contains(out, "Kubernetes cluster is being reset")
 }
 
 // TestCloudKubeResetCiliumHubbleEnabled tests that resetting a kube with Cilium Hubble enabled results in a successful reset.
@@ -532,7 +532,7 @@ func (ms *MockSuite) TestCloudKubeResetCiliumHubbleEnabled(assert, require *td.T
 	)
 
 	require.CmpNoError(err)
-	assert.Contains(out, "reset")
+	assert.Contains(out, "Kubernetes cluster is being reset")
 }
 
 // TestCloudKubeResetCiliumHubbleUIEnabledOnly tests that resetting a kube with only Cilium Hubble UI enabled results in an error since all frontend/backend resource flags must be set as well.
@@ -578,7 +578,7 @@ func (ms *MockSuite) TestCloudKubeResetCiliumClusterMeshWithAllOptions(assert, r
 	)
 
 	require.CmpNoError(err)
-	assert.Contains(out, "reset")
+	assert.Contains(out, "Kubernetes cluster is being reset")
 }
 
 // TestCloudKubeResetCiliumClusterMeshEnabledWithoutClusterID tests that resetting a kube with ClusterMesh enabled but without a Cluster ID results in an error.
@@ -641,7 +641,7 @@ func (ms *MockSuite) TestCloudKubeResetWithPrivateNetworkConfig(assert, require 
 	)
 
 	require.CmpNoError(err)
-	assert.Contains(out, "reset")
+	assert.Contains(out, "Kubernetes cluster is being reset")
 }
 
 // TestCloudKubeResetCiliumHubbleRelayWithoutHubble tests that resetting a kube with Hubble Relay enabled but without Hubble enabled results in an error.
@@ -715,7 +715,7 @@ func (ms *MockSuite) TestCloudKubeResetCiliumHubbleUIAndHubbleEnabled(assert, re
 	)
 
 	require.CmpNoError(err)
-	assert.Contains(out, "reset")
+	assert.Contains(out, "Kubernetes cluster is being reset")
 }
 
 //
