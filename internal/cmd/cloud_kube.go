@@ -108,7 +108,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	customizationEditCmd.Flags().BoolVar(&customizationEditFlagValues.CiliumHubbleRelayEnabled, "cilium-hubble-relay-enabled", false, "Enable Hubble Relay")
 	customizationEditCmd.Flags().BoolVar(&customizationEditFlagValues.CiliumHubbleUIEnabled, "cilium-hubble-ui-enabled", false, "Enable Hubble UI")
 	customizationEditCmd.Flags().BoolVar(&customizationEditFlagValues.CiliumClusterMeshEnabled, "cilium-cluster-mesh-enabled", false, "Enable Cilium ClusterMesh")
-	customizationEditCmd.Flags().StringVar(&customizationEditFlagValues.CiliumClusterMeshServiceType, "cilium-cluster-mesh-apiserver-service-type", "", "ClusterMesh API server service type")
+	customizationEditCmd.Flags().StringVar(&customizationEditFlagValues.CiliumClusterMeshServiceType, "cilium-cluster-mesh-apiserver-service-type", "", "ClusterMesh API server service type (LoadBalancer, NodePort)")
 	customizationEditCmd.Flags().Uint16Var(&customizationEditFlagValues.CiliumClusterMeshNodePort, "cilium-cluster-mesh-apiserver-node-port", 0, "ClusterMesh API server node port")
 
 	// Hubble UI frontend resources
@@ -417,7 +417,7 @@ There are three ways to define the creation parameters:
 	kubeCreateCmd.Flags().BoolVar(&createFlagValues.CiliumHubbleRelayEnabled, "cilium-hubble-relay-enabled", false, "Enable Hubble Relay")
 	kubeCreateCmd.Flags().BoolVar(&createFlagValues.CiliumHubbleUIEnabled, "cilium-hubble-ui-enabled", false, "Enable Hubble UI")
 	kubeCreateCmd.Flags().BoolVar(&createFlagValues.CiliumClusterMeshEnabled, "cilium-cluster-mesh-enabled", false, "Enable Cilium ClusterMesh")
-	kubeCreateCmd.Flags().StringVar(&createFlagValues.CiliumClusterMeshServiceType, "cilium-cluster-mesh-apiserver-service-type", "", "ClusterMesh API server service type")
+	kubeCreateCmd.Flags().StringVar(&createFlagValues.CiliumClusterMeshServiceType, "cilium-cluster-mesh-apiserver-service-type", "", "ClusterMesh API server service type (LoadBalancer, NodePort)")
 	kubeCreateCmd.Flags().Uint16Var(&createFlagValues.CiliumClusterMeshNodePort, "cilium-cluster-mesh-apiserver-node-port", 0, "ClusterMesh API server node port")
 
 	// Customization: Hubble UI frontend resources
@@ -535,7 +535,7 @@ There are three ways to define the reset parameters:
 	kubeResetCmd.Flags().BoolVar(&resetFlagValues.CiliumHubbleRelayEnabled, "cilium-hubble-relay-enabled", false, "Enable Hubble Relay")
 	kubeResetCmd.Flags().BoolVar(&resetFlagValues.CiliumHubbleUIEnabled, "cilium-hubble-ui-enabled", false, "Enable Hubble UI")
 	kubeResetCmd.Flags().BoolVar(&resetFlagValues.CiliumClusterMeshEnabled, "cilium-cluster-mesh-enabled", false, "Enable Cilium ClusterMesh")
-	kubeResetCmd.Flags().StringVar(&resetFlagValues.CiliumClusterMeshServiceType, "cilium-cluster-mesh-apiserver-service-type", "", "ClusterMesh API server service type")
+	kubeResetCmd.Flags().StringVar(&resetFlagValues.CiliumClusterMeshServiceType, "cilium-cluster-mesh-apiserver-service-type", "", "ClusterMesh API server service type (LoadBalancer, NodePort)")
 	kubeResetCmd.Flags().Uint16Var(&resetFlagValues.CiliumClusterMeshNodePort, "cilium-cluster-mesh-apiserver-node-port", 0, "ClusterMesh API server node port")
 
 	// Hubble UI frontend resources
@@ -963,10 +963,10 @@ func kubePreRunE(cmd *cobra.Command, vals *kubeFlagValues) error {
 
 	if ciliumClusterMeshAPIServerServiceTypeChanged {
 		switch vals.CiliumClusterMeshServiceType {
-		case "LoadBalancer", "NodePort", "ClusterIP":
+		case "LoadBalancer", "NodePort":
 			// valid
 		default:
-			return fmt.Errorf("--cilium-cluster-mesh-apiserver-service-type must be one of: LoadBalancer, NodePort, ClusterIP")
+			return fmt.Errorf("--cilium-cluster-mesh-apiserver-service-type must be one of: LoadBalancer, NodePort")
 		}
 	}
 
