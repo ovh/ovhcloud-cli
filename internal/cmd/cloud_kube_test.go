@@ -308,7 +308,7 @@ func (ms *MockSuite) TestCloudKubeCreateCiliumClusterMeshWithAllOptions(assert, 
 	assert.Contains(out, "created successfully")
 }
 
-// TestCloudKubeCreateCiliumClusterMeshInvalidServiceType tests that creating a kube with an invalid --cilium-cluster-mesh-apiserver-service-type value results in an error since the only allowed values are LoadBalancer, NodePort, and ClusterIP.
+// TestCloudKubeCreateCiliumClusterMeshInvalidServiceType tests that creating a kube with an invalid --cilium-cluster-mesh-apiserver-service-type value results in an error since the only allowed values are LoadBalancer and NodePort.
 func (ms *MockSuite) TestCloudKubeCreateCiliumClusterMeshInvalidServiceType(assert, require *td.T) {
 	_, err := cmd.Execute(
 		"cloud", "kube", "create",
@@ -321,7 +321,7 @@ func (ms *MockSuite) TestCloudKubeCreateCiliumClusterMeshInvalidServiceType(asse
 	)
 
 	require.CmpError(err)
-	assert.Contains(err.Error(), "--cilium-cluster-mesh-apiserver-service-type must be one of: LoadBalancer, NodePort, ClusterIP")
+	assert.Contains(err.Error(), "--cilium-cluster-mesh-apiserver-service-type must be one of: LoadBalancer, NodePort")
 }
 
 // TestCloudKubeCreateCiliumClusterIDOutOfRange tests that creating a kube with --cilium-cluster-id=256 results in an error since the possible value is between 1 and 255 (uint8).
@@ -617,7 +617,7 @@ func (ms *MockSuite) TestCloudKubeResetCiliumClusterMeshInvalidServiceType(asser
 	)
 
 	require.CmpError(err)
-	assert.Contains(err.Error(), "--cilium-cluster-mesh-apiserver-service-type must be one of: LoadBalancer, NodePort, ClusterIP")
+	assert.Contains(err.Error(), "--cilium-cluster-mesh-apiserver-service-type must be one of: LoadBalancer, NodePort")
 }
 
 // TestCloudKubeResetWithPrivateNetworkConfig tests that resetting a kube with private network configuration results in a successful reset.
@@ -860,7 +860,7 @@ func (ms *MockSuite) TestCloudKubeCustomizationEditCiliumClusterMeshInvalidServi
 	)
 
 	require.CmpError(err)
-	assert.Contains(err.Error(), "--cilium-cluster-mesh-apiserver-service-type must be one of: LoadBalancer, NodePort, ClusterIP")
+	assert.Contains(err.Error(), "--cilium-cluster-mesh-apiserver-service-type must be one of: LoadBalancer, NodePort")
 }
 
 // TestCloudKubeCustomizationEditCiliumClusterMeshPartialFlags tests that editing customization with partial ClusterMesh flags results in an error.
