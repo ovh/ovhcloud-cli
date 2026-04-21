@@ -162,7 +162,7 @@ func getShareCreateCmd() *cobra.Command {
 
 	addParameterFileFlags(shareCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/share", "post", cloud.ShareCreateExample, nil)
 	addInteractiveEditorFlag(shareCreateCmd)
-	shareCreateCmd.MarkFlagsMutuallyExclusive("from-file", "editor")
+	markFlagsMutuallyExclusive(shareCreateCmd, "from-file", "editor")
 
 	return shareCreateCmd
 }
