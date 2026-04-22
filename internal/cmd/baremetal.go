@@ -268,5 +268,12 @@ Please note that all parameters are not compatible with all OSes.
 	baremetalIPMIGetAccessCmd.Flags().StringVar(&baremetal.BaremetalIpmiSshKey, "ssh-key", "", "Public SSH key for Serial Over Lan SSH access")
 	baremetalIPMICmd.AddCommand(baremetalIPMIGetAccessCmd)
 
+	baremetalIPMICmd.AddCommand(&cobra.Command{
+		Use:   "reset-sessions <service_name>",
+		Short: "Reset IPMI sessions on a baremetal server",
+		Args:  cobra.ExactArgs(1),
+		Run:   baremetal.BaremetalResetIPMISessions,
+	})
+
 	rootCmd.AddCommand(baremetalCmd)
 }
