@@ -261,6 +261,17 @@ func BaremetalGetIPMIAccess(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, accessDetails, "%s", output)
 }
 
+func BaremetalResetIPMISessions(_ *cobra.Command, args []string) {
+	path := fmt.Sprintf("/v1/dedicated/server/%s/features/ipmi/resetSessions", url.PathEscape(args[0]))
+
+	if err := httpLib.Client.Post(path, nil, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to reset IPMI sessions for %s: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ IPMI sessions reset for %s", args[0])
+}
+
 func ListBaremetalInterventions(_ *cobra.Command, args []string) {
 	path := fmt.Sprintf("/v1/dedicated/server/%s/intervention", args[0])
 
