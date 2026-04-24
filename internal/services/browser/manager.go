@@ -292,7 +292,6 @@ var (
 
 	// Navigation bar
 	navBarStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("#1a1a1a")).
 			Padding(0, 1)
 
 	navItemStyle = lipgloss.NewStyle().
@@ -534,10 +533,10 @@ type kubeNodePoolsLoadedMsg struct {
 func getNavItems() []NavItem {
 	return []NavItem{
 		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
-		{Label: "Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
-		{Label: "Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
+		{Label: " Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
+		{Label: " Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
 		{Label: "Managed Analytics", Icon: "📈", Product: ProductManagedAnalytics, Path: "/analytics"},
-		{Label: "Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/s3"},
+		{Label: "Block Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/s3"},
 		{Label: "Private networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
 	}
 }
