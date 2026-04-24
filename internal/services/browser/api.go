@@ -817,8 +817,16 @@ func (m Model) fetchBlockStorageData() dataLoadedMsg {
 		}
 	}
 
+	var filtered []map[string]interface{}
+	for _, v := range volumes {
+		status := getString(v, "status")
+		if status != "deleting" && status != "deleted" {
+			filtered = append(filtered, v)
+		}
+	}
+
 	return dataLoadedMsg{
-		data: volumes,
+		data: filtered,
 		err:  nil,
 	}
 }
@@ -1037,7 +1045,9 @@ func (m Model) handleVolumeCreated(msg volumeCreatedMsg) (tea.Model, tea.Cmd) {
 	m.wizard = WizardData{}
 	m.mode = LoadingView
 	return m, tea.Batch(
-		m.fetchDataForPath("/storage/block"),
+		tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+			return refreshBlockStorageMsg{}
+		}),
 		tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
 			return clearNotificationMsg{}
 		}),
@@ -1088,6 +1098,7 @@ func (m Model) handleVolumeActionDone(msg volumeActionDoneMsg) (tea.Model, tea.C
 	m.notification = fmt.Sprintf("✅ Volume %s successfully!", actionName)
 	m.notificationExpiry = time.Now().Add(5 * time.Second)
 	m.volumeDetailView = nil
+	m.detailData = nil
 	m.mode = LoadingView
 	return m, tea.Batch(
 		m.fetchDataForPath("/storage/block"),
