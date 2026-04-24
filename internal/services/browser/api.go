@@ -9,12 +9,13 @@ package browser
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"math/rand"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	block_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/block_storage"
 )
 
 // fetchDataForPath initiates an API call based on the path
@@ -821,6 +823,280 @@ func (m Model) fetchBlockStorageData() dataLoadedMsg {
 	}
 }
 
+// fetchVolumeRegions probes each region concurrently for volume type support and returns
+// only regions that have at least one volume type available. This filters out legacy/local
+// regions that don't support the block storage volume API.
+func (m Model) fetchVolumeRegions() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return volumeRegionsLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		var regionNames []string
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+		if err := httpLib.Client.Get(endpoint, &regionNames); err != nil {
+			return volumeRegionsLoadedMsg{err: fmt.Errorf("failed to fetch regions: %w", err)}
+		}
+
+		type probeResult struct {
+			region string
+			types  []string
+		}
+		ch := make(chan probeResult, len(regionNames))
+		for _, name := range regionNames {
+			go func(regionName string) {
+				typesEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeType",
+					m.cloudProject, url.PathEscape(regionName))
+				var rawTypes []map[string]interface{}
+				if err := httpLib.Client.Get(typesEndpoint, &rawTypes); err != nil {
+					ch <- probeResult{region: regionName, types: nil}
+					return
+				}
+				var types []string
+				for _, t := range rawTypes {
+					if n, ok := t["name"].(string); ok && n != "" {
+						types = append(types, n)
+					}
+				}
+				sort.Strings(types)
+				ch <- probeResult{region: regionName, types: types}
+			}(name)
+		}
+
+		regionTypeMap := make(map[string][]string)
+		for range regionNames {
+			r := <-ch
+			if len(r.types) > 0 {
+				regionTypeMap[r.region] = r.types
+			}
+		}
+		var supported []string
+		for _, name := range regionNames {
+			if _, ok := regionTypeMap[name]; ok {
+				supported = append(supported, name)
+			}
+		}
+		sort.Strings(supported)
+
+		if len(supported) == 0 {
+			return volumeRegionsLoadedMsg{err: fmt.Errorf("no regions support block storage volumes in this project")}
+		}
+		return volumeRegionsLoadedMsg{regionNames: supported, regionTypeMap: regionTypeMap}
+	}
+}
+
+func (m Model) fetchVolumeTypes(region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return volumeTypesLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeType", m.cloudProject, url.PathEscape(region))
+		var rawTypes []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &rawTypes); err != nil {
+			return volumeTypesLoadedMsg{err: fmt.Errorf("failed to fetch volume types: %w", err)}
+		}
+		var types []string
+		for _, t := range rawTypes {
+			if n, ok := t["name"].(string); ok && n != "" {
+				types = append(types, n)
+			}
+		}
+		sort.Strings(types)
+		return volumeTypesLoadedMsg{types: types}
+	}
+}
+
+func (m Model) fetchVolumeAvailabilityZones(region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return volumeAZLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s", m.cloudProject, url.PathEscape(region))
+		var regionDetail map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &regionDetail); err != nil {
+			return volumeAZLoadedMsg{err: fmt.Errorf("failed to fetch region details: %w", err)}
+		}
+		var azs []string
+		if raw, ok := regionDetail["availabilityZones"].([]interface{}); ok {
+			for _, az := range raw {
+				if s, ok := az.(string); ok {
+					azs = append(azs, s)
+				}
+			}
+		}
+		sort.Strings(azs)
+		return volumeAZLoadedMsg{availabilityZones: azs, err: nil}
+	}
+}
+
+func (m Model) createVolume() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return volumeCreatedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		body := map[string]interface{}{
+			"name": m.wizard.volumeName,
+			"size": m.wizard.volumeSize,
+			"type": m.wizard.volumeType,
+		}
+		if m.wizard.volumeAvailabilityZone != "" {
+			body["availabilityZone"] = m.wizard.volumeAvailabilityZone
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume", m.cloudProject, url.PathEscape(m.wizard.selectedRegion))
+		var volume map[string]interface{}
+		err := httpLib.Client.Post(endpoint, body, &volume)
+		return volumeCreatedMsg{volume: volume, err: err}
+	}
+}
+
+func (m Model) deleteVolume(volumeId string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, url.PathEscape(volumeId))
+		err := httpLib.Client.Delete(endpoint, nil)
+		return volumeActionDoneMsg{action: 0, err: err}
+	}
+}
+
+func (m Model) renameVolume(volumeId, newName string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, url.PathEscape(volumeId))
+		body := map[string]interface{}{"name": newName}
+		err := httpLib.Client.Put(endpoint, body, nil)
+		return volumeActionDoneMsg{action: 1, err: err}
+	}
+}
+
+func (m Model) extendVolume(volumeId string, newSizeGB int) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s/upsize", m.cloudProject, url.PathEscape(volumeId))
+		body := map[string]interface{}{"size": newSizeGB}
+		err := httpLib.Client.Post(endpoint, body, nil)
+		return volumeActionDoneMsg{action: 2, err: err}
+	}
+}
+
+// handleVolumeRegionsLoaded handles the response from the concurrent region probe.
+// It populates the region list (only volume-capable regions) and stores the type map.
+func (m Model) handleVolumeRegionsLoaded(msg volumeRegionsLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	m.wizard.loadingMessage = ""
+	if msg.err != nil {
+		m.wizard.errorMsg = msg.err.Error()
+		return m, nil
+	}
+	m.wizard.regions = nil
+	for _, name := range msg.regionNames {
+		m.wizard.regions = append(m.wizard.regions, map[string]interface{}{"name": name})
+	}
+	m.wizard.volumeRegionTypeMap = msg.regionTypeMap
+	m.wizard.selectedIndex = 0
+	return m, nil
+}
+
+func (m Model) handleVolumeTypesLoaded(msg volumeTypesLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	m.wizard.loadingMessage = ""
+	if msg.err != nil {
+		m.wizard.errorMsg = msg.err.Error()
+		return m, nil
+	}
+	m.wizard.volumeTypes = msg.types
+	m.wizard.selectedIndex = 0
+	return m, nil
+}
+
+func (m Model) handleVolumeAZLoaded(msg volumeAZLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	m.wizard.loadingMessage = ""
+	if msg.err != nil {
+		m.wizard.errorMsg = msg.err.Error()
+		return m, nil
+	}
+	m.wizard.volumeAvailabilityZones = msg.availabilityZones
+	m.wizard.selectedIndex = 0
+	return m, nil
+}
+
+func (m Model) handleVolumeCreated(msg volumeCreatedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	m.wizard.loadingMessage = ""
+	if msg.err != nil {
+		m.wizard.errorMsg = msg.err.Error()
+		return m, nil
+	}
+	name := ""
+	if msg.volume != nil {
+		if n, ok := msg.volume["name"].(string); ok {
+			name = n
+		}
+	}
+	if name == "" {
+		name = "volume"
+	}
+	m.notification = fmt.Sprintf("✅ Volume '%s' created successfully!", name)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	m.wizard = WizardData{}
+	m.mode = LoadingView
+	return m, tea.Batch(
+		m.fetchDataForPath("/storage/block"),
+		tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		}),
+	)
+}
+
+func (m Model) handleExecuteVolumeAction(msg block_storage.ExecuteVolumeActionMsg) (tea.Model, tea.Cmd) {
+	volumeId := getString(msg.Volume, "id")
+	volumeName := getString(msg.Volume, "name")
+
+	switch msg.Action {
+	case block_storage.VolumeActionDelete:
+		m.notification = fmt.Sprintf("🗑️  Deleting volume '%s'...", volumeName)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.deleteVolume(volumeId)
+	case block_storage.VolumeActionRename:
+		m.notification = fmt.Sprintf("✏️  Renaming volume...")
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.renameVolume(volumeId, msg.Param)
+	case block_storage.VolumeActionExtend:
+		newSize, err := strconv.Atoi(msg.Param)
+		if err != nil || newSize < 1 {
+			m.notification = "❌ Invalid size"
+			m.notificationExpiry = time.Now().Add(5 * time.Second)
+			return m, nil
+		}
+		m.notification = fmt.Sprintf("⬆️  Extending volume to %d GB...", newSize)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.extendVolume(volumeId, newSize)
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeActionDone(msg volumeActionDoneMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ Action failed: %s", msg.err.Error())
+		m.notificationExpiry = time.Now().Add(8 * time.Second)
+		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		})
+	}
+
+	actionNames := []string{"deleted", "renamed", "extended"}
+	actionName := "updated"
+	if msg.action >= 0 && msg.action < len(actionNames) {
+		actionName = actionNames[msg.action]
+	}
+	m.notification = fmt.Sprintf("✅ Volume %s successfully!", actionName)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	m.volumeDetailView = nil
+	m.mode = LoadingView
+	return m, tea.Batch(
+		m.fetchDataForPath("/storage/block"),
+		tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		}),
+	)
+}
+
 // fetchPrivateNetworksData fetches private networks across all regions
 func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 	if m.cloudProject == "" {
@@ -1104,6 +1380,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.table = createKubernetesTable(msg.data, m.width, m.height)
 	case ProductInstances:
 		m.table = createInstancesTable(msg.data, m.imageMap, m.floatingIPMap, m.width, m.height)
+	case ProductStorage:
+		m.table = createBlockStorageTable(msg.data, m.width, m.height)
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)
 	}
@@ -1433,6 +1711,72 @@ func createGenericTable(data []map[string]interface{}, width, height int) table.
 	}
 
 	// Calculate table height: leave room for header(2) + nav(3) + title(3) + footer(3) + borders(4)
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// createBlockStorageTable creates a nicely formatted table for block storage volumes.
+func createBlockStorageTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Nom", Width: 24},
+		{Title: "ID", Width: 36},
+		{Title: "Localisation", Width: 14},
+		{Title: "Type", Width: 14},
+		{Title: "Capacité", Width: 10},
+		{Title: "Instance", Width: 20},
+		{Title: "Statut", Width: 12},
+	}
+
+	var rows []table.Row
+	for _, vol := range data {
+		name := getString(vol, "name")
+		id := getString(vol, "id")
+		region := getString(vol, "region")
+		vType := getString(vol, "type")
+		size := ""
+		if s, ok := vol["size"]; ok {
+			size = fmt.Sprintf("%v GB", s)
+		}
+		instance := "-"
+		if raw, ok := vol["attachedTo"].([]interface{}); ok && len(raw) > 0 {
+			if id, ok := raw[0].(string); ok {
+				if len(id) > 18 {
+					instance = id[:18] + "…"
+				} else {
+					instance = id
+				}
+			}
+		}
+		status := getString(vol, "status")
+		rows = append(rows, table.Row{name, id, region, vType, size, instance, status})
+	}
+
 	tableHeight := height - 15
 	if tableHeight < 5 {
 		tableHeight = 5

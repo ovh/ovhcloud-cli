@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +24,8 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/config"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	block_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/block_storage"
+	"github.com/ovh/ovhcloud-cli/internal/services/browser/views"
 	"github.com/spf13/cobra"
 )
 
@@ -87,6 +90,12 @@ const (
 	NodePoolWizardStepSize
 	NodePoolWizardStepOptions
 	NodePoolWizardStepConfirm
+	// Volume (Block Storage) wizard steps (offset by 300)
+	VolumeWizardStepRegion WizardStep = iota + 300
+	VolumeWizardStepType
+	VolumeWizardStepAvailabilityZone
+	VolumeWizardStepConfig
+	VolumeWizardStepConfirm
 )
 
 // ProductType represents a product category
@@ -230,6 +239,18 @@ type WizardData struct {
 	kubeKubeconfigCurrentDir  string   // Currently browsed directory
 	kubeKubeconfigEntries     []string // Subdirectory names in current dir
 	kubeKubeconfigSelectedIdx int      // 0="..", 1="[Save here]", 2+= entries
+	// Volume (Block Storage) wizard fields
+	volumeTypes             []string            // Available volume types for the selected region
+	volumeRegionTypeMap     map[string][]string // region name -> []type names (pre-loaded)
+	volumeAvailabilityZones []string            // Available availability zones for the region
+	volumeName              string   // Volume name input
+	volumeNameInput         string   // Input buffer for volume name
+	volumeSize              int      // Volume size in GB
+	volumeSizeInput         string   // Input buffer for volume size
+	volumeType              string   // Selected volume type
+	volumeAvailabilityZone  string   // Selected availability zone
+	volumeConfigFieldIdx    int      // 0 = name, 1 = size
+	volumeConfirmBtnIdx     int      // 0 = Create, 1 = Cancel
 }
 
 // Model represents the TUI application state
@@ -273,6 +294,8 @@ type Model struct {
 	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
 	detailRefreshId   string
 	detailRefreshName string
+	// Block Storage detail view
+	volumeDetailView *block_storage.DetailView
 }
 
 // Navigation items for the top bar
@@ -529,6 +552,32 @@ type kubeNodePoolsLoadedMsg struct {
 	err       error
 }
 
+type volumeRegionsLoadedMsg struct {
+	regionNames     []string 
+	regionTypeMap   map[string][]string 
+	err             error
+}
+
+type volumeTypesLoadedMsg struct {
+	types []string
+	err   error
+}
+
+type volumeAZLoadedMsg struct {
+	availabilityZones []string
+	err               error
+}
+
+type volumeCreatedMsg struct {
+	volume map[string]interface{}
+	err    error
+}
+
+type volumeActionDoneMsg struct {
+	action int
+	err    error
+}
+
 // Navigation items for products (shown after project is selected)
 func getNavItems() []NavItem {
 	return []NavItem{
@@ -536,7 +585,7 @@ func getNavItems() []NavItem {
 		{Label: " Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
 		{Label: " Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
 		{Label: "Managed Analytics", Icon: "📈", Product: ProductManagedAnalytics, Path: "/analytics"},
-		{Label: "Block Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/s3"},
+		{Label: "Block Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/block"},
 		{Label: "Private networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
 	}
 }
@@ -664,6 +713,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Loading Kubernetes regions...",
 			}
 			return m, m.fetchKubeRegions()
+		} else if msg.product == ProductStorage {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:           VolumeWizardStepRegion,
+				isLoading:      true,
+				loadingMessage: "Loading regions...",
+			}
+			return m, m.fetchVolumeRegions()
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -805,6 +862,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case nodePoolDeletedMsg:
 		return m.handleNodePoolDeleted(msg)
+
+	case volumeRegionsLoadedMsg:
+		return m.handleVolumeRegionsLoaded(msg)
+
+	case volumeTypesLoadedMsg:
+		return m.handleVolumeTypesLoaded(msg)
+
+	case volumeAZLoadedMsg:
+		return m.handleVolumeAZLoaded(msg)
+
+	case volumeCreatedMsg:
+		return m.handleVolumeCreated(msg)
+
+	case block_storage.ExecuteVolumeActionMsg:
+		return m.handleExecuteVolumeAction(msg)
+
+	case views.GoBackMsg:
+		if m.mode == DetailView && m.currentProduct == ProductStorage {
+			m.volumeDetailView = nil
+			m.mode = TableView
+			return m, nil
+		}
+		return m, nil
+
+	case volumeActionDoneMsg:
+		return m.handleVolumeActionDone(msg)
 
 	case tea.SuspendMsg:
 		// TUI has been suspended
@@ -962,7 +1045,10 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 200 {
+		if m.wizard.step >= 300 {
+			// Volume wizard
+			titleText = " 💾 Create Volume "
+		} else if m.wizard.step >= 200 {
 			// Node pool wizard
 			titleText = " 🔧 Add Node Pool "
 		} else if m.wizard.step >= 100 {
@@ -1867,7 +1953,11 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 200 {
+	if m.wizard.step >= 300 {
+		// Volume wizard
+		steps = append(steps, "Region", "Type", "Avail. Zone", "Config", "Confirm")
+		stepMapping = append(stepMapping, VolumeWizardStepRegion, VolumeWizardStepType, VolumeWizardStepAvailabilityZone, VolumeWizardStepConfig, VolumeWizardStepConfirm)
+	} else if m.wizard.step >= 200 {
 		// Node pool wizard
 		steps = append(steps, "Flavor", "Name", "Size", "Options", "Confirm")
 		stepMapping = append(stepMapping, NodePoolWizardStepFlavor, NodePoolWizardStepName, NodePoolWizardStepSize, NodePoolWizardStepOptions, NodePoolWizardStepConfirm)
@@ -1977,6 +2067,17 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderNodePoolWizardOptionsStep(width))
 	case NodePoolWizardStepConfirm:
 		content.WriteString(m.renderNodePoolWizardConfirmStep(width))
+	// Volume wizard steps
+	case VolumeWizardStepRegion:
+		content.WriteString(m.renderVolumeWizardRegionStep(width))
+	case VolumeWizardStepType:
+		content.WriteString(m.renderVolumeWizardTypeStep(width))
+	case VolumeWizardStepAvailabilityZone:
+		content.WriteString(m.renderVolumeWizardAZStep(width))
+	case VolumeWizardStepConfig:
+		content.WriteString(m.renderVolumeWizardConfigStep(width))
+	case VolumeWizardStepConfirm:
+		content.WriteString(m.renderVolumeWizardConfirmStep(width))
 	}
 
 	return content.String()
@@ -3209,7 +3310,186 @@ func (m Model) renderNodePoolWizardConfirmStep(width int) string {
 	return content.String()
 }
 
-// renderCleanupConfirmation renders the cleanup confirmation dialog
+// ========== Volume Wizard Render Functions ==========
+
+func (m Model) renderVolumeWizardRegionStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select region for the volume:") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	for i, region := range m.wizard.regions {
+		name := getString(region, "name")
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + name))
+		} else {
+			content.WriteString(listStyle.Render("  " + name))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • Esc Cancel"))
+	return content.String()
+}
+
+func (m Model) renderVolumeWizardTypeStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select volume type:") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	for i, vt := range m.wizard.volumeTypes {
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + vt))
+		} else {
+			content.WriteString(listStyle.Render("  " + vt))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • ← Back • Esc Cancel"))
+	return content.String()
+}
+
+func (m Model) renderVolumeWizardAZStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select availability zone:") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	items := m.wizard.volumeAvailabilityZones
+	// Prepend a "No preference" option
+	allItems := append([]string{"(No preference)"}, items...)
+	for i, az := range allItems {
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + az))
+		} else {
+			content.WriteString(listStyle.Render("  " + az))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • ← Back • Esc Cancel"))
+	return content.String()
+}
+
+func (m Model) renderVolumeWizardConfigStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Configure volume:") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	inputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7B68EE")).
+		Padding(0, 1).
+		Width(40)
+	activeInputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#00FF7F")).
+		Padding(0, 1).
+		Width(40)
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+
+	// Name field
+	content.WriteString(labelStyle.Render("Name:") + "\n")
+	if m.wizard.volumeConfigFieldIdx == 0 {
+		content.WriteString(activeInputStyle.Render(m.wizard.volumeNameInput+"▌") + "\n\n")
+	} else {
+		nameDisplay := m.wizard.volumeNameInput
+		if nameDisplay == "" {
+			nameDisplay = m.wizard.volumeName
+		}
+		content.WriteString(inputStyle.Render(nameDisplay) + "\n\n")
+	}
+
+	// Size field
+	content.WriteString(labelStyle.Render("Size (GB):") + "\n")
+	if m.wizard.volumeConfigFieldIdx == 1 {
+		content.WriteString(activeInputStyle.Render(m.wizard.volumeSizeInput+"▌") + "\n\n")
+	} else {
+		sizeDisplay := m.wizard.volumeSizeInput
+		if sizeDisplay == "" && m.wizard.volumeSize > 0 {
+			sizeDisplay = fmt.Sprintf("%d", m.wizard.volumeSize)
+		}
+		content.WriteString(inputStyle.Render(sizeDisplay) + "\n\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	content.WriteString(helpStyle.Render("Tab/↓: Next field • Enter: Confirm • ← Back • Esc Cancel"))
+	return content.String()
+}
+
+func (m Model) renderVolumeWizardConfirmStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Confirm volume creation:") + "\n\n")
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.volumeName) + "\n")
+	content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(m.wizard.selectedRegion) + "\n")
+	content.WriteString(labelStyle.Render("  Type:") + valueStyle.Render(m.wizard.volumeType) + "\n")
+
+	azDisplay := "(No preference)"
+	if m.wizard.volumeAvailabilityZone != "" {
+		azDisplay = m.wizard.volumeAvailabilityZone
+	}
+	content.WriteString(labelStyle.Render("  Avail. Zone:") + valueStyle.Render(azDisplay) + "\n")
+	content.WriteString(labelStyle.Render("  Size:") + valueStyle.Render(fmt.Sprintf("%d GB", m.wizard.volumeSize)) + "\n")
+
+	content.WriteString("\n")
+
+	createStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+	cancelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+
+	if m.wizard.volumeConfirmBtnIdx == 0 {
+		content.WriteString(createStyle.Render("  ▶ [Create Volume]") + "    ")
+		content.WriteString(dimStyle.Render("[Cancel]") + "\n")
+	} else {
+		content.WriteString(dimStyle.Render("    [Create Volume]") + "    ")
+		content.WriteString(cancelStyle.Render("▶ [Cancel]") + "\n")
+	}
+
+	return content.String()
+}
+
 func (m Model) renderCleanupConfirmation(width int) string {
 	var content strings.Builder
 
@@ -3273,7 +3553,7 @@ func (m Model) getProductCreationInfo() (string, string) {
 	case ProductManagedAnalytics:
 		return "analytics", fmt.Sprintf("ovhcloud cloud managed-analytics create --cloud-project %s", m.cloudProject)
 	case ProductStorage:
-		return "storage containers", fmt.Sprintf("ovhcloud cloud storage-s3 create --cloud-project %s", m.cloudProject)
+		return "block storage volumes", ""
 	case ProductNetworks:
 		return "private networks", fmt.Sprintf("ovhcloud cloud network private create --cloud-project %s", m.cloudProject)
 	default:
@@ -3356,6 +3636,11 @@ func (m Model) renderDetailView(width int) string {
 		return m.renderKubernetesDetail(width)
 	case ProductProjects:
 		return m.renderProjectDetail(width)
+	case ProductStorage:
+		if m.volumeDetailView != nil {
+			return m.volumeDetailView.Render(width, 0)
+		}
+		return m.renderGenericDetail(width)
 	default:
 		return m.renderGenericDetail(width)
 	}
@@ -3789,6 +4074,16 @@ func (m Model) renderFooter() string {
 			help = "Type: Enter name • Enter: Confirm • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == WizardStepConfirm {
 			help = "←→: Select • d: Debug • Enter: Confirm • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepRegion {
+			help = "↑↓: Navigate • Enter: Select • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepType {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepAvailabilityZone {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepConfig {
+			help = "Tab/↓: Next field • Enter: Confirm • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepConfirm {
+			help = "←→: Select • Enter: Confirm • Esc: Cancel"
 		} else {
 			help = "↑↓: Navigate • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		}
@@ -3867,6 +4162,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Handle kubeconfig directory picker view
 	if m.mode == KubeKubeconfigPickerView {
 		return m.handleKubeKubeconfigPickerKeyPress(msg)
+	}
+
+	// Delegate to block storage detail view when in DetailView for ProductStorage
+	if m.mode == DetailView && m.currentProduct == ProductStorage && m.volumeDetailView != nil {
+		cmd := m.volumeDetailView.HandleKey(msg)
+		return m, cmd
 	}
 
 	switch msg.String() {
@@ -4087,6 +4388,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.detailData = m.currentData[selectedRow]
 				m.currentItemName = getStringValue(m.detailData, "name", "Item")
 				m.mode = DetailView
+
+				// If viewing a block storage volume, init the detail view
+				if m.currentProduct == ProductStorage {
+					ctx := &views.Context{Width: m.width, Height: m.height}
+					m.volumeDetailView = block_storage.NewDetailView(ctx, m.detailData)
+					return m, nil
+				}
 
 				// If viewing a Kubernetes cluster, also load node pools
 				if m.currentProduct == ProductKubernetes {
@@ -4417,13 +4725,13 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// 'q' quits (except when typing in input fields)
-	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepConfig && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		return m, tea.Quit
 	}
 
 	// 'd' opens debug panel (except when typing in input fields)
 	// Disable debug shortcut when: in name step, filter mode, creating SSH key, or creating network
-	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepConfig && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		m.previousMode = m.mode
 		m.mode = DebugView
 		m.debugScrollOffset = 0
@@ -4441,7 +4749,10 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 100 {
+		if m.wizard.step >= 300 {
+			// Volume wizard
+			returnPath = "/storage/block"
+		} else if m.wizard.step >= 100 {
 			// Kubernetes wizard
 			returnPath = "/kubernetes"
 		}
@@ -4495,6 +4806,17 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleNodePoolWizardOptionsKeys(key)
 	case NodePoolWizardStepConfirm:
 		return m.handleNodePoolWizardConfirmKeys(key)
+	// Volume wizard steps
+	case VolumeWizardStepRegion:
+		return m.handleVolumeWizardRegionKeys(key, msg)
+	case VolumeWizardStepType:
+		return m.handleVolumeWizardTypeKeys(key, msg)
+	case VolumeWizardStepAvailabilityZone:
+		return m.handleVolumeWizardAZKeys(key, msg)
+	case VolumeWizardStepConfig:
+		return m.handleVolumeWizardConfigKeys(msg)
+	case VolumeWizardStepConfirm:
+		return m.handleVolumeWizardConfirmKeys(key)
 	}
 
 	return m, nil
@@ -5841,7 +6163,7 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	m.currentData = nil
 
 	// Show coming soon view for unimplemented products
-	if currentNav.Product == ProductStorage || currentNav.Product == ProductNetworks {
+	if currentNav.Product == ProductNetworks {
 		m.mode = ComingSoonView
 		return m, nil
 	}
@@ -6080,6 +6402,223 @@ func (m Model) handleNodePoolWizardConfirmKeys(key string) (tea.Model, tea.Cmd) 
 		}
 	case "esc":
 		m.wizard.step = NodePoolWizardStepOptions
+	}
+	return m, nil
+}
+
+// ========== Volume Wizard Key Handlers ==========
+
+func (m Model) handleVolumeWizardRegionKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	regions := m.wizard.regions
+	switch key {
+	case "up", "k":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down", "j":
+		if m.wizard.selectedIndex < len(regions)-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if len(regions) == 0 {
+			return m, nil
+		}
+		selected := regions[m.wizard.selectedIndex]
+		m.wizard.selectedRegion = getString(selected, "name")
+		m.wizard.errorMsg = ""
+		if types, ok := m.wizard.volumeRegionTypeMap[m.wizard.selectedRegion]; ok {
+			m.wizard.volumeTypes = types
+			m.wizard.step = VolumeWizardStepType
+			m.wizard.selectedIndex = 0
+		} else {
+			// Fallback: fetch on demand
+			m.wizard.step = VolumeWizardStepType
+			m.wizard.selectedIndex = 0
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Loading volume types..."
+			return m, m.fetchVolumeTypes(m.wizard.selectedRegion)
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeWizardTypeKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	types := m.wizard.volumeTypes
+	switch key {
+	case "up", "k":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down", "j":
+		if m.wizard.selectedIndex < len(types)-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if len(types) == 0 {
+			return m, nil
+		}
+		m.wizard.volumeType = types[m.wizard.selectedIndex]
+		m.wizard.errorMsg = ""
+		m.wizard.step = VolumeWizardStepAvailabilityZone
+		m.wizard.selectedIndex = 0
+		m.wizard.isLoading = true
+		m.wizard.loadingMessage = "Loading availability zones..."
+		return m, m.fetchVolumeAvailabilityZones(m.wizard.selectedRegion)
+	case "left":
+		m.wizard.step = VolumeWizardStepRegion
+		m.wizard.selectedIndex = 0
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeWizardAZKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	// Items = "(No preference)" + actual AZs
+	totalItems := 1 + len(m.wizard.volumeAvailabilityZones)
+	switch key {
+	case "up", "k":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down", "j":
+		if m.wizard.selectedIndex < totalItems-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if m.wizard.selectedIndex == 0 {
+			m.wizard.volumeAvailabilityZone = "" // No preference
+		} else {
+			m.wizard.volumeAvailabilityZone = m.wizard.volumeAvailabilityZones[m.wizard.selectedIndex-1]
+		}
+		m.wizard.errorMsg = ""
+		m.wizard.step = VolumeWizardStepConfig
+		m.wizard.volumeConfigFieldIdx = 0
+		m.wizard.volumeNameInput = m.wizard.volumeName
+		if m.wizard.volumeSize > 0 {
+			m.wizard.volumeSizeInput = fmt.Sprintf("%d", m.wizard.volumeSize)
+		} else {
+			m.wizard.volumeSizeInput = ""
+		}
+	case "left":
+		m.wizard.step = VolumeWizardStepType
+		m.wizard.selectedIndex = 0
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeWizardConfigKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+	switch key {
+	case "tab", "down":
+		if m.wizard.volumeConfigFieldIdx == 0 {
+			// Commit name field
+			name := strings.TrimSpace(m.wizard.volumeNameInput)
+			if name != "" {
+				m.wizard.volumeName = name
+			}
+			m.wizard.volumeConfigFieldIdx = 1
+		} else {
+			m.wizard.volumeConfigFieldIdx = 0
+		}
+	case "up":
+		if m.wizard.volumeConfigFieldIdx == 1 {
+			m.wizard.volumeConfigFieldIdx = 0
+		}
+	case "enter":
+		if m.wizard.volumeConfigFieldIdx == 0 {
+			// On name field: validate name then move to size field
+			name := strings.TrimSpace(m.wizard.volumeNameInput)
+			if name == "" {
+				m.wizard.errorMsg = "Volume name cannot be empty"
+				return m, nil
+			}
+			m.wizard.volumeName = name
+			m.wizard.errorMsg = ""
+			m.wizard.volumeConfigFieldIdx = 1
+			return m, nil
+		}
+		// On size field: validate both and proceed
+		name := strings.TrimSpace(m.wizard.volumeNameInput)
+		sizeStr := strings.TrimSpace(m.wizard.volumeSizeInput)
+		size, sizeErr := strconv.Atoi(sizeStr)
+		if name == "" {
+			m.wizard.errorMsg = "Volume name cannot be empty"
+			m.wizard.volumeConfigFieldIdx = 0
+			return m, nil
+		}
+		if sizeErr != nil || size < 1 {
+			m.wizard.errorMsg = "Size must be a positive integer (GB)"
+			return m, nil
+		}
+		m.wizard.volumeName = name
+		m.wizard.volumeSize = size
+		m.wizard.errorMsg = ""
+		m.wizard.step = VolumeWizardStepConfirm
+		m.wizard.volumeConfirmBtnIdx = 0
+	case "backspace":
+		if m.wizard.volumeConfigFieldIdx == 0 {
+			if len(m.wizard.volumeNameInput) > 0 {
+				m.wizard.volumeNameInput = m.wizard.volumeNameInput[:len(m.wizard.volumeNameInput)-1]
+			}
+		} else {
+			if len(m.wizard.volumeSizeInput) > 0 {
+				m.wizard.volumeSizeInput = m.wizard.volumeSizeInput[:len(m.wizard.volumeSizeInput)-1]
+			}
+		}
+	case "left":
+		m.wizard.step = VolumeWizardStepAvailabilityZone
+		m.wizard.selectedIndex = 0
+	default:
+		// Append printable rune to the active field
+		r := msg.Runes
+		if len(r) > 0 {
+			ch := string(r)
+			if m.wizard.volumeConfigFieldIdx == 0 {
+				m.wizard.volumeNameInput += ch
+			} else {
+				// Only allow digits for size
+				if ch >= "0" && ch <= "9" {
+					m.wizard.volumeSizeInput += ch
+				}
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	switch key {
+	case "right", "tab":
+		if m.wizard.volumeConfirmBtnIdx == 0 {
+			m.wizard.volumeConfirmBtnIdx = 1
+		} else {
+			m.wizard.volumeConfirmBtnIdx = 0
+		}
+	case "enter":
+		if m.wizard.volumeConfirmBtnIdx == 0 {
+			// Create the volume
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Creating volume..."
+			return m, m.createVolume()
+		}
+		// Cancel
+		m.wizard = WizardData{}
+		m.mode = LoadingView
+		return m, m.fetchDataForPath("/storage/block")
+	case "left", "esc":
+		m.wizard.step = VolumeWizardStepConfig
+		m.wizard.volumeConfigFieldIdx = 0
 	}
 	return m, nil
 }
