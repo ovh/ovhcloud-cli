@@ -268,8 +268,9 @@ type Model struct {
 	mode               ViewMode
 	previousMode       ViewMode // Previous mode to return to from debug view
 	currentProduct     ProductType
-	navIdx             int // Index in navigation bar
-	storageSubIdx      int // Index in storage sub-navigation (0=Prise en main, 1=Block Storage, ...)
+	navIdx             int  // Index in navigation bar
+	storageSubIdx      int  // Index in storage sub-navigation (0=Prise en main, 1=Block Storage, ...)
+	inStorageSubNav    bool // Whether the keyboard focus is in the storage sub-nav bar
 	table              table.Model
 	detailData         map[string]interface{}
 	currentData        []map[string]interface{}
@@ -1083,38 +1084,40 @@ func (m Model) renderStorageSubNav(width int) string {
 	subItemStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#888888")).
 		Padding(0, 2)
-	subItemSelectedStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#00FF7F")).
-		Bold(true).
-		Padding(0, 2).
-		Underline(true)
+	// subItemSelectedStyle := lipgloss.NewStyle().
+	// 	Foreground(lipgloss.Color("#00FF7F")).
+	// 	Bold(true).
+	// 	Padding(0, 2).
+	// 	Underline(true)
 	subItemDisabledStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#444444")).
 		Padding(0, 2)
 
 	for i, item := range subItems {
 		var style lipgloss.Style
-		if i == m.storageSubIdx {
-			style = subItemSelectedStyle
+		if i == m.storageSubIdx && m.inStorageSubNav {
+			// style = subItemSelectedStyle
+		} else if i == m.storageSubIdx {
+			// active item but focus is in main nav — show dimmed selection
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
 		} else if !item.Enabled {
 			style = subItemDisabledStyle
 		} else {
 			style = subItemStyle
 		}
-		label := item.Label
-		// if !item.Enabled && i != m.storageSubIdx {
-		// 	label += " (bientôt)"
-		// }
-		items = append(items, style.Render(label))
+		items = append(items, style.Render(item.Label))
 	}
 
+	borderColor := lipgloss.Color("#333333")
+	if m.inStorageSubNav {
+		borderColor = lipgloss.Color("#00FF7F")
+	}
 	subBarStyle := lipgloss.NewStyle().
 		Padding(0, 1).
 		BorderTop(true).
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("#333333"))
-	tabHintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#444444")).Padding(0, 2)
-subContent := lipgloss.JoinHorizontal(lipgloss.Top, append(items, tabHintStyle.Render(""))...)
+		BorderForeground(borderColor)
+	subContent := lipgloss.JoinHorizontal(lipgloss.Top, items...)
 	return subBarStyle.Width(width - 2).Render(subContent)
 }
 
@@ -4213,14 +4216,18 @@ func (m Model) renderFooter() string {
 	case TableView:
 		if m.filterInput != "" {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
+		} else if m.inStorageSubNav {
+			help = "←→: Sub-menu • ↑: Back to main nav • /: Filter • Enter: Details • c: Create • d: Debug • p: Change Project • q: Quit"
 		} else if m.currentProduct == ProductStorageBlock {
-			help = "Tab/Shift+Tab: Sous-menu • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • d: Debug • p: Change Project • q: Quit"
+			help = "←→: Switch Product • ↓: Enter Sub-menu • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • d: Debug • p: Change Project • q: Quit"
 		} else {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
 		}
 	case EmptyView:
-		if m.currentProduct == ProductStorageBlock {
-			help = "Tab/Shift+Tab: Sous-menu • c: Create • d: Debug • p: Change Project • q: Quit"
+		if m.inStorageSubNav {
+			help = "←→: Sub-menu • ↑: Back to main nav • c: Create • d: Debug • p: Change Project • q: Quit"
+		} else if m.currentProduct == ProductStorageBlock {
+			help = "←→: Switch Product • ↓: Enter Sub-menu • c: Create • d: Debug • p: Change Project • q: Quit"
 		} else {
 			help = "←→: Switch Product • c: Create • d: Debug • p: Change Project • q: Quit"
 		}
@@ -4376,9 +4383,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// In storage sub-nav
+		if m.inStorageSubNav && m.mode != DetailView {
+			subItems := getStorageSubItems()
+			m.storageSubIdx = (m.storageSubIdx - 1 + len(subItems)) % len(subItems)
+			return m.loadStorageSubProduct()
+		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
 			if m.navIdx > 0 {
 				m.navIdx--
+				m.inStorageSubNav = false
 				return m.loadCurrentProduct()
 			}
 		}
@@ -4409,10 +4423,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// In storage sub-nav
+		if m.inStorageSubNav && m.mode != DetailView {
+			subItems := getStorageSubItems()
+			m.storageSubIdx = (m.storageSubIdx + 1) % len(subItems)
+			return m.loadStorageSubProduct()
+		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
 			navItems := getNavItems()
 			if m.navIdx < len(navItems)-1 {
 				m.navIdx++
+				m.inStorageSubNav = false
 				return m.loadCurrentProduct()
 			}
 		}
@@ -4437,21 +4458,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "tab":
-		// Navigate storage sub-nav forward (with wrap-around)
-		if m.mode != DetailView && (m.currentProduct == ProductStorageBlock || navItems[m.navIdx].Product == ProductStorage) {
-			subItems := getStorageSubItems()
-			m.storageSubIdx = (m.storageSubIdx + 1) % len(subItems)
-			return m.loadStorageSubProduct()
-		}
 		return m, nil
 
 	case "shift+tab":
-		// Navigate storage sub-nav backward (with wrap-around)
-		if m.mode != DetailView && (m.currentProduct == ProductStorageBlock || navItems[m.navIdx].Product == ProductStorage) {
-			subItems := getStorageSubItems()
-			m.storageSubIdx = (m.storageSubIdx - 1 + len(subItems)) % len(subItems)
-			return m.loadStorageSubProduct()
-		}
 		return m, nil
 
 	case "esc":
@@ -4603,16 +4612,28 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case "up", "down", "j", "k":
+		key := msg.String()
+		// ↓ on main nav over Stockage → enter sub-nav
+		if (key == "down" || key == "j") && !m.inStorageSubNav && m.mode != DetailView &&
+			m.mode != ProjectSelectView && navItems[m.navIdx].Product == ProductStorage {
+			m.inStorageSubNav = true
+			return m.loadStorageSubProduct()
+		}
+		// ↑ in sub-nav → exit sub-nav, back to main nav
+		if (key == "up" || key == "k") && m.inStorageSubNav && m.mode != DetailView {
+			m.inStorageSubNav = false
+			return m, nil
+		}
 		// Node pools list navigation
 		if m.mode == NodePoolsView {
 			clusterId := getStringValue(m.detailData, "id", "")
 			nodePools := m.kubeNodePools[clusterId]
 			if len(nodePools) > 0 {
-				if msg.String() == "down" || msg.String() == "j" {
+				if key == "down" || key == "j" {
 					if m.nodePoolsSelectedIdx < len(nodePools)-1 {
 						m.nodePoolsSelectedIdx++
 					}
-				} else if msg.String() == "up" || msg.String() == "k" {
+				} else if key == "up" || key == "k" {
 					if m.nodePoolsSelectedIdx > 0 {
 						m.nodePoolsSelectedIdx--
 					}
@@ -6361,6 +6382,7 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	m.currentProduct = currentNav.Product
 	m.detailData = nil
 	m.currentData = nil
+	m.inStorageSubNav = false
 
 	// Show coming soon view for unimplemented products
 	if currentNav.Product == ProductNetworks {
