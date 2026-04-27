@@ -904,7 +904,7 @@ func (m Model) fetchVolumeTypes(region string) tea.Cmd {
 		}
 		var types []string
 		for _, t := range rawTypes {
-			if n, ok := t["name"].(string); ok && n != "" {
+			if n, ok := t["name"].(string); ok && n != "" && !strings.HasSuffix(n, "-luks") {
 				types = append(types, n)
 			}
 		}
@@ -941,10 +941,14 @@ func (m Model) createVolume() tea.Cmd {
 		if m.cloudProject == "" {
 			return volumeCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
+		effectiveType := m.wizard.volumeType
+		if m.wizard.volumeEncryptionIdx == 1 && !strings.HasSuffix(effectiveType, "-luks") {
+			effectiveType += "-luks"
+		}
 		body := map[string]interface{}{
 			"name": m.wizard.volumeName,
 			"size": m.wizard.volumeSize,
-			"type": m.wizard.volumeType,
+			"type": effectiveType,
 		}
 		if m.wizard.volumeAvailabilityZone != "" {
 			body["availabilityZone"] = m.wizard.volumeAvailabilityZone
@@ -1761,6 +1765,7 @@ func createBlockStorageTable(data []map[string]interface{}, width, height int) t
 		{Title: "Type", Width: 14},
 		{Title: "Capacité", Width: 10},
 		{Title: "Instance", Width: 20},
+		{Title: "Chiffrement", Width: 20},
 		{Title: "Statut", Width: 12},
 	}
 
@@ -1770,9 +1775,16 @@ func createBlockStorageTable(data []map[string]interface{}, width, height int) t
 		id := getString(vol, "id")
 		region := getString(vol, "region")
 		vType := getString(vol, "type")
-		size := ""
-		if s, ok := vol["size"]; ok {
-			size = fmt.Sprintf("%v GB", s)
+		size := "-"
+		switch v := vol["size"].(type) {
+		case float64:
+			size = fmt.Sprintf("%d GB", int(v))
+		case int:
+			size = fmt.Sprintf("%d GB", v)
+		case json.Number:
+			if i, err := v.Int64(); err == nil {
+				size = fmt.Sprintf("%d GB", i)
+			}
 		}
 		instance := "-"
 		if raw, ok := vol["attachedTo"].([]interface{}); ok && len(raw) > 0 {
@@ -1785,7 +1797,11 @@ func createBlockStorageTable(data []map[string]interface{}, width, height int) t
 			}
 		}
 		status := getString(vol, "status")
-		rows = append(rows, table.Row{name, id, region, vType, size, instance, status})
+		encryption := "Aucun"
+		if strings.HasSuffix(vType, "-luks") {
+			encryption = "Actif"
+		}
+		rows = append(rows, table.Row{name, id, region, vType, size, instance, encryption, status})
 	}
 
 	tableHeight := height - 15

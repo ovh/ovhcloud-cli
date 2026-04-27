@@ -96,6 +96,7 @@ const (
 	VolumeWizardStepType
 	VolumeWizardStepAvailabilityZone
 	VolumeWizardStepSize
+	VolumeWizardStepEncryption
 	VolumeWizardStepConfirm
 )
 
@@ -250,6 +251,7 @@ type WizardData struct {
 	volumeSizeInput         string   // Input buffer for volume size
 	volumeType              string   // Selected volume type
 	volumeAvailabilityZone  string   // Selected availability zone
+	volumeEncryptionIdx     int      // 0=none, 1=OVHcloud Managed Key
 	volumeConfirmBtnIdx     int      // 0 = Create, 1 = Cancel
 }
 
@@ -1958,8 +1960,8 @@ func (m Model) renderWizardView(width int) string {
 	// Build steps based on which wizard we're in (determine by first step >= 100)
 	if m.wizard.step >= 300 {
 		// Volume wizard
-		steps = append(steps, "Name", "Region", "Type", "Avail. Zone", "Size", "Confirm")
-		stepMapping = append(stepMapping, VolumeWizardStepName, VolumeWizardStepRegion, VolumeWizardStepType, VolumeWizardStepAvailabilityZone, VolumeWizardStepSize, VolumeWizardStepConfirm)
+		steps = append(steps, "Name", "Region", "Type", "Avail. Zone", "Size", "Encryption", "Confirm")
+		stepMapping = append(stepMapping, VolumeWizardStepName, VolumeWizardStepRegion, VolumeWizardStepType, VolumeWizardStepAvailabilityZone, VolumeWizardStepSize, VolumeWizardStepEncryption, VolumeWizardStepConfirm)
 	} else if m.wizard.step >= 200 {
 		// Node pool wizard
 		steps = append(steps, "Flavor", "Name", "Size", "Options", "Confirm")
@@ -2081,6 +2083,8 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderVolumeWizardAZStep(width))
 	case VolumeWizardStepSize:
 		content.WriteString(m.renderVolumeWizardSizeStep(width))
+	case VolumeWizardStepEncryption:
+		content.WriteString(m.renderVolumeWizardEncryptionStep(width))
 	case VolumeWizardStepConfirm:
 		content.WriteString(m.renderVolumeWizardConfirmStep(width))
 	}
@@ -3451,6 +3455,88 @@ func (m Model) renderVolumeWizardSizeStep(width int) string {
 	return content.String()
 }
 
+func (m Model) volumeTypeSupportLuks() bool {
+	// Only classic, high-speed, high-speed-gen2 have -luks variants
+	switch m.wizard.volumeType {
+	case "classic", "high-speed", "high-speed-gen2":
+		return true
+	}
+	return false
+}
+
+func (m Model) renderVolumeWizardEncryptionStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Chiffrement") + "\n\n")
+
+	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
+	content.WriteString(descStyle.Render("Activez le chiffrement pour ajouter une couche de sécurité à vos volumes\net assurer la confidentialité de vos informations.") + "\n\n")
+
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+	normalStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	disabledStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#555555"))
+
+	luksSupported := m.volumeTypeSupportLuks()
+
+	options := []struct {
+		label    string
+		disabled bool
+	}{
+		{"Aucun", false},
+		{"OVHcloud Managed Key", !luksSupported},
+		{"Customer Managed Key  (Bientôt disponible)", true},
+	}
+
+	for i, opt := range options {
+		cursor := "  "
+		if i == m.wizard.volumeEncryptionIdx && !opt.disabled {
+			cursor = "▶ "
+		}
+		var line string
+		if opt.disabled {
+			line = disabledStyle.Render(cursor + opt.label)
+		} else if i == m.wizard.volumeEncryptionIdx {
+			line = selectedStyle.Render(cursor + opt.label)
+		} else {
+			line = normalStyle.Render(cursor + opt.label)
+		}
+		content.WriteString(line + "\n")
+	}
+
+	if !luksSupported {
+		content.WriteString("\n" + disabledStyle.Render(fmt.Sprintf("  (Le type '%s' ne supporte pas le chiffrement)", m.wizard.volumeType)) + "\n")
+	}
+
+	content.WriteString("\n")
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	content.WriteString(helpStyle.Render("↑↓: Navigate • Enter: Continue • ←: Back • Esc: Cancel"))
+	return content.String()
+}
+
+func (m Model) handleVolumeWizardEncryptionKeys(key string) (tea.Model, tea.Cmd) {
+	// If type doesn't support luks, force index to 0
+	if !m.volumeTypeSupportLuks() {
+		m.wizard.volumeEncryptionIdx = 0
+	}
+	switch key {
+	case "up":
+		if m.wizard.volumeEncryptionIdx > 0 {
+			m.wizard.volumeEncryptionIdx--
+		}
+	case "down":
+		if m.wizard.volumeEncryptionIdx < 1 && m.volumeTypeSupportLuks() {
+			m.wizard.volumeEncryptionIdx++
+		}
+	case "enter":
+		m.wizard.step = VolumeWizardStepConfirm
+		m.wizard.volumeConfirmBtnIdx = 0
+	case "left", "esc":
+		m.wizard.step = VolumeWizardStepSize
+	}
+	return m, nil
+}
+
 func (m Model) renderVolumeWizardConfirmStep(width int) string {
 	var content strings.Builder
 
@@ -3462,7 +3548,11 @@ func (m Model) renderVolumeWizardConfirmStep(width int) string {
 
 	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.volumeName) + "\n")
 	content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(m.wizard.selectedRegion) + "\n")
-	content.WriteString(labelStyle.Render("  Type:") + valueStyle.Render(m.wizard.volumeType) + "\n")
+	effectiveType := m.wizard.volumeType
+	if m.wizard.volumeEncryptionIdx == 1 && !strings.HasSuffix(effectiveType, "-luks") {
+		effectiveType += "-luks"
+	}
+	content.WriteString(labelStyle.Render("  Type:") + valueStyle.Render(effectiveType) + "\n")
 
 	azDisplay := "(No preference)"
 	if m.wizard.volumeAvailabilityZone != "" {
@@ -3470,6 +3560,11 @@ func (m Model) renderVolumeWizardConfirmStep(width int) string {
 	}
 	content.WriteString(labelStyle.Render("  Avail. Zone:") + valueStyle.Render(azDisplay) + "\n")
 	content.WriteString(labelStyle.Render("  Size:") + valueStyle.Render(fmt.Sprintf("%d GB", m.wizard.volumeSize)) + "\n")
+	encLabel := "Aucun"
+	if m.wizard.volumeEncryptionIdx == 1 {
+		encLabel = "OVHcloud Managed Key (LUKS)"
+	}
+	content.WriteString(labelStyle.Render("  Encryption:") + valueStyle.Render(encLabel) + "\n")
 
 	content.WriteString("\n")
 
@@ -4082,6 +4177,8 @@ func (m Model) renderFooter() string {
 			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == VolumeWizardStepSize {
 			help = "Type size in GB • Enter: Confirm • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepEncryption {
+			help = "↑↓: Select • Enter: Continue • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == VolumeWizardStepConfirm {
 			help = "←→: Select • Enter: Confirm • Esc: Cancel"
 		} else {
@@ -4817,6 +4914,8 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleVolumeWizardAZKeys(key, msg)
 	case VolumeWizardStepSize:
 		return m.handleVolumeWizardSizeKeys(msg)
+	case VolumeWizardStepEncryption:
+		return m.handleVolumeWizardEncryptionKeys(key)
 	case VolumeWizardStepConfirm:
 		return m.handleVolumeWizardConfirmKeys(key)
 	}
@@ -6550,8 +6649,7 @@ func (m Model) handleVolumeWizardSizeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.wizard.volumeSize = size
 		m.wizard.errorMsg = ""
-		m.wizard.step = VolumeWizardStepConfirm
-		m.wizard.volumeConfirmBtnIdx = 0
+		m.wizard.step = VolumeWizardStepEncryption
 	case tea.KeyBackspace:
 		if len(m.wizard.volumeSizeInput) > 0 {
 			m.wizard.volumeSizeInput = m.wizard.volumeSizeInput[:len(m.wizard.volumeSizeInput)-1]
@@ -6592,7 +6690,7 @@ func (m Model) handleVolumeWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 		m.mode = LoadingView
 		return m, m.fetchDataForPath("/storage/block")
 	case "left", "esc":
-		m.wizard.step = VolumeWizardStepSize
+		m.wizard.step = VolumeWizardStepEncryption
 	}
 	return m, nil
 }

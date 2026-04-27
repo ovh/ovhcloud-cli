@@ -7,6 +7,7 @@
 package block_storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -208,6 +209,10 @@ func getSizeStr(volume map[string]interface{}) string {
 		return fmt.Sprintf("%d", int(v))
 	case int:
 		return fmt.Sprintf("%d", v)
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			return fmt.Sprintf("%d", i)
+		}
 	}
 	return "-"
 }

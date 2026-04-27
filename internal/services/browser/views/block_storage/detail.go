@@ -61,12 +61,20 @@ func (v *DetailView) Render(width, height int) string {
 	size := getSizeStr(v.volume)
 	bootable := getBootable(v.volume)
 
+	encryptionLabel := "Aucun"
+	encryptionStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	if strings.HasSuffix(vType, "-luks") {
+		encryptionLabel = "Actif"
+		encryptionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+	}
+
 	var infoContent strings.Builder
 	infoContent.WriteString(views.RenderKeyValue("ID", id) + "\n")
 	infoContent.WriteString(views.RenderKeyValue("Status", views.RenderStatus(status)) + "\n")
 	infoContent.WriteString(views.RenderKeyValue("Region", region) + "\n")
 	infoContent.WriteString(views.RenderKeyValue("Type", vType) + "\n")
 	infoContent.WriteString(views.RenderKeyValue("Size", size+" GB") + "\n")
+	infoContent.WriteString(views.StyleLabel.Render("Encryption:") + " " + encryptionStyle.Render(encryptionLabel) + "\n")
 	infoContent.WriteString(views.RenderKeyValue("Bootable", bootable) + "\n")
 	if description != "" {
 		infoContent.WriteString(views.RenderKeyValue("Description", description) + "\n")
@@ -112,7 +120,7 @@ func (v *DetailView) renderActions() string {
 			BorderForeground(lipgloss.Color("#00FF7F")).
 			Padding(0, 1).
 			Width(20)
-		return views.StyleStatusWarning.Render(fmt.Sprintf("New size in GB (current: %s):", currentSize)) + "\n" +
+		return views.StyleStatusWarning.Render(fmt.Sprintf("New size in GB (current: %s GB, must be greater):", currentSize)) + "\n" +
 			inputStyle.Render(v.extendInput+"▌") + "\n\n" +
 			views.StyleFooter.Render("Enter: Confirm • Esc: Cancel")
 	}
@@ -179,14 +187,24 @@ func (v *DetailView) HandleKey(msg tea.KeyMsg) tea.Cmd {
 			v.extendInput = ""
 		case tea.KeyEnter:
 			if v.extendInput != "" {
-				size := v.extendInput
+				newSize := v.extendInput
+				currentSizeStr := getSizeStr(v.volume)
+				// Validate new size > current size
+				var newSizeInt, currentSizeInt int
+				fmt.Sscanf(newSize, "%d", &newSizeInt)
+				fmt.Sscanf(currentSizeStr, "%d", &currentSizeInt)
+				if newSizeInt <= currentSizeInt {
+					// Invalid: don't submit, reset input
+					v.extendInput = ""
+					return nil
+				}
 				v.extendMode = false
 				v.extendInput = ""
 				return func() tea.Msg {
 					return ExecuteVolumeActionMsg{
 						Volume: v.volume,
 						Action: VolumeActionExtend,
-						Param:  size,
+						Param:  newSize,
 					}
 				}
 			}
@@ -234,7 +252,7 @@ func (v *DetailView) HandleKey(msg tea.KeyMsg) tea.Cmd {
 			v.renameInput = getString(v.volume, "name")
 			v.renameMode = true
 		case VolumeActionExtend:
-			v.extendInput = getSizeStr(v.volume)
+			v.extendInput = ""
 			v.extendMode = true
 		}
 		return nil
