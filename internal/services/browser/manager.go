@@ -100,6 +100,16 @@ const (
 	VolumeWizardStepConfirm
 )
 
+const (
+	// File Storage wizard steps (offset by 400)
+	FileWizardStepName    WizardStep = iota + 400
+	FileWizardStepRegion
+	FileWizardStepType
+	FileWizardStepSize
+	FileWizardStepNetwork
+	FileWizardStepConfirm
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -259,6 +269,22 @@ type WizardData struct {
 	volumeAvailabilityZone  string   // Selected availability zone
 	volumeEncryptionIdx     int      // 0=none, 1=OVHcloud Managed Key
 	volumeConfirmBtnIdx     int      // 0 = Create, 1 = Cancel
+	// File Storage wizard fields
+	fileShareName          string
+	fileShareNameInput     string
+	fileShareSize          int
+	fileShareSizeInput     string
+	fileShareType          string   // selected type (e.g., "standard-1az")
+	fileShareTypeIdx       int
+	fileShareRegions       []string
+	fileShareNetworks      []map[string]interface{}
+	fileShareSubnets       []map[string]interface{}
+	fileShareNetworkId     string
+	fileShareNetworkName   string
+	fileShareSubnetId      string
+	fileShareSubnetCIDR    string
+	fileShareNetworkMenuIdx int   // 0=network list, 1=subnet list
+	fileShareConfirmBtnIdx  int   // 0=Create, 1=Cancel
 }
 
 // Model represents the TUI application state
@@ -590,6 +616,26 @@ type volumeActionDoneMsg struct {
 
 type refreshBlockStorageMsg struct{}
 
+type fileShareRegionsLoadedMsg struct {
+	regions []string
+	err     error
+}
+
+type fileShareNetworksLoadedMsg struct {
+	networks []map[string]interface{}
+	err      error
+}
+
+type fileShareSubnetsLoadedMsg struct {
+	subnets []map[string]interface{}
+	err     error
+}
+
+type fileShareCreatedMsg struct {
+	share map[string]interface{}
+	err   error
+}
+
 // Navigation items for products (shown after project is selected)
 func getNavItems() []NavItem {
 	return []NavItem{
@@ -612,7 +658,7 @@ type StorageSubItem struct {
 func getStorageSubItems() []StorageSubItem {
 	return []StorageSubItem{
 		{Label: "Block Storage", Product: ProductStorageBlock, Path: "/storage/block", Enabled: true},
-		{Label: "File Storage", Product: ProductStorageFile, Path: "/storage/file", Enabled: false},
+		{Label: "File Storage", Product: ProductStorageFile, Path: "/storage/file", Enabled: true},
 		{Label: "Volume Backup", Product: ProductStorageBackup, Path: "/storage/backup", Enabled: false},
 		{Label: "Volume Snapshot", Product: ProductStorageSnapshot, Path: "/storage/snapshot", Enabled: false},
 		{Label: "Object Storage", Product: ProductStorageObject, Path: "/storage/object", Enabled: false},
@@ -748,6 +794,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				step: VolumeWizardStepName,
 			}
 			return m, nil
+		} else if msg.product == ProductStorageFile {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:           FileWizardStepName,
+				isLoading:      true,
+				loadingMessage: "Loading available regions...",
+			}
+			return m, m.fetchFileShareRegions()
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -919,6 +973,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case refreshBlockStorageMsg:
 		return m, m.fetchDataForPath("/storage/block")
 
+	case fileShareRegionsLoadedMsg:
+		return m.handleFileShareRegionsLoaded(msg)
+
+	case fileShareNetworksLoadedMsg:
+		return m.handleFileShareNetworksLoaded(msg)
+
+	case fileShareSubnetsLoadedMsg:
+		return m.handleFileShareSubnetsLoaded(msg)
+
+	case fileShareCreatedMsg:
+		return m.handleFileShareCreated(msg)
+
 	case tea.SuspendMsg:
 		// TUI has been suspended
 		return m, nil
@@ -1068,8 +1134,10 @@ func (m Model) renderNavBar(width int) string {
 	navContent := lipgloss.JoinHorizontal(lipgloss.Top, items...)
 	mainNav := navBarStyle.Width(width - 2).Render(navContent)
 
-	// If on Stockage, render the sub-navigation below
-	if navItems[m.navIdx].Product == ProductStorage {
+	// Show storage sub-navigation when on Stockage or any storage sub-product
+	isStorageContext := navItems[m.navIdx].Product == ProductStorage ||
+		(m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive)
+	if isStorageContext {
 		subNav := m.renderStorageSubNav(width)
 		return mainNav + "\n" + subNav
 	}
@@ -1093,12 +1161,23 @@ func (m Model) renderStorageSubNav(width int) string {
 		Foreground(lipgloss.Color("#444444")).
 		Padding(0, 2)
 
+	// Determine the active sub-item from currentProduct so it stays correct
+	// even when storageSubIdx gets out of sync.
+	activeSubIdx := m.storageSubIdx
+	for i, item := range subItems {
+		if item.Product == m.currentProduct {
+			activeSubIdx = i
+			break
+		}
+	}
+
 	for i, item := range subItems {
 		var style lipgloss.Style
-		if i == m.storageSubIdx && m.inStorageSubNav {
-			// style = subItemSelectedStyle
-		} else if i == m.storageSubIdx {
-			// active item but focus is in main nav — show dimmed selection
+		if i == activeSubIdx && m.inStorageSubNav {
+			// Focused selection: bright green + bold
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Padding(0, 2)
+		} else if i == activeSubIdx {
+			// Active item, focus is on main nav — dimmed green
 			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
 		} else if !item.Enabled {
 			style = subItemDisabledStyle
@@ -1127,7 +1206,10 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 300 {
+		if m.wizard.step >= 400 {
+			// File Storage wizard
+			titleText = " 🗂️  Create File Share "
+		} else if m.wizard.step >= 300 {
 			// Volume wizard
 			titleText = " 💾 Create Volume "
 		} else if m.wizard.step >= 200 {
@@ -2035,7 +2117,11 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 300 {
+	if m.wizard.step >= 400 {
+		// File Storage wizard
+		steps = append(steps, "Name", "Region", "Type", "Size", "Network", "Confirm")
+		stepMapping = append(stepMapping, FileWizardStepName, FileWizardStepRegion, FileWizardStepType, FileWizardStepSize, FileWizardStepNetwork, FileWizardStepConfirm)
+	} else if m.wizard.step >= 300 {
 		// Volume wizard
 		steps = append(steps, "Name", "Region", "Type", "Avail. Zone", "Size", "Encryption", "Confirm")
 		stepMapping = append(stepMapping, VolumeWizardStepName, VolumeWizardStepRegion, VolumeWizardStepType, VolumeWizardStepAvailabilityZone, VolumeWizardStepSize, VolumeWizardStepEncryption, VolumeWizardStepConfirm)
@@ -2164,6 +2250,19 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderVolumeWizardEncryptionStep(width))
 	case VolumeWizardStepConfirm:
 		content.WriteString(m.renderVolumeWizardConfirmStep(width))
+	// File Storage wizard steps
+	case FileWizardStepName:
+		content.WriteString(m.renderFileWizardNameStep(width))
+	case FileWizardStepRegion:
+		content.WriteString(m.renderFileWizardRegionStep(width))
+	case FileWizardStepType:
+		content.WriteString(m.renderFileWizardTypeStep(width))
+	case FileWizardStepSize:
+		content.WriteString(m.renderFileWizardSizeStep(width))
+	case FileWizardStepNetwork:
+		content.WriteString(m.renderFileWizardNetworkStep(width))
+	case FileWizardStepConfirm:
+		content.WriteString(m.renderFileWizardConfirmStep(width))
 	}
 
 	return content.String()
@@ -3724,6 +3823,8 @@ func (m Model) getProductCreationInfo() (string, string) {
 		return "analytics", fmt.Sprintf("ovhcloud cloud managed-analytics create --cloud-project %s", m.cloudProject)
 	case ProductStorageBlock:
 		return "block storage volumes", ""
+	case ProductStorageFile:
+		return "file shares", ""
 	case ProductNetworks:
 		return "private networks", fmt.Sprintf("ovhcloud cloud network private create --cloud-project %s", m.cloudProject)
 	default:
@@ -4268,6 +4369,18 @@ func (m Model) renderFooter() string {
 			help = "↑↓: Select • Enter: Continue • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == VolumeWizardStepConfirm {
 			help = "←→: Select • Enter: Confirm • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepName {
+			help = "Type name • Enter: Continue • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepRegion {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepType {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepSize {
+			help = "Type size in GB • Enter: Continue • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepNetwork {
+			help = "↑↓: Navigate • Enter: Select/Expand • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepConfirm {
+			help = "←→: Select • Enter: Confirm • Esc: Cancel"
 		} else {
 			help = "↑↓: Navigate • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		}
@@ -4383,10 +4496,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In storage sub-nav
-		if m.inStorageSubNav && m.mode != DetailView {
+		// In storage sub-nav (either focused or when on a storage sub-product)
+		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
+		if (m.inStorageSubNav || isStorageSubProduct) && m.mode != DetailView {
 			subItems := getStorageSubItems()
+			// Find current index from product
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.storageSubIdx = i
+					break
+				}
+			}
 			m.storageSubIdx = (m.storageSubIdx - 1 + len(subItems)) % len(subItems)
+			m.inStorageSubNav = true
 			return m.loadStorageSubProduct()
 		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
@@ -4423,10 +4545,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In storage sub-nav
-		if m.inStorageSubNav && m.mode != DetailView {
+		// In storage sub-nav (either focused or when on a storage sub-product)
+		isStorageSubProduct2 := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
+		if (m.inStorageSubNav || isStorageSubProduct2) && m.mode != DetailView {
 			subItems := getStorageSubItems()
+			// Find current index from product
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.storageSubIdx = i
+					break
+				}
+			}
 			m.storageSubIdx = (m.storageSubIdx + 1) % len(subItems)
+			m.inStorageSubNav = true
 			return m.loadStorageSubProduct()
 		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
@@ -4942,13 +5073,13 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// 'q' quits (except when typing in input fields)
-	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		return m, tea.Quit
 	}
 
 	// 'd' opens debug panel (except when typing in input fields)
 	// Disable debug shortcut when: in name step, filter mode, creating SSH key, or creating network
-	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		m.previousMode = m.mode
 		m.mode = DebugView
 		m.debugScrollOffset = 0
@@ -4966,7 +5097,9 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 300 {
+		if m.wizard.step >= 400 {
+			returnPath = "/storage/file"
+		} else if m.wizard.step >= 300 {
 			// Volume wizard
 			returnPath = "/storage/block"
 		} else if m.wizard.step >= 100 {
@@ -5038,6 +5171,19 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleVolumeWizardEncryptionKeys(key)
 	case VolumeWizardStepConfirm:
 		return m.handleVolumeWizardConfirmKeys(key)
+	// File Storage wizard steps
+	case FileWizardStepName:
+		return m.handleFileWizardNameKeys(msg)
+	case FileWizardStepRegion:
+		return m.handleFileWizardRegionKeys(key, msg)
+	case FileWizardStepType:
+		return m.handleFileWizardTypeKeys(key, msg)
+	case FileWizardStepSize:
+		return m.handleFileWizardSizeKeys(msg)
+	case FileWizardStepNetwork:
+		return m.handleFileWizardNetworkKeys(key, msg)
+	case FileWizardStepConfirm:
+		return m.handleFileWizardConfirmKeys(key)
 	}
 
 	return m, nil
@@ -6390,9 +6536,9 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// For Stockage, go to default sub-item (Block Storage = index 1)
+	// For Stockage, go to default sub-item (Block Storage = index 0)
 	if currentNav.Product == ProductStorage {
-		m.storageSubIdx = 1
+		m.storageSubIdx = 0
 		return m.loadStorageSubProduct()
 	}
 
@@ -7161,4 +7307,455 @@ func (m Model) handleNodePoolDeleteConfirmKeyPress(msg tea.KeyMsg) (tea.Model, t
 		}
 		return m, nil
 	}
+}
+
+// ─── File Storage wizard render functions ─────────────────────────────────────
+
+func (m Model) renderFileWizardNameStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Enter a name for the file share:") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	inputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#00FF7F")).
+		Padding(0, 1).
+		Width(40)
+	content.WriteString(inputStyle.Render(m.wizard.fileShareNameInput+"▌") + "\n\n")
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	content.WriteString(helpStyle.Render("Type to enter • Enter: Continue • Esc: Cancel"))
+	return content.String()
+}
+
+func (m Model) renderFileWizardRegionStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select region for the file share:") + "\n\n")
+
+	if m.wizard.isLoading {
+		content.WriteString(loadingStyle.Render("Loading available regions..."))
+		return content.String()
+	}
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	for i, region := range m.wizard.fileShareRegions {
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + region))
+		} else {
+			content.WriteString(listStyle.Render("  " + region))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter: Select • ← Back • Esc: Cancel"))
+	return content.String()
+}
+
+func (m Model) renderFileWizardTypeStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select performance mode:") + "\n\n")
+
+	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
+	content.WriteString(descStyle.Render("Choose the performance tier for the NFS share.") + "\n\n")
+
+	types := []string{"standard-1az"}
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	for i, t := range types {
+		if i == m.wizard.fileShareTypeIdx {
+			content.WriteString(selectedStyle.Render("▶ " + t))
+		} else {
+			content.WriteString(listStyle.Render("  " + t))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter: Select • ← Back • Esc: Cancel"))
+	return content.String()
+}
+
+func (m Model) renderFileWizardSizeStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Enter file share size (GB):") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	inputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#00FF7F")).
+		Padding(0, 1).
+		Width(20)
+	content.WriteString(inputStyle.Render(m.wizard.fileShareSizeInput+"▌") + "\n\n")
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	content.WriteString(helpStyle.Render("Type size in GB • Enter: Continue • ←: Back • Esc: Cancel"))
+	return content.String()
+}
+
+func (m Model) renderFileWizardNetworkStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+
+	if m.wizard.isLoading {
+		if m.wizard.fileShareNetworkMenuIdx == 0 {
+			content.WriteString(titleStyle.Render("Select private network:") + "\n\n")
+			content.WriteString(loadingStyle.Render("Loading networks..."))
+		} else {
+			content.WriteString(titleStyle.Render("Select subnet:") + "\n\n")
+			content.WriteString(loadingStyle.Render("Loading subnets..."))
+		}
+		return content.String()
+	}
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+
+	if m.wizard.fileShareNetworkMenuIdx == 0 {
+		// Show network list
+		content.WriteString(titleStyle.Render("Select private network for the file share:") + "\n\n")
+		for i, network := range m.wizard.fileShareNetworks {
+			name, _ := network["name"].(string)
+			if i == m.wizard.selectedIndex {
+				content.WriteString(selectedStyle.Render("▶ " + name))
+			} else {
+				content.WriteString(listStyle.Render("  " + name))
+			}
+			content.WriteString("\n")
+		}
+		if len(m.wizard.fileShareNetworks) == 0 {
+			dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+			content.WriteString(dimStyle.Render("  No private networks available in this region.") + "\n")
+		}
+		helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+		content.WriteString(helpStyle.Render("↑↓ Navigate • Enter: Select • ← Back • Esc: Cancel"))
+	} else {
+		// Show subnet list
+		content.WriteString(titleStyle.Render(fmt.Sprintf("Select subnet (network: %s):", m.wizard.fileShareNetworkName)) + "\n\n")
+		for i, subnet := range m.wizard.fileShareSubnets {
+			cidr, _ := subnet["cidr"].(string)
+			if i == m.wizard.selectedIndex {
+				content.WriteString(selectedStyle.Render("▶ " + cidr))
+			} else {
+				content.WriteString(listStyle.Render("  " + cidr))
+			}
+			content.WriteString("\n")
+		}
+		if len(m.wizard.fileShareSubnets) == 0 {
+			dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+			content.WriteString(dimStyle.Render("  No subnets available for this network.") + "\n")
+		}
+		helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+		content.WriteString(helpStyle.Render("↑↓ Navigate • Enter: Select • ← Back to networks • Esc: Cancel"))
+	}
+	return content.String()
+}
+
+func (m Model) renderFileWizardConfirmStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Confirm file share creation:") + "\n\n")
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.fileShareName) + "\n")
+	content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(m.wizard.fileShareRegions[m.wizard.selectedIndex]) + "\n")
+
+	// Actually selectedIndex won't be meaningful here; store the selected region
+	regionStr := m.wizard.fileShareRegions[0]
+	if len(m.wizard.fileShareRegions) > 0 {
+		// We stored the region in selectedRegion when we moved past the region step
+		regionStr = m.wizard.selectedRegion
+	}
+	content = strings.Builder{}
+	content.WriteString(titleStyle.Render("Confirm file share creation:") + "\n\n")
+	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.fileShareName) + "\n")
+	content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(regionStr) + "\n")
+	content.WriteString(labelStyle.Render("  Type:") + valueStyle.Render(m.wizard.fileShareType) + "\n")
+	content.WriteString(labelStyle.Render("  Size:") + valueStyle.Render(fmt.Sprintf("%d GB", m.wizard.fileShareSize)) + "\n")
+	content.WriteString(labelStyle.Render("  Network:") + valueStyle.Render(m.wizard.fileShareNetworkName) + "\n")
+	content.WriteString(labelStyle.Render("  Subnet:") + valueStyle.Render(m.wizard.fileShareSubnetCIDR) + "\n")
+
+	content.WriteString("\n")
+
+	if m.wizard.isLoading {
+		content.WriteString(loadingStyle.Render(m.wizard.loadingMessage))
+		return content.String()
+	}
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	createStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+	cancelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+
+	if m.wizard.fileShareConfirmBtnIdx == 0 {
+		content.WriteString(createStyle.Render("  ▶ [Create File Share]") + "    ")
+		content.WriteString(dimStyle.Render("[Cancel]") + "\n")
+	} else {
+		content.WriteString(dimStyle.Render("    [Create File Share]") + "    ")
+		content.WriteString(cancelStyle.Render("▶ [Cancel]") + "\n")
+	}
+
+	return content.String()
+}
+
+// ─── File Storage wizard key handler functions ────────────────────────────────
+
+func (m Model) handleFileWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		name := strings.TrimSpace(m.wizard.fileShareNameInput)
+		if name == "" {
+			m.wizard.errorMsg = "File share name cannot be empty"
+			return m, nil
+		}
+		m.wizard.fileShareName = name
+		m.wizard.errorMsg = ""
+		m.wizard.step = FileWizardStepRegion
+		m.wizard.selectedIndex = 0
+		if len(m.wizard.fileShareRegions) > 0 {
+			// Regions already loaded
+			return m, nil
+		}
+		// Should not happen (we load regions at wizard start) but just in case
+		m.wizard.isLoading = true
+		m.wizard.loadingMessage = "Loading available regions..."
+		return m, m.fetchFileShareRegions()
+	case tea.KeyBackspace:
+		if len(m.wizard.fileShareNameInput) > 0 {
+			m.wizard.fileShareNameInput = m.wizard.fileShareNameInput[:len(m.wizard.fileShareNameInput)-1]
+		}
+	case tea.KeyRunes:
+		m.wizard.fileShareNameInput += string(msg.Runes)
+	}
+	return m, nil
+}
+
+func (m Model) handleFileWizardRegionKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	regions := m.wizard.fileShareRegions
+	switch key {
+	case "up", "k":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down", "j":
+		if m.wizard.selectedIndex < len(regions)-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if len(regions) == 0 {
+			return m, nil
+		}
+		m.wizard.selectedRegion = regions[m.wizard.selectedIndex]
+		m.wizard.errorMsg = ""
+		m.wizard.step = FileWizardStepType
+		m.wizard.fileShareTypeIdx = 0
+		m.wizard.fileShareType = "standard-1az"
+	case "left":
+		m.wizard.step = FileWizardStepName
+		m.wizard.selectedIndex = 0
+	}
+	return m, nil
+}
+
+func (m Model) handleFileWizardTypeKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	types := []string{"standard-1az"}
+	switch key {
+	case "up", "k":
+		if m.wizard.fileShareTypeIdx > 0 {
+			m.wizard.fileShareTypeIdx--
+		}
+	case "down", "j":
+		if m.wizard.fileShareTypeIdx < len(types)-1 {
+			m.wizard.fileShareTypeIdx++
+		}
+	case "enter":
+		m.wizard.fileShareType = types[m.wizard.fileShareTypeIdx]
+		m.wizard.errorMsg = ""
+		m.wizard.step = FileWizardStepSize
+		if m.wizard.fileShareSize > 0 {
+			m.wizard.fileShareSizeInput = fmt.Sprintf("%d", m.wizard.fileShareSize)
+		} else {
+			m.wizard.fileShareSizeInput = ""
+		}
+	case "left":
+		m.wizard.step = FileWizardStepRegion
+		m.wizard.selectedIndex = 0
+	}
+	return m, nil
+}
+
+func (m Model) handleFileWizardSizeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		sizeStr := strings.TrimSpace(m.wizard.fileShareSizeInput)
+		size, err := strconv.Atoi(sizeStr)
+		if err != nil || size < 1 {
+			m.wizard.errorMsg = "Size must be a positive integer (GB)"
+			return m, nil
+		}
+		m.wizard.fileShareSize = size
+		m.wizard.errorMsg = ""
+		m.wizard.step = FileWizardStepNetwork
+		m.wizard.fileShareNetworkMenuIdx = 0
+		m.wizard.selectedIndex = 0
+		m.wizard.isLoading = true
+		m.wizard.loadingMessage = "Loading private networks..."
+		return m, m.fetchFileShareNetworks()
+	case tea.KeyBackspace:
+		if len(m.wizard.fileShareSizeInput) > 0 {
+			m.wizard.fileShareSizeInput = m.wizard.fileShareSizeInput[:len(m.wizard.fileShareSizeInput)-1]
+		}
+	case tea.KeyLeft:
+		m.wizard.step = FileWizardStepType
+		m.wizard.fileShareTypeIdx = 0
+	case tea.KeyRunes:
+		for _, r := range msg.Runes {
+			if r >= '0' && r <= '9' {
+				m.wizard.fileShareSizeInput += string(r)
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleFileWizardNetworkKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	if m.wizard.fileShareNetworkMenuIdx == 0 {
+		// Network selection phase
+		networks := m.wizard.fileShareNetworks
+		switch key {
+		case "up", "k":
+			if m.wizard.selectedIndex > 0 {
+				m.wizard.selectedIndex--
+			}
+		case "down", "j":
+			if m.wizard.selectedIndex < len(networks)-1 {
+				m.wizard.selectedIndex++
+			}
+		case "enter":
+			if len(networks) == 0 {
+				return m, nil
+			}
+			network := networks[m.wizard.selectedIndex]
+			networkPnId, _ := network["id"].(string)   // pn-XXXX_YYYY — used for subnet fetch
+			name, _ := network["name"].(string)
+			// _openstackId was pre-extracted by fetchFileShareNetworks for the target region
+			openstackId, _ := network["_openstackId"].(string)
+			if openstackId == "" {
+				openstackId = networkPnId // fallback (should not happen after filtering)
+			}
+
+			m.wizard.fileShareNetworkId = openstackId
+			m.wizard.fileShareNetworkName = name
+			m.wizard.errorMsg = ""
+			m.wizard.fileShareNetworkMenuIdx = 1
+			m.wizard.selectedIndex = 0
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Loading subnets..."
+			return m, m.fetchFileShareSubnets(networkPnId)
+		case "left":
+			m.wizard.step = FileWizardStepSize
+			m.wizard.fileShareNetworkMenuIdx = 0
+		}
+	} else {
+		// Subnet selection phase
+		subnets := m.wizard.fileShareSubnets
+		switch key {
+		case "up", "k":
+			if m.wizard.selectedIndex > 0 {
+				m.wizard.selectedIndex--
+			}
+		case "down", "j":
+			if m.wizard.selectedIndex < len(subnets)-1 {
+				m.wizard.selectedIndex++
+			}
+		case "enter":
+			if len(subnets) == 0 {
+				return m, nil
+			}
+			subnet := subnets[m.wizard.selectedIndex]
+			subnetId, _ := subnet["id"].(string)
+			subnetCIDR, _ := subnet["cidr"].(string)
+			m.wizard.fileShareSubnetId = subnetId
+			m.wizard.fileShareSubnetCIDR = subnetCIDR
+			m.wizard.errorMsg = ""
+			m.wizard.step = FileWizardStepConfirm
+			m.wizard.fileShareConfirmBtnIdx = 0
+		case "left":
+			// Back to network selection
+			m.wizard.fileShareNetworkMenuIdx = 0
+			m.wizard.selectedIndex = 0
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleFileWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	switch key {
+	case "right", "tab":
+		if m.wizard.fileShareConfirmBtnIdx == 0 {
+			m.wizard.fileShareConfirmBtnIdx = 1
+		} else {
+			m.wizard.fileShareConfirmBtnIdx = 0
+		}
+	case "enter":
+		if m.wizard.fileShareConfirmBtnIdx == 0 {
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Creating file share..."
+			return m, m.createFileShare()
+		}
+		// Cancel
+		m.wizard = WizardData{}
+		m.mode = LoadingView
+		return m, m.fetchDataForPath("/storage/file")
+	case "left", "esc":
+		m.wizard.step = FileWizardStepNetwork
+		m.wizard.fileShareNetworkMenuIdx = 1
+	}
+	return m, nil
 }
