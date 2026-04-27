@@ -1395,7 +1395,7 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.table = createKubernetesTable(msg.data, m.width, m.height)
 	case ProductInstances:
 		m.table = createInstancesTable(msg.data, m.imageMap, m.floatingIPMap, m.width, m.height)
-	case ProductStorage:
+	case ProductStorageBlock:
 		m.table = createBlockStorageTable(msg.data, m.width, m.height)
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)

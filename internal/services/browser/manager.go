@@ -108,7 +108,13 @@ const (
 	ProductKubernetes
 	ProductManagedDatabases
 	ProductManagedAnalytics
-	ProductStorage
+	ProductStorage         // "Stockage" top-level nav
+	ProductStorageBlock    // Block Storage (sous-nav)
+	ProductStorageFile     // File Storage (sous-nav)
+	ProductStorageBackup   // Volume Backup (sous-nav)
+	ProductStorageSnapshot // Volume Snapshot (sous-nav)
+	ProductStorageObject   // Object Storage (sous-nav)
+	ProductStorageArchive  // Cloud Archive (sous-nav)
 	ProductNetworks
 	ProductProjects
 )
@@ -263,6 +269,7 @@ type Model struct {
 	previousMode       ViewMode // Previous mode to return to from debug view
 	currentProduct     ProductType
 	navIdx             int // Index in navigation bar
+	storageSubIdx      int // Index in storage sub-navigation (0=Prise en main, 1=Block Storage, ...)
 	table              table.Model
 	detailData         map[string]interface{}
 	currentData        []map[string]interface{}
@@ -589,8 +596,25 @@ func getNavItems() []NavItem {
 		{Label: " Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
 		{Label: " Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
 		{Label: "Managed Analytics", Icon: "📈", Product: ProductManagedAnalytics, Path: "/analytics"},
-		{Label: "Block Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/block"},
+		{Label: "Stockage", Icon: "💾", Product: ProductStorage, Path: "/storage/block"},
 		{Label: "Private networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
+	}
+}
+
+type StorageSubItem struct {
+	Label   string
+	Product ProductType
+	Path    string
+	Enabled bool
+}
+
+func getStorageSubItems() []StorageSubItem {
+	return []StorageSubItem{
+		{Label: "Block Storage", Product: ProductStorageBlock, Path: "/storage/block", Enabled: true},
+		{Label: "File Storage", Product: ProductStorageFile, Path: "/storage/file", Enabled: false},
+		{Label: "Volume Backup", Product: ProductStorageBackup, Path: "/storage/backup", Enabled: false},
+		{Label: "Volume Snapshot", Product: ProductStorageSnapshot, Path: "/storage/snapshot", Enabled: false},
+		{Label: "Object Storage", Product: ProductStorageObject, Path: "/storage/object", Enabled: false},
 	}
 }
 
@@ -717,7 +741,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Loading Kubernetes regions...",
 			}
 			return m, m.fetchKubeRegions()
-		} else if msg.product == ProductStorage {
+		} else if msg.product == ProductStorageBlock {
 			m.mode = WizardView
 			m.wizard = WizardData{
 				step: VolumeWizardStepName,
@@ -881,7 +905,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleExecuteVolumeAction(msg)
 
 	case views.GoBackMsg:
-		if m.mode == DetailView && m.currentProduct == ProductStorage {
+		if m.mode == DetailView && m.currentProduct == ProductStorageBlock {
 			m.volumeDetailView = nil
 			m.mode = TableView
 			return m, nil
@@ -1041,7 +1065,57 @@ func (m Model) renderNavBar(width int) string {
 	}
 
 	navContent := lipgloss.JoinHorizontal(lipgloss.Top, items...)
-	return navBarStyle.Width(width - 2).Render(navContent)
+	mainNav := navBarStyle.Width(width - 2).Render(navContent)
+
+	// If on Stockage, render the sub-navigation below
+	if navItems[m.navIdx].Product == ProductStorage {
+		subNav := m.renderStorageSubNav(width)
+		return mainNav + "\n" + subNav
+	}
+
+	return mainNav
+}
+
+func (m Model) renderStorageSubNav(width int) string {
+	subItems := getStorageSubItems()
+	var items []string
+
+	subItemStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+	subItemSelectedStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00FF7F")).
+		Bold(true).
+		Padding(0, 2).
+		Underline(true)
+	subItemDisabledStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#444444")).
+		Padding(0, 2)
+
+	for i, item := range subItems {
+		var style lipgloss.Style
+		if i == m.storageSubIdx {
+			style = subItemSelectedStyle
+		} else if !item.Enabled {
+			style = subItemDisabledStyle
+		} else {
+			style = subItemStyle
+		}
+		label := item.Label
+		// if !item.Enabled && i != m.storageSubIdx {
+		// 	label += " (bientôt)"
+		// }
+		items = append(items, style.Render(label))
+	}
+
+	subBarStyle := lipgloss.NewStyle().
+		Padding(0, 1).
+		BorderTop(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("#333333"))
+	tabHintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#444444")).Padding(0, 2)
+subContent := lipgloss.JoinHorizontal(lipgloss.Top, append(items, tabHintStyle.Render(""))...)
+	return subBarStyle.Width(width - 2).Render(subContent)
 }
 
 func (m Model) renderContentBox(width int) string {
@@ -3645,7 +3719,7 @@ func (m Model) getProductCreationInfo() (string, string) {
 		return "databases", fmt.Sprintf("ovhcloud cloud managed-database create --cloud-project %s", m.cloudProject)
 	case ProductManagedAnalytics:
 		return "analytics", fmt.Sprintf("ovhcloud cloud managed-analytics create --cloud-project %s", m.cloudProject)
-	case ProductStorage:
+	case ProductStorageBlock:
 		return "block storage volumes", ""
 	case ProductNetworks:
 		return "private networks", fmt.Sprintf("ovhcloud cloud network private create --cloud-project %s", m.cloudProject)
@@ -3729,7 +3803,7 @@ func (m Model) renderDetailView(width int) string {
 		return m.renderKubernetesDetail(width)
 	case ProductProjects:
 		return m.renderProjectDetail(width)
-	case ProductStorage:
+	case ProductStorageBlock:
 		if m.volumeDetailView != nil {
 			return m.volumeDetailView.Render(width, 0)
 		}
@@ -4139,11 +4213,17 @@ func (m Model) renderFooter() string {
 	case TableView:
 		if m.filterInput != "" {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
+		} else if m.currentProduct == ProductStorageBlock {
+			help = "Tab/Shift+Tab: Sous-menu • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • d: Debug • p: Change Project • q: Quit"
 		} else {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
 		}
 	case EmptyView:
-		help = "←→: Switch Product • c: Create • d: Debug • p: Change Project • q: Quit"
+		if m.currentProduct == ProductStorageBlock {
+			help = "Tab/Shift+Tab: Sous-menu • c: Create • d: Debug • p: Change Project • q: Quit"
+		} else {
+			help = "←→: Switch Product • c: Create • d: Debug • p: Change Project • q: Quit"
+		}
 	case DetailView:
 		if m.actionConfirm {
 			help = "Enter: Confirm Action • Esc: Cancel"
@@ -4191,7 +4271,7 @@ func (m Model) renderFooter() string {
 	case KubeKubeconfigPickerView:
 		help = "↑↓: Navigate • Enter: Open/Select • Esc: Cancel"
 	case ComingSoonView:
-		help = "←→: Switch Product • d: Debug • p: Change Project • q: Quit"
+		help = "←→: Switch Product • tab/shift+tab: Navigate Sub-menu • d: Debug • p: Change Project • q: Quit"
 	default:
 		help = "Enter: Select • q: Quit"
 	}
@@ -4261,12 +4341,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleKubeKubeconfigPickerKeyPress(msg)
 	}
 
-	// Delegate to block storage detail view when in DetailView for ProductStorage
-	if m.mode == DetailView && m.currentProduct == ProductStorage && m.volumeDetailView != nil {
+	// Delegate to block storage detail view when in DetailView for ProductStorageBlock
+	if m.mode == DetailView && m.currentProduct == ProductStorageBlock && m.volumeDetailView != nil {
 		cmd := m.volumeDetailView.HandleKey(msg)
 		return m, cmd
 	}
 
+	navItems := getNavItems()
 	switch msg.String() {
 	case "q", "ctrl+c":
 		return m, tea.Quit
@@ -4352,6 +4433,24 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			// Otherwise fetch projects
 			m.mode = LoadingView
 			return m, m.fetchDataForPath("/projects")
+		}
+		return m, nil
+
+	case "tab":
+		// Navigate storage sub-nav forward (with wrap-around)
+		if m.mode != DetailView && (m.currentProduct == ProductStorageBlock || navItems[m.navIdx].Product == ProductStorage) {
+			subItems := getStorageSubItems()
+			m.storageSubIdx = (m.storageSubIdx + 1) % len(subItems)
+			return m.loadStorageSubProduct()
+		}
+		return m, nil
+
+	case "shift+tab":
+		// Navigate storage sub-nav backward (with wrap-around)
+		if m.mode != DetailView && (m.currentProduct == ProductStorageBlock || navItems[m.navIdx].Product == ProductStorage) {
+			subItems := getStorageSubItems()
+			m.storageSubIdx = (m.storageSubIdx - 1 + len(subItems)) % len(subItems)
+			return m.loadStorageSubProduct()
 		}
 		return m, nil
 
@@ -4487,7 +4586,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.mode = DetailView
 
 				// If viewing a block storage volume, init the detail view
-				if m.currentProduct == ProductStorage {
+				if m.currentProduct == ProductStorageBlock {
 					ctx := &views.Context{Width: m.width, Height: m.height}
 					m.volumeDetailView = block_storage.NewDetailView(ctx, m.detailData)
 					return m, nil
@@ -6269,6 +6368,12 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// For Stockage, go to default sub-item (Block Storage = index 1)
+	if currentNav.Product == ProductStorage {
+		m.storageSubIdx = 1
+		return m.loadStorageSubProduct()
+	}
+
 	m.mode = LoadingView
 
 	// For instances and Kubernetes, start the auto-refresh timer
@@ -6279,6 +6384,23 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 		)
 	}
 	return m, m.fetchDataForPath(currentNav.Path)
+}
+
+func (m Model) loadStorageSubProduct() (Model, tea.Cmd) {
+	subItems := getStorageSubItems()
+	sub := subItems[m.storageSubIdx]
+	m.currentProduct = sub.Product
+	m.detailData = nil
+	m.currentData = nil
+	m.volumeDetailView = nil
+
+	if !sub.Enabled {
+		m.mode = ComingSoonView
+		return m, nil
+	}
+
+	m.mode = LoadingView
+	return m, m.fetchDataForPath(sub.Path)
 }
 
 // Helper functions
