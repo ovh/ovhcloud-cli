@@ -4496,11 +4496,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In storage sub-nav (either focused or when on a storage sub-product)
-		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
-		if (m.inStorageSubNav || isStorageSubProduct) && m.mode != DetailView {
+		// In storage sub-nav (only when focused)
+		if m.inStorageSubNav && m.mode != DetailView {
 			subItems := getStorageSubItems()
-			// Find current index from product
 			for i, item := range subItems {
 				if item.Product == m.currentProduct {
 					m.storageSubIdx = i
@@ -4508,7 +4506,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.storageSubIdx = (m.storageSubIdx - 1 + len(subItems)) % len(subItems)
-			m.inStorageSubNav = true
 			return m.loadStorageSubProduct()
 		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
@@ -4545,11 +4542,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In storage sub-nav (either focused or when on a storage sub-product)
+		// In storage sub-nav (only when focused)
 		isStorageSubProduct2 := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
-		if (m.inStorageSubNav || isStorageSubProduct2) && m.mode != DetailView {
+		if m.inStorageSubNav && isStorageSubProduct2 && m.mode != DetailView {
 			subItems := getStorageSubItems()
-			// Find current index from product
 			for i, item := range subItems {
 				if item.Product == m.currentProduct {
 					m.storageSubIdx = i
@@ -4557,7 +4553,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.storageSubIdx = (m.storageSubIdx + 1) % len(subItems)
-			m.inStorageSubNav = true
 			return m.loadStorageSubProduct()
 		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
@@ -4750,9 +4745,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.inStorageSubNav = true
 			return m.loadStorageSubProduct()
 		}
-		// ↑ in sub-nav → exit sub-nav, back to main nav
+		// ↑ when sub-nav is focused → exit to main nav
 		if (key == "up" || key == "k") && m.inStorageSubNav && m.mode != DetailView {
 			m.inStorageSubNav = false
+			return m, nil
+		}
+		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
+		// ↑ when at top of table on a storage sub-product → focus sub-nav
+		if (key == "up" || key == "k") && isStorageSubProduct && !m.inStorageSubNav && m.mode == TableView && m.table.Cursor() == 0 {
+			m.inStorageSubNav = true
+			return m, nil
+		}
+		// ↑ on EmptyView/ComingSoonView for storage → focus sub-nav
+		if (key == "up" || key == "k") && isStorageSubProduct && !m.inStorageSubNav && (m.mode == EmptyView || m.mode == ComingSoonView) {
+			m.inStorageSubNav = true
 			return m, nil
 		}
 		// Node pools list navigation
