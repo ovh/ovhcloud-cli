@@ -88,6 +88,12 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 			msg.forProduct = product
 			return msg
 		}
+	case "/storage/object":
+		return func() tea.Msg {
+			msg := m.fetchS3StorageData()
+			msg.forProduct = product
+			return msg
+		}
 	case "/networks/private":
 		return func() tea.Msg {
 			msg := m.fetchPrivateNetworksData()
@@ -690,12 +696,15 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 		}
 
 		hasS3 := false
+		s3Offer := "Standard"
 		for _, svc := range services {
 			if svcMap, ok := svc.(map[string]interface{}); ok {
 				if name, ok := svcMap["name"].(string); ok {
-					if name == "storage-s3-high-perf" || name == "storage-s3-standard" {
+					if name == "storage-s3-high-perf" {
 						hasS3 = true
-						break
+						s3Offer = "High Performance"
+					} else if name == "storage-s3-standard" {
+						hasS3 = true
 					}
 				}
 			}
@@ -715,10 +724,12 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 					var container map[string]interface{}
 					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, regionName, containerName)
 					if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
+						container["_offer"] = s3Offer
 						allContainers = append(allContainers, container)
 					}
 				} else if containerObj, ok := item.(map[string]interface{}); ok {
 					// It's already a full object
+					containerObj["_offer"] = s3Offer
 					allContainers = append(allContainers, containerObj)
 				}
 			}
@@ -1405,6 +1416,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.table = createBlockStorageTable(msg.data, m.width, m.height)
 	case ProductStorageFile:
 		m.table = createFileStorageTable(msg.data, m.width, m.height)
+	case ProductStorageObject:
+		m.table = createObjectStorageTable(msg.data, m.width, m.height)
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)
 	}

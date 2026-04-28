@@ -26,6 +26,7 @@ import (
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	block_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/block_storage"
 	file_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/file_storage"
+	object_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/object_storage"
 	"github.com/ovh/ovhcloud-cli/internal/services/browser/views"
 	"github.com/spf13/cobra"
 )
@@ -109,6 +110,16 @@ const (
 	FileWizardStepSize
 	FileWizardStepNetwork
 	FileWizardStepConfirm
+
+	ObjectWizardStepName        WizardStep = iota + 500
+	ObjectWizardStepType
+	ObjectWizardStepRegion
+	ObjectWizardStepReplication
+	ObjectWizardStepVersioning
+	ObjectWizardStepObjectLock
+	ObjectWizardStepUser
+	ObjectWizardStepEncryption
+	ObjectWizardStepConfirm
 )
 
 // ProductType represents a product category
@@ -286,6 +297,18 @@ type WizardData struct {
 	fileShareSubnetCIDR    string
 	fileShareNetworkMenuIdx int   // 0=network list, 1=subnet list
 	fileShareConfirmBtnIdx  int   // 0=Create, 1=Cancel
+	// Object Storage wizard fields
+	objectName          string   // Container name
+	objectNameInput     string
+	objectTypeIdx       int      // 0=Standard, 1=High Performance
+	objectRegions       []string // Regions supporting S3
+	objectUsers         []map[string]interface{} // Cloud users
+	objectUserIdx       int
+	objectReplication   bool   // Offsite replication enabled
+	objectVersioning    bool   // Versioning enabled
+	objectLock          bool   // Object Lock enabled
+	objectEncryption    bool   // Encryption enabled (AES256)
+	objectConfirmBtnIdx int    // 0=Create, 1=Cancel
 }
 
 // Model represents the TUI application state
@@ -335,6 +358,8 @@ type Model struct {
 	volumeDetailView *block_storage.DetailView
 	// File Storage detail view
 	fileShareDetailView *file_storage.DetailView
+	// Object Storage detail view
+	objectDetailView *object_storage.DetailView
 }
 
 // Navigation items for the top bar
@@ -639,7 +664,21 @@ type fileShareCreatedMsg struct {
 	err   error
 }
 
-// Navigation items for products (shown after project is selected)
+type objectStorageInitDataLoadedMsg struct {
+        regions []string
+        users   []map[string]interface{}
+        err     error
+}
+
+type objectContainerCreatedMsg struct {
+        container map[string]interface{}
+        err       error
+}
+
+type objectContainerActionDoneMsg struct {
+        action int
+        err    error
+}
 func getNavItems() []NavItem {
 	return []NavItem{
 		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
@@ -664,7 +703,7 @@ func getStorageSubItems() []StorageSubItem {
 		{Label: "File Storage", Product: ProductStorageFile, Path: "/storage/file", Enabled: true},
 		{Label: "Volume Backup", Product: ProductStorageBackup, Path: "/storage/backup", Enabled: false},
 		{Label: "Volume Snapshot", Product: ProductStorageSnapshot, Path: "/storage/snapshot", Enabled: false},
-		{Label: "Object Storage", Product: ProductStorageObject, Path: "/storage/object", Enabled: false},
+		{Label: "Object Storage", Product: ProductStorageObject, Path: "/storage/object", Enabled: true},
 	}
 }
 
@@ -805,6 +844,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Loading available regions...",
 			}
 			return m, m.fetchFileShareRegions()
+		} else if msg.product == ProductStorageObject {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:           ObjectWizardStepName,
+				isLoading:      true,
+				loadingMessage: "Loading regions and users...",
+			}
+			return m, m.fetchObjectStorageInitData()
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -968,6 +1015,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fileShareActionDoneMsg:
 		return m.handleFileShareActionDone(msg)
 
+	case object_storage.ExecuteContainerActionMsg:
+		containerName := ""
+		region := ""
+		if msg.Container != nil {
+			if n, ok := msg.Container["name"].(string); ok {
+				containerName = n
+			}
+			if r, ok := msg.Container["region"].(string); ok {
+				region = r
+			}
+		}
+		m.notification = fmt.Sprintf("🗑️  Suppression du conteneur '%s'...", containerName)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.deleteObjectContainer(containerName, region)
+
 	case views.GoBackMsg:
 		if m.mode == DetailView && m.currentProduct == ProductStorageBlock {
 			m.volumeDetailView = nil
@@ -976,6 +1038,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if m.mode == DetailView && m.currentProduct == ProductStorageFile {
 			m.fileShareDetailView = nil
+			m.mode = TableView
+			return m, nil
+		}
+		if m.mode == DetailView && m.currentProduct == ProductStorageObject {
+			m.objectDetailView = nil
 			m.mode = TableView
 			return m, nil
 		}
@@ -998,6 +1065,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fileShareCreatedMsg:
 		return m.handleFileShareCreated(msg)
+
+	case objectStorageInitDataLoadedMsg:
+		return m.handleObjectStorageInitDataLoaded(msg)
+
+	case objectContainerCreatedMsg:
+		return m.handleObjectContainerCreated(msg)
+
+	case objectContainerActionDoneMsg:
+		return m.handleObjectContainerActionDone(msg)
 
 	case tea.SuspendMsg:
 		// TUI has been suspended
@@ -1220,7 +1296,10 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 400 {
+		if m.wizard.step >= 500 {
+			// Object Storage wizard
+			titleText = " 🪣  Create Object Storage Container "
+		} else if m.wizard.step >= 400 {
 			// File Storage wizard
 			titleText = " 🗂️  Create File Share "
 		} else if m.wizard.step >= 300 {
@@ -2131,7 +2210,11 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 400 {
+	if m.wizard.step >= 500 {
+		// Object Storage wizard
+		steps = append(steps, "Nom", "Type", "Région", "Réplication", "Versions", "Lock", "Utilisateur", "Chiffrement", "Confirmer")
+		stepMapping = append(stepMapping, ObjectWizardStepName, ObjectWizardStepType, ObjectWizardStepRegion, ObjectWizardStepReplication, ObjectWizardStepVersioning, ObjectWizardStepObjectLock, ObjectWizardStepUser, ObjectWizardStepEncryption, ObjectWizardStepConfirm)
+	} else if m.wizard.step >= 400 {
 		// File Storage wizard
 		steps = append(steps, "Name", "Region", "Type", "Size", "Network", "Confirm")
 		stepMapping = append(stepMapping, FileWizardStepName, FileWizardStepRegion, FileWizardStepType, FileWizardStepSize, FileWizardStepNetwork, FileWizardStepConfirm)
@@ -2277,17 +2360,30 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderFileWizardNetworkStep(width))
 	case FileWizardStepConfirm:
 		content.WriteString(m.renderFileWizardConfirmStep(width))
+	case ObjectWizardStepName:
+			content.WriteString(m.renderObjectWizardNameStep(width))
+	case ObjectWizardStepType:
+			content.WriteString(m.renderObjectWizardTypeStep(width))
+	case ObjectWizardStepRegion:
+			content.WriteString(m.renderObjectWizardRegionStep(width))
+	case ObjectWizardStepReplication:
+			content.WriteString(m.renderObjectWizardReplicationStep(width))
+	case ObjectWizardStepVersioning:
+			content.WriteString(m.renderObjectWizardVersioningStep(width))
+	case ObjectWizardStepObjectLock:
+			content.WriteString(m.renderObjectWizardObjectLockStep(width))
+	case ObjectWizardStepUser:
+			content.WriteString(m.renderObjectWizardUserStep(width))
+	case ObjectWizardStepEncryption:
+			content.WriteString(m.renderObjectWizardEncryptionStep(width))
+	case ObjectWizardStepConfirm:
+			content.WriteString(m.renderObjectWizardConfirmStep(width))
 	}
-
 	return content.String()
 }
 
-// renderWizardRegionStep renders the region selection step
 func (m Model) renderWizardRegionStep(width int) string {
 	var content strings.Builder
-
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	content.WriteString(titleStyle.Render("Select a region:") + "\n")
 
 	// Show filter input if active
 	if m.wizard.filterMode {
@@ -3839,6 +3935,8 @@ func (m Model) getProductCreationInfo() (string, string) {
 		return "block storage volumes", ""
 	case ProductStorageFile:
 		return "file shares", ""
+	case ProductStorageObject:
+		return "object storage containers", ""
 	case ProductNetworks:
 		return "private networks", fmt.Sprintf("ovhcloud cloud network private create --cloud-project %s", m.cloudProject)
 	default:
@@ -3929,6 +4027,11 @@ func (m Model) renderDetailView(width int) string {
         case ProductStorageFile:
                 if m.fileShareDetailView != nil {
                         return m.fileShareDetailView.Render(width, 0)
+                }
+                return m.renderGenericDetail(width)
+        case ProductStorageObject:
+                if m.objectDetailView != nil {
+                        return m.objectDetailView.Render(width, 0)
                 }
                 return m.renderGenericDetail(width)
         default:
@@ -4492,6 +4595,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
                 return m, cmd
         }
 
+        // Delegate to object storage detail view when in DetailView for ProductStorageObject
+        if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
+                cmd := m.objectDetailView.HandleKey(msg)
+                return m, cmd
+        }
+
         switch msg.String() {
         case "left":
 		// In NodePoolDetailView, navigate actions
@@ -4752,6 +4861,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.currentProduct == ProductStorageFile {
 					ctx := &views.Context{Width: m.width, Height: m.height}
 					m.fileShareDetailView = file_storage.NewDetailView(ctx, m.detailData)
+					return m, nil
+				}
+
+				// If viewing an object storage container, init the detail view
+				if m.currentProduct == ProductStorageObject {
+					ctx := &views.Context{Width: m.width, Height: m.height}
+					m.objectDetailView = object_storage.NewDetailView(ctx, m.detailData)
 					return m, nil
 				}
 
@@ -5059,6 +5175,12 @@ func (m *Model) applyTableFilter() {
 			m.table = createInstancesTable(m.currentData, m.imageMap, m.floatingIPMap, m.width, m.height)
 		case ProductKubernetes:
 			m.table = createKubernetesTable(m.currentData, m.width, m.height)
+		case ProductStorageBlock:
+			m.table = createBlockStorageTable(m.currentData, m.width, m.height)
+		case ProductStorageFile:
+			m.table = createFileStorageTable(m.currentData, m.width, m.height)
+		case ProductStorageObject:
+			m.table = createObjectStorageTable(m.currentData, m.width, m.height)
 		default:
 			m.table = createGenericTable(m.currentData, m.width, m.height)
 		}
@@ -5091,6 +5213,16 @@ func (m *Model) applyTableFilter() {
 			}
 		}
 		m.table = createKubernetesTable(filtered, m.width, m.height)
+	case ProductStorageObject:
+		var filtered []map[string]interface{}
+		for _, item := range m.currentData {
+			name := strings.ToLower(getStringValue(item, "name", ""))
+			region := strings.ToLower(getStringValue(item, "region", ""))
+			if strings.Contains(name, filter) || strings.Contains(region, filter) {
+				filtered = append(filtered, item)
+			}
+		}
+		m.table = createObjectStorageTable(filtered, m.width, m.height)
 	default:
 		m.table = createGenericTable(m.currentData, m.width, m.height)
 	}
@@ -5099,6 +5231,14 @@ func (m *Model) applyTableFilter() {
 // handleWizardKeyPress handles key presses in wizard mode
 func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
+
+	// Block all key input while an async operation is in progress.
+	if m.wizard.isLoading {
+		if key == "ctrl+c" {
+			return m, tea.Quit
+		}
+		return m, nil
+	}
 
 	// Handle cleanup confirmation mode
 	if m.wizard.cleanupPending {
@@ -5135,7 +5275,9 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 400 {
+		if m.wizard.step >= 500 {
+			returnPath = "/storage/object"
+		} else if m.wizard.step >= 400 {
 			returnPath = "/storage/file"
 		} else if m.wizard.step >= 300 {
 			// Volume wizard
@@ -5222,23 +5364,71 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleFileWizardNetworkKeys(key, msg)
 	case FileWizardStepConfirm:
 		return m.handleFileWizardConfirmKeys(key)
+	// Object Storage wizard steps
+	case ObjectWizardStepName:
+			return m.handleObjectWizardNameKeys(msg)
+	case ObjectWizardStepType:
+			return m.handleObjectWizardTypeKeys(key)
+	case ObjectWizardStepRegion:
+			return m.handleObjectWizardRegionKeys(key)
+	case ObjectWizardStepReplication:
+		switch key {
+		case "left", "h", "y":
+			m.wizard.objectReplication = true
+		case "right", "l", "n":
+			m.wizard.objectReplication = false
+		case "enter":
+			m.wizard.step = ObjectWizardStepVersioning
+		case "esc":
+			m.wizard.step = ObjectWizardStepRegion
+		}
+		return m, nil
+	case ObjectWizardStepVersioning:
+		switch key {
+		case "left", "h", "y":
+			m.wizard.objectVersioning = true
+		case "right", "l", "n":
+			m.wizard.objectVersioning = false
+		case "enter":
+			m.wizard.step = ObjectWizardStepObjectLock
+		case "esc":
+			m.wizard.step = ObjectWizardStepReplication
+		}
+		return m, nil
+	case ObjectWizardStepObjectLock:
+		switch key {
+		case "left", "h", "y":
+			m.wizard.objectLock = true
+		case "right", "l", "n":
+			m.wizard.objectLock = false
+		case "enter":
+			m.wizard.step = ObjectWizardStepUser
+		case "esc":
+			m.wizard.step = ObjectWizardStepVersioning
+		}
+		return m, nil
+	case ObjectWizardStepUser:
+			return m.handleObjectWizardUserKeys(key)
+	case ObjectWizardStepEncryption:
+		switch key {
+		case "left", "h", "y":
+			m.wizard.objectEncryption = true
+		case "right", "l", "n":
+			m.wizard.objectEncryption = false
+		case "enter":
+			m.wizard.step = ObjectWizardStepConfirm
+		case "esc":
+			m.wizard.step = ObjectWizardStepUser
+		}
+		return m, nil
+	case ObjectWizardStepConfirm:
+		return m.handleObjectWizardConfirmKeys(key)
 	}
-
 	return m, nil
 }
 
-// handleCleanupConfirmKeys handles key presses in cleanup confirmation mode
 func (m Model) handleCleanupConfirmKeys(key string) (tea.Model, tea.Cmd) {
 	switch key {
-	case "left", "right":
-		// Toggle between Yes and No
-		if m.wizard.selectedIndex == 0 {
-			m.wizard.selectedIndex = 1
-		} else {
-			m.wizard.selectedIndex = 0
-		}
-		return m, nil
-
 	case "enter":
 		if m.wizard.selectedIndex == 0 {
 			// Yes, delete all - start cleanup
