@@ -685,7 +685,7 @@ func getNavItems() []NavItem {
 		{Label: " Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
 		{Label: " Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
 		{Label: "Managed Analytics", Icon: "📈", Product: ProductManagedAnalytics, Path: "/analytics"},
-		{Label: "Stockage", Icon: "💾", Product: ProductStorage, Path: "/storage/block"},
+		{Label: "Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/block"},
 		{Label: "Private networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
 	}
 }
@@ -1026,7 +1026,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				region = r
 			}
 		}
-		m.notification = fmt.Sprintf("🗑️  Suppression du conteneur '%s'...", containerName)
+		m.notification = fmt.Sprintf("🗑️  Deleting container '%s'...", containerName)
 		m.notificationExpiry = time.Now().Add(30 * time.Second)
 		return m, m.deleteObjectContainer(containerName, region)
 

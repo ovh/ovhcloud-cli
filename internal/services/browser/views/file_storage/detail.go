@@ -68,20 +68,20 @@ func (v *DetailView) Render(width, height int) string {
 
 	var infoContent strings.Builder
 	infoContent.WriteString(views.RenderKeyValue("ID", id) + "\n")
-	infoContent.WriteString(views.RenderKeyValue("Nom", name) + "\n")
-	infoContent.WriteString(views.RenderKeyValue("Statut", views.RenderStatus(status)) + "\n")
-	infoContent.WriteString(views.RenderKeyValue("Région", region) + "\n")
+	infoContent.WriteString(views.RenderKeyValue("Name", name) + "\n")
+	infoContent.WriteString(views.RenderKeyValue("Status", views.RenderStatus(status)) + "\n")
+	infoContent.WriteString(views.RenderKeyValue("Region", region) + "\n")
 	infoContent.WriteString(views.RenderKeyValue("Type", shareType) + "\n")
-	infoContent.WriteString(views.RenderKeyValue("Capacité", size+" GB") + "\n")
+	infoContent.WriteString(views.RenderKeyValue("Capacity", size+" GB") + "\n")
 	if createdAt != "" {
-		infoContent.WriteString(views.RenderKeyValue("Créé le", createdAt) + "\n")
+		infoContent.WriteString(views.RenderKeyValue("Created at", createdAt) + "\n")
 	}
 
-	content.WriteString(views.RenderBox("Informations du partage", infoContent.String(), width-4))
+	content.WriteString(views.RenderBox("Share information", infoContent.String(), width-4))
 	content.WriteString("\n\n")
 
 	actionsContent := v.renderActions()
-	content.WriteString(views.RenderBox("Actions (←/→ pour naviguer, Entrée pour exécuter)", actionsContent, width-4))
+	content.WriteString(views.RenderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4))
 
 	return content.String()
 }
@@ -95,7 +95,7 @@ func (v *DetailView) renderActions() string {
 			Width(40)
 		return views.StyleStatusWarning.Render("Nouveau nom :") + "\n" +
 			inputStyle.Render(v.renameInput+"▌") + "\n\n" +
-			views.StyleFooter.Render("Entrée: Confirmer • Échap: Annuler")
+					views.StyleFooter.Render("Enter: Confirm • Esc: Cancel")
 	}
 
 	if v.extendMode {
@@ -106,10 +106,10 @@ func (v *DetailView) renderActions() string {
 			Padding(0, 1).
 			Width(20)
 		return views.StyleStatusWarning.Render(
-			fmt.Sprintf("Nouvelle taille en GB (actuelle: %s GB, doit être supérieure) :", currentSize),
-		) + "\n" +
-			inputStyle.Render(v.extendInput+"▌") + "\n\n" +
-			views.StyleFooter.Render("Entrée: Confirmer • Échap: Annuler")
+				fmt.Sprintf("New size in GB (current: %s GB, must be larger):", currentSize),
+			) + "\n" +
+				inputStyle.Render(v.extendInput+"▌") + "\n\n" +
+				views.StyleFooter.Render("Enter: Confirm • Esc: Cancel")
 	}
 
 	var parts []string
@@ -129,7 +129,7 @@ func (v *DetailView) renderActions() string {
 
 	if v.confirmMode {
 		result += "\n\n" + views.StyleStatusWarning.Render(
-			fmt.Sprintf("⚠️  Appuyez sur Entrée pour confirmer %s, Échap pour annuler",
+			fmt.Sprintf("⚠️  Press Enter to confirm %s, Esc to cancel",
 				fileShareActionLabels[v.selectedAction]))
 	}
 
@@ -263,12 +263,12 @@ func (v *DetailView) Title() string {
 // HelpText returns the footer help text.
 func (v *DetailView) HelpText() string {
 	if v.renameMode || v.extendMode {
-		return "Tapez la valeur • Entrée: Confirmer • Échap: Annuler"
+			return "Type value • Enter: Confirm • Esc: Cancel"
 	}
 	if v.confirmMode {
-		return "Entrée: Confirmer l'action • Échap: Annuler"
+		return "Enter: Confirm action • Esc: Cancel"
 	}
-	return "←→: Sélectionner • Entrée: Exécuter • Échap: Retour à la liste • q: Quitter"
+	return "←→: Select • Enter: Execute • Esc: Back to list • q: Quit"
 }
 
 // ExecuteFileShareActionMsg is dispatched when the user confirms an action.

@@ -64,11 +64,11 @@ func (v *DetailView) Render(width, height int) string {
 	}
 
 	// Encryption
-	encryptionStatus := "Désactivé"
+	encryptionStatus := "Disabled"
 	encryptionStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 	if enc, ok := v.container["encryption"].(map[string]interface{}); ok {
 		if alg, _ := enc["sseAlgorithm"].(string); alg != "" {
-			encryptionStatus = "Actif (" + alg + ")"
+			encryptionStatus = "Active (" + alg + ")"
 			encryptionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
 		}
 	}
@@ -107,20 +107,20 @@ func (v *DetailView) Render(width, height int) string {
 	}
 
 	var infoContent strings.Builder
-	infoContent.WriteString(views.RenderKeyValue("Nom", name) + "\n")
-	infoContent.WriteString(views.RenderKeyValue("Région", region) + "\n")
-	infoContent.WriteString(views.RenderKeyValue("Créé le", createdAt) + "\n")
-	infoContent.WriteString(views.RenderKeyValue("Objets", objectsCount) + "\n")
-	infoContent.WriteString(views.RenderKeyValue("Taille totale", sizeStr) + "\n")
+	infoContent.WriteString(views.RenderKeyValue("Name", name) + "\n")
+	infoContent.WriteString(views.RenderKeyValue("Region", region) + "\n")
+	infoContent.WriteString(views.RenderKeyValue("Created at", createdAt) + "\n")
+	infoContent.WriteString(views.RenderKeyValue("Objects", objectsCount) + "\n")
+	infoContent.WriteString(views.RenderKeyValue("Total size", sizeStr) + "\n")
 	infoContent.WriteString(views.RenderKeyValue("Versioning", versioningStatus) + "\n")
-	infoContent.WriteString(views.StyleLabel.Render("Chiffrement:") + " " + encryptionStyle.Render(encryptionStatus) + "\n")
+	infoContent.WriteString(views.StyleLabel.Render("Encryption:") + " " + encryptionStyle.Render(encryptionStatus) + "\n")
 	infoContent.WriteString(views.RenderKeyValue("Object Lock", objectLockStatus) + "\n")
 
-	content.WriteString(views.RenderBox("Informations du conteneur", infoContent.String(), width-4))
+	content.WriteString(views.RenderBox("Container information", infoContent.String(), width-4))
 	content.WriteString("\n\n")
 
 	actionsContent := v.renderActions()
-	content.WriteString(views.RenderBox("Actions (←/→ pour naviguer, Entrée pour exécuter)", actionsContent, width-4))
+	content.WriteString(views.RenderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4))
 
 	return content.String()
 }
@@ -143,7 +143,7 @@ func (v *DetailView) renderActions() string {
 
 	if v.confirmMode {
 		result += "\n\n" + views.StyleStatusWarning.Render(
-			"⚠️  Appuyez sur Entrée pour confirmer la suppression, Échap pour annuler")
+			"⚠️  Press Enter to confirm deletion, Esc to cancel")
 	}
 
 	return result
@@ -202,9 +202,9 @@ func (v *DetailView) Title() string {
 // HelpText returns the footer help text.
 func (v *DetailView) HelpText() string {
 	if v.confirmMode {
-		return "Entrée: Confirmer la suppression • Échap: Annuler"
+		return "Enter: Confirm deletion • Esc: Cancel"
 	}
-	return "←→: Sélectionner • Entrée: Exécuter • Échap: Retour à la liste • q: Quitter"
+	return "←→: Select • Enter: Execute • Esc: Back to list • q: Quit"
 }
 
 // ExecuteContainerActionMsg is dispatched when the user confirms an action.

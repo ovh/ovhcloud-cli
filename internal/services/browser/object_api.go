@@ -203,13 +203,13 @@ func (m Model) handleObjectContainerCreated(msg objectContainerCreatedMsg) (tea.
 
 func (m Model) handleObjectContainerActionDone(msg objectContainerActionDoneMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
-		m.notification = fmt.Sprintf("❌ Action échouée: %s", msg.err.Error())
+		m.notification = fmt.Sprintf("❌ Action failed: %s", msg.err.Error())
 		m.notificationExpiry = time.Now().Add(8 * time.Second)
 		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg {
 			return clearNotificationMsg{}
 		})
 	}
-	m.notification = "✅ Container supprimé avec succès!"
+	m.notification = "✅ Container deleted successfully!"
 	m.notificationExpiry = time.Now().Add(5 * time.Second)
 	m.objectDetailView = nil
 	m.detailData = nil
@@ -225,12 +225,12 @@ func (m Model) handleObjectContainerActionDone(msg objectContainerActionDoneMsg)
 // createObjectStorageTable builds the table for S3 containers.
 func createObjectStorageTable(data []map[string]interface{}, width, height int) table.Model {
 	columns := []table.Column{
-		{Title: "Nom", Width: 28},
-		{Title: "Localisation", Width: 12},
-		{Title: "Mode de déploiement", Width: 22},
-		{Title: "Offre", Width: 16},
-		{Title: "Nbr objets", Width: 11},
-		{Title: "Espace utilisé", Width: 14},
+		{Title: "Name", Width: 28},
+		{Title: "Location", Width: 12},
+		{Title: "Deployment mode", Width: 22},
+		{Title: "Offer", Width: 16},
+		{Title: "Objects", Width: 11},
+		{Title: "Used space", Width: 14},
 		{Title: "Type", Width: 10},
 	}
 

@@ -198,12 +198,12 @@ func (m Model) fetchFileStorageData() dataLoadedMsg {
 // createFileStorageTable builds the table model for file shares.
 func createFileStorageTable(data []map[string]interface{}, width, height int) table.Model {
 	columns := []table.Column{
-		{Title: "Nom", Width: 25},
+		{Title: "Name", Width: 25},
 		{Title: "ID", Width: 20},
-		{Title: "Région", Width: 12},
+		{Title: "Region", Width: 12},
 		{Title: "Type", Width: 16},
 		{Title: "Capacité", Width: 12},
-		{Title: "Statut", Width: 12},
+		{Title: "Status", Width: 12},
 	}
 
 	var rows []table.Row
@@ -366,21 +366,21 @@ func (m Model) handleExecuteFileShareAction(msg file_storage.ExecuteFileShareAct
 
 	switch msg.Action {
 	case file_storage.FileShareActionDelete:
-		m.notification = fmt.Sprintf("🗑️  Suppression du partage '%s'...", shareName)
+		m.notification = fmt.Sprintf("🗑️  Deleting share '%s'...", shareName)
 		m.notificationExpiry = time.Now().Add(30 * time.Second)
 		return m, m.deleteFileShare(shareId, region)
 	case file_storage.FileShareActionRename:
-		m.notification = "✏️  Renommage du partage..."
+		m.notification = "✏️  Renaming share..."
 		m.notificationExpiry = time.Now().Add(30 * time.Second)
 		return m, m.renameFileShare(shareId, region, msg.Param)
 	case file_storage.FileShareActionExtend:
 		newSize, err := strconv.Atoi(msg.Param)
 		if err != nil || newSize < 1 {
-			m.notification = "❌ Taille invalide"
+				m.notification = "❌ Invalid size"
 			m.notificationExpiry = time.Now().Add(5 * time.Second)
 			return m, nil
 		}
-		m.notification = fmt.Sprintf("⬆️  Extension du partage à %d GB...", newSize)
+		m.notification = fmt.Sprintf("⬆️  Extending share to %d GB...", newSize)
 		m.notificationExpiry = time.Now().Add(30 * time.Second)
 		return m, m.extendFileShare(shareId, region, newSize)
 	}
@@ -389,14 +389,14 @@ func (m Model) handleExecuteFileShareAction(msg file_storage.ExecuteFileShareAct
 
 func (m Model) handleFileShareActionDone(msg fileShareActionDoneMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
-		m.notification = fmt.Sprintf("❌ Action échouée: %s", msg.err.Error())
+		m.notification = fmt.Sprintf("❌ Action failed: %s", msg.err.Error())
 		m.notificationExpiry = time.Now().Add(8 * time.Second)
 		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg {
 			return clearNotificationMsg{}
 		})
 	}
 
-	actionNames := []string{"supprimé", "renommé", "étendu"}
+	actionNames := []string{"deleted", "renamed", "extended"}
 	actionName := "mis à jour"
 	if msg.action >= 0 && msg.action < len(actionNames) {
 		actionName = actionNames[msg.action]

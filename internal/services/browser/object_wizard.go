@@ -28,7 +28,7 @@ func (m Model) renderObjectWizardNameStep(width int) string {
 		Width(40)
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
-	content.WriteString(titleStyle.Render("🪣 Nom du conteneur :") + "\n\n")
+	content.WriteString(titleStyle.Render("🪣 Container name:") + "\n\n")
 	content.WriteString(inputStyle.Render(m.wizard.objectNameInput+"▌") + "\n\n")
 	if m.wizard.errorMsg != "" {
 		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true)
@@ -36,7 +36,7 @@ func (m Model) renderObjectWizardNameStep(width int) string {
 	} else {
 		content.WriteString(hintStyle.Render("Lettres minuscules, chiffres et tirets uniquement (3-63 car).") + "\n\n")
 	}
-	content.WriteString(hintStyle.Render("Entrée: Suivant • Échap: Annuler"))
+	content.WriteString(hintStyle.Render("Enter: Next • Esc: Cancel"))
 	return content.String()
 }
 
@@ -47,7 +47,7 @@ func (m Model) renderObjectWizardTypeStep(width int) string {
 	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
-	content.WriteString(titleStyle.Render("📦 Type de conteneur :") + "\n\n")
+	content.WriteString(titleStyle.Render("📦 Container type:") + "\n\n")
 	for i, t := range objectContainerTypes {
 		if i == m.wizard.objectTypeIdx {
 			content.WriteString(selectedStyle.Render(fmt.Sprintf("  ▶ %s", t)) + "\n")
@@ -56,7 +56,7 @@ func (m Model) renderObjectWizardTypeStep(width int) string {
 		}
 	}
 	content.WriteString("\n")
-	content.WriteString(hintStyle.Render("↑↓: Sélectionner • Entrée: Suivant • Échap: Retour"))
+	content.WriteString(hintStyle.Render("↑↓: Select • Enter: Next • Esc: Back"))
 	return content.String()
 }
 
@@ -67,7 +67,7 @@ func (m Model) renderObjectWizardRegionStep(width int) string {
 	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
-	content.WriteString(titleStyle.Render("🌍 Localisation (région) :") + "\n\n")
+	content.WriteString(titleStyle.Render("🌍 Region:") + "\n\n")
 	if len(m.wizard.objectRegions) == 0 {
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Aucune région disponible.") + "\n")
 	} else {
@@ -96,31 +96,31 @@ func (m Model) renderObjectWizardRegionStep(width int) string {
 		}
 	}
 	content.WriteString("\n")
-	content.WriteString(hintStyle.Render("↑↓: Sélectionner • Entrée: Suivant • Échap: Retour"))
+	content.WriteString(hintStyle.Render("↑↓: Select • Enter: Next • Esc: Back"))
 	return content.String()
 }
 
 func (m Model) renderObjectWizardReplicationStep(width int) string {
-	return renderObjectToggleStep("🔄 Réplication hors site (Offsite Replication) :",
-		"Répliquer les objets dans une autre zone géographique automatiquement.",
+	return renderObjectToggleStep("🔄 Offsite Replication:",
+		"Automatically replicate objects to another geographic zone.",
 		m.wizard.objectReplication)
 }
 
 func (m Model) renderObjectWizardVersioningStep(width int) string {
-	return renderObjectToggleStep("📂 Gestion des versions :",
-		"Conserver plusieurs versions de chaque objet (nécessaire pour Object Lock).",
+	return renderObjectToggleStep("📂 Versioning:",
+		"Keep multiple versions of each object (required for Object Lock).",
 		m.wizard.objectVersioning)
 }
 
 func (m Model) renderObjectWizardObjectLockStep(width int) string {
-	return renderObjectToggleStep("🔒 Object Lock (WORM) :",
-		"Empêcher la suppression ou modification des objets pendant une période définie.",
+	return renderObjectToggleStep("🔒 Object Lock (WORM):",
+		"Prevent deletion or modification of objects for a defined period.",
 		m.wizard.objectLock)
 }
 
 func (m Model) renderObjectWizardEncryptionStep(width int) string {
-	return renderObjectToggleStep("🔐 Chiffrement côté serveur (AES-256) :",
-		"Chiffrer automatiquement tous les objets stockés dans ce conteneur.",
+	return renderObjectToggleStep("🔐 Server-side Encryption (AES-256):",
+		"Automatically encrypt all objects stored in this container.",
 		m.wizard.objectEncryption)
 }
 
@@ -140,15 +140,15 @@ func renderObjectToggleStep(title, description string, enabled bool) string {
 
 	var onBtn, offBtn string
 	if enabled {
-		onBtn = selectedBorder.Render(onStyle.Render("✓ Activé"))
-		offBtn = normalBorder.Render(offStyle.Render("  Désactivé"))
+		onBtn = selectedBorder.Render(onStyle.Render("✓ Enabled"))
+		offBtn = normalBorder.Render(offStyle.Render("  Disabled"))
 	} else {
-		onBtn = normalBorder.Render(offStyle.Render("  Activé"))
-		offBtn = selectedBorder.Render(onStyle.Render("✗ Désactivé"))
+		onBtn = normalBorder.Render(offStyle.Render("  Enabled"))
+		offBtn = selectedBorder.Render(onStyle.Render("✗ Disabled"))
 	}
 	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, onBtn, "  ", offBtn))
 	content.WriteString("\n\n")
-	content.WriteString(hintStyle.Render("←→ ou y/n: Basculer • Entrée: Suivant • Échap: Retour"))
+	content.WriteString(hintStyle.Render("←→ or y/n: Toggle • Enter: Next • Esc: Back"))
 	return content.String()
 }
 
@@ -159,7 +159,7 @@ func (m Model) renderObjectWizardUserStep(width int) string {
 	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
-	content.WriteString(titleStyle.Render("👤 Utilisateur propriétaire :") + "\n\n")
+	content.WriteString(titleStyle.Render("👤 Owner user:") + "\n\n")
 
 	// First option: no user (project-level)
 	if m.wizard.objectUserIdx == 0 {
@@ -190,7 +190,7 @@ func (m Model) renderObjectWizardUserStep(width int) string {
 	}
 
 	content.WriteString("\n")
-	content.WriteString(hintStyle.Render("↑↓: Sélectionner • Entrée: Suivant • Échap: Retour"))
+	content.WriteString(hintStyle.Render("↑↓: Select • Enter: Next • Esc: Back"))
 	return content.String()
 }
 
@@ -200,31 +200,31 @@ func (m Model) renderObjectWizardConfirmStep(width int) string {
 	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE")).Bold(true)
 	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	content.WriteString(titleStyle.Render("✅ Résumé du conteneur :") + "\n\n")
-	content.WriteString(labelStyle.Render("  Nom :          ") + valueStyle.Render(m.wizard.objectName) + "\n")
+	content.WriteString(titleStyle.Render("✅ Container summary:") + "\n\n")
+	content.WriteString(labelStyle.Render("  Name:          ") + valueStyle.Render(m.wizard.objectName) + "\n")
 
 	typeName := "Standard"
 	if m.wizard.objectTypeIdx == 1 {
 		typeName = "High Performance"
 	}
-	content.WriteString(labelStyle.Render("  Type :         ") + valueStyle.Render(typeName) + "\n")
+	content.WriteString(labelStyle.Render("  Type:          ") + valueStyle.Render(typeName) + "\n")
 
 	region := m.wizard.selectedRegion
 	if region == "" && len(m.wizard.objectRegions) > 0 {
 		region = m.wizard.objectRegions[0]
 	}
-	content.WriteString(labelStyle.Render("  Région :       ") + valueStyle.Render(region) + "\n")
-	content.WriteString(labelStyle.Render("  Réplication :  ") + valueStyle.Render(boolToFrench(m.wizard.objectReplication)) + "\n")
-	content.WriteString(labelStyle.Render("  Versioning :   ") + valueStyle.Render(boolToFrench(m.wizard.objectVersioning)) + "\n")
-	content.WriteString(labelStyle.Render("  Object Lock :  ") + valueStyle.Render(boolToFrench(m.wizard.objectLock)) + "\n")
-	content.WriteString(labelStyle.Render("  Chiffrement :  ") + valueStyle.Render(boolToFrench(m.wizard.objectEncryption)) + "\n")
+	content.WriteString(labelStyle.Render("  Region:        ") + valueStyle.Render(region) + "\n")
+	content.WriteString(labelStyle.Render("  Replication:   ") + valueStyle.Render(boolToEnglish(m.wizard.objectReplication)) + "\n")
+	content.WriteString(labelStyle.Render("  Versioning:    ") + valueStyle.Render(boolToEnglish(m.wizard.objectVersioning)) + "\n")
+	content.WriteString(labelStyle.Render("  Object Lock:   ") + valueStyle.Render(boolToEnglish(m.wizard.objectLock)) + "\n")
+	content.WriteString(labelStyle.Render("  Encryption:    ") + valueStyle.Render(boolToEnglish(m.wizard.objectEncryption)) + "\n")
 
 	if m.wizard.objectUserIdx > 0 && m.wizard.objectUserIdx <= len(m.wizard.objectUsers) {
 		user := m.wizard.objectUsers[m.wizard.objectUserIdx-1]
 		username, _ := user["username"].(string)
-		content.WriteString(labelStyle.Render("  Utilisateur :  ") + valueStyle.Render(username) + "\n")
+		content.WriteString(labelStyle.Render("  User:          ") + valueStyle.Render(username) + "\n")
 	} else {
-		content.WriteString(labelStyle.Render("  Utilisateur :  ") + valueStyle.Render("(aucun)") + "\n")
+		content.WriteString(labelStyle.Render("  User:          ") + valueStyle.Render("(none)") + "\n")
 	}
 
 	content.WriteString("\n")
@@ -241,29 +241,29 @@ func (m Model) renderObjectWizardConfirmStep(width int) string {
 
 	var createBtn, cancelBtn string
 	if m.wizard.objectConfirmBtnIdx == 0 {
-		createBtn = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#00FF7F")).Render(createStyle.Render("  ▶ [Créer]"))
-		cancelBtn = lipgloss.NewStyle().Padding(1).Render(cancelStyle.Render("    [Annuler]"))
+		createBtn = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#00FF7F")).Render(createStyle.Render("  ▶ [Create]"))
+		cancelBtn = lipgloss.NewStyle().Padding(1).Render(cancelStyle.Render("    [Cancel]"))
 	} else {
-		createBtn = lipgloss.NewStyle().Padding(1).Render(createStyle.Render("    [Créer]"))
-		cancelBtn = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#FF6B6B")).Render(cancelStyle.Render("  ▶ [Annuler]"))
+		createBtn = lipgloss.NewStyle().Padding(1).Render(createStyle.Render("    [Create]"))
+		cancelBtn = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#FF6B6B")).Render(cancelStyle.Render("  ▶ [Cancel]"))
 	}
 	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, createBtn, "  ", cancelBtn))
 	content.WriteString("\n\n")
 	if m.wizard.errorMsg != "" {
 		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true)
-		content.WriteString(errStyle.Render("⚠ Erreur: "+m.wizard.errorMsg) + "\n\n")
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("←→: Basculer • Entrée: Réessayer • N: Changer le nom • Échap: Retour"))
+		content.WriteString(errStyle.Render("⚠ Error: "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("←→: Toggle • Enter: Retry • N: Change name • Esc: Back"))
 	} else {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("←→: Basculer • Entrée: Confirmer • Échap: Retour"))
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("←→: Toggle • Enter: Confirm • Esc: Back"))
 	}
 	return content.String()
 }
 
-func boolToFrench(v bool) string {
+func boolToEnglish(v bool) string {
 	if v {
-		return "Activé"
+		return "Enabled"
 	}
-	return "Désactivé"
+	return "Disabled"
 }
 
 // ─── Object Storage wizard key handlers ──────────────────────────────────────
@@ -424,7 +424,7 @@ func (m Model) handleObjectWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 		m.wizard.errorMsg = ""
 		// Create
 		m.wizard.isLoading = true
-		m.wizard.loadingMessage = fmt.Sprintf("Création du conteneur '%s'...", m.wizard.objectName)
+		m.wizard.loadingMessage = fmt.Sprintf("Creating container '%s'...", m.wizard.objectName)
 		return m, m.createObjectContainer()
 	case "esc":
 		m.wizard.step = ObjectWizardStepEncryption
