@@ -337,6 +337,8 @@ type Model struct {
 	// Filter mode
 	filterMode  bool   // Whether filter input mode is active
 	filterInput string // Current filter input text
+	// Object Storage tab rendering
+	renderObjectStorageTabs bool
 	// Delete confirmation
 	deleteTarget       map[string]interface{} // Item to be deleted
 	deleteConfirmInput string                 // User input for delete confirmation
@@ -360,6 +362,9 @@ type Model struct {
 	fileShareDetailView *file_storage.DetailView
 	// Object Storage detail view
 	objectDetailView *object_storage.DetailView
+	// Object Storage tabs (0=Containers, 1=Users)
+	objectStorageTabIdx int
+	objectStorageUsers  []map[string]interface{}
 }
 
 // Navigation items for the top bar
@@ -463,6 +468,7 @@ type dataLoadedMsg struct {
 	data       []map[string]interface{}
 	err        error
 	forProduct ProductType // The product that requested this data
+	s3Users    []map[string]interface{} // S3 users (for Object Storage)
 }
 
 // setDefaultProjectMsg is returned after setting the default project
@@ -1359,6 +1365,10 @@ func (m Model) renderContentBox(width int) string {
 		contentStr = m.renderTable()
 	case TableView:
 		contentStr = m.renderTable()
+		// Add tabs for Object Storage
+		if m.currentProduct == ProductStorageObject {
+			contentStr = m.renderObjectStorageWithTabs(contentStr, width-6)
+		}
 	case DetailView:
 		contentStr = m.renderDetailView(width - 6)
 	case NodePoolsView:
@@ -3964,6 +3974,43 @@ func (m Model) renderTable() string {
 	return content.String()
 }
 
+// renderObjectStorageWithTabs renders the Object Storage view with tabs
+func (m Model) renderObjectStorageWithTabs(tableContent string, width int) string {
+	var content strings.Builder
+
+	// Render tabs
+	tabActiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).
+		Padding(0, 2)
+
+	tabInactiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#333333")).
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+
+	tab1 := "My Containers"
+	tab2 := "Users"
+
+	var tab1Rendered, tab2Rendered string
+	if m.objectStorageTabIdx == 0 {
+		tab1Rendered = tabActiveStyle.Render(tab1)
+		tab2Rendered = tabInactiveStyle.Render(tab2)
+	} else {
+		tab1Rendered = tabInactiveStyle.Render(tab1)
+		tab2Rendered = tabActiveStyle.Render(tab2)
+	}
+
+	tabs := lipgloss.JoinHorizontal(lipgloss.Top, tab1Rendered, "  ", tab2Rendered)
+	content.WriteString(tabs + "\n\n")
+
+	// Add the table content
+	content.WriteString(tableContent)
+
+	return content.String()
+}
+
 func (m Model) renderDeleteConfirmView() string {
 	var content strings.Builder
 	var instanceName string
@@ -4692,6 +4739,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.inStorageSubNav = false
 				return m.loadCurrentProduct()
 			}
+		}
+		return m, nil
+
+	case "t":
+		// Toggle between Object Storage tabs (Containers / Users)
+		if (m.mode == TableView || m.mode == EmptyView) && m.currentProduct == ProductStorageObject {
+			m.objectStorageTabIdx = (m.objectStorageTabIdx + 1) % 2
+			// Rebuild table with appropriate data
+			if m.objectStorageTabIdx == 0 {
+				// Show containers
+				m.table = createObjectStorageTable(m.currentData, m.width, m.height)
+			} else {
+				// Show users
+				m.table = createObjectStorageUsersTable(m.objectStorageUsers, m.width, m.height)
+			}
+			return m, nil
 		}
 		return m, nil
 

@@ -736,9 +736,60 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 		}
 	}
 
+	// Fetch cloud users with their S3 credentials
+	var s3Users []map[string]interface{}
+	var cloudUsers []map[string]interface{}
+	userEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user", m.cloudProject)
+	if err := httpLib.Client.Get(userEndpoint, &cloudUsers); err == nil {
+		for _, user := range cloudUsers {
+			userEntry := make(map[string]interface{})
+			userEntry["_username"] = user["username"]
+			userEntry["_userDescription"] = user["description"]
+			userEntry["_userId"] = user["id"]
+
+			// Robust user ID extraction: handle float64, json.Number, int
+			var userId int64
+			switch id := user["id"].(type) {
+			case float64:
+				userId = int64(id)
+			case json.Number:
+				userId, _ = id.Int64()
+			case int:
+				userId = int64(id)
+			case int64:
+				userId = id
+			}
+
+			if userId == 0 {
+				userEntry["access"] = ""
+				userEntry["internalName"] = getString(user, "username")
+				s3Users = append(s3Users, userEntry)
+				continue
+			}
+
+			// Fetch S3 credentials for this user
+			var s3Creds []map[string]interface{}
+			s3Endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials", m.cloudProject, userId)
+			if err := httpLib.Client.Get(s3Endpoint, &s3Creds); err == nil && len(s3Creds) > 0 {
+				for _, cred := range s3Creds {
+					cred["_username"] = user["username"]
+					cred["_userDescription"] = user["description"]
+					cred["_userId"] = user["id"]
+					s3Users = append(s3Users, cred)
+				}
+			} else {
+				// User exists but has no S3 credentials yet
+				userEntry["access"] = ""
+				userEntry["internalName"] = getString(user, "username")
+				s3Users = append(s3Users, userEntry)
+			}
+		}
+	}
+
 	return dataLoadedMsg{
-		data: allContainers,
-		err:  nil,
+		data:    allContainers,
+		s3Users: s3Users,
+		err:     nil,
 	}
 }
 
@@ -1417,7 +1468,14 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 	case ProductStorageFile:
 		m.table = createFileStorageTable(msg.data, m.width, m.height)
 	case ProductStorageObject:
-		m.table = createObjectStorageTable(msg.data, m.width, m.height)
+		// Store S3 users for tabs
+		m.objectStorageUsers = msg.s3Users
+		// Start with containers tab (index 0) or respect current tab
+		if m.objectStorageTabIdx == 0 {
+			m.table = createObjectStorageTable(msg.data, m.width, m.height)
+		} else {
+			m.table = createObjectStorageUsersTable(msg.s3Users, m.width, m.height)
+		}
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)
 	}

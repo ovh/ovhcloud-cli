@@ -312,3 +312,71 @@ func createObjectStorageTable(data []map[string]interface{}, width, height int) 
 	t.SetStyles(s)
 	return t
 }
+
+// createObjectStorageUsersTable creates a table to display S3 users/credentials.
+func createObjectStorageUsersTable(users []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Name", Width: 30},
+		{Title: "Description", Width: 40},
+		{Title: "Access Key", Width: 32},
+		{Title: "User S3", Width: 20},
+	}
+
+	var rows []table.Row
+	for _, s3Cred := range users {
+		// Name: internalName from credentials, fallback to username
+		name := getString(s3Cred, "internalName")
+		if name == "" {
+			name = getString(s3Cred, "_username")
+		}
+
+		// Description from user info
+		description := getString(s3Cred, "_userDescription")
+		if description == "" {
+			description = "-"
+		}
+
+		// Access key
+		accessKey := getString(s3Cred, "access")
+		if accessKey == "" {
+			accessKey = "No credentials"
+		}
+
+		// S3 User: enabled status
+		s3User := "Enabled"
+		if accessKey == "No credentials" {
+			s3User = "Disabled"
+		}
+
+		rows = append(rows, table.Row{name, description, accessKey, s3User})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(false)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
