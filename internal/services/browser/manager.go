@@ -4771,6 +4771,21 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "enter":
+		// Toggle between main nav and sub-nav when on Storage item
+		if m.mode != DetailView && m.mode != ProjectSelectView &&
+			m.mode != NodePoolsView && m.mode != NodePoolDetailView {
+			navItems := getNavItems()
+			if m.navIdx < len(navItems) && navItems[m.navIdx].Product == ProductStorage {
+				if m.inStorageSubNav {
+					// Go back to main nav
+					m.inStorageSubNav = false
+					return m, nil
+				}
+				// Drop into sub-nav
+				m.inStorageSubNav = true
+				return m.loadStorageSubProduct()
+			}
+		}
 		// Handle enter based on current mode
 		if m.mode == NodePoolDetailView {
 			// Execute selected action on node pool
