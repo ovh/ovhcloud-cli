@@ -25,6 +25,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	block_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/block_storage"
+	file_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/file_storage"
 	"github.com/ovh/ovhcloud-cli/internal/services/browser/views"
 	"github.com/spf13/cobra"
 )
@@ -332,6 +333,8 @@ type Model struct {
 	detailRefreshName string
 	// Block Storage detail view
 	volumeDetailView *block_storage.DetailView
+	// File Storage detail view
+	fileShareDetailView *file_storage.DetailView
 }
 
 // Navigation items for the top bar
@@ -959,9 +962,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case block_storage.ExecuteVolumeActionMsg:
 		return m.handleExecuteVolumeAction(msg)
 
+	case file_storage.ExecuteFileShareActionMsg:
+		return m.handleExecuteFileShareAction(msg)
+
+	case fileShareActionDoneMsg:
+		return m.handleFileShareActionDone(msg)
+
 	case views.GoBackMsg:
 		if m.mode == DetailView && m.currentProduct == ProductStorageBlock {
 			m.volumeDetailView = nil
+			m.mode = TableView
+			return m, nil
+		}
+		if m.mode == DetailView && m.currentProduct == ProductStorageFile {
+			m.fileShareDetailView = nil
 			m.mode = TableView
 			return m, nil
 		}
@@ -3912,9 +3926,14 @@ func (m Model) renderDetailView(width int) string {
 			return m.volumeDetailView.Render(width, 0)
 		}
 		return m.renderGenericDetail(width)
-	default:
-		return m.renderGenericDetail(width)
-	}
+        case ProductStorageFile:
+                if m.fileShareDetailView != nil {
+                        return m.fileShareDetailView.Render(width, 0)
+                }
+                return m.renderGenericDetail(width)
+        default:
+                return m.renderGenericDetail(width)
+        }
 }
 
 func (m Model) renderInstanceDetail(width int) string {
@@ -4467,12 +4486,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
-	navItems := getNavItems()
-	switch msg.String() {
-	case "q", "ctrl+c":
-		return m, tea.Quit
+        // Delegate to file storage detail view when in DetailView for ProductStorageFile
+        if m.mode == DetailView && m.currentProduct == ProductStorageFile && m.fileShareDetailView != nil {
+                cmd := m.fileShareDetailView.HandleKey(msg)
+                return m, cmd
+        }
 
-	case "left":
+        switch msg.String() {
+        case "left":
 		// In NodePoolDetailView, navigate actions
 		if m.mode == NodePoolDetailView {
 			if m.nodePoolDetailActionIdx > 0 {
@@ -4727,6 +4748,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				// If viewing a file storage share, init the detail view
+				if m.currentProduct == ProductStorageFile {
+					ctx := &views.Context{Width: m.width, Height: m.height}
+					m.fileShareDetailView = file_storage.NewDetailView(ctx, m.detailData)
+					return m, nil
+				}
+
 				// If viewing a Kubernetes cluster, also load node pools
 				if m.currentProduct == ProductKubernetes {
 					kubeId := getStringValue(m.detailData, "id", "")
@@ -4739,6 +4767,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "up", "down", "j", "k":
 		key := msg.String()
+		navItems := getNavItems()
 		// ↓ on main nav over Stockage → enter sub-nav
 		if (key == "down" || key == "j") && !m.inStorageSubNav && m.mode != DetailView &&
 			m.mode != ProjectSelectView && navItems[m.navIdx].Product == ProductStorage {
@@ -4888,6 +4917,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
+
+	case "q", "ctrl+c":
+		return m, tea.Quit
 	}
 
 	return m, nil

@@ -11,12 +11,14 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	file_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/file_storage"
 )
 
 // ─── File Storage (NFS Share) API ─────────────────────────────────────────────
@@ -312,6 +314,97 @@ func (m Model) handleFileShareCreated(msg fileShareCreatedMsg) (tea.Model, tea.C
 	m.notification = fmt.Sprintf("✅ File share '%s' created successfully!", name)
 	m.notificationExpiry = time.Now().Add(5 * time.Second)
 	m.wizard = WizardData{}
+	m.mode = LoadingView
+	return m, tea.Batch(
+		m.fetchDataForPath("/storage/file"),
+		tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		}),
+	)
+}
+
+// ─── File Storage detail-view actions ─────────────────────────────────────────
+
+type fileShareActionDoneMsg struct {
+	action int
+	err    error
+}
+
+func (m Model) deleteFileShare(shareId, region string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(shareId))
+		err := httpLib.Client.Delete(endpoint, nil)
+		return fileShareActionDoneMsg{action: file_storage.FileShareActionDelete, err: err}
+	}
+}
+
+func (m Model) renameFileShare(shareId, region, newName string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(shareId))
+		body := map[string]interface{}{"name": newName}
+		err := httpLib.Client.Put(endpoint, body, nil)
+		return fileShareActionDoneMsg{action: file_storage.FileShareActionRename, err: err}
+	}
+}
+
+func (m Model) extendFileShare(shareId, region string, newSizeGB int) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(shareId))
+		body := map[string]interface{}{"size": newSizeGB}
+		err := httpLib.Client.Put(endpoint, body, nil)
+		return fileShareActionDoneMsg{action: file_storage.FileShareActionExtend, err: err}
+	}
+}
+
+func (m Model) handleExecuteFileShareAction(msg file_storage.ExecuteFileShareActionMsg) (tea.Model, tea.Cmd) {
+	shareId := getString(msg.Share, "id")
+	region := getString(msg.Share, "region")
+	shareName := getString(msg.Share, "name")
+
+	switch msg.Action {
+	case file_storage.FileShareActionDelete:
+		m.notification = fmt.Sprintf("🗑️  Suppression du partage '%s'...", shareName)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.deleteFileShare(shareId, region)
+	case file_storage.FileShareActionRename:
+		m.notification = "✏️  Renommage du partage..."
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.renameFileShare(shareId, region, msg.Param)
+	case file_storage.FileShareActionExtend:
+		newSize, err := strconv.Atoi(msg.Param)
+		if err != nil || newSize < 1 {
+			m.notification = "❌ Taille invalide"
+			m.notificationExpiry = time.Now().Add(5 * time.Second)
+			return m, nil
+		}
+		m.notification = fmt.Sprintf("⬆️  Extension du partage à %d GB...", newSize)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.extendFileShare(shareId, region, newSize)
+	}
+	return m, nil
+}
+
+func (m Model) handleFileShareActionDone(msg fileShareActionDoneMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ Action échouée: %s", msg.err.Error())
+		m.notificationExpiry = time.Now().Add(8 * time.Second)
+		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		})
+	}
+
+	actionNames := []string{"supprimé", "renommé", "étendu"}
+	actionName := "mis à jour"
+	if msg.action >= 0 && msg.action < len(actionNames) {
+		actionName = actionNames[msg.action]
+	}
+	m.notification = fmt.Sprintf("✅ Partage %s avec succès!", actionName)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	m.fileShareDetailView = nil
+	m.detailData = nil
 	m.mode = LoadingView
 	return m, tea.Batch(
 		m.fetchDataForPath("/storage/file"),
