@@ -126,7 +126,7 @@ func (v *TableView) HandleKey(msg tea.KeyMsg) tea.Cmd {
 	case "/":
 		v.filterMode = true
 		return nil
-	case "enter":
+	case "v":
 		idx := v.table.Cursor()
 		if idx >= 0 && idx < len(v.filteredData) {
 			return func() tea.Msg {
@@ -171,7 +171,7 @@ func (v *TableView) HelpText() string {
 	if v.filterMode {
 		return "Type to filter • Enter: Confirm • Esc: Cancel"
 	}
-	return "↑↓: Navigate • /: Filter • Enter: Details • d: Debug • p: Projects • q: Quit"
+	return "↑↓: Navigate • /: Filter • v: Details • d: Debug • p: Projects • q: Quit"
 }
 
 func (v *TableView) GetSelectedVolume() map[string]interface{} {

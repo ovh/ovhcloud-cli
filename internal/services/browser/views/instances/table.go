@@ -159,7 +159,7 @@ func (v *TableView) HandleKey(msg tea.KeyMsg) tea.Cmd {
 	case "/":
 		v.filterMode = true
 		return nil
-	case "enter":
+	case "v":
 		// Return selected instance for detail view
 		idx := v.table.Cursor()
 		if idx >= 0 && idx < len(v.filteredData) {
@@ -205,7 +205,7 @@ func (v *TableView) HelpText() string {
 	if v.filterMode {
 		return "Type to filter • Enter: Confirm • Esc: Cancel"
 	}
-	return "↑↓: Navigate • /: Filter • Enter: Details • c: Create • d: Debug • p: Projects • q: Quit"
+	return "↑↓: Navigate • /: Filter • v: Details • c: Create • d: Debug • p: Projects • q: Quit"
 }
 
 // GetSelectedInstance returns the currently selected instance.

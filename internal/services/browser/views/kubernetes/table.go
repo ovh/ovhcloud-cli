@@ -127,7 +127,7 @@ func (v *TableView) HandleKey(msg tea.KeyMsg) tea.Cmd {
 	case "/":
 		v.filterMode = true
 		return nil
-	case "enter":
+	case "v":
 		idx := v.table.Cursor()
 		if idx >= 0 && idx < len(v.filteredData) {
 			return func() tea.Msg {
@@ -172,7 +172,7 @@ func (v *TableView) HelpText() string {
 	if v.filterMode {
 		return "Type to filter • Enter: Confirm • Esc: Cancel"
 	}
-	return "↑↓: Navigate • /: Filter • Enter: Details • c: Create • d: Debug • p: Projects • q: Quit"
+	return "↑↓: Navigate • /: Filter • v: Details • c: Create • d: Debug • p: Projects • q: Quit"
 }
 
 // GetSelectedCluster returns the currently selected cluster.

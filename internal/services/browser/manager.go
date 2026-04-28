@@ -4438,13 +4438,13 @@ func (m Model) renderFooter() string {
 		help = "↑↓: Navigate • Enter: Select Project • d: Set Default • q: Quit"
 	case TableView:
 		if m.filterInput != "" {
-			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
+			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • v: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
 		} else if m.inStorageSubNav {
-			help = "←→: Sub-menu • ↑: Back to main nav • /: Filter • Enter: Details • c: Create • d: Debug • p: Change Project • q: Quit"
+			help = "←→: Sub-menu • ↑: Back to main nav • /: Filter • v: Details • c: Create • d: Debug • p: Change Project • q: Quit"
 		} else if m.currentProduct == ProductStorageBlock {
-			help = "←→: Switch Product • ↓: Enter Sub-menu • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • d: Debug • p: Change Project • q: Quit"
+			help = "←→: Switch Product • ↓: Enter Sub-menu • ↑↓: Navigate • /: Filter • v: Details • c: Create • d: Debug • p: Change Project • q: Quit"
 		} else {
-			help = "←→: Switch Product • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
+			help = "←→: Switch Product • ↑↓: Navigate • /: Filter • v: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
 		}
 	case EmptyView:
 		if m.inStorageSubNav {
@@ -4857,8 +4857,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.selectedNodePool = nodePools[m.nodePoolsSelectedIdx]
 				m.mode = NodePoolDetailView
 			}
-		} else if m.mode == TableView {
-			// In table view, show details
+		}
+		return m, nil
+	case "v":
+		// In table view, show details
+		if m.mode == TableView {
 			selectedRow := m.table.Cursor()
 			if selectedRow >= 0 && selectedRow < len(m.currentData) {
 				m.detailData = m.currentData[selectedRow]
