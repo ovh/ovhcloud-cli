@@ -60,7 +60,9 @@ func InitClientWithProfile(cfg *ini.File, profileOverride string) {
 	if err != nil {
 		log.Printf(`OVHcloud API client not initialized, please run "ovhcloud login" to authenticate (%s)`, err)
 	} else if Client != nil {
-		Client.Client.Transport = NewTransport("OVH", http.DefaultTransport)
+		// Chain transports: schemasVersion (adds X-Schemas-Version for /v2/ paths)
+		// → debug logging (logs request/response) → default transport (sends over the wire).
+		Client.Client.Transport = newSchemasVersionTransport(NewTransport("OVH", http.DefaultTransport))
 	}
 }
 
