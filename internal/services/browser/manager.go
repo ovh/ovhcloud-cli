@@ -121,6 +121,8 @@ const (
 	ObjectWizardStepUser
 	ObjectWizardStepEncryption
 	ObjectWizardStepConfirm
+	ObjectWizardStepSwiftType
+	ObjectWizardStepSwiftRegion
 )
 
 const (
@@ -316,6 +318,9 @@ type WizardData struct {
 	objectLock          bool   // Object Lock enabled
 	objectEncryption    bool   // Encryption enabled (AES256)
 	objectConfirmBtnIdx int    // 0=Create, 1=Cancel
+	objectSwiftTypeIdx  int    // 0=Static, 1=Private, 2=Public
+	objectSwiftRegions  []string // Available regions for Swift
+	objectSwiftRegion   string // Selected Swift region
 	// S3 User wizard fields
 	s3UserDescInput     string // Description input buffer
 	s3UserDesc          string // Confirmed description
@@ -712,6 +717,10 @@ type s3CredentialsSavedMsg struct {
 	filePath    string
 	profileName string
 	err         error
+}
+
+type swiftRegionsLoadedMsg struct {
+	regions []string
 }
 
 func getNavItems() []NavItem {
@@ -1115,6 +1124,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case s3CredentialsSavedMsg:
 		return m.handleS3CredentialsSaved(msg)
+
+	case swiftRegionsLoadedMsg:
+		m.wizard.objectSwiftRegions = msg.regions
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		return m, nil
 
 	case tea.SuspendMsg:
 		// TUI has been suspended
@@ -2439,6 +2454,10 @@ func (m Model) renderWizardView(width int) string {
 			content.WriteString(m.renderObjectWizardEncryptionStep(width))
 	case ObjectWizardStepConfirm:
 			content.WriteString(m.renderObjectWizardConfirmStep(width))
+	case ObjectWizardStepSwiftType:
+		content.WriteString(m.renderObjectWizardSwiftTypeStep(width))
+	case ObjectWizardStepSwiftRegion:
+		content.WriteString(m.renderObjectWizardSwiftRegionStep(width))
 	// S3 User wizard steps
 	case S3UserWizardStepDescription:
 		content.WriteString(m.renderS3UserWizardDescStep(width))
@@ -5400,13 +5419,13 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// 'q' quits (except when typing in input fields)
-	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		return m, tea.Quit
 	}
 
 	// 'd' opens debug panel (except when typing in input fields)
 	// Disable debug shortcut when: in name step, filter mode, creating SSH key, or creating network
-	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		m.previousMode = m.mode
 		m.mode = DebugView
 		m.debugScrollOffset = 0
@@ -5572,7 +5591,10 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case ObjectWizardStepConfirm:
 		return m.handleObjectWizardConfirmKeys(key)
-	// S3 User wizard steps
+	case ObjectWizardStepSwiftType:
+		return m.handleObjectWizardSwiftTypeKeys(key)
+	case ObjectWizardStepSwiftRegion:
+		return m.handleObjectWizardSwiftRegionKeys(key)
 	case S3UserWizardStepDescription:
 		return m.handleS3UserWizardDescKeys(msg)
 	case S3UserWizardStepConfirm:

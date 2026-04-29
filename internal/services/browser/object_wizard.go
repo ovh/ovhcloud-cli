@@ -16,7 +16,15 @@ import (
 
 // ─── Object Storage wizard render functions ───────────────────────────────────
 
-var objectContainerTypes = []string{"Standard", "High Performance"}
+var objectContainerTypes = []string{
+	"S3 (API compatible S3)",
+	"Swift (Swift API)",
+}
+
+var objectContainerTypeDescriptions = []string{
+	"Un large éventail de fonctionnalités compatibles avec S3.\nDisponible en 1-AZ, 3-AZ et Local Zones (Standard ou High Performance selon la région)",
+	"Solution basique pour le stockage sans besoin particulier en matière de performance.\nStockage objet natif d'OpenStack, avec les API Swift",
+}
 
 func (m Model) renderObjectWizardNameStep(width int) string {
 	var content strings.Builder
@@ -50,9 +58,22 @@ func (m Model) renderObjectWizardTypeStep(width int) string {
 	content.WriteString(titleStyle.Render("📦 Container type:") + "\n\n")
 	for i, t := range objectContainerTypes {
 		if i == m.wizard.objectTypeIdx {
-			content.WriteString(selectedStyle.Render(fmt.Sprintf("  ▶ %s", t)) + "\n")
+			displayText := fmt.Sprintf("  ▶ %s", t)
+			if i == 0 {
+				badgeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+				displayText += " " + badgeStyle.Render("[Recommandée]")
+			}
+			content.WriteString(selectedStyle.Render(displayText) + "\n")
+			if i < len(objectContainerTypeDescriptions) {
+				descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE")).MarginLeft(4)
+				content.WriteString(descStyle.Render(objectContainerTypeDescriptions[i]) + "\n")
+			}
 		} else {
-			content.WriteString(itemStyle.Render(fmt.Sprintf("    %s", t)) + "\n")
+			displayText := fmt.Sprintf("    %s", t)
+			if i == 0 {
+				displayText += " [Recommandée]"
+			}
+			content.WriteString(itemStyle.Render(displayText) + "\n")
 		}
 	}
 	content.WriteString("\n")
@@ -203,31 +224,34 @@ func (m Model) renderObjectWizardConfirmStep(width int) string {
 	content.WriteString(titleStyle.Render("✅ Container summary:") + "\n\n")
 	content.WriteString(labelStyle.Render("  Name:          ") + valueStyle.Render(m.wizard.objectName) + "\n")
 
-	typeName := "Standard"
-	if m.wizard.objectTypeIdx == 1 {
-		typeName = "High Performance"
-	}
+	typeName := objectContainerTypes[m.wizard.objectTypeIdx]
 	content.WriteString(labelStyle.Render("  Type:          ") + valueStyle.Render(typeName) + "\n")
 
-	region := m.wizard.selectedRegion
-	if region == "" && len(m.wizard.objectRegions) > 0 {
-		region = m.wizard.objectRegions[0]
-	}
-	content.WriteString(labelStyle.Render("  Region:        ") + valueStyle.Render(region) + "\n")
-	content.WriteString(labelStyle.Render("  Replication:   ") + valueStyle.Render(boolToEnglish(m.wizard.objectReplication)) + "\n")
-	content.WriteString(labelStyle.Render("  Versioning:    ") + valueStyle.Render(boolToEnglish(m.wizard.objectVersioning)) + "\n")
-	content.WriteString(labelStyle.Render("  Object Lock:   ") + valueStyle.Render(boolToEnglish(m.wizard.objectLock)) + "\n")
-	content.WriteString(labelStyle.Render("  Encryption:    ") + valueStyle.Render(boolToEnglish(m.wizard.objectEncryption)) + "\n")
-
-	if m.wizard.objectUserIdx > 0 && m.wizard.objectUserIdx <= len(m.wizard.objectUsers) {
-		user := m.wizard.objectUsers[m.wizard.objectUserIdx-1]
-		username, _ := user["username"].(string)
-		content.WriteString(labelStyle.Render("  User:          ") + valueStyle.Render(username) + "\n")
+	if m.wizard.objectTypeIdx == 1 {
+		swiftType := swiftContainerTypes[m.wizard.objectSwiftTypeIdx]
+		content.WriteString(labelStyle.Render("  Swift Type:    ") + valueStyle.Render(swiftType) + "\n")
+		content.WriteString(labelStyle.Render("  Region:        ") + valueStyle.Render(m.wizard.objectSwiftRegion) + "\n")
+		content.WriteString("\n")
 	} else {
-		content.WriteString(labelStyle.Render("  User:          ") + valueStyle.Render("(none)") + "\n")
-	}
+		region := m.wizard.selectedRegion
+		if region == "" && len(m.wizard.objectRegions) > 0 {
+			region = m.wizard.objectRegions[0]
+		}
+		content.WriteString(labelStyle.Render("  Region:        ") + valueStyle.Render(region) + "\n")
+		content.WriteString(labelStyle.Render("  Replication:   ") + valueStyle.Render(boolToEnglish(m.wizard.objectReplication)) + "\n")
+		content.WriteString(labelStyle.Render("  Versioning:    ") + valueStyle.Render(boolToEnglish(m.wizard.objectVersioning)) + "\n")
+		content.WriteString(labelStyle.Render("  Object Lock:   ") + valueStyle.Render(boolToEnglish(m.wizard.objectLock)) + "\n")
+		content.WriteString(labelStyle.Render("  Encryption:    ") + valueStyle.Render(boolToEnglish(m.wizard.objectEncryption)) + "\n")
 
-	content.WriteString("\n")
+		if m.wizard.objectUserIdx > 0 && m.wizard.objectUserIdx <= len(m.wizard.objectUsers) {
+			user := m.wizard.objectUsers[m.wizard.objectUserIdx-1]
+			username, _ := user["username"].(string)
+			content.WriteString(labelStyle.Render("  User:          ") + valueStyle.Render(username) + "\n")
+		} else {
+			content.WriteString(labelStyle.Render("  User:          ") + valueStyle.Render("(none)") + "\n")
+		}
+		content.WriteString("\n")
+	}
 
 	baseBtn := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -317,8 +341,13 @@ func (m Model) handleObjectWizardTypeKeys(key string) (tea.Model, tea.Cmd) {
 			m.wizard.objectTypeIdx++
 		}
 	case "enter":
-		m.wizard.step = ObjectWizardStepRegion
-		m.wizard.selectedIndex = 0
+		if m.wizard.objectTypeIdx == 1 {
+			m.wizard.step = ObjectWizardStepSwiftType
+			m.wizard.selectedIndex = 0
+		} else {
+			m.wizard.step = ObjectWizardStepRegion
+			m.wizard.selectedIndex = 0
+		}
 	case "esc":
 		m.wizard.step = ObjectWizardStepName
 	}
@@ -576,6 +605,137 @@ func (m Model) handleS3UserWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 		return m, m.createS3User()
 	case "esc":
 		m.wizard.step = S3UserWizardStepDescription
+	}
+	return m, nil
+}
+
+// ─── Swift wizard render functions ───────────────────────────────────────────
+
+var swiftContainerTypes = []string{
+	"Static hosting",
+	"Private",
+	"Public",
+}
+
+var swiftContainerTypeDescriptions = []string{
+	"Hébergement statique - Accès rapide et performant pour vos sites. Liez vos domaines et déposez vos fichiers",
+	"Privé - Facturation, informations légales, logs. Archivez simplement et selon vos usages",
+	"Public - Multimédia, binaires, e-commerce. Stockez une infinité de données",
+}
+
+func (m Model) renderObjectWizardSwiftTypeStep(width int) string {
+	var content strings.Builder
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Background(lipgloss.Color("#2a2a2a"))
+	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+
+	content.WriteString(titleStyle.Render("📦 Type de conteneur Swift:") + "\n\n")
+	for i, t := range swiftContainerTypes {
+		if i == m.wizard.objectSwiftTypeIdx {
+			content.WriteString(selectedStyle.Render(fmt.Sprintf("  ▶ %s", t)) + "\n")
+			if i < len(swiftContainerTypeDescriptions) {
+				descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE")).MarginLeft(4)
+				content.WriteString(descStyle.Render(swiftContainerTypeDescriptions[i]) + "\n")
+			}
+		} else {
+			content.WriteString(itemStyle.Render(fmt.Sprintf("    %s", t)) + "\n")
+		}
+	}
+	content.WriteString("\n")
+	content.WriteString(hintStyle.Render("↑↓: Select • Enter: Next • Esc: Back"))
+	return content.String()
+}
+
+func (m Model) renderObjectWizardSwiftRegionStep(width int) string {
+	var content strings.Builder
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Background(lipgloss.Color("#2a2a2a"))
+	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+
+	content.WriteString(titleStyle.Render("🌍 Région:") + "\n\n")
+
+	if len(m.wizard.objectSwiftRegions) == 0 {
+		content.WriteString(itemStyle.Render("  (aucune région disponible)") + "\n\n")
+	} else {
+		maxVisible := 10
+		startIdx := 0
+		if m.wizard.selectedIndex >= maxVisible {
+			startIdx = m.wizard.selectedIndex - maxVisible + 1
+		}
+		endIdx := startIdx + maxVisible
+		if endIdx > len(m.wizard.objectSwiftRegions) {
+			endIdx = len(m.wizard.objectSwiftRegions)
+		}
+
+		if startIdx > 0 {
+			content.WriteString(itemStyle.Render(fmt.Sprintf("  (...%d more above)", startIdx)) + "\n")
+		}
+
+		for i := startIdx; i < endIdx; i++ {
+			r := m.wizard.objectSwiftRegions[i]
+			if i == m.wizard.selectedIndex {
+				content.WriteString(selectedStyle.Render(fmt.Sprintf("  ▶ %s", r)) + "\n")
+			} else {
+				content.WriteString(itemStyle.Render(fmt.Sprintf("    %s", r)) + "\n")
+			}
+		}
+
+		if endIdx < len(m.wizard.objectSwiftRegions) {
+			content.WriteString(itemStyle.Render(fmt.Sprintf("  (...%d more below)", len(m.wizard.objectSwiftRegions)-endIdx)) + "\n")
+		}
+		content.WriteString("\n")
+	}
+
+	content.WriteString(hintStyle.Render("↑↓: Navigate • Enter: Next • Esc: Back"))
+	return content.String()
+}
+
+// ─── Swift wizard key handlers ───────────────────────────────────────────────
+
+func (m Model) handleObjectWizardSwiftTypeKeys(key string) (tea.Model, tea.Cmd) {
+	switch key {
+	case "up", "k":
+		if m.wizard.objectSwiftTypeIdx > 0 {
+			m.wizard.objectSwiftTypeIdx--
+		}
+	case "down", "j":
+		if m.wizard.objectSwiftTypeIdx < len(swiftContainerTypes)-1 {
+			m.wizard.objectSwiftTypeIdx++
+		}
+	case "enter":
+		m.wizard.step = ObjectWizardStepSwiftRegion
+		m.wizard.selectedIndex = 0
+		// Load Swift regions if not loaded
+		if len(m.wizard.objectSwiftRegions) == 0 {
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Loading regions..."
+			return m, m.fetchSwiftRegions()
+		}
+	case "esc":
+		m.wizard.step = ObjectWizardStepType
+	}
+	return m, nil
+}
+
+func (m Model) handleObjectWizardSwiftRegionKeys(key string) (tea.Model, tea.Cmd) {
+	switch key {
+	case "up", "k":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down", "j":
+		if m.wizard.selectedIndex < len(m.wizard.objectSwiftRegions)-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if len(m.wizard.objectSwiftRegions) > 0 {
+			m.wizard.objectSwiftRegion = m.wizard.objectSwiftRegions[m.wizard.selectedIndex]
+			m.wizard.step = ObjectWizardStepConfirm
+		}
+	case "esc":
+		m.wizard.step = ObjectWizardStepSwiftType
 	}
 	return m, nil
 }

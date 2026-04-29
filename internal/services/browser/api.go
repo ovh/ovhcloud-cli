@@ -90,9 +90,14 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 		}
 	case "/storage/object":
 		return func() tea.Msg {
-			msg := m.fetchS3StorageData()
-			msg.forProduct = product
-			return msg
+			s3Msg := m.fetchS3StorageData()
+			swiftMsg := m.fetchSwiftStorageData()
+			merged := append(s3Msg.data, swiftMsg.data...)
+			return dataLoadedMsg{
+				data:       merged,
+				s3Users:    s3Msg.s3Users,
+				forProduct: product,
+			}
 		}
 	case "/networks/private":
 		return func() tea.Msg {
@@ -714,7 +719,13 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 			continue
 		}
 
-		// Fetch containers for this region - API may return array of strings or objects
+		deployMode := "1-AZ"
+		if regionType, _ := region["type"].(string); regionType == "region-3-az" {
+			deployMode = "3-AZ"
+		} else if regionType == "localzone" {
+			deployMode = "Local Zone"
+		}
+
 		var rawResponse []interface{}
 		storageEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage", m.cloudProject, regionName)
 		if err := httpLib.Client.Get(storageEndpoint, &rawResponse); err == nil {
@@ -725,11 +736,14 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, regionName, containerName)
 					if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
 						container["_offer"] = s3Offer
+						container["_deployMode"] = deployMode
+						container["_type"] = "S3"
 						allContainers = append(allContainers, container)
 					}
 				} else if containerObj, ok := item.(map[string]interface{}); ok {
-					// It's already a full object
 					containerObj["_offer"] = s3Offer
+					containerObj["_deployMode"] = deployMode
+					containerObj["_type"] = "S3"
 					allContainers = append(allContainers, containerObj)
 				}
 			}
@@ -801,9 +815,9 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 		}
 	}
 
-	// Try to fetch as array of interfaces first (could be strings or objects)
+	// includeType=true makes the API return the containerType field (private/public/static)
 	var rawResponse []interface{}
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage", m.cloudProject)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage?includeType=true", m.cloudProject)
 	err := httpLib.Client.Get(endpoint, &rawResponse)
 	if err != nil {
 		return dataLoadedMsg{
@@ -812,16 +826,15 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 		}
 	}
 
-	// Check if response contains strings (IDs) or objects
 	var containers []map[string]interface{}
 	if len(rawResponse) > 0 {
 		if _, ok := rawResponse[0].(string); ok {
-			// Response contains string IDs, fetch details for each
 			for _, item := range rawResponse {
 				if containerID, ok := item.(string); ok {
 					var container map[string]interface{}
-					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s", m.cloudProject, containerID)
+					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s?includeType=true", m.cloudProject, containerID)
 					if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
+						container["_type"] = "Swift"
 						containers = append(containers, container)
 					}
 				}
@@ -830,6 +843,7 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 			// Response contains full objects
 			for _, item := range rawResponse {
 				if obj, ok := item.(map[string]interface{}); ok {
+					obj["_type"] = "Swift"
 					containers = append(containers, obj)
 				}
 			}

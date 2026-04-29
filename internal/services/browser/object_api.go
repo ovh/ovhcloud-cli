@@ -94,13 +94,74 @@ func (m Model) fetchObjectStorageInitData() tea.Cmd {
 	}
 }
 
-// createObjectContainer creates a new S3 container via the OVH API.
+// fetchSwiftRegions loads available regions for Swift containers.
+func (m Model) fetchSwiftRegions() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return objectStorageInitDataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		var regionNames []string
+		if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject), &regionNames); err != nil {
+			return swiftRegionsLoadedMsg{regions: nil}
+		}
+		type probeResult struct {
+			region    string
+			supported bool
+		}
+		ch := make(chan probeResult, len(regionNames))
+		for _, name := range regionNames {
+			go func(r string) {
+				var region map[string]interface{}
+				ep := fmt.Sprintf("/v1/cloud/project/%s/region/%s", m.cloudProject, url.PathEscape(r))
+				if err := httpLib.Client.Get(ep, &region); err != nil {
+					ch <- probeResult{region: r, supported: false}
+					return
+				}
+				services, _ := region["services"].([]interface{})
+				for _, svc := range services {
+					if sm, ok := svc.(map[string]interface{}); ok {
+						if n, _ := sm["name"].(string); n == "storage" || n == "storage-object" {
+							ch <- probeResult{region: r, supported: true}
+							return
+						}
+					}
+				}
+				ch <- probeResult{region: r, supported: false}
+			}(name)
+		}
+
+		var supportedRegions []string
+		for range regionNames {
+			r := <-ch
+			if r.supported {
+				supportedRegions = append(supportedRegions, r.region)
+			}
+		}
+		sort.Strings(supportedRegions)
+		return swiftRegionsLoadedMsg{regions: supportedRegions}
+	}
+}
+
 func (m Model) createObjectContainer() tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
 			return objectContainerCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
+		if m.wizard.objectTypeIdx == 1 {
+			body := map[string]interface{}{
+				"containerName": m.wizard.objectName,
+				"region":        m.wizard.objectSwiftRegion,
+			}
+			body["archive"] = (m.wizard.objectSwiftTypeIdx == 1)
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage", m.cloudProject)
+			var container map[string]interface{}
+			if err := httpLib.Client.Post(endpoint, body, &container); err != nil {
+				return objectContainerCreatedMsg{err: fmt.Errorf("failed to create Swift container: %w", err)}
+			}
+			return objectContainerCreatedMsg{container: container}
+		}
 		body := map[string]interface{}{
 			"name": m.wizard.objectName,
 		}
@@ -371,8 +432,8 @@ func createObjectStorageTable(data []map[string]interface{}, width, height int) 
 		{Title: "Location", Width: 12},
 		{Title: "Deployment mode", Width: 22},
 		{Title: "Offer", Width: 16},
-		{Title: "Objects", Width: 11},
-		{Title: "Used space", Width: 14},
+		{Title: "Number of objects", Width: 11},
+		{Title: "Space Used", Width: 14},
 		{Title: "Type", Width: 10},
 	}
 
@@ -381,47 +442,67 @@ func createObjectStorageTable(data []map[string]interface{}, width, height int) 
 		name := getString(c, "name")
 		region := getString(c, "region")
 
-		// Mode de déploiement: derived from virtualHost presence
-		virtualHost := getString(c, "virtualHost")
-		deployMode := "Multi-AZ"
-		if virtualHost == "" {
-			deployMode = "Single-AZ"
+		deployMode := getString(c, "_deployMode")
+		if deployMode == "" {
+			deployMode = "-"
 		}
 
-		// Offre: injected by fetchS3StorageData from the region service name
-		offer := getString(c, "_offer")
-		if offer == "" {
-			offer = "Standard"
+		category := getString(c, "_type")
+
+		offer := "-"
+		if category == "Swift" {
+			offer = "Swift"
+		} else if category == "S3" {
+			offer = "S3 Compatible"
+		}
+
+		containerType := "-"
+		if category == "Swift" {
+			swiftType := getString(c, "containerType")
+			switch swiftType {
+			case "private":
+				containerType = "Private"
+			case "public":
+				containerType = "Public"
+			case "static":
+				containerType = "Static"
+			default:
+				if swiftType != "" {
+					containerType = swiftType
+				}
+			}
+		} else if category == "S3" {
+			s3Offer := getString(c, "_offer")
+			if s3Offer != "" {
+				containerType = s3Offer
+			}
 		}
 
 		objectsCount := "-"
-		if v, ok := c["objectsCount"]; ok {
-			switch n := v.(type) {
-			case float64:
-				objectsCount = fmt.Sprintf("%d", int(n))
-			}
-		}
-
-		sizeStr := "-"
-		if v, ok := c["objectsSize"]; ok {
-			switch n := v.(type) {
-			case float64:
-				if n < 1024 {
-					sizeStr = fmt.Sprintf("%.0f B", n)
-				} else if n < 1024*1024 {
-					sizeStr = fmt.Sprintf("%.1f KB", n/1024)
-				} else if n < 1024*1024*1024 {
-					sizeStr = fmt.Sprintf("%.1f MB", n/1024/1024)
-				} else {
-					sizeStr = fmt.Sprintf("%.2f GB", n/1024/1024/1024)
+		for _, field := range []string{"objectsCount", "storedObjects"} {
+			if v, ok := c[field]; ok {
+				if n, ok := v.(float64); ok {
+					objectsCount = fmt.Sprintf("%d", int(n))
+					break
 				}
 			}
 		}
-
-		// Type: from the container's own type field if present
-		containerType := getString(c, "type")
-		if containerType == "" {
-			containerType = "-"
+		sizeStr := "-"
+		for _, field := range []string{"objectsSize", "storedBytes"} {
+			if v, ok := c[field]; ok {
+				if n, ok := v.(float64); ok {
+					if n < 1024 {
+						sizeStr = fmt.Sprintf("%.0f B", n)
+					} else if n < 1024*1024 {
+						sizeStr = fmt.Sprintf("%.1f KB", n/1024)
+					} else if n < 1024*1024*1024 {
+						sizeStr = fmt.Sprintf("%.1f MB", n/1024/1024)
+					} else {
+						sizeStr = fmt.Sprintf("%.2f GB", n/1024/1024/1024)
+					}
+					break
+				}
+			}
 		}
 
 		rows = append(rows, table.Row{name, region, deployMode, offer, objectsCount, sizeStr, containerType})
