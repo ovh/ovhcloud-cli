@@ -432,7 +432,7 @@ func createObjectStorageTable(data []map[string]interface{}, width, height int) 
 		{Title: "Location", Width: 12},
 		{Title: "Deployment mode", Width: 22},
 		{Title: "Offer", Width: 16},
-		{Title: "Number of objects", Width: 11},
+		{Title: "Number of objects", Width: 25},
 		{Title: "Space Used", Width: 14},
 		{Title: "Type", Width: 10},
 	}
@@ -453,9 +453,15 @@ func createObjectStorageTable(data []map[string]interface{}, width, height int) 
 		if category == "Swift" {
 			offer = "Swift"
 		} else if category == "S3" {
-			offer = "S3 Compatible"
+			s3Offer := getString(c, "_offer")
+			if s3Offer != "" {
+				offer = s3Offer
+			} else {
+				offer = "S3 Compatible"
+			}
 		}
 
+		// Type: only Swift has a meaningful type (Private/Public/Static); '-' for S3
 		containerType := "-"
 		if category == "Swift" {
 			swiftType := getString(c, "containerType")
@@ -470,11 +476,6 @@ func createObjectStorageTable(data []map[string]interface{}, width, height int) 
 				if swiftType != "" {
 					containerType = swiftType
 				}
-			}
-		} else if category == "S3" {
-			s3Offer := getString(c, "_offer")
-			if s3Offer != "" {
-				containerType = s3Offer
 			}
 		}
 

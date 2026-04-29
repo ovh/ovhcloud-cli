@@ -140,9 +140,39 @@ func (m Model) renderObjectWizardObjectLockStep(width int) string {
 }
 
 func (m Model) renderObjectWizardEncryptionStep(width int) string {
-	return renderObjectToggleStep("🔐 Server-side Encryption (AES-256):",
-		"Automatically encrypt all objects stored in this container.",
-		m.wizard.objectEncryption)
+	var content strings.Builder
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).MarginLeft(2)
+	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+
+	content.WriteString(titleStyle.Render("🔐 Chiffrement de vos données") + "\n\n")
+	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Render("Les données déversées dans ce conteneur sont chiffrées à la volée par OVHcloud.") + "\n\n")
+
+	options := []struct {
+		label string
+		desc  string
+		value bool
+	}{
+		{"Pas de chiffrement", "", false},
+		{"Chiffrement côté serveur avec des clés gérées par OVHcloud (SSE-OMK)", "", true},
+	}
+
+	for _, opt := range options {
+		active := (opt.value == m.wizard.objectEncryption)
+		if active {
+			content.WriteString(selectedStyle.Render(fmt.Sprintf("  ▶ %s", opt.label)) + "\n")
+			if opt.desc != "" {
+				content.WriteString(descStyle.Render(opt.desc) + "\n")
+			}
+		} else {
+			content.WriteString(itemStyle.Render(fmt.Sprintf("    %s", opt.label)) + "\n")
+		}
+	}
+	content.WriteString("\n")
+	content.WriteString(hintStyle.Render("↑↓: Sélectionner • Enter: Suivant • Esc: Retour"))
+	return content.String()
 }
 
 func renderObjectToggleStep(title, description string, enabled bool) string {
@@ -241,7 +271,11 @@ func (m Model) renderObjectWizardConfirmStep(width int) string {
 		content.WriteString(labelStyle.Render("  Replication:   ") + valueStyle.Render(boolToEnglish(m.wizard.objectReplication)) + "\n")
 		content.WriteString(labelStyle.Render("  Versioning:    ") + valueStyle.Render(boolToEnglish(m.wizard.objectVersioning)) + "\n")
 		content.WriteString(labelStyle.Render("  Object Lock:   ") + valueStyle.Render(boolToEnglish(m.wizard.objectLock)) + "\n")
-		content.WriteString(labelStyle.Render("  Encryption:    ") + valueStyle.Render(boolToEnglish(m.wizard.objectEncryption)) + "\n")
+		encryptionLabel := "Pas de chiffrement"
+		if m.wizard.objectEncryption {
+			encryptionLabel = "SSE-OMK (clés OVHcloud)"
+		}
+		content.WriteString(labelStyle.Render("  Chiffrement:   ") + valueStyle.Render(encryptionLabel) + "\n")
 
 		if m.wizard.objectUserIdx > 0 && m.wizard.objectUserIdx <= len(m.wizard.objectUsers) {
 			user := m.wizard.objectUsers[m.wizard.objectUserIdx-1]

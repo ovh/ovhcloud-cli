@@ -5579,10 +5579,10 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.handleObjectWizardUserKeys(key)
 	case ObjectWizardStepEncryption:
 		switch key {
-		case "left", "h", "y":
-			m.wizard.objectEncryption = true
-		case "right", "l", "n":
+		case "up", "k":
 			m.wizard.objectEncryption = false
+		case "down", "j":
+			m.wizard.objectEncryption = true
 		case "enter":
 			m.wizard.step = ObjectWizardStepConfirm
 		case "esc":
