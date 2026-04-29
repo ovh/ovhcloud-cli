@@ -22,8 +22,8 @@ import (
 const downloadBaseURL = "https://github.com/ovh/ovhcloud-cli/releases/download"
 
 // CheckWritable verifies that the running process can replace the binary at
-// targetPath. It checks that the parent directory is writable (required for
-// os.Rename) and that the target file itself is writable.
+// targetPath by probing the parent directory. os.Rename only requires write
+// permission on the parent directory, not on the target file itself.
 func CheckWritable(targetPath string) error {
 	dir := filepath.Dir(targetPath)
 	probe, err := os.CreateTemp(dir, ".ovhcloud-upgrade-check-*")
@@ -33,30 +33,33 @@ func CheckWritable(targetPath string) error {
 	probePath := probe.Name()
 	probe.Close()
 	os.Remove(probePath)
-
-	f, err := os.OpenFile(targetPath, os.O_WRONLY, 0)
-	if err != nil {
-		return fmt.Errorf("cannot write to %s: %w", targetPath, err)
-	}
-	f.Close()
 	return nil
 }
 
 // SelfReplace downloads the release asset for the given tag and replaces the
-// running binary in place. Only supported on linux and darwin.
-func SelfReplace(ctx context.Context, tag string) error {
+// binary at targetPath in place. Only supported on linux and darwin.
+// Callers should resolve symlinks before invoking so the rename targets the
+// real binary.
+func SelfReplace(ctx context.Context, tag, targetPath string) error {
 	if runtime.GOOS == "windows" {
 		return errors.New("self-replace not supported on windows")
 	}
+	client := &http.Client{Timeout: 60 * time.Second}
+	return selfReplace(ctx, client, downloadBaseURL, tag, targetPath, runtime.GOOS, runtime.GOARCH)
+}
+
+// ResolveExecutable returns the path of the current binary with symlinks
+// resolved. Callers use the resolved path consistently for permission checks,
+// user-facing messages, and the rename target.
+func ResolveExecutable() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("locate current binary: %w", err)
+		return "", fmt.Errorf("locate current binary: %w", err)
 	}
 	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = resolved
 	}
-	client := &http.Client{Timeout: 60 * time.Second}
-	return selfReplace(ctx, client, downloadBaseURL, tag, exe, runtime.GOOS, runtime.GOARCH)
+	return exe, nil
 }
 
 func assetName(goos, goarch string) string {

@@ -86,9 +86,9 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	exe, err := os.Executable()
+	exe, err := upgrade.ResolveExecutable()
 	if err != nil {
-		return fmt.Errorf("locate current binary: %w", err)
+		return err
 	}
 
 	if err := upgrade.CheckWritable(exe); err != nil {
@@ -107,7 +107,7 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "Downloading %s...\n", tag)
-	if err := upgrade.SelfReplace(ctx, tag); err != nil {
+	if err := upgrade.SelfReplace(ctx, tag, exe); err != nil {
 		return wrapPermissionError(err)
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "Installed %s at %s\n", tag, exe)

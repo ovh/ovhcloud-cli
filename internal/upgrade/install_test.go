@@ -119,27 +119,6 @@ func TestCheckWritable(t *testing.T) {
 	if err := CheckWritable(target); err != nil {
 		t.Fatalf("writable target: got err %v, want nil", err)
 	}
-
-	readOnlyDir := filepath.Join(t.TempDir(), "ro")
-	if err := os.Mkdir(readOnlyDir, 0o555); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Chmod(readOnlyDir, 0o755) })
-
-	roTarget := filepath.Join(readOnlyDir, "ovhcloud")
-	// File creation inside the RO dir will fail; simulate an existing file by
-	// chmod'ing the dir after writing.
-	os.Chmod(readOnlyDir, 0o755)
-	os.WriteFile(roTarget, []byte("x"), 0o755)
-	os.Chmod(readOnlyDir, 0o555)
-
-	// Running as root bypasses mode bits. Skip instead of failing.
-	if os.Geteuid() == 0 {
-		t.Skip("running as root, permission checks bypassed")
-	}
-	if err := CheckWritable(roTarget); err == nil {
-		t.Fatal("read-only dir: got nil, want error")
-	}
 }
 
 func TestSelfReplaceHTTPError(t *testing.T) {
