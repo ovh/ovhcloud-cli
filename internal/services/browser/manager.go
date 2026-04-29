@@ -53,6 +53,7 @@ const (
 	NodePoolDeleteConfirmView // Node pool delete confirmation
 	KubeKubeconfigPickerView  // Directory picker for saving kubeconfig
 	ComingSoonView            // Coming soon placeholder for unimplemented products
+	S3CredentialsView         // S3 user credentials display after creation
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -120,6 +121,12 @@ const (
 	ObjectWizardStepUser
 	ObjectWizardStepEncryption
 	ObjectWizardStepConfirm
+)
+
+const (
+	// S3 User wizard steps
+	S3UserWizardStepDescription WizardStep = iota + 600
+	S3UserWizardStepConfirm
 )
 
 // ProductType represents a product category
@@ -309,6 +316,10 @@ type WizardData struct {
 	objectLock          bool   // Object Lock enabled
 	objectEncryption    bool   // Encryption enabled (AES256)
 	objectConfirmBtnIdx int    // 0=Create, 1=Cancel
+	// S3 User wizard fields
+	s3UserDescInput     string // Description input buffer
+	s3UserDesc          string // Confirmed description
+	s3UserConfirmBtnIdx int    // 0=Create, 1=Cancel
 }
 
 // Model represents the TUI application state
@@ -365,6 +376,11 @@ type Model struct {
 	// Object Storage tabs (0=Containers, 1=Users)
 	objectStorageTabIdx int
 	objectStorageUsers  []map[string]interface{}
+	// S3 user creation result (for credentials display)
+	s3CreatedUser        map[string]interface{}
+	s3CreatedCredentials map[string]interface{}
+	s3CredentialsSavedPath  string
+	s3CredentialsSaveError  string
 }
 
 // Navigation items for the top bar
@@ -685,6 +701,19 @@ type objectContainerActionDoneMsg struct {
         action int
         err    error
 }
+
+type s3UserCreatedMsg struct {
+	user        map[string]interface{}
+	credentials map[string]interface{}
+	err         error
+}
+
+type s3CredentialsSavedMsg struct {
+	filePath    string
+	profileName string
+	err         error
+}
+
 func getNavItems() []NavItem {
 	return []NavItem{
 		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
@@ -1081,6 +1110,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case objectContainerActionDoneMsg:
 		return m.handleObjectContainerActionDone(msg)
 
+	case s3UserCreatedMsg:
+		return m.handleS3UserCreated(msg)
+
+	case s3CredentialsSavedMsg:
+		return m.handleS3CredentialsSaved(msg)
+
 	case tea.SuspendMsg:
 		// TUI has been suspended
 		return m, nil
@@ -1302,7 +1337,10 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 500 {
+		if m.wizard.step >= 600 {
+			// S3 User wizard
+			titleText = " 👤 Create S3 User "
+		} else if m.wizard.step >= 500 {
 			// Object Storage wizard
 			titleText = " 🪣  Create Object Storage Container "
 		} else if m.wizard.step >= 400 {
@@ -1332,6 +1370,15 @@ func (m Model) renderContentBox(width int) string {
 		titleText = " 🔍 Debug - API Requests "
 		title := productTitleStyle.Render(titleText)
 		contentStr := m.renderDebugView(width - 6)
+		fullContent := title + "\n\n" + contentStr
+		return contentBoxStyle.Width(width - 4).Render(fullContent)
+	}
+
+	// Handle S3 credentials view
+	if m.mode == S3CredentialsView {
+		titleText = " 🔑 S3 User Credentials "
+		title := productTitleStyle.Render(titleText)
+		contentStr := m.renderS3CredentialsView(width - 6)
 		fullContent := title + "\n\n" + contentStr
 		return contentBoxStyle.Width(width - 4).Render(fullContent)
 	}
@@ -2220,7 +2267,11 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 500 {
+	if m.wizard.step >= 600 {
+		// S3 User wizard
+		steps = append(steps, "Description", "Confirm")
+		stepMapping = append(stepMapping, S3UserWizardStepDescription, S3UserWizardStepConfirm)
+	} else if m.wizard.step >= 500 {
 		// Object Storage wizard
 		steps = append(steps, "Nom", "Type", "Région", "Réplication", "Versions", "Lock", "Utilisateur", "Chiffrement", "Confirmer")
 		stepMapping = append(stepMapping, ObjectWizardStepName, ObjectWizardStepType, ObjectWizardStepRegion, ObjectWizardStepReplication, ObjectWizardStepVersioning, ObjectWizardStepObjectLock, ObjectWizardStepUser, ObjectWizardStepEncryption, ObjectWizardStepConfirm)
@@ -2388,6 +2439,11 @@ func (m Model) renderWizardView(width int) string {
 			content.WriteString(m.renderObjectWizardEncryptionStep(width))
 	case ObjectWizardStepConfirm:
 			content.WriteString(m.renderObjectWizardConfirmStep(width))
+	// S3 User wizard steps
+	case S3UserWizardStepDescription:
+		content.WriteString(m.renderS3UserWizardDescStep(width))
+	case S3UserWizardStepConfirm:
+		content.WriteString(m.renderS3UserWizardConfirmStep(width))
 	}
 	return content.String()
 }
@@ -4550,11 +4606,17 @@ func (m Model) renderFooter() string {
 			help = "↑↓: Navigate • Enter: Select/Expand • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == FileWizardStepConfirm {
 			help = "←→: Select • Enter: Confirm • Esc: Cancel"
+		} else if m.wizard.step == S3UserWizardStepDescription {
+			help = "Type description • Enter: Continue • Esc: Cancel"
+		} else if m.wizard.step == S3UserWizardStepConfirm {
+			help = "←→: Select • Enter: Confirm • Esc: Back"
 		} else {
 			help = "↑↓: Navigate • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		}
 	case DeleteConfirmView:
 		help = "Type instance name to confirm • Enter: Delete • Esc: Cancel"
+	case S3CredentialsView:
+		help = "s: Save to ~/.aws/credentials • Enter/Esc: Continue • q: Quit"
 	case DebugView:
 		help = "↑↓: Scroll • c: Clear logs • d/Esc: Close • q: Quit"
 	case KubeKubeconfigPickerView:
@@ -4588,6 +4650,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Handle wizard mode separately
 	if m.mode == WizardView {
 		return m.handleWizardKeyPress(msg)
+	}
+
+	// Handle S3 credentials display view
+	if m.mode == S3CredentialsView {
+		return m.handleS3CredentialsViewKeys(msg)
 	}
 
 	// Handle delete confirmation mode
@@ -4820,6 +4887,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "c":
 		// Create resource - available in TableView, EmptyView, and NodePoolsView
 		if (m.mode == TableView || m.mode == EmptyView) && m.currentProduct != ProductProjects {
+			// If viewing S3 users tab, launch user creation wizard
+			if m.currentProduct == ProductStorageObject && m.objectStorageTabIdx == 1 {
+				m.mode = WizardView
+				m.wizard = WizardData{step: S3UserWizardStepDescription}
+				return m, nil
+			}
 			return m, m.launchCreationWizard()
 		}
 		// Create node pool from NodePoolsView
@@ -5499,6 +5572,11 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case ObjectWizardStepConfirm:
 		return m.handleObjectWizardConfirmKeys(key)
+	// S3 User wizard steps
+	case S3UserWizardStepDescription:
+		return m.handleS3UserWizardDescKeys(msg)
+	case S3UserWizardStepConfirm:
+		return m.handleS3UserWizardConfirmKeys(key)
 	}
 	return m, nil
 }

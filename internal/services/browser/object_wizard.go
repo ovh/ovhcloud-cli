@@ -229,25 +229,22 @@ func (m Model) renderObjectWizardConfirmStep(width int) string {
 
 	content.WriteString("\n")
 
-	createStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("#00AA55")).
-		Foreground(lipgloss.Color("#FFFFFF")).
-		Bold(true).
-		Padding(0, 2)
-	cancelStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("#555555")).
-		Foreground(lipgloss.Color("#FFFFFF")).
-		Padding(0, 2)
+	baseBtn := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		Padding(0, 2).Bold(true)
+	inactiveBtn := baseBtn.
+		Foreground(lipgloss.Color("#888888")).
+		BorderForeground(lipgloss.Color("#444444"))
 
 	var createBtn, cancelBtn string
 	if m.wizard.objectConfirmBtnIdx == 0 {
-		createBtn = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#00FF7F")).Render(createStyle.Render("  ▶ [Create]"))
-		cancelBtn = lipgloss.NewStyle().Padding(1).Render(cancelStyle.Render("    [Cancel]"))
+		createBtn = baseBtn.Foreground(lipgloss.Color("#00FF7F")).BorderForeground(lipgloss.Color("#00FF7F")).Render("✓ Create")
+		cancelBtn = inactiveBtn.Render("✗ Cancel")
 	} else {
-		createBtn = lipgloss.NewStyle().Padding(1).Render(createStyle.Render("    [Create]"))
-		cancelBtn = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#FF6B6B")).Render(cancelStyle.Render("  ▶ [Cancel]"))
+		createBtn = inactiveBtn.Render("✓ Create")
+		cancelBtn = baseBtn.Foreground(lipgloss.Color("#FF6B6B")).BorderForeground(lipgloss.Color("#FF6B6B")).Render("✗ Cancel")
 	}
-	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, createBtn, "  ", cancelBtn))
+	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Center, createBtn, "  ", cancelBtn))
 	content.WriteString("\n\n")
 	if m.wizard.errorMsg != "" {
 		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true)
@@ -431,3 +428,177 @@ func (m Model) handleObjectWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 	}
 	return m, nil
 }
+
+// ─── S3 User wizard render functions ─────────────────────────────────────────
+
+func (m Model) renderS3UserWizardDescStep(width int) string {
+	var content strings.Builder
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	inputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7B68EE")).
+		Padding(0, 1).
+		Width(40)
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true)
+
+	content.WriteString(titleStyle.Render("👤 Create S3 User") + "\n\n")
+	content.WriteString(dimStyle.Render("Enter a description for this user (e.g. \"my-app-user\"):") + "\n\n")
+	content.WriteString(inputStyle.Render(m.wizard.s3UserDescInput+"▌") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		content.WriteString(errStyle.Render("⚠ "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	return content.String()
+}
+
+func (m Model) renderS3UserWizardConfirmStep(width int) string {
+	var content strings.Builder
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18)
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Bold(true)
+	infoStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE"))
+	errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true)
+
+	content.WriteString(titleStyle.Render("👤 Confirm S3 User Creation") + "\n\n")
+	content.WriteString(labelStyle.Render("  Description:") + valueStyle.Render(m.wizard.s3UserDesc) + "\n")
+	content.WriteString(labelStyle.Render("  Role:") + valueStyle.Render("objectstore_operator") + "\n\n")
+	content.WriteString(infoStyle.Render("  ℹ  An S3 access key + secret key will be generated.\n     The secret key will only be shown once.") + "\n\n")
+
+	// Buttons
+	baseBtn := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		Padding(0, 2).Bold(true)
+	inactiveBtn := baseBtn.
+		Foreground(lipgloss.Color("#888888")).
+		BorderForeground(lipgloss.Color("#444444"))
+
+	var createBtn, cancelBtn string
+	if m.wizard.s3UserConfirmBtnIdx == 0 {
+		createBtn = baseBtn.Foreground(lipgloss.Color("#00FF7F")).BorderForeground(lipgloss.Color("#00FF7F")).Render("✓ Create")
+		cancelBtn = inactiveBtn.Render("✗ Cancel")
+	} else {
+		createBtn = inactiveBtn.Render("✓ Create")
+		cancelBtn = baseBtn.Foreground(lipgloss.Color("#FF6B6B")).BorderForeground(lipgloss.Color("#FF6B6B")).Render("✗ Cancel")
+	}
+	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Center, createBtn, "  ", cancelBtn) + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		content.WriteString(errStyle.Render("⚠ Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	return content.String()
+}
+
+// renderS3CredentialsView renders the post-creation credentials display.
+func (m Model) renderS3CredentialsView(width int) string {
+	var content strings.Builder
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F"))
+	warningStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500")).Bold(true)
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18)
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Bold(true)
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+
+	content.WriteString(titleStyle.Render("✅ S3 User created successfully!") + "\n\n")
+	content.WriteString(warningStyle.Render("⚠  Save these credentials now — the secret key will never be shown again.") + "\n\n")
+
+	username := getStringValue(m.s3CreatedUser, "username", "")
+	accessKey := ""
+	secretKey := ""
+	if m.s3CreatedCredentials != nil {
+		accessKey = getStringValue(m.s3CreatedCredentials, "access", "")
+		secretKey = getStringValue(m.s3CreatedCredentials, "secret", "")
+	}
+
+	content.WriteString(labelStyle.Render("  Username:") + valueStyle.Render(username) + "\n")
+	content.WriteString(labelStyle.Render("  Access Key:") + valueStyle.Render(accessKey) + "\n")
+	content.WriteString(labelStyle.Render("  Secret Key:") + valueStyle.Render(secretKey) + "\n\n")
+
+	if m.s3CredentialsSavedPath != "" {
+		savedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+		content.WriteString(savedStyle.Render("✅ Credentials saved to: "+m.s3CredentialsSavedPath) + "\n\n")
+	} else if m.s3CredentialsSaveError != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("❌ Save error: "+m.s3CredentialsSaveError) + "\n\n")
+	} else {
+		content.WriteString(dimStyle.Render("  Press [s] to save to ~/.aws/credentials") + "\n\n")
+	}
+
+	content.WriteString(dimStyle.Render("  Press [Enter] or [Esc] to return to the users list") + "\n")
+
+	return content.String()
+}
+
+// ─── S3 User wizard key handlers ─────────────────────────────────────────────
+
+func (m Model) handleS3UserWizardDescKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
+		desc := strings.TrimSpace(m.wizard.s3UserDescInput)
+		if desc == "" {
+			m.wizard.errorMsg = "Description cannot be empty."
+			return m, nil
+		}
+		m.wizard.errorMsg = ""
+		m.wizard.s3UserDesc = desc
+		m.wizard.step = S3UserWizardStepConfirm
+	case "esc":
+		m.mode = TableView
+		m.wizard = WizardData{}
+	case "backspace":
+		if len(m.wizard.s3UserDescInput) > 0 {
+			m.wizard.s3UserDescInput = m.wizard.s3UserDescInput[:len(m.wizard.s3UserDescInput)-1]
+		}
+	default:
+		if len(msg.Runes) > 0 {
+			m.wizard.s3UserDescInput += string(msg.Runes)
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleS3UserWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
+	switch key {
+	case "left", "h":
+		m.wizard.s3UserConfirmBtnIdx = 0
+	case "right", "l":
+		m.wizard.s3UserConfirmBtnIdx = 1
+	case "enter":
+		if m.wizard.s3UserConfirmBtnIdx == 1 {
+			m.mode = TableView
+			m.wizard = WizardData{}
+			return m, nil
+		}
+		m.wizard.errorMsg = ""
+		m.wizard.isLoading = true
+		m.wizard.loadingMessage = fmt.Sprintf("Creating user '%s'...", m.wizard.s3UserDesc)
+		return m, m.createS3User()
+	case "esc":
+		m.wizard.step = S3UserWizardStepDescription
+	}
+	return m, nil
+}
+
+func (m Model) handleS3CredentialsViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "s":
+		if m.s3CreatedCredentials != nil && m.s3CredentialsSavedPath == "" && m.s3CredentialsSaveError == "" {
+			accessKey := getStringValue(m.s3CreatedCredentials, "access", "")
+			secretKey := getStringValue(m.s3CreatedCredentials, "secret", "")
+			username := getStringValue(m.s3CreatedUser, "username", "")
+			return m, saveAWSCredentials(accessKey, secretKey, username)
+		}
+	case "enter", "esc":
+		m.mode = LoadingView
+		m.s3CreatedUser = nil
+		m.s3CreatedCredentials = nil
+		m.s3CredentialsSavedPath = ""
+		m.s3CredentialsSaveError = ""
+		return m, m.fetchDataForPath("/storage/object")
+	case "q", "ctrl+c":
+		return m, tea.Quit
+	}
+	return m, nil
+}
+

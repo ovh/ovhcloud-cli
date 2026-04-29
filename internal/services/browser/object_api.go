@@ -7,9 +7,13 @@
 package browser
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -163,6 +167,119 @@ func (m Model) deleteObjectContainer(containerName, region string) tea.Cmd {
 	}
 }
 
+// createS3User creates a new cloud user with objectstore access, then creates S3 credentials for it.
+func (m Model) createS3User() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3UserCreatedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		body := map[string]interface{}{
+			"description": m.wizard.s3UserDesc,
+			"role":        "objectstore_operator",
+		}
+		var user map[string]interface{}
+		userEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user", m.cloudProject)
+		if err := httpLib.Client.Post(userEndpoint, body, &user); err != nil {
+			return s3UserCreatedMsg{err: fmt.Errorf("failed to create user: %w", err)}
+		}
+		var userId int64
+		switch v := user["id"].(type) {
+		case float64:
+			userId = int64(v)
+		case int64:
+			userId = v
+		case int:
+			userId = int64(v)
+		case json.Number:
+			userId, _ = v.Int64()
+		default:
+			idStr := fmt.Sprintf("%v", v)
+			if _, err := fmt.Sscanf(idStr, "%d", &userId); err != nil {
+				return s3UserCreatedMsg{user: user, err: fmt.Errorf("could not parse user id %q: %w", idStr, err)}
+			}
+		}
+
+		// Poll until user status is "ok" (max ~30s)
+		userGetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d", m.cloudProject, userId)
+		for i := 0; i < 30; i++ {
+			var u map[string]interface{}
+			if err := httpLib.Client.Get(userGetEndpoint, &u); err == nil {
+				if status, _ := u["status"].(string); status == "ok" {
+					user = u
+					break
+				}
+			}
+			time.Sleep(1 * time.Second)
+		}
+
+		// Create S3 credentials for the user
+		var credentials map[string]interface{}
+		credsEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials", m.cloudProject, userId)
+		if err := httpLib.Client.Post(credsEndpoint, nil, &credentials); err != nil {
+			return s3UserCreatedMsg{user: user, err: fmt.Errorf("user created but S3 credentials failed: %w", err)}
+		}
+
+		return s3UserCreatedMsg{user: user, credentials: credentials}
+	}
+}
+
+// saveAWSCredentials appends the S3 credentials to ~/.aws/credentials under a new profile.
+func saveAWSCredentials(accessKey, secretKey, username string) tea.Cmd {
+	return func() tea.Msg {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return s3CredentialsSavedMsg{err: fmt.Errorf("could not find home directory: %w", err)}
+		}
+
+		awsDir := filepath.Join(homeDir, ".aws")
+		if err := os.MkdirAll(awsDir, 0700); err != nil {
+			return s3CredentialsSavedMsg{err: fmt.Errorf("could not create ~/.aws directory: %w", err)}
+		}
+
+		credPath := filepath.Join(awsDir, "credentials")
+
+		profileName := "ovhcloud"
+		if username != "" {
+			profileName = "ovhcloud-" + username
+		}
+
+		existingContent := ""
+		if data, err := os.ReadFile(credPath); err == nil {
+			existingContent = string(data)
+		}
+
+		if strings.Contains(existingContent, "["+profileName+"]") {
+			for i := 2; i < 100; i++ {
+				candidate := fmt.Sprintf("%s-%d", profileName, i)
+				if !strings.Contains(existingContent, "["+candidate+"]") {
+					profileName = candidate
+					break
+				}
+			}
+		}
+
+		newEntry := fmt.Sprintf("\n[%s]\naws_access_key_id = %s\naws_secret_access_key = %s\n",
+			profileName, accessKey, secretKey)
+
+		flags := os.O_WRONLY | os.O_APPEND
+		if existingContent == "" {
+			flags = os.O_WRONLY | os.O_CREATE
+		}
+		f, err := os.OpenFile(credPath, flags, 0600)
+		if err != nil {
+			return s3CredentialsSavedMsg{err: fmt.Errorf("could not open credentials file: %w", err)}
+		}
+		defer f.Close()
+
+		if _, err := f.WriteString(newEntry); err != nil {
+			return s3CredentialsSavedMsg{err: fmt.Errorf("could not write credentials: %w", err)}
+		}
+
+		return s3CredentialsSavedMsg{filePath: credPath, profileName: profileName}
+	}
+}
+
 // ─── Object Storage message handlers ─────────────────────────────────────────
 
 func (m Model) handleObjectStorageInitDataLoaded(msg objectStorageInitDataLoadedMsg) (tea.Model, tea.Cmd) {
@@ -220,6 +337,31 @@ func (m Model) handleObjectContainerActionDone(msg objectContainerActionDoneMsg)
 			return clearNotificationMsg{}
 		}),
 	)
+}
+
+func (m Model) handleS3UserCreated(msg s3UserCreatedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	m.wizard.loadingMessage = ""
+	if msg.err != nil {
+		m.wizard.errorMsg = msg.err.Error()
+		return m, nil
+	}
+	m.s3CreatedUser = msg.user
+	m.s3CreatedCredentials = msg.credentials
+	m.s3CredentialsSavedPath = ""
+	m.s3CredentialsSaveError = ""
+	m.wizard = WizardData{}
+	m.mode = S3CredentialsView
+	return m, nil
+}
+
+func (m Model) handleS3CredentialsSaved(msg s3CredentialsSavedMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.s3CredentialsSaveError = msg.err.Error()
+	} else {
+		m.s3CredentialsSavedPath = fmt.Sprintf("%s  (profile: [%s])", msg.filePath, msg.profileName)
+	}
+	return m, nil
 }
 
 // createObjectStorageTable builds the table for S3 containers.
