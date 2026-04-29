@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 OVH SAS <opensource@ovh.net>
+// SPDX-FileCopyrightText: 2026 OVH SAS <opensource@ovh.net>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	td "github.com/maxatome/go-testdeep"
+	"github.com/maxatome/go-testdeep/td"
 )
 
 type recordingTransport struct {
