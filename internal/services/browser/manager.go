@@ -4965,22 +4965,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "up", "down", "j", "k":
 		key := msg.String()
 		navItems := getNavItems()
-		// ↓ on main nav over Stockage → enter sub-nav
+		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
 		if (key == "down" || key == "j") && !m.inStorageSubNav && m.mode != DetailView &&
-			m.mode != ProjectSelectView && navItems[m.navIdx].Product == ProductStorage {
+			m.mode != ProjectSelectView && !isStorageSubProduct && navItems[m.navIdx].Product == ProductStorage {
 			m.inStorageSubNav = true
 			return m.loadStorageSubProduct()
 		}
-		// ↑ when sub-nav is focused → exit to main nav
 		if (key == "up" || key == "k") && m.inStorageSubNav && m.mode != DetailView {
-			m.inStorageSubNav = false
-			return m, nil
-		}
-		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
-		// ↑ when at top of table on a storage sub-product → focus sub-nav
-		if (key == "up" || key == "k") && isStorageSubProduct && !m.inStorageSubNav && m.mode == TableView && m.table.Cursor() == 0 {
-			m.inStorageSubNav = true
-			return m, nil
+			if m.mode != TableView || m.table.Cursor() == 0 {
+				m.inStorageSubNav = false
+				return m, nil
+			}
 		}
 		// ↑ on EmptyView/ComingSoonView for storage → focus sub-nav
 		if (key == "up" || key == "k") && isStorageSubProduct && !m.inStorageSubNav && (m.mode == EmptyView || m.mode == ComingSoonView) {
