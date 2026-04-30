@@ -938,8 +938,9 @@ func (m Model) fetchVolumeRegions() tea.Cmd {
 		}
 
 		type probeResult struct {
-			region string
-			types  []string
+			region    string
+			types     []string
+			typeAZMap map[string][]string
 		}
 		ch := make(chan probeResult, len(regionNames))
 		for _, name := range regionNames {
@@ -948,25 +949,40 @@ func (m Model) fetchVolumeRegions() tea.Cmd {
 					m.cloudProject, url.PathEscape(regionName))
 				var rawTypes []map[string]interface{}
 				if err := httpLib.Client.Get(typesEndpoint, &rawTypes); err != nil {
-					ch <- probeResult{region: regionName, types: nil}
+					ch <- probeResult{region: regionName}
 					return
 				}
 				var types []string
+				typeAZMap := make(map[string][]string)
 				for _, t := range rawTypes {
-					if n, ok := t["name"].(string); ok && n != "" {
-						types = append(types, n)
+					n, ok := t["name"].(string)
+					if !ok || n == "" || strings.HasSuffix(n, "-luks") {
+						continue
+					}
+					types = append(types, n)
+					if azRaw, ok := t["availabilityZones"].([]interface{}); ok {
+						var azs []string
+						for _, az := range azRaw {
+							if s, ok := az.(string); ok && s != "" {
+								azs = append(azs, s)
+							}
+						}
+						sort.Strings(azs)
+						typeAZMap[n] = azs
 					}
 				}
 				sort.Strings(types)
-				ch <- probeResult{region: regionName, types: types}
+				ch <- probeResult{region: regionName, types: types, typeAZMap: typeAZMap}
 			}(name)
 		}
 
 		regionTypeMap := make(map[string][]string)
+		regionTypeAZMap := make(map[string]map[string][]string)
 		for range regionNames {
 			r := <-ch
 			if len(r.types) > 0 {
 				regionTypeMap[r.region] = r.types
+				regionTypeAZMap[r.region] = r.typeAZMap
 			}
 		}
 		var supported []string
@@ -980,7 +996,7 @@ func (m Model) fetchVolumeRegions() tea.Cmd {
 		if len(supported) == 0 {
 			return volumeRegionsLoadedMsg{err: fmt.Errorf("no regions support block storage volumes in this project")}
 		}
-		return volumeRegionsLoadedMsg{regionNames: supported, regionTypeMap: regionTypeMap}
+		return volumeRegionsLoadedMsg{regionNames: supported, regionTypeMap: regionTypeMap, regionTypeAZMap: regionTypeAZMap}
 	}
 }
 
@@ -995,13 +1011,26 @@ func (m Model) fetchVolumeTypes(region string) tea.Cmd {
 			return volumeTypesLoadedMsg{err: fmt.Errorf("failed to fetch volume types: %w", err)}
 		}
 		var types []string
+		typeAZMap := make(map[string][]string)
 		for _, t := range rawTypes {
-			if n, ok := t["name"].(string); ok && n != "" && !strings.HasSuffix(n, "-luks") {
-				types = append(types, n)
+			n, ok := t["name"].(string)
+			if !ok || n == "" || strings.HasSuffix(n, "-luks") {
+				continue
+			}
+			types = append(types, n)
+			if azRaw, ok := t["availabilityZones"].([]interface{}); ok {
+				var azs []string
+				for _, az := range azRaw {
+					if s, ok := az.(string); ok && s != "" {
+						azs = append(azs, s)
+					}
+				}
+				sort.Strings(azs)
+				typeAZMap[n] = azs
 			}
 		}
 		sort.Strings(types)
-		return volumeTypesLoadedMsg{types: types}
+		return volumeTypesLoadedMsg{types: types, typeAZMap: typeAZMap}
 	}
 }
 
@@ -1018,7 +1047,7 @@ func (m Model) fetchVolumeAvailabilityZones(region string) tea.Cmd {
 		var azs []string
 		if raw, ok := regionDetail["availabilityZones"].([]interface{}); ok {
 			for _, az := range raw {
-				if s, ok := az.(string); ok {
+				if s, ok := az.(string); ok && s != "" && s != "nova" {
 					azs = append(azs, s)
 				}
 			}
@@ -1054,6 +1083,23 @@ func (m Model) createVolume() tea.Cmd {
 
 func (m Model) deleteVolume(volumeId string) tea.Cmd {
 	return func() tea.Msg {
+		// Check for snapshots first — the API rejects delete if any exist
+		snapshotsEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/snapshot", m.cloudProject)
+		var snapshots []map[string]interface{}
+		if err := httpLib.Client.Get(snapshotsEndpoint, &snapshots); err == nil {
+			var blocking []string
+			for _, s := range snapshots {
+				if vid, ok := s["volumeId"].(string); ok && vid == volumeId {
+					if sid, ok := s["id"].(string); ok {
+						blocking = append(blocking, sid)
+					}
+				}
+			}
+			if len(blocking) > 0 {
+				msg := fmt.Sprintf("Ce volume possède %d snapshot(s). Supprimez-les d'abord depuis l'onglet Volume Snapshots.", len(blocking))
+				return volumeActionDoneMsg{action: 0, err: fmt.Errorf("%s", msg)}
+			}
+		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, url.PathEscape(volumeId))
 		err := httpLib.Client.Delete(endpoint, nil)
 		return volumeActionDoneMsg{action: 0, err: err}
@@ -1092,6 +1138,7 @@ func (m Model) handleVolumeRegionsLoaded(msg volumeRegionsLoadedMsg) (tea.Model,
 		m.wizard.regions = append(m.wizard.regions, map[string]interface{}{"name": name})
 	}
 	m.wizard.volumeRegionTypeMap = msg.regionTypeMap
+	m.wizard.volumeRegionTypeAZMap = msg.regionTypeAZMap
 	m.wizard.selectedIndex = 0
 	return m, nil
 }
@@ -1104,6 +1151,7 @@ func (m Model) handleVolumeTypesLoaded(msg volumeTypesLoadedMsg) (tea.Model, tea
 		return m, nil
 	}
 	m.wizard.volumeTypes = msg.types
+	m.wizard.volumeTypeAZMap = msg.typeAZMap
 	m.wizard.selectedIndex = 0
 	return m, nil
 }
@@ -1117,6 +1165,16 @@ func (m Model) handleVolumeAZLoaded(msg volumeAZLoadedMsg) (tea.Model, tea.Cmd) 
 	}
 	m.wizard.volumeAvailabilityZones = msg.availabilityZones
 	m.wizard.selectedIndex = 0
+	// Region has no real AZ choices (only "nova" or empty) — skip this step
+	if len(msg.availabilityZones) == 0 {
+		m.wizard.volumeAvailabilityZone = ""
+		m.wizard.step = VolumeWizardStepSize
+		if m.wizard.volumeSize > 0 {
+			m.wizard.volumeSizeInput = fmt.Sprintf("%d", m.wizard.volumeSize)
+		} else {
+			m.wizard.volumeSizeInput = ""
+		}
+	}
 	return m, nil
 }
 
@@ -1868,7 +1926,7 @@ func createBlockStorageTable(data []map[string]interface{}, width, height int) t
 	columns := []table.Column{
 		{Title: "Nom", Width: 24},
 		{Title: "ID", Width: 36},
-		{Title: "Localisation", Width: 14},
+		{Title: "Localisation", Width: 20},
 		{Title: "Type", Width: 14},
 		{Title: "Capacité", Width: 10},
 		{Title: "Instance", Width: 20},

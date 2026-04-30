@@ -290,6 +290,8 @@ type WizardData struct {
 	volumeTypes             []string            // Available volume types for the selected region
 	volumeRegionTypeMap     map[string][]string // region name -> []type names (pre-loaded)
 	volumeAvailabilityZones []string            // Available availability zones for the region
+	volumeTypeAZMap         map[string][]string      // type name -> available AZs (for selected region)
+	volumeRegionTypeAZMap   map[string]map[string][]string // region -> type -> AZs (pre-loaded)
 	volumeName              string   // Volume name input
 	volumeNameInput         string   // Input buffer for volume name
 	volumeSize              int      // Volume size in GB
@@ -667,14 +669,16 @@ type kubeNodePoolsLoadedMsg struct {
 }
 
 type volumeRegionsLoadedMsg struct {
-	regionNames     []string 
-	regionTypeMap   map[string][]string 
-	err             error
+	regionNames       []string
+	regionTypeMap     map[string][]string
+	regionTypeAZMap   map[string]map[string][]string // region -> type -> []AZs
+	err               error
 }
 
 type volumeTypesLoadedMsg struct {
-	types []string
-	err   error
+	types     []string
+	typeAZMap map[string][]string // type -> []AZs
+	err       error
 }
 
 type volumeAZLoadedMsg struct {
@@ -4139,10 +4143,11 @@ func (m Model) renderVolumeWizardTypeStep(width int) string {
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
 
 	for i, vt := range m.wizard.volumeTypes {
+		label := volumeTypeDisplayName(vt)
 		if i == m.wizard.selectedIndex {
-			content.WriteString(selectedStyle.Render("▶ " + vt))
+			content.WriteString(selectedStyle.Render("▶ " + label))
 		} else {
-			content.WriteString(listStyle.Render("  " + vt))
+			content.WriteString(listStyle.Render("  " + label))
 		}
 		content.WriteString("\n")
 	}
@@ -4170,10 +4175,16 @@ func (m Model) renderVolumeWizardAZStep(width int) string {
 	// Prepend a "No preference" option
 	allItems := append([]string{"(No preference)"}, items...)
 	for i, az := range allItems {
-		if i == m.wizard.selectedIndex {
-			content.WriteString(selectedStyle.Render("▶ " + az))
+		var label string
+		if i == 0 {
+			label = az
 		} else {
-			content.WriteString(listStyle.Render("  " + az))
+			label = fmt.Sprintf("%s(%s)", m.wizard.selectedRegion, az)
+		}
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + label))
+		} else {
+			content.WriteString(listStyle.Render("  " + label))
 		}
 		content.WriteString("\n")
 	}
@@ -4204,6 +4215,16 @@ func (m Model) renderVolumeWizardSizeStep(width int) string {
 	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 	content.WriteString(helpStyle.Render("Type size • Enter: Continue • ←: Back • Esc: Cancel"))
 	return content.String()
+}
+
+func volumeTypeDisplayName(name string) string {
+	words := strings.Split(name, "-")
+	for i, w := range words {
+		if len(w) > 0 {
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
+	}
+	return strings.Join(words, " ")
 }
 
 func (m Model) volumeTypeSupportLuks() bool {
@@ -4307,7 +4328,7 @@ func (m Model) renderVolumeWizardConfirmStep(width int) string {
 
 	azDisplay := "(No preference)"
 	if m.wizard.volumeAvailabilityZone != "" {
-		azDisplay = m.wizard.volumeAvailabilityZone
+		azDisplay = fmt.Sprintf("%s(%s)", m.wizard.selectedRegion, m.wizard.volumeAvailabilityZone)
 	}
 	content.WriteString(labelStyle.Render("  Avail. Zone:") + valueStyle.Render(azDisplay) + "\n")
 	content.WriteString(labelStyle.Render("  Size:") + valueStyle.Render(fmt.Sprintf("%d GB", m.wizard.volumeSize)) + "\n")
@@ -7703,6 +7724,7 @@ func (m Model) handleVolumeWizardRegionKeys(key string, msg tea.KeyMsg) (tea.Mod
 		m.wizard.errorMsg = ""
 		if types, ok := m.wizard.volumeRegionTypeMap[m.wizard.selectedRegion]; ok {
 			m.wizard.volumeTypes = types
+			m.wizard.volumeTypeAZMap = m.wizard.volumeRegionTypeAZMap[m.wizard.selectedRegion]
 			m.wizard.step = VolumeWizardStepType
 			m.wizard.selectedIndex = 0
 		} else {
@@ -7737,10 +7759,12 @@ func (m Model) handleVolumeWizardTypeKeys(key string, msg tea.KeyMsg) (tea.Model
 		}
 		m.wizard.volumeType = types[m.wizard.selectedIndex]
 		m.wizard.errorMsg = ""
-		m.wizard.step = VolumeWizardStepAvailabilityZone
 		m.wizard.selectedIndex = 0
+		m.wizard.volumeAvailabilityZones = nil
+		m.wizard.volumeAvailabilityZone = ""
+		m.wizard.step = VolumeWizardStepAvailabilityZone
 		m.wizard.isLoading = true
-		m.wizard.loadingMessage = "Loading availability zones..."
+		m.wizard.loadingMessage = "Chargement des zones..."
 		return m, m.fetchVolumeAvailabilityZones(m.wizard.selectedRegion)
 	case "left":
 		m.wizard.step = VolumeWizardStepRegion
@@ -7801,7 +7825,12 @@ func (m Model) handleVolumeWizardSizeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.wizard.volumeSizeInput = m.wizard.volumeSizeInput[:len(m.wizard.volumeSizeInput)-1]
 		}
 	case tea.KeyLeft:
-		m.wizard.step = VolumeWizardStepAvailabilityZone
+		// Go back to AZ step only if that step was actually shown (type had AZ choices)
+		if len(m.wizard.volumeAvailabilityZones) > 0 {
+			m.wizard.step = VolumeWizardStepAvailabilityZone
+		} else {
+			m.wizard.step = VolumeWizardStepType
+		}
 		m.wizard.selectedIndex = 0
 	case tea.KeyRunes:
 		for _, r := range msg.Runes {
