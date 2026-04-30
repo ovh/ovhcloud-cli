@@ -131,6 +131,14 @@ const (
 	S3UserWizardStepConfirm
 )
 
+const (
+	// Volume Backup / Snapshot wizard steps (offset by 700)
+	BackupWizardStepVolume  WizardStep = iota + 700 // pick source volume
+	BackupWizardStepType                            // pick Snapshot or Backup
+	BackupWizardStepName                            // enter name
+	BackupWizardStepConfirm                         // confirm
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -325,6 +333,13 @@ type WizardData struct {
 	s3UserDescInput     string // Description input buffer
 	s3UserDesc          string // Confirmed description
 	s3UserConfirmBtnIdx int    // 0=Create, 1=Cancel
+	// Volume Backup / Snapshot wizard fields
+	backupVolumes      []map[string]interface{} // loaded block storage volumes
+	backupVolumeIdx    int                      // selected volume index
+	backupTypeIdx      int                      // 0=Snapshot, 1=Backup
+	backupName         string                   // confirmed name
+	backupNameInput    string                   // input buffer for name
+	backupConfirmBtnIdx int                      // 0=Create, 1=Cancel
 }
 
 // Model represents the TUI application state
@@ -772,8 +787,8 @@ func getStorageSubItems() []StorageSubItem {
 	return []StorageSubItem{
 		{Label: "Block Storage", Product: ProductStorageBlock, Path: "/storage/block", Enabled: true},
 		{Label: "File Storage", Product: ProductStorageFile, Path: "/storage/file", Enabled: true},
-		{Label: "Volume Backup", Product: ProductStorageBackup, Path: "/storage/backup", Enabled: false},
-		{Label: "Volume Snapshot", Product: ProductStorageSnapshot, Path: "/storage/snapshot", Enabled: false},
+		{Label: "Volume Backup", Product: ProductStorageBackup, Path: "/storage/backup", Enabled: true},
+		{Label: "Volume Snapshot", Product: ProductStorageSnapshot, Path: "/storage/snapshot", Enabled: true},
 		{Label: "Object Storage", Product: ProductStorageObject, Path: "/storage/object", Enabled: true},
 	}
 }
@@ -923,6 +938,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Loading regions and users...",
 			}
 			return m, m.fetchObjectStorageInitData()
+		} else if msg.product == ProductStorageBackup || msg.product == ProductStorageSnapshot {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:           BackupWizardStepVolume,
+				isLoading:      true,
+				loadingMessage: "Chargement des volumes...",
+			}
+			return m, m.fetchBackupVolumes()
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -1079,6 +1102,41 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case block_storage.ExecuteVolumeActionMsg:
 		return m.handleExecuteVolumeAction(msg)
+
+	case backupVolumesLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.backupVolumes = msg.volumes
+		m.wizard.backupVolumeIdx = 0
+		return m, nil
+
+	case volumeBackupCreatedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur : %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		label := "Snapshot"
+		if msg.backupType == "backup" {
+			label = "Backup"
+		}
+		m.notification = fmt.Sprintf("✅ %s '%s' créé avec succès", label, msg.name)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = LoadingView
+		reloadPath := "/storage/snapshot"
+		if msg.backupType == "backup" {
+			reloadPath = "/storage/backup"
+		}
+		return m, tea.Batch(
+			m.fetchDataForPath(reloadPath),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
 
 	case file_storage.ExecuteFileShareActionMsg:
 		return m.handleExecuteFileShareAction(msg)
@@ -1572,7 +1630,10 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 600 {
+		if m.wizard.step >= 700 {
+			// Backup/Snapshot wizard
+			titleText = " 💾 Create Volume Backup / Snapshot "
+		} else if m.wizard.step >= 600 {
 			// S3 User wizard
 			titleText = " 👤 Create S3 User "
 		} else if m.wizard.step >= 500 {
@@ -2506,8 +2567,11 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 600 {
-		// S3 User wizard
+	if m.wizard.step >= 700 {
+		// Backup/Snapshot wizard
+		steps = append(steps, "Volume", "Type", "Nom", "Confirmer")
+		stepMapping = append(stepMapping, BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm)
+	} else if m.wizard.step >= 600 {
 		steps = append(steps, "Description", "Confirm")
 		stepMapping = append(stepMapping, S3UserWizardStepDescription, S3UserWizardStepConfirm)
 	} else if m.wizard.step >= 500 {
@@ -2687,6 +2751,9 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderS3UserWizardDescStep(width))
 	case S3UserWizardStepConfirm:
 		content.WriteString(m.renderS3UserWizardConfirmStep(width))
+	// Volume Backup / Snapshot wizard steps
+	case BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm:
+		content.WriteString(m.renderBackupWizard(width))
 	}
 	return content.String()
 }
@@ -4860,6 +4927,14 @@ func (m Model) renderFooter() string {
 			help = "Type description • Enter: Continue • Esc: Cancel"
 		} else if m.wizard.step == S3UserWizardStepConfirm {
 			help = "←→: Select • Enter: Confirm • Esc: Back"
+		} else if m.wizard.step == BackupWizardStepVolume {
+			help = "↑↓: Navigate • Enter: Select • Esc: Cancel"
+		} else if m.wizard.step == BackupWizardStepType {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == BackupWizardStepName {
+			help = "Type name • Enter: Continue • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == BackupWizardStepConfirm {
+			help = "←→: Select • Enter: Confirm • Esc: Cancel"
 		} else {
 			help = "↑↓: Navigate • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		}
@@ -5665,13 +5740,13 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// 'q' quits (except when typing in input fields)
-	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		return m, tea.Quit
 	}
 
 	// 'd' opens debug panel (except when typing in input fields)
 	// Disable debug shortcut when: in name step, filter mode, creating SSH key, or creating network
-	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		m.previousMode = m.mode
 		m.mode = DebugView
 		m.debugScrollOffset = 0
@@ -5689,7 +5764,9 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 500 {
+		if m.wizard.step >= 700 {
+			returnPath = "/storage/backup"
+		} else if m.wizard.step >= 500 {
 			returnPath = "/storage/object"
 		} else if m.wizard.step >= 400 {
 			returnPath = "/storage/file"
@@ -5845,6 +5922,8 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleS3UserWizardDescKeys(msg)
 	case S3UserWizardStepConfirm:
 		return m.handleS3UserWizardConfirmKeys(key)
+	case BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm:
+		return m.handleBackupWizardKeys(msg)
 	}
 	return m, nil
 }

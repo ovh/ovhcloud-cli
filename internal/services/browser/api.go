@@ -117,6 +117,18 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 			msg.forProduct = product
 			return msg
 		}
+	case "/storage/snapshot":
+		return func() tea.Msg {
+			msg := m.fetchVolumeSnapshotsData()
+			msg.forProduct = product
+			return msg
+		}
+	case "/storage/backup":
+		return func() tea.Msg {
+			msg := m.fetchVolumeBackupsData()
+			msg.forProduct = product
+			return msg
+		}
 	default:
 		return nil
 	}
@@ -1488,6 +1500,10 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		} else {
 			m.table = createObjectStorageUsersTable(msg.s3Users, m.width, m.height)
 		}
+	case ProductStorageSnapshot:
+		m.table = createVolumeSnapshotsTable(msg.data, m.width, m.height)
+	case ProductStorageBackup:
+		m.table = createVolumeBackupsTable(msg.data, m.width, m.height)
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)
 	}
@@ -4118,5 +4134,155 @@ func (m Model) handleNodePoolDeleted(msg nodePoolDeletedMsg) (tea.Model, tea.Cmd
 	// Reload node pools
 	clusterId := getString(m.detailData, "id")
 	return m, m.fetchKubeNodePools(clusterId)
+}
+
+// fetchVolumeSnapshotsData fetches the list of volume snapshots.
+func (m Model) fetchVolumeSnapshotsData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/snapshot", m.cloudProject)
+	var raw []interface{}
+	if err := httpLib.Client.Get(endpoint, &raw); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	var snapshots []map[string]interface{}
+	for _, item := range raw {
+		if obj, ok := item.(map[string]interface{}); ok {
+			snapshots = append(snapshots, obj)
+		}
+	}
+	return dataLoadedMsg{data: snapshots}
+}
+
+// fetchVolumeBackupsData fetches volume backups across all regions.
+func (m Model) fetchVolumeBackupsData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+	var regionNames []string
+	regEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	if err := httpLib.Client.Get(regEndpoint, &regionNames); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	var backups []map[string]interface{}
+	for _, region := range regionNames {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup",
+			m.cloudProject, url.PathEscape(region))
+		var raw []interface{}
+		if err := httpLib.Client.Get(endpoint, &raw); err != nil {
+			continue // skip regions without backup support
+		}
+		for _, item := range raw {
+			if obj, ok := item.(map[string]interface{}); ok {
+				backups = append(backups, obj)
+			}
+		}
+	}
+	return dataLoadedMsg{data: backups}
+}
+
+func createVolumeSnapshotsTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Nom", Width: 24},
+		{Title: "ID", Width: 36},
+		{Title: "Location", Width: 14},
+		{Title: "Volume", Width: 36},
+		{Title: "Capacity", Width: 10},
+		{Title: "Status", Width: 14},
+		{Title: "Creation date", Width: 20},
+	}
+	var rows []table.Row
+	for _, s := range data {
+		name := getString(s, "name")
+		id := getString(s, "id")
+		region := getString(s, "region")
+		volumeId := getString(s, "volumeId")
+		size := "-"
+		switch v := s["size"].(type) {
+		case float64:
+			size = fmt.Sprintf("%d GB", int(v))
+		case json.Number:
+			if i, err := v.Int64(); err == nil {
+				size = fmt.Sprintf("%d GB", i)
+			}
+		}
+		status := getString(s, "status")
+		created := getString(s, "creationDate")
+		if len(created) > 19 {
+			created = created[:19]
+		}
+		rows = append(rows, table.Row{name, id, region, volumeId, size, status, created})
+	}
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240")).BorderBottom(true).Bold(true)
+	s.Selected = s.Selected.Foreground(lipgloss.Color("229")).Background(lipgloss.Color("57")).Bold(false)
+	t.SetStyles(s)
+	return t
+}
+
+func createVolumeBackupsTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Nom", Width: 24},
+		{Title: "ID", Width: 36},
+		{Title: "Location", Width: 14},
+		{Title: "Volume", Width: 36},
+		{Title: "Capacity", Width: 10},
+		{Title: "Status", Width: 14},
+		{Title: "Creation date", Width: 20},
+	}
+	var rows []table.Row
+	for _, b := range data {
+		name := getString(b, "name")
+		id := getString(b, "id")
+		region := getString(b, "region")
+		volumeId := getString(b, "volumeId")
+		size := "-"
+		switch v := b["size"].(type) {
+		case float64:
+			size = fmt.Sprintf("%d GB", int(v))
+		case json.Number:
+			if i, err := v.Int64(); err == nil {
+				size = fmt.Sprintf("%d GB", i)
+			}
+		}
+		status := getString(b, "status")
+		created := getString(b, "creationDate")
+		if len(created) > 19 {
+			created = created[:19]
+		}
+		rows = append(rows, table.Row{name, id, region, volumeId, size, status, created})
+	}
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240")).BorderBottom(true).Bold(true)
+	s.Selected = s.Selected.Foreground(lipgloss.Color("229")).Background(lipgloss.Color("57")).Bold(false)
+	t.SetStyles(s)
+	return t
 }
 
