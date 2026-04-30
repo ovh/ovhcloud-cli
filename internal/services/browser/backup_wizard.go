@@ -117,13 +117,17 @@ func (m Model) renderBackupWizardTypeStep(width int) string {
 func (m Model) renderBackupWizardNameStep(width int) string {
 	var content strings.Builder
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+	inputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#00FF7F")).
+		Padding(0, 1).
+		Width(40)
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 	errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
 
 	backupTypeName := backupTypes[m.wizard.backupTypeIdx]
 	content.WriteString(titleStyle.Render(fmt.Sprintf("Nommez votre %s :", strings.ToLower(backupTypeName))) + "\n\n")
-	content.WriteString("  " + inputStyle.Render(m.wizard.backupNameInput+"▌") + "\n\n")
+	content.WriteString(inputStyle.Render(m.wizard.backupNameInput+"▌") + "\n\n")
 
 	if m.wizard.errorMsg != "" {
 		content.WriteString(errStyle.Render("  ❌ "+m.wizard.errorMsg) + "\n\n")

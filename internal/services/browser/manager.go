@@ -389,6 +389,10 @@ type Model struct {
 	detailRefreshName string
 	// Block Storage detail view
 	volumeDetailView *block_storage.DetailView
+	// Snapshot detail view
+	snapshotDetailView *block_storage.SnapshotDetailView
+	// Backup detail view
+	backupDetailView *block_storage.BackupDetailView
 	// File Storage detail view
 	fileShareDetailView *file_storage.DetailView
 	// Object Storage detail view
@@ -1223,6 +1227,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = TableView
 			return m, nil
 		}
+		if m.mode == DetailView && m.currentProduct == ProductStorageSnapshot {
+			m.snapshotDetailView = nil
+			m.mode = TableView
+			return m, nil
+		}
+		if m.mode == DetailView && m.currentProduct == ProductStorageBackup {
+			m.backupDetailView = nil
+			m.mode = TableView
+			return m, nil
+		}
 		if m.mode == DetailView && m.currentProduct == ProductStorageFile {
 			m.fileShareDetailView = nil
 			m.mode = TableView
@@ -1242,6 +1256,77 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case volumeActionDoneMsg:
 		return m.handleVolumeActionDone(msg)
+
+	case block_storage.ExecuteSnapshotActionMsg:
+		return m, m.executeSnapshotAction(msg)
+
+	case snapshotActionDoneMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur : %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.snapshotDetailView = nil
+		m.mode = LoadingView
+		if msg.action == block_storage.SnapshotActionCreateVolume {
+			m.notification = fmt.Sprintf("✅ Volume '%s' créé depuis le snapshot", msg.name)
+			m.notificationExpiry = time.Now().Add(5 * time.Second)
+			// Navigate to Block Storage so handleDataLoaded matches the product
+			m.currentProduct = ProductStorageBlock
+			m.storageSubIdx = 0 // Block Storage is index 0 in getStorageSubItems()
+			return m, tea.Batch(
+				m.fetchDataForPath("/storage/block"),
+				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		m.notification = fmt.Sprintf("✅ Snapshot '%s' supprimé", msg.name)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/snapshot"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case block_storage.ExecuteBackupActionMsg:
+		return m, m.executeBackupAction(msg)
+
+	case block_storage.LoadBackupRestoreVolumesMsg:
+		region := fmt.Sprintf("%v", msg.Backup["region"])
+		return m, m.fetchVolumesForRegion(region)
+
+	case block_storage.BackupVolumesLoadedMsg:
+		if m.backupDetailView != nil {
+			m.backupDetailView.SetRestoreVolumes(msg.Volumes)
+		}
+		return m, nil
+
+	case backupActionDoneMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur : %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.backupDetailView = nil
+		m.mode = LoadingView
+		if msg.action == block_storage.BackupActionCreateVolume {
+			m.notification = fmt.Sprintf("✅ Volume '%s' créé depuis le backup", msg.name)
+			m.notificationExpiry = time.Now().Add(5 * time.Second)
+			m.currentProduct = ProductStorageBlock
+			m.storageSubIdx = 0
+			return m, tea.Batch(
+				m.fetchDataForPath("/storage/block"),
+				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		action := fmt.Sprintf("Backup '%s' supprimé", msg.name)
+		if msg.action == block_storage.BackupActionRestore {
+			action = fmt.Sprintf("Backup '%s' restauré avec succès", msg.name)
+		}
+		m.notification = "✅ " + action
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/backup"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
 
 	case refreshBlockStorageMsg:
 		return m, m.fetchDataForPath("/storage/block")
@@ -1691,6 +1776,10 @@ func (m Model) renderContentBox(width int) string {
 			titleText = m.objectUserDetailView.Title()
 		} else if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
 			titleText = m.objectDetailView.Title()
+		} else if m.mode == DetailView && m.currentProduct == ProductStorageSnapshot && m.snapshotDetailView != nil {
+			titleText = m.snapshotDetailView.Title()
+		} else if m.mode == DetailView && m.currentProduct == ProductStorageBackup && m.backupDetailView != nil {
+			titleText = m.backupDetailView.Title()
 		} else if m.mode == DetailView && m.currentItemName != "" {
 			titleText = fmt.Sprintf(" %s %s > %s ", currentNav.Icon, currentNav.Label, m.currentItemName)
 		} else {
@@ -3998,7 +4087,7 @@ func (m Model) renderVolumeWizardNameStep(width int) string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#00FF7F")).
 		Padding(0, 1).
-		Width(40)
+		Width(50)
 	content.WriteString(inputStyle.Render(m.wizard.volumeNameInput+"▌") + "\n\n")
 
 	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
@@ -4435,6 +4524,16 @@ func (m Model) renderDetailView(width int) string {
 	case ProductStorageBlock:
 		if m.volumeDetailView != nil {
 			return m.volumeDetailView.Render(width, 0)
+		}
+		return m.renderGenericDetail(width)
+	case ProductStorageSnapshot:
+		if m.snapshotDetailView != nil {
+			return m.snapshotDetailView.Render(width, 0)
+		}
+		return m.renderGenericDetail(width)
+	case ProductStorageBackup:
+		if m.backupDetailView != nil {
+			return m.backupDetailView.Render(width, 0)
 		}
 		return m.renderGenericDetail(width)
         case ProductStorageFile:
@@ -4875,6 +4974,10 @@ func (m Model) renderFooter() string {
 			help = m.objectUserDetailView.HelpText()
 		} else if m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
 			help = m.objectDetailView.HelpText()
+		} else if m.currentProduct == ProductStorageSnapshot && m.snapshotDetailView != nil {
+			help = m.snapshotDetailView.HelpText()
+		} else if m.currentProduct == ProductStorageBackup && m.backupDetailView != nil {
+			help = m.backupDetailView.HelpText()
 		} else if m.actionConfirm {
 			help = "Enter: Confirm Action • Esc: Cancel"
 		} else {
@@ -5025,6 +5128,18 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Delegate to block storage detail view when in DetailView for ProductStorageBlock
 	if m.mode == DetailView && m.currentProduct == ProductStorageBlock && m.volumeDetailView != nil {
 		cmd := m.volumeDetailView.HandleKey(msg)
+		return m, cmd
+	}
+
+	// Delegate to snapshot detail view
+	if m.mode == DetailView && m.currentProduct == ProductStorageSnapshot && m.snapshotDetailView != nil {
+		cmd := m.snapshotDetailView.HandleKey(msg)
+		return m, cmd
+	}
+
+	// Delegate to backup detail view
+	if m.mode == DetailView && m.currentProduct == ProductStorageBackup && m.backupDetailView != nil {
+		cmd := m.backupDetailView.HandleKey(msg)
 		return m, cmd
 	}
 
@@ -5346,6 +5461,18 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.currentProduct == ProductStorageFile {
 					ctx := &views.Context{Width: m.width, Height: m.height}
 					m.fileShareDetailView = file_storage.NewDetailView(ctx, m.detailData)
+					return m, nil
+				}
+				// If viewing a snapshot, init snapshot detail view
+				if m.currentProduct == ProductStorageSnapshot {
+					ctx := &views.Context{Width: m.width, Height: m.height}
+					m.snapshotDetailView = block_storage.NewSnapshotDetailView(ctx, m.detailData)
+					return m, nil
+				}
+				// If viewing a backup, init backup detail view
+				if m.currentProduct == ProductStorageBackup {
+					ctx := &views.Context{Width: m.width, Height: m.height}
+					m.backupDetailView = block_storage.NewBackupDetailView(ctx, m.detailData)
 					return m, nil
 				}
 				if m.currentProduct == ProductStorageObject {
