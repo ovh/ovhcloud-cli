@@ -703,8 +703,20 @@ type objectContainerCreatedMsg struct {
 }
 
 type objectContainerActionDoneMsg struct {
-        action int
-        err    error
+	action int
+	err    error
+}
+
+type swiftContainerUpdatedMsg struct {
+	containerName string
+	newType       string
+	err           error
+}
+
+type containerPolicyAddedMsg struct {
+	containerName string
+	roleName      string
+	err           error
 }
 
 type s3UserCreatedMsg struct {
@@ -1070,9 +1082,50 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				region = r
 			}
 		}
-		m.notification = fmt.Sprintf("🗑️  Deleting container '%s'...", containerName)
-		m.notificationExpiry = time.Now().Add(30 * time.Second)
-		return m, m.deleteObjectContainer(containerName, region)
+		switch msg.Action {
+		case object_storage.ContainerActionDelete:
+			m.notification = fmt.Sprintf("🗑️  Deleting container '%s'...", containerName)
+			m.notificationExpiry = time.Now().Add(30 * time.Second)
+			return m, m.deleteObjectContainer(containerName, region)
+		case object_storage.ContainerActionChangeType:
+			newType := ""
+			if msg.ExtraData != nil {
+				newType, _ = msg.ExtraData["containerType"].(string)
+			}
+			containerID := getString(msg.Container, "id")
+			if containerID == "" {
+				containerID = containerName
+			}
+			m.notification = fmt.Sprintf("🔄 Changing type of '%s' to %s...", containerName, newType)
+			m.notificationExpiry = time.Now().Add(30 * time.Second)
+			return m, m.updateSwiftContainerType(containerID, newType)
+		case object_storage.ContainerActionAddPolicy:
+			var userID int64
+			roleName := ""
+			if msg.ExtraData != nil {
+				roleName, _ = msg.ExtraData["roleName"].(string)
+				switch v := msg.ExtraData["userId"].(type) {
+				case float64:
+					userID = int64(v)
+				case int64:
+					userID = v
+				case int:
+					userID = int64(v)
+				case json.Number:
+					userID, _ = v.Int64()
+				case string:
+					fmt.Sscanf(v, "%d", &userID)
+				}
+			}
+			m.notification = fmt.Sprintf("🔄 Adding user access to '%s'...", containerName)
+			m.notificationExpiry = time.Now().Add(30 * time.Second)
+			if userID == 0 {
+				m.notification = fmt.Sprintf("❌ Impossible de résoudre l'ID utilisateur (type: %T, val: %v)", msg.ExtraData["userId"], msg.ExtraData["userId"])
+				m.notificationExpiry = time.Now().Add(10 * time.Second)
+				return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+			}
+			return m, m.addS3ContainerPolicy(containerName, region, userID, roleName)
+		}
 
 	case views.GoBackMsg:
 		if m.mode == DetailView && m.currentProduct == ProductStorageBlock {
@@ -1118,6 +1171,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case objectContainerActionDoneMsg:
 		return m.handleObjectContainerActionDone(msg)
+
+	case swiftContainerUpdatedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Type du conteneur '%s' changé en %s", msg.containerName, msg.newType)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.objectDetailView = nil
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/object"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case containerPolicyAddedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur lors de l'ajout de la politique: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Accès '%s' ajouté sur '%s'", msg.roleName, msg.containerName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.objectDetailView = nil
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/object"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
 
 	case s3UserCreatedMsg:
 		return m.handleS3UserCreated(msg)
@@ -5036,11 +5121,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.fileShareDetailView = file_storage.NewDetailView(ctx, m.detailData)
 					return m, nil
 				}
-
-				// If viewing an object storage container, init the detail view
 				if m.currentProduct == ProductStorageObject {
+					if m.objectStorageTabIdx == 1 {
+						return m, nil
+					}
 					ctx := &views.Context{Width: m.width, Height: m.height}
-					m.objectDetailView = object_storage.NewDetailView(ctx, m.detailData)
+					m.objectDetailView = object_storage.NewDetailView(ctx, m.detailData, m.objectStorageUsers)
 					return m, nil
 				}
 

@@ -203,9 +203,6 @@ func (m Model) createObjectContainer() tea.Cmd {
 			}
 		}
 
-		// Container type (storageClass in name? No — it's a separate field per region).
-		// Type is encoded in the region selection (High Perf vs Standard regions).
-
 		region := m.wizard.selectedRegion
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage",
 			m.cloudProject, url.PathEscape(region))
@@ -218,6 +215,42 @@ func (m Model) createObjectContainer() tea.Cmd {
 	}
 }
 
+func (m Model) updateSwiftContainerType(containerID, newType string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return swiftContainerUpdatedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+
+		switch newType {
+		case "static":
+			// Enable static website hosting
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s/static",
+				m.cloudProject, url.PathEscape(containerID))
+			var result map[string]interface{}
+			if err := httpLib.Client.Post(endpoint, nil, &result); err != nil {
+				return swiftContainerUpdatedMsg{containerName: containerID, err: fmt.Errorf("failed to enable static: %w", err)}
+			}
+		case "private", "public":
+			// First remove static hosting if any
+			staticEp := fmt.Sprintf("/v1/cloud/project/%s/storage/%s/static",
+				m.cloudProject, url.PathEscape(containerID))
+			_ = httpLib.Client.Delete(staticEp, nil) // ignore error if wasn't static
+
+			// Update container ACL via containerType field
+			body := map[string]interface{}{"containerType": newType}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s",
+				m.cloudProject, url.PathEscape(containerID))
+			if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+				return swiftContainerUpdatedMsg{containerName: containerID, err: fmt.Errorf("failed to update container type: %w", err)}
+			}
+		default:
+			return swiftContainerUpdatedMsg{containerName: containerID, err: fmt.Errorf("type inconnu: %s", newType)}
+		}
+
+		return swiftContainerUpdatedMsg{containerName: containerID, newType: newType}
+	}
+}
+
 // deleteObjectContainer deletes an S3 container.
 func (m Model) deleteObjectContainer(containerName, region string) tea.Cmd {
 	return func() tea.Msg {
@@ -225,6 +258,21 @@ func (m Model) deleteObjectContainer(containerName, region string) tea.Cmd {
 			m.cloudProject, url.PathEscape(region), url.PathEscape(containerName))
 		err := httpLib.Client.Delete(endpoint, nil)
 		return objectContainerActionDoneMsg{action: object_storage.ContainerActionDelete, err: err}
+	}
+}
+
+func (m Model) addS3ContainerPolicy(containerName, region string, userID int64, roleName string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return containerPolicyAddedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s/policy/%d",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(containerName), userID)
+		body := map[string]interface{}{"roleName": roleName}
+		if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
+			return containerPolicyAddedMsg{containerName: containerName, err: fmt.Errorf("failed to add policy: %w", err)}
+		}
+		return containerPolicyAddedMsg{containerName: containerName, roleName: roleName}
 	}
 }
 
