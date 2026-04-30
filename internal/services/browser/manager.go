@@ -378,6 +378,8 @@ type Model struct {
 	fileShareDetailView *file_storage.DetailView
 	// Object Storage detail view
 	objectDetailView *object_storage.DetailView
+	// Object Storage user detail view
+	objectUserDetailView *object_storage.UserDetailView
 	// Object Storage tabs (0=Containers, 1=Users)
 	objectStorageTabIdx int
 	objectStorageUsers  []map[string]interface{}
@@ -386,6 +388,8 @@ type Model struct {
 	s3CreatedCredentials map[string]interface{}
 	s3CredentialsSavedPath  string
 	s3CredentialsSaveError  string
+	s3PendingEnableUser  map[string]interface{} // user being enabled (for credentials display)
+	s3CredentialsFromEnable bool // true if S3CredentialsView opened from enable action
 }
 
 // Navigation items for the top bar
@@ -716,6 +720,17 @@ type swiftContainerUpdatedMsg struct {
 type containerPolicyAddedMsg struct {
 	containerName string
 	roleName      string
+	err           error
+}
+
+type s3SecretLoadedMsg struct {
+	secret string
+	err    error
+}
+
+type s3UserActionDoneMsg struct {
+	action        int
+	newCredential map[string]interface{}
 	err           error
 }
 
@@ -1071,6 +1086,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fileShareActionDoneMsg:
 		return m.handleFileShareActionDone(msg)
 
+	case object_storage.ExecuteUserActionMsg:
+		return m.handleExecuteUserAction(msg)
+
+	case s3SecretLoadedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Impossible de récupérer la secret key: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		if m.objectUserDetailView != nil {
+			m.objectUserDetailView.SetSecret(msg.secret)
+		}
+		return m, nil
+
+	case s3UserActionDoneMsg:
+		return m.handleS3UserActionDone(msg)
+
 	case object_storage.ExecuteContainerActionMsg:
 		containerName := ""
 		region := ""
@@ -1139,6 +1171,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if m.mode == DetailView && m.currentProduct == ProductStorageObject {
+			if m.objectUserDetailView != nil {
+				m.objectUserDetailView = nil
+				m.mode = TableView
+				return m, nil
+			}
 			m.objectDetailView = nil
 			m.mode = TableView
 			return m, nil
@@ -1230,6 +1267,104 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // CreationCommand stores the command to run after browser exits
 var CreationCommand string
+
+// handleExecuteUserAction dispatches actions from the user detail view.
+func (m Model) handleExecuteUserAction(msg object_storage.ExecuteUserActionMsg) (tea.Model, tea.Cmd) {
+	if msg.User == nil {
+		return m, nil
+	}
+
+	// Extract userID
+	var userID int64
+	switch v := msg.User["_userId"].(type) {
+	case float64:
+		userID = int64(v)
+	case int64:
+		userID = v
+	case int:
+		userID = int64(v)
+	case json.Number:
+		userID, _ = v.Int64()
+	case string:
+		fmt.Sscanf(v, "%d", &userID)
+	}
+	if userID == 0 {
+		m.notification = fmt.Sprintf("❌ Impossible de résoudre l'ID utilisateur (type: %T, val: %v)", msg.User["_userId"], msg.User["_userId"])
+		m.notificationExpiry = time.Now().Add(8 * time.Second)
+		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+	}
+
+	switch msg.Action {
+	case object_storage.UserActionShowSecret:
+		access := fmt.Sprintf("%v", msg.User["access"])
+		m.notification = "🔄 Récupération de la secret key..."
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.getS3Secret(userID, access)
+	case object_storage.UserActionEnable:
+		m.s3PendingEnableUser = msg.User
+		m.notification = "🔄 Activation de l'utilisateur..."
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.enableS3User(userID)
+	case object_storage.UserActionDisable:
+		access := fmt.Sprintf("%v", msg.User["access"])
+		m.notification = fmt.Sprintf("🔄 Désactivation... (userID=%d, access=%s)", userID, access)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.disableS3User(userID, access)
+	case object_storage.UserActionDeleteUser:
+		m.notification = "🗑️  Suppression de l'utilisateur..."
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.deleteCloudUser(userID)
+	}
+	return m, nil
+}
+
+// handleS3UserActionDone handles the result of enable/disable/delete user actions.
+func (m Model) handleS3UserActionDone(msg s3UserActionDoneMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+		m.notificationExpiry = time.Now().Add(8 * time.Second)
+		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+	}
+
+	switch msg.action {
+	case object_storage.UserActionEnable:
+		// Show S3CredentialsView like after user creation
+		username := ""
+		if m.s3PendingEnableUser != nil {
+			if u, ok := m.s3PendingEnableUser["_username"].(string); ok && u != "" {
+				username = u
+			}
+		}
+		m.s3CreatedUser = map[string]interface{}{"username": username}
+		m.s3CreatedCredentials = msg.newCredential
+		m.s3CredentialsSavedPath = ""
+		m.s3CredentialsSaveError = ""
+		m.s3PendingEnableUser = nil
+		m.objectUserDetailView = nil
+		m.s3CredentialsFromEnable = true
+		m.mode = S3CredentialsView
+		return m, nil
+	case object_storage.UserActionDisable:
+		m.notification = "✅ Utilisateur désactivé"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.objectUserDetailView = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/object"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+	case object_storage.UserActionDeleteUser:
+		m.objectUserDetailView = nil
+		m.mode = LoadingView
+		m.notification = "✅ Utilisateur supprimé"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/object"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+	}
+	return m, nil
+}
 
 // handleSetDefaultProject handles the result of setting a default project
 func (m Model) handleSetDefaultProject(msg setDefaultProjectMsg) (tea.Model, tea.Cmd) {
@@ -1491,7 +1626,11 @@ func (m Model) renderContentBox(width int) string {
 		currentNav := navItems[m.navIdx]
 
 		// Product title - show item name in detail view
-		if m.mode == DetailView && m.currentItemName != "" {
+		if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectUserDetailView != nil {
+			titleText = m.objectUserDetailView.Title()
+		} else if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
+			titleText = m.objectDetailView.Title()
+		} else if m.mode == DetailView && m.currentItemName != "" {
 			titleText = fmt.Sprintf(" %s %s > %s ", currentNav.Icon, currentNav.Label, m.currentItemName)
 		} else {
 			titleText = fmt.Sprintf(" %s %s ", currentNav.Icon, currentNav.Label)
@@ -4237,6 +4376,9 @@ func (m Model) renderDetailView(width int) string {
                 }
                 return m.renderGenericDetail(width)
         case ProductStorageObject:
+                if m.objectUserDetailView != nil {
+                        return m.objectUserDetailView.Render(width, 0)
+                }
                 if m.objectDetailView != nil {
                         return m.objectDetailView.Render(width, 0)
                 }
@@ -4662,7 +4804,11 @@ func (m Model) renderFooter() string {
 			help = "←→: Switch Product • c: Create • d: Debug • p: Change Project • q: Quit"
 		}
 	case DetailView:
-		if m.actionConfirm {
+		if m.currentProduct == ProductStorageObject && m.objectUserDetailView != nil {
+			help = m.objectUserDetailView.HelpText()
+		} else if m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
+			help = m.objectDetailView.HelpText()
+		} else if m.actionConfirm {
 			help = "Enter: Confirm Action • Esc: Cancel"
 		} else {
 			help = "←→: Select Action • Enter: Execute • d: Debug • Esc: Back to List • q: Quit"
@@ -4816,6 +4962,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
         // Delegate to object storage detail view when in DetailView for ProductStorageObject
         if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
                 cmd := m.objectDetailView.HandleKey(msg)
+                return m, cmd
+        }
+
+        // Delegate to object storage user detail view
+        if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectUserDetailView != nil {
+                cmd := m.objectUserDetailView.HandleKey(msg)
                 return m, cmd
         }
 
@@ -5123,6 +5275,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				if m.currentProduct == ProductStorageObject {
 					if m.objectStorageTabIdx == 1 {
+						// Open user detail view — use objectStorageUsers for full data
+						selectedRow := m.table.Cursor()
+						if selectedRow < 0 || selectedRow >= len(m.objectStorageUsers) {
+							return m, nil
+						}
+						ctx := &views.Context{Width: m.width, Height: m.height}
+						m.objectUserDetailView = object_storage.NewUserDetailView(ctx, m.objectStorageUsers[selectedRow])
+						m.mode = DetailView
 						return m, nil
 					}
 					ctx := &views.Context{Width: m.width, Height: m.height}

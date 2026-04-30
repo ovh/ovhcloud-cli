@@ -781,16 +781,14 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 				continue
 			}
 
-			// Fetch S3 credentials for this user
 			var s3Creds []map[string]interface{}
 			s3Endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials", m.cloudProject, userId)
 			if err := httpLib.Client.Get(s3Endpoint, &s3Creds); err == nil && len(s3Creds) > 0 {
-				for _, cred := range s3Creds {
-					cred["_username"] = user["username"]
-					cred["_userDescription"] = user["description"]
-					cred["_userId"] = user["id"]
-					s3Users = append(s3Users, cred)
-				}
+				cred := s3Creds[0]
+				cred["_username"] = user["username"]
+				cred["_userDescription"] = user["description"]
+				cred["_userId"] = user["id"]
+				s3Users = append(s3Users, cred)
 			} else {
 				// User exists but has no S3 credentials yet
 				userEntry["access"] = ""

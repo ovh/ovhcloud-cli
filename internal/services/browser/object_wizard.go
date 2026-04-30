@@ -563,7 +563,11 @@ func (m Model) renderS3CredentialsView(width int) string {
 	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Bold(true)
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
-	content.WriteString(titleStyle.Render("✅ S3 User created successfully!") + "\n\n")
+	if m.s3CredentialsFromEnable {
+		content.WriteString(titleStyle.Render("✅ Utilisateur activé avec succès !") + "\n\n")
+	} else {
+		content.WriteString(titleStyle.Render("✅ S3 User created successfully!") + "\n\n")
+	}
 	content.WriteString(warningStyle.Render("⚠  Save these credentials now — the secret key will never be shown again.") + "\n\n")
 
 	username := getStringValue(m.s3CreatedUser, "username", "")
@@ -789,6 +793,7 @@ func (m Model) handleS3CredentialsViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 		m.s3CreatedCredentials = nil
 		m.s3CredentialsSavedPath = ""
 		m.s3CredentialsSaveError = ""
+		m.s3CredentialsFromEnable = false
 		return m, m.fetchDataForPath("/storage/object")
 	case "q", "ctrl+c":
 		return m, tea.Quit

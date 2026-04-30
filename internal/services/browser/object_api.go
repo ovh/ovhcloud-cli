@@ -276,6 +276,66 @@ func (m Model) addS3ContainerPolicy(containerName, region string, userID int64, 
 	}
 }
 
+func (m Model) getS3Secret(userID int64, access string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3SecretLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials/%s/secret",
+			m.cloudProject, userID, url.PathEscape(access))
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, nil, &result); err != nil {
+			return s3SecretLoadedMsg{err: fmt.Errorf("failed to retrieve secret: %w", err)}
+		}
+		secret, _ := result["secret"].(string)
+		return s3SecretLoadedMsg{secret: secret}
+	}
+}
+
+func (m Model) enableS3User(userID int64) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3UserActionDoneMsg{action: object_storage.UserActionEnable, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials", m.cloudProject, userID)
+		var cred map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, nil, &cred); err != nil {
+			return s3UserActionDoneMsg{action: object_storage.UserActionEnable, err: fmt.Errorf("failed to create credentials: %w", err)}
+		}
+		return s3UserActionDoneMsg{action: object_storage.UserActionEnable, newCredential: cred}
+	}
+}
+
+func (m Model) disableS3User(userID int64, access string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3UserActionDoneMsg{action: object_storage.UserActionDisable, err: fmt.Errorf("no cloud project selected")}
+		}
+		if access == "" || access == "<nil>" {
+			return s3UserActionDoneMsg{action: object_storage.UserActionDisable, err: fmt.Errorf("access key vide (userID=%d)", userID)}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials/%s",
+			m.cloudProject, userID, url.PathEscape(access))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return s3UserActionDoneMsg{action: object_storage.UserActionDisable, err: fmt.Errorf("failed to delete credentials: %w", err)}
+		}
+		return s3UserActionDoneMsg{action: object_storage.UserActionDisable}
+	}
+}
+
+func (m Model) deleteCloudUser(userID int64) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return s3UserActionDoneMsg{action: object_storage.UserActionDeleteUser, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d", m.cloudProject, userID)
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return s3UserActionDoneMsg{action: object_storage.UserActionDeleteUser, err: fmt.Errorf("failed to delete user: %w", err)}
+		}
+		return s3UserActionDoneMsg{action: object_storage.UserActionDeleteUser}
+	}
+}
+
 // createS3User creates a new cloud user with objectstore access, then creates S3 credentials for it.
 func (m Model) createS3User() tea.Cmd {
 	return func() tea.Msg {
