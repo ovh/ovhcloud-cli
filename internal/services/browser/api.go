@@ -1288,6 +1288,34 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 		return dataLoadedMsg{err: err}
 	}
 
+	// Also fetch region details in parallel to get the type (localzone vs region)
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	var allRegionNames []string
+	if err := httpLib.Client.Get(regionEndpoint, &allRegionNames); err == nil {
+		ids := make([]any, len(allRegionNames))
+		for i, n := range allRegionNames {
+			ids[i] = n
+		}
+		regionDetails, _ := httpLib.FetchObjectsParallel[map[string]any](regionEndpoint+"/%s", ids, true)
+		regionTypeMap := make(map[string]string, len(allRegionNames))
+		for i, d := range regionDetails {
+			if d != nil {
+				t, _ := d["type"].(string)
+				regionTypeMap[allRegionNames[i]] = t
+			}
+		}
+		// Embed _regionType on each network based on its first region
+		for i, n := range networks {
+			if regions, ok := n["regions"].([]interface{}); ok && len(regions) > 0 {
+				if rm, ok := regions[0].(map[string]interface{}); ok {
+					if reg := getString(rm, "region"); reg != "" {
+						networks[i]["_regionType"] = regionTypeMap[reg]
+					}
+				}
+			}
+		}
+	}
+
 	// Enrich with subnet data in parallel
 	networkIDs := make([]any, len(networks))
 	for i, n := range networks {
@@ -1305,6 +1333,47 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 		data: networks,
 		err:  nil,
 	}
+}
+
+// fetchPrivateNetRegions returns regions suitable for private network creation with their type.
+func (m Model) fetchPrivateNetRegions() ([]map[string]interface{}, error) {
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	var allNames []string
+	if err := httpLib.Client.Get(regionEndpoint, &allNames); err != nil {
+		return nil, err
+	}
+	ids := make([]any, len(allNames))
+	for i, n := range allNames {
+		ids[i] = n
+	}
+	details, _ := httpLib.FetchObjectsParallel[map[string]any](regionEndpoint+"/%s", ids, true)
+	var result []map[string]interface{}
+	for i, d := range details {
+		if d == nil {
+			continue
+		}
+		name := allNames[i]
+		rtype, _ := d["type"].(string)
+		// Only include regions that support vrack / network
+		hasNetwork := false
+		if services, ok := d["services"].([]interface{}); ok {
+			for _, svc := range services {
+				if sm, ok := svc.(map[string]interface{}); ok {
+					if sm["name"] == "network" && sm["status"] == "UP" {
+						hasNetwork = true
+						break
+					}
+				}
+			}
+		}
+		if hasNetwork {
+			result = append(result, map[string]interface{}{
+				"name": name,
+				"type": rtype,
+			})
+		}
+	}
+	return result, nil
 }
 
 // fetchPublicNetworksData fetches public networks at project level
@@ -1701,7 +1770,22 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 	case ProductStorageBackup:
 		m.table = createVolumeBackupsTable(msg.data, m.width, m.height)
 	case ProductNetworkPrivate:
-		m.table = createPrivateNetworksTable(msg.data, m.width, m.height)
+		// Split into vRack (tab 0) and Local Zones (tab 1)
+		var vRack, localZones []map[string]interface{}
+		for _, net := range msg.data {
+			if getString(net, "_regionType") == "localzone" {
+				localZones = append(localZones, net)
+			} else {
+				vRack = append(vRack, net)
+			}
+		}
+		m.privNetLocalZones = localZones
+		m.privNetTabIdx = 0
+		// currentData = vRack slice (tab 0); full list kept in msg.data via normal path
+		m.currentData = vRack
+		m.table = createPrivateNetworksTable(vRack, m.width, m.height)
+		m.mode = TableView
+		return m, nil
 	case ProductNetworkPublic:
 		m.table = createFloatingIPsTable(msg.data, m.width, m.height)
 	case ProductNetworkGateway:
@@ -2067,16 +2151,15 @@ func createGenericTable(data []map[string]interface{}, width, height int) table.
 	return t
 }
 
-// createPrivateNetworksTable creates a table for private networks.
+// createPrivateNetworksTable creates a table for private networks (one tab's worth of data).
 func createPrivateNetworksTable(data []map[string]interface{}, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "VLAN ID", Width: 8},
 		{Title: "Name", Width: 22},
 		{Title: "Location", Width: 20},
-		{Title: "CIDR", Width: 20},
+		{Title: "CIDR", Width: 18},
 		{Title: "Gateway", Width: 16},
 		{Title: "DHCP", Width: 6},
-		{Title: "IP Allocated", Width: 33},
 	}
 
 	var rows []table.Row
@@ -2092,10 +2175,7 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 				}
 			}
 		}
-
 		name := getString(net, "name")
-
-		// Collect regions
 		var locationParts []string
 		if regions, ok := net["regions"].([]interface{}); ok {
 			for _, r := range regions {
@@ -2110,13 +2190,9 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		if location == "" {
 			location = "-"
 		}
-
-		// Extract subnet data (first subnet)
 		cidr := "-"
 		gateway := "-"
 		dhcp := "-"
-		ipAllocated := "-"
-
 		if subnets, ok := net["_subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
 			sub := subnets[0]
 			if v := getString(sub, "cidr"); v != "" {
@@ -2127,32 +2203,21 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 			}
 			if v, ok := sub["dhcpEnabled"].(bool); ok {
 				if v {
-					dhcp = "Active"
+					dhcp = "✓"
 				} else {
-					dhcp = "Inactive"
-				}
-			}
-			// Show IP range from first ipPool
-			if pools, ok := sub["ipPools"].([]interface{}); ok && len(pools) > 0 {
-				if pm, ok := pools[0].(map[string]interface{}); ok {
-					start := getString(pm, "start")
-					end := getString(pm, "end")
-					if start != "" && end != "" {
-						ipAllocated = start + " - " + end
-					}
+					dhcp = "✗"
 				}
 			}
 		}
-
-		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp, ipAllocated})
+		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp})
 	}
 
 	tableHeight := height - 15
 	if tableHeight < 5 {
 		tableHeight = 5
 	}
-	if tableHeight > 20 {
-		tableHeight = 20
+	if tableHeight > 25 {
+		tableHeight = 25
 	}
 
 	t := table.New(
@@ -2161,7 +2226,6 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		table.WithFocused(true),
 		table.WithHeight(tableHeight),
 	)
-
 	s := table.DefaultStyles()
 	s.Header = s.Header.
 		BorderStyle(lipgloss.NormalBorder()).
@@ -2173,7 +2237,6 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		Background(lipgloss.Color("57")).
 		Bold(false)
 	t.SetStyles(s)
-
 	return t
 }
 
