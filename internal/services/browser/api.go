@@ -1325,49 +1325,61 @@ func (m Model) fetchPublicNetworksData() dataLoadedMsg {
 	}
 }
 
-// fetchFloatingIPsData fetches floating IPs from regions that support the "network" feature
-func (m Model) fetchFloatingIPsData() dataLoadedMsg {
-	os.WriteFile("/tmp/floatingip_called.txt", []byte("called project="+m.cloudProject), 0644)
-	if m.cloudProject == "" {
-		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
-	}
-
+// fetchNetworkRegions returns region names that have the "network" service UP.
+func (m Model) fetchNetworkRegions() ([]string, error) {
 	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
 
-	// Fetch full region details (with services) to filter by "network" feature
-	regionDetails, err := httpLib.FetchExpandedArray(regionEndpoint, "")
-	if err != nil {
-		return dataLoadedMsg{err: err}
+	// Get plain list of region names
+	var allNames []string
+	if err := httpLib.Client.Get(regionEndpoint, &allNames); err != nil {
+		return nil, err
 	}
 
-	// Debug: dump region details to understand structure
-	if b, err2 := json.MarshalIndent(regionDetails, "", "  "); err2 == nil {
-		os.WriteFile("/tmp/floatingip_regions_debug.json", b, 0644)
+	// Fetch each region detail in parallel to check for "network" service
+	ids := make([]any, len(allNames))
+	for i, n := range allNames {
+		ids[i] = n
 	}
+	details, _ := httpLib.FetchObjectsParallel[map[string]any](regionEndpoint+"/%s", ids, true)
 
-	var regions []any
-	var regionNames []string
-	for _, r := range regionDetails {
-		name, _ := r["name"].(string)
-		if name == "" {
+	var result []string
+	for i, r := range details {
+		if r == nil {
 			continue
 		}
+		name := allNames[i]
 		if services, ok := r["services"].([]interface{}); ok {
 			for _, svc := range services {
 				if sm, ok := svc.(map[string]interface{}); ok {
 					if sm["name"] == "network" && sm["status"] == "UP" {
-						regions = append(regions, name)
-						regionNames = append(regionNames, name)
+						result = append(result, name)
 						break
 					}
 				}
 			}
 		}
 	}
+	return result, nil
+}
 
-	if len(regions) == 0 {
-		os.WriteFile("/tmp/floatingip_debug.json", []byte(`{"error":"no regions with network feature found"}`), 0644)
+// fetchFloatingIPsData fetches floating IPs from network-capable regions
+func (m Model) fetchFloatingIPsData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+
+	regionNames, err := m.fetchNetworkRegions()
+	if err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	if len(regionNames) == 0 {
 		return dataLoadedMsg{data: nil, err: nil}
+	}
+
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	regions := make([]any, len(regionNames))
+	for i, r := range regionNames {
+		regions[i] = r
 	}
 
 	allRegionIPs, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/floatingip", regions, true)
@@ -1380,15 +1392,6 @@ func (m Model) fetchFloatingIPsData() dataLoadedMsg {
 			}
 			floatingIPs = append(floatingIPs, ip)
 		}
-	}
-
-	// Debug dump
-	dbg := map[string]interface{}{"regions": regionNames, "count": len(floatingIPs)}
-	if len(floatingIPs) > 0 {
-		dbg["first"] = floatingIPs[0]
-	}
-	if b, err2 := json.MarshalIndent(dbg, "", "  "); err2 == nil {
-		os.WriteFile("/tmp/floatingip_debug.json", b, 0644)
 	}
 
 	return dataLoadedMsg{data: floatingIPs, err: nil}
@@ -1412,39 +1415,39 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 	}
 }
 
-// fetchGatewaysData fetches gateways across all regions
+// fetchGatewaysData fetches gateways from network-capable regions
 func (m Model) fetchGatewaysData() dataLoadedMsg {
 	if m.cloudProject == "" {
-		return dataLoadedMsg{
-			err: fmt.Errorf("no cloud project selected"),
-		}
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 	}
 
-	var regionNames []string
-	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
-	if err := httpLib.Client.Get(regionEndpoint, &regionNames); err != nil {
+	regionNames, err := m.fetchNetworkRegions()
+	if err != nil {
 		return dataLoadedMsg{err: err}
 	}
+	if len(regionNames) == 0 {
+		return dataLoadedMsg{data: nil, err: nil}
+	}
 
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
 	regions := make([]any, len(regionNames))
 	for i, r := range regionNames {
 		regions[i] = r
 	}
 
-	allRegionGateways, err := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/gateway", regions, true)
-	if err != nil {
-		return dataLoadedMsg{err: err}
-	}
+	allRegionGateways, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/gateway", regions, true)
 
 	var gateways []map[string]interface{}
-	for _, regionGateways := range allRegionGateways {
-		gateways = append(gateways, regionGateways...)
+	for i, regionGateways := range allRegionGateways {
+		for _, gw := range regionGateways {
+			if r, _ := gw["region"].(string); r == "" {
+				gw["region"] = regionNames[i]
+			}
+			gateways = append(gateways, gw)
+		}
 	}
 
-	return dataLoadedMsg{
-		data: gateways,
-		err:  nil,
-	}
+	return dataLoadedMsg{data: gateways, err: nil}
 }
 
 // handleProjectsLoaded processes the loaded projects data
@@ -1649,6 +1652,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.table = createPrivateNetworksTable(msg.data, m.width, m.height)
 	case ProductNetworkPublic:
 		m.table = createFloatingIPsTable(msg.data, m.width, m.height)
+	case ProductNetworkGateway:
+		m.table = createGatewaysTable(msg.data, m.width, m.height)
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)
 	}
@@ -2086,6 +2091,90 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		}
 
 		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp, ipAllocated})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// createGatewaysTable creates a table for gateways.
+func createGatewaysTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Name", Width: 22},
+		{Title: "Region", Width: 16},
+		{Title: "Size", Width: 6},
+		{Title: "Private Network", Width: 36},
+		{Title: "Public IP", Width: 18},
+		{Title: "Private IP", Width: 34},
+		{Title: "Status", Width: 10},
+	}
+
+	var rows []table.Row
+	for _, gw := range data {
+		name := getString(gw, "name")
+		region := getString(gw, "region")
+		size := getString(gw, "model")
+		status := getString(gw, "status")
+
+		publicIP := "-"
+		if ei, ok := gw["externalInformation"].(map[string]interface{}); ok {
+			if ips, ok := ei["ips"].([]interface{}); ok && len(ips) > 0 {
+				if ipm, ok := ips[0].(map[string]interface{}); ok {
+					if v := getString(ipm, "ip"); v != "" {
+						publicIP = v
+					}
+				}
+			}
+		}
+
+		privateNetwork := "-"
+		var privateIPs []string
+		if ifaces, ok := gw["interfaces"].([]interface{}); ok && len(ifaces) > 0 {
+			for _, iface := range ifaces {
+				if ifm, ok := iface.(map[string]interface{}); ok {
+					if v := getString(ifm, "ip"); v != "" {
+						privateIPs = append(privateIPs, v)
+					}
+					if privateNetwork == "-" {
+						if v := getString(ifm, "networkId"); v != "" {
+							privateNetwork = v
+						}
+					}
+				}
+			}
+		}
+		privateIP := "-"
+		if len(privateIPs) > 0 {
+			privateIP = strings.Join(privateIPs, ", ")
+		}
+
+		rows = append(rows, table.Row{name, region, size, privateNetwork, publicIP, privateIP, status})
 	}
 
 	tableHeight := height - 15
