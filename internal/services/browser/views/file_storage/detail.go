@@ -93,7 +93,7 @@ func (v *DetailView) renderActions() string {
 			BorderForeground(lipgloss.Color("#00FF7F")).
 			Padding(0, 1).
 			Width(40)
-		return views.StyleStatusWarning.Render("Nouveau nom :") + "\n" +
+		return views.StyleStatusWarning.Render("New name:") + "\n" +
 			inputStyle.Render(v.renameInput+"▌") + "\n\n" +
 					views.StyleFooter.Render("Enter: Confirm • Esc: Cancel")
 	}
@@ -106,7 +106,7 @@ func (v *DetailView) renderActions() string {
 			Padding(0, 1).
 			Width(20)
 		return views.StyleStatusWarning.Render(
-				fmt.Sprintf("New size in GB (current: %s GB, must be larger):", currentSize),
+				fmt.Sprintf("New size in GB (current: %s GB, minimum: %s GB, must be larger):", currentSize, currentSize),
 			) + "\n" +
 				inputStyle.Render(v.extendInput+"▌") + "\n\n" +
 				views.StyleFooter.Render("Enter: Confirm • Esc: Cancel")
@@ -180,7 +180,7 @@ func (v *DetailView) HandleKey(msg tea.KeyMsg) tea.Cmd {
 				var newSizeInt, currentSizeInt int
 				fmt.Sscanf(newSize, "%d", &newSizeInt)
 				fmt.Sscanf(currentSizeStr, "%d", &currentSizeInt)
-				if newSizeInt <= currentSizeInt {
+				if newSizeInt < 150 || newSizeInt <= currentSizeInt {
 					v.extendInput = ""
 					return nil
 				}

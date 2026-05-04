@@ -16,8 +16,8 @@ import (
 
 var backupTypes = []string{"Snapshot", "Backup"}
 var backupTypeDescriptions = []string{
-	"Instantané du volume — rapide, lié au volume source",
-	"Sauvegarde complète indépendante — peut être restaurée même si le volume est supprimé",
+	"Volume snapshot — fast, linked to the source volume",
+	"Full independent backup — can be restored even if the volume is deleted",
 }
 
 // ─── Render functions ─────────────────────────────────────────────────────────
@@ -47,10 +47,10 @@ func (m Model) renderBackupWizardVolumeStep(width int) string {
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#555555"))
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
-	content.WriteString(titleStyle.Render("💾 Choisissez un volume à sauvegarder :") + "\n\n")
+	content.WriteString(titleStyle.Render("💾 Choose a volume to back up:") + "\n\n")
 
 	if len(m.wizard.backupVolumes) == 0 {
-		content.WriteString(dimStyle.Render("  Aucun volume disponible.") + "\n")
+		content.WriteString(dimStyle.Render("  No volume available.") + "\n")
 	} else {
 		maxVisible := 12
 		startIdx := 0
@@ -62,7 +62,7 @@ func (m Model) renderBackupWizardVolumeStep(width int) string {
 			endIdx = len(m.wizard.backupVolumes)
 		}
 		if startIdx > 0 {
-			content.WriteString(dimStyle.Render(fmt.Sprintf("  (...%d au-dessus)", startIdx)) + "\n")
+			content.WriteString(dimStyle.Render(fmt.Sprintf("  (...%d above)", startIdx)) + "\n")
 		}
 		for i := startIdx; i < endIdx; i++ {
 			v := m.wizard.backupVolumes[i]
@@ -80,10 +80,10 @@ func (m Model) renderBackupWizardVolumeStep(width int) string {
 			}
 		}
 		if endIdx < len(m.wizard.backupVolumes) {
-			content.WriteString(dimStyle.Render(fmt.Sprintf("  (...%d en-dessous)", len(m.wizard.backupVolumes)-endIdx)) + "\n")
+			content.WriteString(dimStyle.Render(fmt.Sprintf("  (...%d below)", len(m.wizard.backupVolumes)-endIdx)) + "\n")
 		}
 	}
-	content.WriteString("\n" + hintStyle.Render("↑↓: Naviguer • Enter: Suivant • Esc: Annuler"))
+	content.WriteString("\n" + hintStyle.Render("↑↓: Navigate • Enter: Next • Esc: Cancel"))
 	return content.String()
 }
 
@@ -99,8 +99,8 @@ func (m Model) renderBackupWizardTypeStep(width int) string {
 	if m.wizard.backupVolumeIdx < len(m.wizard.backupVolumes) {
 		volName = getStringValue(m.wizard.backupVolumes[m.wizard.backupVolumeIdx], "name", "-")
 	}
-	content.WriteString(titleStyle.Render(fmt.Sprintf("Volume : %s", volName)) + "\n\n")
-	content.WriteString(titleStyle.Render("Choisissez un type de sauvegarde :") + "\n\n")
+	content.WriteString(titleStyle.Render(fmt.Sprintf("Volume: %s", volName)) + "\n\n")
+	content.WriteString(titleStyle.Render("Choose a backup type:") + "\n\n")
 
 	for i, t := range backupTypes {
 		if i == m.wizard.backupTypeIdx {
@@ -110,7 +110,7 @@ func (m Model) renderBackupWizardTypeStep(width int) string {
 			content.WriteString(itemStyle.Render(fmt.Sprintf("    %s", t)) + "\n")
 		}
 	}
-	content.WriteString("\n" + hintStyle.Render("↑↓: Naviguer • Enter: Suivant • Esc: Retour"))
+	content.WriteString("\n" + hintStyle.Render("↑↓: Navigate • Enter: Next • Esc: Back"))
 	return content.String()
 }
 
@@ -126,13 +126,13 @@ func (m Model) renderBackupWizardNameStep(width int) string {
 	errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
 
 	backupTypeName := backupTypes[m.wizard.backupTypeIdx]
-	content.WriteString(titleStyle.Render(fmt.Sprintf("Nommez votre %s :", strings.ToLower(backupTypeName))) + "\n\n")
+	content.WriteString(titleStyle.Render(fmt.Sprintf("Name your %s:", strings.ToLower(backupTypeName))) + "\n\n")
 	content.WriteString(inputStyle.Render(m.wizard.backupNameInput+"▌") + "\n\n")
 
 	if m.wizard.errorMsg != "" {
 		content.WriteString(errStyle.Render("  ❌ "+m.wizard.errorMsg) + "\n\n")
 	}
-	content.WriteString(hintStyle.Render("Tapez un nom • Enter: Suivant • Esc: Retour"))
+	content.WriteString(hintStyle.Render("Type a name • Enter: Next • Esc: Back"))
 	return content.String()
 }
 
@@ -148,11 +148,11 @@ func (m Model) renderBackupWizardConfirmStep(width int) string {
 	volRegion := getStringValue(vol, "region", "-")
 	backupTypeName := backupTypes[m.wizard.backupTypeIdx]
 
-	content.WriteString(titleStyle.Render("Confirmer la création :") + "\n\n")
-	content.WriteString(labelStyle.Render("  Volume :") + valueStyle.Render(volName) + "\n")
-	content.WriteString(labelStyle.Render("  Région :") + valueStyle.Render(volRegion) + "\n")
-	content.WriteString(labelStyle.Render("  Type :") + valueStyle.Render(backupTypeName) + "\n")
-	content.WriteString(labelStyle.Render("  Nom :") + valueStyle.Render(m.wizard.backupName) + "\n\n")
+	content.WriteString(titleStyle.Render("Confirm creation:") + "\n\n")
+	content.WriteString(labelStyle.Render("  Volume:") + valueStyle.Render(volName) + "\n")
+	content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(volRegion) + "\n")
+	content.WriteString(labelStyle.Render("  Type:") + valueStyle.Render(backupTypeName) + "\n")
+	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.backupName) + "\n\n")
 
 	baseBtn := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -163,15 +163,15 @@ func (m Model) renderBackupWizardConfirmStep(width int) string {
 
 	var createBtn, cancelBtn string
 	if m.wizard.backupConfirmBtnIdx == 0 {
-		createBtn = baseBtn.Foreground(lipgloss.Color("#00FF7F")).BorderForeground(lipgloss.Color("#00FF7F")).Render("✓ Créer")
-		cancelBtn = inactiveBtn.Render("✗ Annuler")
+		createBtn = baseBtn.Foreground(lipgloss.Color("#00FF7F")).BorderForeground(lipgloss.Color("#00FF7F")).Render("✓ Create")
+		cancelBtn = inactiveBtn.Render("✗ Cancel")
 	} else {
-		createBtn = inactiveBtn.Render("✓ Créer")
-		cancelBtn = baseBtn.Foreground(lipgloss.Color("#FF6B6B")).BorderForeground(lipgloss.Color("#FF6B6B")).Render("✗ Annuler")
+		createBtn = inactiveBtn.Render("✓ Create")
+		cancelBtn = baseBtn.Foreground(lipgloss.Color("#FF6B6B")).BorderForeground(lipgloss.Color("#FF6B6B")).Render("✗ Cancel")
 	}
 	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Center, createBtn, "  ", cancelBtn))
 	content.WriteString("\n\n")
-	content.WriteString(hintStyle.Render("←→: Sélectionner • Enter: Confirmer • Esc: Retour"))
+	content.WriteString(hintStyle.Render("←→: Select • Enter: Confirm • Esc: Back"))
 	return content.String()
 }
 
@@ -238,7 +238,7 @@ func (m Model) handleBackupWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		name := strings.TrimSpace(m.wizard.backupNameInput)
 		if name == "" {
-			m.wizard.errorMsg = "Le nom ne peut pas être vide."
+			m.wizard.errorMsg = "Name cannot be empty."
 			return m, nil
 		}
 		m.wizard.errorMsg = ""
@@ -281,9 +281,9 @@ func (m Model) handleBackupWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 		isSnapshot := m.wizard.backupTypeIdx == 0
 		m.wizard.isLoading = true
 		if isSnapshot {
-			m.wizard.loadingMessage = fmt.Sprintf("Création du snapshot '%s'...", name)
+			m.wizard.loadingMessage = fmt.Sprintf("Creating snapshot '%s'...", name)
 		} else {
-			m.wizard.loadingMessage = fmt.Sprintf("Création du backup '%s'...", name)
+			m.wizard.loadingMessage = fmt.Sprintf("Creating backup '%s'...", name)
 		}
 		return m, m.createVolumeBackupOrSnapshot(volumeID, region, name, isSnapshot)
 	case "esc":

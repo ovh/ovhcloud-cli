@@ -92,13 +92,13 @@ func (v *SnapshotDetailView) renderActions(currentSize string) string {
 
 	switch v.subMenu {
 	case snapshotSubName:
-		return views.StyleStatusWarning.Render("Nom du nouveau volume :") + "\n" +
+		return views.StyleStatusWarning.Render("New volume name:") + "\n" +
 			inputStyle.Render(v.nameInput+"▌") + "\n\n" +
-			views.StyleFooter.Render("Enter: Suivant • Esc: Annuler")
+			views.StyleFooter.Render("Enter: Next • Esc: Cancel")
 	case snapshotSubSize:
-		return views.StyleStatusWarning.Render(fmt.Sprintf("Taille en GB (actuelle: %s GB, doit être ≥) :", currentSize)) + "\n" +
+		return views.StyleStatusWarning.Render(fmt.Sprintf("Size in GB (current: %s GB, must be ≥):", currentSize)) + "\n" +
 			inputStyle.Render(v.sizeInput+"▌") + "\n\n" +
-			views.StyleFooter.Render("Enter: Créer • Esc: Retour")
+			views.StyleFooter.Render("Enter: Create • Esc: Back")
 	}
 
 	var parts []string

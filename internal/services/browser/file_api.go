@@ -202,7 +202,7 @@ func createFileStorageTable(data []map[string]interface{}, width, height int) ta
 		{Title: "ID", Width: 20},
 		{Title: "Region", Width: 12},
 		{Title: "Type", Width: 16},
-		{Title: "Capacité", Width: 12},
+		{Title: "Capacity", Width: 12},
 		{Title: "Status", Width: 12},
 	}
 
@@ -353,7 +353,7 @@ func (m Model) extendFileShare(shareId, region string, newSizeGB int) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(shareId))
-		body := map[string]interface{}{"size": newSizeGB}
+		body := map[string]interface{}{"newSize": newSizeGB}
 		err := httpLib.Client.Put(endpoint, body, nil)
 		return fileShareActionDoneMsg{action: file_storage.FileShareActionExtend, err: err}
 	}
@@ -397,11 +397,11 @@ func (m Model) handleFileShareActionDone(msg fileShareActionDoneMsg) (tea.Model,
 	}
 
 	actionNames := []string{"deleted", "renamed", "extended"}
-	actionName := "mis à jour"
+	actionName := "updated"
 	if msg.action >= 0 && msg.action < len(actionNames) {
 		actionName = actionNames[msg.action]
 	}
-	m.notification = fmt.Sprintf("✅ Partage %s avec succès!", actionName)
+	m.notification = fmt.Sprintf("✅ Share %s successfully!", actionName)
 	m.notificationExpiry = time.Now().Add(5 * time.Second)
 	m.fileShareDetailView = nil
 	m.detailData = nil

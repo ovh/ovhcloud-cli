@@ -1096,7 +1096,7 @@ func (m Model) deleteVolume(volumeId string) tea.Cmd {
 				}
 			}
 			if len(blocking) > 0 {
-				msg := fmt.Sprintf("Ce volume possède %d snapshot(s). Supprimez-les d'abord depuis l'onglet Volume Snapshots.", len(blocking))
+				msg := fmt.Sprintf("This volume has %d snapshot(s). Delete them first from the Volume Snapshots tab.", len(blocking))
 				return volumeActionDoneMsg{action: 0, err: fmt.Errorf("%s", msg)}
 			}
 		}
@@ -1924,14 +1924,14 @@ func createGenericTable(data []map[string]interface{}, width, height int) table.
 // createBlockStorageTable creates a nicely formatted table for block storage volumes.
 func createBlockStorageTable(data []map[string]interface{}, width, height int) table.Model {
 	columns := []table.Column{
-		{Title: "Nom", Width: 24},
+		{Title: "Name", Width: 24},
 		{Title: "ID", Width: 36},
-		{Title: "Localisation", Width: 20},
+		{Title: "Location", Width: 20},
 		{Title: "Type", Width: 14},
-		{Title: "Capacité", Width: 10},
+		{Title: "Capacity", Width: 10},
 		{Title: "Instance", Width: 20},
-		{Title: "Chiffrement", Width: 20},
-		{Title: "Statut", Width: 12},
+		{Title: "Encryption", Width: 20},
+		{Title: "Status", Width: 12},
 	}
 
 	var rows []table.Row
@@ -1962,9 +1962,9 @@ func createBlockStorageTable(data []map[string]interface{}, width, height int) t
 			}
 		}
 		status := getString(vol, "status")
-		encryption := "Aucun"
+		encryption := "None"
 		if strings.HasSuffix(vType, "-luks") {
-			encryption = "Actif"
+			encryption = "Active"
 		}
 		rows = append(rows, table.Row{name, id, region, vType, size, instance, encryption, status})
 	}

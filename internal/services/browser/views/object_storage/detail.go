@@ -131,11 +131,11 @@ func (v *DetailView) renderInfo() string {
 		}
 
 		// Encryption
-		encryptionStatus := "Pas de chiffrement"
+		encryptionStatus := "No encryption"
 		encryptionStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 		if enc, ok := v.container["encryption"].(map[string]interface{}); ok {
 			if alg, _ := enc["sseAlgorithm"].(string); alg != "" {
-				encryptionStatus = "SSE-OMK (clés gérées par OVHcloud)"
+				encryptionStatus = "SSE-OMK (OVHcloud-managed keys)"
 				encryptionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
 			}
 		}
@@ -207,7 +207,7 @@ func (v *DetailView) renderChangeTypeMenu(width int) string {
 	current := getString(v.container, "containerType")
 	if current != "" {
 		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
-		content.WriteString(descStyle.Render(fmt.Sprintf("Type actuel : %s", current)) + "\n\n")
+		content.WriteString(descStyle.Render(fmt.Sprintf("Current type: %s", current)) + "\n\n")
 	}
 	for i, opt := range swiftTypeOptions {
 		if i == v.subMenuIdx {
@@ -217,8 +217,8 @@ func (v *DetailView) renderChangeTypeMenu(width int) string {
 		}
 	}
 	content.WriteString("\n")
-	content.WriteString(hintStyle.Render("↑↓: Sélectionner • Enter: Confirmer • Esc: Annuler"))
-	return views.RenderBox("Modifier le type du conteneur", content.String(), width-4)
+	content.WriteString(hintStyle.Render("↑↓: Select • Enter: Confirm • Esc: Cancel"))
+	return views.RenderBox("Change container type", content.String(), width-4)
 }
 
 func (v *DetailView) policyUserCandidates() []map[string]interface{} {
@@ -247,11 +247,11 @@ func (v *DetailView) renderPickUserMenu(width int) string {
 
 	candidates := v.policyUserCandidates()
 	if len(candidates) == 0 {
-		content.WriteString(dimStyle.Render("Aucun utilisateur cloud disponible. Créez d'abord un utilisateur S3.") + "\n")
-		content.WriteString("\n" + hintStyle.Render("Esc: Annuler"))
-		return views.RenderBox("Ajouter un accès utilisateur", content.String(), width-4)
+		content.WriteString(dimStyle.Render("No cloud user available. Please create an S3 user first.") + "\n")
+		content.WriteString("\n" + hintStyle.Render("Esc: Cancel"))
+		return views.RenderBox("Add user access", content.String(), width-4)
 	}
-	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Render("Sélectionnez l'utilisateur à autoriser :") + "\n\n")
+	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Render("Select the user to grant access:") + "\n\n")
 	for i, u := range candidates {
 		name := fmt.Sprintf("%v", u["_username"])
 		if name == "" || name == "<nil>" {
@@ -263,8 +263,8 @@ func (v *DetailView) renderPickUserMenu(width int) string {
 			content.WriteString(itemStyle.Render(fmt.Sprintf("    %s", name)) + "\n")
 		}
 	}
-	content.WriteString("\n" + hintStyle.Render("↑↓: Sélectionner • Enter: Suivant • Esc: Annuler"))
-	return views.RenderBox("Ajouter un accès utilisateur (1/2 : Utilisateur)", content.String(), width-4)
+	content.WriteString("\n" + hintStyle.Render("↑↓: Select • Enter: Next • Esc: Cancel"))
+	return views.RenderBox("Add user access (1/2: User)", content.String(), width-4)
 }
 
 func (v *DetailView) renderPickRoleMenu(width int) string {
@@ -274,12 +274,12 @@ func (v *DetailView) renderPickRoleMenu(width int) string {
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
 	roleDescriptions := map[string]string{
-		"readWrite": "Lecture + écriture (recommandé)",
-		"readOnly":  "Lecture seule",
-		"admin":     "Accès complet (admin)",
-		"deny":      "Refuser tout accès",
+		"readWrite": "Read + write (recommended)",
+		"readOnly":  "Read only",
+		"admin":     "Full access (admin)",
+		"deny":      "Deny all access",
 	}
-	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Render("Sélectionnez le rôle :") + "\n\n")
+	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Render("Select the role:") + "\n\n")
 	for i, role := range policyRoles {
 		desc := roleDescriptions[role]
 		if i == v.subMenuIdx {
@@ -288,8 +288,8 @@ func (v *DetailView) renderPickRoleMenu(width int) string {
 			content.WriteString(itemStyle.Render(fmt.Sprintf("    %-12s  %s", role, desc)) + "\n")
 		}
 	}
-	content.WriteString("\n" + hintStyle.Render("↑↓: Sélectionner • Enter: Confirmer • Esc: Retour"))
-	return views.RenderBox("Ajouter un accès utilisateur (2/2 : Rôle)", content.String(), width-4)
+	content.WriteString("\n" + hintStyle.Render("↑↓: Select • Enter: Confirm • Esc: Back"))
+	return views.RenderBox("Add user access (2/2: Role)", content.String(), width-4)
 }
 
 // ─── Key handling ─────────────────────────────────────────────────────────────
@@ -443,14 +443,14 @@ func (v *DetailView) Title() string {
 func (v *DetailView) HelpText() string {
 	switch v.subMenu {
 	case subMenuChangeType:
-		return "↑↓: Sélectionner • Enter: Confirmer • Esc: Annuler"
+		return "↑↓: Select • Enter: Confirm • Esc: Cancel"
 	case subMenuAddPolicy:
-		return "↑↓: Sélectionner l'utilisateur • Enter: Suivant • Esc: Annuler"
+		return "↑↓: Select user • Enter: Next • Esc: Cancel"
 	case subMenuPickRole:
-		return "↑↓: Sélectionner le rôle • Enter: Confirmer • Esc: Retour"
+		return "↑↓: Select role • Enter: Confirm • Esc: Back"
 	}
 	if v.confirmMode {
-		return "Enter: Confirmer la suppression • Esc: Annuler"
+		return "Enter: Confirm deletion • Esc: Cancel"
 	}
 	return "←→: Select • Enter: Execute • Esc: Back to list • q: Quit"
 }

@@ -61,10 +61,10 @@ func (v *DetailView) Render(width, height int) string {
 	size := getSizeStr(v.volume)
 	bootable := getBootable(v.volume)
 
-	encryptionLabel := "Aucun"
+	encryptionLabel := "None"
 	encryptionStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 	if strings.HasSuffix(vType, "-luks") {
-		encryptionLabel = "Actif"
+		encryptionLabel = "Active"
 		encryptionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
 	}
 

@@ -107,28 +107,28 @@ func (v *BackupDetailView) renderActions() string {
 		Width(40)
 
 	if v.subMenu == backupSubName {
-		return views.StyleStatusWarning.Render("Nom du nouveau volume :") + "\n" +
+		return views.StyleStatusWarning.Render("New volume name:") + "\n" +
 			inputStyle.Render(v.nameInput+"▌") + "\n\n" +
-			views.StyleFooter.Render("Enter: Suivant • Esc: Annuler")
+			views.StyleFooter.Render("Enter: Next • Esc: Cancel")
 	}
 
 	if v.subMenu == backupSubSize {
 		currentSize := getSizeStr(v.backup)
-		return views.StyleStatusWarning.Render(fmt.Sprintf("Taille en GB (backup: %s GB, doit être ≥) :", currentSize)) + "\n" +
+		return views.StyleStatusWarning.Render(fmt.Sprintf("Size in GB (backup: %s GB, must be ≥):", currentSize)) + "\n" +
 			inputStyle.Render(v.sizeInput+"▌") + "\n\n" +
-			views.StyleFooter.Render("Enter: Créer • Esc: Retour")
+			views.StyleFooter.Render("Enter: Create • Esc: Back")
 	}
 
 	if v.subMenu == backupSubPicker {
 		if len(v.restoreVolumes) == 0 {
-			return views.StyleStatusWarning.Render("⏳ Chargement des volumes...") + "\n\n" +
-				views.StyleFooter.Render("Esc: Annuler")
+			return views.StyleStatusWarning.Render("⏳ Loading volumes...") + "\n\n" +
+				views.StyleFooter.Render("Esc: Cancel")
 		}
 		selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
 		itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 		dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#555555"))
 		var sb strings.Builder
-		sb.WriteString(views.StyleStatusWarning.Render("⚠️  Choisissez le volume cible (les données seront écrasées) :") + "\n\n")
+		sb.WriteString(views.StyleStatusWarning.Render("⚠️  Choose the target volume (data will be overwritten):") + "\n\n")
 		maxVisible := 8
 		startIdx := 0
 		if v.restoreIdx >= maxVisible {
@@ -139,7 +139,7 @@ func (v *BackupDetailView) renderActions() string {
 			endIdx = len(v.restoreVolumes)
 		}
 		if startIdx > 0 {
-			sb.WriteString(dimStyle.Render(fmt.Sprintf("  (...%d au-dessus)", startIdx)) + "\n")
+			sb.WriteString(dimStyle.Render(fmt.Sprintf("  (...%d above)", startIdx)) + "\n")
 		}
 		for i := startIdx; i < endIdx; i++ {
 			vol := v.restoreVolumes[i]
@@ -151,9 +151,9 @@ func (v *BackupDetailView) renderActions() string {
 			}
 		}
 		if endIdx < len(v.restoreVolumes) {
-			sb.WriteString(dimStyle.Render(fmt.Sprintf("  (...%d en-dessous)", len(v.restoreVolumes)-endIdx)) + "\n")
+			sb.WriteString(dimStyle.Render(fmt.Sprintf("  (...%d below)", len(v.restoreVolumes)-endIdx)) + "\n")
 		}
-		sb.WriteString("\n" + views.StyleFooter.Render("↑↓: Navigate • Enter: Confirm Restore • Esc: Annuler"))
+		sb.WriteString("\n" + views.StyleFooter.Render("↑↓: Navigate • Enter: Confirm Restore • Esc: Cancel"))
 		return sb.String()
 	}
 
@@ -332,9 +332,9 @@ func (v *BackupDetailView) HelpText() string {
 	case backupSubPicker:
 		return "↑↓: Navigate • Enter: Restore • Esc: Cancel"
 	case backupSubName:
-		return "Type name • Enter: Suivant • Esc: Cancel"
+		return "Type name • Enter: Next • Esc: Cancel"
 	case backupSubSize:
-		return "Type size in GB • Enter: Créer • Esc: Retour"
+		return "Type size in GB • Enter: Create • Esc: Back"
 	}
 	if v.confirmMode {
 		return "Enter: Confirm Delete • Esc: Cancel"

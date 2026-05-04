@@ -22,8 +22,8 @@ var objectContainerTypes = []string{
 }
 
 var objectContainerTypeDescriptions = []string{
-	"Un large éventail de fonctionnalités compatibles avec S3.\nDisponible en 1-AZ, 3-AZ et Local Zones (Standard ou High Performance selon la région)",
-	"Solution basique pour le stockage sans besoin particulier en matière de performance.\nStockage objet natif d'OpenStack, avec les API Swift",
+	"A wide range of S3-compatible features.\nAvailable in 1-AZ, 3-AZ and Local Zones (Standard or High Performance depending on region)",
+	"Basic solution for storage without specific performance requirements.\nNative OpenStack object storage with Swift APIs",
 }
 
 func (m Model) renderObjectWizardNameStep(width int) string {
@@ -61,7 +61,7 @@ func (m Model) renderObjectWizardTypeStep(width int) string {
 			displayText := fmt.Sprintf("  ▶ %s", t)
 			if i == 0 {
 				badgeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
-				displayText += " " + badgeStyle.Render("[Recommandée]")
+				displayText += " " + badgeStyle.Render("[Recommended]")
 			}
 			content.WriteString(selectedStyle.Render(displayText) + "\n")
 			if i < len(objectContainerTypeDescriptions) {
@@ -71,7 +71,7 @@ func (m Model) renderObjectWizardTypeStep(width int) string {
 		} else {
 			displayText := fmt.Sprintf("    %s", t)
 			if i == 0 {
-				displayText += " [Recommandée]"
+				displayText += " [Recommended]"
 			}
 			content.WriteString(itemStyle.Render(displayText) + "\n")
 		}
@@ -90,7 +90,7 @@ func (m Model) renderObjectWizardRegionStep(width int) string {
 
 	content.WriteString(titleStyle.Render("🌍 Region:") + "\n\n")
 	if len(m.wizard.objectRegions) == 0 {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Aucune région disponible.") + "\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("No region available.") + "\n")
 	} else {
 		maxVisible := 10
 		startIdx := 0
@@ -147,16 +147,16 @@ func (m Model) renderObjectWizardEncryptionStep(width int) string {
 	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
 	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
-	content.WriteString(titleStyle.Render("🔐 Chiffrement de vos données") + "\n\n")
-	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Render("Les données déversées dans ce conteneur sont chiffrées à la volée par OVHcloud.") + "\n\n")
+	content.WriteString(titleStyle.Render("🔐 Data encryption") + "\n\n")
+	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Render("Data stored in this container is encrypted on the fly by OVHcloud.") + "\n\n")
 
 	options := []struct {
 		label string
 		desc  string
 		value bool
 	}{
-		{"Pas de chiffrement", "", false},
-		{"Chiffrement côté serveur avec des clés gérées par OVHcloud (SSE-OMK)", "", true},
+		{"No encryption", "", false},
+		{"Server-side encryption with OVHcloud-managed keys (SSE-OMK)", "", true},
 	}
 
 	for _, opt := range options {
@@ -171,7 +171,7 @@ func (m Model) renderObjectWizardEncryptionStep(width int) string {
 		}
 	}
 	content.WriteString("\n")
-	content.WriteString(hintStyle.Render("↑↓: Sélectionner • Enter: Suivant • Esc: Retour"))
+	content.WriteString(hintStyle.Render("↑↓: Select • Enter: Next • Esc: Back"))
 	return content.String()
 }
 
@@ -214,9 +214,9 @@ func (m Model) renderObjectWizardUserStep(width int) string {
 
 	// First option: no user (project-level)
 	if m.wizard.objectUserIdx == 0 {
-		content.WriteString(selectedStyle.Render("  ▶ [Aucun utilisateur spécifique]") + "\n")
+		content.WriteString(selectedStyle.Render("  ▶ [No specific user]") + "\n")
 	} else {
-		content.WriteString(itemStyle.Render("    [Aucun utilisateur spécifique]") + "\n")
+		content.WriteString(itemStyle.Render("    [No specific user]") + "\n")
 	}
 
 	for i, user := range m.wizard.objectUsers {
@@ -237,7 +237,7 @@ func (m Model) renderObjectWizardUserStep(width int) string {
 	}
 
 	if len(m.wizard.objectUsers) == 0 {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("    (aucun utilisateur trouvé)") + "\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("    (no user found)") + "\n")
 	}
 
 	content.WriteString("\n")
@@ -271,11 +271,11 @@ func (m Model) renderObjectWizardConfirmStep(width int) string {
 		content.WriteString(labelStyle.Render("  Replication:   ") + valueStyle.Render(boolToEnglish(m.wizard.objectReplication)) + "\n")
 		content.WriteString(labelStyle.Render("  Versioning:    ") + valueStyle.Render(boolToEnglish(m.wizard.objectVersioning)) + "\n")
 		content.WriteString(labelStyle.Render("  Object Lock:   ") + valueStyle.Render(boolToEnglish(m.wizard.objectLock)) + "\n")
-		encryptionLabel := "Pas de chiffrement"
+		encryptionLabel := "No encryption"
 		if m.wizard.objectEncryption {
-			encryptionLabel = "SSE-OMK (clés OVHcloud)"
+			encryptionLabel = "SSE-OMK (OVHcloud keys)"
 		}
-		content.WriteString(labelStyle.Render("  Chiffrement:   ") + valueStyle.Render(encryptionLabel) + "\n")
+		content.WriteString(labelStyle.Render("  Encryption:   ") + valueStyle.Render(encryptionLabel) + "\n")
 
 		if m.wizard.objectUserIdx > 0 && m.wizard.objectUserIdx <= len(m.wizard.objectUsers) {
 			user := m.wizard.objectUsers[m.wizard.objectUserIdx-1]
@@ -332,7 +332,7 @@ func (m Model) handleObjectWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// Enforce S3 bucket naming rules
 		if len(name) < 3 || len(name) > 63 {
-			m.wizard.errorMsg = "Le nom doit contenir entre 3 et 63 caractères."
+			m.wizard.errorMsg = "Name must be between 3 and 63 characters."
 			return m, nil
 		}
 		for _, ch := range name {
@@ -564,7 +564,7 @@ func (m Model) renderS3CredentialsView(width int) string {
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
 	if m.s3CredentialsFromEnable {
-		content.WriteString(titleStyle.Render("✅ Utilisateur activé avec succès !") + "\n\n")
+		content.WriteString(titleStyle.Render("✅ User activated successfully!") + "\n\n")
 	} else {
 		content.WriteString(titleStyle.Render("✅ S3 User created successfully!") + "\n\n")
 	}
@@ -656,9 +656,9 @@ var swiftContainerTypes = []string{
 }
 
 var swiftContainerTypeDescriptions = []string{
-	"Hébergement statique - Accès rapide et performant pour vos sites. Liez vos domaines et déposez vos fichiers",
-	"Privé - Facturation, informations légales, logs. Archivez simplement et selon vos usages",
-	"Public - Multimédia, binaires, e-commerce. Stockez une infinité de données",
+	"Static hosting - Fast and efficient access for your sites. Link your domains and upload your files",
+	"Private - Billing, legal information, logs. Archive simply according to your needs",
+	"Public - Multimedia, binaries, e-commerce. Store an unlimited amount of data",
 }
 
 func (m Model) renderObjectWizardSwiftTypeStep(width int) string {
@@ -692,10 +692,10 @@ func (m Model) renderObjectWizardSwiftRegionStep(width int) string {
 	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
-	content.WriteString(titleStyle.Render("🌍 Région:") + "\n\n")
+	content.WriteString(titleStyle.Render("🌍 Region:") + "\n\n")
 
 	if len(m.wizard.objectSwiftRegions) == 0 {
-		content.WriteString(itemStyle.Render("  (aucune région disponible)") + "\n\n")
+		content.WriteString(itemStyle.Render("  (no region available)") + "\n\n")
 	} else {
 		maxVisible := 10
 		startIdx := 0

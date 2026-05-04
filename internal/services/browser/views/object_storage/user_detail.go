@@ -115,7 +115,7 @@ func (v *UserDetailView) renderSecretBox(width int) string {
 	secretStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700")).Bold(true)
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 	content.WriteString(secretStyle.Render(v.secretKey) + "\n\n")
-	content.WriteString(hintStyle.Render("⚠️  Notez cette clé, elle ne sera plus affichée."))
+	content.WriteString(hintStyle.Render("⚠️  Note this key, it will not be shown again."))
 	return views.RenderBox("Secret Key", content.String(), width-4)
 }
 
@@ -220,10 +220,10 @@ func (v *UserDetailView) Title() string {
 
 func (v *UserDetailView) HelpText() string {
 	if v.confirmMode {
-		return "Enter: Confirmer • Esc: Annuler"
+		return "Enter: Confirm • Esc: Cancel"
 	}
 	if v.showSecret {
-		return "Esc: Fermer la secret key"
+		return "Esc: Close secret key"
 	}
 	return "←→: Select • Enter: Execute • Esc: Back to list • q: Quit"
 }

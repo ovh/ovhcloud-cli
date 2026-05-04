@@ -104,7 +104,7 @@ func (m Model) renderFileWizardSizeStep(width int) string {
 	var content strings.Builder
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	content.WriteString(titleStyle.Render("Enter file share size (GB):") + "\n\n")
+	content.WriteString(titleStyle.Render("Enter file share size (GB, minimum: 150, maximum: 10240 ):") + "\n\n")
 
 	if m.wizard.errorMsg != "" {
 		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
@@ -320,8 +320,12 @@ func (m Model) handleFileWizardSizeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case tea.KeyEnter:
 		sizeStr := strings.TrimSpace(m.wizard.fileShareSizeInput)
 		size, err := strconv.Atoi(sizeStr)
-		if err != nil || size < 1 {
-			m.wizard.errorMsg = "Size must be a positive integer (GB)"
+		if err != nil || size < 150 {
+			m.wizard.errorMsg = "Minimum size is 150 GB"
+			return m, nil
+		}
+		if err != nil || size > 10240 {
+			m.wizard.errorMsg = "Maximum size is 10240 GB"
 			return m, nil
 		}
 		m.wizard.fileShareSize = size

@@ -1125,7 +1125,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case volumeBackupCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur : %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -1134,7 +1134,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.backupType == "backup" {
 			label = "Backup"
 		}
-		m.notification = fmt.Sprintf("✅ %s '%s' créé avec succès", label, msg.name)
+		m.notification = fmt.Sprintf("✅ %s '%s' created successfully", label, msg.name)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.mode = LoadingView
 		reloadPath := "/storage/snapshot"
@@ -1157,7 +1157,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case s3SecretLoadedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Impossible de récupérer la secret key: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Failed to retrieve secret key: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -1218,7 +1218,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.notification = fmt.Sprintf("🔄 Adding user access to '%s'...", containerName)
 			m.notificationExpiry = time.Now().Add(30 * time.Second)
 			if userID == 0 {
-				m.notification = fmt.Sprintf("❌ Impossible de résoudre l'ID utilisateur (type: %T, val: %v)", msg.ExtraData["userId"], msg.ExtraData["userId"])
+				m.notification = fmt.Sprintf("❌ Failed to resolve user ID (type: %T, val: %v)", msg.ExtraData["userId"], msg.ExtraData["userId"])
 				m.notificationExpiry = time.Now().Add(10 * time.Second)
 				return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 			}
@@ -1266,14 +1266,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case snapshotActionDoneMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur : %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
 		m.snapshotDetailView = nil
 		m.mode = LoadingView
 		if msg.action == block_storage.SnapshotActionCreateVolume {
-			m.notification = fmt.Sprintf("✅ Volume '%s' créé depuis le snapshot", msg.name)
+			m.notification = fmt.Sprintf("✅ Volume '%s' created from snapshot", msg.name)
 			m.notificationExpiry = time.Now().Add(5 * time.Second)
 			// Navigate to Block Storage so handleDataLoaded matches the product
 			m.currentProduct = ProductStorageBlock
@@ -1283,7 +1283,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 			)
 		}
-		m.notification = fmt.Sprintf("✅ Snapshot '%s' supprimé", msg.name)
+		m.notification = fmt.Sprintf("✅ Snapshot '%s' deleted", msg.name)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		return m, tea.Batch(
 			m.fetchDataForPath("/storage/snapshot"),
@@ -1305,14 +1305,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case backupActionDoneMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur : %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
 		m.backupDetailView = nil
 		m.mode = LoadingView
 		if msg.action == block_storage.BackupActionCreateVolume {
-			m.notification = fmt.Sprintf("✅ Volume '%s' créé depuis le backup", msg.name)
+			m.notification = fmt.Sprintf("✅ Volume '%s' created from backup", msg.name)
 			m.notificationExpiry = time.Now().Add(5 * time.Second)
 			m.currentProduct = ProductStorageBlock
 			m.storageSubIdx = 0
@@ -1321,9 +1321,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 			)
 		}
-		action := fmt.Sprintf("Backup '%s' supprimé", msg.name)
+		action := fmt.Sprintf("Backup '%s' deleted", msg.name)
 		if msg.action == block_storage.BackupActionRestore {
-			action = fmt.Sprintf("Backup '%s' restauré avec succès", msg.name)
+			action = fmt.Sprintf("Backup '%s' restored successfully", msg.name)
 		}
 		m.notification = "✅ " + action
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
@@ -1358,11 +1358,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case swiftContainerUpdatedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Type du conteneur '%s' changé en %s", msg.containerName, msg.newType)
+		m.notification = fmt.Sprintf("✅ Container '%s' type changed to %s", msg.containerName, msg.newType)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.objectDetailView = nil
 		m.detailData = nil
@@ -1374,11 +1374,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case containerPolicyAddedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur lors de l'ajout de la politique: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error adding policy: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Accès '%s' ajouté sur '%s'", msg.roleName, msg.containerName)
+		m.notification = fmt.Sprintf("✅ Access '%s' added to '%s'", msg.roleName, msg.containerName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.objectDetailView = nil
 		m.detailData = nil
@@ -1436,7 +1436,7 @@ func (m Model) handleExecuteUserAction(msg object_storage.ExecuteUserActionMsg) 
 		fmt.Sscanf(v, "%d", &userID)
 	}
 	if userID == 0 {
-		m.notification = fmt.Sprintf("❌ Impossible de résoudre l'ID utilisateur (type: %T, val: %v)", msg.User["_userId"], msg.User["_userId"])
+		m.notification = fmt.Sprintf("❌ Failed to resolve user ID (type: %T, val: %v)", msg.User["_userId"], msg.User["_userId"])
 		m.notificationExpiry = time.Now().Add(8 * time.Second)
 		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 	}
@@ -1444,21 +1444,21 @@ func (m Model) handleExecuteUserAction(msg object_storage.ExecuteUserActionMsg) 
 	switch msg.Action {
 	case object_storage.UserActionShowSecret:
 		access := fmt.Sprintf("%v", msg.User["access"])
-		m.notification = "🔄 Récupération de la secret key..."
+		m.notification = "🔄 Retrieving secret key..."
 		m.notificationExpiry = time.Now().Add(30 * time.Second)
 		return m, m.getS3Secret(userID, access)
 	case object_storage.UserActionEnable:
 		m.s3PendingEnableUser = msg.User
-		m.notification = "🔄 Activation de l'utilisateur..."
+		m.notification = "🔄 Activating user..."
 		m.notificationExpiry = time.Now().Add(30 * time.Second)
 		return m, m.enableS3User(userID)
 	case object_storage.UserActionDisable:
 		access := fmt.Sprintf("%v", msg.User["access"])
-		m.notification = fmt.Sprintf("🔄 Désactivation... (userID=%d, access=%s)", userID, access)
+		m.notification = fmt.Sprintf("🔄 Deactivating... (userID=%d, access=%s)", userID, access)
 		m.notificationExpiry = time.Now().Add(30 * time.Second)
 		return m, m.disableS3User(userID, access)
 	case object_storage.UserActionDeleteUser:
-		m.notification = "🗑️  Suppression de l'utilisateur..."
+		m.notification = "🗑️  Deleting user..."
 		m.notificationExpiry = time.Now().Add(30 * time.Second)
 		return m, m.deleteCloudUser(userID)
 	}
@@ -1468,7 +1468,7 @@ func (m Model) handleExecuteUserAction(msg object_storage.ExecuteUserActionMsg) 
 // handleS3UserActionDone handles the result of enable/disable/delete user actions.
 func (m Model) handleS3UserActionDone(msg s3UserActionDoneMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
-		m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+		m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 		m.notificationExpiry = time.Now().Add(8 * time.Second)
 		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 	}
@@ -1492,7 +1492,7 @@ func (m Model) handleS3UserActionDone(msg s3UserActionDoneMsg) (tea.Model, tea.C
 		m.mode = S3CredentialsView
 		return m, nil
 	case object_storage.UserActionDisable:
-		m.notification = "✅ Utilisateur désactivé"
+		m.notification = "✅ User deactivated"
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.objectUserDetailView = nil
 		m.mode = LoadingView
@@ -1503,7 +1503,7 @@ func (m Model) handleS3UserActionDone(msg s3UserActionDoneMsg) (tea.Model, tea.C
 	case object_storage.UserActionDeleteUser:
 		m.objectUserDetailView = nil
 		m.mode = LoadingView
-		m.notification = "✅ Utilisateur supprimé"
+		m.notification = "✅ User deleted"
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		return m, tea.Batch(
 			m.fetchDataForPath("/storage/object"),
@@ -2662,14 +2662,14 @@ func (m Model) renderWizardView(width int) string {
 	// Build steps based on which wizard we're in (determine by first step >= 100)
 	if m.wizard.step >= 700 {
 		// Backup/Snapshot wizard
-		steps = append(steps, "Volume", "Type", "Nom", "Confirmer")
+		steps = append(steps, "Volume", "Type", "Name", "Confirm")
 		stepMapping = append(stepMapping, BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm)
 	} else if m.wizard.step >= 600 {
 		steps = append(steps, "Description", "Confirm")
 		stepMapping = append(stepMapping, S3UserWizardStepDescription, S3UserWizardStepConfirm)
 	} else if m.wizard.step >= 500 {
 		// Object Storage wizard
-		steps = append(steps, "Nom", "Type", "Région", "Réplication", "Versions", "Lock", "Utilisateur", "Chiffrement", "Confirmer")
+		steps = append(steps, "Name", "Type", "Region", "Replication", "Versions", "Lock", "User", "Encryption", "Confirm")
 		stepMapping = append(stepMapping, ObjectWizardStepName, ObjectWizardStepType, ObjectWizardStepRegion, ObjectWizardStepReplication, ObjectWizardStepVersioning, ObjectWizardStepObjectLock, ObjectWizardStepUser, ObjectWizardStepEncryption, ObjectWizardStepConfirm)
 	} else if m.wizard.step >= 400 {
 		// File Storage wizard
@@ -4198,7 +4198,7 @@ func (m Model) renderVolumeWizardSizeStep(width int) string {
 	var content strings.Builder
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	content.WriteString(titleStyle.Render("Enter volume size (GB):") + "\n\n")
+	content.WriteString(titleStyle.Render("Enter volume size (GB, min: 10, max: 12000):") + "\n\n")
 
 	if m.wizard.errorMsg != "" {
 		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
@@ -4240,10 +4240,10 @@ func (m Model) renderVolumeWizardEncryptionStep(width int) string {
 	var content strings.Builder
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	content.WriteString(titleStyle.Render("Chiffrement") + "\n\n")
+	content.WriteString(titleStyle.Render("Encryption") + "\n\n")
 
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
-	content.WriteString(descStyle.Render("Activez le chiffrement pour ajouter une couche de sécurité à vos volumes\net assurer la confidentialité de vos informations.") + "\n\n")
+	content.WriteString(descStyle.Render("Enable encryption to add an extra layer of security to your volumes\nand ensure the confidentiality of your data.") + "\n\n")
 
 	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
 	normalStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
@@ -4255,9 +4255,9 @@ func (m Model) renderVolumeWizardEncryptionStep(width int) string {
 		label    string
 		disabled bool
 	}{
-		{"Aucun", false},
+		{"None", false},
 		{"OVHcloud Managed Key", !luksSupported},
-		{"Customer Managed Key  (Bientôt disponible)", true},
+		{"Customer Managed Key  (Coming soon)", true},
 	}
 
 	for i, opt := range options {
@@ -4277,7 +4277,7 @@ func (m Model) renderVolumeWizardEncryptionStep(width int) string {
 	}
 
 	if !luksSupported {
-		content.WriteString("\n" + disabledStyle.Render(fmt.Sprintf("  (Le type '%s' ne supporte pas le chiffrement)", m.wizard.volumeType)) + "\n")
+		content.WriteString("\n" + disabledStyle.Render(fmt.Sprintf("  (Type '%s' does not support encryption)", m.wizard.volumeType)) + "\n")
 	}
 
 	content.WriteString("\n")
@@ -4332,7 +4332,7 @@ func (m Model) renderVolumeWizardConfirmStep(width int) string {
 	}
 	content.WriteString(labelStyle.Render("  Avail. Zone:") + valueStyle.Render(azDisplay) + "\n")
 	content.WriteString(labelStyle.Render("  Size:") + valueStyle.Render(fmt.Sprintf("%d GB", m.wizard.volumeSize)) + "\n")
-	encLabel := "Aucun"
+	encLabel := "None"
 	if m.wizard.volumeEncryptionIdx == 1 {
 		encLabel = "OVHcloud Managed Key (LUKS)"
 	}
@@ -7813,8 +7813,8 @@ func (m Model) handleVolumeWizardSizeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case tea.KeyEnter:
 		sizeStr := strings.TrimSpace(m.wizard.volumeSizeInput)
 		size, err := strconv.Atoi(sizeStr)
-		if err != nil || size < 1 {
-			m.wizard.errorMsg = "Size must be a positive integer (GB)"
+		if err != nil || size < 10 || size > 12000 {
+			m.wizard.errorMsg = "Size must be between 10 and 12000 GB"
 			return m, nil
 		}
 		m.wizard.volumeSize = size
