@@ -1568,12 +1568,6 @@ func (m Model) handleInstancesLoaded(msg instancesLoadedMsg) (tea.Model, tea.Cmd
 	m.detailRefreshId = ""
 	m.detailRefreshName = ""
 
-	// Debug: dump instances to file
-	if len(msg.instances) > 0 {
-		debugData, _ := json.MarshalIndent(msg.instances[0], "", "  ")
-		os.WriteFile("/tmp/instance_debug.json", debugData, 0644)
-	}
-
 	// Preserve table cursor position during refresh
 	currentCursor := m.table.Cursor()
 
