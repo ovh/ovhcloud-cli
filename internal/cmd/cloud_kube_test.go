@@ -110,7 +110,7 @@ func (ms *MockSuite) TestCloudKubeCreateCiliumHubbleUIWithoutHubbleEnabled(asser
 	)
 
 	require.CmpError(err)
-	assert.Contains(err.Error(), "--cilium-hubble-enabled must be set together with --cilium-hubble-relay-enabled")
+	assert.Contains(err.Error(), "--cilium-hubble-relay-enabled must be set together with --cilium-hubble-ui-enabled")
 }
 
 // TestCloudKubeCreateCiliumHubbleUIAndHubbleEnabled tests that creating a kube with both Cilium Hubble and Cilium Hubble UI enabled and all required UI resource flags results in a successful creation.
