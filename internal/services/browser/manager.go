@@ -5724,6 +5724,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
 		isNetworkSubProduct := m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB
 		isSubNavProduct := isStorageSubProduct || isNetworkSubProduct
+		navItems := getNavItems()
+
+		// Level 1 → Level 2: ↓ from main nav enters sub-nav for Storage / Networks
+		if (key == "down" || key == "j") && !m.inStorageSubNav && !m.inNetworkSubNav && !m.inTableFocus &&
+			m.mode != DetailView && m.mode != ProjectSelectView {
+			if navItems[m.navIdx].Product == ProductStorage {
+				m.inStorageSubNav = true
+				m.inTableFocus = false
+				return m.loadStorageSubProduct()
+			}
+			if navItems[m.navIdx].Product == ProductNetworks {
+				m.inNetworkSubNav = true
+				m.inTableFocus = false
+				return m.loadNetworkSubProduct()
+			}
+		}
 
 		// In table focus (Level 3): up at row 0 → back to sub-nav focus (Level 2)
 		if (key == "up" || key == "k") && m.inTableFocus && isSubNavProduct && m.mode != DetailView {
