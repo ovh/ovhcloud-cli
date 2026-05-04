@@ -1397,22 +1397,80 @@ func (m Model) fetchFloatingIPsData() dataLoadedMsg {
 	return dataLoadedMsg{data: floatingIPs, err: nil}
 }
 
-// fetchLoadBalancersData fetches load balancers at project level
+// fetchLoadBalancersData fetches load balancers from octavia-capable regions
 func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 	if m.cloudProject == "" {
-		return dataLoadedMsg{
-			err: fmt.Errorf("no cloud project selected"),
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+
+	// Get region names then filter by octavialoadbalancer feature
+	var allNames []string
+	if err := httpLib.Client.Get(regionEndpoint, &allNames); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	ids := make([]any, len(allNames))
+	for i, n := range allNames {
+		ids[i] = n
+	}
+	details, _ := httpLib.FetchObjectsParallel[map[string]any](regionEndpoint+"/%s", ids, true)
+
+	var regions []any
+	var regionNames []string
+	for i, r := range details {
+		if r == nil {
+			continue
+		}
+		if services, ok := r["services"].([]interface{}); ok {
+			for _, svc := range services {
+				if sm, ok := svc.(map[string]interface{}); ok {
+					if sm["name"] == "octavialoadbalancer" && sm["status"] == "UP" {
+						regions = append(regions, allNames[i])
+						regionNames = append(regionNames, allNames[i])
+						break
+					}
+				}
+			}
 		}
 	}
 
-	var loadbalancers []map[string]interface{}
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/networkloadbalancer", m.cloudProject)
-	err := httpLib.Client.Get(endpoint, &loadbalancers)
-
-	return dataLoadedMsg{
-		data: loadbalancers,
-		err:  err,
+	if len(regions) == 0 {
+		return dataLoadedMsg{data: nil, err: nil}
 	}
+
+	allRegionLBs, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/loadbalancing/loadbalancer", regions, true)
+
+	// Build flavorId -> name map per region in parallel
+	allRegionFlavors, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/loadbalancing/flavor", regions, true)
+	flavorNameMap := make(map[string]string)
+	for _, flavors := range allRegionFlavors {
+		for _, f := range flavors {
+			if id, ok := f["id"].(string); ok {
+				if name, ok := f["name"].(string); ok {
+					flavorNameMap[id] = name
+				}
+			}
+		}
+	}
+
+	var lbs []map[string]interface{}
+	for i, regionLBs := range allRegionLBs {
+		for _, lb := range regionLBs {
+			if r, _ := lb["region"].(string); r == "" {
+				lb["region"] = regionNames[i]
+			}
+			// Replace flavorId with flavor name
+			if fid, ok := lb["flavorId"].(string); ok {
+				if fname, found := flavorNameMap[fid]; found {
+					lb["_flavorName"] = fname
+				}
+			}
+			lbs = append(lbs, lb)
+		}
+	}
+
+	return dataLoadedMsg{data: lbs, err: nil}
 }
 
 // fetchGatewaysData fetches gateways from network-capable regions
@@ -1654,6 +1712,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.table = createFloatingIPsTable(msg.data, m.width, m.height)
 	case ProductNetworkGateway:
 		m.table = createGatewaysTable(msg.data, m.width, m.height)
+	case ProductNetworkLB:
+		m.table = createLoadBalancersTable(msg.data, m.width, m.height)
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)
 	}
@@ -2091,6 +2151,78 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		}
 
 		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp, ipAllocated})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// createLoadBalancersTable creates a table for load balancers.
+func createLoadBalancersTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Name", Width: 22},
+		{Title: "Region", Width: 16},
+		{Title: "Size", Width: 14},
+		{Title: "Private Network", Width: 36},
+		{Title: "Public IP", Width: 18},
+		{Title: "Private IP", Width: 16},
+		{Title: "Supply Status", Width: 14},
+		{Title: "Status", Width: 12},
+	}
+
+	var rows []table.Row
+	for _, lb := range data {
+		name := getString(lb, "name")
+		region := getString(lb, "region")
+		size := getString(lb, "_flavorName")
+		if size == "" {
+			size = getString(lb, "flavorId")
+		}
+		privateNetwork := getString(lb, "vipNetworkId")
+		privateIP := getString(lb, "vipAddress")
+		provisioning := getString(lb, "provisioningStatus")
+		status := getString(lb, "operatingStatus")
+
+		publicIP := "-"
+		if fi, ok := lb["floatingIp"].(map[string]interface{}); ok {
+			if v := getString(fi, "ip"); v != "" {
+				publicIP = v
+			}
+		}
+		if privateNetwork == "" {
+			privateNetwork = "-"
+		}
+		if privateIP == "" {
+			privateIP = "-"
+		}
+
+		rows = append(rows, table.Row{name, region, size, privateNetwork, publicIP, privateIP, provisioning, status})
 	}
 
 	tableHeight := height - 15
