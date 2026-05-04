@@ -1139,7 +1139,8 @@
                 "$ref": "#/components/schemas/cloud.kube.KubeProxyModeEnum"
               }
             ],
-            "description": "Selected mode for kube-proxy"
+            "description": "Selected mode for kube-proxy",
+            "nullable": true
           },
           "loadBalancersSubnetId": {
             "type": "string",
@@ -1371,6 +1372,11 @@
         "type": "object",
         "description": "Cilium customization",
         "properties": {
+          "clusterId": {
+            "type": "integer",
+            "description": "Cilium's clusterID: must be between 1 and 255 if set (mandatory when using clusterMesh feature)",
+            "nullable": true
+          },
           "clusterMesh": {
             "allOf": [
               {
@@ -1962,7 +1968,8 @@
                 "$ref": "#/components/schemas/cloud.kube.KubeProxyModeEnum"
               }
             ],
-            "description": "Selected mode for kube-proxy"
+            "description": "Selected mode for kube-proxy",
+            "nullable": true
           },
           "loadBalancersSubnetId": {
             "type": "string",
@@ -3368,6 +3375,110 @@
             "type": "string",
             "description": "The retention period that the default retention configuration must apply.",
             "format": "duration"
+          }
+        }
+      },
+      "cloud.StorageMultipartUpload": {
+        "type": "object",
+        "description": "StorageMultipartUpload",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Multipart upload ID",
+            "readOnly": true
+          },
+          "initiated": {
+            "type": "string",
+            "description": "Initiation date of the multipart upload",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "key": {
+            "type": "string",
+            "description": "Object key",
+            "readOnly": true
+          },
+          "storageClass": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.storage.StorageClassEnum"
+              }
+            ],
+            "description": "Storage class of the object",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.StorageMultipartUploadCreation": {
+        "type": "object",
+        "description": "StorageMultipartUploadCreation",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Object key"
+          },
+          "storageClass": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.storage.StorageClassEnum"
+              }
+            ],
+            "description": "Storage class for the object"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      },
+      "cloud.StorageMultipartUploadPart": {
+        "type": "object",
+        "description": "StorageMultipartUploadPart",
+        "properties": {
+          "etag": {
+            "type": "string",
+            "description": "ETag of the part",
+            "readOnly": true
+          },
+          "lastModified": {
+            "type": "string",
+            "description": "Last modified date of the part",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "number": {
+            "type": "integer",
+            "description": "Part number",
+            "readOnly": true
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of the part in bytes",
+            "readOnly": true
+          }
+        }
+      },
+      "cloud.StorageMultipartUploadParts": {
+        "type": "object",
+        "description": "StorageMultipartUploadParts",
+        "properties": {
+          "parts": {
+            "type": "array",
+            "description": "Parts of the multipart upload",
+            "items": {
+              "$ref": "#/components/schemas/cloud.StorageMultipartUploadPart"
+            },
+            "readOnly": true
+          },
+          "storageClass": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.storage.StorageClassEnum"
+              }
+            ],
+            "description": "Storage class of the object",
+            "readOnly": true
           }
         }
       },
@@ -6810,6 +6921,15 @@
             "type": "string",
             "description": "Configuration information or scripts to use upon launch",
             "nullable": true
+          },
+          "volume": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.instance.CreateInput.Volume"
+              }
+            ],
+            "description": "Volume to create and/or attach to the instance",
+            "nullable": true
           }
         },
         "required": [
@@ -7105,6 +7225,37 @@
           "publicKey": {
             "type": "string",
             "description": "SSH public key"
+          }
+        }
+      },
+      "cloud.instance.CreateInput.Volume": {
+        "type": "object",
+        "description": "Volume to create and/or attach to the instance",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Existing volume ID to attach",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Volume name for new volume creation",
+            "nullable": true
+          },
+          "size": {
+            "type": "integer",
+            "description": "Volume size (in GiB) for new volume creation",
+            "nullable": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/cloud.volume.VolumeTypeEnum"
+              }
+            ],
+            "description": "Volume type for new volume creation",
+            "nullable": true
           }
         }
       },
@@ -8435,6 +8586,7 @@
               }
             ],
             "description": "Selected mode for kube-proxy",
+            "nullable": true,
             "readOnly": true
           },
           "loadBalancersSubnetId": {
@@ -14406,6 +14558,11 @@
           "flavor": {
             "type": "string",
             "description": "App instance flavor",
+            "nullable": true
+          },
+          "flavorCount": {
+            "type": "integer",
+            "description": "Number of desired units of the chosen flavor",
             "nullable": true
           },
           "gpu": {
@@ -274075,7 +274232,30 @@
                     }
                   }
                 },
-                "Example 2 - Create your b3-8 with Ubuntu 25.04 on GRA11 with advanced network configuration": {
+                "Example 2 - Create your b3-8 with Ubuntu 25.04 on GRA11 with an additional volume": {
+                  "value": {
+                    "billingPeriod": "hourly",
+                    "bootFrom": {
+                      "imageId": "5cb8ea68-e606-471e-a7d5-820be83467f6"
+                    },
+                    "flavor": {
+                      "id": "e81b46f8-1159-4e14-b0ba-cad655e6540b"
+                    },
+                    "name": "my-b3-8",
+                    "network": {
+                      "public": true
+                    },
+                    "sshKey": {
+                      "name": "MySSHKey"
+                    },
+                    "volume": {
+                      "name": "my-volume",
+                      "size": 100,
+                      "type": "high-speed-gen2"
+                    }
+                  }
+                },
+                "Example 3 - Create your b3-8 with Ubuntu 25.04 on GRA11 with advanced network configuration": {
                   "value": {
                     "billingPeriod": "hourly",
                     "bootFrom": {
@@ -281729,6 +281909,148 @@
         ]
       }
     },
+    "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/multipartUpload": {
+      "get": {
+        "operationId": "listMultipartUploadsOnStorageContainer",
+        "summary": "List multipart uploads on a S3™* compatible storage container",
+        "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/cloud.StorageMultipartUpload"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/storage/multipartUpload/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "post": {
+        "operationId": "createMultipartUploadOnStorageContainer",
+        "summary": "Create a multipart upload on a S3™* compatible storage container",
+        "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/cloud.StorageMultipartUploadCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cloud.StorageMultipartUpload"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/storage/multipartUpload/create",
+            "required": true
+          }
+        ]
+      }
+    },
     "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object": {
       "get": {
         "operationId": "getObjectsInformationOnContainerOnRegion",
@@ -282151,6 +282473,326 @@
           {
             "name": "publicCloudProject:apiovh:region/storage/object/create",
             "description": "Right needed on the target bucket to create an object",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/multipartUpload": {
+      "get": {
+        "operationId": "listMultipartUploadsOnObjectOnStorageContainer",
+        "summary": "List multipart uploads on a S3™* compatible storage container object",
+        "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/cloud.StorageMultipartUpload"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/storage/object/multipartUpload/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "CloudStorageMultipartUpload"
+      }
+    },
+    "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/multipartUpload/{id}": {
+      "delete": {
+        "operationId": "abortMultipartUploadOnObjectOnStorageContainer",
+        "summary": "Abort a multipart upload on a S3™* compatible storage container",
+        "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/storage/object/multipartUpload/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "operationId": "getMultipartUploadOnObjectOnStorageContainer",
+        "summary": "Get a multipart upload on a S3™* compatible storage container",
+        "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cloud.StorageMultipartUpload"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/storage/object/multipartUpload/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/multipartUpload/{id}/parts": {
+      "get": {
+        "operationId": "listMultipartUploadPartsOnObjectOnStorageContainer",
+        "summary": "List parts of a multipart upload on a S3™* compatible storage container",
+        "description": "<sup>*</sup> S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "regionName",
+            "description": "Region name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/cloud.StorageMultipartUploadParts"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Beta version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:region/storage/object/multipartUpload/get",
             "required": true
           }
         ]

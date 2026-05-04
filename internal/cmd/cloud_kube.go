@@ -820,26 +820,31 @@ func kubePreRunE(cmd *cobra.Command, vals *kubeFlagValues) error {
 	backendRequestsCPUChanged := cmd.Flags().Changed("cilium-hubble-ui-backend-requests-cpu")
 	backendRequestsMemoryChanged := cmd.Flags().Changed("cilium-hubble-ui-backend-requests-memory")
 
+	// Any Cilium flag is set
 	anyFrontendResourceFlag := frontendLimitsCPUChanged ||
 		frontendLimitsMemoryChanged ||
 		frontendRequestsCPUChanged ||
 		frontendRequestsMemoryChanged
 
+	// Any Backend resource flag is set
 	anyBackendResourceFlag := backendLimitsCPUChanged ||
 		backendLimitsMemoryChanged ||
 		backendRequestsCPUChanged ||
 		backendRequestsMemoryChanged
 
+	// All Frontend resource flags are set
 	allFrontendResourceFlags := frontendLimitsCPUChanged &&
 		frontendLimitsMemoryChanged &&
 		frontendRequestsCPUChanged &&
 		frontendRequestsMemoryChanged
 
+	// All Backend resource flags are set
 	allBackendResourceFlags := backendLimitsCPUChanged &&
 		backendLimitsMemoryChanged &&
 		backendRequestsCPUChanged &&
 		backendRequestsMemoryChanged
 
+	// Any Cilium-related flag is set
 	anyCiliumFlag := ciliumClusterIDChanged ||
 		ciliumHubbleEnabledChanged ||
 		ciliumHubbleRelayEnabledChanged ||
@@ -898,7 +903,7 @@ func kubePreRunE(cmd *cobra.Command, vals *kubeFlagValues) error {
 
 		//Hubble UI requires Hubble Relay enabled.
 		if ciliumHubbleUIEnabledChanged && !vals.CiliumHubbleRelayEnabled {
-			return fmt.Errorf("--cilium-hubble-enabled must be set together with --cilium-hubble-relay-enabled")
+			return fmt.Errorf("--cilium-hubble-relay-enabled must be set together with --cilium-hubble-ui-enabled")
 		}
 
 		if ciliumHubbleEnabledChanged {
