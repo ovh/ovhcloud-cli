@@ -360,6 +360,7 @@ type Model struct {
 	inStorageSubNav    bool // Whether the keyboard focus is in the storage sub-nav bar
 	networkSubIdx      int  // Index in network sub-navigation
 	inNetworkSubNav    bool // Whether the keyboard focus is in the network sub-nav bar
+	inTableFocus       bool // Whether the keyboard focus is in the table content (third navigation level)
 	table              table.Model
 	detailData         map[string]interface{}
 	currentData        []map[string]interface{}
@@ -1656,10 +1657,19 @@ func (m Model) renderNavBar(width int) string {
 	navItems := getNavItems()
 	var items []string
 
+	isSubNavFocused := m.inStorageSubNav || m.inNetworkSubNav
+	isInSubContext := isSubNavFocused || m.inTableFocus
+
 	for i, nav := range navItems {
 		var style lipgloss.Style
-		if i == m.navIdx {
+		if i == m.navIdx && !isInSubContext {
+			// Level 1 focus: full green highlight
 			style = navItemSelectedStyle
+		} else if i == m.navIdx {
+			// Sub-level active: dim indicator so user knows which section they're in
+			style = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#007733")).
+				Padding(0, 2)
 		} else {
 			style = navItemStyle
 		}
@@ -1716,8 +1726,13 @@ func (m Model) renderStorageSubNav(width int) string {
 
 	for i, item := range subItems {
 		var style lipgloss.Style
-		if i == activeSubIdx && m.inStorageSubNav {
-			// Focused selection: bright green + bold
+		label := item.Label
+		if i == activeSubIdx && m.inStorageSubNav && m.inTableFocus {
+			// Level 3: focus moved into the table — show arrow hint, dimmed
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+			label = "▼ " + item.Label
+		} else if i == activeSubIdx && m.inStorageSubNav {
+			// Level 2: sub-nav focused — bright green + bold
 			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Padding(0, 2)
 		} else if i == activeSubIdx {
 			// Active item, focus is on main nav — dimmed green
@@ -1727,12 +1742,16 @@ func (m Model) renderStorageSubNav(width int) string {
 		} else {
 			style = subItemStyle
 		}
-		items = append(items, style.Render(item.Label))
+		items = append(items, style.Render(label))
 	}
 
 	borderColor := lipgloss.Color("#333333")
-	if m.inStorageSubNav {
+	if m.inStorageSubNav && !m.inTableFocus {
+		// Level 2: sub-nav is focused — bright green border
 		borderColor = lipgloss.Color("#00FF7F")
+	} else if m.inTableFocus {
+		// Level 3: focus is inside the table — dim the sub-nav border
+		borderColor = lipgloss.Color("#444444")
 	}
 	subBarStyle := lipgloss.NewStyle().
 		Padding(0, 1).
@@ -1764,7 +1783,12 @@ func (m Model) renderNetworkSubNav(width int) string {
 
 	for i, item := range subItems {
 		var style lipgloss.Style
-		if i == activeSubIdx && m.inNetworkSubNav {
+		label := item.Label
+		if i == activeSubIdx && m.inNetworkSubNav && m.inTableFocus {
+			// Level 3: focus moved into the table — show arrow hint, dimmed
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+			label = "▼ " + item.Label
+		} else if i == activeSubIdx && m.inNetworkSubNav {
 			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Padding(0, 2)
 		} else if i == activeSubIdx {
 			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
@@ -1773,12 +1797,16 @@ func (m Model) renderNetworkSubNav(width int) string {
 		} else {
 			style = subItemStyle
 		}
-		items = append(items, style.Render(item.Label))
+		items = append(items, style.Render(label))
 	}
 
 	borderColor := lipgloss.Color("#333333")
-	if m.inNetworkSubNav {
+	if m.inNetworkSubNav && !m.inTableFocus {
+		// Level 2: sub-nav is focused — bright green border
 		borderColor = lipgloss.Color("#00FF7F")
+	} else if m.inTableFocus {
+		// Level 3: focus is inside the table — dim the sub-nav border
+		borderColor = lipgloss.Color("#444444")
 	}
 	subBarStyle := lipgloss.NewStyle().
 		Padding(0, 1).
@@ -1914,7 +1942,12 @@ func (m Model) renderContentBox(width int) string {
 	// Combine title and content
 	fullContent := title + "\n\n" + contentStr
 
-	return contentBoxStyle.Width(width - 4).Render(fullContent)
+	// Level 3 (inTableFocus): highlight content box border in green to show focus is inside the table
+	boxStyle := contentBoxStyle
+	if m.inTableFocus {
+		boxStyle = contentBoxStyle.BorderForeground(lipgloss.Color("#00FF7F"))
+	}
+	return boxStyle.Width(width - 4).Render(fullContent)
 }
 
 // renderLoadingView displays the loading screen
@@ -4520,6 +4553,20 @@ func (m Model) renderTable() string {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No data available")
 	}
 
+	// For sub-nav products (Storage / Network), hide the cursor highlight unless
+	// the user has entered table focus (Level 3 via Enter / ↓).
+	isSubNavProd := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB
+	if isSubNavProd && !m.inTableFocus {
+		s := table.DefaultStyles()
+		s.Header = s.Header.
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			BorderBottom(true).
+			Bold(true)
+		s.Selected = lipgloss.NewStyle() // no highlight
+		m.table.SetStyles(s)
+	}
+
 	var content strings.Builder
 
 	// Show filter indicator if filter is active (but not in edit mode)
@@ -5057,20 +5104,20 @@ func (m Model) renderFooter() string {
 	case TableView:
 		if m.filterInput != "" {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • v: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
-		} else if m.inStorageSubNav {
-			help = "←→: Sub-menu • ↑: Back to main nav • /: Filter • v: Details • c: Create • d: Debug • p: Change Project • q: Quit"
-		} else if m.currentProduct == ProductStorageBlock {
-			help = "←→: Switch Product • ↓: Enter Sub-menu • ↑↓: Navigate • /: Filter • v: Details • c: Create • d: Debug • p: Change Project • q: Quit"
+		} else if (m.inStorageSubNav || m.inNetworkSubNav) && m.inTableFocus {
+			help = "↑↓: Navigate • v: Details • c: Create • /: Filter • d: Debug • Esc: Back to Sub-menu • q: Quit"
+		} else if m.inStorageSubNav || m.inNetworkSubNav {
+			help = "←→: Sub-menu • ↓/Enter: Enter Table • ↑/Esc: Back to main nav • d: Debug • p: Change Project • q: Quit"
 		} else {
-			help = "←→: Switch Product • ↑↓: Navigate • /: Filter • v: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
+			help = "←→: Switch Product • Enter: Enter Sub-menu • ↑↓: Navigate • /: Filter • v: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
 		}
 	case EmptyView:
-		if m.inStorageSubNav {
-			help = "←→: Sub-menu • ↑: Back to main nav • c: Create • d: Debug • p: Change Project • q: Quit"
-		} else if m.currentProduct == ProductStorageBlock {
-			help = "←→: Switch Product • ↓: Enter Sub-menu • c: Create • d: Debug • p: Change Project • q: Quit"
+		if (m.inStorageSubNav || m.inNetworkSubNav) && m.inTableFocus {
+			help = "c: Create • d: Debug • Esc: Back to Sub-menu • q: Quit"
+		} else if m.inStorageSubNav || m.inNetworkSubNav {
+			help = "←→: Sub-menu • Enter: Enter Table • ↑/Esc: Back to main nav • c: Create • d: Debug • p: Change Project • q: Quit"
 		} else {
-			help = "←→: Switch Product • c: Create • d: Debug • p: Change Project • q: Quit"
+			help = "←→: Switch Product • Enter: Enter Sub-menu • c: Create • d: Debug • p: Change Project • q: Quit"
 		}
 	case DetailView:
 		if m.currentProduct == ProductStorageObject && m.objectUserDetailView != nil {
@@ -5289,8 +5336,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In storage sub-nav (only when focused)
-		if m.inStorageSubNav && m.mode != DetailView {
+		// In storage sub-nav (only when focused, not in table)
+		if m.inStorageSubNav && !m.inTableFocus && m.mode != DetailView {
 			subItems := getStorageSubItems()
 			for i, item := range subItems {
 				if item.Product == m.currentProduct {
@@ -5301,8 +5348,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.storageSubIdx = (m.storageSubIdx - 1 + len(subItems)) % len(subItems)
 			return m.loadStorageSubProduct()
 		}
-		// In network sub-nav (only when focused)
-		if m.inNetworkSubNav && m.mode != DetailView {
+		// In network sub-nav (only when focused, not in table)
+		if m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView {
 			subItems := getNetworkSubItems()
 			for i, item := range subItems {
 				if item.Product == m.currentProduct {
@@ -5313,7 +5360,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.networkSubIdx = (m.networkSubIdx - 1 + len(subItems)) % len(subItems)
 			return m.loadNetworkSubProduct()
 		}
-		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
+		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects && !m.inTableFocus {
 			if m.navIdx > 0 {
 				m.navIdx--
 				m.inStorageSubNav = false
@@ -5348,9 +5395,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In storage sub-nav (only when focused)
+		// In storage sub-nav (only when focused, not in table)
 		isStorageSubProduct2 := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
-		if m.inStorageSubNav && isStorageSubProduct2 && m.mode != DetailView {
+		if m.inStorageSubNav && !m.inTableFocus && isStorageSubProduct2 && m.mode != DetailView {
 			subItems := getStorageSubItems()
 			for i, item := range subItems {
 				if item.Product == m.currentProduct {
@@ -5361,9 +5408,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.storageSubIdx = (m.storageSubIdx + 1) % len(subItems)
 			return m.loadStorageSubProduct()
 		}
-		// In network sub-nav (only when focused)
+		// In network sub-nav (only when focused, not in table)
 		isNetworkSubProduct2 := m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB
-		if m.inNetworkSubNav && isNetworkSubProduct2 && m.mode != DetailView {
+		if m.inNetworkSubNav && !m.inTableFocus && isNetworkSubProduct2 && m.mode != DetailView {
 			subItems := getNetworkSubItems()
 			for i, item := range subItems {
 				if item.Product == m.currentProduct {
@@ -5374,7 +5421,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.networkSubIdx = (m.networkSubIdx + 1) % len(subItems)
 			return m.loadNetworkSubProduct()
 		}
-		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
+		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects && !m.inTableFocus {
 			navItems := getNavItems()
 			if m.navIdx < len(navItems)-1 {
 				m.navIdx++
@@ -5432,6 +5479,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.applyTableFilter()
 			return m, nil
 		}
+		// Level 3 → Level 2: exit table focus (back to sub-nav focus)
+		if m.inTableFocus && (m.inStorageSubNav || m.inNetworkSubNav) && m.mode != DetailView && m.mode != WizardView {
+			m.inTableFocus = false
+			return m, nil
+		}
+		// Level 2 → Level 1: exit sub-nav focus (back to main nav)
+		if m.inStorageSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
+			m.inStorageSubNav = false
+			return m, nil
+		}
+		if m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
+			m.inNetworkSubNav = false
+			return m, nil
+		}
 		// Go back to node pools view from node pool detail view, or cancel action confirm
 		if m.mode == NodePoolDetailView {
 			if m.nodePoolDetailConfirm {
@@ -5463,6 +5524,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "c":
 		// Create resource - available in TableView, EmptyView, and NodePoolsView
 		if (m.mode == TableView || m.mode == EmptyView) && m.currentProduct != ProductProjects {
+			// Require table focus (Level 3) for sub-nav products
+			isSubNavProd := (m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB)
+			if isSubNavProd && !m.inTableFocus {
+				return m, nil
+			}
 			// If viewing S3 users tab, launch user creation wizard
 			if m.currentProduct == ProductStorageObject && m.objectStorageTabIdx == 1 {
 				m.mode = WizardView
@@ -5488,24 +5554,30 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mode != NodePoolsView && m.mode != NodePoolDetailView {
 			navItems := getNavItems()
 			if m.navIdx < len(navItems) && navItems[m.navIdx].Product == ProductStorage {
-				if m.inStorageSubNav {
-					// Go back to main nav
-					m.inStorageSubNav = false
+				if !m.inStorageSubNav {
+					// Level 1 → Level 2: enter sub-nav focus
+					m.inStorageSubNav = true
+					m.inTableFocus = false
+					return m.loadStorageSubProduct()
+				} else if !m.inTableFocus {
+					// Level 2 → Level 3: enter table focus
+					m.inTableFocus = true
 					return m, nil
 				}
-				// Drop into sub-nav
-				m.inStorageSubNav = true
-				return m.loadStorageSubProduct()
+				// Level 3: fall through to normal enter handling
 			}
 			if m.navIdx < len(navItems) && navItems[m.navIdx].Product == ProductNetworks {
-				if m.inNetworkSubNav {
-					// Go back to main nav
-					m.inNetworkSubNav = false
+				if !m.inNetworkSubNav {
+					// Level 1 → Level 2: enter sub-nav focus
+					m.inNetworkSubNav = true
+					m.inTableFocus = false
+					return m.loadNetworkSubProduct()
+				} else if !m.inTableFocus {
+					// Level 2 → Level 3: enter table focus
+					m.inTableFocus = true
 					return m, nil
 				}
-				// Drop into sub-nav
-				m.inNetworkSubNav = true
-				return m.loadNetworkSubProduct()
+				// Level 3: fall through to normal enter handling
 			}
 		}
 		// Handle enter based on current mode
@@ -5584,6 +5656,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "v":
 		// In table view, show details
 		if m.mode == TableView {
+			// Require table focus (Level 3) for sub-nav products
+			isSubNavProd := (m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB)
+			if isSubNavProd && !m.inTableFocus {
+				return m, nil
+			}
 			selectedRow := m.table.Cursor()
 			if selectedRow >= 0 && selectedRow < len(m.currentData) {
 				m.detailData = m.currentData[selectedRow]
@@ -5644,40 +5721,29 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "up", "down", "j", "k":
 		key := msg.String()
-		navItems := getNavItems()
 		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
 		isNetworkSubProduct := m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB
-		if (key == "down" || key == "j") && !m.inStorageSubNav && m.mode != DetailView &&
-			m.mode != ProjectSelectView && !isStorageSubProduct && navItems[m.navIdx].Product == ProductStorage {
-			m.inStorageSubNav = true
-			return m.loadStorageSubProduct()
-		}
-		if (key == "up" || key == "k") && m.inStorageSubNav && m.mode != DetailView {
-			if m.mode != TableView || m.table.Cursor() == 0 {
-				m.inStorageSubNav = false
+		isSubNavProduct := isStorageSubProduct || isNetworkSubProduct
+
+		// In table focus (Level 3): up at row 0 → back to sub-nav focus (Level 2)
+		if (key == "up" || key == "k") && m.inTableFocus && isSubNavProduct && m.mode != DetailView {
+			if m.mode == TableView && m.table.Cursor() == 0 {
+				m.inTableFocus = false
 				return m, nil
 			}
 		}
-		// ↑ on EmptyView/ComingSoonView for storage → focus sub-nav
-		if (key == "up" || key == "k") && isStorageSubProduct && !m.inStorageSubNav && (m.mode == EmptyView || m.mode == ComingSoonView) {
-			m.inStorageSubNav = true
+		// In sub-nav focus (Level 2): up → back to main nav (Level 1)
+		if (key == "up" || key == "k") && m.inStorageSubNav && !m.inTableFocus && m.mode != DetailView {
+			m.inStorageSubNav = false
 			return m, nil
 		}
-		// Down into network sub-nav
-		if (key == "down" || key == "j") && !m.inNetworkSubNav && m.mode != DetailView &&
-			m.mode != ProjectSelectView && !isNetworkSubProduct && navItems[m.navIdx].Product == ProductNetworks {
-			m.inNetworkSubNav = true
-			return m.loadNetworkSubProduct()
+		if (key == "up" || key == "k") && m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView {
+			m.inNetworkSubNav = false
+			return m, nil
 		}
-		if (key == "up" || key == "k") && m.inNetworkSubNav && m.mode != DetailView {
-			if m.mode != TableView || m.table.Cursor() == 0 {
-				m.inNetworkSubNav = false
-				return m, nil
-			}
-		}
-		// ↑ on EmptyView/ComingSoonView for network → focus sub-nav
-		if (key == "up" || key == "k") && isNetworkSubProduct && !m.inNetworkSubNav && (m.mode == EmptyView || m.mode == ComingSoonView) {
-			m.inNetworkSubNav = true
+		// In sub-nav focus (Level 2): down → enter table focus (Level 3)
+		if (key == "down" || key == "j") && isSubNavProduct && (m.inStorageSubNav || m.inNetworkSubNav) && !m.inTableFocus && m.mode != DetailView {
+			m.inTableFocus = true
 			return m, nil
 		}
 		// Node pools list navigation
@@ -5697,11 +5763,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// Table navigation (works in both ProjectSelectView and TableView)
+		// Table navigation: for sub-nav products requires Level 3 (inTableFocus); non-sub-nav always allowed
 		if m.mode == TableView || m.mode == ProjectSelectView {
-			var cmd tea.Cmd
-			m.table, cmd = m.table.Update(msg)
-			return m, cmd
+			if !isSubNavProduct || m.inTableFocus {
+				var cmd tea.Cmd
+				m.table, cmd = m.table.Update(msg)
+				return m, cmd
+			}
 		}
 		return m, nil
 
@@ -7546,6 +7614,7 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	m.currentData = nil
 	m.inStorageSubNav = false
 	m.inNetworkSubNav = false
+	m.inTableFocus = false
 
 	// For Networks, go to default sub-item (Private Networks = index 0)
 	if currentNav.Product == ProductNetworks {
@@ -7578,6 +7647,7 @@ func (m Model) loadStorageSubProduct() (Model, tea.Cmd) {
 	m.detailData = nil
 	m.currentData = nil
 	m.volumeDetailView = nil
+	m.inTableFocus = false
 
 	if !sub.Enabled {
 		m.mode = ComingSoonView
@@ -7594,6 +7664,7 @@ func (m Model) loadNetworkSubProduct() (Model, tea.Cmd) {
 	m.currentProduct = sub.Product
 	m.detailData = nil
 	m.currentData = nil
+	m.inTableFocus = false
 
 	if !sub.Enabled {
 		m.mode = ComingSoonView

@@ -153,15 +153,53 @@ func (m Model) createFileShare() tea.Cmd {
 	}
 }
 
+// fetchShareRegions returns region names that have the "share" service UP.
+func (m Model) fetchShareRegions() ([]string, error) {
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+
+	var allNames []string
+	if err := httpLib.Client.Get(regionEndpoint, &allNames); err != nil {
+		return nil, err
+	}
+
+	ids := make([]any, len(allNames))
+	for i, n := range allNames {
+		ids[i] = n
+	}
+	details, _ := httpLib.FetchObjectsParallel[map[string]any](regionEndpoint+"/%s", ids, true)
+
+	var result []string
+	for i, r := range details {
+		if r == nil {
+			continue
+		}
+		name := allNames[i]
+		if services, ok := r["services"].([]interface{}); ok {
+			for _, svc := range services {
+				if sm, ok := svc.(map[string]interface{}); ok {
+					if sm["name"] == "share" && sm["status"] == "UP" {
+						result = append(result, name)
+						break
+					}
+				}
+			}
+		}
+	}
+	return result, nil
+}
+
 // fetchFileStorageData returns all NFS shares across every region.
 func (m Model) fetchFileStorageData() dataLoadedMsg {
 	if m.cloudProject == "" {
 		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 	}
-	var regionNames []string
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
-	if err := httpLib.Client.Get(endpoint, &regionNames); err != nil {
+
+	regionNames, err := m.fetchShareRegions()
+	if err != nil {
 		return dataLoadedMsg{err: fmt.Errorf("failed to fetch regions: %w", err)}
+	}
+	if len(regionNames) == 0 {
+		return dataLoadedMsg{data: nil}
 	}
 
 	type regionResult struct{ shares []map[string]interface{} }
