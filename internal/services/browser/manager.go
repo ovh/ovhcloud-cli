@@ -5955,6 +5955,8 @@ func (m *Model) applyTableFilter() {
 			m.table = createFileStorageTable(m.currentData, m.width, m.height)
 		case ProductStorageObject:
 			m.table = createObjectStorageTable(m.currentData, m.width, m.height)
+		case ProductNetworkPrivate:
+			m.table = createPrivateNetworksTable(m.currentData, m.width, m.height)
 		default:
 			m.table = createGenericTable(m.currentData, m.width, m.height)
 		}

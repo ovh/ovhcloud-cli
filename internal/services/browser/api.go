@@ -1268,7 +1268,7 @@ func (m Model) handleVolumeActionDone(msg volumeActionDoneMsg) (tea.Model, tea.C
 	)
 }
 
-// fetchPrivateNetworksData fetches private networks across all regions
+// fetchPrivateNetworksData fetches private networks and enriches each with subnet details
 func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 	if m.cloudProject == "" {
 		return dataLoadedMsg{
@@ -1276,31 +1276,22 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 		}
 	}
 
-	// Fetch all regions
-	var regionNames []string
-	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
-	if err := httpLib.Client.Get(regionEndpoint, &regionNames); err != nil {
-		return dataLoadedMsg{err: err}
-	}
-
-	regions := make([]any, len(regionNames))
-	for i, r := range regionNames {
-		regions[i] = r
-	}
-
-	// Fetch networks in all regions
-	allRegionNetworks, err := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/network", regions, true)
-	if err != nil {
-		return dataLoadedMsg{err: err}
-	}
-
-	// Flatten and filter private networks
 	var networks []map[string]interface{}
-	for _, regionNetworks := range allRegionNetworks {
-		for _, network := range regionNetworks {
-			if v, ok := network["visibility"]; ok && v == "private" {
-				networks = append(networks, network)
-			}
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
+	if err := httpLib.Client.Get(endpoint, &networks); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+
+	// Enrich with subnet data in parallel
+	networkIDs := make([]any, len(networks))
+	for i, n := range networks {
+		networkIDs[i] = getString(n, "id")
+	}
+	subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%%s/subnet", m.cloudProject)
+	allSubnets, _ := httpLib.FetchObjectsParallel[[]map[string]any](subnetEndpoint, networkIDs, true)
+	for i, subnets := range allSubnets {
+		if i < len(networks) {
+			networks[i]["_subnets"] = subnets
 		}
 	}
 
@@ -1310,7 +1301,7 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 	}
 }
 
-// fetchPublicNetworksData fetches public networks across all regions
+// fetchPublicNetworksData fetches public networks at project level
 func (m Model) fetchPublicNetworksData() dataLoadedMsg {
 	if m.cloudProject == "" {
 		return dataLoadedMsg{
@@ -1318,41 +1309,17 @@ func (m Model) fetchPublicNetworksData() dataLoadedMsg {
 		}
 	}
 
-	// Fetch all regions
-	var regionNames []string
-	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
-	if err := httpLib.Client.Get(regionEndpoint, &regionNames); err != nil {
-		return dataLoadedMsg{err: err}
-	}
-
-	regions := make([]any, len(regionNames))
-	for i, r := range regionNames {
-		regions[i] = r
-	}
-
-	// Fetch networks in all regions
-	allRegionNetworks, err := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/network", regions, true)
-	if err != nil {
-		return dataLoadedMsg{err: err}
-	}
-
-	// Flatten and filter public networks
 	var networks []map[string]interface{}
-	for _, regionNetworks := range allRegionNetworks {
-		for _, network := range regionNetworks {
-			if v, ok := network["visibility"]; ok && v == "public" {
-				networks = append(networks, network)
-			}
-		}
-	}
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/public", m.cloudProject)
+	err := httpLib.Client.Get(endpoint, &networks)
 
 	return dataLoadedMsg{
 		data: networks,
-		err:  nil,
+		err:  err,
 	}
 }
 
-// fetchLoadBalancersData fetches load balancers
+// fetchLoadBalancersData fetches load balancers at project level
 func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 	if m.cloudProject == "" {
 		return dataLoadedMsg{
@@ -1361,7 +1328,7 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 	}
 
 	var loadbalancers []map[string]interface{}
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/networkloadbalancer", m.cloudProject)
 	err := httpLib.Client.Get(endpoint, &loadbalancers)
 
 	return dataLoadedMsg{
@@ -1603,6 +1570,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.table = createVolumeSnapshotsTable(msg.data, m.width, m.height)
 	case ProductStorageBackup:
 		m.table = createVolumeBackupsTable(msg.data, m.width, m.height)
+	case ProductNetworkPrivate:
+		m.table = createPrivateNetworksTable(msg.data, m.width, m.height)
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)
 	}
@@ -1932,6 +1901,116 @@ func createGenericTable(data []map[string]interface{}, width, height int) table.
 	}
 
 	// Calculate table height: leave room for header(2) + nav(3) + title(3) + footer(3) + borders(4)
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// createPrivateNetworksTable creates a table for private networks.
+func createPrivateNetworksTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "VLAN ID", Width: 8},
+		{Title: "Name", Width: 22},
+		{Title: "Location", Width: 20},
+		{Title: "CIDR", Width: 20},
+		{Title: "Gateway", Width: 16},
+		{Title: "DHCP", Width: 6},
+		{Title: "IP Allocated", Width: 33},
+	}
+
+	var rows []table.Row
+	for _, net := range data {
+		vlanId := "-"
+		if v, ok := net["vlanId"]; ok {
+			switch n := v.(type) {
+			case float64:
+				vlanId = fmt.Sprintf("%d", int(n))
+			case json.Number:
+				if i, err := n.Int64(); err == nil {
+					vlanId = fmt.Sprintf("%d", i)
+				}
+			}
+		}
+
+		name := getString(net, "name")
+
+		// Collect regions
+		var locationParts []string
+		if regions, ok := net["regions"].([]interface{}); ok {
+			for _, r := range regions {
+				if rm, ok := r.(map[string]interface{}); ok {
+					if reg := getString(rm, "region"); reg != "" {
+						locationParts = append(locationParts, reg)
+					}
+				}
+			}
+		}
+		location := strings.Join(locationParts, ", ")
+		if location == "" {
+			location = "-"
+		}
+
+		// Extract subnet data (first subnet)
+		cidr := "-"
+		gateway := "-"
+		dhcp := "-"
+		ipAllocated := "-"
+
+		if subnets, ok := net["_subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
+			sub := subnets[0]
+			if v := getString(sub, "cidr"); v != "" {
+				cidr = v
+			}
+			if v := getString(sub, "gatewayIp"); v != "" {
+				gateway = v
+			}
+			if v, ok := sub["dhcpEnabled"].(bool); ok {
+				if v {
+					dhcp = "Active"
+				} else {
+					dhcp = "Inactive"
+				}
+			}
+			// Show IP range from first ipPool
+			if pools, ok := sub["ipPools"].([]interface{}); ok && len(pools) > 0 {
+				if pm, ok := pools[0].(map[string]interface{}); ok {
+					start := getString(pm, "start")
+					end := getString(pm, "end")
+					if start != "" && end != "" {
+						ipAllocated = start + " - " + end
+					}
+				}
+			}
+		}
+
+		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp, ipAllocated})
+	}
+
 	tableHeight := height - 15
 	if tableHeight < 5 {
 		tableHeight = 5
