@@ -155,6 +155,10 @@ const (
 	ProductStorageObject   // Object Storage (sous-nav)
 	ProductStorageArchive  // Cloud Archive (sous-nav)
 	ProductNetworks
+	ProductNetworkPrivate // Private Networks (sub-nav)
+	ProductNetworkPublic  // Public IPs (sub-nav)
+	ProductNetworkGateway // Gateways (sub-nav)
+	ProductNetworkLB      // Load Balancers (sub-nav)
 	ProductProjects
 )
 
@@ -354,6 +358,8 @@ type Model struct {
 	navIdx             int  // Index in navigation bar
 	storageSubIdx      int  // Index in storage sub-navigation (0=Prise en main, 1=Block Storage, ...)
 	inStorageSubNav    bool // Whether the keyboard focus is in the storage sub-nav bar
+	networkSubIdx      int  // Index in network sub-navigation
+	inNetworkSubNav    bool // Whether the keyboard focus is in the network sub-nav bar
 	table              table.Model
 	detailData         map[string]interface{}
 	currentData        []map[string]interface{}
@@ -780,7 +786,7 @@ func getNavItems() []NavItem {
 		{Label: " Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
 		{Label: "Managed Analytics", Icon: "📈", Product: ProductManagedAnalytics, Path: "/analytics"},
 		{Label: "Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/block"},
-		{Label: "Private networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
+		{Label: "Networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
 	}
 }
 
@@ -798,6 +804,22 @@ func getStorageSubItems() []StorageSubItem {
 		{Label: "Volume Backup", Product: ProductStorageBackup, Path: "/storage/backup", Enabled: true},
 		{Label: "Volume Snapshot", Product: ProductStorageSnapshot, Path: "/storage/snapshot", Enabled: true},
 		{Label: "Object Storage", Product: ProductStorageObject, Path: "/storage/object", Enabled: true},
+	}
+}
+
+type NetworkSubItem struct {
+	Label   string
+	Product ProductType
+	Path    string
+	Enabled bool
+}
+
+func getNetworkSubItems() []NetworkSubItem {
+	return []NetworkSubItem{
+		{Label: "Private Networks", Product: ProductNetworkPrivate, Path: "/networks/private", Enabled: true},
+		{Label: "Public IPs", Product: ProductNetworkPublic, Path: "/networks/public", Enabled: true},
+		{Label: "Gateways", Product: ProductNetworkGateway, Path: "/networks/gateway", Enabled: true},
+		{Label: "Load Balancers", Product: ProductNetworkLB, Path: "/loadbalancer", Enabled: true},
 	}
 }
 
@@ -1655,6 +1677,14 @@ func (m Model) renderNavBar(width int) string {
 		return mainNav + "\n" + subNav
 	}
 
+	// Show network sub-navigation when on Networks or any network sub-product
+	isNetworkContext := navItems[m.navIdx].Product == ProductNetworks ||
+		(m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB)
+	if isNetworkContext {
+		subNav := m.renderNetworkSubNav(width)
+		return mainNav + "\n" + subNav
+	}
+
 	return mainNav
 }
 
@@ -1702,6 +1732,52 @@ func (m Model) renderStorageSubNav(width int) string {
 
 	borderColor := lipgloss.Color("#333333")
 	if m.inStorageSubNav {
+		borderColor = lipgloss.Color("#00FF7F")
+	}
+	subBarStyle := lipgloss.NewStyle().
+		Padding(0, 1).
+		BorderTop(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(borderColor)
+	subContent := lipgloss.JoinHorizontal(lipgloss.Top, items...)
+	return subBarStyle.Width(width - 2).Render(subContent)
+}
+
+func (m Model) renderNetworkSubNav(width int) string {
+	subItems := getNetworkSubItems()
+	var items []string
+
+	subItemStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+	subItemDisabledStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#444444")).
+		Padding(0, 2)
+
+	activeSubIdx := m.networkSubIdx
+	for i, item := range subItems {
+		if item.Product == m.currentProduct {
+			activeSubIdx = i
+			break
+		}
+	}
+
+	for i, item := range subItems {
+		var style lipgloss.Style
+		if i == activeSubIdx && m.inNetworkSubNav {
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Padding(0, 2)
+		} else if i == activeSubIdx {
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+		} else if !item.Enabled {
+			style = subItemDisabledStyle
+		} else {
+			style = subItemStyle
+		}
+		items = append(items, style.Render(item.Label))
+	}
+
+	borderColor := lipgloss.Color("#333333")
+	if m.inNetworkSubNav {
 		borderColor = lipgloss.Color("#00FF7F")
 	}
 	subBarStyle := lipgloss.NewStyle().
@@ -4423,8 +4499,14 @@ func (m Model) getProductCreationInfo() (string, string) {
 		return "file shares", ""
 	case ProductStorageObject:
 		return "object storage containers", ""
-	case ProductNetworks:
+	case ProductNetworks, ProductNetworkPrivate:
 		return "private networks", fmt.Sprintf("ovhcloud cloud network private create --cloud-project %s", m.cloudProject)
+	case ProductNetworkPublic:
+		return "public IPs", ""
+	case ProductNetworkGateway:
+		return "gateways", ""
+	case ProductNetworkLB:
+		return "load balancers", ""
 	default:
 		return "resources", ""
 	}
@@ -5219,10 +5301,23 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.storageSubIdx = (m.storageSubIdx - 1 + len(subItems)) % len(subItems)
 			return m.loadStorageSubProduct()
 		}
+		// In network sub-nav (only when focused)
+		if m.inNetworkSubNav && m.mode != DetailView {
+			subItems := getNetworkSubItems()
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.networkSubIdx = i
+					break
+				}
+			}
+			m.networkSubIdx = (m.networkSubIdx - 1 + len(subItems)) % len(subItems)
+			return m.loadNetworkSubProduct()
+		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
 			if m.navIdx > 0 {
 				m.navIdx--
 				m.inStorageSubNav = false
+				m.inNetworkSubNav = false
 				return m.loadCurrentProduct()
 			}
 		}
@@ -5266,11 +5361,25 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.storageSubIdx = (m.storageSubIdx + 1) % len(subItems)
 			return m.loadStorageSubProduct()
 		}
+		// In network sub-nav (only when focused)
+		isNetworkSubProduct2 := m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB
+		if m.inNetworkSubNav && isNetworkSubProduct2 && m.mode != DetailView {
+			subItems := getNetworkSubItems()
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.networkSubIdx = i
+					break
+				}
+			}
+			m.networkSubIdx = (m.networkSubIdx + 1) % len(subItems)
+			return m.loadNetworkSubProduct()
+		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
 			navItems := getNavItems()
 			if m.navIdx < len(navItems)-1 {
 				m.navIdx++
 				m.inStorageSubNav = false
+				m.inNetworkSubNav = false
 				return m.loadCurrentProduct()
 			}
 		}
@@ -5387,6 +5496,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				// Drop into sub-nav
 				m.inStorageSubNav = true
 				return m.loadStorageSubProduct()
+			}
+			if m.navIdx < len(navItems) && navItems[m.navIdx].Product == ProductNetworks {
+				if m.inNetworkSubNav {
+					// Go back to main nav
+					m.inNetworkSubNav = false
+					return m, nil
+				}
+				// Drop into sub-nav
+				m.inNetworkSubNav = true
+				return m.loadNetworkSubProduct()
 			}
 		}
 		// Handle enter based on current mode
@@ -5527,6 +5646,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		key := msg.String()
 		navItems := getNavItems()
 		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
+		isNetworkSubProduct := m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB
 		if (key == "down" || key == "j") && !m.inStorageSubNav && m.mode != DetailView &&
 			m.mode != ProjectSelectView && !isStorageSubProduct && navItems[m.navIdx].Product == ProductStorage {
 			m.inStorageSubNav = true
@@ -5541,6 +5661,23 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// ↑ on EmptyView/ComingSoonView for storage → focus sub-nav
 		if (key == "up" || key == "k") && isStorageSubProduct && !m.inStorageSubNav && (m.mode == EmptyView || m.mode == ComingSoonView) {
 			m.inStorageSubNav = true
+			return m, nil
+		}
+		// Down into network sub-nav
+		if (key == "down" || key == "j") && !m.inNetworkSubNav && m.mode != DetailView &&
+			m.mode != ProjectSelectView && !isNetworkSubProduct && navItems[m.navIdx].Product == ProductNetworks {
+			m.inNetworkSubNav = true
+			return m.loadNetworkSubProduct()
+		}
+		if (key == "up" || key == "k") && m.inNetworkSubNav && m.mode != DetailView {
+			if m.mode != TableView || m.table.Cursor() == 0 {
+				m.inNetworkSubNav = false
+				return m, nil
+			}
+		}
+		// ↑ on EmptyView/ComingSoonView for network → focus sub-nav
+		if (key == "up" || key == "k") && isNetworkSubProduct && !m.inNetworkSubNav && (m.mode == EmptyView || m.mode == ComingSoonView) {
+			m.inNetworkSubNav = true
 			return m, nil
 		}
 		// Node pools list navigation
@@ -7406,11 +7543,12 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	m.detailData = nil
 	m.currentData = nil
 	m.inStorageSubNav = false
+	m.inNetworkSubNav = false
 
-	// Show coming soon view for unimplemented products
+	// For Networks, go to default sub-item (Private Networks = index 0)
 	if currentNav.Product == ProductNetworks {
-		m.mode = ComingSoonView
-		return m, nil
+		m.networkSubIdx = 0
+		return m.loadNetworkSubProduct()
 	}
 
 	// For Stockage, go to default sub-item (Block Storage = index 0)
@@ -7438,6 +7576,22 @@ func (m Model) loadStorageSubProduct() (Model, tea.Cmd) {
 	m.detailData = nil
 	m.currentData = nil
 	m.volumeDetailView = nil
+
+	if !sub.Enabled {
+		m.mode = ComingSoonView
+		return m, nil
+	}
+
+	m.mode = LoadingView
+	return m, m.fetchDataForPath(sub.Path)
+}
+
+func (m Model) loadNetworkSubProduct() (Model, tea.Cmd) {
+	subItems := getNetworkSubItems()
+	sub := subItems[m.networkSubIdx]
+	m.currentProduct = sub.Product
+	m.detailData = nil
+	m.currentData = nil
 
 	if !sub.Enabled {
 		m.mode = ComingSoonView

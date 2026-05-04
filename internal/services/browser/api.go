@@ -117,6 +117,12 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 			msg.forProduct = product
 			return msg
 		}
+	case "/networks/gateway":
+		return func() tea.Msg {
+			msg := m.fetchGatewaysData()
+			msg.forProduct = product
+			return msg
+		}
 	case "/storage/snapshot":
 		return func() tea.Msg {
 			msg := m.fetchVolumeSnapshotsData()
@@ -1361,6 +1367,41 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 	return dataLoadedMsg{
 		data: loadbalancers,
 		err:  err,
+	}
+}
+
+// fetchGatewaysData fetches gateways across all regions
+func (m Model) fetchGatewaysData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{
+			err: fmt.Errorf("no cloud project selected"),
+		}
+	}
+
+	var regionNames []string
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	if err := httpLib.Client.Get(regionEndpoint, &regionNames); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+
+	regions := make([]any, len(regionNames))
+	for i, r := range regionNames {
+		regions[i] = r
+	}
+
+	allRegionGateways, err := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/gateway", regions, true)
+	if err != nil {
+		return dataLoadedMsg{err: err}
+	}
+
+	var gateways []map[string]interface{}
+	for _, regionGateways := range allRegionGateways {
+		gateways = append(gateways, regionGateways...)
+	}
+
+	return dataLoadedMsg{
+		data: gateways,
+		err:  nil,
 	}
 }
 
