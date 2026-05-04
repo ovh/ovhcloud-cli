@@ -817,7 +817,7 @@ type NetworkSubItem struct {
 func getNetworkSubItems() []NetworkSubItem {
 	return []NetworkSubItem{
 		{Label: "Private Networks", Product: ProductNetworkPrivate, Path: "/networks/private", Enabled: true},
-		{Label: "Public IPs", Product: ProductNetworkPublic, Path: "/networks/public", Enabled: true},
+		{Label: "Public IPs", Product: ProductNetworkPublic, Path: "/networks/floatingip", Enabled: true},
 		{Label: "Gateways", Product: ProductNetworkGateway, Path: "/networks/gateway", Enabled: true},
 		{Label: "Load Balancers", Product: ProductNetworkLB, Path: "/loadbalancer", Enabled: true},
 	}

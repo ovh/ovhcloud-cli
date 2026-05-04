@@ -111,6 +111,12 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 			msg.forProduct = product
 			return msg
 		}
+	case "/networks/floatingip":
+		return func() tea.Msg {
+			msg := m.fetchFloatingIPsData()
+			msg.forProduct = product
+			return msg
+		}
 	case "/loadbalancer":
 		return func() tea.Msg {
 			msg := m.fetchLoadBalancersData()
@@ -1319,6 +1325,75 @@ func (m Model) fetchPublicNetworksData() dataLoadedMsg {
 	}
 }
 
+// fetchFloatingIPsData fetches floating IPs from regions that support the "network" feature
+func (m Model) fetchFloatingIPsData() dataLoadedMsg {
+	os.WriteFile("/tmp/floatingip_called.txt", []byte("called project="+m.cloudProject), 0644)
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+
+	// Fetch full region details (with services) to filter by "network" feature
+	regionDetails, err := httpLib.FetchExpandedArray(regionEndpoint, "")
+	if err != nil {
+		return dataLoadedMsg{err: err}
+	}
+
+	// Debug: dump region details to understand structure
+	if b, err2 := json.MarshalIndent(regionDetails, "", "  "); err2 == nil {
+		os.WriteFile("/tmp/floatingip_regions_debug.json", b, 0644)
+	}
+
+	var regions []any
+	var regionNames []string
+	for _, r := range regionDetails {
+		name, _ := r["name"].(string)
+		if name == "" {
+			continue
+		}
+		if services, ok := r["services"].([]interface{}); ok {
+			for _, svc := range services {
+				if sm, ok := svc.(map[string]interface{}); ok {
+					if sm["name"] == "network" && sm["status"] == "UP" {
+						regions = append(regions, name)
+						regionNames = append(regionNames, name)
+						break
+					}
+				}
+			}
+		}
+	}
+
+	if len(regions) == 0 {
+		os.WriteFile("/tmp/floatingip_debug.json", []byte(`{"error":"no regions with network feature found"}`), 0644)
+		return dataLoadedMsg{data: nil, err: nil}
+	}
+
+	allRegionIPs, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/floatingip", regions, true)
+
+	var floatingIPs []map[string]interface{}
+	for i, ips := range allRegionIPs {
+		for _, ip := range ips {
+			if r, _ := ip["region"].(string); r == "" {
+				ip["region"] = regionNames[i]
+			}
+			floatingIPs = append(floatingIPs, ip)
+		}
+	}
+
+	// Debug dump
+	dbg := map[string]interface{}{"regions": regionNames, "count": len(floatingIPs)}
+	if len(floatingIPs) > 0 {
+		dbg["first"] = floatingIPs[0]
+	}
+	if b, err2 := json.MarshalIndent(dbg, "", "  "); err2 == nil {
+		os.WriteFile("/tmp/floatingip_debug.json", b, 0644)
+	}
+
+	return dataLoadedMsg{data: floatingIPs, err: nil}
+}
+
 // fetchLoadBalancersData fetches load balancers at project level
 func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 	if m.cloudProject == "" {
@@ -1572,6 +1647,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.table = createVolumeBackupsTable(msg.data, m.width, m.height)
 	case ProductNetworkPrivate:
 		m.table = createPrivateNetworksTable(msg.data, m.width, m.height)
+	case ProductNetworkPublic:
+		m.table = createFloatingIPsTable(msg.data, m.width, m.height)
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)
 	}
@@ -2009,6 +2086,72 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		}
 
 		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp, ipAllocated})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// createFloatingIPsTable creates a table for floating/public IPs.
+func createFloatingIPsTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "IP Address", Width: 18},
+		{Title: "Region", Width: 18},
+		{Title: "Associated Endpoint", Width: 40},
+	}
+
+	var rows []table.Row
+	for _, fip := range data {
+		ip := getString(fip, "ip")
+		if ip == "" {
+			ip = "-"
+		}
+		region := getString(fip, "region")
+		if region == "" {
+			region = "-"
+		}
+
+		endpoint := "-"
+		if ae, ok := fip["associatedEntity"].(map[string]interface{}); ok {
+			atype := getString(ae, "type")
+			aip := getString(ae, "ip")
+			switch {
+			case atype != "" && aip != "":
+				endpoint = fmt.Sprintf("%s (%s)", atype, aip)
+			case atype != "":
+				endpoint = atype
+			case aip != "":
+				endpoint = aip
+			}
+		}
+
+		rows = append(rows, table.Row{ip, region, endpoint})
 	}
 
 	tableHeight := height - 15
