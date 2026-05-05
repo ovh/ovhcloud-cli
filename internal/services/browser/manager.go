@@ -158,6 +158,15 @@ const (
 	GwWizardStepConfirm                         // confirm + create
 )
 
+const (
+	// Load Balancer wizard steps (offset by 1000)
+	LBWizardStepName   WizardStep = iota + 1000 // enter name
+	LBWizardStepRegion                          // select region
+	LBWizardStepFlavor                          // select size/flavor
+	LBWizardStepNetwork                         // select private network (optional)
+	LBWizardStepConfirm                         // confirm + create
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -402,6 +411,23 @@ type WizardData struct {
 	// maps region name -> {"openstackId": "...", "subnetId": "..."}
 	gwNetworkRegionMap   map[string]map[string]string
 	gwAttachMode         bool // true when wizard was launched from private network detail view
+
+	// Load Balancer wizard fields
+	lbName              string
+	lbNameInput         string
+	lbRegion            string
+	lbRegionIdx         int
+	lbAvailableRegions  []string
+	lbFlavors           []map[string]interface{}
+	lbFlavorIdx         int
+	lbFlavorId          string
+	lbFlavorName        string
+	lbNetworks          []map[string]interface{}
+	lbNetworkIdx        int    // 0 = Aucun réseau, 1+ = index into lbNetworks
+	lbNetworkId         string
+	lbNetworkName       string
+	lbSubnetId          string
+	lbConfirmBtnIdx     int
 }
 
 // Model represents the TUI application state
@@ -879,6 +905,31 @@ type gwDeletedMsg struct {
 	err         error
 }
 
+type lbCreatedMsg struct {
+	lb  map[string]interface{}
+	err error
+}
+
+type lbRegionsLoadedMsg struct {
+	regions []string
+	err     error
+}
+
+type lbFlavorsLoadedMsg struct {
+	flavors []map[string]interface{}
+	err     error
+}
+
+type lbNetworksLoadedMsg struct {
+	networks []map[string]interface{}
+	err      error
+}
+
+type lbSubnetLoadedMsg struct {
+	subnetID string
+	err      error
+}
+
 func getNavItems() []NavItem {
 	return []NavItem{
 		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
@@ -1107,6 +1158,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Chargement des régions...",
 			}
 			return m, m.fetchGwRegions()
+		} else if msg.product == ProductNetworkLB {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step: LBWizardStepName,
+			}
+			return m, nil
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -1400,6 +1457,67 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.wizard.gwSubnetID = msg.subnetID
 		m.wizard.step = GwWizardStepConfirm
+		return m, nil
+
+	case lbCreatedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		lbName := getString(msg.lb, "name")
+		m.notification = fmt.Sprintf("✅ Load Balancer '%s' créé avec succès", lbName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/loadbalancer"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case lbRegionsLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.lbAvailableRegions = msg.regions
+		m.wizard.lbRegionIdx = 0
+		return m, nil
+
+	case lbFlavorsLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.lbFlavors = msg.flavors
+		m.wizard.lbFlavorIdx = 0
+		return m, nil
+
+	case lbNetworksLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.lbNetworks = msg.networks
+		m.wizard.lbNetworkIdx = 0
+		return m, nil
+
+	case lbSubnetLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.lbSubnetId = msg.subnetID
+		m.wizard.step = LBWizardStepConfirm
 		return m, nil
 
 	case volumeBackupCreatedMsg:
@@ -2080,7 +2198,10 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 900 {
+		if m.wizard.step >= 1000 {
+			// Load Balancer wizard
+			titleText = " ⚖\ufe0f  Create Load Balancer "
+		} else if m.wizard.step >= 900 {
 			// Gateway wizard
 			titleText = " 🌐 Create Gateway "
 		} else if m.wizard.step >= 800 {
@@ -3036,7 +3157,15 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 800 {
+	if m.wizard.step >= 1000 {
+		// Load Balancer wizard
+		steps = append(steps, "Nom", "Région", "Taille", "Réseau", "Confirmer")
+		stepMapping = append(stepMapping, LBWizardStepName, LBWizardStepRegion, LBWizardStepFlavor, LBWizardStepNetwork, LBWizardStepConfirm)
+	} else if m.wizard.step >= 900 {
+		// Gateway wizard
+		steps = append(steps, "Région", "Taille", "Nom", "Réseau", "Confirmer")
+		stepMapping = append(stepMapping, GwWizardStepRegion, GwWizardStepModel, GwWizardStepName, GwWizardStepNetwork, GwWizardStepConfirm)
+	} else if m.wizard.step >= 800 {
 		// Private Network wizard
 		steps = append(steps, "Région", "Nom", "VLAN", "Sous-réseau", "DHCP", "Passerelle", "Confirmer")
 		stepMapping = append(stepMapping, PrivNetWizardStepRegion, PrivNetWizardStepName, PrivNetWizardStepVlanID, PrivNetWizardStepSubnet, PrivNetWizardStepDHCP, PrivNetWizardStepGateway, PrivNetWizardStepConfirm)
@@ -3250,6 +3379,17 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderGwWizardNetworkStep(width))
 	case GwWizardStepConfirm:
 		content.WriteString(m.renderGwWizardConfirmStep(width))
+	// Load Balancer wizard steps
+	case LBWizardStepName:
+		content.WriteString(m.renderLBWizardNameStep(width))
+	case LBWizardStepRegion:
+		content.WriteString(m.renderLBWizardRegionStep(width))
+	case LBWizardStepFlavor:
+		content.WriteString(m.renderLBWizardFlavorStep(width))
+	case LBWizardStepNetwork:
+		content.WriteString(m.renderLBWizardNetworkStep(width))
+	case LBWizardStepConfirm:
+		content.WriteString(m.renderLBWizardConfirmStep(width))
 	// Volume Backup / Snapshot wizard steps
 	case BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm:
 		content.WriteString(m.renderBackupWizard(width))
@@ -6750,13 +6890,13 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// 'q' quits (except when typing in input fields)
-	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && m.wizard.step != GwWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && m.wizard.step != GwWizardStepName && m.wizard.step != LBWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		return m, tea.Quit
 	}
 
 	// 'd' opens debug panel (except when typing in input fields)
 	// Disable debug shortcut when: in name step, filter mode, creating SSH key, or creating network
-	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && m.wizard.step != GwWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && m.wizard.step != GwWizardStepName && m.wizard.step != LBWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		m.previousMode = m.mode
 		m.mode = DebugView
 		m.debugScrollOffset = 0
@@ -6774,7 +6914,10 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 900 {
+		if m.wizard.step >= 1000 {
+			// Load Balancer wizard: return to LB list
+			returnPath = "/loadbalancer"
+		} else if m.wizard.step >= 900 {
 			// Gateway wizard: return to private network detail view
 			m.wizard = WizardData{}
 			m.mode = DetailView
@@ -6967,6 +7110,17 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleGwWizardNetworkKeys(key)
 	case GwWizardStepConfirm:
 		return m.handleGwWizardConfirmKeys(key)
+	// Load Balancer wizard steps
+	case LBWizardStepName:
+		return m.handleLBWizardNameKeys(msg)
+	case LBWizardStepRegion:
+		return m.handleLBWizardRegionKeys(key)
+	case LBWizardStepFlavor:
+		return m.handleLBWizardFlavorKeys(key)
+	case LBWizardStepNetwork:
+		return m.handleLBWizardNetworkKeys(key)
+	case LBWizardStepConfirm:
+		return m.handleLBWizardConfirmKeys(key)
 	}
 	return m, nil
 }

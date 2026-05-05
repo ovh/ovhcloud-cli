@@ -1614,6 +1614,26 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 		}
 	}
 
+	// Build networkId -> name map by fetching private networks for each octavia region
+	allRegionNetworks, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/network", regions, true)
+	networkNameMap := make(map[string]string) // openstackId -> name
+	for _, nets := range allRegionNetworks {
+		for _, n := range nets {
+			if id, ok := n["id"].(string); ok {
+				if name, ok := n["name"].(string); ok && name != "" && name != "Ext-Net" {
+					networkNameMap[id] = name
+				}
+			}
+		}
+	}
+	for _, lb := range lbs {
+		if netID, ok := lb["vipNetworkId"].(string); ok && netID != "" {
+			if name, found := networkNameMap[netID]; found {
+				lb["_networkName"] = name
+			}
+		}
+	}
+
 	return dataLoadedMsg{data: lbs, err: nil}
 }
 
@@ -2336,7 +2356,10 @@ func createLoadBalancersTable(data []map[string]interface{}, width, height int) 
 		if size == "" {
 			size = getString(lb, "flavorId")
 		}
-		privateNetwork := getString(lb, "vipNetworkId")
+		privateNetwork := getString(lb, "_networkName")
+		if privateNetwork == "" {
+			privateNetwork = getString(lb, "vipNetworkId")
+		}
 		privateIP := getString(lb, "vipAddress")
 		provisioning := getString(lb, "provisioningStatus")
 		status := getString(lb, "operatingStatus")
