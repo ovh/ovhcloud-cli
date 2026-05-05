@@ -4,9 +4,10 @@
 
 //go:build !(js && wasm)
 
-package kubernetes
+package block_storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/services/browser/views"
 )
 
-// TableView displays a list of Kubernetes clusters in a table.
 type TableView struct {
 	views.BaseView
 	table        table.Model
@@ -26,7 +26,6 @@ type TableView struct {
 	filteredData []map[string]interface{}
 }
 
-// NewTableView creates a new Kubernetes table view.
 func NewTableView(ctx *views.Context, data []map[string]interface{}) *TableView {
 	v := &TableView{
 		BaseView:     views.NewBaseView(ctx),
@@ -39,22 +38,22 @@ func NewTableView(ctx *views.Context, data []map[string]interface{}) *TableView 
 
 func (v *TableView) createTable() table.Model {
 	columns := []table.Column{
-		{Title: "Name", Width: 30},
+		{Title: "Name", Width: 28},
 		{Title: "Status", Width: 12},
-		{Title: "Version", Width: 10},
+		{Title: "Size (GB)", Width: 10},
+		{Title: "Type", Width: 18},
 		{Title: "Region", Width: 12},
-		{Title: "Nodes", Width: 8},
 	}
 
 	var rows []table.Row
-	for _, cluster := range v.filteredData {
-		name := getString(cluster, "name")
-		status := getString(cluster, "status")
-		version := getString(cluster, "version")
-		region := getString(cluster, "region")
-		nodes := getNodeCount(cluster)
+	for _, volume := range v.filteredData {
+		name := getString(volume, "name")
+		status := getString(volume, "status")
+		size := getSizeStr(volume)
+		vType := getString(volume, "type")
+		region := getString(volume, "region")
 
-		rows = append(rows, table.Row{name, status, version, region, nodes})
+		rows = append(rows, table.Row{name, status, size, vType, region})
 	}
 
 	ctx := v.Context()
@@ -131,7 +130,7 @@ func (v *TableView) HandleKey(msg tea.KeyMsg) tea.Cmd {
 		idx := v.table.Cursor()
 		if idx >= 0 && idx < len(v.filteredData) {
 			return func() tea.Msg {
-				return ShowClusterDetailMsg{Cluster: v.filteredData[idx]}
+				return ShowVolumeDetailMsg{Volume: v.filteredData[idx]}
 			}
 		}
 	case "up", "down", "j", "k":
@@ -165,18 +164,17 @@ func (v *TableView) applyFilter() {
 }
 
 func (v *TableView) Title() string {
-	return " ☸️  Kubernetes "
+	return " 💾 Block Storage "
 }
 
 func (v *TableView) HelpText() string {
 	if v.filterMode {
 		return "Type to filter • Enter: Confirm • Esc: Cancel"
 	}
-	return "↑↓: Navigate • /: Filter • v: Details • c: Create • d: Debug • p: Projects • q: Quit"
+	return "↑↓: Navigate • /: Filter • v: Details • d: Debug • p: Projects • q: Quit"
 }
 
-// GetSelectedCluster returns the currently selected cluster.
-func (v *TableView) GetSelectedCluster() map[string]interface{} {
+func (v *TableView) GetSelectedVolume() map[string]interface{} {
 	idx := v.table.Cursor()
 	if idx >= 0 && idx < len(v.filteredData) {
 		return v.filteredData[idx]
@@ -194,12 +192,10 @@ func (v *TableView) UpdateData(data []map[string]interface{}) {
 	}
 }
 
-// ShowClusterDetailMsg signals to show cluster detail.
-type ShowClusterDetailMsg struct {
-	Cluster map[string]interface{}
+type ShowVolumeDetailMsg struct {
+	Volume map[string]interface{}
 }
 
-// Helper functions
 func getString(m map[string]interface{}, key string) string {
 	if v, ok := m[key].(string); ok {
 		return v
@@ -207,10 +203,16 @@ func getString(m map[string]interface{}, key string) string {
 	return ""
 }
 
-func getNodeCount(cluster map[string]interface{}) string {
-	// Try different possible fields
-	if nodes, ok := cluster["nodesCount"]; ok {
-		return fmt.Sprintf("%v", nodes)
+func getSizeStr(volume map[string]interface{}) string {
+	switch v := volume["size"].(type) {
+	case float64:
+		return fmt.Sprintf("%d", int(v))
+	case int:
+		return fmt.Sprintf("%d", v)
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			return fmt.Sprintf("%d", i)
+		}
 	}
 	return "-"
 }

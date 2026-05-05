@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +24,10 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/config"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	block_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/block_storage"
+	file_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/file_storage"
+	object_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/object_storage"
+	"github.com/ovh/ovhcloud-cli/internal/services/browser/views"
 	"github.com/spf13/cobra"
 )
 
@@ -48,6 +53,7 @@ const (
 	NodePoolDeleteConfirmView // Node pool delete confirmation
 	KubeKubeconfigPickerView  // Directory picker for saving kubeconfig
 	ComingSoonView            // Coming soon placeholder for unimplemented products
+	S3CredentialsView         // S3 user credentials display after creation
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -87,6 +93,61 @@ const (
 	NodePoolWizardStepSize
 	NodePoolWizardStepOptions
 	NodePoolWizardStepConfirm
+	// Volume (Block Storage) wizard steps (offset by 300)
+	VolumeWizardStepName WizardStep = iota + 300
+	VolumeWizardStepRegion
+	VolumeWizardStepType
+	VolumeWizardStepAvailabilityZone
+	VolumeWizardStepSize
+	VolumeWizardStepEncryption
+	VolumeWizardStepConfirm
+)
+
+const (
+	// File Storage wizard steps (offset by 400)
+	FileWizardStepName    WizardStep = iota + 400
+	FileWizardStepRegion
+	FileWizardStepType
+	FileWizardStepSize
+	FileWizardStepNetwork
+	FileWizardStepConfirm
+
+	ObjectWizardStepName        WizardStep = iota + 500
+	ObjectWizardStepType
+	ObjectWizardStepRegion
+	ObjectWizardStepReplication
+	ObjectWizardStepVersioning
+	ObjectWizardStepObjectLock
+	ObjectWizardStepUser
+	ObjectWizardStepEncryption
+	ObjectWizardStepConfirm
+	ObjectWizardStepSwiftType
+	ObjectWizardStepSwiftRegion
+)
+
+const (
+	// S3 User wizard steps
+	S3UserWizardStepDescription WizardStep = iota + 600
+	S3UserWizardStepConfirm
+)
+
+const (
+	// Volume Backup / Snapshot wizard steps (offset by 700)
+	BackupWizardStepVolume  WizardStep = iota + 700 // pick source volume
+	BackupWizardStepType                            // pick Snapshot or Backup
+	BackupWizardStepName                            // enter name
+	BackupWizardStepConfirm                         // confirm
+)
+
+const (
+	// Private Network wizard steps (offset by 800)
+	PrivNetWizardStepRegion  WizardStep = iota + 800 // choose location
+	PrivNetWizardStepName                            // network name
+	PrivNetWizardStepVlanID                          // VLAN ID (layer 2 option)
+	PrivNetWizardStepSubnet                          // configure subnet CIDR
+	PrivNetWizardStepDHCP                            // DHCP distribution options
+	PrivNetWizardStepGateway                         // gateway options
+	PrivNetWizardStepConfirm                         // confirm
 )
 
 // ProductType represents a product category
@@ -97,8 +158,18 @@ const (
 	ProductKubernetes
 	ProductManagedDatabases
 	ProductManagedAnalytics
-	ProductStorage
+	ProductStorage         // "Stockage" top-level nav
+	ProductStorageBlock    // Block Storage (sous-nav)
+	ProductStorageFile     // File Storage (sous-nav)
+	ProductStorageBackup   // Volume Backup (sous-nav)
+	ProductStorageSnapshot // Volume Snapshot (sous-nav)
+	ProductStorageObject   // Object Storage (sous-nav)
+	ProductStorageArchive  // Cloud Archive (sous-nav)
 	ProductNetworks
+	ProductNetworkPrivate // Private Networks (sub-nav)
+	ProductNetworkPublic  // Public IPs (sub-nav)
+	ProductNetworkGateway // Gateways (sub-nav)
+	ProductNetworkLB      // Load Balancers (sub-nav)
 	ProductProjects
 )
 
@@ -230,6 +301,79 @@ type WizardData struct {
 	kubeKubeconfigCurrentDir  string   // Currently browsed directory
 	kubeKubeconfigEntries     []string // Subdirectory names in current dir
 	kubeKubeconfigSelectedIdx int      // 0="..", 1="[Save here]", 2+= entries
+	// Volume (Block Storage) wizard fields
+	volumeTypes             []string            // Available volume types for the selected region
+	volumeRegionTypeMap     map[string][]string // region name -> []type names (pre-loaded)
+	volumeAvailabilityZones []string            // Available availability zones for the region
+	volumeTypeAZMap         map[string][]string      // type name -> available AZs (for selected region)
+	volumeRegionTypeAZMap   map[string]map[string][]string // region -> type -> AZs (pre-loaded)
+	volumeName              string   // Volume name input
+	volumeNameInput         string   // Input buffer for volume name
+	volumeSize              int      // Volume size in GB
+	volumeSizeInput         string   // Input buffer for volume size
+	volumeType              string   // Selected volume type
+	volumeAvailabilityZone  string   // Selected availability zone
+	volumeEncryptionIdx     int      // 0=none, 1=OVHcloud Managed Key
+	volumeConfirmBtnIdx     int      // 0 = Create, 1 = Cancel
+	// File Storage wizard fields
+	fileShareName          string
+	fileShareNameInput     string
+	fileShareSize          int
+	fileShareSizeInput     string
+	fileShareType          string   // selected type (e.g., "standard-1az")
+	fileShareTypeIdx       int
+	fileShareRegions       []string
+	fileShareNetworks      []map[string]interface{}
+	fileShareSubnets       []map[string]interface{}
+	fileShareNetworkId     string
+	fileShareNetworkName   string
+	fileShareSubnetId      string
+	fileShareSubnetCIDR    string
+	fileShareNetworkMenuIdx int   // 0=network list, 1=subnet list
+	fileShareConfirmBtnIdx  int   // 0=Create, 1=Cancel
+	// Object Storage wizard fields
+	objectName          string   // Container name
+	objectNameInput     string
+	objectTypeIdx       int      // 0=Standard, 1=High Performance
+	objectRegions       []string // Regions supporting S3
+	objectUsers         []map[string]interface{} // Cloud users
+	objectUserIdx       int
+	objectReplication   bool   // Offsite replication enabled
+	objectVersioning    bool   // Versioning enabled
+	objectLock          bool   // Object Lock enabled
+	objectEncryption    bool   // Encryption enabled (AES256)
+	objectConfirmBtnIdx int    // 0=Create, 1=Cancel
+	objectSwiftTypeIdx  int    // 0=Static, 1=Private, 2=Public
+	objectSwiftRegions  []string // Available regions for Swift
+	objectSwiftRegion   string // Selected Swift region
+	// S3 User wizard fields
+	s3UserDescInput     string // Description input buffer
+	s3UserDesc          string // Confirmed description
+	s3UserConfirmBtnIdx int    // 0=Create, 1=Cancel
+	// Volume Backup / Snapshot wizard fields
+	backupVolumes      []map[string]interface{} // loaded block storage volumes
+	backupVolumeIdx    int                      // selected volume index
+	backupTypeIdx      int                      // 0=Snapshot, 1=Backup
+	backupName         string                   // confirmed name
+	backupNameInput    string                   // input buffer for name
+	backupConfirmBtnIdx int                      // 0=Create, 1=Cancel
+	// Private Network wizard fields
+	privNetRegions       []map[string]interface{} // [{name, type}]
+	privNetRegionIdx     int                      // selected region index
+	privNetNameInput     string                   // network name input
+	privNetName          string                   // confirmed name
+	privNetDefineVlan    bool                     // whether user wants to set a VLAN ID
+	privNetVlanInput     string                   // VLAN ID input ("" = auto)
+	privNetVlanID        int                      // confirmed VLAN ID (0 = auto)
+	privNetEnableSubnet  bool                     // whether to configure a subnet
+	privNetCIDRInput     string                   // subnet CIDR input
+	privNetCIDR          string                   // confirmed CIDR
+	privNetEnableDHCP    bool                     // DHCP distribution enabled
+	privNetDHCPFieldIdx  int                      // 0=toggle, 1=Next/Back
+	privNetGatewayMode   int                      // 0=announce first CIDR IP, 1=assign explicit IP
+	privNetGatewayInput  string                   // gateway IP input (mode 1)
+	privNetGateway       string                   // confirmed gateway IP (mode 1)
+	privNetConfirmBtnIdx int                      // 0=Create, 1=Cancel
 }
 
 // Model represents the TUI application state
@@ -239,7 +383,12 @@ type Model struct {
 	mode               ViewMode
 	previousMode       ViewMode // Previous mode to return to from debug view
 	currentProduct     ProductType
-	navIdx             int // Index in navigation bar
+	navIdx             int  // Index in navigation bar
+	storageSubIdx      int  // Index in storage sub-navigation (0=Prise en main, 1=Block Storage, ...)
+	inStorageSubNav    bool // Whether the keyboard focus is in the storage sub-nav bar
+	networkSubIdx      int  // Index in network sub-navigation
+	inNetworkSubNav    bool // Whether the keyboard focus is in the network sub-nav bar
+	inTableFocus       bool // Whether the keyboard focus is in the table content (third navigation level)
 	table              table.Model
 	detailData         map[string]interface{}
 	currentData        []map[string]interface{}
@@ -256,6 +405,8 @@ type Model struct {
 	// Filter mode
 	filterMode  bool   // Whether filter input mode is active
 	filterInput string // Current filter input text
+	// Object Storage tab rendering
+	renderObjectStorageTabs bool
 	// Delete confirmation
 	deleteTarget       map[string]interface{} // Item to be deleted
 	deleteConfirmInput string                 // User input for delete confirmation
@@ -273,6 +424,31 @@ type Model struct {
 	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
 	detailRefreshId   string
 	detailRefreshName string
+	// Block Storage detail view
+	volumeDetailView *block_storage.DetailView
+	// Snapshot detail view
+	snapshotDetailView *block_storage.SnapshotDetailView
+	// Backup detail view
+	backupDetailView *block_storage.BackupDetailView
+	// File Storage detail view
+	fileShareDetailView *file_storage.DetailView
+	// Object Storage detail view
+	objectDetailView *object_storage.DetailView
+	// Object Storage user detail view
+	objectUserDetailView *object_storage.UserDetailView
+	// Object Storage tabs (0=Containers, 1=Users)
+	objectStorageTabIdx int
+	objectStorageUsers  []map[string]interface{}
+	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
+	privNetTabIdx      int
+	privNetLocalZones  []map[string]interface{}
+	// S3 user creation result (for credentials display)
+	s3CreatedUser        map[string]interface{}
+	s3CreatedCredentials map[string]interface{}
+	s3CredentialsSavedPath  string
+	s3CredentialsSaveError  string
+	s3PendingEnableUser  map[string]interface{} // user being enabled (for credentials display)
+	s3CredentialsFromEnable bool // true if S3CredentialsView opened from enable action
 }
 
 // Navigation items for the top bar
@@ -292,7 +468,6 @@ var (
 
 	// Navigation bar
 	navBarStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("#1a1a1a")).
 			Padding(0, 1)
 
 	navItemStyle = lipgloss.NewStyle().
@@ -377,6 +552,7 @@ type dataLoadedMsg struct {
 	data       []map[string]interface{}
 	err        error
 	forProduct ProductType // The product that requested this data
+	s3Users    []map[string]interface{} // S3 users (for Object Storage)
 }
 
 // setDefaultProjectMsg is returned after setting the default project
@@ -530,15 +706,162 @@ type kubeNodePoolsLoadedMsg struct {
 	err       error
 }
 
-// Navigation items for products (shown after project is selected)
+type volumeRegionsLoadedMsg struct {
+	regionNames       []string
+	regionTypeMap     map[string][]string
+	regionTypeAZMap   map[string]map[string][]string // region -> type -> []AZs
+	err               error
+}
+
+type volumeTypesLoadedMsg struct {
+	types     []string
+	typeAZMap map[string][]string // type -> []AZs
+	err       error
+}
+
+type volumeAZLoadedMsg struct {
+	availabilityZones []string
+	err               error
+}
+
+type volumeCreatedMsg struct {
+	volume map[string]interface{}
+	err    error
+}
+
+type volumeActionDoneMsg struct {
+	action int
+	err    error
+}
+
+type refreshBlockStorageMsg struct{}
+
+type fileShareRegionsLoadedMsg struct {
+	regions []string
+	err     error
+}
+
+type fileShareNetworksLoadedMsg struct {
+	networks []map[string]interface{}
+	err      error
+}
+
+type fileShareSubnetsLoadedMsg struct {
+	subnets []map[string]interface{}
+	err     error
+}
+
+type fileShareCreatedMsg struct {
+	share map[string]interface{}
+	err   error
+}
+
+type objectStorageInitDataLoadedMsg struct {
+        regions []string
+        users   []map[string]interface{}
+        err     error
+}
+
+type objectContainerCreatedMsg struct {
+        container map[string]interface{}
+        err       error
+}
+
+type objectContainerActionDoneMsg struct {
+	action int
+	err    error
+}
+
+type swiftContainerUpdatedMsg struct {
+	containerName string
+	newType       string
+	err           error
+}
+
+type containerPolicyAddedMsg struct {
+	containerName string
+	roleName      string
+	err           error
+}
+
+type s3SecretLoadedMsg struct {
+	secret string
+	err    error
+}
+
+type s3UserActionDoneMsg struct {
+	action        int
+	newCredential map[string]interface{}
+	err           error
+}
+
+type s3UserCreatedMsg struct {
+	user        map[string]interface{}
+	credentials map[string]interface{}
+	err         error
+}
+
+type s3CredentialsSavedMsg struct {
+	filePath    string
+	profileName string
+	err         error
+}
+
+type swiftRegionsLoadedMsg struct {
+	regions []string
+}
+
+type privNetRegionsLoadedMsg struct {
+	regions []map[string]interface{}
+	err     error
+}
+
+type privNetCreatedMsg struct {
+	network map[string]interface{}
+	err     error
+}
+
 func getNavItems() []NavItem {
 	return []NavItem{
 		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
-		{Label: "Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
-		{Label: "Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
+		{Label: " Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
+		{Label: " Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
 		{Label: "Managed Analytics", Icon: "📈", Product: ProductManagedAnalytics, Path: "/analytics"},
-		{Label: "Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/s3"},
-		{Label: "Private networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
+		{Label: "Storage", Icon: "💾", Product: ProductStorage, Path: "/storage/block"},
+		{Label: "Networks", Icon: "🌐", Product: ProductNetworks, Path: "/networks/private"},
+	}
+}
+
+type StorageSubItem struct {
+	Label   string
+	Product ProductType
+	Path    string
+	Enabled bool
+}
+
+func getStorageSubItems() []StorageSubItem {
+	return []StorageSubItem{
+		{Label: "Block Storage", Product: ProductStorageBlock, Path: "/storage/block", Enabled: true},
+		{Label: "File Storage", Product: ProductStorageFile, Path: "/storage/file", Enabled: true},
+		{Label: "Volume Backup", Product: ProductStorageBackup, Path: "/storage/backup", Enabled: true},
+		{Label: "Volume Snapshot", Product: ProductStorageSnapshot, Path: "/storage/snapshot", Enabled: true},
+		{Label: "Object Storage", Product: ProductStorageObject, Path: "/storage/object", Enabled: true},
+	}
+}
+
+type NetworkSubItem struct {
+	Label   string
+	Product ProductType
+	Path    string
+	Enabled bool
+}
+
+func getNetworkSubItems() []NetworkSubItem {
+	return []NetworkSubItem{
+		{Label: "Private Networks", Product: ProductNetworkPrivate, Path: "/networks/private", Enabled: true},
+		{Label: "Public IPs", Product: ProductNetworkPublic, Path: "/networks/floatingip", Enabled: true},
+		{Label: "Gateways", Product: ProductNetworkGateway, Path: "/networks/gateway", Enabled: true},
+		{Label: "Load Balancers", Product: ProductNetworkLB, Path: "/loadbalancer", Enabled: true},
 	}
 }
 
@@ -665,6 +988,48 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Loading Kubernetes regions...",
 			}
 			return m, m.fetchKubeRegions()
+		} else if msg.product == ProductStorageBlock {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step: VolumeWizardStepName,
+			}
+			return m, nil
+		} else if msg.product == ProductStorageFile {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:           FileWizardStepName,
+				isLoading:      true,
+				loadingMessage: "Loading available regions...",
+			}
+			return m, m.fetchFileShareRegions()
+		} else if msg.product == ProductStorageObject {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:           ObjectWizardStepName,
+				isLoading:      true,
+				loadingMessage: "Loading regions and users...",
+			}
+			return m, m.fetchObjectStorageInitData()
+		} else if msg.product == ProductStorageBackup || msg.product == ProductStorageSnapshot {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:           BackupWizardStepVolume,
+				isLoading:      true,
+				loadingMessage: "Chargement des volumes...",
+			}
+			return m, m.fetchBackupVolumes()
+		} else if msg.product == ProductNetworkPrivate {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:             PrivNetWizardStepRegion,
+				privNetEnableDHCP:    true,
+				privNetEnableSubnet:  true,
+				privNetGatewayMode: 0,
+				privNetCIDRInput:     "192.168.0.0/24",
+				isLoading:      true,
+				loadingMessage: "Chargement des régions...",
+			}
+			return m, m.fetchPrivateNetRegionsCmd()
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -807,6 +1172,338 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nodePoolDeletedMsg:
 		return m.handleNodePoolDeleted(msg)
 
+	case volumeRegionsLoadedMsg:
+		return m.handleVolumeRegionsLoaded(msg)
+
+	case volumeTypesLoadedMsg:
+		return m.handleVolumeTypesLoaded(msg)
+
+	case volumeAZLoadedMsg:
+		return m.handleVolumeAZLoaded(msg)
+
+	case volumeCreatedMsg:
+		return m.handleVolumeCreated(msg)
+
+	case block_storage.ExecuteVolumeActionMsg:
+		return m.handleExecuteVolumeAction(msg)
+
+	case backupVolumesLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.backupVolumes = msg.volumes
+		m.wizard.backupVolumeIdx = 0
+		return m, nil
+
+	case privNetRegionsLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.privNetRegions = msg.regions
+		m.wizard.privNetRegionIdx = 0
+		return m, nil
+
+	case privNetCreatedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		netName, _ := msg.network["name"].(string)
+		m.notification = fmt.Sprintf("✅ Réseau privé '%s' créé avec succès", netName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/networks/private"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case volumeBackupCreatedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		label := "Snapshot"
+		if msg.backupType == "backup" {
+			label = "Backup"
+		}
+		m.notification = fmt.Sprintf("✅ %s '%s' created successfully", label, msg.name)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = LoadingView
+		reloadPath := "/storage/snapshot"
+		if msg.backupType == "backup" {
+			reloadPath = "/storage/backup"
+		}
+		return m, tea.Batch(
+			m.fetchDataForPath(reloadPath),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case file_storage.ExecuteFileShareActionMsg:
+		return m.handleExecuteFileShareAction(msg)
+
+	case fileShareActionDoneMsg:
+		return m.handleFileShareActionDone(msg)
+
+	case object_storage.ExecuteUserActionMsg:
+		return m.handleExecuteUserAction(msg)
+
+	case s3SecretLoadedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to retrieve secret key: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		if m.objectUserDetailView != nil {
+			m.objectUserDetailView.SetSecret(msg.secret)
+		}
+		return m, nil
+
+	case s3UserActionDoneMsg:
+		return m.handleS3UserActionDone(msg)
+
+	case object_storage.ExecuteContainerActionMsg:
+		containerName := ""
+		region := ""
+		if msg.Container != nil {
+			if n, ok := msg.Container["name"].(string); ok {
+				containerName = n
+			}
+			if r, ok := msg.Container["region"].(string); ok {
+				region = r
+			}
+		}
+		switch msg.Action {
+		case object_storage.ContainerActionDelete:
+			m.notification = fmt.Sprintf("🗑️  Deleting container '%s'...", containerName)
+			m.notificationExpiry = time.Now().Add(30 * time.Second)
+			return m, m.deleteObjectContainer(containerName, region)
+		case object_storage.ContainerActionChangeType:
+			newType := ""
+			if msg.ExtraData != nil {
+				newType, _ = msg.ExtraData["containerType"].(string)
+			}
+			containerID := getString(msg.Container, "id")
+			if containerID == "" {
+				containerID = containerName
+			}
+			m.notification = fmt.Sprintf("🔄 Changing type of '%s' to %s...", containerName, newType)
+			m.notificationExpiry = time.Now().Add(30 * time.Second)
+			return m, m.updateSwiftContainerType(containerID, newType)
+		case object_storage.ContainerActionAddPolicy:
+			var userID int64
+			roleName := ""
+			if msg.ExtraData != nil {
+				roleName, _ = msg.ExtraData["roleName"].(string)
+				switch v := msg.ExtraData["userId"].(type) {
+				case float64:
+					userID = int64(v)
+				case int64:
+					userID = v
+				case int:
+					userID = int64(v)
+				case json.Number:
+					userID, _ = v.Int64()
+				case string:
+					fmt.Sscanf(v, "%d", &userID)
+				}
+			}
+			m.notification = fmt.Sprintf("🔄 Adding user access to '%s'...", containerName)
+			m.notificationExpiry = time.Now().Add(30 * time.Second)
+			if userID == 0 {
+				m.notification = fmt.Sprintf("❌ Failed to resolve user ID (type: %T, val: %v)", msg.ExtraData["userId"], msg.ExtraData["userId"])
+				m.notificationExpiry = time.Now().Add(10 * time.Second)
+				return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+			}
+			return m, m.addS3ContainerPolicy(containerName, region, userID, roleName)
+		}
+
+	case views.GoBackMsg:
+		if m.mode == DetailView && m.currentProduct == ProductStorageBlock {
+			m.volumeDetailView = nil
+			m.mode = TableView
+			return m, nil
+		}
+		if m.mode == DetailView && m.currentProduct == ProductStorageSnapshot {
+			m.snapshotDetailView = nil
+			m.mode = TableView
+			return m, nil
+		}
+		if m.mode == DetailView && m.currentProduct == ProductStorageBackup {
+			m.backupDetailView = nil
+			m.mode = TableView
+			return m, nil
+		}
+		if m.mode == DetailView && m.currentProduct == ProductStorageFile {
+			m.fileShareDetailView = nil
+			m.mode = TableView
+			return m, nil
+		}
+		if m.mode == DetailView && m.currentProduct == ProductStorageObject {
+			if m.objectUserDetailView != nil {
+				m.objectUserDetailView = nil
+				m.mode = TableView
+				return m, nil
+			}
+			m.objectDetailView = nil
+			m.mode = TableView
+			return m, nil
+		}
+		return m, nil
+
+	case volumeActionDoneMsg:
+		return m.handleVolumeActionDone(msg)
+
+	case block_storage.ExecuteSnapshotActionMsg:
+		return m, m.executeSnapshotAction(msg)
+
+	case snapshotActionDoneMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.snapshotDetailView = nil
+		m.mode = LoadingView
+		if msg.action == block_storage.SnapshotActionCreateVolume {
+			m.notification = fmt.Sprintf("✅ Volume '%s' created from snapshot", msg.name)
+			m.notificationExpiry = time.Now().Add(5 * time.Second)
+			// Navigate to Block Storage so handleDataLoaded matches the product
+			m.currentProduct = ProductStorageBlock
+			m.storageSubIdx = 0 // Block Storage is index 0 in getStorageSubItems()
+			return m, tea.Batch(
+				m.fetchDataForPath("/storage/block"),
+				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		m.notification = fmt.Sprintf("✅ Snapshot '%s' deleted", msg.name)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/snapshot"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case block_storage.ExecuteBackupActionMsg:
+		return m, m.executeBackupAction(msg)
+
+	case block_storage.LoadBackupRestoreVolumesMsg:
+		region := fmt.Sprintf("%v", msg.Backup["region"])
+		return m, m.fetchVolumesForRegion(region)
+
+	case block_storage.BackupVolumesLoadedMsg:
+		if m.backupDetailView != nil {
+			m.backupDetailView.SetRestoreVolumes(msg.Volumes)
+		}
+		return m, nil
+
+	case backupActionDoneMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.backupDetailView = nil
+		m.mode = LoadingView
+		if msg.action == block_storage.BackupActionCreateVolume {
+			m.notification = fmt.Sprintf("✅ Volume '%s' created from backup", msg.name)
+			m.notificationExpiry = time.Now().Add(5 * time.Second)
+			m.currentProduct = ProductStorageBlock
+			m.storageSubIdx = 0
+			return m, tea.Batch(
+				m.fetchDataForPath("/storage/block"),
+				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		action := fmt.Sprintf("Backup '%s' deleted", msg.name)
+		if msg.action == block_storage.BackupActionRestore {
+			action = fmt.Sprintf("Backup '%s' restored successfully", msg.name)
+		}
+		m.notification = "✅ " + action
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/backup"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case refreshBlockStorageMsg:
+		return m, m.fetchDataForPath("/storage/block")
+
+	case fileShareRegionsLoadedMsg:
+		return m.handleFileShareRegionsLoaded(msg)
+
+	case fileShareNetworksLoadedMsg:
+		return m.handleFileShareNetworksLoaded(msg)
+
+	case fileShareSubnetsLoadedMsg:
+		return m.handleFileShareSubnetsLoaded(msg)
+
+	case fileShareCreatedMsg:
+		return m.handleFileShareCreated(msg)
+
+	case objectStorageInitDataLoadedMsg:
+		return m.handleObjectStorageInitDataLoaded(msg)
+
+	case objectContainerCreatedMsg:
+		return m.handleObjectContainerCreated(msg)
+
+	case objectContainerActionDoneMsg:
+		return m.handleObjectContainerActionDone(msg)
+
+	case swiftContainerUpdatedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Container '%s' type changed to %s", msg.containerName, msg.newType)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.objectDetailView = nil
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/object"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case containerPolicyAddedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Error adding policy: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Access '%s' added to '%s'", msg.roleName, msg.containerName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.objectDetailView = nil
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/object"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case s3UserCreatedMsg:
+		return m.handleS3UserCreated(msg)
+
+	case s3CredentialsSavedMsg:
+		return m.handleS3CredentialsSaved(msg)
+
+	case swiftRegionsLoadedMsg:
+		m.wizard.objectSwiftRegions = msg.regions
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		return m, nil
+
 	case tea.SuspendMsg:
 		// TUI has been suspended
 		return m, nil
@@ -821,6 +1518,104 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // CreationCommand stores the command to run after browser exits
 var CreationCommand string
+
+// handleExecuteUserAction dispatches actions from the user detail view.
+func (m Model) handleExecuteUserAction(msg object_storage.ExecuteUserActionMsg) (tea.Model, tea.Cmd) {
+	if msg.User == nil {
+		return m, nil
+	}
+
+	// Extract userID
+	var userID int64
+	switch v := msg.User["_userId"].(type) {
+	case float64:
+		userID = int64(v)
+	case int64:
+		userID = v
+	case int:
+		userID = int64(v)
+	case json.Number:
+		userID, _ = v.Int64()
+	case string:
+		fmt.Sscanf(v, "%d", &userID)
+	}
+	if userID == 0 {
+		m.notification = fmt.Sprintf("❌ Failed to resolve user ID (type: %T, val: %v)", msg.User["_userId"], msg.User["_userId"])
+		m.notificationExpiry = time.Now().Add(8 * time.Second)
+		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+	}
+
+	switch msg.Action {
+	case object_storage.UserActionShowSecret:
+		access := fmt.Sprintf("%v", msg.User["access"])
+		m.notification = "🔄 Retrieving secret key..."
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.getS3Secret(userID, access)
+	case object_storage.UserActionEnable:
+		m.s3PendingEnableUser = msg.User
+		m.notification = "🔄 Activating user..."
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.enableS3User(userID)
+	case object_storage.UserActionDisable:
+		access := fmt.Sprintf("%v", msg.User["access"])
+		m.notification = fmt.Sprintf("🔄 Deactivating... (userID=%d, access=%s)", userID, access)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.disableS3User(userID, access)
+	case object_storage.UserActionDeleteUser:
+		m.notification = "🗑️  Deleting user..."
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.deleteCloudUser(userID)
+	}
+	return m, nil
+}
+
+// handleS3UserActionDone handles the result of enable/disable/delete user actions.
+func (m Model) handleS3UserActionDone(msg s3UserActionDoneMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
+		m.notificationExpiry = time.Now().Add(8 * time.Second)
+		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+	}
+
+	switch msg.action {
+	case object_storage.UserActionEnable:
+		// Show S3CredentialsView like after user creation
+		username := ""
+		if m.s3PendingEnableUser != nil {
+			if u, ok := m.s3PendingEnableUser["_username"].(string); ok && u != "" {
+				username = u
+			}
+		}
+		m.s3CreatedUser = map[string]interface{}{"username": username}
+		m.s3CreatedCredentials = msg.newCredential
+		m.s3CredentialsSavedPath = ""
+		m.s3CredentialsSaveError = ""
+		m.s3PendingEnableUser = nil
+		m.objectUserDetailView = nil
+		m.s3CredentialsFromEnable = true
+		m.mode = S3CredentialsView
+		return m, nil
+	case object_storage.UserActionDisable:
+		m.notification = "✅ User deactivated"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.objectUserDetailView = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/object"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+	case object_storage.UserActionDeleteUser:
+		m.objectUserDetailView = nil
+		m.mode = LoadingView
+		m.notification = "✅ User deleted"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		return m, tea.Batch(
+			m.fetchDataForPath("/storage/object"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+	}
+	return m, nil
+}
 
 // handleSetDefaultProject handles the result of setting a default project
 func (m Model) handleSetDefaultProject(msg setDefaultProjectMsg) (tea.Model, tea.Cmd) {
@@ -943,10 +1738,19 @@ func (m Model) renderNavBar(width int) string {
 	navItems := getNavItems()
 	var items []string
 
+	isSubNavFocused := m.inStorageSubNav || m.inNetworkSubNav
+	isInSubContext := isSubNavFocused || m.inTableFocus
+
 	for i, nav := range navItems {
 		var style lipgloss.Style
-		if i == m.navIdx {
+		if i == m.navIdx && !isInSubContext {
+			// Level 1 focus: full green highlight
 			style = navItemSelectedStyle
+		} else if i == m.navIdx {
+			// Sub-level active: dim indicator so user knows which section they're in
+			style = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#007733")).
+				Padding(0, 2)
 		} else {
 			style = navItemStyle
 		}
@@ -954,7 +1758,144 @@ func (m Model) renderNavBar(width int) string {
 	}
 
 	navContent := lipgloss.JoinHorizontal(lipgloss.Top, items...)
-	return navBarStyle.Width(width - 2).Render(navContent)
+	mainNav := navBarStyle.Width(width - 2).Render(navContent)
+
+	// Show storage sub-navigation when on Stockage or any storage sub-product
+	isStorageContext := navItems[m.navIdx].Product == ProductStorage ||
+		(m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive)
+	if isStorageContext {
+		subNav := m.renderStorageSubNav(width)
+		return mainNav + "\n" + subNav
+	}
+
+	// Show network sub-navigation when on Networks or any network sub-product
+	isNetworkContext := navItems[m.navIdx].Product == ProductNetworks ||
+		(m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB)
+	if isNetworkContext {
+		subNav := m.renderNetworkSubNav(width)
+		return mainNav + "\n" + subNav
+	}
+
+	return mainNav
+}
+
+func (m Model) renderStorageSubNav(width int) string {
+	subItems := getStorageSubItems()
+	var items []string
+
+	subItemStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+	// subItemSelectedStyle := lipgloss.NewStyle().
+	// 	Foreground(lipgloss.Color("#00FF7F")).
+	// 	Bold(true).
+	// 	Padding(0, 2).
+	// 	Underline(true)
+	subItemDisabledStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#444444")).
+		Padding(0, 2)
+
+	// Determine the active sub-item from currentProduct so it stays correct
+	// even when storageSubIdx gets out of sync.
+	activeSubIdx := m.storageSubIdx
+	for i, item := range subItems {
+		if item.Product == m.currentProduct {
+			activeSubIdx = i
+			break
+		}
+	}
+
+	for i, item := range subItems {
+		var style lipgloss.Style
+		label := item.Label
+		if i == activeSubIdx && m.inStorageSubNav && m.inTableFocus {
+			// Level 3: focus moved into the table — show arrow hint, dimmed
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+			label = "▼ " + item.Label
+		} else if i == activeSubIdx && m.inStorageSubNav {
+			// Level 2: sub-nav focused — bright green + bold
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Padding(0, 2)
+		} else if i == activeSubIdx {
+			// Active item, focus is on main nav — dimmed green
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+		} else if !item.Enabled {
+			style = subItemDisabledStyle
+		} else {
+			style = subItemStyle
+		}
+		items = append(items, style.Render(label))
+	}
+
+	borderColor := lipgloss.Color("#333333")
+	if m.inStorageSubNav && !m.inTableFocus {
+		// Level 2: sub-nav is focused — bright green border
+		borderColor = lipgloss.Color("#00FF7F")
+	} else if m.inTableFocus {
+		// Level 3: focus is inside the table — dim the sub-nav border
+		borderColor = lipgloss.Color("#444444")
+	}
+	subBarStyle := lipgloss.NewStyle().
+		Padding(0, 1).
+		BorderTop(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(borderColor)
+	subContent := lipgloss.JoinHorizontal(lipgloss.Top, items...)
+	return subBarStyle.Width(width - 2).Render(subContent)
+}
+
+func (m Model) renderNetworkSubNav(width int) string {
+	subItems := getNetworkSubItems()
+	var items []string
+
+	subItemStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+	subItemDisabledStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#444444")).
+		Padding(0, 2)
+
+	activeSubIdx := m.networkSubIdx
+	for i, item := range subItems {
+		if item.Product == m.currentProduct {
+			activeSubIdx = i
+			break
+		}
+	}
+
+	for i, item := range subItems {
+		var style lipgloss.Style
+		label := item.Label
+		if i == activeSubIdx && m.inNetworkSubNav && m.inTableFocus {
+			// Level 3: focus moved into the table — show arrow hint, dimmed
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+			label = "▼ " + item.Label
+		} else if i == activeSubIdx && m.inNetworkSubNav {
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Padding(0, 2)
+		} else if i == activeSubIdx {
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+		} else if !item.Enabled {
+			style = subItemDisabledStyle
+		} else {
+			style = subItemStyle
+		}
+		items = append(items, style.Render(label))
+	}
+
+	borderColor := lipgloss.Color("#333333")
+	if m.inNetworkSubNav && !m.inTableFocus {
+		// Level 2: sub-nav is focused — bright green border
+		borderColor = lipgloss.Color("#00FF7F")
+	} else if m.inTableFocus {
+		// Level 3: focus is inside the table — dim the sub-nav border
+		borderColor = lipgloss.Color("#444444")
+	}
+	subBarStyle := lipgloss.NewStyle().
+		Padding(0, 1).
+		BorderTop(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(borderColor)
+	subContent := lipgloss.JoinHorizontal(lipgloss.Top, items...)
+	return subBarStyle.Width(width - 2).Render(subContent)
 }
 
 func (m Model) renderContentBox(width int) string {
@@ -963,7 +1904,22 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 200 {
+		if m.wizard.step >= 700 {
+			// Backup/Snapshot wizard
+			titleText = " 💾 Create Volume Backup / Snapshot "
+		} else if m.wizard.step >= 600 {
+			// S3 User wizard
+			titleText = " 👤 Create S3 User "
+		} else if m.wizard.step >= 500 {
+			// Object Storage wizard
+			titleText = " 🪣  Create Object Storage Container "
+		} else if m.wizard.step >= 400 {
+			// File Storage wizard
+			titleText = " 🗂️  Create File Share "
+		} else if m.wizard.step >= 300 {
+			// Volume wizard
+			titleText = " 💾 Create Volume "
+		} else if m.wizard.step >= 200 {
 			// Node pool wizard
 			titleText = " 🔧 Add Node Pool "
 		} else if m.wizard.step >= 100 {
@@ -988,6 +1944,15 @@ func (m Model) renderContentBox(width int) string {
 		return contentBoxStyle.Width(width - 4).Render(fullContent)
 	}
 
+	// Handle S3 credentials view
+	if m.mode == S3CredentialsView {
+		titleText = " 🔑 S3 User Credentials "
+		title := productTitleStyle.Render(titleText)
+		contentStr := m.renderS3CredentialsView(width - 6)
+		fullContent := title + "\n\n" + contentStr
+		return contentBoxStyle.Width(width - 4).Render(fullContent)
+	}
+
 	// Handle project selection view specially
 	if m.mode == ProjectSelectView || m.currentProduct == ProductProjects {
 		titleText = " 📦 Select a Project "
@@ -996,7 +1961,15 @@ func (m Model) renderContentBox(width int) string {
 		currentNav := navItems[m.navIdx]
 
 		// Product title - show item name in detail view
-		if m.mode == DetailView && m.currentItemName != "" {
+		if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectUserDetailView != nil {
+			titleText = m.objectUserDetailView.Title()
+		} else if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
+			titleText = m.objectDetailView.Title()
+		} else if m.mode == DetailView && m.currentProduct == ProductStorageSnapshot && m.snapshotDetailView != nil {
+			titleText = m.snapshotDetailView.Title()
+		} else if m.mode == DetailView && m.currentProduct == ProductStorageBackup && m.backupDetailView != nil {
+			titleText = m.backupDetailView.Title()
+		} else if m.mode == DetailView && m.currentItemName != "" {
 			titleText = fmt.Sprintf(" %s %s > %s ", currentNav.Icon, currentNav.Label, m.currentItemName)
 		} else {
 			titleText = fmt.Sprintf(" %s %s ", currentNav.Icon, currentNav.Label)
@@ -1017,6 +1990,14 @@ func (m Model) renderContentBox(width int) string {
 		contentStr = m.renderTable()
 	case TableView:
 		contentStr = m.renderTable()
+		// Add tabs for Object Storage
+		if m.currentProduct == ProductStorageObject {
+			contentStr = m.renderObjectStorageWithTabs(contentStr, width-6)
+		}
+		// Add tabs for Private Networks
+		if m.currentProduct == ProductNetworkPrivate {
+			contentStr = m.renderPrivateNetworksWithTabs(contentStr, width-6)
+		}
 	case DetailView:
 		contentStr = m.renderDetailView(width - 6)
 	case NodePoolsView:
@@ -1046,7 +2027,12 @@ func (m Model) renderContentBox(width int) string {
 	// Combine title and content
 	fullContent := title + "\n\n" + contentStr
 
-	return contentBoxStyle.Width(width - 4).Render(fullContent)
+	// Level 3 (inTableFocus): highlight content box border in green to show focus is inside the table
+	boxStyle := contentBoxStyle
+	if m.inTableFocus {
+		boxStyle = contentBoxStyle.BorderForeground(lipgloss.Color("#00FF7F"))
+	}
+	return boxStyle.Width(width - 4).Render(fullContent)
 }
 
 // renderLoadingView displays the loading screen
@@ -1868,7 +2854,30 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 200 {
+	if m.wizard.step >= 800 {
+		// Private Network wizard
+		steps = append(steps, "Région", "Nom", "VLAN", "Sous-réseau", "DHCP", "Passerelle", "Confirmer")
+		stepMapping = append(stepMapping, PrivNetWizardStepRegion, PrivNetWizardStepName, PrivNetWizardStepVlanID, PrivNetWizardStepSubnet, PrivNetWizardStepDHCP, PrivNetWizardStepGateway, PrivNetWizardStepConfirm)
+	} else if m.wizard.step >= 700 {
+		// Backup/Snapshot wizard
+		steps = append(steps, "Volume", "Type", "Name", "Confirm")
+		stepMapping = append(stepMapping, BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm)
+	} else if m.wizard.step >= 600 {
+		steps = append(steps, "Description", "Confirm")
+		stepMapping = append(stepMapping, S3UserWizardStepDescription, S3UserWizardStepConfirm)
+	} else if m.wizard.step >= 500 {
+		// Object Storage wizard
+		steps = append(steps, "Name", "Type", "Region", "Replication", "Versions", "Lock", "User", "Encryption", "Confirm")
+		stepMapping = append(stepMapping, ObjectWizardStepName, ObjectWizardStepType, ObjectWizardStepRegion, ObjectWizardStepReplication, ObjectWizardStepVersioning, ObjectWizardStepObjectLock, ObjectWizardStepUser, ObjectWizardStepEncryption, ObjectWizardStepConfirm)
+	} else if m.wizard.step >= 400 {
+		// File Storage wizard
+		steps = append(steps, "Name", "Region", "Type", "Size", "Network", "Confirm")
+		stepMapping = append(stepMapping, FileWizardStepName, FileWizardStepRegion, FileWizardStepType, FileWizardStepSize, FileWizardStepNetwork, FileWizardStepConfirm)
+	} else if m.wizard.step >= 300 {
+		// Volume wizard
+		steps = append(steps, "Name", "Region", "Type", "Avail. Zone", "Size", "Encryption", "Confirm")
+		stepMapping = append(stepMapping, VolumeWizardStepName, VolumeWizardStepRegion, VolumeWizardStepType, VolumeWizardStepAvailabilityZone, VolumeWizardStepSize, VolumeWizardStepEncryption, VolumeWizardStepConfirm)
+	} else if m.wizard.step >= 200 {
 		// Node pool wizard
 		steps = append(steps, "Flavor", "Name", "Size", "Options", "Confirm")
 		stepMapping = append(stepMapping, NodePoolWizardStepFlavor, NodePoolWizardStepName, NodePoolWizardStepSize, NodePoolWizardStepOptions, NodePoolWizardStepConfirm)
@@ -1978,17 +2987,85 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderNodePoolWizardOptionsStep(width))
 	case NodePoolWizardStepConfirm:
 		content.WriteString(m.renderNodePoolWizardConfirmStep(width))
+	// Volume wizard steps
+	case VolumeWizardStepName:
+		content.WriteString(m.renderVolumeWizardNameStep(width))
+	case VolumeWizardStepRegion:
+		content.WriteString(m.renderVolumeWizardRegionStep(width))
+	case VolumeWizardStepType:
+		content.WriteString(m.renderVolumeWizardTypeStep(width))
+	case VolumeWizardStepAvailabilityZone:
+		content.WriteString(m.renderVolumeWizardAZStep(width))
+	case VolumeWizardStepSize:
+		content.WriteString(m.renderVolumeWizardSizeStep(width))
+	case VolumeWizardStepEncryption:
+		content.WriteString(m.renderVolumeWizardEncryptionStep(width))
+	case VolumeWizardStepConfirm:
+		content.WriteString(m.renderVolumeWizardConfirmStep(width))
+	// File Storage wizard steps
+	case FileWizardStepName:
+		content.WriteString(m.renderFileWizardNameStep(width))
+	case FileWizardStepRegion:
+		content.WriteString(m.renderFileWizardRegionStep(width))
+	case FileWizardStepType:
+		content.WriteString(m.renderFileWizardTypeStep(width))
+	case FileWizardStepSize:
+		content.WriteString(m.renderFileWizardSizeStep(width))
+	case FileWizardStepNetwork:
+		content.WriteString(m.renderFileWizardNetworkStep(width))
+	case FileWizardStepConfirm:
+		content.WriteString(m.renderFileWizardConfirmStep(width))
+	case ObjectWizardStepName:
+			content.WriteString(m.renderObjectWizardNameStep(width))
+	case ObjectWizardStepType:
+			content.WriteString(m.renderObjectWizardTypeStep(width))
+	case ObjectWizardStepRegion:
+			content.WriteString(m.renderObjectWizardRegionStep(width))
+	case ObjectWizardStepReplication:
+			content.WriteString(m.renderObjectWizardReplicationStep(width))
+	case ObjectWizardStepVersioning:
+			content.WriteString(m.renderObjectWizardVersioningStep(width))
+	case ObjectWizardStepObjectLock:
+			content.WriteString(m.renderObjectWizardObjectLockStep(width))
+	case ObjectWizardStepUser:
+			content.WriteString(m.renderObjectWizardUserStep(width))
+	case ObjectWizardStepEncryption:
+			content.WriteString(m.renderObjectWizardEncryptionStep(width))
+	case ObjectWizardStepConfirm:
+			content.WriteString(m.renderObjectWizardConfirmStep(width))
+	case ObjectWizardStepSwiftType:
+		content.WriteString(m.renderObjectWizardSwiftTypeStep(width))
+	case ObjectWizardStepSwiftRegion:
+		content.WriteString(m.renderObjectWizardSwiftRegionStep(width))
+	// S3 User wizard steps
+	case S3UserWizardStepDescription:
+		content.WriteString(m.renderS3UserWizardDescStep(width))
+	case S3UserWizardStepConfirm:
+		content.WriteString(m.renderS3UserWizardConfirmStep(width))
+	// Private Network wizard steps
+	case PrivNetWizardStepRegion:
+		content.WriteString(m.renderPrivNetWizardRegionStep(width))
+	case PrivNetWizardStepName:
+		content.WriteString(m.renderPrivNetWizardNameStep(width))
+	case PrivNetWizardStepVlanID:
+		content.WriteString(m.renderPrivNetWizardVlanStep(width))
+	case PrivNetWizardStepSubnet:
+		content.WriteString(m.renderPrivNetWizardSubnetStep(width))
+	case PrivNetWizardStepDHCP:
+		content.WriteString(m.renderPrivNetWizardDHCPStep(width))
+	case PrivNetWizardStepGateway:
+		content.WriteString(m.renderPrivNetWizardGatewayStep(width))
+	case PrivNetWizardStepConfirm:
+		content.WriteString(m.renderPrivNetWizardConfirmStep(width))
+	// Volume Backup / Snapshot wizard steps
+	case BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm:
+		content.WriteString(m.renderBackupWizard(width))
 	}
-
 	return content.String()
 }
 
-// renderWizardRegionStep renders the region selection step
 func (m Model) renderWizardRegionStep(width int) string {
 	var content strings.Builder
-
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	content.WriteString(titleStyle.Render("Select a region:") + "\n")
 
 	// Show filter input if active
 	if m.wizard.filterMode {
@@ -3210,7 +4287,287 @@ func (m Model) renderNodePoolWizardConfirmStep(width int) string {
 	return content.String()
 }
 
-// renderCleanupConfirmation renders the cleanup confirmation dialog
+// ========== Volume Wizard Render Functions ==========
+
+func (m Model) renderVolumeWizardNameStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Enter a name for the volume:") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	inputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#00FF7F")).
+		Padding(0, 1).
+		Width(50)
+	content.WriteString(inputStyle.Render(m.wizard.volumeNameInput+"▌") + "\n\n")
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	content.WriteString(helpStyle.Render("Type to enter • Enter: Continue • Esc: Cancel"))
+	return content.String()
+}
+
+func (m Model) renderVolumeWizardRegionStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select region for the volume:") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	for i, region := range m.wizard.regions {
+		name := getString(region, "name")
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + name))
+		} else {
+			content.WriteString(listStyle.Render("  " + name))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • Esc Cancel"))
+	return content.String()
+}
+
+func (m Model) renderVolumeWizardTypeStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select volume type:") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	for i, vt := range m.wizard.volumeTypes {
+		label := volumeTypeDisplayName(vt)
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + label))
+		} else {
+			content.WriteString(listStyle.Render("  " + label))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • ← Back • Esc Cancel"))
+	return content.String()
+}
+
+func (m Model) renderVolumeWizardAZStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Select availability zone:") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+
+	items := m.wizard.volumeAvailabilityZones
+	// Prepend a "No preference" option
+	allItems := append([]string{"(No preference)"}, items...)
+	for i, az := range allItems {
+		var label string
+		if i == 0 {
+			label = az
+		} else {
+			label = fmt.Sprintf("%s(%s)", m.wizard.selectedRegion, az)
+		}
+		if i == m.wizard.selectedIndex {
+			content.WriteString(selectedStyle.Render("▶ " + label))
+		} else {
+			content.WriteString(listStyle.Render("  " + label))
+		}
+		content.WriteString("\n")
+	}
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0)
+	content.WriteString(helpStyle.Render("↑↓ Navigate • Enter Select • ← Back • Esc Cancel"))
+	return content.String()
+}
+
+func (m Model) renderVolumeWizardSizeStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Enter volume size (GB, min: 10, max: 12000):") + "\n\n")
+
+	if m.wizard.errorMsg != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+		content.WriteString(errStyle.Render("Error: "+m.wizard.errorMsg) + "\n\n")
+	}
+
+	inputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#00FF7F")).
+		Padding(0, 1).
+		Width(20)
+	content.WriteString(inputStyle.Render(m.wizard.volumeSizeInput+"▌") + "\n\n")
+
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	content.WriteString(helpStyle.Render("Type size • Enter: Continue • ←: Back • Esc: Cancel"))
+	return content.String()
+}
+
+func volumeTypeDisplayName(name string) string {
+	words := strings.Split(name, "-")
+	for i, w := range words {
+		if len(w) > 0 {
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
+	}
+	return strings.Join(words, " ")
+}
+
+func (m Model) volumeTypeSupportLuks() bool {
+	// Only classic, high-speed, high-speed-gen2 have -luks variants
+	switch m.wizard.volumeType {
+	case "classic", "high-speed", "high-speed-gen2":
+		return true
+	}
+	return false
+}
+
+func (m Model) renderVolumeWizardEncryptionStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Encryption") + "\n\n")
+
+	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
+	content.WriteString(descStyle.Render("Enable encryption to add an extra layer of security to your volumes\nand ensure the confidentiality of your data.") + "\n\n")
+
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true)
+	normalStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	disabledStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#555555"))
+
+	luksSupported := m.volumeTypeSupportLuks()
+
+	options := []struct {
+		label    string
+		disabled bool
+	}{
+		{"None", false},
+		{"OVHcloud Managed Key", !luksSupported},
+		{"Customer Managed Key  (Coming soon)", true},
+	}
+
+	for i, opt := range options {
+		cursor := "  "
+		if i == m.wizard.volumeEncryptionIdx && !opt.disabled {
+			cursor = "▶ "
+		}
+		var line string
+		if opt.disabled {
+			line = disabledStyle.Render(cursor + opt.label)
+		} else if i == m.wizard.volumeEncryptionIdx {
+			line = selectedStyle.Render(cursor + opt.label)
+		} else {
+			line = normalStyle.Render(cursor + opt.label)
+		}
+		content.WriteString(line + "\n")
+	}
+
+	if !luksSupported {
+		content.WriteString("\n" + disabledStyle.Render(fmt.Sprintf("  (Type '%s' does not support encryption)", m.wizard.volumeType)) + "\n")
+	}
+
+	content.WriteString("\n")
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	content.WriteString(helpStyle.Render("↑↓: Navigate • Enter: Continue • ←: Back • Esc: Cancel"))
+	return content.String()
+}
+
+func (m Model) handleVolumeWizardEncryptionKeys(key string) (tea.Model, tea.Cmd) {
+	// If type doesn't support luks, force index to 0
+	if !m.volumeTypeSupportLuks() {
+		m.wizard.volumeEncryptionIdx = 0
+	}
+	switch key {
+	case "up":
+		if m.wizard.volumeEncryptionIdx > 0 {
+			m.wizard.volumeEncryptionIdx--
+		}
+	case "down":
+		if m.wizard.volumeEncryptionIdx < 1 && m.volumeTypeSupportLuks() {
+			m.wizard.volumeEncryptionIdx++
+		}
+	case "enter":
+		m.wizard.step = VolumeWizardStepConfirm
+		m.wizard.volumeConfirmBtnIdx = 0
+	case "left", "esc":
+		m.wizard.step = VolumeWizardStepSize
+	}
+	return m, nil
+}
+
+func (m Model) renderVolumeWizardConfirmStep(width int) string {
+	var content strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	content.WriteString(titleStyle.Render("Confirm volume creation:") + "\n\n")
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.volumeName) + "\n")
+	content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(m.wizard.selectedRegion) + "\n")
+	effectiveType := m.wizard.volumeType
+	if m.wizard.volumeEncryptionIdx == 1 && !strings.HasSuffix(effectiveType, "-luks") {
+		effectiveType += "-luks"
+	}
+	content.WriteString(labelStyle.Render("  Type:") + valueStyle.Render(effectiveType) + "\n")
+
+	azDisplay := "(No preference)"
+	if m.wizard.volumeAvailabilityZone != "" {
+		azDisplay = fmt.Sprintf("%s(%s)", m.wizard.selectedRegion, m.wizard.volumeAvailabilityZone)
+	}
+	content.WriteString(labelStyle.Render("  Avail. Zone:") + valueStyle.Render(azDisplay) + "\n")
+	content.WriteString(labelStyle.Render("  Size:") + valueStyle.Render(fmt.Sprintf("%d GB", m.wizard.volumeSize)) + "\n")
+	encLabel := "None"
+	if m.wizard.volumeEncryptionIdx == 1 {
+		encLabel = "OVHcloud Managed Key (LUKS)"
+	}
+	content.WriteString(labelStyle.Render("  Encryption:") + valueStyle.Render(encLabel) + "\n")
+
+	content.WriteString("\n")
+
+	createStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+	cancelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+
+	if m.wizard.volumeConfirmBtnIdx == 0 {
+		content.WriteString(createStyle.Render("  ▶ [Create Volume]") + "    ")
+		content.WriteString(dimStyle.Render("[Cancel]") + "\n")
+	} else {
+		content.WriteString(dimStyle.Render("    [Create Volume]") + "    ")
+		content.WriteString(cancelStyle.Render("▶ [Cancel]") + "\n")
+	}
+
+	return content.String()
+}
+
 func (m Model) renderCleanupConfirmation(width int) string {
 	var content strings.Builder
 
@@ -3273,10 +4630,20 @@ func (m Model) getProductCreationInfo() (string, string) {
 		return "databases", fmt.Sprintf("ovhcloud cloud managed-database create --cloud-project %s", m.cloudProject)
 	case ProductManagedAnalytics:
 		return "analytics", fmt.Sprintf("ovhcloud cloud managed-analytics create --cloud-project %s", m.cloudProject)
-	case ProductStorage:
-		return "storage containers", fmt.Sprintf("ovhcloud cloud storage-s3 create --cloud-project %s", m.cloudProject)
-	case ProductNetworks:
+	case ProductStorageBlock:
+		return "block storage volumes", ""
+	case ProductStorageFile:
+		return "file shares", ""
+	case ProductStorageObject:
+		return "object storage containers", ""
+	case ProductNetworks, ProductNetworkPrivate:
 		return "private networks", fmt.Sprintf("ovhcloud cloud network private create --cloud-project %s", m.cloudProject)
+	case ProductNetworkPublic:
+		return "public IPs", ""
+	case ProductNetworkGateway:
+		return "gateways", ""
+	case ProductNetworkLB:
+		return "load balancers", ""
 	default:
 		return "resources", ""
 	}
@@ -3290,6 +4657,20 @@ func (m Model) renderTable() string {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No data available")
 	}
 
+	// For sub-nav products (Storage / Network), hide the cursor highlight unless
+	// the user has entered table focus (Level 3 via Enter / ↓).
+	isSubNavProd := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB
+	if isSubNavProd && !m.inTableFocus {
+		s := table.DefaultStyles()
+		s.Header = s.Header.
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			BorderBottom(true).
+			Bold(true)
+		s.Selected = lipgloss.NewStyle() // no highlight
+		m.table.SetStyles(s)
+	}
+
 	var content strings.Builder
 
 	// Show filter indicator if filter is active (but not in edit mode)
@@ -3299,6 +4680,71 @@ func (m Model) renderTable() string {
 	}
 
 	content.WriteString(m.table.View())
+	return content.String()
+}
+
+// renderObjectStorageWithTabs renders the Object Storage view with tabs
+func (m Model) renderObjectStorageWithTabs(tableContent string, width int) string {
+	var content strings.Builder
+
+	// Render tabs
+	tabActiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).
+		Padding(0, 2)
+
+	tabInactiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#333333")).
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+
+	tab1 := "My Containers"
+	tab2 := "Users"
+
+	var tab1Rendered, tab2Rendered string
+	if m.objectStorageTabIdx == 0 {
+		tab1Rendered = tabActiveStyle.Render(tab1)
+		tab2Rendered = tabInactiveStyle.Render(tab2)
+	} else {
+		tab1Rendered = tabInactiveStyle.Render(tab1)
+		tab2Rendered = tabActiveStyle.Render(tab2)
+	}
+
+	tabs := lipgloss.JoinHorizontal(lipgloss.Top, tab1Rendered, "  ", tab2Rendered)
+	content.WriteString(tabs + "\n\n")
+
+	// Add the table content
+	content.WriteString(tableContent)
+
+	return content.String()
+}
+
+func (m Model) renderPrivateNetworksWithTabs(tableContent string, width int) string {
+	var content strings.Builder
+
+	tabActiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).
+		Padding(0, 2)
+	tabInactiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#333333")).
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+
+	tab1 := "Régions (vRack)"
+	tab2 := "Local Zones"
+	var t1, t2 string
+	if m.privNetTabIdx == 0 {
+		t1 = tabActiveStyle.Render(tab1)
+		t2 = tabInactiveStyle.Render(tab2)
+	} else {
+		t1 = tabInactiveStyle.Render(tab1)
+		t2 = tabActiveStyle.Render(tab2)
+	}
+	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, t1, "  ", t2) + "\n\n")
+	content.WriteString(tableContent)
 	return content.String()
 }
 
@@ -3357,9 +4803,37 @@ func (m Model) renderDetailView(width int) string {
 		return m.renderKubernetesDetail(width)
 	case ProductProjects:
 		return m.renderProjectDetail(width)
-	default:
+	case ProductStorageBlock:
+		if m.volumeDetailView != nil {
+			return m.volumeDetailView.Render(width, 0)
+		}
 		return m.renderGenericDetail(width)
-	}
+	case ProductStorageSnapshot:
+		if m.snapshotDetailView != nil {
+			return m.snapshotDetailView.Render(width, 0)
+		}
+		return m.renderGenericDetail(width)
+	case ProductStorageBackup:
+		if m.backupDetailView != nil {
+			return m.backupDetailView.Render(width, 0)
+		}
+		return m.renderGenericDetail(width)
+        case ProductStorageFile:
+                if m.fileShareDetailView != nil {
+                        return m.fileShareDetailView.Render(width, 0)
+                }
+                return m.renderGenericDetail(width)
+        case ProductStorageObject:
+                if m.objectUserDetailView != nil {
+                        return m.objectUserDetailView.Render(width, 0)
+                }
+                if m.objectDetailView != nil {
+                        return m.objectDetailView.Render(width, 0)
+                }
+                return m.renderGenericDetail(width)
+        default:
+                return m.renderGenericDetail(width)
+        }
 }
 
 func (m Model) renderInstanceDetail(width int) string {
@@ -3762,13 +5236,35 @@ func (m Model) renderFooter() string {
 	case TableView:
 		if m.filterInput != "" {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
+		} else if (m.inStorageSubNav || m.inNetworkSubNav) && m.inTableFocus {
+			tabHint := ""
+			if m.currentProduct == ProductNetworkPrivate || m.currentProduct == ProductStorageObject {
+				tabHint = " • t: Switch Tab"
+			}
+			help = "↑↓: Navigate • Enter: Details • c: Create • /: Filter" + tabHint + " • d: Debug • Esc: Back to Sub-menu • q: Quit"
+		} else if m.inStorageSubNav || m.inNetworkSubNav {
+			help = "←→: Sub-menu • ↓/Enter: Enter Table • ↑/Esc: Back to main nav • d: Debug • p: Change Project • q: Quit"
 		} else {
-			help = "←→: Switch Product • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
+			help = "←→: Switch Product • Enter: Enter Sub-menu • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
 		}
 	case EmptyView:
-		help = "←→: Switch Product • c: Create • d: Debug • p: Change Project • q: Quit"
+		if (m.inStorageSubNav || m.inNetworkSubNav) && m.inTableFocus {
+			help = "c: Create • d: Debug • Esc: Back to Sub-menu • q: Quit"
+		} else if m.inStorageSubNav || m.inNetworkSubNav {
+			help = "←→: Sub-menu • Enter: Enter Table • ↑/Esc: Back to main nav • c: Create • d: Debug • p: Change Project • q: Quit"
+		} else {
+			help = "←→: Switch Product • Enter: Enter Sub-menu • c: Create • d: Debug • p: Change Project • q: Quit"
+		}
 	case DetailView:
-		if m.actionConfirm {
+		if m.currentProduct == ProductStorageObject && m.objectUserDetailView != nil {
+			help = m.objectUserDetailView.HelpText()
+		} else if m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
+			help = m.objectDetailView.HelpText()
+		} else if m.currentProduct == ProductStorageSnapshot && m.snapshotDetailView != nil {
+			help = m.snapshotDetailView.HelpText()
+		} else if m.currentProduct == ProductStorageBackup && m.backupDetailView != nil {
+			help = m.backupDetailView.HelpText()
+		} else if m.actionConfirm {
 			help = "Enter: Confirm Action • Esc: Cancel"
 		} else {
 			help = "←→: Select Action • Enter: Execute • d: Debug • Esc: Back to List • q: Quit"
@@ -3790,17 +5286,57 @@ func (m Model) renderFooter() string {
 			help = "Type: Enter name • Enter: Confirm • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == WizardStepConfirm {
 			help = "←→: Select • d: Debug • Enter: Confirm • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepName {
+			help = "Type: Enter name • Enter: Confirm • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepRegion {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepType {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepAvailabilityZone {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepSize {
+			help = "Type size in GB • Enter: Confirm • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepEncryption {
+			help = "↑↓: Select • Enter: Continue • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == VolumeWizardStepConfirm {
+			help = "←→: Select • Enter: Confirm • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepName {
+			help = "Type name • Enter: Continue • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepRegion {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepType {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepSize {
+			help = "Type size in GB • Enter: Continue • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepNetwork {
+			help = "↑↓: Navigate • Enter: Select/Expand • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == FileWizardStepConfirm {
+			help = "←→: Select • Enter: Confirm • Esc: Cancel"
+		} else if m.wizard.step == S3UserWizardStepDescription {
+			help = "Type description • Enter: Continue • Esc: Cancel"
+		} else if m.wizard.step == S3UserWizardStepConfirm {
+			help = "←→: Select • Enter: Confirm • Esc: Back"
+		} else if m.wizard.step == BackupWizardStepVolume {
+			help = "↑↓: Navigate • Enter: Select • Esc: Cancel"
+		} else if m.wizard.step == BackupWizardStepType {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == BackupWizardStepName {
+			help = "Type name • Enter: Continue • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == BackupWizardStepConfirm {
+			help = "←→: Select • Enter: Confirm • Esc: Cancel"
 		} else {
 			help = "↑↓: Navigate • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		}
 	case DeleteConfirmView:
 		help = "Type instance name to confirm • Enter: Delete • Esc: Cancel"
+	case S3CredentialsView:
+		help = "s: Save to ~/.aws/credentials • Enter/Esc: Continue • q: Quit"
 	case DebugView:
 		help = "↑↓: Scroll • c: Clear logs • d/Esc: Close • q: Quit"
 	case KubeKubeconfigPickerView:
 		help = "↑↓: Navigate • Enter: Open/Select • Esc: Cancel"
 	case ComingSoonView:
-		help = "←→: Switch Product • d: Debug • p: Change Project • q: Quit"
+		help = "←→: Switch Product • tab/shift+tab: Navigate Sub-menu • d: Debug • p: Change Project • q: Quit"
 	default:
 		help = "Enter: Select • q: Quit"
 	}
@@ -3828,6 +5364,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Handle wizard mode separately
 	if m.mode == WizardView {
 		return m.handleWizardKeyPress(msg)
+	}
+
+	// Handle S3 credentials display view
+	if m.mode == S3CredentialsView {
+		return m.handleS3CredentialsViewKeys(msg)
 	}
 
 	// Handle delete confirmation mode
@@ -3870,11 +5411,44 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleKubeKubeconfigPickerKeyPress(msg)
 	}
 
-	switch msg.String() {
-	case "q", "ctrl+c":
-		return m, tea.Quit
+	// Delegate to block storage detail view when in DetailView for ProductStorageBlock
+	if m.mode == DetailView && m.currentProduct == ProductStorageBlock && m.volumeDetailView != nil {
+		cmd := m.volumeDetailView.HandleKey(msg)
+		return m, cmd
+	}
 
-	case "left":
+	// Delegate to snapshot detail view
+	if m.mode == DetailView && m.currentProduct == ProductStorageSnapshot && m.snapshotDetailView != nil {
+		cmd := m.snapshotDetailView.HandleKey(msg)
+		return m, cmd
+	}
+
+	// Delegate to backup detail view
+	if m.mode == DetailView && m.currentProduct == ProductStorageBackup && m.backupDetailView != nil {
+		cmd := m.backupDetailView.HandleKey(msg)
+		return m, cmd
+	}
+
+        // Delegate to file storage detail view when in DetailView for ProductStorageFile
+        if m.mode == DetailView && m.currentProduct == ProductStorageFile && m.fileShareDetailView != nil {
+                cmd := m.fileShareDetailView.HandleKey(msg)
+                return m, cmd
+        }
+
+        // Delegate to object storage detail view when in DetailView for ProductStorageObject
+        if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
+                cmd := m.objectDetailView.HandleKey(msg)
+                return m, cmd
+        }
+
+        // Delegate to object storage user detail view
+        if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectUserDetailView != nil {
+                cmd := m.objectUserDetailView.HandleKey(msg)
+                return m, cmd
+        }
+
+        switch msg.String() {
+        case "left":
 		// In NodePoolDetailView, navigate actions
 		if m.mode == NodePoolDetailView {
 			if m.nodePoolDetailActionIdx > 0 {
@@ -3898,9 +5472,35 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
+		// In storage sub-nav (only when focused, not in table)
+		if m.inStorageSubNav && !m.inTableFocus && m.mode != DetailView {
+			subItems := getStorageSubItems()
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.storageSubIdx = i
+					break
+				}
+			}
+			m.storageSubIdx = (m.storageSubIdx - 1 + len(subItems)) % len(subItems)
+			return m.loadStorageSubProduct()
+		}
+		// In network sub-nav (only when focused, not in table)
+		if m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView {
+			subItems := getNetworkSubItems()
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.networkSubIdx = i
+					break
+				}
+			}
+			m.networkSubIdx = (m.networkSubIdx - 1 + len(subItems)) % len(subItems)
+			return m.loadNetworkSubProduct()
+		}
+		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects && !m.inTableFocus {
 			if m.navIdx > 0 {
 				m.navIdx--
+				m.inStorageSubNav = false
+				m.inNetworkSubNav = false
 				return m.loadCurrentProduct()
 			}
 		}
@@ -3931,12 +5531,65 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects {
+		// In storage sub-nav (only when focused, not in table)
+		isStorageSubProduct2 := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
+		if m.inStorageSubNav && !m.inTableFocus && isStorageSubProduct2 && m.mode != DetailView {
+			subItems := getStorageSubItems()
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.storageSubIdx = i
+					break
+				}
+			}
+			m.storageSubIdx = (m.storageSubIdx + 1) % len(subItems)
+			return m.loadStorageSubProduct()
+		}
+		// In network sub-nav (only when focused, not in table)
+		isNetworkSubProduct2 := m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB
+		if m.inNetworkSubNav && !m.inTableFocus && isNetworkSubProduct2 && m.mode != DetailView {
+			subItems := getNetworkSubItems()
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.networkSubIdx = i
+					break
+				}
+			}
+			m.networkSubIdx = (m.networkSubIdx + 1) % len(subItems)
+			return m.loadNetworkSubProduct()
+		}
+		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects && !m.inTableFocus {
 			navItems := getNavItems()
 			if m.navIdx < len(navItems)-1 {
 				m.navIdx++
+				m.inStorageSubNav = false
+				m.inNetworkSubNav = false
 				return m.loadCurrentProduct()
 			}
+		}
+		return m, nil
+
+	case "t":
+		// Toggle between Object Storage tabs (Containers / Users)
+		if (m.mode == TableView || m.mode == EmptyView) && m.currentProduct == ProductStorageObject {
+			m.objectStorageTabIdx = (m.objectStorageTabIdx + 1) % 2
+			if m.objectStorageTabIdx == 0 {
+				m.table = createObjectStorageTable(m.currentData, m.width, m.height)
+			} else {
+				m.table = createObjectStorageUsersTable(m.objectStorageUsers, m.width, m.height)
+			}
+			return m, nil
+		}
+		// Toggle between Private Networks tabs (vRack / Local Zones)
+		if (m.mode == TableView || m.mode == EmptyView) && m.currentProduct == ProductNetworkPrivate {
+			m.privNetTabIdx = (m.privNetTabIdx + 1) % 2
+			if m.privNetTabIdx == 0 {
+				// vRack tab: currentData was set to vRack on load; restore table from it
+				m.table = createPrivateNetworksTable(m.currentData, m.width, m.height)
+			} else {
+				// Local Zones tab
+				m.table = createPrivateNetworksTable(m.privNetLocalZones, m.width, m.height)
+			}
+			return m, nil
 		}
 		return m, nil
 
@@ -3958,11 +5611,31 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case "tab":
+		return m, nil
+
+	case "shift+tab":
+		return m, nil
+
 	case "esc":
 		// Clear filter in TableView if active
 		if m.mode == TableView && m.filterInput != "" {
 			m.filterInput = ""
 			m.applyTableFilter()
+			return m, nil
+		}
+		// Level 3 → Level 2: exit table focus (back to sub-nav focus)
+		if m.inTableFocus && (m.inStorageSubNav || m.inNetworkSubNav) && m.mode != DetailView && m.mode != WizardView {
+			m.inTableFocus = false
+			return m, nil
+		}
+		// Level 2 → Level 1: exit sub-nav focus (back to main nav)
+		if m.inStorageSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
+			m.inStorageSubNav = false
+			return m, nil
+		}
+		if m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
+			m.inNetworkSubNav = false
 			return m, nil
 		}
 		// Go back to node pools view from node pool detail view, or cancel action confirm
@@ -3996,6 +5669,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "c":
 		// Create resource - available in TableView, EmptyView, and NodePoolsView
 		if (m.mode == TableView || m.mode == EmptyView) && m.currentProduct != ProductProjects {
+			// Require table focus (Level 3) for sub-nav products
+			isSubNavProd := (m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB)
+			if isSubNavProd && !m.inTableFocus {
+				return m, nil
+			}
+			// If viewing S3 users tab, launch user creation wizard
+			if m.currentProduct == ProductStorageObject && m.objectStorageTabIdx == 1 {
+				m.mode = WizardView
+				m.wizard = WizardData{step: S3UserWizardStepDescription}
+				return m, nil
+			}
 			return m, m.launchCreationWizard()
 		}
 		// Create node pool from NodePoolsView
@@ -4010,6 +5694,37 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "enter":
+		// Toggle between main nav and sub-nav when on Storage item
+		if m.mode != DetailView && m.mode != ProjectSelectView &&
+			m.mode != NodePoolsView && m.mode != NodePoolDetailView {
+			navItems := getNavItems()
+			if m.navIdx < len(navItems) && navItems[m.navIdx].Product == ProductStorage {
+				if !m.inStorageSubNav {
+					// Level 1 → Level 2: enter sub-nav focus
+					m.inStorageSubNav = true
+					m.inTableFocus = false
+					return m.loadStorageSubProduct()
+				} else if !m.inTableFocus {
+					// Level 2 → Level 3: enter table focus
+					m.inTableFocus = true
+					return m, nil
+				}
+				// Level 3: fall through to normal enter handling
+			}
+			if m.navIdx < len(navItems) && navItems[m.navIdx].Product == ProductNetworks {
+				if !m.inNetworkSubNav {
+					// Level 1 → Level 2: enter sub-nav focus
+					m.inNetworkSubNav = true
+					m.inTableFocus = false
+					return m.loadNetworkSubProduct()
+				} else if !m.inTableFocus {
+					// Level 2 → Level 3: enter table focus
+					m.inTableFocus = true
+					return m, nil
+				}
+				// Level 3: fall through to normal enter handling
+			}
+		}
 		// Handle enter based on current mode
 		if m.mode == NodePoolDetailView {
 			// Execute selected action on node pool
@@ -4081,35 +5796,115 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.selectedNodePool = nodePools[m.nodePoolsSelectedIdx]
 				m.mode = NodePoolDetailView
 			}
-		} else if m.mode == TableView {
-			// In table view, show details
-			selectedRow := m.table.Cursor()
-			if selectedRow >= 0 && selectedRow < len(m.currentData) {
-				m.detailData = m.currentData[selectedRow]
-				m.currentItemName = getStringValue(m.detailData, "name", "Item")
-				m.mode = DetailView
+		}
+		// Open detail view from table (replaces former 'v' key)
+		if m.mode == TableView {
+			isSubNavProd := (m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB)
+			if !isSubNavProd || m.inTableFocus {
+				selectedRow := m.table.Cursor()
+				if selectedRow >= 0 && selectedRow < len(m.currentData) {
+					m.detailData = m.currentData[selectedRow]
+					m.currentItemName = getStringValue(m.detailData, "name", "Item")
+					m.mode = DetailView
 
-				// If viewing a Kubernetes cluster, also load node pools
-				if m.currentProduct == ProductKubernetes {
-					kubeId := getStringValue(m.detailData, "id", "")
-					if kubeId != "" {
-						return m, m.fetchKubeNodePools(kubeId)
+					if m.currentProduct == ProductStorageBlock {
+						ctx := &views.Context{Width: m.width, Height: m.height}
+						m.volumeDetailView = block_storage.NewDetailView(ctx, m.detailData)
+						return m, nil
+					}
+					if m.currentProduct == ProductStorageFile {
+						ctx := &views.Context{Width: m.width, Height: m.height}
+						m.fileShareDetailView = file_storage.NewDetailView(ctx, m.detailData)
+						return m, nil
+					}
+					if m.currentProduct == ProductStorageSnapshot {
+						ctx := &views.Context{Width: m.width, Height: m.height}
+						m.snapshotDetailView = block_storage.NewSnapshotDetailView(ctx, m.detailData)
+						return m, nil
+					}
+					if m.currentProduct == ProductStorageBackup {
+						ctx := &views.Context{Width: m.width, Height: m.height}
+						m.backupDetailView = block_storage.NewBackupDetailView(ctx, m.detailData)
+						return m, nil
+					}
+					if m.currentProduct == ProductStorageObject {
+						if m.objectStorageTabIdx == 1 {
+							selectedRow := m.table.Cursor()
+							if selectedRow < 0 || selectedRow >= len(m.objectStorageUsers) {
+								return m, nil
+							}
+							ctx := &views.Context{Width: m.width, Height: m.height}
+							m.objectUserDetailView = object_storage.NewUserDetailView(ctx, m.objectStorageUsers[selectedRow])
+							m.mode = DetailView
+							return m, nil
+						}
+						ctx := &views.Context{Width: m.width, Height: m.height}
+						m.objectDetailView = object_storage.NewDetailView(ctx, m.detailData, m.objectStorageUsers)
+						return m, nil
+					}
+					if m.currentProduct == ProductKubernetes {
+						kubeId := getStringValue(m.detailData, "id", "")
+						if kubeId != "" {
+							return m, m.fetchKubeNodePools(kubeId)
+						}
 					}
 				}
 			}
 		}
 		return m, nil
 	case "up", "down", "j", "k":
+		key := msg.String()
+		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
+		isNetworkSubProduct := m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB
+		isSubNavProduct := isStorageSubProduct || isNetworkSubProduct
+		navItems := getNavItems()
+
+		// Level 1 → Level 2: ↓ from main nav enters sub-nav for Storage / Networks
+		if (key == "down" || key == "j") && !m.inStorageSubNav && !m.inNetworkSubNav && !m.inTableFocus &&
+			m.mode != DetailView && m.mode != ProjectSelectView {
+			if navItems[m.navIdx].Product == ProductStorage {
+				m.inStorageSubNav = true
+				m.inTableFocus = false
+				return m.loadStorageSubProduct()
+			}
+			if navItems[m.navIdx].Product == ProductNetworks {
+				m.inNetworkSubNav = true
+				m.inTableFocus = false
+				return m.loadNetworkSubProduct()
+			}
+		}
+
+		// In table focus (Level 3): up at row 0 → back to sub-nav focus (Level 2)
+		if (key == "up" || key == "k") && m.inTableFocus && isSubNavProduct && m.mode != DetailView {
+			if m.mode == TableView && m.table.Cursor() == 0 {
+				m.inTableFocus = false
+				return m, nil
+			}
+		}
+		// In sub-nav focus (Level 2): up → back to main nav (Level 1)
+		if (key == "up" || key == "k") && m.inStorageSubNav && !m.inTableFocus && m.mode != DetailView {
+			m.inStorageSubNav = false
+			return m, nil
+		}
+		if (key == "up" || key == "k") && m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView {
+			m.inNetworkSubNav = false
+			return m, nil
+		}
+		// In sub-nav focus (Level 2): down → enter table focus (Level 3)
+		if (key == "down" || key == "j") && isSubNavProduct && (m.inStorageSubNav || m.inNetworkSubNav) && !m.inTableFocus && m.mode != DetailView {
+			m.inTableFocus = true
+			return m, nil
+		}
 		// Node pools list navigation
 		if m.mode == NodePoolsView {
 			clusterId := getStringValue(m.detailData, "id", "")
 			nodePools := m.kubeNodePools[clusterId]
 			if len(nodePools) > 0 {
-				if msg.String() == "down" || msg.String() == "j" {
+				if key == "down" || key == "j" {
 					if m.nodePoolsSelectedIdx < len(nodePools)-1 {
 						m.nodePoolsSelectedIdx++
 					}
-				} else if msg.String() == "up" || msg.String() == "k" {
+				} else if key == "up" || key == "k" {
 					if m.nodePoolsSelectedIdx > 0 {
 						m.nodePoolsSelectedIdx--
 					}
@@ -4117,11 +5912,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// Table navigation (works in both ProjectSelectView and TableView)
+		// Table navigation: for sub-nav products requires Level 3 (inTableFocus); non-sub-nav always allowed
 		if m.mode == TableView || m.mode == ProjectSelectView {
-			var cmd tea.Cmd
-			m.table, cmd = m.table.Update(msg)
-			return m, cmd
+			if !isSubNavProduct || m.inTableFocus {
+				var cmd tea.Cmd
+				m.table, cmd = m.table.Update(msg)
+				return m, cmd
+			}
 		}
 		return m, nil
 
@@ -4227,6 +6024,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
+
+	case "q", "ctrl+c":
+		return m, tea.Quit
 	}
 
 	return m, nil
@@ -4366,6 +6166,14 @@ func (m *Model) applyTableFilter() {
 			m.table = createInstancesTable(m.currentData, m.imageMap, m.floatingIPMap, m.width, m.height)
 		case ProductKubernetes:
 			m.table = createKubernetesTable(m.currentData, m.width, m.height)
+		case ProductStorageBlock:
+			m.table = createBlockStorageTable(m.currentData, m.width, m.height)
+		case ProductStorageFile:
+			m.table = createFileStorageTable(m.currentData, m.width, m.height)
+		case ProductStorageObject:
+			m.table = createObjectStorageTable(m.currentData, m.width, m.height)
+		case ProductNetworkPrivate:
+			m.table = createPrivateNetworksTable(m.currentData, m.width, m.height)
 		default:
 			m.table = createGenericTable(m.currentData, m.width, m.height)
 		}
@@ -4398,6 +6206,16 @@ func (m *Model) applyTableFilter() {
 			}
 		}
 		m.table = createKubernetesTable(filtered, m.width, m.height)
+	case ProductStorageObject:
+		var filtered []map[string]interface{}
+		for _, item := range m.currentData {
+			name := strings.ToLower(getStringValue(item, "name", ""))
+			region := strings.ToLower(getStringValue(item, "region", ""))
+			if strings.Contains(name, filter) || strings.Contains(region, filter) {
+				filtered = append(filtered, item)
+			}
+		}
+		m.table = createObjectStorageTable(filtered, m.width, m.height)
 	default:
 		m.table = createGenericTable(m.currentData, m.width, m.height)
 	}
@@ -4406,6 +6224,14 @@ func (m *Model) applyTableFilter() {
 // handleWizardKeyPress handles key presses in wizard mode
 func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
+
+	// Block all key input while an async operation is in progress.
+	if m.wizard.isLoading {
+		if key == "ctrl+c" {
+			return m, tea.Quit
+		}
+		return m, nil
+	}
 
 	// Handle cleanup confirmation mode
 	if m.wizard.cleanupPending {
@@ -4418,13 +6244,13 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// 'q' quits (except when typing in input fields)
-	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		return m, tea.Quit
 	}
 
 	// 'd' opens debug panel (except when typing in input fields)
 	// Disable debug shortcut when: in name step, filter mode, creating SSH key, or creating network
-	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		m.previousMode = m.mode
 		m.mode = DebugView
 		m.debugScrollOffset = 0
@@ -4442,7 +6268,18 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 100 {
+		if m.wizard.step >= 800 {
+			returnPath = "/networks/private"
+		} else if m.wizard.step >= 700 {
+			returnPath = "/storage/backup"
+		} else if m.wizard.step >= 500 {
+			returnPath = "/storage/object"
+		} else if m.wizard.step >= 400 {
+			returnPath = "/storage/file"
+		} else if m.wizard.step >= 300 {
+			// Volume wizard
+			returnPath = "/storage/block"
+		} else if m.wizard.step >= 100 {
 			// Kubernetes wizard
 			returnPath = "/kubernetes"
 		}
@@ -4496,23 +6333,124 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleNodePoolWizardOptionsKeys(key)
 	case NodePoolWizardStepConfirm:
 		return m.handleNodePoolWizardConfirmKeys(key)
+	// Volume wizard steps
+	case VolumeWizardStepName:
+		return m.handleVolumeWizardNameKeys(msg)
+	case VolumeWizardStepRegion:
+		return m.handleVolumeWizardRegionKeys(key, msg)
+	case VolumeWizardStepType:
+		return m.handleVolumeWizardTypeKeys(key, msg)
+	case VolumeWizardStepAvailabilityZone:
+		return m.handleVolumeWizardAZKeys(key, msg)
+	case VolumeWizardStepSize:
+		return m.handleVolumeWizardSizeKeys(msg)
+	case VolumeWizardStepEncryption:
+		return m.handleVolumeWizardEncryptionKeys(key)
+	case VolumeWizardStepConfirm:
+		return m.handleVolumeWizardConfirmKeys(key)
+	// File Storage wizard steps
+	case FileWizardStepName:
+		return m.handleFileWizardNameKeys(msg)
+	case FileWizardStepRegion:
+		return m.handleFileWizardRegionKeys(key, msg)
+	case FileWizardStepType:
+		return m.handleFileWizardTypeKeys(key, msg)
+	case FileWizardStepSize:
+		return m.handleFileWizardSizeKeys(msg)
+	case FileWizardStepNetwork:
+		return m.handleFileWizardNetworkKeys(key, msg)
+	case FileWizardStepConfirm:
+		return m.handleFileWizardConfirmKeys(key)
+	// Object Storage wizard steps
+	case ObjectWizardStepName:
+			return m.handleObjectWizardNameKeys(msg)
+	case ObjectWizardStepType:
+			return m.handleObjectWizardTypeKeys(key)
+	case ObjectWizardStepRegion:
+			return m.handleObjectWizardRegionKeys(key)
+	case ObjectWizardStepReplication:
+		switch key {
+		case "left", "h", "y":
+			m.wizard.objectReplication = true
+		case "right", "l", "n":
+			m.wizard.objectReplication = false
+		case "enter":
+			m.wizard.step = ObjectWizardStepVersioning
+		case "esc":
+			m.wizard.step = ObjectWizardStepRegion
+		}
+		return m, nil
+	case ObjectWizardStepVersioning:
+		switch key {
+		case "left", "h", "y":
+			m.wizard.objectVersioning = true
+		case "right", "l", "n":
+			m.wizard.objectVersioning = false
+		case "enter":
+			m.wizard.step = ObjectWizardStepObjectLock
+		case "esc":
+			m.wizard.step = ObjectWizardStepReplication
+		}
+		return m, nil
+	case ObjectWizardStepObjectLock:
+		switch key {
+		case "left", "h", "y":
+			m.wizard.objectLock = true
+		case "right", "l", "n":
+			m.wizard.objectLock = false
+		case "enter":
+			m.wizard.step = ObjectWizardStepUser
+		case "esc":
+			m.wizard.step = ObjectWizardStepVersioning
+		}
+		return m, nil
+	case ObjectWizardStepUser:
+			return m.handleObjectWizardUserKeys(key)
+	case ObjectWizardStepEncryption:
+		switch key {
+		case "up", "k":
+			m.wizard.objectEncryption = false
+		case "down", "j":
+			m.wizard.objectEncryption = true
+		case "enter":
+			m.wizard.step = ObjectWizardStepConfirm
+		case "esc":
+			m.wizard.step = ObjectWizardStepUser
+		}
+		return m, nil
+	case ObjectWizardStepConfirm:
+		return m.handleObjectWizardConfirmKeys(key)
+	case ObjectWizardStepSwiftType:
+		return m.handleObjectWizardSwiftTypeKeys(key)
+	case ObjectWizardStepSwiftRegion:
+		return m.handleObjectWizardSwiftRegionKeys(key)
+	case S3UserWizardStepDescription:
+		return m.handleS3UserWizardDescKeys(msg)
+	case S3UserWizardStepConfirm:
+		return m.handleS3UserWizardConfirmKeys(key)
+	case BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm:
+		return m.handleBackupWizardKeys(msg)
+	// Private Network wizard steps
+	case PrivNetWizardStepRegion:
+		return m.handlePrivNetWizardRegionKeys(key)
+	case PrivNetWizardStepName:
+		return m.handlePrivNetWizardNameKeys(msg)
+	case PrivNetWizardStepVlanID:
+		return m.handlePrivNetWizardVlanKeys(msg)
+	case PrivNetWizardStepSubnet:
+		return m.handlePrivNetWizardSubnetKeys(msg)
+	case PrivNetWizardStepDHCP:
+		return m.handlePrivNetWizardDHCPKeys(key)
+	case PrivNetWizardStepGateway:
+		return m.handlePrivNetWizardGatewayKeys(msg)
+	case PrivNetWizardStepConfirm:
+		return m.handlePrivNetWizardConfirmKeys(key)
 	}
-
 	return m, nil
 }
 
-// handleCleanupConfirmKeys handles key presses in cleanup confirmation mode
 func (m Model) handleCleanupConfirmKeys(key string) (tea.Model, tea.Cmd) {
 	switch key {
-	case "left", "right":
-		// Toggle between Yes and No
-		if m.wizard.selectedIndex == 0 {
-			m.wizard.selectedIndex = 1
-		} else {
-			m.wizard.selectedIndex = 0
-		}
-		return m, nil
-
 	case "enter":
 		if m.wizard.selectedIndex == 0 {
 			// Yes, delete all - start cleanup
@@ -5840,11 +7778,20 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	m.currentProduct = currentNav.Product
 	m.detailData = nil
 	m.currentData = nil
+	m.inStorageSubNav = false
+	m.inNetworkSubNav = false
+	m.inTableFocus = false
 
-	// Show coming soon view for unimplemented products
-	if currentNav.Product == ProductStorage || currentNav.Product == ProductNetworks {
-		m.mode = ComingSoonView
-		return m, nil
+	// For Networks, go to default sub-item (Private Networks = index 0)
+	if currentNav.Product == ProductNetworks {
+		m.networkSubIdx = 0
+		return m.loadNetworkSubProduct()
+	}
+
+	// For Stockage, go to default sub-item (Block Storage = index 0)
+	if currentNav.Product == ProductStorage {
+		m.storageSubIdx = 0
+		return m.loadStorageSubProduct()
 	}
 
 	m.mode = LoadingView
@@ -5857,6 +7804,41 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 		)
 	}
 	return m, m.fetchDataForPath(currentNav.Path)
+}
+
+func (m Model) loadStorageSubProduct() (Model, tea.Cmd) {
+	subItems := getStorageSubItems()
+	sub := subItems[m.storageSubIdx]
+	m.currentProduct = sub.Product
+	m.detailData = nil
+	m.currentData = nil
+	m.volumeDetailView = nil
+	m.inTableFocus = false
+
+	if !sub.Enabled {
+		m.mode = ComingSoonView
+		return m, nil
+	}
+
+	m.mode = LoadingView
+	return m, m.fetchDataForPath(sub.Path)
+}
+
+func (m Model) loadNetworkSubProduct() (Model, tea.Cmd) {
+	subItems := getNetworkSubItems()
+	sub := subItems[m.networkSubIdx]
+	m.currentProduct = sub.Product
+	m.detailData = nil
+	m.currentData = nil
+	m.inTableFocus = false
+
+	if !sub.Enabled {
+		m.mode = ComingSoonView
+		return m, nil
+	}
+
+	m.mode = LoadingView
+	return m, m.fetchDataForPath(sub.Path)
 }
 
 // Helper functions
@@ -6081,6 +8063,202 @@ func (m Model) handleNodePoolWizardConfirmKeys(key string) (tea.Model, tea.Cmd) 
 		}
 	case "esc":
 		m.wizard.step = NodePoolWizardStepOptions
+	}
+	return m, nil
+}
+
+// ========== Volume Wizard Key Handlers ==========
+
+func (m Model) handleVolumeWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		name := strings.TrimSpace(m.wizard.volumeNameInput)
+		if name == "" {
+			m.wizard.errorMsg = "Volume name cannot be empty"
+			return m, nil
+		}
+		m.wizard.volumeName = name
+		m.wizard.errorMsg = ""
+		m.wizard.step = VolumeWizardStepRegion
+		m.wizard.selectedIndex = 0
+		m.wizard.isLoading = true
+		m.wizard.loadingMessage = "Loading regions..."
+		return m, m.fetchVolumeRegions()
+	case tea.KeyBackspace:
+		if len(m.wizard.volumeNameInput) > 0 {
+			m.wizard.volumeNameInput = m.wizard.volumeNameInput[:len(m.wizard.volumeNameInput)-1]
+		}
+	case tea.KeyRunes:
+		m.wizard.volumeNameInput += string(msg.Runes)
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeWizardRegionKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	regions := m.wizard.regions
+	switch key {
+	case "up", "k":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down", "j":
+		if m.wizard.selectedIndex < len(regions)-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if len(regions) == 0 {
+			return m, nil
+		}
+		selected := regions[m.wizard.selectedIndex]
+		m.wizard.selectedRegion = getString(selected, "name")
+		m.wizard.errorMsg = ""
+		if types, ok := m.wizard.volumeRegionTypeMap[m.wizard.selectedRegion]; ok {
+			m.wizard.volumeTypes = types
+			m.wizard.volumeTypeAZMap = m.wizard.volumeRegionTypeAZMap[m.wizard.selectedRegion]
+			m.wizard.step = VolumeWizardStepType
+			m.wizard.selectedIndex = 0
+		} else {
+			// Fallback: fetch on demand
+			m.wizard.step = VolumeWizardStepType
+			m.wizard.selectedIndex = 0
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Loading volume types..."
+			return m, m.fetchVolumeTypes(m.wizard.selectedRegion)
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeWizardTypeKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	types := m.wizard.volumeTypes
+	switch key {
+	case "up", "k":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down", "j":
+		if m.wizard.selectedIndex < len(types)-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if len(types) == 0 {
+			return m, nil
+		}
+		m.wizard.volumeType = types[m.wizard.selectedIndex]
+		m.wizard.errorMsg = ""
+		m.wizard.selectedIndex = 0
+		m.wizard.volumeAvailabilityZones = nil
+		m.wizard.volumeAvailabilityZone = ""
+		m.wizard.step = VolumeWizardStepAvailabilityZone
+		m.wizard.isLoading = true
+		m.wizard.loadingMessage = "Chargement des zones..."
+		return m, m.fetchVolumeAvailabilityZones(m.wizard.selectedRegion)
+	case "left":
+		m.wizard.step = VolumeWizardStepRegion
+		m.wizard.selectedIndex = 0
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeWizardAZKeys(key string, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	// Items = "(No preference)" + actual AZs
+	totalItems := 1 + len(m.wizard.volumeAvailabilityZones)
+	switch key {
+	case "up", "k":
+		if m.wizard.selectedIndex > 0 {
+			m.wizard.selectedIndex--
+		}
+	case "down", "j":
+		if m.wizard.selectedIndex < totalItems-1 {
+			m.wizard.selectedIndex++
+		}
+	case "enter":
+		if m.wizard.selectedIndex == 0 {
+			m.wizard.volumeAvailabilityZone = "" // No preference
+		} else {
+			m.wizard.volumeAvailabilityZone = m.wizard.volumeAvailabilityZones[m.wizard.selectedIndex-1]
+		}
+		m.wizard.errorMsg = ""
+		m.wizard.step = VolumeWizardStepSize
+		if m.wizard.volumeSize > 0 {
+			m.wizard.volumeSizeInput = fmt.Sprintf("%d", m.wizard.volumeSize)
+		} else {
+			m.wizard.volumeSizeInput = ""
+		}
+	case "left":
+		m.wizard.step = VolumeWizardStepType
+		m.wizard.selectedIndex = 0
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeWizardSizeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		sizeStr := strings.TrimSpace(m.wizard.volumeSizeInput)
+		size, err := strconv.Atoi(sizeStr)
+		if err != nil || size < 10 || size > 12000 {
+			m.wizard.errorMsg = "Size must be between 10 and 12000 GB"
+			return m, nil
+		}
+		m.wizard.volumeSize = size
+		m.wizard.errorMsg = ""
+		m.wizard.step = VolumeWizardStepEncryption
+	case tea.KeyBackspace:
+		if len(m.wizard.volumeSizeInput) > 0 {
+			m.wizard.volumeSizeInput = m.wizard.volumeSizeInput[:len(m.wizard.volumeSizeInput)-1]
+		}
+	case tea.KeyLeft:
+		// Go back to AZ step only if that step was actually shown (type had AZ choices)
+		if len(m.wizard.volumeAvailabilityZones) > 0 {
+			m.wizard.step = VolumeWizardStepAvailabilityZone
+		} else {
+			m.wizard.step = VolumeWizardStepType
+		}
+		m.wizard.selectedIndex = 0
+	case tea.KeyRunes:
+		for _, r := range msg.Runes {
+			if r >= '0' && r <= '9' {
+				m.wizard.volumeSizeInput += string(r)
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
+	if m.wizard.isLoading {
+		return m, nil
+	}
+	switch key {
+	case "right", "tab":
+		if m.wizard.volumeConfirmBtnIdx == 0 {
+			m.wizard.volumeConfirmBtnIdx = 1
+		} else {
+			m.wizard.volumeConfirmBtnIdx = 0
+		}
+	case "enter":
+		if m.wizard.volumeConfirmBtnIdx == 0 {
+			// Create the volume
+			m.wizard.isLoading = true
+			m.wizard.loadingMessage = "Creating volume..."
+			return m, m.createVolume()
+		}
+		// Cancel
+		m.wizard = WizardData{}
+		m.mode = LoadingView
+		return m, m.fetchDataForPath("/storage/block")
+	case "left", "esc":
+		m.wizard.step = VolumeWizardStepEncryption
 	}
 	return m, nil
 }
@@ -6408,3 +8586,4 @@ func (m Model) handleNodePoolDeleteConfirmKeyPress(msg tea.KeyMsg) (tea.Model, t
 		return m, nil
 	}
 }
+
