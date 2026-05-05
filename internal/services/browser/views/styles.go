@@ -109,9 +109,19 @@ var (
 			Foreground(ColorMuted).
 			Padding(0, 1)
 
+	StyleButtonDisabled = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#444444")).
+			Padding(0, 1)
+
 	StyleButtonDanger = lipgloss.NewStyle().
 				Foreground(ColorDanger).
 				Padding(0, 1)
+
+	StyleButtonDangerSelected = lipgloss.NewStyle().
+					Background(ColorDanger).
+					Foreground(ColorWhite).
+					Bold(true).
+					Padding(0, 1)
 
 	StyleButtonSuccess = lipgloss.NewStyle().
 				Foreground(ColorSecondary).

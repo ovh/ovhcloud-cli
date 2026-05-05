@@ -9,12 +9,13 @@ package browser
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"math/rand"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	block_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/block_storage"
 )
 
 // fetchDataForPath initiates an API call based on the path
@@ -80,6 +82,23 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 			msg.forProduct = product
 			return msg
 		}
+	case "/storage/file":
+		return func() tea.Msg {
+			msg := m.fetchFileStorageData()
+			msg.forProduct = product
+			return msg
+		}
+	case "/storage/object":
+		return func() tea.Msg {
+			s3Msg := m.fetchS3StorageData()
+			swiftMsg := m.fetchSwiftStorageData()
+			merged := append(s3Msg.data, swiftMsg.data...)
+			return dataLoadedMsg{
+				data:       merged,
+				s3Users:    s3Msg.s3Users,
+				forProduct: product,
+			}
+		}
 	case "/networks/private":
 		return func() tea.Msg {
 			msg := m.fetchPrivateNetworksData()
@@ -92,9 +111,33 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 			msg.forProduct = product
 			return msg
 		}
+	case "/networks/floatingip":
+		return func() tea.Msg {
+			msg := m.fetchFloatingIPsData()
+			msg.forProduct = product
+			return msg
+		}
 	case "/loadbalancer":
 		return func() tea.Msg {
 			msg := m.fetchLoadBalancersData()
+			msg.forProduct = product
+			return msg
+		}
+	case "/networks/gateway":
+		return func() tea.Msg {
+			msg := m.fetchGatewaysData()
+			msg.forProduct = product
+			return msg
+		}
+	case "/storage/snapshot":
+		return func() tea.Msg {
+			msg := m.fetchVolumeSnapshotsData()
+			msg.forProduct = product
+			return msg
+		}
+	case "/storage/backup":
+		return func() tea.Msg {
+			msg := m.fetchVolumeBackupsData()
 			msg.forProduct = product
 			return msg
 		}
@@ -682,12 +725,15 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 		}
 
 		hasS3 := false
+		s3Offer := "Standard"
 		for _, svc := range services {
 			if svcMap, ok := svc.(map[string]interface{}); ok {
 				if name, ok := svcMap["name"].(string); ok {
-					if name == "storage-s3-high-perf" || name == "storage-s3-standard" {
+					if name == "storage-s3-high-perf" {
 						hasS3 = true
-						break
+						s3Offer = "High Performance"
+					} else if name == "storage-s3-standard" {
+						hasS3 = true
 					}
 				}
 			}
@@ -697,7 +743,13 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 			continue
 		}
 
-		// Fetch containers for this region - API may return array of strings or objects
+		deployMode := "1-AZ"
+		if regionType, _ := region["type"].(string); regionType == "region-3-az" {
+			deployMode = "3-AZ"
+		} else if regionType == "localzone" {
+			deployMode = "Local Zone"
+		}
+
 		var rawResponse []interface{}
 		storageEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage", m.cloudProject, regionName)
 		if err := httpLib.Client.Get(storageEndpoint, &rawResponse); err == nil {
@@ -707,19 +759,73 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 					var container map[string]interface{}
 					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, regionName, containerName)
 					if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
+						container["_offer"] = s3Offer
+						container["_deployMode"] = deployMode
+						container["_type"] = "S3"
 						allContainers = append(allContainers, container)
 					}
 				} else if containerObj, ok := item.(map[string]interface{}); ok {
-					// It's already a full object
+					containerObj["_offer"] = s3Offer
+					containerObj["_deployMode"] = deployMode
+					containerObj["_type"] = "S3"
 					allContainers = append(allContainers, containerObj)
 				}
 			}
 		}
 	}
 
+	// Fetch cloud users with their S3 credentials
+	var s3Users []map[string]interface{}
+	var cloudUsers []map[string]interface{}
+	userEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user", m.cloudProject)
+	if err := httpLib.Client.Get(userEndpoint, &cloudUsers); err == nil {
+		for _, user := range cloudUsers {
+			userEntry := make(map[string]interface{})
+			userEntry["_username"] = user["username"]
+			userEntry["_userDescription"] = user["description"]
+			userEntry["_userId"] = user["id"]
+
+			// Robust user ID extraction: handle float64, json.Number, int
+			var userId int64
+			switch id := user["id"].(type) {
+			case float64:
+				userId = int64(id)
+			case json.Number:
+				userId, _ = id.Int64()
+			case int:
+				userId = int64(id)
+			case int64:
+				userId = id
+			}
+
+			if userId == 0 {
+				userEntry["access"] = ""
+				userEntry["internalName"] = getString(user, "username")
+				s3Users = append(s3Users, userEntry)
+				continue
+			}
+
+			var s3Creds []map[string]interface{}
+			s3Endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials", m.cloudProject, userId)
+			if err := httpLib.Client.Get(s3Endpoint, &s3Creds); err == nil && len(s3Creds) > 0 {
+				cred := s3Creds[0]
+				cred["_username"] = user["username"]
+				cred["_userDescription"] = user["description"]
+				cred["_userId"] = user["id"]
+				s3Users = append(s3Users, cred)
+			} else {
+				// User exists but has no S3 credentials yet
+				userEntry["access"] = ""
+				userEntry["internalName"] = getString(user, "username")
+				s3Users = append(s3Users, userEntry)
+			}
+		}
+	}
+
 	return dataLoadedMsg{
-		data: allContainers,
-		err:  nil,
+		data:    allContainers,
+		s3Users: s3Users,
+		err:     nil,
 	}
 }
 
@@ -731,9 +837,9 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 		}
 	}
 
-	// Try to fetch as array of interfaces first (could be strings or objects)
+	// includeType=true makes the API return the containerType field (private/public/static)
 	var rawResponse []interface{}
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage", m.cloudProject)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage?includeType=true", m.cloudProject)
 	err := httpLib.Client.Get(endpoint, &rawResponse)
 	if err != nil {
 		return dataLoadedMsg{
@@ -742,16 +848,15 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 		}
 	}
 
-	// Check if response contains strings (IDs) or objects
 	var containers []map[string]interface{}
 	if len(rawResponse) > 0 {
 		if _, ok := rawResponse[0].(string); ok {
-			// Response contains string IDs, fetch details for each
 			for _, item := range rawResponse {
 				if containerID, ok := item.(string); ok {
 					var container map[string]interface{}
-					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s", m.cloudProject, containerID)
+					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s?includeType=true", m.cloudProject, containerID)
 					if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
+						container["_type"] = "Swift"
 						containers = append(containers, container)
 					}
 				}
@@ -760,6 +865,7 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 			// Response contains full objects
 			for _, item := range rawResponse {
 				if obj, ok := item.(map[string]interface{}); ok {
+					obj["_type"] = "Swift"
 					containers = append(containers, obj)
 				}
 			}
@@ -815,13 +921,360 @@ func (m Model) fetchBlockStorageData() dataLoadedMsg {
 		}
 	}
 
+	var filtered []map[string]interface{}
+	for _, v := range volumes {
+		status := getString(v, "status")
+		if status != "deleting" && status != "deleted" {
+			filtered = append(filtered, v)
+		}
+	}
+
 	return dataLoadedMsg{
-		data: volumes,
+		data: filtered,
 		err:  nil,
 	}
 }
 
-// fetchPrivateNetworksData fetches private networks across all regions
+// fetchVolumeRegions probes each region concurrently for volume type support and returns
+// only regions that have at least one volume type available. This filters out legacy/local
+// regions that don't support the block storage volume API.
+func (m Model) fetchVolumeRegions() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return volumeRegionsLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		var regionNames []string
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+		if err := httpLib.Client.Get(endpoint, &regionNames); err != nil {
+			return volumeRegionsLoadedMsg{err: fmt.Errorf("failed to fetch regions: %w", err)}
+		}
+
+		type probeResult struct {
+			region    string
+			types     []string
+			typeAZMap map[string][]string
+		}
+		ch := make(chan probeResult, len(regionNames))
+		for _, name := range regionNames {
+			go func(regionName string) {
+				typesEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeType",
+					m.cloudProject, url.PathEscape(regionName))
+				var rawTypes []map[string]interface{}
+				if err := httpLib.Client.Get(typesEndpoint, &rawTypes); err != nil {
+					ch <- probeResult{region: regionName}
+					return
+				}
+				var types []string
+				typeAZMap := make(map[string][]string)
+				for _, t := range rawTypes {
+					n, ok := t["name"].(string)
+					if !ok || n == "" || strings.HasSuffix(n, "-luks") {
+						continue
+					}
+					types = append(types, n)
+					if azRaw, ok := t["availabilityZones"].([]interface{}); ok {
+						var azs []string
+						for _, az := range azRaw {
+							if s, ok := az.(string); ok && s != "" {
+								azs = append(azs, s)
+							}
+						}
+						sort.Strings(azs)
+						typeAZMap[n] = azs
+					}
+				}
+				sort.Strings(types)
+				ch <- probeResult{region: regionName, types: types, typeAZMap: typeAZMap}
+			}(name)
+		}
+
+		regionTypeMap := make(map[string][]string)
+		regionTypeAZMap := make(map[string]map[string][]string)
+		for range regionNames {
+			r := <-ch
+			if len(r.types) > 0 {
+				regionTypeMap[r.region] = r.types
+				regionTypeAZMap[r.region] = r.typeAZMap
+			}
+		}
+		var supported []string
+		for _, name := range regionNames {
+			if _, ok := regionTypeMap[name]; ok {
+				supported = append(supported, name)
+			}
+		}
+		sort.Strings(supported)
+
+		if len(supported) == 0 {
+			return volumeRegionsLoadedMsg{err: fmt.Errorf("no regions support block storage volumes in this project")}
+		}
+		return volumeRegionsLoadedMsg{regionNames: supported, regionTypeMap: regionTypeMap, regionTypeAZMap: regionTypeAZMap}
+	}
+}
+
+func (m Model) fetchVolumeTypes(region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return volumeTypesLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeType", m.cloudProject, url.PathEscape(region))
+		var rawTypes []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &rawTypes); err != nil {
+			return volumeTypesLoadedMsg{err: fmt.Errorf("failed to fetch volume types: %w", err)}
+		}
+		var types []string
+		typeAZMap := make(map[string][]string)
+		for _, t := range rawTypes {
+			n, ok := t["name"].(string)
+			if !ok || n == "" || strings.HasSuffix(n, "-luks") {
+				continue
+			}
+			types = append(types, n)
+			if azRaw, ok := t["availabilityZones"].([]interface{}); ok {
+				var azs []string
+				for _, az := range azRaw {
+					if s, ok := az.(string); ok && s != "" {
+						azs = append(azs, s)
+					}
+				}
+				sort.Strings(azs)
+				typeAZMap[n] = azs
+			}
+		}
+		sort.Strings(types)
+		return volumeTypesLoadedMsg{types: types, typeAZMap: typeAZMap}
+	}
+}
+
+func (m Model) fetchVolumeAvailabilityZones(region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return volumeAZLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s", m.cloudProject, url.PathEscape(region))
+		var regionDetail map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &regionDetail); err != nil {
+			return volumeAZLoadedMsg{err: fmt.Errorf("failed to fetch region details: %w", err)}
+		}
+		var azs []string
+		if raw, ok := regionDetail["availabilityZones"].([]interface{}); ok {
+			for _, az := range raw {
+				if s, ok := az.(string); ok && s != "" && s != "nova" {
+					azs = append(azs, s)
+				}
+			}
+		}
+		sort.Strings(azs)
+		return volumeAZLoadedMsg{availabilityZones: azs, err: nil}
+	}
+}
+
+func (m Model) createVolume() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return volumeCreatedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		effectiveType := m.wizard.volumeType
+		if m.wizard.volumeEncryptionIdx == 1 && !strings.HasSuffix(effectiveType, "-luks") {
+			effectiveType += "-luks"
+		}
+		body := map[string]interface{}{
+			"name": m.wizard.volumeName,
+			"size": m.wizard.volumeSize,
+			"type": effectiveType,
+		}
+		if m.wizard.volumeAvailabilityZone != "" {
+			body["availabilityZone"] = m.wizard.volumeAvailabilityZone
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume", m.cloudProject, url.PathEscape(m.wizard.selectedRegion))
+		var volume map[string]interface{}
+		err := httpLib.Client.Post(endpoint, body, &volume)
+		return volumeCreatedMsg{volume: volume, err: err}
+	}
+}
+
+func (m Model) deleteVolume(volumeId string) tea.Cmd {
+	return func() tea.Msg {
+		// Check for snapshots first — the API rejects delete if any exist
+		snapshotsEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/snapshot", m.cloudProject)
+		var snapshots []map[string]interface{}
+		if err := httpLib.Client.Get(snapshotsEndpoint, &snapshots); err == nil {
+			var blocking []string
+			for _, s := range snapshots {
+				if vid, ok := s["volumeId"].(string); ok && vid == volumeId {
+					if sid, ok := s["id"].(string); ok {
+						blocking = append(blocking, sid)
+					}
+				}
+			}
+			if len(blocking) > 0 {
+				msg := fmt.Sprintf("This volume has %d snapshot(s). Delete them first from the Volume Snapshots tab.", len(blocking))
+				return volumeActionDoneMsg{action: 0, err: fmt.Errorf("%s", msg)}
+			}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, url.PathEscape(volumeId))
+		err := httpLib.Client.Delete(endpoint, nil)
+		return volumeActionDoneMsg{action: 0, err: err}
+	}
+}
+
+func (m Model) renameVolume(volumeId, newName string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, url.PathEscape(volumeId))
+		body := map[string]interface{}{"name": newName}
+		err := httpLib.Client.Put(endpoint, body, nil)
+		return volumeActionDoneMsg{action: 1, err: err}
+	}
+}
+
+func (m Model) extendVolume(volumeId string, newSizeGB int) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s/upsize", m.cloudProject, url.PathEscape(volumeId))
+		body := map[string]interface{}{"size": newSizeGB}
+		err := httpLib.Client.Post(endpoint, body, nil)
+		return volumeActionDoneMsg{action: 2, err: err}
+	}
+}
+
+// handleVolumeRegionsLoaded handles the response from the concurrent region probe.
+// It populates the region list (only volume-capable regions) and stores the type map.
+func (m Model) handleVolumeRegionsLoaded(msg volumeRegionsLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	m.wizard.loadingMessage = ""
+	if msg.err != nil {
+		m.wizard.errorMsg = msg.err.Error()
+		return m, nil
+	}
+	m.wizard.regions = nil
+	for _, name := range msg.regionNames {
+		m.wizard.regions = append(m.wizard.regions, map[string]interface{}{"name": name})
+	}
+	m.wizard.volumeRegionTypeMap = msg.regionTypeMap
+	m.wizard.volumeRegionTypeAZMap = msg.regionTypeAZMap
+	m.wizard.selectedIndex = 0
+	return m, nil
+}
+
+func (m Model) handleVolumeTypesLoaded(msg volumeTypesLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	m.wizard.loadingMessage = ""
+	if msg.err != nil {
+		m.wizard.errorMsg = msg.err.Error()
+		return m, nil
+	}
+	m.wizard.volumeTypes = msg.types
+	m.wizard.volumeTypeAZMap = msg.typeAZMap
+	m.wizard.selectedIndex = 0
+	return m, nil
+}
+
+func (m Model) handleVolumeAZLoaded(msg volumeAZLoadedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	m.wizard.loadingMessage = ""
+	if msg.err != nil {
+		m.wizard.errorMsg = msg.err.Error()
+		return m, nil
+	}
+	m.wizard.volumeAvailabilityZones = msg.availabilityZones
+	m.wizard.selectedIndex = 0
+	// Region has no real AZ choices (only "nova" or empty) — skip this step
+	if len(msg.availabilityZones) == 0 {
+		m.wizard.volumeAvailabilityZone = ""
+		m.wizard.step = VolumeWizardStepSize
+		if m.wizard.volumeSize > 0 {
+			m.wizard.volumeSizeInput = fmt.Sprintf("%d", m.wizard.volumeSize)
+		} else {
+			m.wizard.volumeSizeInput = ""
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeCreated(msg volumeCreatedMsg) (tea.Model, tea.Cmd) {
+	m.wizard.isLoading = false
+	m.wizard.loadingMessage = ""
+	if msg.err != nil {
+		m.wizard.errorMsg = msg.err.Error()
+		return m, nil
+	}
+	name := ""
+	if msg.volume != nil {
+		if n, ok := msg.volume["name"].(string); ok {
+			name = n
+		}
+	}
+	if name == "" {
+		name = "volume"
+	}
+	m.notification = fmt.Sprintf("✅ Volume '%s' created successfully!", name)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	m.wizard = WizardData{}
+	m.mode = LoadingView
+	return m, tea.Batch(
+		tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+			return refreshBlockStorageMsg{}
+		}),
+		tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		}),
+	)
+}
+
+func (m Model) handleExecuteVolumeAction(msg block_storage.ExecuteVolumeActionMsg) (tea.Model, tea.Cmd) {
+	volumeId := getString(msg.Volume, "id")
+	volumeName := getString(msg.Volume, "name")
+
+	switch msg.Action {
+	case block_storage.VolumeActionDelete:
+		m.notification = fmt.Sprintf("🗑️  Deleting volume '%s'...", volumeName)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.deleteVolume(volumeId)
+	case block_storage.VolumeActionRename:
+		m.notification = fmt.Sprintf("✏️  Renaming volume...")
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.renameVolume(volumeId, msg.Param)
+	case block_storage.VolumeActionExtend:
+		newSize, err := strconv.Atoi(msg.Param)
+		if err != nil || newSize < 1 {
+			m.notification = "❌ Invalid size"
+			m.notificationExpiry = time.Now().Add(5 * time.Second)
+			return m, nil
+		}
+		m.notification = fmt.Sprintf("⬆️  Extending volume to %d GB...", newSize)
+		m.notificationExpiry = time.Now().Add(30 * time.Second)
+		return m, m.extendVolume(volumeId, newSize)
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumeActionDone(msg volumeActionDoneMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.notification = fmt.Sprintf("❌ Action failed: %s", msg.err.Error())
+		m.notificationExpiry = time.Now().Add(8 * time.Second)
+		return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		})
+	}
+
+	actionNames := []string{"deleted", "renamed", "extended"}
+	actionName := "updated"
+	if msg.action >= 0 && msg.action < len(actionNames) {
+		actionName = actionNames[msg.action]
+	}
+	m.notification = fmt.Sprintf("✅ Volume %s successfully!", actionName)
+	m.notificationExpiry = time.Now().Add(5 * time.Second)
+	m.volumeDetailView = nil
+	m.detailData = nil
+	m.mode = LoadingView
+	return m, tea.Batch(
+		m.fetchDataForPath("/storage/block"),
+		tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearNotificationMsg{}
+		}),
+	)
+}
+
+// fetchPrivateNetworksData fetches private networks and enriches each with subnet details
 func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 	if m.cloudProject == "" {
 		return dataLoadedMsg{
@@ -829,31 +1282,50 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 		}
 	}
 
-	// Fetch all regions
-	var regionNames []string
-	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
-	if err := httpLib.Client.Get(regionEndpoint, &regionNames); err != nil {
-		return dataLoadedMsg{err: err}
-	}
-
-	regions := make([]any, len(regionNames))
-	for i, r := range regionNames {
-		regions[i] = r
-	}
-
-	// Fetch networks in all regions
-	allRegionNetworks, err := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/network", regions, true)
-	if err != nil {
-		return dataLoadedMsg{err: err}
-	}
-
-	// Flatten and filter private networks
 	var networks []map[string]interface{}
-	for _, regionNetworks := range allRegionNetworks {
-		for _, network := range regionNetworks {
-			if v, ok := network["visibility"]; ok && v == "private" {
-				networks = append(networks, network)
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
+	if err := httpLib.Client.Get(endpoint, &networks); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+
+	// Also fetch region details in parallel to get the type (localzone vs region)
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	var allRegionNames []string
+	if err := httpLib.Client.Get(regionEndpoint, &allRegionNames); err == nil {
+		ids := make([]any, len(allRegionNames))
+		for i, n := range allRegionNames {
+			ids[i] = n
+		}
+		regionDetails, _ := httpLib.FetchObjectsParallel[map[string]any](regionEndpoint+"/%s", ids, true)
+		regionTypeMap := make(map[string]string, len(allRegionNames))
+		for i, d := range regionDetails {
+			if d != nil {
+				t, _ := d["type"].(string)
+				regionTypeMap[allRegionNames[i]] = t
 			}
+		}
+		// Embed _regionType on each network based on its first region
+		for i, n := range networks {
+			if regions, ok := n["regions"].([]interface{}); ok && len(regions) > 0 {
+				if rm, ok := regions[0].(map[string]interface{}); ok {
+					if reg := getString(rm, "region"); reg != "" {
+						networks[i]["_regionType"] = regionTypeMap[reg]
+					}
+				}
+			}
+		}
+	}
+
+	// Enrich with subnet data in parallel
+	networkIDs := make([]any, len(networks))
+	for i, n := range networks {
+		networkIDs[i] = getString(n, "id")
+	}
+	subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%%s/subnet", m.cloudProject)
+	allSubnets, _ := httpLib.FetchObjectsParallel[[]map[string]any](subnetEndpoint, networkIDs, true)
+	for i, subnets := range allSubnets {
+		if i < len(networks) {
+			networks[i]["_subnets"] = subnets
 		}
 	}
 
@@ -863,7 +1335,48 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 	}
 }
 
-// fetchPublicNetworksData fetches public networks across all regions
+// fetchPrivateNetRegions returns regions suitable for private network creation with their type.
+func (m Model) fetchPrivateNetRegions() ([]map[string]interface{}, error) {
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	var allNames []string
+	if err := httpLib.Client.Get(regionEndpoint, &allNames); err != nil {
+		return nil, err
+	}
+	ids := make([]any, len(allNames))
+	for i, n := range allNames {
+		ids[i] = n
+	}
+	details, _ := httpLib.FetchObjectsParallel[map[string]any](regionEndpoint+"/%s", ids, true)
+	var result []map[string]interface{}
+	for i, d := range details {
+		if d == nil {
+			continue
+		}
+		name := allNames[i]
+		rtype, _ := d["type"].(string)
+		// Only include regions that support vrack / network
+		hasNetwork := false
+		if services, ok := d["services"].([]interface{}); ok {
+			for _, svc := range services {
+				if sm, ok := svc.(map[string]interface{}); ok {
+					if sm["name"] == "network" && sm["status"] == "UP" {
+						hasNetwork = true
+						break
+					}
+				}
+			}
+		}
+		if hasNetwork {
+			result = append(result, map[string]interface{}{
+				"name": name,
+				"type": rtype,
+			})
+		}
+	}
+	return result, nil
+}
+
+// fetchPublicNetworksData fetches public networks at project level
 func (m Model) fetchPublicNetworksData() dataLoadedMsg {
 	if m.cloudProject == "" {
 		return dataLoadedMsg{
@@ -871,56 +1384,197 @@ func (m Model) fetchPublicNetworksData() dataLoadedMsg {
 		}
 	}
 
-	// Fetch all regions
-	var regionNames []string
+	var networks []map[string]interface{}
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/public", m.cloudProject)
+	err := httpLib.Client.Get(endpoint, &networks)
+
+	return dataLoadedMsg{
+		data: networks,
+		err:  err,
+	}
+}
+
+// fetchNetworkRegions returns region names that have the "network" service UP.
+func (m Model) fetchNetworkRegions() ([]string, error) {
 	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
-	if err := httpLib.Client.Get(regionEndpoint, &regionNames); err != nil {
-		return dataLoadedMsg{err: err}
+
+	// Get plain list of region names
+	var allNames []string
+	if err := httpLib.Client.Get(regionEndpoint, &allNames); err != nil {
+		return nil, err
 	}
 
+	// Fetch each region detail in parallel to check for "network" service
+	ids := make([]any, len(allNames))
+	for i, n := range allNames {
+		ids[i] = n
+	}
+	details, _ := httpLib.FetchObjectsParallel[map[string]any](regionEndpoint+"/%s", ids, true)
+
+	var result []string
+	for i, r := range details {
+		if r == nil {
+			continue
+		}
+		name := allNames[i]
+		if services, ok := r["services"].([]interface{}); ok {
+			for _, svc := range services {
+				if sm, ok := svc.(map[string]interface{}); ok {
+					if sm["name"] == "network" && sm["status"] == "UP" {
+						result = append(result, name)
+						break
+					}
+				}
+			}
+		}
+	}
+	return result, nil
+}
+
+// fetchFloatingIPsData fetches floating IPs from network-capable regions
+func (m Model) fetchFloatingIPsData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+
+	regionNames, err := m.fetchNetworkRegions()
+	if err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	if len(regionNames) == 0 {
+		return dataLoadedMsg{data: nil, err: nil}
+	}
+
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
 	regions := make([]any, len(regionNames))
 	for i, r := range regionNames {
 		regions[i] = r
 	}
 
-	// Fetch networks in all regions
-	allRegionNetworks, err := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/network", regions, true)
-	if err != nil {
-		return dataLoadedMsg{err: err}
+	allRegionIPs, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/floatingip", regions, true)
+
+	var floatingIPs []map[string]interface{}
+	for i, ips := range allRegionIPs {
+		for _, ip := range ips {
+			if r, _ := ip["region"].(string); r == "" {
+				ip["region"] = regionNames[i]
+			}
+			floatingIPs = append(floatingIPs, ip)
+		}
 	}
 
-	// Flatten and filter public networks
-	var networks []map[string]interface{}
-	for _, regionNetworks := range allRegionNetworks {
-		for _, network := range regionNetworks {
-			if v, ok := network["visibility"]; ok && v == "public" {
-				networks = append(networks, network)
+	return dataLoadedMsg{data: floatingIPs, err: nil}
+}
+
+// fetchLoadBalancersData fetches load balancers from octavia-capable regions
+func (m Model) fetchLoadBalancersData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+
+	// Get region names then filter by octavialoadbalancer feature
+	var allNames []string
+	if err := httpLib.Client.Get(regionEndpoint, &allNames); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	ids := make([]any, len(allNames))
+	for i, n := range allNames {
+		ids[i] = n
+	}
+	details, _ := httpLib.FetchObjectsParallel[map[string]any](regionEndpoint+"/%s", ids, true)
+
+	var regions []any
+	var regionNames []string
+	for i, r := range details {
+		if r == nil {
+			continue
+		}
+		if services, ok := r["services"].([]interface{}); ok {
+			for _, svc := range services {
+				if sm, ok := svc.(map[string]interface{}); ok {
+					if sm["name"] == "octavialoadbalancer" && sm["status"] == "UP" {
+						regions = append(regions, allNames[i])
+						regionNames = append(regionNames, allNames[i])
+						break
+					}
+				}
 			}
 		}
 	}
 
-	return dataLoadedMsg{
-		data: networks,
-		err:  nil,
+	if len(regions) == 0 {
+		return dataLoadedMsg{data: nil, err: nil}
 	}
-}
 
-// fetchLoadBalancersData fetches load balancers
-func (m Model) fetchLoadBalancersData() dataLoadedMsg {
-	if m.cloudProject == "" {
-		return dataLoadedMsg{
-			err: fmt.Errorf("no cloud project selected"),
+	allRegionLBs, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/loadbalancing/loadbalancer", regions, true)
+
+	// Build flavorId -> name map per region in parallel
+	allRegionFlavors, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/loadbalancing/flavor", regions, true)
+	flavorNameMap := make(map[string]string)
+	for _, flavors := range allRegionFlavors {
+		for _, f := range flavors {
+			if id, ok := f["id"].(string); ok {
+				if name, ok := f["name"].(string); ok {
+					flavorNameMap[id] = name
+				}
+			}
 		}
 	}
 
-	var loadbalancers []map[string]interface{}
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
-	err := httpLib.Client.Get(endpoint, &loadbalancers)
-
-	return dataLoadedMsg{
-		data: loadbalancers,
-		err:  err,
+	var lbs []map[string]interface{}
+	for i, regionLBs := range allRegionLBs {
+		for _, lb := range regionLBs {
+			if r, _ := lb["region"].(string); r == "" {
+				lb["region"] = regionNames[i]
+			}
+			// Replace flavorId with flavor name
+			if fid, ok := lb["flavorId"].(string); ok {
+				if fname, found := flavorNameMap[fid]; found {
+					lb["_flavorName"] = fname
+				}
+			}
+			lbs = append(lbs, lb)
+		}
 	}
+
+	return dataLoadedMsg{data: lbs, err: nil}
+}
+
+// fetchGatewaysData fetches gateways from network-capable regions
+func (m Model) fetchGatewaysData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+
+	regionNames, err := m.fetchNetworkRegions()
+	if err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	if len(regionNames) == 0 {
+		return dataLoadedMsg{data: nil, err: nil}
+	}
+
+	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	regions := make([]any, len(regionNames))
+	for i, r := range regionNames {
+		regions[i] = r
+	}
+
+	allRegionGateways, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/gateway", regions, true)
+
+	var gateways []map[string]interface{}
+	for i, regionGateways := range allRegionGateways {
+		for _, gw := range regionGateways {
+			if r, _ := gw["region"].(string); r == "" {
+				gw["region"] = regionNames[i]
+			}
+			gateways = append(gateways, gw)
+		}
+	}
+
+	return dataLoadedMsg{data: gateways, err: nil}
 }
 
 // handleProjectsLoaded processes the loaded projects data
@@ -982,12 +1636,6 @@ func (m Model) handleInstancesLoaded(msg instancesLoadedMsg) (tea.Model, tea.Cmd
 	}
 	m.detailRefreshId = ""
 	m.detailRefreshName = ""
-
-	// Debug: dump instances to file
-	if len(msg.instances) > 0 {
-		debugData, _ := json.MarshalIndent(msg.instances[0], "", "  ")
-		os.WriteFile("/tmp/instance_debug.json", debugData, 0644)
-	}
 
 	// Preserve table cursor position during refresh
 	currentCursor := m.table.Cursor()
@@ -1104,6 +1752,46 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.table = createKubernetesTable(msg.data, m.width, m.height)
 	case ProductInstances:
 		m.table = createInstancesTable(msg.data, m.imageMap, m.floatingIPMap, m.width, m.height)
+	case ProductStorageBlock:
+		m.table = createBlockStorageTable(msg.data, m.width, m.height)
+	case ProductStorageFile:
+		m.table = createFileStorageTable(msg.data, m.width, m.height)
+	case ProductStorageObject:
+		// Store S3 users for tabs
+		m.objectStorageUsers = msg.s3Users
+		// Start with containers tab (index 0) or respect current tab
+		if m.objectStorageTabIdx == 0 {
+			m.table = createObjectStorageTable(msg.data, m.width, m.height)
+		} else {
+			m.table = createObjectStorageUsersTable(msg.s3Users, m.width, m.height)
+		}
+	case ProductStorageSnapshot:
+		m.table = createVolumeSnapshotsTable(msg.data, m.width, m.height)
+	case ProductStorageBackup:
+		m.table = createVolumeBackupsTable(msg.data, m.width, m.height)
+	case ProductNetworkPrivate:
+		// Split into vRack (tab 0) and Local Zones (tab 1)
+		var vRack, localZones []map[string]interface{}
+		for _, net := range msg.data {
+			if getString(net, "_regionType") == "localzone" {
+				localZones = append(localZones, net)
+			} else {
+				vRack = append(vRack, net)
+			}
+		}
+		m.privNetLocalZones = localZones
+		m.privNetTabIdx = 0
+		// currentData = vRack slice (tab 0); full list kept in msg.data via normal path
+		m.currentData = vRack
+		m.table = createPrivateNetworksTable(vRack, m.width, m.height)
+		m.mode = TableView
+		return m, nil
+	case ProductNetworkPublic:
+		m.table = createFloatingIPsTable(msg.data, m.width, m.height)
+	case ProductNetworkGateway:
+		m.table = createGatewaysTable(msg.data, m.width, m.height)
+	case ProductNetworkLB:
+		m.table = createLoadBalancersTable(msg.data, m.width, m.height)
 	default:
 		m.table = createGenericTable(msg.data, m.width, m.height)
 	}
@@ -1433,6 +2121,395 @@ func createGenericTable(data []map[string]interface{}, width, height int) table.
 	}
 
 	// Calculate table height: leave room for header(2) + nav(3) + title(3) + footer(3) + borders(4)
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// createPrivateNetworksTable creates a table for private networks (one tab's worth of data).
+func createPrivateNetworksTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "VLAN ID", Width: 8},
+		{Title: "Name", Width: 22},
+		{Title: "Location", Width: 20},
+		{Title: "CIDR", Width: 18},
+		{Title: "Gateway", Width: 16},
+		{Title: "DHCP", Width: 6},
+	}
+
+	var rows []table.Row
+	for _, net := range data {
+		vlanId := "-"
+		if v, ok := net["vlanId"]; ok {
+			switch n := v.(type) {
+			case float64:
+				vlanId = fmt.Sprintf("%d", int(n))
+			case json.Number:
+				if i, err := n.Int64(); err == nil {
+					vlanId = fmt.Sprintf("%d", i)
+				}
+			}
+		}
+		name := getString(net, "name")
+		var locationParts []string
+		if regions, ok := net["regions"].([]interface{}); ok {
+			for _, r := range regions {
+				if rm, ok := r.(map[string]interface{}); ok {
+					if reg := getString(rm, "region"); reg != "" {
+						locationParts = append(locationParts, reg)
+					}
+				}
+			}
+		}
+		location := strings.Join(locationParts, ", ")
+		if location == "" {
+			location = "-"
+		}
+		cidr := "-"
+		gateway := "-"
+		dhcp := "-"
+		if subnets, ok := net["_subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
+			sub := subnets[0]
+			if v := getString(sub, "cidr"); v != "" {
+				cidr = v
+			}
+			if v := getString(sub, "gatewayIp"); v != "" {
+				gateway = v
+			}
+			if v, ok := sub["dhcpEnabled"].(bool); ok {
+				if v {
+					dhcp = "✓"
+				} else {
+					dhcp = "✗"
+				}
+			}
+		}
+		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 25 {
+		tableHeight = 25
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+	return t
+}
+
+// createLoadBalancersTable creates a table for load balancers.
+func createLoadBalancersTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Name", Width: 22},
+		{Title: "Region", Width: 16},
+		{Title: "Size", Width: 14},
+		{Title: "Private Network", Width: 36},
+		{Title: "Public IP", Width: 18},
+		{Title: "Private IP", Width: 16},
+		{Title: "Supply Status", Width: 14},
+		{Title: "Status", Width: 12},
+	}
+
+	var rows []table.Row
+	for _, lb := range data {
+		name := getString(lb, "name")
+		region := getString(lb, "region")
+		size := getString(lb, "_flavorName")
+		if size == "" {
+			size = getString(lb, "flavorId")
+		}
+		privateNetwork := getString(lb, "vipNetworkId")
+		privateIP := getString(lb, "vipAddress")
+		provisioning := getString(lb, "provisioningStatus")
+		status := getString(lb, "operatingStatus")
+
+		publicIP := "-"
+		if fi, ok := lb["floatingIp"].(map[string]interface{}); ok {
+			if v := getString(fi, "ip"); v != "" {
+				publicIP = v
+			}
+		}
+		if privateNetwork == "" {
+			privateNetwork = "-"
+		}
+		if privateIP == "" {
+			privateIP = "-"
+		}
+
+		rows = append(rows, table.Row{name, region, size, privateNetwork, publicIP, privateIP, provisioning, status})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// createGatewaysTable creates a table for gateways.
+func createGatewaysTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Name", Width: 22},
+		{Title: "Region", Width: 16},
+		{Title: "Size", Width: 6},
+		{Title: "Private Network", Width: 36},
+		{Title: "Public IP", Width: 18},
+		{Title: "Private IP", Width: 34},
+		{Title: "Status", Width: 10},
+	}
+
+	var rows []table.Row
+	for _, gw := range data {
+		name := getString(gw, "name")
+		region := getString(gw, "region")
+		size := getString(gw, "model")
+		status := getString(gw, "status")
+
+		publicIP := "-"
+		if ei, ok := gw["externalInformation"].(map[string]interface{}); ok {
+			if ips, ok := ei["ips"].([]interface{}); ok && len(ips) > 0 {
+				if ipm, ok := ips[0].(map[string]interface{}); ok {
+					if v := getString(ipm, "ip"); v != "" {
+						publicIP = v
+					}
+				}
+			}
+		}
+
+		privateNetwork := "-"
+		var privateIPs []string
+		if ifaces, ok := gw["interfaces"].([]interface{}); ok && len(ifaces) > 0 {
+			for _, iface := range ifaces {
+				if ifm, ok := iface.(map[string]interface{}); ok {
+					if v := getString(ifm, "ip"); v != "" {
+						privateIPs = append(privateIPs, v)
+					}
+					if privateNetwork == "-" {
+						if v := getString(ifm, "networkId"); v != "" {
+							privateNetwork = v
+						}
+					}
+				}
+			}
+		}
+		privateIP := "-"
+		if len(privateIPs) > 0 {
+			privateIP = strings.Join(privateIPs, ", ")
+		}
+
+		rows = append(rows, table.Row{name, region, size, privateNetwork, publicIP, privateIP, status})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// createFloatingIPsTable creates a table for floating/public IPs.
+func createFloatingIPsTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "IP Address", Width: 18},
+		{Title: "Region", Width: 18},
+		{Title: "Associated Endpoint", Width: 40},
+	}
+
+	var rows []table.Row
+	for _, fip := range data {
+		ip := getString(fip, "ip")
+		if ip == "" {
+			ip = "-"
+		}
+		region := getString(fip, "region")
+		if region == "" {
+			region = "-"
+		}
+
+		endpoint := "-"
+		if ae, ok := fip["associatedEntity"].(map[string]interface{}); ok {
+			atype := getString(ae, "type")
+			aip := getString(ae, "ip")
+			switch {
+			case atype != "" && aip != "":
+				endpoint = fmt.Sprintf("%s (%s)", atype, aip)
+			case atype != "":
+				endpoint = atype
+			case aip != "":
+				endpoint = aip
+			}
+		}
+
+		rows = append(rows, table.Row{ip, region, endpoint})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+// createBlockStorageTable creates a nicely formatted table for block storage volumes.
+func createBlockStorageTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Name", Width: 24},
+		{Title: "ID", Width: 36},
+		{Title: "Location", Width: 20},
+		{Title: "Type", Width: 14},
+		{Title: "Capacity", Width: 10},
+		{Title: "Instance", Width: 20},
+		{Title: "Encryption", Width: 20},
+		{Title: "Status", Width: 12},
+	}
+
+	var rows []table.Row
+	for _, vol := range data {
+		name := getString(vol, "name")
+		id := getString(vol, "id")
+		region := getString(vol, "region")
+		vType := getString(vol, "type")
+		size := "-"
+		switch v := vol["size"].(type) {
+		case float64:
+			size = fmt.Sprintf("%d GB", int(v))
+		case int:
+			size = fmt.Sprintf("%d GB", v)
+		case json.Number:
+			if i, err := v.Int64(); err == nil {
+				size = fmt.Sprintf("%d GB", i)
+			}
+		}
+		instance := "-"
+		if raw, ok := vol["attachedTo"].([]interface{}); ok && len(raw) > 0 {
+			if id, ok := raw[0].(string); ok {
+				if len(id) > 18 {
+					instance = id[:18] + "…"
+				} else {
+					instance = id
+				}
+			}
+		}
+		status := getString(vol, "status")
+		encryption := "None"
+		if strings.HasSuffix(vType, "-luks") {
+			encryption = "Active"
+		}
+		rows = append(rows, table.Row{name, id, region, vType, size, instance, encryption, status})
+	}
+
 	tableHeight := height - 15
 	if tableHeight < 5 {
 		tableHeight = 5
@@ -3657,3 +4734,154 @@ func (m Model) handleNodePoolDeleted(msg nodePoolDeletedMsg) (tea.Model, tea.Cmd
 	clusterId := getString(m.detailData, "id")
 	return m, m.fetchKubeNodePools(clusterId)
 }
+
+// fetchVolumeSnapshotsData fetches the list of volume snapshots.
+func (m Model) fetchVolumeSnapshotsData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/snapshot", m.cloudProject)
+	var raw []interface{}
+	if err := httpLib.Client.Get(endpoint, &raw); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	var snapshots []map[string]interface{}
+	for _, item := range raw {
+		if obj, ok := item.(map[string]interface{}); ok {
+			snapshots = append(snapshots, obj)
+		}
+	}
+	return dataLoadedMsg{data: snapshots}
+}
+
+// fetchVolumeBackupsData fetches volume backups across all regions.
+func (m Model) fetchVolumeBackupsData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+	var regionNames []string
+	regEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	if err := httpLib.Client.Get(regEndpoint, &regionNames); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	var backups []map[string]interface{}
+	for _, region := range regionNames {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup",
+			m.cloudProject, url.PathEscape(region))
+		var raw []interface{}
+		if err := httpLib.Client.Get(endpoint, &raw); err != nil {
+			continue // skip regions without backup support
+		}
+		for _, item := range raw {
+			if obj, ok := item.(map[string]interface{}); ok {
+				backups = append(backups, obj)
+			}
+		}
+	}
+	return dataLoadedMsg{data: backups}
+}
+
+func createVolumeSnapshotsTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Nom", Width: 24},
+		{Title: "ID", Width: 36},
+		{Title: "Location", Width: 14},
+		{Title: "Volume", Width: 36},
+		{Title: "Capacity", Width: 10},
+		{Title: "Status", Width: 14},
+		{Title: "Creation date", Width: 20},
+	}
+	var rows []table.Row
+	for _, s := range data {
+		name := getString(s, "name")
+		id := getString(s, "id")
+		region := getString(s, "region")
+		volumeId := getString(s, "volumeId")
+		size := "-"
+		switch v := s["size"].(type) {
+		case float64:
+			size = fmt.Sprintf("%d GB", int(v))
+		case json.Number:
+			if i, err := v.Int64(); err == nil {
+				size = fmt.Sprintf("%d GB", i)
+			}
+		}
+		status := getString(s, "status")
+		created := getString(s, "creationDate")
+		if len(created) > 19 {
+			created = created[:19]
+		}
+		rows = append(rows, table.Row{name, id, region, volumeId, size, status, created})
+	}
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240")).BorderBottom(true).Bold(true)
+	s.Selected = s.Selected.Foreground(lipgloss.Color("229")).Background(lipgloss.Color("57")).Bold(false)
+	t.SetStyles(s)
+	return t
+}
+
+func createVolumeBackupsTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "Nom", Width: 24},
+		{Title: "ID", Width: 36},
+		{Title: "Location", Width: 14},
+		{Title: "Volume", Width: 36},
+		{Title: "Capacity", Width: 10},
+		{Title: "Status", Width: 14},
+		{Title: "Creation date", Width: 20},
+	}
+	var rows []table.Row
+	for _, b := range data {
+		name := getString(b, "name")
+		id := getString(b, "id")
+		region := getString(b, "region")
+		volumeId := getString(b, "volumeId")
+		size := "-"
+		switch v := b["size"].(type) {
+		case float64:
+			size = fmt.Sprintf("%d GB", int(v))
+		case json.Number:
+			if i, err := v.Int64(); err == nil {
+				size = fmt.Sprintf("%d GB", i)
+			}
+		}
+		status := getString(b, "status")
+		created := getString(b, "creationDate")
+		if len(created) > 19 {
+			created = created[:19]
+		}
+		rows = append(rows, table.Row{name, id, region, volumeId, size, status, created})
+	}
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240")).BorderBottom(true).Bold(true)
+	s.Selected = s.Selected.Foreground(lipgloss.Color("229")).Background(lipgloss.Color("57")).Bold(false)
+	t.SetStyles(s)
+	return t
+}
+
