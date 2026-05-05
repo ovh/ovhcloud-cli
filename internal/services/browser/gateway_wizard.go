@@ -17,8 +17,13 @@ import (
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
 
-// gatewayModels lists the available OVHcloud gateway sizes.
-var gatewayModels = []string{"s", "m", "l", "xl", "2xl", "3xl"}
+// gatewayModels lists the gateway sizes available across all regions.
+var gatewayModels = []string{"s", "m", "l", "xl", "2xl"}
+
+// gwActiveModels returns the model list (always the static one; no per-region API exists).
+func (m Model) gwActiveModels() []string {
+	return gatewayModels
+}
 
 // ─── API / fetch ──────────────────────────────────────────────────────────────
 
@@ -79,7 +84,13 @@ func (m Model) createGatewayFromWizard() tea.Cmd {
 			return gwCreatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
 		}
 
-		model := gatewayModels[m.wizard.gwModelIdx]
+		model := func() string {
+			models := m.gwActiveModels()
+			if m.wizard.gwModelIdx < len(models) {
+				return models[m.wizard.gwModelIdx]
+			}
+			return "s"
+		}()
 		body := map[string]interface{}{
 			"model": model,
 			"name":  m.wizard.gwName,
@@ -162,7 +173,8 @@ func (m Model) renderGwWizardModelStep(width int) string {
 	content.WriteString(titleStyle.Render("Choisir la taille de la Gateway :") + "\n\n")
 	content.WriteString(descStyle.Render(fmt.Sprintf("Région : %s", m.wizard.gwRegion)) + "\n\n")
 
-	for i, model := range gatewayModels {
+	models := m.gwActiveModels()
+	for i, model := range models {
 		if i == m.wizard.gwModelIdx {
 			content.WriteString(selectedStyle.Render("▶ "+strings.ToUpper(model)) + "\n")
 		} else {
@@ -184,10 +196,16 @@ func (m Model) renderGwWizardNameStep(width int) string {
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
+	models := m.gwActiveModels()
+	modelName := ""
+	if m.wizard.gwModelIdx < len(models) {
+		modelName = strings.ToUpper(models[m.wizard.gwModelIdx])
+	}
+
 	content.WriteString(titleStyle.Render("Nom de la Gateway :") + "\n\n")
 	content.WriteString(descStyle.Render(
 		fmt.Sprintf("Région : %s  •  Taille : %s",
-			m.wizard.gwRegion, strings.ToUpper(gatewayModels[m.wizard.gwModelIdx])),
+			m.wizard.gwRegion, modelName),
 	) + "\n\n")
 
 	if m.wizard.errorMsg != "" {
@@ -214,7 +232,13 @@ func (m Model) renderGwWizardNetworkStep(width int) string {
 	content.WriteString(titleStyle.Render("Attacher à un réseau privé :") + "\n\n")
 	content.WriteString(descStyle.Render(
 		fmt.Sprintf("Région : %s  •  Taille : %s  •  Nom : %s",
-			m.wizard.gwRegion, strings.ToUpper(gatewayModels[m.wizard.gwModelIdx]), m.wizard.gwName),
+			m.wizard.gwRegion, func() string {
+				models := m.gwActiveModels()
+				if m.wizard.gwModelIdx < len(models) {
+					return strings.ToUpper(models[m.wizard.gwModelIdx])
+				}
+				return ""
+			}(), m.wizard.gwName),
 	) + "\n\n")
 
 	if m.wizard.isLoading {
@@ -253,7 +277,13 @@ func (m Model) renderGwWizardConfirmStep(width int) string {
 
 	content.WriteString(titleStyle.Render("Confirmer la création de la Gateway :") + "\n\n")
 	content.WriteString(labelStyle.Render("  Région :") + valueStyle.Render(m.wizard.gwRegion) + "\n")
-	content.WriteString(labelStyle.Render("  Taille :") + valueStyle.Render(strings.ToUpper(gatewayModels[m.wizard.gwModelIdx])) + "\n")
+	content.WriteString(labelStyle.Render("  Taille :") + valueStyle.Render(func() string {
+		models := m.gwActiveModels()
+		if m.wizard.gwModelIdx < len(models) {
+			return strings.ToUpper(models[m.wizard.gwModelIdx])
+		}
+		return ""
+	}()) + "\n")
 	content.WriteString(labelStyle.Render("  Nom :") + valueStyle.Render(m.wizard.gwName) + "\n")
 	if m.wizard.gwNetworkName != "" {
 		content.WriteString(labelStyle.Render("  Réseau :") + valueStyle.Render(m.wizard.gwNetworkName) + "\n")
@@ -302,6 +332,7 @@ func (m Model) handleGwWizardRegionKeys(key string) (tea.Model, tea.Cmd) {
 					m.wizard.gwSubnetID = regionData["subnetId"]
 				}
 			}
+			m.wizard.gwModelIdx = 0
 			m.wizard.step = GwWizardStepModel
 		}
 	}
@@ -309,13 +340,14 @@ func (m Model) handleGwWizardRegionKeys(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleGwWizardModelKeys(key string) (tea.Model, tea.Cmd) {
+	models := m.gwActiveModels()
 	switch key {
 	case "up", "k":
 		if m.wizard.gwModelIdx > 0 {
 			m.wizard.gwModelIdx--
 		}
 	case "down", "j":
-		if m.wizard.gwModelIdx < len(gatewayModels)-1 {
+		if m.wizard.gwModelIdx < len(models)-1 {
 			m.wizard.gwModelIdx++
 		}
 	case "enter":

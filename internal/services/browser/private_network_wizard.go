@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -38,86 +39,150 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 		// Build region list from selected region
 		region := m.wizard.selectedRegion
 
-		body := map[string]interface{}{
-			"name":    m.wizard.privNetName,
-			"regions": []string{region},
-		}
-		if m.wizard.privNetVlanID > 0 {
-			body["vlanId"] = m.wizard.privNetVlanID
-		}
-
 		var network map[string]interface{}
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
-		if err := httpLib.Client.Post(endpoint, body, &network); err != nil {
-			return privNetCreatedMsg{err: fmt.Errorf("failed to create network: %w", err)}
-		}
 
-		// Optionally create a subnet
-		if m.wizard.privNetEnableSubnet && m.wizard.privNetCIDR != "" {
-			netID, _ := network["id"].(string)
+		if m.wizard.privNetIsLocalZone {
+			// Local zones use the regional network API (isolated, not vRack-based)
+			body := map[string]interface{}{
+				"name": m.wizard.privNetName,
+			}
+			if m.wizard.privNetVlanID > 0 {
+				body["vlanId"] = m.wizard.privNetVlanID
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network",
+				m.cloudProject, url.PathEscape(region))
+			var op map[string]interface{}
+			if err := httpLib.Client.Post(endpoint, body, &op); err != nil {
+				return privNetCreatedMsg{err: fmt.Errorf("failed to create network: %w", err)}
+			}
+			// Regional API may return an operation object with resourceId or a network with id
+			netID := getString(op, "resourceId")
 			if netID == "" {
-				return privNetCreatedMsg{err: fmt.Errorf("réseau créé mais ID manquant, impossible de créer le sous-réseau")}
+				netID = getString(op, "id")
+			}
+			if netID == "" {
+				return privNetCreatedMsg{err: fmt.Errorf("réseau créé mais ID manquant dans la réponse")}
+			}
+			network = map[string]interface{}{"id": netID, "name": m.wizard.privNetName}
+
+			// Optionally create a subnet using the regional subnet API
+			if m.wizard.privNetEnableSubnet && m.wizard.privNetCIDR != "" {
+				parts := strings.Split(m.wizard.privNetCIDR, "/")
+				ipParts := strings.Split(parts[0], ".")
+				var gatewayIP string
+				if len(ipParts) == 4 {
+					gatewayIP = ipParts[0] + "." + ipParts[1] + "." + ipParts[2] + ".1"
+				}
+				subnetBody := map[string]interface{}{
+					"name":            m.wizard.privNetName + "-subnet",
+					"cidr":            m.wizard.privNetCIDR,
+					"ipVersion":       4,
+					"enableDhcp":      m.wizard.privNetEnableDHCP,
+					"enableGatewayIp": gatewayIP != "",
+				}
+				if gatewayIP != "" {
+					subnetBody["gatewayIp"] = gatewayIP
+				}
+				subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
+					m.cloudProject, url.PathEscape(region), url.PathEscape(netID))
+				var subnet map[string]interface{}
+				// Retry briefly to let the network activate
+				var subnetErr error
+				for i := 0; i < 10; i++ {
+					subnetErr = httpLib.Client.Post(subnetEndpoint, subnetBody, &subnet)
+					if subnetErr == nil {
+						break
+					}
+					time.Sleep(2 * time.Second)
+				}
+				if subnetErr != nil {
+					return privNetCreatedMsg{
+						network: network,
+						err:     fmt.Errorf("réseau créé mais échec du sous-réseau (CIDR: %s): %w", m.wizard.privNetCIDR, subnetErr),
+					}
+				}
+			}
+		} else {
+			// Standard vRack regions use the legacy global private network API
+			body := map[string]interface{}{
+				"name":    m.wizard.privNetName,
+				"regions": []string{region},
+			}
+			if m.wizard.privNetVlanID > 0 {
+				body["vlanId"] = m.wizard.privNetVlanID
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
+			if err := httpLib.Client.Post(endpoint, body, &network); err != nil {
+				return privNetCreatedMsg{err: fmt.Errorf("failed to create network: %w", err)}
 			}
 
-			// Poll until the network region becomes ACTIVE (OVH creates async)
-			networkEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s",
-				m.cloudProject, url.PathEscape(netID))
-			const maxAttempts = 15
-			regionActive := false
-			for i := 0; i < maxAttempts; i++ {
-				var netData map[string]interface{}
-				if err := httpLib.Client.Get(networkEndpoint, &netData); err == nil {
-					if regions, ok := netData["regions"].([]interface{}); ok {
-						for _, r := range regions {
-							if rMap, ok := r.(map[string]interface{}); ok {
-								if rMap["region"] == region {
-									if rMap["status"] == "ACTIVE" {
-										regionActive = true
+			// Optionally create a subnet
+			if m.wizard.privNetEnableSubnet && m.wizard.privNetCIDR != "" {
+				netID, _ := network["id"].(string)
+				if netID == "" {
+					return privNetCreatedMsg{err: fmt.Errorf("réseau créé mais ID manquant, impossible de créer le sous-réseau")}
+				}
+
+				// Poll until the network region becomes ACTIVE (OVH creates async)
+				networkEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s",
+					m.cloudProject, url.PathEscape(netID))
+				const maxAttempts = 15
+				regionActive := false
+				for i := 0; i < maxAttempts; i++ {
+					var netData map[string]interface{}
+					if err := httpLib.Client.Get(networkEndpoint, &netData); err == nil {
+						if regions, ok := netData["regions"].([]interface{}); ok {
+							for _, r := range regions {
+								if rMap, ok := r.(map[string]interface{}); ok {
+									if rMap["region"] == region {
+										if rMap["status"] == "ACTIVE" {
+											regionActive = true
+										}
 									}
 								}
 							}
 						}
 					}
+					if regionActive {
+						break
+					}
+					time.Sleep(3 * time.Second)
 				}
-				if regionActive {
-					break
+				if !regionActive {
+					return privNetCreatedMsg{
+						network: network,
+						err:     fmt.Errorf("réseau créé mais la région '%s' n'est pas devenue active à temps — sous-réseau non créé. Réessayez depuis l'interface OVH.", region),
+					}
 				}
-				time.Sleep(3 * time.Second)
-			}
-			if !regionActive {
-				return privNetCreatedMsg{
-					network: network,
-					err:     fmt.Errorf("réseau créé mais la région '%s' n'est pas devenue active à temps — sous-réseau non créé. Réessayez depuis l'interface OVH.", region),
-				}
-			}
 
-			noGateway := m.wizard.privNetGatewayMode == 1 // mode 1 = will attach OVH Gateway service
+				noGateway := m.wizard.privNetGatewayMode == 1 // mode 1 = will attach OVH Gateway service
 
-			// Always reserve network+1 for the gateway IP (whether static or OVH Gateway).
-			// Not reserving it causes a 409 conflict when the Gateway service tries to claim that IP.
-			startIP, endIP, cidrErr := cidrToFirstLast(m.wizard.privNetCIDR, true)
-			if cidrErr != nil {
-				return privNetCreatedMsg{
-					network: network,
-					err:     fmt.Errorf("réseau créé mais CIDR invalide ('%s'): %w", m.wizard.privNetCIDR, cidrErr),
+				// Always reserve network+1 for the gateway IP (whether static or OVH Gateway).
+				// Not reserving it causes a 409 conflict when the Gateway service tries to claim that IP.
+				startIP, endIP, cidrErr := cidrToFirstLast(m.wizard.privNetCIDR, true)
+				if cidrErr != nil {
+					return privNetCreatedMsg{
+						network: network,
+						err:     fmt.Errorf("réseau créé mais CIDR invalide ('%s'): %w", m.wizard.privNetCIDR, cidrErr),
+					}
 				}
-			}
 
-			subnetBody := map[string]interface{}{
-				"dhcp":      m.wizard.privNetEnableDHCP,
-				"network":   m.wizard.privNetCIDR,
-				"noGateway": noGateway,
-				"region":    region,
-				"start":     startIP,
-				"end":       endIP,
-			}
-			var subnet map[string]interface{}
-			subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet",
-				m.cloudProject, url.PathEscape(netID))
-			if err := httpLib.Client.Post(subnetEndpoint, subnetBody, &subnet); err != nil {
-				return privNetCreatedMsg{
-					network: network,
-					err:     fmt.Errorf("réseau créé mais échec du sous-réseau (%s, CIDR: %s): %w", netID, m.wizard.privNetCIDR, err),
+				subnetBody := map[string]interface{}{
+					"dhcp":      m.wizard.privNetEnableDHCP,
+					"network":   m.wizard.privNetCIDR,
+					"noGateway": noGateway,
+					"region":    region,
+					"start":     startIP,
+					"end":       endIP,
+				}
+				var subnet map[string]interface{}
+				subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet",
+					m.cloudProject, url.PathEscape(netID))
+				if err := httpLib.Client.Post(subnetEndpoint, subnetBody, &subnet); err != nil {
+					return privNetCreatedMsg{
+						network: network,
+						err:     fmt.Errorf("réseau créé mais échec du sous-réseau (%s, CIDR: %s): %w", netID, m.wizard.privNetCIDR, err),
+					}
 				}
 			}
 		}
@@ -215,6 +280,17 @@ func (m Model) renderPrivNetWizardVlanStep(width int) string {
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 
 	content.WriteString(titleStyle.Render("Option réseau layer 2 – VLAN ID :") + "\n\n")
+
+	// Show already-used VLAN IDs as a hint
+	if len(m.wizard.privNetUsedVlanIDs) > 0 {
+		var used []string
+		for id := range m.wizard.privNetUsedVlanIDs {
+			used = append(used, fmt.Sprintf("%d", id))
+		}
+		sort.Strings(used)
+		warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
+		content.WriteString(warnStyle.Render("  VLAN déjà utilisés : "+strings.Join(used, ", ")) + "\n\n")
+	}
 
 	// Option 0 : auto
 	if !m.wizard.privNetDefineVlan {
@@ -437,6 +513,8 @@ func (m Model) handlePrivNetWizardRegionKeys(key string) (tea.Model, tea.Cmd) {
 		if total > 0 {
 			r := m.wizard.privNetRegions[m.wizard.privNetRegionIdx]
 			m.wizard.selectedRegion, _ = r["name"].(string)
+			rtype, _ := r["type"].(string)
+			m.wizard.privNetIsLocalZone = (rtype == "localzone")
 			m.wizard.step = PrivNetWizardStepName
 		}
 	}
@@ -494,6 +572,10 @@ func (m Model) handlePrivNetWizardVlanKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 			var v int
 			if _, err := fmt.Sscanf(input, "%d", &v); err != nil || v < 1 || v > 4094 {
 				m.wizard.errorMsg = "VLAN ID invalide (1–4094)"
+				return m, nil
+			}
+			if m.wizard.privNetUsedVlanIDs[v] {
+				m.wizard.errorMsg = fmt.Sprintf("VLAN ID %d est déjà utilisé par un réseau existant", v)
 				return m, nil
 			}
 			m.wizard.privNetVlanID = v
@@ -562,7 +644,11 @@ func (m Model) handlePrivNetWizardDHCPKeys(key string) (tea.Model, tea.Cmd) {
 			m.wizard.privNetEnableDHCP = !m.wizard.privNetEnableDHCP
 		}
 	case "enter":
-		m.wizard.step = PrivNetWizardStepGateway
+		if m.wizard.privNetIsLocalZone {
+			m.wizard.step = PrivNetWizardStepConfirm
+		} else {
+			m.wizard.step = PrivNetWizardStepGateway
+		}
 	case "left":
 		m.wizard.step = PrivNetWizardStepSubnet
 	}
@@ -612,8 +698,12 @@ func (m Model) handlePrivNetWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 		m.wizard.privNetConfirmBtnIdx = 1
 	case "enter":
 		if m.wizard.privNetConfirmBtnIdx == 1 {
-			// Cancel button → go back to gateway step
-			m.wizard.step = PrivNetWizardStepGateway
+			// Cancel button → go back to previous step
+			if m.wizard.privNetIsLocalZone {
+				m.wizard.step = PrivNetWizardStepDHCP
+			} else {
+				m.wizard.step = PrivNetWizardStepGateway
+			}
 			return m, nil
 		}
 		m.wizard.isLoading = true

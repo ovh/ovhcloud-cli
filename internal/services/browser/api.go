@@ -1274,6 +1274,30 @@ func (m Model) handleVolumeActionDone(msg volumeActionDoneMsg) (tea.Model, tea.C
 	)
 }
 
+// executeGatewayDelete deletes the currently selected gateway.
+func (m Model) executeGatewayDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return gwDeletedMsg{err: fmt.Errorf("aucune gateway sélectionnée")}
+		}
+		if m.cloudProject == "" {
+			return gwDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		gwID := getString(m.detailData, "id")
+		gwName := getString(m.detailData, "name")
+		region := getString(m.detailData, "region")
+		if gwID == "" || region == "" {
+			return gwDeletedMsg{err: fmt.Errorf("ID ou région de la gateway introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(gwID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return gwDeletedMsg{gatewayName: gwName, err: fmt.Errorf("failed to delete gateway: %w", err)}
+		}
+		return gwDeletedMsg{gatewayName: gwName}
+	}
+}
+
 // executePrivNetworkDelete deletes the currently selected private network.
 func (m Model) executePrivNetworkDelete() tea.Cmd {
 	return func() tea.Msg {
