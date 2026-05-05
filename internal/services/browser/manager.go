@@ -5237,11 +5237,13 @@ func (m Model) renderFooter() string {
 		if m.filterInput != "" {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
 		} else if (m.inStorageSubNav || m.inNetworkSubNav) && m.inTableFocus {
-			tabHint := ""
-			if m.currentProduct == ProductNetworkPrivate || m.currentProduct == ProductStorageObject {
-				tabHint = " • t: Switch Tab"
+			if m.currentProduct == ProductNetworkPrivate {
+				help = "↑↓: Navigate • ←→: Régions↔Local Zones • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
+			} else if m.currentProduct == ProductStorageObject {
+				help = "↑↓: Navigate • ←→: Containers↔Users • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
+			} else {
+				help = "↑↓: Navigate • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back to Sub-menu • q: Quit"
 			}
-			help = "↑↓: Navigate • Enter: Details • c: Create • /: Filter" + tabHint + " • d: Debug • Esc: Back to Sub-menu • q: Quit"
 		} else if m.inStorageSubNav || m.inNetworkSubNav {
 			help = "←→: Sub-menu • ↓/Enter: Enter Table • ↑/Esc: Back to main nav • d: Debug • p: Change Project • q: Quit"
 		} else {
@@ -5472,6 +5474,24 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// Private Networks: ←/→ switches between vRack and Local Zones tabs when in table focus
+		if m.inNetworkSubNav && m.inTableFocus && m.currentProduct == ProductNetworkPrivate &&
+			(m.mode == TableView || m.mode == EmptyView) {
+			if m.privNetTabIdx > 0 {
+				m.privNetTabIdx = 0
+				m.table = createPrivateNetworksTable(m.currentData, m.width, m.height)
+			}
+			return m, nil
+		}
+		// Object Storage: ←/→ switches between Containers and Users tabs when in table focus
+		if m.inStorageSubNav && m.inTableFocus && m.currentProduct == ProductStorageObject &&
+			(m.mode == TableView || m.mode == EmptyView) {
+			if m.objectStorageTabIdx > 0 {
+				m.objectStorageTabIdx = 0
+				m.table = createObjectStorageTable(m.currentData, m.width, m.height)
+			}
+			return m, nil
+		}
 		// In storage sub-nav (only when focused, not in table)
 		if m.inStorageSubNav && !m.inTableFocus && m.mode != DetailView {
 			subItems := getStorageSubItems()
@@ -5531,6 +5551,24 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// Private Networks: ←/→ switches between vRack and Local Zones tabs when in table focus
+		if m.inNetworkSubNav && m.inTableFocus && m.currentProduct == ProductNetworkPrivate &&
+			(m.mode == TableView || m.mode == EmptyView) {
+			if m.privNetTabIdx < 1 {
+				m.privNetTabIdx = 1
+				m.table = createPrivateNetworksTable(m.privNetLocalZones, m.width, m.height)
+			}
+			return m, nil
+		}
+		// Object Storage: ←/→ switches between Containers and Users tabs when in table focus
+		if m.inStorageSubNav && m.inTableFocus && m.currentProduct == ProductStorageObject &&
+			(m.mode == TableView || m.mode == EmptyView) {
+			if m.objectStorageTabIdx < 1 {
+				m.objectStorageTabIdx = 1
+				m.table = createObjectStorageUsersTable(m.objectStorageUsers, m.width, m.height)
+			}
+			return m, nil
+		}
 		// In storage sub-nav (only when focused, not in table)
 		isStorageSubProduct2 := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
 		if m.inStorageSubNav && !m.inTableFocus && isStorageSubProduct2 && m.mode != DetailView {
@@ -5569,28 +5607,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "t":
-		// Toggle between Object Storage tabs (Containers / Users)
-		if (m.mode == TableView || m.mode == EmptyView) && m.currentProduct == ProductStorageObject {
-			m.objectStorageTabIdx = (m.objectStorageTabIdx + 1) % 2
-			if m.objectStorageTabIdx == 0 {
-				m.table = createObjectStorageTable(m.currentData, m.width, m.height)
-			} else {
-				m.table = createObjectStorageUsersTable(m.objectStorageUsers, m.width, m.height)
-			}
-			return m, nil
-		}
-		// Toggle between Private Networks tabs (vRack / Local Zones)
-		if (m.mode == TableView || m.mode == EmptyView) && m.currentProduct == ProductNetworkPrivate {
-			m.privNetTabIdx = (m.privNetTabIdx + 1) % 2
-			if m.privNetTabIdx == 0 {
-				// vRack tab: currentData was set to vRack on load; restore table from it
-				m.table = createPrivateNetworksTable(m.currentData, m.width, m.height)
-			} else {
-				// Local Zones tab
-				m.table = createPrivateNetworksTable(m.privNetLocalZones, m.width, m.height)
-			}
-			return m, nil
-		}
 		return m, nil
 
 	case "p":
