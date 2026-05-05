@@ -1274,6 +1274,57 @@ func (m Model) handleVolumeActionDone(msg volumeActionDoneMsg) (tea.Model, tea.C
 	)
 }
 
+// executePrivNetworkDelete deletes the currently selected private network.
+func (m Model) executePrivNetworkDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return privNetDeletedMsg{err: fmt.Errorf("aucun réseau sélectionné")}
+		}
+		networkName := getString(m.detailData, "name")
+		if m.cloudProject == "" {
+			return privNetDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+
+		// The region-based API uses openstackId, not the vRack pn-XXXXX_N id.
+		// Each network has regions[].{region, openstackId} — delete from all regions.
+		regions, ok := m.detailData["regions"].([]interface{})
+		if !ok || len(regions) == 0 {
+			return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf("aucune région trouvée pour ce réseau")}
+		}
+
+		var lastErr error
+		for _, r := range regions {
+			rm, ok := r.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			region := getString(rm, "region")
+			openstackID := getString(rm, "openstackId")
+			if region == "" || openstackID == "" {
+				continue
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s",
+				m.cloudProject,
+				url.PathEscape(region),
+				url.PathEscape(openstackID),
+			)
+			if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+				errMsg := err.Error()
+				if strings.Contains(errMsg, "409") || strings.Contains(errMsg, "Conflict") || strings.Contains(errMsg, "ports still in use") || strings.Contains(errMsg, "ports") {
+					return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf(
+						"impossible de supprimer le réseau : des ressources y sont encore attachées (instances, gateway, routeur). Détachez-les d'abord puis réessayez",
+					)}
+				}
+				lastErr = err
+			}
+		}
+		if lastErr != nil {
+			return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf("failed to delete network: %w", lastErr)}
+		}
+		return privNetDeletedMsg{networkName: networkName}
+	}
+}
+
 // fetchPrivateNetworksData fetches private networks and enriches each with subnet details
 func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 	if m.cloudProject == "" {

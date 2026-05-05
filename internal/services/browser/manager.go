@@ -150,6 +150,12 @@ const (
 	PrivNetWizardStepConfirm                         // confirm
 )
 
+const (
+	GwWizardStepModel   WizardStep = iota + 900 // choose gateway model
+	GwWizardStepName                            // gateway name
+	GwWizardStepConfirm                         // confirm
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -374,6 +380,16 @@ type WizardData struct {
 	privNetGatewayInput  string                   // gateway IP input (mode 1)
 	privNetGateway       string                   // confirmed gateway IP (mode 1)
 	privNetConfirmBtnIdx int                      // 0=Create, 1=Cancel
+
+	// Gateway wizard fields (launched from private network detail view)
+	gwNetworkID     string
+	gwNetworkName   string
+	gwRegion        string
+	gwSubnetID      string
+	gwModelIdx      int    // index into gatewayModels slice
+	gwNameInput     string
+	gwName          string
+	gwConfirmBtnIdx int    // 0=Create, 1=Cancel
 }
 
 // Model represents the TUI application state
@@ -821,6 +837,16 @@ type privNetCreatedMsg struct {
 	err     error
 }
 
+type privNetDeletedMsg struct {
+	networkName string
+	err         error
+}
+
+type gwCreatedMsg struct {
+	gateway map[string]interface{}
+	err     error
+}
+
 func getNavItems() []NavItem {
 	return []NavItem{
 		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
@@ -1025,7 +1051,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				privNetEnableDHCP:    true,
 				privNetEnableSubnet:  true,
 				privNetGatewayMode: 0,
-				privNetCIDRInput:     "192.168.0.0/24",
+				privNetCIDRInput:     "10.0.0.0/16",
 				isLoading:      true,
 				loadingMessage: "Chargement des régions...",
 			}
@@ -1213,9 +1239,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.wizard = WizardData{}
 		if msg.err != nil {
 			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
-			m.notificationExpiry = time.Now().Add(8 * time.Second)
-			m.mode = TableView
-			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+			m.notificationExpiry = time.Now().Add(10 * time.Second)
+			m.mode = LoadingView
+			// Always reload the network list (network may have been created even if subnet failed)
+			return m, tea.Batch(
+				m.fetchDataForPath("/networks/private"),
+				tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
 		}
 		netName, _ := msg.network["name"].(string)
 		m.notification = fmt.Sprintf("✅ Réseau privé '%s' créé avec succès", netName)
@@ -1223,6 +1253,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LoadingView
 		return m, tea.Batch(
 			m.fetchDataForPath("/networks/private"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case privNetDeletedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Réseau privé '%s' supprimé avec succès", msg.networkName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/networks/private"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case gwCreatedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ Gateway créée avec succès"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/networks/gateway"),
 			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
 
@@ -3057,6 +3119,13 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderPrivNetWizardGatewayStep(width))
 	case PrivNetWizardStepConfirm:
 		content.WriteString(m.renderPrivNetWizardConfirmStep(width))
+	// Gateway wizard steps
+	case GwWizardStepModel:
+		content.WriteString(m.renderGwWizardModelStep(width))
+	case GwWizardStepName:
+		content.WriteString(m.renderGwWizardNameStep(width))
+	case GwWizardStepConfirm:
+		content.WriteString(m.renderGwWizardConfirmStep(width))
 	// Volume Backup / Snapshot wizard steps
 	case BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm:
 		content.WriteString(m.renderBackupWizard(width))
@@ -4823,6 +4892,8 @@ func (m Model) renderDetailView(width int) string {
                         return m.fileShareDetailView.Render(width, 0)
                 }
                 return m.renderGenericDetail(width)
+	case ProductNetworkPrivate:
+		return m.renderPrivateNetworkDetail(width)
         case ProductStorageObject:
                 if m.objectUserDetailView != nil {
                         return m.objectUserDetailView.Render(width, 0)
@@ -4994,6 +5065,86 @@ func (m Model) renderInstanceDetail(width int) string {
 	leftRight := lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", networkBox)
 	content.WriteString(leftRight)
 
+	return content.String()
+}
+
+func (m Model) renderPrivateNetworkDetail(width int) string {
+	var content strings.Builder
+
+	netID := getStringValue(m.detailData, "id", "N/A")
+	netName := getStringValue(m.detailData, "name", "Unknown")
+	vlanID := int(getFloatValue(m.detailData, "vlanId", 0))
+	regionType := getStringValue(m.detailData, "_regionType", "region")
+
+	// First region name
+	regionName := "N/A"
+	if regions, ok := m.detailData["regions"].([]interface{}); ok && len(regions) > 0 {
+		if rm, ok := regions[0].(map[string]interface{}); ok {
+			regionName = getStringValue(rm, "region", "N/A")
+		}
+	}
+
+	// Subnets
+	cidr := "N/A"
+	gatewayIP := "N/A"
+	dhcpStr := "N/A"
+	if subnets, ok := m.detailData["_subnets"].([]map[string]any); ok && len(subnets) > 0 {
+		cidr = getStringValue(subnets[0], "cidr", "N/A")
+		gatewayIP = getStringValue(subnets[0], "gatewayIp", "N/A")
+		if dhcp, ok := subnets[0]["dhcpEnabled"].(bool); ok {
+			if dhcp { dhcpStr = "activé" } else { dhcpStr = "désactivé" }
+		}
+	}
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18)
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	boxWidth := (width - 6) / 2
+
+	// Info box
+	var infoContent strings.Builder
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("ID"), valueStyle.Render(truncate(netID, 36))))
+	vlanStr := "automatique"
+	if vlanID > 0 { vlanStr = fmt.Sprintf("%d", vlanID) }
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("VLAN ID"), valueStyle.Render(vlanStr)))
+	rTypeLabel := "Région (vRack)"
+	if regionType == "localzone" { rTypeLabel = "Local Zone" }
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Type"), valueStyle.Render(rTypeLabel)))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("Région"), valueStyle.Render(regionName)))
+	infoBox := renderBox("Réseau privé", infoContent.String(), boxWidth)
+
+	// Subnet box
+	var subContent strings.Builder
+	subContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("CIDR"), valueStyle.Render(cidr)))
+	subContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Passerelle"), valueStyle.Render(gatewayIP)))
+	subContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("DHCP"), valueStyle.Render(dhcpStr)))
+	subBox := renderBox("Sous-réseau", subContent.String(), boxWidth)
+
+	_ = netName
+
+	// Actions
+	actions := []string{"Supprimer", "Assigner une Gateway"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.selectedAction {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color("#7B68EE")).
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).Padding(0, 1).Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.actionConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).Bold(true).
+			Render(fmt.Sprintf("⚠️  Appuyez sur Enter pour confirmer %s, Escape pour annuler", actions[m.selectedAction]))
+	}
+	actionsBox := renderBox("Actions (←/→ pour naviguer, Enter pour exécuter)", actionsContent, width-4)
+
+	content.WriteString(actionsBox + "\n\n")
+	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", subBox))
 	return content.String()
 }
 
@@ -5266,6 +5417,12 @@ func (m Model) renderFooter() string {
 			help = m.snapshotDetailView.HelpText()
 		} else if m.currentProduct == ProductStorageBackup && m.backupDetailView != nil {
 			help = m.backupDetailView.HelpText()
+		} else if m.currentProduct == ProductNetworkPrivate {
+			if m.actionConfirm {
+				help = "Enter: Confirmer l'action • Esc: Annuler"
+			} else {
+				help = "←→: Sélectionner action • Enter: Exécuter • Esc: Retour à la liste • q: Quitter"
+			}
 		} else if m.actionConfirm {
 			help = "Enter: Confirm Action • Esc: Cancel"
 		} else {
@@ -5474,6 +5631,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// In DetailView for Private Networks, navigate actions (0=Delete, 1=Assign Gateway)
+		if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate {
+			if m.selectedAction > 0 {
+				m.selectedAction--
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
 		// Private Networks: ←/→ switches between vRack and Local Zones tabs when in table focus
 		if m.inNetworkSubNav && m.inTableFocus && m.currentProduct == ProductNetworkPrivate &&
 			(m.mode == TableView || m.mode == EmptyView) {
@@ -5546,6 +5711,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// In DetailView for Kubernetes, navigate actions
 		if m.mode == DetailView && m.currentProduct == ProductKubernetes {
 			if m.selectedAction < 5 { // 6 actions: 0-5
+				m.selectedAction++
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
+		// In DetailView for Private Networks, navigate actions (0=Delete, 1=Assign Gateway)
+		if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate {
+			if m.selectedAction < 1 {
 				m.selectedAction++
 				m.actionConfirm = false
 			}
@@ -5783,6 +5956,44 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.actionConfirm = true
 				return m, nil
 			}
+		} else if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate {
+			// Private Network detail actions
+			switch m.selectedAction {
+			case 0: // Supprimer
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.executePrivNetworkDelete()
+				}
+				m.actionConfirm = true
+			case 1: // Assigner une Gateway
+				m.actionConfirm = false
+				// Extract region and subnet from detailData
+				region := ""
+				if regions, ok := m.detailData["regions"].([]interface{}); ok && len(regions) > 0 {
+					if rm, ok := regions[0].(map[string]interface{}); ok {
+						region = getStringValue(rm, "region", "")
+					}
+				}
+				subnetID := ""
+				if subnets, ok := m.detailData["_subnets"].([]map[string]any); ok && len(subnets) > 0 {
+					subnetID = getStringValue(subnets[0], "id", "")
+				}
+				if subnetID == "" {
+					m.notification = "❌ Ce réseau n'a pas de sous-réseau. Créez d'abord un sous-réseau."
+					m.notificationExpiry = time.Now().Add(5 * time.Second)
+					return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+				}
+				m.mode = WizardView
+				m.wizard = WizardData{
+					step:         GwWizardStepModel,
+					gwNetworkID:  getStringValue(m.detailData, "id", ""),
+					gwNetworkName: getStringValue(m.detailData, "name", ""),
+					gwRegion:     region,
+					gwSubnetID:   subnetID,
+				}
+				return m, nil
+			}
+			return m, nil
 		} else if m.mode == ProjectSelectView {
 			// Select project and go to products view
 			selectedRow := m.table.Cursor()
@@ -6260,13 +6471,13 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// 'q' quits (except when typing in input fields)
-	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && m.wizard.step != GwWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		return m, tea.Quit
 	}
 
 	// 'd' opens debug panel (except when typing in input fields)
 	// Disable debug shortcut when: in name step, filter mode, creating SSH key, or creating network
-	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && m.wizard.step != GwWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		m.previousMode = m.mode
 		m.mode = DebugView
 		m.debugScrollOffset = 0
@@ -6284,7 +6495,12 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 800 {
+		if m.wizard.step >= 900 {
+			// Gateway wizard: return to private network detail view
+			m.wizard = WizardData{}
+			m.mode = DetailView
+			return m, nil
+		} else if m.wizard.step >= 800 {
 			returnPath = "/networks/private"
 		} else if m.wizard.step >= 700 {
 			returnPath = "/storage/backup"
@@ -6461,6 +6677,13 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handlePrivNetWizardGatewayKeys(msg)
 	case PrivNetWizardStepConfirm:
 		return m.handlePrivNetWizardConfirmKeys(key)
+	// Gateway wizard steps
+	case GwWizardStepModel:
+		return m.handleGwWizardModelKeys(key)
+	case GwWizardStepName:
+		return m.handleGwWizardNameKeys(msg)
+	case GwWizardStepConfirm:
+		return m.handleGwWizardConfirmKeys(key)
 	}
 	return m, nil
 }
