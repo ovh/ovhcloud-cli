@@ -151,9 +151,11 @@ const (
 )
 
 const (
-	GwWizardStepModel   WizardStep = iota + 900 // choose gateway model
-	GwWizardStepName                            // gateway name
-	GwWizardStepConfirm                         // confirm
+	GwWizardStepRegion  WizardStep = iota + 900 // select region
+	GwWizardStepModel                           // select model/size
+	GwWizardStepName                            // enter name
+	GwWizardStepNetwork                         // select private network
+	GwWizardStepConfirm                         // confirm + create
 )
 
 // ProductType represents a product category
@@ -381,15 +383,22 @@ type WizardData struct {
 	privNetGateway       string                   // confirmed gateway IP (mode 1)
 	privNetConfirmBtnIdx int                      // 0=Create, 1=Cancel
 
-	// Gateway wizard fields (launched from private network detail view)
-	gwNetworkID     string
-	gwNetworkName   string
-	gwRegion        string
-	gwSubnetID      string
-	gwModelIdx      int    // index into gatewayModels slice
-	gwNameInput     string
-	gwName          string
-	gwConfirmBtnIdx int    // 0=Create, 1=Cancel
+	// Gateway wizard fields
+	gwNetworkID          string
+	gwNetworkName        string
+	gwRegion             string
+	gwSubnetID           string
+	gwModelIdx           int    // index into gatewayModels slice
+	gwNameInput          string
+	gwName               string
+	gwConfirmBtnIdx      int    // 0=Create, 1=Cancel
+	gwAvailableRegions   []string                   // regions fetched from API
+	gwRegionIdx          int                        // selected region index
+	gwAvailableNetworks  []map[string]interface{}   // networks in selected region
+	gwNetworkIdx         int                        // selected network index
+	// Attach mode: populated when launched from private network detail
+	// maps region name -> {"openstackId": "...", "subnetId": "..."}
+	gwNetworkRegionMap   map[string]map[string]string
 }
 
 // Model represents the TUI application state
@@ -847,6 +856,21 @@ type gwCreatedMsg struct {
 	err     error
 }
 
+type gwRegionsLoadedMsg struct {
+	regions []string
+	err     error
+}
+
+type gwNetworksLoadedMsg struct {
+	networks []map[string]interface{}
+	err      error
+}
+
+type gwSubnetLoadedMsg struct {
+	subnetID string
+	err      error
+}
+
 func getNavItems() []NavItem {
 	return []NavItem{
 		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
@@ -1056,6 +1080,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Chargement des régions...",
 			}
 			return m, m.fetchPrivateNetRegionsCmd()
+		} else if msg.product == ProductNetworkGateway {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:           GwWizardStepRegion,
+				isLoading:      true,
+				loadingMessage: "Chargement des régions...",
+			}
+			return m, m.fetchGwRegions()
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -1287,6 +1319,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fetchDataForPath("/networks/gateway"),
 			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
+
+	case gwRegionsLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.gwAvailableRegions = msg.regions
+		m.wizard.gwRegionIdx = 0
+		return m, nil
+
+	case gwNetworksLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.gwAvailableNetworks = msg.networks
+		m.wizard.gwNetworkIdx = 0
+		return m, nil
+
+	case gwSubnetLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.gwSubnetID = msg.subnetID
+		m.wizard.step = GwWizardStepConfirm
+		return m, nil
 
 	case volumeBackupCreatedMsg:
 		m.wizard = WizardData{}
@@ -3120,10 +3185,14 @@ func (m Model) renderWizardView(width int) string {
 	case PrivNetWizardStepConfirm:
 		content.WriteString(m.renderPrivNetWizardConfirmStep(width))
 	// Gateway wizard steps
+	case GwWizardStepRegion:
+		content.WriteString(m.renderGwWizardRegionStep(width))
 	case GwWizardStepModel:
 		content.WriteString(m.renderGwWizardModelStep(width))
 	case GwWizardStepName:
 		content.WriteString(m.renderGwWizardNameStep(width))
+	case GwWizardStepNetwork:
+		content.WriteString(m.renderGwWizardNetworkStep(width))
 	case GwWizardStepConfirm:
 		content.WriteString(m.renderGwWizardConfirmStep(width))
 	// Volume Backup / Snapshot wizard steps
@@ -5967,29 +6036,73 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.actionConfirm = true
 			case 1: // Assigner une Gateway
 				m.actionConfirm = false
-				// Extract region and subnet from detailData
-				region := ""
-				if regions, ok := m.detailData["regions"].([]interface{}); ok && len(regions) > 0 {
-					if rm, ok := regions[0].(map[string]interface{}); ok {
-						region = getStringValue(rm, "region", "")
+				// Build region list from the network's available regions
+				var regionNames []string
+				regionMap := make(map[string]map[string]string)
+				if regions, ok := m.detailData["regions"].([]interface{}); ok {
+					for _, rv := range regions {
+						rm, ok := rv.(map[string]interface{})
+						if !ok {
+							continue
+						}
+						regionName := getStringValue(rm, "region", "")
+						openstackID := getStringValue(rm, "openstackId", "")
+						if regionName == "" || openstackID == "" {
+							continue
+						}
+						// Find subnet for this region's OpenStack network
+						subnetID := ""
+						if subnets, ok := m.detailData["_subnets"].([]map[string]any); ok {
+							for _, s := range subnets {
+								if getStringValue(s, "networkId", "") == openstackID {
+									subnetID = getStringValue(s, "id", "")
+									break
+								}
+							}
+							// Fallback: just take first subnet
+							if subnetID == "" && len(subnets) > 0 {
+								subnetID = getStringValue(subnets[0], "id", "")
+							}
+						}
+						regionNames = append(regionNames, regionName)
+						regionMap[regionName] = map[string]string{
+							"openstackId": openstackID,
+							"subnetId":    subnetID,
+						}
 					}
 				}
-				subnetID := ""
-				if subnets, ok := m.detailData["_subnets"].([]map[string]any); ok && len(subnets) > 0 {
-					subnetID = getStringValue(subnets[0], "id", "")
+				if len(regionNames) == 0 {
+					m.notification = "❌ Aucune région compatible : l'OVH Gateway ne peut être ajoutée qu'à des sous-réseaux créés sans passerelle (mode 'OVH Gateway'). Recréez le réseau avec ce mode."
+					m.notificationExpiry = time.Now().Add(10 * time.Second)
+					return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 				}
-				if subnetID == "" {
-					m.notification = "❌ Ce réseau n'a pas de sous-réseau. Créez d'abord un sous-réseau."
-					m.notificationExpiry = time.Now().Add(5 * time.Second)
-					return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+				netName := getStringValue(m.detailData, "name", "")
+				if len(regionNames) == 1 {
+					// Only one region: pre-select and go directly to model
+					rd := regionMap[regionNames[0]]
+					if rd["subnetId"] == "" {
+						m.notification = "❌ Ce réseau n'a pas de sous-réseau. Créez d'abord un sous-réseau."
+						m.notificationExpiry = time.Now().Add(5 * time.Second)
+						return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+					}
+					m.mode = WizardView
+					m.wizard = WizardData{
+						step:               GwWizardStepModel,
+						gwNetworkName:      netName,
+						gwRegion:           regionNames[0],
+						gwNetworkID:        rd["openstackId"],
+						gwSubnetID:         rd["subnetId"],
+						gwNetworkRegionMap: regionMap,
+					}
+					return m, nil
 				}
+				// Multiple regions: let user choose
 				m.mode = WizardView
 				m.wizard = WizardData{
-					step:         GwWizardStepModel,
-					gwNetworkID:  getStringValue(m.detailData, "id", ""),
-					gwNetworkName: getStringValue(m.detailData, "name", ""),
-					gwRegion:     region,
-					gwSubnetID:   subnetID,
+					step:               GwWizardStepRegion,
+					gwNetworkName:      netName,
+					gwAvailableRegions: regionNames,
+					gwNetworkRegionMap: regionMap,
 				}
 				return m, nil
 			}
@@ -6678,10 +6791,14 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case PrivNetWizardStepConfirm:
 		return m.handlePrivNetWizardConfirmKeys(key)
 	// Gateway wizard steps
+	case GwWizardStepRegion:
+		return m.handleGwWizardRegionKeys(key)
 	case GwWizardStepModel:
 		return m.handleGwWizardModelKeys(key)
 	case GwWizardStepName:
 		return m.handleGwWizardNameKeys(msg)
+	case GwWizardStepNetwork:
+		return m.handleGwWizardNetworkKeys(key)
 	case GwWizardStepConfirm:
 		return m.handleGwWizardConfirmKeys(key)
 	}

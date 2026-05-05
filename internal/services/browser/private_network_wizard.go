@@ -91,9 +91,11 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 				}
 			}
 
-			noGateway := m.wizard.privNetGatewayMode == 1 // mode 1 = will use OVH Gateway service
+			noGateway := m.wizard.privNetGatewayMode == 1 // mode 1 = will attach OVH Gateway service
 
-			startIP, endIP, cidrErr := cidrToFirstLast(m.wizard.privNetCIDR, !noGateway)
+			// Always reserve network+1 for the gateway IP (whether static or OVH Gateway).
+			// Not reserving it causes a 409 conflict when the Gateway service tries to claim that IP.
+			startIP, endIP, cidrErr := cidrToFirstLast(m.wizard.privNetCIDR, true)
 			if cidrErr != nil {
 				return privNetCreatedMsg{
 					network: network,
