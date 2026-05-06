@@ -403,7 +403,10 @@ type WizardData struct {
 	privNetGateway       string                   // confirmed gateway IP (mode 1)
 	privNetConfirmBtnIdx int                      // 0=Create, 1=Cancel
 	privNetIsLocalZone   bool                     // true when selected region is a local zone
-	privNetUsedVlanIDs   map[int]bool             // VLAN IDs already in use (to validate before API call)
+	privNetUsedVlanIDs      map[int]bool             // VLAN IDs already in use (to validate before API call)
+	privNetAddSubnetMode    bool                     // true when adding subnet to an existing network
+	privNetTargetNetworkID  string                   // network ID to add subnet to (add-subnet mode)
+	privNetSubnettedRegions map[string]bool          // regions that already have a subnet (add-subnet mode)
 
 	// Gateway wizard fields
 	gwNetworkID          string
@@ -900,6 +903,11 @@ type privNetCreatedMsg struct {
 	err     error
 }
 
+type subnetAddedMsg struct {
+	networkID string
+	err       error
+}
+
 type privNetDeletedMsg struct {
 	networkName string
 	err         error
@@ -983,6 +991,11 @@ type fipDeletedMsg struct {
 type fipDetachedMsg struct {
 	fipIP string
 	err   error
+}
+
+type subnetsLoadedMsg struct {
+	networkID string
+	subnets   []map[string]any
 }
 
 func getNavItems() []NavItem {
@@ -1402,9 +1415,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.wizard.errorMsg = msg.err.Error()
 			return m, nil
 		}
-		m.wizard.privNetRegions = msg.regions
+		// In add-subnet mode, filter out regions that already have a subnet
+		if m.wizard.privNetAddSubnetMode && len(m.wizard.privNetSubnettedRegions) > 0 {
+			var filtered []map[string]interface{}
+			for _, r := range msg.regions {
+				name, _ := r["name"].(string)
+				if !m.wizard.privNetSubnettedRegions[name] {
+					filtered = append(filtered, r)
+				}
+			}
+			m.wizard.privNetRegions = filtered
+		} else {
+			m.wizard.privNetRegions = msg.regions
+		}
 		m.wizard.privNetRegionIdx = 0
 		return m, nil
+
+	case subnetAddedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to add subnet: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = LoadingView
+			return m, tea.Batch(
+				m.fetchDataForPath("/networks/private"),
+				tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		m.notification = "✅ Subnet added successfully"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/networks/private"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
 
 	case privNetCreatedMsg:
 		m.wizard = WizardData{}
@@ -1538,6 +1582,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fetchDataForPath("/loadbalancer"),
 			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
+
+	case subnetsLoadedMsg:
+		if m.detailData != nil && getStringValue(m.detailData, "id", "") == msg.networkID {
+			m.detailData["_subnets"] = msg.subnets
+		}
+		return m, nil
 
 	case fipDeletedMsg:
 		if msg.err != nil {
@@ -2458,10 +2508,6 @@ func (m Model) renderContentBox(width int) string {
 		if m.currentProduct == ProductNetworkPrivate {
 			contentStr = m.renderPrivateNetworksWithTabs(contentStr, width-6)
 		}
-		// Add tabs for Public IPs
-		if m.currentProduct == ProductNetworkPublic {
-			contentStr = m.renderPublicIPsWithTabs(contentStr, width-6)
-		}
 	case DetailView:
 		contentStr = m.renderDetailView(width - 6)
 	case NodePoolsView:
@@ -3332,8 +3378,13 @@ func (m Model) renderWizardView(width int) string {
 		stepMapping = append(stepMapping, GwWizardStepRegion, GwWizardStepModel, GwWizardStepName, GwWizardStepNetwork, GwWizardStepConfirm)
 	} else if m.wizard.step >= 800 {
 		// Private Network wizard
-		steps = append(steps, "Region", "Name", "VLAN", "Subnet", "DHCP", "IP Pool", "Gateway", "Confirm")
-		stepMapping = append(stepMapping, PrivNetWizardStepRegion, PrivNetWizardStepName, PrivNetWizardStepVlanID, PrivNetWizardStepSubnet, PrivNetWizardStepDHCP, PrivNetWizardStepAllocPool, PrivNetWizardStepGateway, PrivNetWizardStepConfirm)
+		if m.wizard.privNetAddSubnetMode {
+			steps = append(steps, "Region", "Subnet", "DHCP", "IP Pool", "Gateway", "Confirm")
+			stepMapping = append(stepMapping, PrivNetWizardStepRegion, PrivNetWizardStepSubnet, PrivNetWizardStepDHCP, PrivNetWizardStepAllocPool, PrivNetWizardStepGateway, PrivNetWizardStepConfirm)
+		} else {
+			steps = append(steps, "Region", "Name", "VLAN", "Subnet", "DHCP", "IP Pool", "Gateway", "Confirm")
+			stepMapping = append(stepMapping, PrivNetWizardStepRegion, PrivNetWizardStepName, PrivNetWizardStepVlanID, PrivNetWizardStepSubnet, PrivNetWizardStepDHCP, PrivNetWizardStepAllocPool, PrivNetWizardStepGateway, PrivNetWizardStepConfirm)
+		}
 	} else if m.wizard.step >= 700 {
 		// Backup/Snapshot wizard
 		steps = append(steps, "Volume", "Type", "Name", "Confirm")
@@ -5146,7 +5197,7 @@ func (m Model) getProductCreationInfo() (string, string) {
 	case ProductNetworks, ProductNetworkPrivate:
 		return "private networks", fmt.Sprintf("ovhcloud cloud network private create --cloud-project %s", m.cloudProject)
 	case ProductNetworkPublic:
-		return "public IPs", ""
+		return "floating IPs", ""
 	case ProductNetworkGateway:
 		return "gateways", ""
 	case ProductNetworkLB:
@@ -5256,25 +5307,7 @@ func (m Model) renderPrivateNetworksWithTabs(tableContent string, width int) str
 }
 
 func (m Model) renderPublicIPsWithTabs(tableContent string, width int) string {
-	var content strings.Builder
-	tabActiveStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("#7B68EE")).
-		Foreground(lipgloss.Color("#FFFFFF")).
-		Bold(true).Padding(0, 2)
-	tabInactiveStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("#333333")).
-		Foreground(lipgloss.Color("#888888")).Padding(0, 2)
-	var t1, t2 string
-	if m.publicIPTabIdx == 0 {
-		t1 = tabActiveStyle.Render("Floating IPs")
-		t2 = tabInactiveStyle.Render("Additional IPs")
-	} else {
-		t1 = tabInactiveStyle.Render("Floating IPs")
-		t2 = tabActiveStyle.Render("Additional IPs")
-	}
-	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, t1, "  ", t2) + "\n\n")
-	content.WriteString(tableContent)
-	return content.String()
+	return tableContent
 }
 
 func (m Model) renderDeleteConfirmView() string {
@@ -5803,23 +5836,12 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 		}
 	}
 
-	// Subnets
-	cidr := "N/A"
-	gatewayIP := "N/A"
-	dhcpStr := "N/A"
-	if subnets, ok := m.detailData["_subnets"].([]map[string]any); ok && len(subnets) > 0 {
-		cidr = getStringValue(subnets[0], "cidr", "N/A")
-		gatewayIP = getStringValue(subnets[0], "gatewayIp", "N/A")
-		if dhcp, ok := subnets[0]["dhcpEnabled"].(bool); ok {
-			if dhcp { dhcpStr = "enabled" } else { dhcpStr = "disabled" }
-		}
-	}
-
 	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18)
 	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 	boxWidth := (width - 6) / 2
+	fullWidth := width - 4
 
-	// Info box
+	// Info box (top-left)
 	var infoContent strings.Builder
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("ID"), valueStyle.Render(truncate(netID, 36))))
 	vlanStr := "automatic"
@@ -5831,17 +5853,46 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 	infoContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("Region"), valueStyle.Render(regionName)))
 	infoBox := renderBox("Private Network", infoContent.String(), boxWidth)
 
-	// Subnet box
-	var subContent strings.Builder
-	subContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("CIDR"), valueStyle.Render(cidr)))
-	subContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Gateway"), valueStyle.Render(gatewayIP)))
-	subContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("DHCP"), valueStyle.Render(dhcpStr)))
-	subBox := renderBox("Subnet", subContent.String(), boxWidth)
+	// Subnets — full-width list below info row, one entry per subnet
+	subnets, _ := m.detailData["_subnets"].([]map[string]any)
+	var subnetBoxes []string
+	if len(subnets) == 0 {
+		subnetBoxes = append(subnetBoxes, renderBox("Subnets (0)", lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("No subnets"), fullWidth))
+	} else {
+		for idx, sub := range subnets {
+			var sc strings.Builder
+			subID := getStringValue(sub, "id", "")
+			cidr := getStringValue(sub, "cidr", "N/A")
+			gatewayIP := getStringValue(sub, "gatewayIp", "N/A")
+			dhcpStr := "N/A"
+			if dhcp, ok := sub["dhcpEnabled"].(bool); ok {
+				if dhcp { dhcpStr = "enabled" } else { dhcpStr = "disabled" }
+			}
+			allocPool := "-"
+			if pools, ok := sub["ipPools"].([]interface{}); ok && len(pools) > 0 {
+				if pool, ok := pools[0].(map[string]interface{}); ok {
+					start := getString(pool, "start")
+					end := getString(pool, "end")
+					if start != "" && end != "" {
+						allocPool = start + " – " + end
+					}
+				}
+			}
+			if subID != "" {
+				sc.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("ID"), valueStyle.Render(truncate(subID, 36))))
+			}
+			sc.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("CIDR"), valueStyle.Render(cidr)))
+			sc.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Gateway"), valueStyle.Render(gatewayIP)))
+			sc.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("DHCP"), valueStyle.Render(dhcpStr)))
+			sc.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("IP allocated"), valueStyle.Render(allocPool)))
+			subnetBoxes = append(subnetBoxes, renderBox(fmt.Sprintf("Subnet %d/%d", idx+1, len(subnets)), sc.String(), fullWidth))
+		}
+	}
 
 	_ = netName
 
 	// Actions
-	actions := []string{"Delete", "Assign Gateway"}
+	actions := []string{"Delete", "Assign Gateway", "Add Subnet"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
@@ -5863,7 +5914,10 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
 
 	content.WriteString(actionsBox + "\n\n")
-	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", subBox))
+	content.WriteString(infoBox + "\n\n")
+	for _, sb := range subnetBoxes {
+		content.WriteString(sb + "\n")
+	}
 	return content.String()
 }
 
@@ -6375,15 +6429,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// Public IPs: ←/→ switches between Floating IPs and Additional IPs tabs
-		if m.inNetworkSubNav && m.inTableFocus && m.currentProduct == ProductNetworkPublic &&
-			(m.mode == TableView || m.mode == EmptyView) {
-			if m.publicIPTabIdx > 0 {
-				m.publicIPTabIdx = 0
-				m.table = createFloatingIPsTable(m.currentData, m.width, m.height)
-			}
-			return m, nil
-		}
 		// Object Storage: ←/→ switches between Containers and Users tabs when in table focus
 		if m.inStorageSubNav && m.inTableFocus && m.currentProduct == ProductStorageObject &&
 			(m.mode == TableView || m.mode == EmptyView) {
@@ -6452,9 +6497,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In DetailView for Private Networks, navigate actions (0=Delete, 1=Assign Gateway)
+		// In DetailView for Private Networks, navigate actions (0=Delete, 1=Assign Gateway, 2=Add Subnet)
 		if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate {
-			if m.selectedAction < 1 {
+			if m.selectedAction < 2 {
 				m.selectedAction++
 				m.actionConfirm = false
 			}
@@ -6480,15 +6525,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.privNetTabIdx < 1 {
 				m.privNetTabIdx = 1
 				m.table = createPrivateNetworksTable(m.privNetLocalZones, m.width, m.height)
-			}
-			return m, nil
-		}
-		// Public IPs: ←/→ switches between Floating IPs and Additional IPs tabs
-		if m.inNetworkSubNav && m.inTableFocus && m.currentProduct == ProductNetworkPublic &&
-			(m.mode == TableView || m.mode == EmptyView) {
-			if m.publicIPTabIdx < 1 {
-				m.publicIPTabIdx = 1
-				m.table = createAdditionalIPsTable(m.additionalIPsData, m.width, m.height)
 			}
 			return m, nil
 		}
@@ -6754,13 +6790,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		} else if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate {
 			// Private Network detail actions
 			switch m.selectedAction {
-			case 0: // Supprimer
+			case 0: // Delete
 				if m.actionConfirm {
 					m.actionConfirm = false
 					return m, m.executePrivNetworkDelete()
 				}
 				m.actionConfirm = true
-			case 1: // Assigner une Gateway
+			case 1: // Assign Gateway
 				m.actionConfirm = false
 				// Build region list from the network's available regions
 				var regionNames []string
@@ -6833,6 +6869,38 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					gwAttachMode:       true,
 				}
 				return m, nil
+			case 2: // Add Subnet
+				m.actionConfirm = false
+				netID := getStringValue(m.detailData, "id", "")
+				if netID == "" {
+					return m, nil
+				}
+				rType := getStringValue(m.detailData, "_regionType", "region")
+				// Build set of regions that already have a subnet
+				subnettedRegions := map[string]bool{}
+				if subnets, ok := m.detailData["_subnets"].([]map[string]any); ok {
+					for _, s := range subnets {
+						if r := getStringValue(s, "region", ""); r != "" {
+							subnettedRegions[r] = true
+						}
+					}
+				}
+				m.mode = WizardView
+				m.wizard = WizardData{
+					step:                    PrivNetWizardStepRegion,
+					privNetAddSubnetMode:    true,
+					privNetTargetNetworkID:  netID,
+					privNetName:             getStringValue(m.detailData, "name", ""),
+					privNetIsLocalZone:      rType == "localzone",
+					privNetEnableDHCP:       true,
+					privNetEnableSubnet:     true,
+					privNetGatewayMode:      0,
+					privNetCIDRInput:        "10.0.0.0/16",
+					privNetSubnettedRegions: subnettedRegions,
+					isLoading:               true,
+					loadingMessage:          "Loading regions...",
+				}
+				return m, m.fetchPrivateNetRegionsCmd()
 			}
 			return m, nil
 		} else if m.mode == ProjectSelectView {
@@ -6867,7 +6935,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// Open detail view from table (replaces former 'v' key)
 		if m.mode == TableView {
-			isSubNavProd := (m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB)
+				isSubNavProd := (m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB)
 			if !isSubNavProd || m.inTableFocus {
 				selectedRow := m.table.Cursor()
 				if selectedRow >= 0 && selectedRow < len(m.currentData) {
@@ -6916,6 +6984,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						kubeId := getStringValue(m.detailData, "id", "")
 						if kubeId != "" {
 							return m, m.fetchKubeNodePools(kubeId)
+						}
+					}
+					if m.currentProduct == ProductNetworkPrivate {
+						netId := getStringValue(m.detailData, "id", "")
+						if netId != "" {
+							return m, m.fetchNetworkSubnets(netId)
 						}
 					}
 				}

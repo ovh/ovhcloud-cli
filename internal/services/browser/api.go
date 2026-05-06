@@ -1658,6 +1658,15 @@ func (m Model) createStandaloneFloatingIP() tea.Cmd {
 }
 
 // executeFIPDelete deletes the currently selected floating IP via the cloud API.
+func (m Model) fetchNetworkSubnets(networkID string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", m.cloudProject, networkID)
+		var subnets []map[string]any
+		_ = httpLib.Client.Get(endpoint, &subnets)
+		return subnetsLoadedMsg{networkID: networkID, subnets: subnets}
+	}
+}
+
 func (m Model) executeFIPDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {

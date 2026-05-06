@@ -319,45 +319,70 @@ func (m Model) renderPrivNetWizardSubnetStep(width int) string {
 	var content strings.Builder
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
-
-	content.WriteString(titleStyle.Render("Configurer le sous-réseau :") + "\n\n")
-
-	// Toggle: enable/disable subnet
-	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F"))
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
 
-	enableLabel := "○ Créer un sous-réseau"
-	if m.wizard.privNetEnableSubnet {
-		enableLabel = "● Créer un sous-réseau  ✓"
-	}
-	content.WriteString(selectedStyle.Render(enableLabel) + "\n\n")
+	if m.wizard.privNetAddSubnetMode {
+		content.WriteString(titleStyle.Render("Subnet CIDR for new region:") + "\n\n")
 
-	if m.wizard.privNetEnableSubnet {
-		// Build example CIDR: 10.{vlanId}.0.0/16, fallback to 10.0.0.0/16
-		cidrExample := "10.0.0.0/16"
-		if m.wizard.privNetVlanID > 0 {
-			cidrExample = fmt.Sprintf("10.%d.0.0/16", m.wizard.privNetVlanID)
+		// Show existing subnets so user knows what CIDRs are already taken
+		if subnets, ok := m.detailData["_subnets"].([]map[string]any); ok && len(subnets) > 0 {
+			content.WriteString(warnStyle.Render("⚠  Existing subnets (use a different CIDR):") + "\n")
+			for _, sub := range subnets {
+				cidr := getStringValue(sub, "cidr", "")
+				region := getStringValue(sub, "region", "")
+				if cidr != "" {
+					content.WriteString(dimStyle.Render(fmt.Sprintf("  • %s  (%s)", cidr, region)) + "\n")
+				}
+			}
+			content.WriteString("\n")
 		}
-		content.WriteString(descStyle.Render("CIDR du sous-réseau (ex : "+cidrExample+") :") + "\n")
-		inputStyle := lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#00FF7F")).
-			Padding(0, 1).Width(30)
-		cidr := m.wizard.privNetCIDRInput
-		if cidr == "" {
-			cidr = "(vide)"
-		}
-		content.WriteString(inputStyle.Render(cidr+"▌") + "\n\n")
 	} else {
-		content.WriteString(dimStyle.Render("  Aucun sous-réseau ne sera créé.") + "\n\n")
+		content.WriteString(titleStyle.Render("Configure subnet:") + "\n\n")
+
+		// Toggle: enable/disable subnet
+		selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F"))
+		enableLabel := "○ Create a subnet"
+		if m.wizard.privNetEnableSubnet {
+			enableLabel = "● Create a subnet  ✓"
+		}
+		content.WriteString(selectedStyle.Render(enableLabel) + "\n\n")
+		if !m.wizard.privNetEnableSubnet {
+			content.WriteString(dimStyle.Render("  No subnet will be created.") + "\n\n")
+			if m.wizard.errorMsg != "" {
+				content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
+			}
+			content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
+				Render("Space: Enable/Disable • Enter: Continue • ←: Back • Esc: Cancel"))
+			return content.String()
+		}
 	}
+
+	// CIDR input
+	cidrExample := "10.0.0.0/16"
+	if m.wizard.privNetVlanID > 0 {
+		cidrExample = fmt.Sprintf("10.%d.0.0/16", m.wizard.privNetVlanID)
+	}
+	content.WriteString(descStyle.Render("Subnet CIDR (e.g. "+cidrExample+"):") + "\n")
+	inputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#00FF7F")).
+		Padding(0, 1).Width(30)
+	cidr := m.wizard.privNetCIDRInput
+	if cidr == "" {
+		cidr = "(empty)"
+	}
+	content.WriteString(inputStyle.Render(cidr+"▌") + "\n\n")
 
 	if m.wizard.errorMsg != "" {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
-	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("Space : Activer/Désactiver • Enter : Continuer • ← : Retour • Esc : Annuler"))
+	hint := "Space: Enable/Disable • Enter: Continue • ←: Back • Esc: Cancel"
+	if m.wizard.privNetAddSubnetMode {
+		hint = "Enter: Continue • ←: Back • Esc: Cancel"
+	}
+	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render(hint))
 	return content.String()
 }
 
@@ -435,17 +460,21 @@ func (m Model) renderPrivNetWizardConfirmStep(width int) string {
 	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(26)
 	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	content.WriteString(titleStyle.Render("Confirm private network creation:") + "\n\n")
-	content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(m.wizard.selectedRegion) + "\n")
-	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.privNetName) + "\n")
-
-	vlanStr := "automatic"
-	if m.wizard.privNetVlanID > 0 {
-		vlanStr = fmt.Sprintf("%d", m.wizard.privNetVlanID)
+	if m.wizard.privNetAddSubnetMode {
+		content.WriteString(titleStyle.Render("Confirm adding subnet to: "+m.wizard.privNetName) + "\n\n")
+		content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(m.wizard.selectedRegion) + "\n")
+	} else {
+		content.WriteString(titleStyle.Render("Confirm private network creation:") + "\n\n")
+		content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(m.wizard.selectedRegion) + "\n")
+		content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.privNetName) + "\n")
+		vlanStr := "automatic"
+		if m.wizard.privNetVlanID > 0 {
+			vlanStr = fmt.Sprintf("%d", m.wizard.privNetVlanID)
+		}
+		content.WriteString(labelStyle.Render("  VLAN ID:") + valueStyle.Render(vlanStr) + "\n")
 	}
-	content.WriteString(labelStyle.Render("  VLAN ID:") + valueStyle.Render(vlanStr) + "\n")
 
-	if m.wizard.privNetEnableSubnet {
+	if m.wizard.privNetEnableSubnet || m.wizard.privNetAddSubnetMode {
 		content.WriteString(labelStyle.Render("  Subnet (CIDR):") + valueStyle.Render(m.wizard.privNetCIDR) + "\n")
 		dhcpStr := "disabled"
 		if m.wizard.privNetEnableDHCP {
@@ -480,10 +509,14 @@ func (m Model) renderPrivNetWizardConfirmStep(width int) string {
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
-	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Create ")
+	confirmLabel := " Create "
+	if m.wizard.privNetAddSubnetMode {
+		confirmLabel = " Add Subnet "
+	}
+	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(confirmLabel)
 	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Cancel ")
 	if m.wizard.privNetConfirmBtnIdx == 1 {
-		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Create ")
+		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(confirmLabel)
 		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Cancel ")
 	}
 	content.WriteString(btnCreate + "  " + btnCancel + "\n\n")
@@ -511,7 +544,11 @@ func (m Model) handlePrivNetWizardRegionKeys(key string) (tea.Model, tea.Cmd) {
 			m.wizard.selectedRegion, _ = r["name"].(string)
 			rtype, _ := r["type"].(string)
 			m.wizard.privNetIsLocalZone = (rtype == "localzone")
-			m.wizard.step = PrivNetWizardStepName
+			if m.wizard.privNetAddSubnetMode {
+				m.wizard.step = PrivNetWizardStepSubnet
+			} else {
+				m.wizard.step = PrivNetWizardStepName
+			}
 		}
 	}
 	return m, nil
@@ -620,7 +657,11 @@ func (m Model) handlePrivNetWizardSubnetKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd
 		m.wizard.errorMsg = ""
 		m.wizard.step = PrivNetWizardStepDHCP
 	case "left":
-		m.wizard.step = PrivNetWizardStepVlanID
+		if m.wizard.privNetAddSubnetMode {
+			m.wizard.step = PrivNetWizardStepRegion
+		} else {
+			m.wizard.step = PrivNetWizardStepVlanID
+		}
 	case "backspace":
 		if m.wizard.privNetEnableSubnet && len(m.wizard.privNetCIDRInput) > 0 {
 			m.wizard.privNetCIDRInput = m.wizard.privNetCIDRInput[:len(m.wizard.privNetCIDRInput)-1]
@@ -785,6 +826,10 @@ func (m Model) handlePrivNetWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.wizard.isLoading = true
+		if m.wizard.privNetAddSubnetMode {
+			m.wizard.loadingMessage = "Adding subnet..."
+			return m, m.createSubnetForNetwork()
+		}
 		m.wizard.loadingMessage = "Création du réseau privé..."
 		return m, m.createPrivateNetworkFromWizard()
 	}
@@ -815,4 +860,74 @@ func cidrToFirstLast(cidr string, reserveGateway bool) (first, last string, err 
 	firstIP := net.IP{ip[0], ip[1], ip[2], ip[3] + offset}
 	lastIP := net.IP{broadcast[0], broadcast[1], broadcast[2], broadcast[3] - 1}
 	return firstIP.String(), lastIP.String(), nil
+}
+
+func (m Model) createSubnetForNetwork() tea.Cmd {
+	return func() tea.Msg {
+		netID := m.wizard.privNetTargetNetworkID
+		region := m.wizard.selectedRegion
+
+		// Check if region is already activated on the network; if not, activate it first
+		networkEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", m.cloudProject, url.PathEscape(netID))
+		var netData map[string]interface{}
+		regionActive := false
+		if err := httpLib.Client.Get(networkEndpoint, &netData); err == nil {
+			if regions, ok := netData["regions"].([]interface{}); ok {
+				for _, rv := range regions {
+					if rm, ok := rv.(map[string]interface{}); ok {
+						if rm["region"] == region {
+							regionActive = true
+						}
+					}
+				}
+			}
+		}
+		if !regionActive {
+			// Activate the region on the network first
+			activateEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/region", m.cloudProject, url.PathEscape(netID))
+			var op map[string]interface{}
+			if err := httpLib.Client.Post(activateEndpoint, map[string]interface{}{"region": region}, &op); err != nil {
+				return subnetAddedMsg{networkID: netID, err: fmt.Errorf("failed to activate region %s on network: %w", region, err)}
+			}
+			// Poll until ACTIVE
+			for i := 0; i < 20; i++ {
+				time.Sleep(3 * time.Second)
+				var nd map[string]interface{}
+				if err := httpLib.Client.Get(networkEndpoint, &nd); err == nil {
+					if regs, ok := nd["regions"].([]interface{}); ok {
+						for _, rv := range regs {
+							if rm, ok := rv.(map[string]interface{}); ok {
+								if rm["region"] == region && rm["status"] == "ACTIVE" {
+									regionActive = true
+								}
+							}
+						}
+					}
+				}
+				if regionActive {
+					break
+				}
+			}
+			if !regionActive {
+				return subnetAddedMsg{networkID: netID, err: fmt.Errorf("region %s did not become ACTIVE in time", region)}
+			}
+		}
+
+		noGateway := m.wizard.privNetGatewayMode == 1
+		subnetBody := map[string]interface{}{
+			"dhcp":      m.wizard.privNetEnableDHCP,
+			"network":   m.wizard.privNetCIDR,
+			"noGateway": noGateway,
+			"region":    region,
+			"start":     m.wizard.privNetAllocStart,
+			"end":       m.wizard.privNetAllocEnd,
+		}
+		var subnet map[string]interface{}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet",
+			m.cloudProject, url.PathEscape(netID))
+		if err := httpLib.Client.Post(endpoint, subnetBody, &subnet); err != nil {
+			return subnetAddedMsg{networkID: netID, err: err}
+		}
+		return subnetAddedMsg{networkID: netID}
+	}
 }
