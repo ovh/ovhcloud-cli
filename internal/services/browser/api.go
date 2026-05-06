@@ -1298,6 +1298,30 @@ func (m Model) executeGatewayDelete() tea.Cmd {
 	}
 }
 
+// executeLBDelete deletes the currently selected load balancer.
+func (m Model) executeLBDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return lbDeletedMsg{err: fmt.Errorf("aucun load balancer sélectionné")}
+		}
+		if m.cloudProject == "" {
+			return lbDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		lbID := getString(m.detailData, "id")
+		lbName := getString(m.detailData, "name")
+		region := getString(m.detailData, "region")
+		if lbID == "" || region == "" {
+			return lbDeletedMsg{err: fmt.Errorf("ID ou région du load balancer introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/loadbalancer/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(lbID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbDeletedMsg{lbName: lbName, err: fmt.Errorf("échec de la suppression: %w", err)}
+		}
+		return lbDeletedMsg{lbName: lbName}
+	}
+}
+
 // executePrivNetworkDelete deletes the currently selected private network.
 func (m Model) executePrivNetworkDelete() tea.Cmd {
 	return func() tea.Msg {
@@ -1538,7 +1562,66 @@ func (m Model) fetchFloatingIPsData() dataLoadedMsg {
 		}
 	}
 
-	return dataLoadedMsg{data: floatingIPs, err: nil}
+	// Also fetch failover IPs (Additional IPs)
+	var failoverIPs []map[string]interface{}
+	failEndpoint := fmt.Sprintf("/v1/cloud/project/%s/ip/failover", m.cloudProject)
+	httpLib.Client.Get(failEndpoint, &failoverIPs) // ignore error — not all projects have failover IPs
+
+	return dataLoadedMsg{data: floatingIPs, additionalIPs: failoverIPs, err: nil}
+}
+
+// fetchFIPRegions loads network-capable regions for the floating IP wizard.
+func (m Model) fetchFIPRegions() tea.Cmd {
+	return func() tea.Msg {
+		regions, err := m.fetchNetworkRegions()
+		if err != nil {
+			return fipRegionsLoadedMsg{err: err}
+		}
+		sort.Strings(regions)
+		return fipRegionsLoadedMsg{regions: regions}
+	}
+}
+
+// fetchFIPInstances loads instances in the selected region for the floating IP wizard.
+func (m Model) fetchFIPInstances() tea.Cmd {
+	region := m.wizard.fipRegion
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance?region=%s",
+			m.cloudProject, url.QueryEscape(region))
+		var instances []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &instances); err != nil {
+			return fipInstancesLoadedMsg{err: err}
+		}
+		return fipInstancesLoadedMsg{instances: instances}
+	}
+}
+
+// createStandaloneFloatingIP creates a floating IP and optionally attaches it to an instance.
+func (m Model) createStandaloneFloatingIP() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return fipCreatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip",
+			m.cloudProject, url.PathEscape(m.wizard.fipRegion))
+		body := map[string]interface{}{}
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
+			return fipCreatedMsg{err: fmt.Errorf("échec de la création: %w", err)}
+		}
+		// Attach to instance if one was selected
+		if m.wizard.fipInstanceId != "" {
+			fipID := getString(result, "id")
+			if fipID != "" {
+				attachEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip/%s/attach",
+					m.cloudProject, url.PathEscape(m.wizard.fipRegion), url.PathEscape(fipID))
+				httpLib.Client.Post(attachEndpoint, map[string]interface{}{
+					"instanceId": m.wizard.fipInstanceId,
+				}, nil)
+			}
+		}
+		return fipCreatedMsg{floatingIP: result}
+	}
 }
 
 // fetchLoadBalancersData fetches load balancers from octavia-capable regions
@@ -1882,6 +1965,9 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.mode = TableView
 		return m, nil
 	case ProductNetworkPublic:
+		m.currentData = msg.data
+		m.additionalIPsData = msg.additionalIPs
+		m.publicIPTabIdx = 0
 		m.table = createFloatingIPsTable(msg.data, m.width, m.height)
 	case ProductNetworkGateway:
 		m.table = createGatewaysTable(msg.data, m.width, m.height)
@@ -2557,6 +2643,62 @@ func createFloatingIPsTable(data []map[string]interface{}, width, height int) ta
 		Bold(false)
 	t.SetStyles(s)
 
+	return t
+}
+
+// createAdditionalIPsTable creates a table for failover/additional IPs.
+func createAdditionalIPsTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "IP Address", Width: 20},
+		{Title: "Block", Width: 20},
+		{Title: "Routed To (Instance)", Width: 36},
+		{Title: "Geoloc", Width: 20},
+		{Title: "Status", Width: 16},
+	}
+	var rows []table.Row
+	for _, ip := range data {
+		addr := getString(ip, "ip")
+		if addr == "" {
+			addr = "-"
+		}
+		block := getString(ip, "block")
+		if block == "" {
+			block = "-"
+		}
+		routedTo := getString(ip, "routedTo")
+		if routedTo == "" {
+			routedTo = "-"
+		}
+		geoloc := getString(ip, "geoloc")
+		if geoloc == "" {
+			geoloc = getString(ip, "continentCode")
+		}
+		if geoloc == "" {
+			geoloc = "-"
+		}
+		status := getString(ip, "status")
+		if status == "" {
+			status = "-"
+		}
+		rows = append(rows, table.Row{addr, block, routedTo, geoloc, status})
+	}
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240")).BorderBottom(true).Bold(true)
+	s.Selected = s.Selected.Foreground(lipgloss.Color("229")).Background(lipgloss.Color("57")).Bold(false)
+	t.SetStyles(s)
 	return t
 }
 

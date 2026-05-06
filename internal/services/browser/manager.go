@@ -167,6 +167,13 @@ const (
 	LBWizardStepConfirm                         // confirm + create
 )
 
+const (
+	// Floating IP wizard steps (offset by 1100)
+	FIPWizardStepRegion   WizardStep = iota + 1100 // select region
+	FIPWizardStepInstance                          // select instance (optional)
+	FIPWizardStepConfirm                           // confirm + create
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -428,6 +435,16 @@ type WizardData struct {
 	lbNetworkName       string
 	lbSubnetId          string
 	lbConfirmBtnIdx     int
+
+	// Floating IP wizard fields
+	fipRegion            string
+	fipRegionIdx         int
+	fipAvailableRegions  []string
+	fipInstances         []map[string]interface{}
+	fipInstanceIdx       int   // 0 = standalone (no instance), 1+ = index into fipInstances
+	fipInstanceId        string
+	fipInstanceName      string
+	fipConfirmBtnIdx     int
 }
 
 // Model represents the TUI application state
@@ -496,6 +513,9 @@ type Model struct {
 	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
 	privNetTabIdx      int
 	privNetLocalZones  []map[string]interface{}
+	// Public IPs tabs (0=Floating IPs, 1=Additional IPs)
+	publicIPTabIdx     int
+	additionalIPsData  []map[string]interface{}
 	// S3 user creation result (for credentials display)
 	s3CreatedUser        map[string]interface{}
 	s3CreatedCredentials map[string]interface{}
@@ -603,10 +623,11 @@ type instancesEnrichedMsg struct {
 }
 
 type dataLoadedMsg struct {
-	data       []map[string]interface{}
-	err        error
-	forProduct ProductType // The product that requested this data
-	s3Users    []map[string]interface{} // S3 users (for Object Storage)
+	data          []map[string]interface{}
+	err           error
+	forProduct    ProductType // The product that requested this data
+	s3Users       []map[string]interface{} // S3 users (for Object Storage)
+	additionalIPs []map[string]interface{} // Failover IPs (for ProductNetworkPublic tab 1)
 }
 
 // setDefaultProjectMsg is returned after setting the default project
@@ -930,6 +951,26 @@ type lbSubnetLoadedMsg struct {
 	err      error
 }
 
+type lbDeletedMsg struct {
+	lbName string
+	err    error
+}
+
+type fipRegionsLoadedMsg struct {
+	regions []string
+	err     error
+}
+
+type fipInstancesLoadedMsg struct {
+	instances []map[string]interface{}
+	err       error
+}
+
+type fipCreatedMsg struct {
+	floatingIP map[string]interface{}
+	err        error
+}
+
 func getNavItems() []NavItem {
 	return []NavItem{
 		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
@@ -1164,6 +1205,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				step: LBWizardStepName,
 			}
 			return m, nil
+		} else if msg.product == ProductNetworkPublic {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:           FIPWizardStepRegion,
+				isLoading:      true,
+				loadingMessage: "Chargement des régions...",
+			}
+			return m, m.fetchFIPRegions()
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -1476,6 +1525,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
 
+	case lbDeletedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Load Balancer '%s' supprimé avec succès", msg.lbName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/loadbalancer"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
 	case lbRegionsLoadedMsg:
 		m.wizard.isLoading = false
 		m.wizard.loadingMessage = ""
@@ -1519,6 +1585,48 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.wizard.lbSubnetId = msg.subnetID
 		m.wizard.step = LBWizardStepConfirm
 		return m, nil
+
+	case fipRegionsLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.fipAvailableRegions = msg.regions
+		m.wizard.fipRegionIdx = 0
+		return m, nil
+
+	case fipInstancesLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.fipInstances = msg.instances
+		m.wizard.fipInstanceIdx = 0
+		return m, nil
+
+	case fipCreatedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		ip := getString(msg.floatingIP, "ip")
+		if ip == "" {
+			ip = "en cours de provisioning"
+		}
+		m.notification = fmt.Sprintf("✅ Floating IP %s créée avec succès", ip)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/networks/floatingip"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
 
 	case volumeBackupCreatedMsg:
 		m.wizard = WizardData{}
@@ -2198,7 +2306,10 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 1000 {
+		if m.wizard.step >= 1100 {
+			// Floating IP wizard
+			titleText = " 🌐 Create Floating IP "
+		} else if m.wizard.step >= 1000 {
 			// Load Balancer wizard
 			titleText = " ⚖\ufe0f  Create Load Balancer "
 		} else if m.wizard.step >= 900 {
@@ -2300,6 +2411,10 @@ func (m Model) renderContentBox(width int) string {
 		// Add tabs for Private Networks
 		if m.currentProduct == ProductNetworkPrivate {
 			contentStr = m.renderPrivateNetworksWithTabs(contentStr, width-6)
+		}
+		// Add tabs for Public IPs
+		if m.currentProduct == ProductNetworkPublic {
+			contentStr = m.renderPublicIPsWithTabs(contentStr, width-6)
 		}
 	case DetailView:
 		contentStr = m.renderDetailView(width - 6)
@@ -3157,7 +3272,11 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 1000 {
+	if m.wizard.step >= 1100 {
+		// Floating IP wizard
+		steps = append(steps, "Région", "Instance", "Confirmer")
+		stepMapping = append(stepMapping, FIPWizardStepRegion, FIPWizardStepInstance, FIPWizardStepConfirm)
+	} else if m.wizard.step >= 1000 {
 		// Load Balancer wizard
 		steps = append(steps, "Nom", "Région", "Taille", "Réseau", "Confirmer")
 		stepMapping = append(stepMapping, LBWizardStepName, LBWizardStepRegion, LBWizardStepFlavor, LBWizardStepNetwork, LBWizardStepConfirm)
@@ -3390,6 +3509,13 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderLBWizardNetworkStep(width))
 	case LBWizardStepConfirm:
 		content.WriteString(m.renderLBWizardConfirmStep(width))
+	// Floating IP wizard steps
+	case FIPWizardStepRegion:
+		content.WriteString(m.renderFIPWizardRegionStep(width))
+	case FIPWizardStepInstance:
+		content.WriteString(m.renderFIPWizardInstanceStep(width))
+	case FIPWizardStepConfirm:
+		content.WriteString(m.renderFIPWizardConfirmStep(width))
 	// Volume Backup / Snapshot wizard steps
 	case BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm:
 		content.WriteString(m.renderBackupWizard(width))
@@ -5081,6 +5207,28 @@ func (m Model) renderPrivateNetworksWithTabs(tableContent string, width int) str
 	return content.String()
 }
 
+func (m Model) renderPublicIPsWithTabs(tableContent string, width int) string {
+	var content strings.Builder
+	tabActiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).Padding(0, 2)
+	tabInactiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#333333")).
+		Foreground(lipgloss.Color("#888888")).Padding(0, 2)
+	var t1, t2 string
+	if m.publicIPTabIdx == 0 {
+		t1 = tabActiveStyle.Render("Floating IPs")
+		t2 = tabInactiveStyle.Render("Additional IPs")
+	} else {
+		t1 = tabInactiveStyle.Render("Floating IPs")
+		t2 = tabActiveStyle.Render("Additional IPs")
+	}
+	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, t1, "  ", t2) + "\n\n")
+	content.WriteString(tableContent)
+	return content.String()
+}
+
 func (m Model) renderDeleteConfirmView() string {
 	var content strings.Builder
 	var instanceName string
@@ -5160,6 +5308,8 @@ func (m Model) renderDetailView(width int) string {
 		return m.renderPrivateNetworkDetail(width)
 	case ProductNetworkGateway:
 		return m.renderGatewayDetail(width)
+	case ProductNetworkLB:
+		return m.renderLBDetail(width)
         case ProductStorageObject:
                 if m.objectUserDetailView != nil {
                         return m.objectUserDetailView.Render(width, 0)
@@ -5401,6 +5551,91 @@ func (m Model) renderGatewayDetail(width int) string {
 	var netContent strings.Builder
 	netContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("IP publique"), valueSt.Render(publicIP)))
 	netContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("IP privée"), valueSt.Render(truncate(privateIP, 36))))
+	netContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Réseau privé"), valueSt.Render(truncate(privateNetwork, 36))))
+	netBox := renderBox("Réseau", netContent.String(), boxWidth)
+
+	// Actions
+	actions := []string{"Supprimer"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.selectedAction {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color("#7B68EE")).
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).Padding(0, 1).Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.actionConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).Bold(true).
+			Render(fmt.Sprintf("⚠️  Appuyez sur Enter pour confirmer %s, Escape pour annuler", actions[m.selectedAction]))
+	}
+	actionsBox := renderBox("Actions (←/→ pour naviguer, Enter pour exécuter)", actionsContent, width-4)
+
+	content.WriteString(actionsBox + "\n\n")
+	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", netBox))
+	return content.String()
+}
+
+func (m Model) renderLBDetail(width int) string {
+	var content strings.Builder
+
+	lbID := getStringValue(m.detailData, "id", "N/A")
+	lbName := getStringValue(m.detailData, "name", "Unknown")
+	region := getStringValue(m.detailData, "region", "N/A")
+
+	size := getStringValue(m.detailData, "_flavorName", "")
+	if size == "" {
+		size = getStringValue(m.detailData, "flavorId", "N/A")
+	}
+
+	provisioning := getStringValue(m.detailData, "provisioningStatus", "N/A")
+	operating := getStringValue(m.detailData, "operatingStatus", "N/A")
+	privateIP := getStringValue(m.detailData, "vipAddress", "N/A")
+
+	privateNetwork := getStringValue(m.detailData, "_networkName", "")
+	if privateNetwork == "" {
+		privateNetwork = getStringValue(m.detailData, "vipNetworkId", "N/A")
+	}
+
+	publicIP := "-"
+	if fi, ok := m.detailData["floatingIp"].(map[string]interface{}); ok {
+		if v := getStringValue(fi, "ip", ""); v != "" {
+			publicIP = v
+		}
+	}
+
+	statusIcon := "🟢"
+	statusStyle := statusRunningStyle
+	if strings.ToLower(operating) != "online" && strings.ToLower(operating) != "no_monitor" {
+		statusIcon = "🟡"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+	}
+
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	boxWidth := (width - 6) / 2
+	if boxWidth < 35 {
+		boxWidth = 35
+	}
+
+	// Info box
+	var infoContent strings.Builder
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Operating Status"), statusStyle.Render(statusIcon+" "+operating)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Supply Status"), valueSt.Render(provisioning)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(lbID, 36))))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Région"), valueSt.Render(region)))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Taille"), valueSt.Render(strings.ToUpper(size))))
+	infoBox := renderBox("Load Balancer "+lbName, infoContent.String(), boxWidth)
+
+	// Network box
+	var netContent strings.Builder
+	netContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("IP publique"), valueSt.Render(publicIP)))
+	netContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("IP privée (VIP)"), valueSt.Render(privateIP)))
 	netContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Réseau privé"), valueSt.Render(truncate(privateNetwork, 36))))
 	netBox := renderBox("Réseau", netContent.String(), boxWidth)
 
@@ -6011,6 +6246,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// Public IPs: ←/→ switches between Floating IPs and Additional IPs tabs
+		if m.inNetworkSubNav && m.inTableFocus && m.currentProduct == ProductNetworkPublic &&
+			(m.mode == TableView || m.mode == EmptyView) {
+			if m.publicIPTabIdx > 0 {
+				m.publicIPTabIdx = 0
+				m.table = createFloatingIPsTable(m.currentData, m.width, m.height)
+			}
+			return m, nil
+		}
 		// Object Storage: ←/→ switches between Containers and Users tabs when in table focus
 		if m.inStorageSubNav && m.inTableFocus && m.currentProduct == ProductStorageObject &&
 			(m.mode == TableView || m.mode == EmptyView) {
@@ -6093,6 +6337,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.privNetTabIdx < 1 {
 				m.privNetTabIdx = 1
 				m.table = createPrivateNetworksTable(m.privNetLocalZones, m.width, m.height)
+			}
+			return m, nil
+		}
+		// Public IPs: ←/→ switches between Floating IPs and Additional IPs tabs
+		if m.inNetworkSubNav && m.inTableFocus && m.currentProduct == ProductNetworkPublic &&
+			(m.mode == TableView || m.mode == EmptyView) {
+			if m.publicIPTabIdx < 1 {
+				m.publicIPTabIdx = 1
+				m.table = createAdditionalIPsTable(m.additionalIPsData, m.width, m.height)
 			}
 			return m, nil
 		}
@@ -6325,6 +6578,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.actionConfirm {
 					m.actionConfirm = false
 					return m, m.executeGatewayDelete()
+				}
+				m.actionConfirm = true
+			}
+			return m, nil
+		} else if m.mode == DetailView && m.currentProduct == ProductNetworkLB {
+			switch m.selectedAction {
+			case 0: // Supprimer
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.executeLBDelete()
 				}
 				m.actionConfirm = true
 			}
@@ -6914,7 +7177,10 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 1000 {
+		if m.wizard.step >= 1100 {
+			// Floating IP wizard: return to public IPs list
+			returnPath = "/networks/floatingip"
+		} else if m.wizard.step >= 1000 {
 			// Load Balancer wizard: return to LB list
 			returnPath = "/loadbalancer"
 		} else if m.wizard.step >= 900 {
@@ -7121,6 +7387,13 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleLBWizardNetworkKeys(key)
 	case LBWizardStepConfirm:
 		return m.handleLBWizardConfirmKeys(key)
+	// Floating IP wizard steps
+	case FIPWizardStepRegion:
+		return m.handleFIPWizardRegionKeys(key)
+	case FIPWizardStepInstance:
+		return m.handleFIPWizardInstanceKeys(key)
+	case FIPWizardStepConfirm:
+		return m.handleFIPWizardConfirmKeys(key)
 	}
 	return m, nil
 }
@@ -8507,6 +8780,7 @@ func (m Model) loadNetworkSubProduct() (Model, tea.Cmd) {
 	m.detailData = nil
 	m.currentData = nil
 	m.inTableFocus = false
+	m.publicIPTabIdx = 0
 
 	if !sub.Enabled {
 		m.mode = ComingSoonView
