@@ -146,6 +146,7 @@ const (
 	PrivNetWizardStepVlanID                          // VLAN ID (layer 2 option)
 	PrivNetWizardStepSubnet                          // configure subnet CIDR
 	PrivNetWizardStepDHCP                            // DHCP distribution options
+	PrivNetWizardStepAllocPool                       // IP allocation pool (start/end)
 	PrivNetWizardStepGateway                         // gateway options
 	PrivNetWizardStepConfirm                         // confirm
 )
@@ -394,6 +395,9 @@ type WizardData struct {
 	privNetCIDR          string                   // confirmed CIDR
 	privNetEnableDHCP    bool                     // DHCP distribution enabled
 	privNetDHCPFieldIdx  int                      // 0=toggle, 1=Next/Back
+	privNetAllocStart    string                   // allocation pool start IP
+	privNetAllocEnd      string                   // allocation pool end IP
+	privNetAllocField    int                      // 0=start, 1=end
 	privNetGatewayMode   int                      // 0=announce first CIDR IP, 1=assign explicit IP
 	privNetGatewayInput  string                   // gateway IP input (mode 1)
 	privNetGateway       string                   // confirmed gateway IP (mode 1)
@@ -3328,8 +3332,8 @@ func (m Model) renderWizardView(width int) string {
 		stepMapping = append(stepMapping, GwWizardStepRegion, GwWizardStepModel, GwWizardStepName, GwWizardStepNetwork, GwWizardStepConfirm)
 	} else if m.wizard.step >= 800 {
 		// Private Network wizard
-		steps = append(steps, "Region", "Name", "VLAN", "Subnet", "DHCP", "Gateway", "Confirm")
-		stepMapping = append(stepMapping, PrivNetWizardStepRegion, PrivNetWizardStepName, PrivNetWizardStepVlanID, PrivNetWizardStepSubnet, PrivNetWizardStepDHCP, PrivNetWizardStepGateway, PrivNetWizardStepConfirm)
+		steps = append(steps, "Region", "Name", "VLAN", "Subnet", "DHCP", "IP Pool", "Gateway", "Confirm")
+		stepMapping = append(stepMapping, PrivNetWizardStepRegion, PrivNetWizardStepName, PrivNetWizardStepVlanID, PrivNetWizardStepSubnet, PrivNetWizardStepDHCP, PrivNetWizardStepAllocPool, PrivNetWizardStepGateway, PrivNetWizardStepConfirm)
 	} else if m.wizard.step >= 700 {
 		// Backup/Snapshot wizard
 		steps = append(steps, "Volume", "Type", "Name", "Confirm")
@@ -3525,6 +3529,8 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderPrivNetWizardSubnetStep(width))
 	case PrivNetWizardStepDHCP:
 		content.WriteString(m.renderPrivNetWizardDHCPStep(width))
+	case PrivNetWizardStepAllocPool:
+		content.WriteString(m.renderPrivNetWizardAllocPoolStep(width))
 	case PrivNetWizardStepGateway:
 		content.WriteString(m.renderPrivNetWizardGatewayStep(width))
 	case PrivNetWizardStepConfirm:
@@ -7516,6 +7522,8 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handlePrivNetWizardSubnetKeys(msg)
 	case PrivNetWizardStepDHCP:
 		return m.handlePrivNetWizardDHCPKeys(key)
+	case PrivNetWizardStepAllocPool:
+		return m.handlePrivNetWizardAllocPoolKeys(msg)
 	case PrivNetWizardStepGateway:
 		return m.handlePrivNetWizardGatewayKeys(msg)
 	case PrivNetWizardStepConfirm:

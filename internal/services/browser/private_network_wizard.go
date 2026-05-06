@@ -157,23 +157,13 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 
 				noGateway := m.wizard.privNetGatewayMode == 1 // mode 1 = will attach OVH Gateway service
 
-				// Always reserve network+1 for the gateway IP (whether static or OVH Gateway).
-				// Not reserving it causes a 409 conflict when the Gateway service tries to claim that IP.
-				startIP, endIP, cidrErr := cidrToFirstLast(m.wizard.privNetCIDR, true)
-				if cidrErr != nil {
-					return privNetCreatedMsg{
-						network: network,
-						err:     fmt.Errorf("réseau créé mais CIDR invalide ('%s'): %w", m.wizard.privNetCIDR, cidrErr),
-					}
-				}
-
 				subnetBody := map[string]interface{}{
 					"dhcp":      m.wizard.privNetEnableDHCP,
 					"network":   m.wizard.privNetCIDR,
 					"noGateway": noGateway,
 					"region":    region,
-					"start":     startIP,
-					"end":       endIP,
+					"start":     m.wizard.privNetAllocStart,
+					"end":       m.wizard.privNetAllocEnd,
 				}
 				var subnet map[string]interface{}
 				subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet",
@@ -374,25 +364,27 @@ func (m Model) renderPrivNetWizardSubnetStep(width int) string {
 func (m Model) renderPrivNetWizardDHCPStep(width int) string {
 	var content strings.Builder
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	content.WriteString(titleStyle.Render("Options de distribution des adresses DHCP :") + "\n\n")
+	content.WriteString(titleStyle.Render("DHCP configuration:") + "\n\n")
 
-	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F"))
+	enabled := m.wizard.privNetEnableDHCP
 
-	dhcpLabel := "○ DHCP désactivé"
-	if m.wizard.privNetEnableDHCP {
-		dhcpLabel = "● DHCP activé  ✓"
-	}
-	content.WriteString(selectedStyle.Render(dhcpLabel) + "\n\n")
+	enabledStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 1)
 
-	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
-	if m.wizard.privNetEnableDHCP {
-		content.WriteString(descStyle.Render("Le DHCP distribuera automatiquement des adresses IP aux instances.") + "\n\n")
+	if enabled {
+		content.WriteString(enabledStyle.Render("▶ Enabled  ✓") + "\n")
+		content.WriteString(dimStyle.Render("  Disabled") + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).
+			Render("IP addresses will be assigned automatically to instances.") + "\n\n")
 	} else {
-		content.WriteString(descStyle.Render("Les adresses IP devront être configurées manuellement.") + "\n\n")
+		content.WriteString(dimStyle.Render("  Enabled") + "\n")
+		content.WriteString(enabledStyle.Render("▶ Disabled") + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).
+			Render("IP addresses must be configured manually.") + "\n\n")
 	}
 
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("Space/←→ : Basculer • Enter : Continuer • ← : Retour • Esc : Annuler"))
+		Render("↑↓/Space: Toggle • Enter: Continue • ←: Back • Esc: Cancel"))
 	return content.String()
 }
 
@@ -440,59 +432,63 @@ func (m Model) renderPrivNetWizardGatewayStep(width int) string {
 func (m Model) renderPrivNetWizardConfirmStep(width int) string {
 	var content strings.Builder
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(26)
 	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	content.WriteString(titleStyle.Render("Confirmer la création du réseau privé :") + "\n\n")
-	content.WriteString(labelStyle.Render("  Région :") + valueStyle.Render(m.wizard.selectedRegion) + "\n")
-	content.WriteString(labelStyle.Render("  Nom :") + valueStyle.Render(m.wizard.privNetName) + "\n")
+	content.WriteString(titleStyle.Render("Confirm private network creation:") + "\n\n")
+	content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(m.wizard.selectedRegion) + "\n")
+	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.privNetName) + "\n")
 
-	vlanStr := "automatique"
+	vlanStr := "automatic"
 	if m.wizard.privNetVlanID > 0 {
 		vlanStr = fmt.Sprintf("%d", m.wizard.privNetVlanID)
 	}
-	content.WriteString(labelStyle.Render("  VLAN ID :") + valueStyle.Render(vlanStr) + "\n")
+	content.WriteString(labelStyle.Render("  VLAN ID:") + valueStyle.Render(vlanStr) + "\n")
 
 	if m.wizard.privNetEnableSubnet {
-		content.WriteString(labelStyle.Render("  Sous-réseau (CIDR) :") + valueStyle.Render(m.wizard.privNetCIDR) + "\n")
-		dhcpStr := "désactivé"
+		content.WriteString(labelStyle.Render("  Subnet (CIDR):") + valueStyle.Render(m.wizard.privNetCIDR) + "\n")
+		dhcpStr := "disabled"
 		if m.wizard.privNetEnableDHCP {
-			dhcpStr = "activé"
+			dhcpStr = "enabled"
 		}
-		content.WriteString(labelStyle.Render("  DHCP :") + valueStyle.Render(dhcpStr) + "\n")
+		content.WriteString(labelStyle.Render("  DHCP:") + valueStyle.Render(dhcpStr) + "\n")
+		if m.wizard.privNetAllocStart != "" || m.wizard.privNetAllocEnd != "" {
+			allocStr := m.wizard.privNetAllocStart + " – " + m.wizard.privNetAllocEnd
+			content.WriteString(labelStyle.Render("  IP address allocated:") + valueStyle.Render(allocStr) + "\n")
+		}
 		var gwStr string
 		if m.wizard.privNetGatewayMode == 0 {
-			gwStr = "Première IP du CIDR (auto)"
+			gwStr = "First IP of CIDR (auto)"
 		} else {
-			gwStr = "IP assignée"
+			gwStr = "Assigned IP"
 			if m.wizard.privNetGateway != "" {
 				gwStr = m.wizard.privNetGateway
 			}
 		}
-		content.WriteString(labelStyle.Render("  Passerelle :") + valueStyle.Render(gwStr) + "\n")
+		content.WriteString(labelStyle.Render("  Gateway:") + valueStyle.Render(gwStr) + "\n")
 	} else {
-		content.WriteString(labelStyle.Render("  Sous-réseau :") + valueStyle.Render("aucun") + "\n")
+		content.WriteString(labelStyle.Render("  Subnet:") + valueStyle.Render("none") + "\n")
 	}
 
 	content.WriteString("\n")
 
 	if m.wizard.isLoading {
-		content.WriteString(loadingStyle.Render("⏳ Création en cours..."))
+		content.WriteString(loadingStyle.Render("⏳ Creating..."))
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
-	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Créer ")
-	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Annuler ")
+	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Create ")
+	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Cancel ")
 	if m.wizard.privNetConfirmBtnIdx == 1 {
-		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Créer ")
-		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Annuler ")
+		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Create ")
+		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Cancel ")
 	}
 	content.WriteString(btnCreate + "  " + btnCancel + "\n\n")
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("←→ : Sélectionner • Enter : Confirmer • ← : Retour • Esc : Annuler"))
+		Render("←→: Select • Enter: Confirm • ←: Back • Esc: Cancel"))
 	return content.String()
 }
 
@@ -639,18 +635,101 @@ func (m Model) handlePrivNetWizardSubnetKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd
 
 func (m Model) handlePrivNetWizardDHCPKeys(key string) (tea.Model, tea.Cmd) {
 	switch key {
-	case " ", "h", "l":
+	case " ", "up", "down", "k", "j":
 		if m.wizard.privNetEnableSubnet {
 			m.wizard.privNetEnableDHCP = !m.wizard.privNetEnableDHCP
 		}
 	case "enter":
+		// Pre-fill allocation pool from CIDR if not yet set
+		if m.wizard.privNetEnableSubnet && m.wizard.privNetCIDR != "" && m.wizard.privNetAllocStart == "" {
+			start, end, err := cidrToFirstLast(m.wizard.privNetCIDR, true)
+			if err == nil {
+				m.wizard.privNetAllocStart = start
+				m.wizard.privNetAllocEnd = end
+			}
+		}
+		m.wizard.privNetAllocField = 0
+		m.wizard.step = PrivNetWizardStepAllocPool
+	case "left":
+		m.wizard.step = PrivNetWizardStepSubnet
+	}
+	return m, nil
+}
+
+func (m Model) renderPrivNetWizardAllocPoolStep(width int) string {
+	var content strings.Builder
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(16)
+	activeStyle := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#FFFFFF")).Padding(0, 1)
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Padding(0, 1)
+
+	content.WriteString(titleStyle.Render("IP address allocation pool:") + "\n\n")
+	if m.wizard.privNetCIDR != "" {
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
+			Render("CIDR: "+m.wizard.privNetCIDR) + "\n\n")
+	}
+
+	startStr := m.wizard.privNetAllocStart
+	endStr := m.wizard.privNetAllocEnd
+	if m.wizard.privNetAllocField == 0 {
+		content.WriteString(labelStyle.Render("Start IP:") + activeStyle.Render(startStr+"▌") + "\n")
+		content.WriteString(labelStyle.Render("End IP:") + dimStyle.Render(endStr) + "\n")
+	} else {
+		content.WriteString(labelStyle.Render("Start IP:") + dimStyle.Render(startStr) + "\n")
+		content.WriteString(labelStyle.Render("End IP:") + activeStyle.Render(endStr+"▌") + "\n")
+	}
+
+	if m.wizard.errorMsg != "" {
+		content.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).
+			Render("Error: "+m.wizard.errorMsg) + "\n")
+	}
+
+	content.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
+		Render("Tab/↑↓: Switch field • Enter: Continue • ←: Back • Esc: Cancel"))
+	return content.String()
+}
+
+func (m Model) handlePrivNetWizardAllocPoolKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+	switch key {
+	case "tab", "down", "j":
+		m.wizard.privNetAllocField = 1 - m.wizard.privNetAllocField
+	case "up", "k":
+		m.wizard.privNetAllocField = 1 - m.wizard.privNetAllocField
+	case "enter":
+		// Basic validation
+		if net.ParseIP(m.wizard.privNetAllocStart) == nil {
+			m.wizard.errorMsg = "Invalid start IP: " + m.wizard.privNetAllocStart
+			return m, nil
+		}
+		if net.ParseIP(m.wizard.privNetAllocEnd) == nil {
+			m.wizard.errorMsg = "Invalid end IP: " + m.wizard.privNetAllocEnd
+			return m, nil
+		}
+		m.wizard.errorMsg = ""
 		if m.wizard.privNetIsLocalZone {
 			m.wizard.step = PrivNetWizardStepConfirm
 		} else {
 			m.wizard.step = PrivNetWizardStepGateway
 		}
 	case "left":
-		m.wizard.step = PrivNetWizardStepSubnet
+		m.wizard.errorMsg = ""
+		m.wizard.step = PrivNetWizardStepDHCP
+	case "backspace":
+		if m.wizard.privNetAllocField == 0 && len(m.wizard.privNetAllocStart) > 0 {
+			m.wizard.privNetAllocStart = m.wizard.privNetAllocStart[:len(m.wizard.privNetAllocStart)-1]
+		} else if m.wizard.privNetAllocField == 1 && len(m.wizard.privNetAllocEnd) > 0 {
+			m.wizard.privNetAllocEnd = m.wizard.privNetAllocEnd[:len(m.wizard.privNetAllocEnd)-1]
+		}
+	default:
+		if len(msg.Runes) > 0 {
+			ch := string(msg.Runes)
+			if m.wizard.privNetAllocField == 0 {
+				m.wizard.privNetAllocStart += ch
+			} else {
+				m.wizard.privNetAllocEnd += ch
+			}
+		}
 	}
 	return m, nil
 }
@@ -677,8 +756,7 @@ func (m Model) handlePrivNetWizardGatewayKeys(msg tea.KeyMsg) (tea.Model, tea.Cm
 		m.wizard.errorMsg = ""
 		m.wizard.step = PrivNetWizardStepConfirm
 	case "left":
-		m.wizard.step = PrivNetWizardStepDHCP
-	case "backspace":
+		m.wizard.step = PrivNetWizardStepAllocPool
 		if m.wizard.privNetGatewayMode == 1 && len(m.wizard.privNetGatewayInput) > 0 {
 			m.wizard.privNetGatewayInput = m.wizard.privNetGatewayInput[:len(m.wizard.privNetGatewayInput)-1]
 		}
@@ -700,7 +778,7 @@ func (m Model) handlePrivNetWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 		if m.wizard.privNetConfirmBtnIdx == 1 {
 			// Cancel button → go back to previous step
 			if m.wizard.privNetIsLocalZone {
-				m.wizard.step = PrivNetWizardStepDHCP
+				m.wizard.step = PrivNetWizardStepAllocPool
 			} else {
 				m.wizard.step = PrivNetWizardStepGateway
 			}

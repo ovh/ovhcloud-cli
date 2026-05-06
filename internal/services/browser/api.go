@@ -2422,6 +2422,7 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		{Title: "CIDR", Width: 18},
 		{Title: "Gateway", Width: 16},
 		{Title: "DHCP", Width: 6},
+		{Title: "IP address allocated", Width: 34},
 	}
 
 	var rows []table.Row
@@ -2455,6 +2456,7 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		cidr := "-"
 		gateway := "-"
 		dhcp := "-"
+		allocPool := "-"
 		if subnets, ok := net["_subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
 			sub := subnets[0]
 			if v := getString(sub, "cidr"); v != "" {
@@ -2470,8 +2472,17 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 					dhcp = "✗"
 				}
 			}
+			if pools, ok := sub["ipPools"].([]interface{}); ok && len(pools) > 0 {
+				if pool, ok := pools[0].(map[string]interface{}); ok {
+					start := getString(pool, "start")
+					end := getString(pool, "end")
+					if start != "" && end != "" {
+						allocPool = start + " – " + end
+					}
+				}
+			}
 		}
-		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp})
+		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp, allocPool})
 	}
 
 	tableHeight := height - 15
