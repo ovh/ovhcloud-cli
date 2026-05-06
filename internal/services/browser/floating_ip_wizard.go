@@ -22,20 +22,20 @@ func (m Model) renderFIPWizardRegionStep(width int) string {
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 
-	content.WriteString(titleStyle.Render("Choisir la région pour la Floating IP :") + "\n\n")
+	content.WriteString(titleStyle.Render("Choose a region for the Floating IP:") + "\n\n")
 
 	if m.wizard.isLoading {
-		content.WriteString(loadingStyle.Render("⏳ Chargement des régions..."))
+		content.WriteString(loadingStyle.Render("⏳ Loading regions..."))
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).
-			Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+			Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
 	if len(m.wizard.fipAvailableRegions) == 0 {
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).
-			Render("Aucune région disponible.") + "\n")
+			Render("No regions available.") + "\n")
 	} else {
 		maxVisible := 14
 		startIdx := 0
@@ -72,20 +72,20 @@ func (m Model) renderFIPWizardInstanceStep(width int) string {
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
-	content.WriteString(titleStyle.Render("Attacher à une instance (optionnel) :") + "\n\n")
-	content.WriteString(descStyle.Render(fmt.Sprintf("Région : %s", m.wizard.fipRegion)) + "\n\n")
+	content.WriteString(titleStyle.Render("Attach to an instance:") + "\n\n")
+	content.WriteString(descStyle.Render(fmt.Sprintf("Region: %s", m.wizard.fipRegion)) + "\n\n")
 
 	if m.wizard.isLoading {
-		content.WriteString(loadingStyle.Render("⏳ Chargement des instances..."))
+		content.WriteString(loadingStyle.Render("⏳ Loading instances..."))
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).
-			Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+			Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
-	// Index 0 = no instance (not supported by OVH v1 API — shown as disabled hint)
-	entries := []string{"⚠ Sans instance (non supporté)"}
+	// Index 0 = not supported standalone (shown as disabled hint)
+	entries := []string{"⚠ No instance (not supported)"}
 	for _, inst := range m.wizard.fipInstances {
 		name := getStringValue(inst, "name", getStringValue(inst, "id", "unknown"))
 		entries = append(entries, name)
@@ -109,7 +109,7 @@ func (m Model) renderFIPWizardInstanceStep(width int) string {
 	}
 
 	content.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ Naviguer • Enter : Sélectionner • ← : Retour • Esc : Annuler"))
+		Render("↑↓ Navigate • Enter: Select • ←: Back • Esc: Cancel"))
 	return content.String()
 }
 
@@ -119,33 +119,33 @@ func (m Model) renderFIPWizardConfirmStep(width int) string {
 	lbLabelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
 	valStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	content.WriteString(titleStyle.Render("Confirmer la création de la Floating IP :") + "\n\n")
-	content.WriteString(lbLabelStyle.Render("  Région :") + valStyle.Render(m.wizard.fipRegion) + "\n")
+	content.WriteString(titleStyle.Render("Confirm Floating IP creation:") + "\n\n")
+	content.WriteString(lbLabelStyle.Render("  Region:") + valStyle.Render(m.wizard.fipRegion) + "\n")
 
-	instanceDisplay := "Aucune (standalone)"
+	instanceDisplay := "None (standalone)"
 	if m.wizard.fipInstanceName != "" {
 		instanceDisplay = m.wizard.fipInstanceName
 	}
-	content.WriteString(lbLabelStyle.Render("  Instance :") + valStyle.Render(instanceDisplay) + "\n\n")
+	content.WriteString(lbLabelStyle.Render("  Instance:") + valStyle.Render(instanceDisplay) + "\n\n")
 
 	if m.wizard.isLoading {
-		content.WriteString(loadingStyle.Render("⏳ Création en cours..."))
+		content.WriteString(loadingStyle.Render("⏳ Creating..."))
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).
-			Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+			Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
-	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Créer ")
-	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Annuler ")
+	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Create ")
+	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Cancel ")
 	if m.wizard.fipConfirmBtnIdx == 1 {
-		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Créer ")
-		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Annuler ")
+		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Create ")
+		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Cancel ")
 	}
 	content.WriteString(btnCreate + "  " + btnCancel + "\n\n")
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("←→ : Sélectionner • Enter : Confirmer • Esc : Annuler"))
+		Render("←→: Select • Enter: Confirm • Esc: Cancel"))
 	return content.String()
 }
 
@@ -167,7 +167,7 @@ func (m Model) handleFIPWizardRegionKeys(key string) (tea.Model, tea.Cmd) {
 			m.wizard.fipInstanceIdx = 0
 			m.wizard.step = FIPWizardStepInstance
 			m.wizard.isLoading = true
-			m.wizard.loadingMessage = "Chargement des instances..."
+			m.wizard.loadingMessage = "Loading instances..."
 			return m, m.fetchFIPInstances()
 		}
 	}
@@ -216,7 +216,7 @@ func (m Model) handleFIPWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.wizard.isLoading = true
-		m.wizard.loadingMessage = "Création de la Floating IP..."
+		m.wizard.loadingMessage = "Creating Floating IP..."
 		return m, m.createStandaloneFloatingIP()
 	}
 	return m, nil

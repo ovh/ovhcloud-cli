@@ -1634,18 +1634,74 @@ func (m Model) createStandaloneFloatingIP() tea.Cmd {
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/floatingIp",
 			m.cloudProject, url.PathEscape(m.wizard.fipRegion), url.PathEscape(m.wizard.fipInstanceId))
-		body := map[string]interface{}{
-			"ip": privateIP,
-			"gateway": map[string]interface{}{
-				"model": "s",
-				"name":  "gw-" + m.wizard.fipInstanceName,
-			},
-		}
+
+		// First attempt: without gateway (subnet already has one)
 		var result map[string]interface{}
-		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
+		err := httpLib.Client.Post(endpoint, map[string]interface{}{"ip": privateIP}, &result)
+		if err != nil && strings.Contains(err.Error(), "subnet require to have router") {
+			// Subnet has no gateway yet — auto-create one and retry
+			bodyWithGW := map[string]interface{}{
+				"ip": privateIP,
+				"gateway": map[string]interface{}{
+					"model": "s",
+					"name":  "gw-" + m.wizard.fipInstanceName,
+				},
+			}
+			result = nil
+			err = httpLib.Client.Post(endpoint, bodyWithGW, &result)
+		}
+		if err != nil {
 			return fipCreatedMsg{err: fmt.Errorf("échec de la création: %w", err)}
 		}
 		return fipCreatedMsg{floatingIP: result}
+	}
+}
+
+// executeFIPDelete deletes the currently selected floating IP via the cloud API.
+func (m Model) executeFIPDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return fipDeletedMsg{err: fmt.Errorf("aucune Floating IP sélectionnée")}
+		}
+		if m.cloudProject == "" {
+			return fipDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		fipID := getString(m.detailData, "id")
+		fipIP := getString(m.detailData, "ip")
+		region := getString(m.detailData, "region")
+		if fipID == "" || region == "" {
+			return fipDeletedMsg{err: fmt.Errorf("ID ou région de la Floating IP introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(fipID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "NotFound") {
+			return fipDeletedMsg{fipIP: fipIP, err: fmt.Errorf("échec de la suppression: %w", err)}
+		}
+		return fipDeletedMsg{fipIP: fipIP}
+	}
+}
+
+// executeFIPDetach detaches the currently selected floating IP from its resource.
+func (m Model) executeFIPDetach() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return fipDetachedMsg{err: fmt.Errorf("aucune Floating IP sélectionnée")}
+		}
+		if m.cloudProject == "" {
+			return fipDetachedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		fipID := getString(m.detailData, "id")
+		fipIP := getString(m.detailData, "ip")
+		region := getString(m.detailData, "region")
+		if fipID == "" || region == "" {
+			return fipDetachedMsg{err: fmt.Errorf("ID ou région de la Floating IP introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip/%s/detach",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(fipID))
+		if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+			return fipDetachedMsg{fipIP: fipIP, err: fmt.Errorf("échec du détachement: %w", err)}
+		}
+		return fipDetachedMsg{fipIP: fipIP}
 	}
 }
 
