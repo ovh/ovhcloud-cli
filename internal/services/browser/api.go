@@ -1596,29 +1596,54 @@ func (m Model) fetchFIPInstances() tea.Cmd {
 	}
 }
 
-// createStandaloneFloatingIP creates a floating IP and optionally attaches it to an instance.
+// createStandaloneFloatingIP creates a floating IP and attaches it to an instance.
 func (m Model) createStandaloneFloatingIP() tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
 			return fipCreatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
 		}
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip",
-			m.cloudProject, url.PathEscape(m.wizard.fipRegion))
-		body := map[string]interface{}{}
+		if m.wizard.fipInstanceId == "" {
+			return fipCreatedMsg{err: fmt.Errorf("veuillez sélectionner une instance pour créer une Floating IP")}
+		}
+
+		// Find the private IPv4 of the selected instance — required by the API.
+		var privateIP string
+		for _, inst := range m.wizard.fipInstances {
+			if id, _ := inst["id"].(string); id == m.wizard.fipInstanceId {
+				if addrs, ok := inst["ipAddresses"].([]interface{}); ok {
+					for _, a := range addrs {
+						addrMap, ok := a.(map[string]interface{})
+						if !ok {
+							continue
+						}
+						ip, _ := addrMap["ip"].(string)
+						ipType, _ := addrMap["type"].(string)
+						version := fmt.Sprint(addrMap["version"])
+						if ip != "" && version == "4" && ipType != "public" {
+							privateIP = ip
+							break
+						}
+					}
+				}
+				break
+			}
+		}
+		if privateIP == "" {
+			return fipCreatedMsg{err: fmt.Errorf("aucune adresse IP privée trouvée pour cette instance")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/floatingIp",
+			m.cloudProject, url.PathEscape(m.wizard.fipRegion), url.PathEscape(m.wizard.fipInstanceId))
+		body := map[string]interface{}{
+			"ip": privateIP,
+			"gateway": map[string]interface{}{
+				"model": "s",
+				"name":  "gw-" + m.wizard.fipInstanceName,
+			},
+		}
 		var result map[string]interface{}
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return fipCreatedMsg{err: fmt.Errorf("échec de la création: %w", err)}
-		}
-		// Attach to instance if one was selected
-		if m.wizard.fipInstanceId != "" {
-			fipID := getString(result, "id")
-			if fipID != "" {
-				attachEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip/%s/attach",
-					m.cloudProject, url.PathEscape(m.wizard.fipRegion), url.PathEscape(fipID))
-				httpLib.Client.Post(attachEndpoint, map[string]interface{}{
-					"instanceId": m.wizard.fipInstanceId,
-				}, nil)
-			}
 		}
 		return fipCreatedMsg{floatingIP: result}
 	}

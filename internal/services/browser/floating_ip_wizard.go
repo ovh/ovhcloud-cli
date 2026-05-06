@@ -84,8 +84,8 @@ func (m Model) renderFIPWizardInstanceStep(width int) string {
 			Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
 	}
 
-	// Index 0 = no instance (standalone floating IP)
-	entries := []string{"(Sans instance — IP standalone)"}
+	// Index 0 = no instance (not supported by OVH v1 API — shown as disabled hint)
+	entries := []string{"⚠ Sans instance (non supporté)"}
 	for _, inst := range m.wizard.fipInstances {
 		name := getStringValue(inst, "name", getStringValue(inst, "id", "unknown"))
 		entries = append(entries, name)
