@@ -129,6 +129,12 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 			msg.forProduct = product
 			return msg
 		}
+	case "/instances/backup":
+		return func() tea.Msg {
+			msg := m.fetchInstanceBackupsData()
+			msg.forProduct = product
+			return msg
+		}
 	case "/storage/snapshot":
 		return func() tea.Msg {
 			msg := m.fetchVolumeSnapshotsData()
@@ -2168,6 +2174,11 @@ func (m Model) handleInstancesLoaded(msg instancesLoadedMsg) (tea.Model, tea.Cmd
 
 // handleInstancesEnriched processes the enriched instances data (images and floating IPs)
 func (m Model) handleInstancesEnriched(msg instancesEnrichedMsg) (tea.Model, tea.Cmd) {
+	// Discard stale enrichment if the user has already switched away from Instances
+	if m.currentProduct != ProductInstances {
+		return m, nil
+	}
+
 	// Preserve cursor position before recreating table
 	currentCursor := m.table.Cursor()
 
@@ -2261,6 +2272,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		} else {
 			m.table = createObjectStorageUsersTable(msg.s3Users, m.width, m.height)
 		}
+	case ProductInstanceBackup:
+		m.table = createInstanceBackupsTable(msg.data, m.width, m.height)
 	case ProductStorageSnapshot:
 		m.table = createVolumeSnapshotsTable(msg.data, m.width, m.height)
 	case ProductStorageBackup:
@@ -2493,6 +2506,100 @@ func createInstancesTable(instances []map[string]interface{}, imageMap map[strin
 		Bold(false)
 	t.SetStyles(s)
 
+	return t
+}
+
+// createInstanceBackupsTable creates a table for instance backups (snapshots).
+// Columns: Name, Region, Model (flavorType), Size, Status, Created
+func createInstanceBackupsTable(data []map[string]interface{}, width, height int) table.Model {
+	sort.Slice(data, func(i, j int) bool {
+		return getString(data[i], "name") < getString(data[j], "name")
+	})
+
+	columns := []table.Column{
+		{Title: "Name", Width: 28},
+		{Title: "ID", Width: 28},
+		{Title: "Location", Width: 14},
+		{Title: "Size", Width: 14},
+		{Title: "Creation date", Width: 28},
+		{Title: "Status", Width: 20},
+	}
+
+	var rows []table.Row
+	for _, s := range data {
+		// Name
+		name := getString(s, "name")
+
+		// ID
+		id := getString(s, "id")
+
+		// Location: snapshots expose "regions" as []interface{} or "region" as string
+		location := getString(s, "region")
+		if location == "" {
+			if regions, ok := s["regions"].([]interface{}); ok && len(regions) > 0 {
+				var regionNames []string
+				for _, r := range regions {
+					if rs, ok := r.(string); ok {
+						regionNames = append(regionNames, rs)
+					}
+				}
+				location = strings.Join(regionNames, ", ")
+			}
+		}
+		if location == "" {
+			location = "-"
+		}
+
+		// Size: minDisk is the original disk size in GB
+		sizeStr := "-"
+		switch v := s["minDisk"].(type) {
+		case float64:
+			if v > 0 {
+				sizeStr = fmt.Sprintf("%.0f GB", v)
+			}
+		case int:
+			if v > 0 {
+				sizeStr = fmt.Sprintf("%d GB", v)
+			}
+		}
+
+		// Creation date: truncate ISO to YYYY-MM-DD HH:MM
+		created := getString(s, "creationDate")
+		if len(created) >= 16 {
+			created = created[:16]
+		}
+
+		// Status
+		status := getString(s, "status")
+
+		rows = append(rows, table.Row{name, id, location, sizeStr, created, status})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
 	return t
 }
 
@@ -4147,7 +4254,7 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 			return instanceActionMsg{err: fmt.Errorf("instance ID not found")}
 		}
 
-		actions := []string{"ssh", "reboot", "rescue", "stop_or_start", "vnc", "reinstall"}
+		actions := []string{"ssh", "reboot", "rescue", "stop_or_start", "vnc", "reinstall", "backup"}
 		if actionIndex < 0 || actionIndex >= len(actions) {
 			return instanceActionMsg{err: fmt.Errorf("invalid action index")}
 		}
@@ -4273,6 +4380,17 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/reinstall", m.cloudProject, instanceId)
 			body := map[string]string{"imageId": imageId}
 			err = httpLib.Client.Post(endpoint, body, nil)
+
+		case "backup":
+			// POST /cloud/project/{serviceName}/instance/{instanceId}/snapshot
+			instanceName := getString(m.detailData, "name")
+			snapshotName := fmt.Sprintf("%s-backup-%s", instanceName, time.Now().Format("2006-01-02-1504"))
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/snapshot", m.cloudProject, instanceId)
+			body := map[string]string{"snapshotName": snapshotName}
+			err = httpLib.Client.Post(endpoint, body, nil)
+			if err == nil {
+				return instanceActionMsg{action: "backup", instanceId: instanceId, backupName: snapshotName, err: nil}
+			}
 		}
 
 		return instanceActionMsg{
@@ -4294,6 +4412,7 @@ func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) 
 		"start":     "Start",
 		"vnc":       "Console",
 		"reinstall": "Reinstall",
+		"backup":    "Instance Backup",
 	}
 
 	actionName := actionNames[msg.action]
@@ -4314,6 +4433,8 @@ func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) 
 	} else {
 		if msg.action == "ssh" {
 			m.notification = "✅ SSH session ended"
+		} else if msg.action == "backup" && msg.backupName != "" {
+			m.notification = fmt.Sprintf("✅ Instance Backup \"%s\" initiated successfully!", msg.backupName)
 		} else {
 			m.notification = fmt.Sprintf("✅ %s initiated successfully!", actionName)
 		}
@@ -5296,6 +5417,25 @@ func (m Model) handleNodePoolDeleted(msg nodePoolDeletedMsg) (tea.Model, tea.Cmd
 	// Reload node pools
 	clusterId := getString(m.detailData, "id")
 	return m, m.fetchKubeNodePools(clusterId)
+}
+
+// fetchInstanceBackupsData fetches the list of instance snapshots (backups).
+func (m Model) fetchInstanceBackupsData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot", m.cloudProject)
+	var raw []interface{}
+	if err := httpLib.Client.Get(endpoint, &raw); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	var snapshots []map[string]interface{}
+	for _, item := range raw {
+		if obj, ok := item.(map[string]interface{}); ok {
+			snapshots = append(snapshots, obj)
+		}
+	}
+	return dataLoadedMsg{data: snapshots}
 }
 
 // fetchVolumeSnapshotsData fetches the list of volume snapshots.

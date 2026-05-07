@@ -252,6 +252,7 @@ type WizardData struct {
 	filterInput string // Current filter input text for wizard lists
 	// Cleanup tracking - IDs of resources created during wizard
 	createdSSHKeyId     string // ID of SSH key created during wizard
+	
 	createdNetworkId    string // ID of network created during wizard
 	createdSubnetId     string // ID of subnet created during wizard
 	createdGatewayId    string // ID of gateway created during wizard
@@ -754,6 +755,7 @@ type progressMsg struct {
 type instanceActionMsg struct {
 	action     string
 	instanceId string
+	backupName string
 	err        error
 }
 
@@ -1080,7 +1082,7 @@ type ComputeSubItem struct {
 func getComputeSubItems() []ComputeSubItem {
 	return []ComputeSubItem{
 		{Label: "Instances", Product: ProductInstances, Path: "/instances", Enabled: true},
-		{Label: "Instance Backup", Product: ProductInstanceBackup, Path: "/instances/backup", Enabled: false},
+		{Label: "Instance Backup", Product: ProductInstanceBackup, Path: "/instances/backup", Enabled: true},
 		{Label: "Workflow", Product: ProductWorkflow, Path: "/instances/workflow", Enabled: false},
 	}
 }
@@ -5696,7 +5698,7 @@ func (m Model) renderInstanceDetail(width int) string {
 	if strings.ToUpper(status) == "RESCUE" {
 		rescueAction = "Exit Rescue"
 	}
-	actions := []string{"SSH", "Reboot", rescueAction, stopStartAction, "Console", "Reinstall"}
+	actions := []string{"SSH", "Reboot", rescueAction, stopStartAction, "Console", "Reinstall", "Backup"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
@@ -6688,7 +6690,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView, navigate actions
 		if m.mode == DetailView && m.currentProduct == ProductInstances {
-			if m.selectedAction < 5 { // 6 actions: 0-5
+			if m.selectedAction < 6 { // 7 actions: 0-6
 				m.selectedAction++
 				m.actionConfirm = false
 			}
