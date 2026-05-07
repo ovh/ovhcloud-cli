@@ -1,9 +1,9 @@
-## ovhcloud cloud instance snapshot delete
+## ovhcloud cloud instance backup delete
 
-Delete a specific instance snapshot in the current cloud project
+Delete a specific instance backup in the current cloud project
 
 ```
-ovhcloud cloud instance snapshot delete <snapshot_id> [flags]
+ovhcloud cloud instance backup delete <backup_id> [flags]
 ```
 
 ### Options
@@ -34,5 +34,5 @@ ovhcloud cloud instance snapshot delete <snapshot_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud instance snapshot](ovhcloud_cloud_instance_snapshot.md)	 - Manage snapshots of the given instance
+* [ovhcloud cloud instance backup](ovhcloud_cloud_instance_backup.md)	 - Manage backups of the given instance
 
