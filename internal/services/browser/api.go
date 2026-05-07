@@ -1428,6 +1428,59 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 		}
 	}
 
+	// Enrich with gateway data: fetch all gateways across all regions then match by OpenStack network ID.
+	// Collect all unique region names used by these networks.
+	regionSet := map[string]bool{}
+	for _, n := range networks {
+		if regions, ok := n["regions"].([]interface{}); ok {
+			for _, rv := range regions {
+				if rm, ok := rv.(map[string]interface{}); ok {
+					if r := getString(rm, "region"); r != "" {
+						regionSet[r] = true
+					}
+				}
+			}
+		}
+	}
+	uniqueRegions := make([]any, 0, len(regionSet))
+	for r := range regionSet {
+		uniqueRegions = append(uniqueRegions, r)
+	}
+	if len(uniqueRegions) > 0 {
+		gwRegionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+		allRegionGateways, _ := httpLib.FetchObjectsParallel[[]map[string]any](gwRegionEndpoint+"/%s/gateway", uniqueRegions, true)
+		// Build a map: openstackNetworkID → gateway name
+		openstackToGateway := map[string]string{}
+		for _, regionGWs := range allRegionGateways {
+			for _, gw := range regionGWs {
+				gwName := getString(gw, "name")
+				if interfaces, ok := gw["interfaces"].([]interface{}); ok {
+					for _, iface := range interfaces {
+						if ifaceMap, ok := iface.(map[string]interface{}); ok {
+							if netID := getString(ifaceMap, "networkId"); netID != "" {
+								openstackToGateway[netID] = gwName
+							}
+						}
+					}
+				}
+			}
+		}
+		// Match each network's openstackId against the map
+		for i, n := range networks {
+			if regions, ok := n["regions"].([]interface{}); ok {
+				for _, rv := range regions {
+					if rm, ok := rv.(map[string]interface{}); ok {
+						opID := getString(rm, "openstackId")
+						if gwName, found := openstackToGateway[opID]; found && gwName != "" {
+							networks[i]["_gatewayName"] = gwName
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return dataLoadedMsg{
 		data: networks,
 		err:  nil,
@@ -2593,9 +2646,10 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		{Title: "Name", Width: 22},
 		{Title: "Location", Width: 20},
 		{Title: "CIDR", Width: 18},
-		{Title: "Gateway", Width: 16},
+		{Title: "Gateway IP", Width: 16},
 		{Title: "DHCP", Width: 6},
 		{Title: "IP address allocated", Width: 34},
+		{Title: "OVH Gateway", Width: 20},
 	}
 
 	var rows []table.Row
@@ -2655,7 +2709,11 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 				}
 			}
 		}
-		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp, allocPool})
+		gwName := "-"
+		if v := getString(net, "_gatewayName"); v != "" {
+			gwName = v
+		}
+		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp, allocPool, gwName})
 	}
 
 	tableHeight := height - 15
