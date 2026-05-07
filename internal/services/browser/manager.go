@@ -518,8 +518,10 @@ type Model struct {
 	objectStorageTabIdx int
 	objectStorageUsers  []map[string]interface{}
 	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
-	privNetTabIdx      int
-	privNetLocalZones  []map[string]interface{}
+	privNetTabIdx           int
+	privNetLocalZones       []map[string]interface{}
+	privNetSelectedSubnet   int  // index of subnet selected for deletion in detail view
+	privNetSelectedRegion   int  // index of region selected for deletion in detail view
 	// Public IPs tabs (0=Floating IPs, 1=Additional IPs)
 	publicIPTabIdx     int
 	additionalIPsData  []map[string]interface{}
@@ -908,6 +910,17 @@ type subnetAddedMsg struct {
 	err       error
 }
 
+type subnetDeletedMsg struct {
+	networkID string
+	err       error
+}
+
+type regionDeletedMsg struct {
+	networkID string
+	region    string
+	err       error
+}
+
 type privNetDeletedMsg struct {
 	networkName string
 	err         error
@@ -996,6 +1009,11 @@ type fipDetachedMsg struct {
 type subnetsLoadedMsg struct {
 	networkID string
 	subnets   []map[string]any
+}
+
+type privNetDetailLoadedMsg struct {
+	networkID string
+	regions   []interface{}
 }
 
 func getNavItems() []NavItem {
@@ -1431,6 +1449,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.wizard.privNetRegionIdx = 0
 		return m, nil
 
+	case subnetDeletedMsg:
+		m.actionConfirm = false
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to delete subnet: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ Subnet deleted successfully"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		// Refresh subnets in the current detail view
+		if m.detailData != nil {
+			return m, tea.Batch(
+				m.fetchNetworkSubnets(msg.networkID),
+				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case regionDeletedMsg:
+		m.actionConfirm = false
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to delete region: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Region %s removed from network", msg.region)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		// Reload the private networks list to reflect the change
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/networks/private"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
 	case subnetAddedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
@@ -1586,6 +1638,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case subnetsLoadedMsg:
 		if m.detailData != nil && getStringValue(m.detailData, "id", "") == msg.networkID {
 			m.detailData["_subnets"] = msg.subnets
+		}
+		return m, nil
+
+	case privNetDetailLoadedMsg:
+		if m.detailData != nil && getStringValue(m.detailData, "id", "") == msg.networkID {
+			m.detailData["regions"] = msg.regions
 		}
 		return m, nil
 
@@ -5828,20 +5886,13 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 	vlanID := int(getFloatValue(m.detailData, "vlanId", 0))
 	regionType := getStringValue(m.detailData, "_regionType", "region")
 
-	// First region name
-	regionName := "N/A"
-	if regions, ok := m.detailData["regions"].([]interface{}); ok && len(regions) > 0 {
-		if rm, ok := regions[0].(map[string]interface{}); ok {
-			regionName = getStringValue(rm, "region", "N/A")
-		}
-	}
-
 	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18)
 	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 	boxWidth := (width - 6) / 2
 	fullWidth := width - 4
 
 	// Info box (top-left)
+	rawRegions, _ := m.detailData["regions"].([]interface{})
 	var infoContent strings.Builder
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("ID"), valueStyle.Render(truncate(netID, 36))))
 	vlanStr := "automatic"
@@ -5850,7 +5901,33 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 	rTypeLabel := "Region (vRack)"
 	if regionType == "localzone" { rTypeLabel = "Local Zone" }
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Type"), valueStyle.Render(rTypeLabel)))
-	infoContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("Region"), valueStyle.Render(regionName)))
+	// Regions list
+	if len(rawRegions) == 0 {
+		infoContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("Regions"), lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("none")))
+	} else {
+		for idx, rv := range rawRegions {
+			rm, _ := rv.(map[string]interface{})
+			rName := getStringValue(rm, "region", "N/A")
+			rStatus := getStringValue(rm, "status", "")
+			label := "Regions"
+			if idx > 0 { label = "" }
+			line := rName
+			if rStatus != "" { line += "  (" + rStatus + ")" }
+			// Highlight selected region when Delete Region action is active
+			if m.selectedAction == 4 && idx == m.privNetSelectedRegion {
+				arrow := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true).Render(" ◄")
+				line = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true).Render(line) + arrow
+				if m.actionConfirm {
+					line += lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700")).Bold(true).Render("  ⚠️  Enter to confirm, Esc to cancel")
+				}
+			} else {
+				line = valueStyle.Render(line)
+			}
+			sep := "\n"
+			if idx == len(rawRegions)-1 { sep = "" }
+			infoContent.WriteString(fmt.Sprintf("%s %s%s", labelStyle.Render(label), line, sep))
+		}
+	}
 	infoBox := renderBox("Private Network", infoContent.String(), boxWidth)
 
 	// Subnets — full-width list below info row, one entry per subnet
@@ -5885,14 +5962,23 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 			sc.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Gateway"), valueStyle.Render(gatewayIP)))
 			sc.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("DHCP"), valueStyle.Render(dhcpStr)))
 			sc.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("IP allocated"), valueStyle.Render(allocPool)))
-			subnetBoxes = append(subnetBoxes, renderBox(fmt.Sprintf("Subnet %d/%d", idx+1, len(subnets)), sc.String(), fullWidth))
+			boxTitle := fmt.Sprintf("Subnet %d/%d", idx+1, len(subnets))
+			// Highlight selected subnet when Delete Subnet action is active
+			if m.selectedAction == 3 && idx == m.privNetSelectedSubnet {
+				boxTitle += "  ◄ selected for deletion"
+				if m.actionConfirm {
+					sc.WriteString("\n\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700")).Bold(true).
+						Render("⚠️  Press Enter to confirm deletion, Esc to cancel"))
+				}
+			}
+			subnetBoxes = append(subnetBoxes, renderBox(boxTitle, sc.String(), fullWidth))
 		}
 	}
 
 	_ = netName
 
 	// Actions
-	actions := []string{"Delete", "Assign Gateway", "Add Subnet"}
+	actions := []string{"Delete", "Assign Gateway", "Add Subnet", "Delete Subnet", "Delete Region"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
@@ -5906,12 +5992,18 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 		}
 	}
 	actionsContent := strings.Join(actionParts, " ")
-	if m.actionConfirm {
+	if m.actionConfirm && m.selectedAction != 3 && m.selectedAction != 4 {
 		actionsContent += "\n\n" + lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFD700")).Bold(true).
 			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actions[m.selectedAction]))
 	}
-	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
+	hintAction := "←/→ to navigate, Enter to execute"
+	if m.selectedAction == 3 {
+		hintAction = "←/→ to navigate • ↑/↓ to select subnet • Enter to delete"
+	} else if m.selectedAction == 4 {
+		hintAction = "←/→ to navigate • ↑/↓ to select region • Enter to delete"
+	}
+	actionsBox := renderBox("Actions ("+hintAction+")", actionsContent, width-4)
 
 	content.WriteString(actionsBox + "\n\n")
 	content.WriteString(infoBox + "\n\n")
@@ -6497,9 +6589,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In DetailView for Private Networks, navigate actions (0=Delete, 1=Assign Gateway, 2=Add Subnet)
+		// In DetailView for Private Networks, navigate actions (0=Delete, 1=Assign Gateway, 2=Add Subnet, 3=Delete Subnet)
 		if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate {
-			if m.selectedAction < 2 {
+			if m.selectedAction < 4 {
 				m.selectedAction++
 				m.actionConfirm = false
 			}
@@ -6901,6 +6993,32 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					loadingMessage:          "Loading regions...",
 				}
 				return m, m.fetchPrivateNetRegionsCmd()
+			case 3: // Delete Subnet
+				subnets, _ := m.detailData["_subnets"].([]map[string]any)
+				if len(subnets) == 0 {
+					return m, nil
+				}
+				if m.privNetSelectedSubnet >= len(subnets) {
+					m.privNetSelectedSubnet = 0
+				}
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.executeSubnetDelete()
+				}
+				m.actionConfirm = true
+			case 4: // Delete Region
+				regions, _ := m.detailData["regions"].([]interface{})
+				if len(regions) == 0 {
+					return m, nil
+				}
+				if m.privNetSelectedRegion >= len(regions) {
+					m.privNetSelectedRegion = 0
+				}
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.executeRegionDelete()
+				}
+				m.actionConfirm = true
 			}
 			return m, nil
 		} else if m.mode == ProjectSelectView {
@@ -6989,7 +7107,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					if m.currentProduct == ProductNetworkPrivate {
 						netId := getStringValue(m.detailData, "id", "")
 						if netId != "" {
-							return m, m.fetchNetworkSubnets(netId)
+							return m, tea.Batch(
+								m.fetchNetworkSubnets(netId),
+								m.fetchPrivateNetworkDetail(netId),
+							)
 						}
 					}
 				}
@@ -7051,6 +7172,38 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				} else if key == "up" || key == "k" {
 					if m.nodePoolsSelectedIdx > 0 {
 						m.nodePoolsSelectedIdx--
+					}
+				}
+			}
+			return m, nil
+		}
+		// Private network detail: ↑/↓ to select subnet when Delete Subnet action is active
+		if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate && m.selectedAction == 3 {
+			subnets, _ := m.detailData["_subnets"].([]map[string]any)
+			if len(subnets) > 0 {
+				if key == "down" || key == "j" {
+					if m.privNetSelectedSubnet < len(subnets)-1 {
+						m.privNetSelectedSubnet++
+					}
+				} else if key == "up" || key == "k" {
+					if m.privNetSelectedSubnet > 0 {
+						m.privNetSelectedSubnet--
+					}
+				}
+			}
+			return m, nil
+		}
+		// Private network detail: ↑/↓ to select region when Delete Region action is active
+		if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate && m.selectedAction == 4 {
+			regions, _ := m.detailData["regions"].([]interface{})
+			if len(regions) > 0 {
+				if key == "down" || key == "j" {
+					if m.privNetSelectedRegion < len(regions)-1 {
+						m.privNetSelectedRegion++
+					}
+				} else if key == "up" || key == "k" {
+					if m.privNetSelectedRegion > 0 {
+						m.privNetSelectedRegion--
 					}
 				}
 			}

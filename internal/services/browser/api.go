@@ -1667,6 +1667,125 @@ func (m Model) fetchNetworkSubnets(networkID string) tea.Cmd {
 	}
 }
 
+func (m Model) fetchPrivateNetworkDetail(networkID string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", m.cloudProject, url.PathEscape(networkID))
+		var netData map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &netData); err != nil {
+			return privNetDetailLoadedMsg{networkID: networkID}
+		}
+		regions, _ := netData["regions"].([]interface{})
+		return privNetDetailLoadedMsg{networkID: networkID, regions: regions}
+	}
+}
+
+func (m Model) executeRegionDelete() tea.Cmd {
+	return func() tea.Msg {
+		netID := getStringValue(m.detailData, "id", "")
+		if netID == "" {
+			return regionDeletedMsg{err: fmt.Errorf("network ID missing")}
+		}
+		regions, _ := m.detailData["regions"].([]interface{})
+		if m.privNetSelectedRegion >= len(regions) {
+			return regionDeletedMsg{networkID: netID, err: fmt.Errorf("no region selected")}
+		}
+		rm, _ := regions[m.privNetSelectedRegion].(map[string]interface{})
+		regionName := getString(rm, "region")
+		if regionName == "" {
+			return regionDeletedMsg{networkID: netID, err: fmt.Errorf("region name missing")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/region/%s",
+			m.cloudProject, url.PathEscape(netID), url.PathEscape(regionName))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "409") || strings.Contains(errMsg, "ports") || strings.Contains(errMsg, "Conflict") {
+				return regionDeletedMsg{networkID: netID, region: regionName, err: fmt.Errorf("cannot remove region %s: resources still attached (instances, subnets)", regionName)}
+			}
+			return regionDeletedMsg{networkID: netID, region: regionName, err: fmt.Errorf("failed to remove region: %w", err)}
+		}
+		return regionDeletedMsg{networkID: netID, region: regionName}
+	}
+}
+
+func (m Model) executeSubnetDelete() tea.Cmd {
+	return func() tea.Msg {
+		subnets, _ := m.detailData["_subnets"].([]map[string]any)
+		if m.privNetSelectedSubnet >= len(subnets) {
+			return subnetDeletedMsg{err: fmt.Errorf("no subnet selected")}
+		}
+		sub := subnets[m.privNetSelectedSubnet]
+		subID := getStringValue(sub, "id", "")
+		netID := getStringValue(m.detailData, "id", "")
+		openstackNetID := getStringValue(sub, "networkId", "")
+		if subID == "" || netID == "" {
+			return subnetDeletedMsg{networkID: netID, err: fmt.Errorf("subnet or network ID missing")}
+		}
+
+		// Resolve region by matching openstackId from the network's regions list.
+		// Fast path: subnet has networkId (returned by new regional endpoint).
+		// Fallback: query each region's subnet list to find where this subnet lives.
+		region := ""
+		if regions, ok := m.detailData["regions"].([]interface{}); ok {
+			for _, rv := range regions {
+				if rm, ok := rv.(map[string]interface{}); ok {
+					if getString(rm, "openstackId") == openstackNetID {
+						region = getString(rm, "region")
+						break
+					}
+				}
+			}
+			if region == "" {
+				for _, rv := range regions {
+					if rm, ok := rv.(map[string]interface{}); ok {
+						rName := getString(rm, "region")
+						opID := getString(rm, "openstackId")
+						if rName == "" || opID == "" {
+							continue
+						}
+						searchEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
+							m.cloudProject, url.PathEscape(rName), url.PathEscape(opID))
+						var regionSubnets []map[string]interface{}
+						if err := httpLib.Client.Get(searchEndpoint, &regionSubnets); err == nil {
+							for _, rs := range regionSubnets {
+								if getString(rs, "id") == subID {
+									region = rName
+									openstackNetID = opID
+									break
+								}
+							}
+						}
+						if region != "" {
+							break
+						}
+					}
+				}
+			}
+		}
+		if region == "" {
+			return subnetDeletedMsg{networkID: netID, err: fmt.Errorf("could not determine region for subnet")}
+		}
+
+		// DELETE /v1/cloud/project/{id}/region/{region}/network/{openstackNetId}/subnet/{subnetId}
+		deleteEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(openstackNetID), url.PathEscape(subID))
+
+		if err := httpLib.Client.Delete(deleteEndpoint, nil); err != nil {
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "400") || strings.Contains(errMsg, "Unable to complete operation") ||
+				strings.Contains(errMsg, "ports") || strings.Contains(errMsg, "409") {
+				gatewayIp := getStringValue(sub, "gatewayIp", "")
+				hint := "Remove attached instances, gateways, or router interfaces first"
+				if gatewayIp != "" && gatewayIp != "N/A" {
+					hint = fmt.Sprintf("A gateway is attached (IP: %s). Delete the associated OVH Gateway from Network > Gateway first", gatewayIp)
+				}
+				return subnetDeletedMsg{networkID: netID, err: fmt.Errorf("cannot delete subnet: %s", hint)}
+			}
+			return subnetDeletedMsg{networkID: netID, err: fmt.Errorf("failed to delete subnet: %w", err)}
+		}
+		return subnetDeletedMsg{networkID: netID}
+	}
+}
+
 func (m Model) executeFIPDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {

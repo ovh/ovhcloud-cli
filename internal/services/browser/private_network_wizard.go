@@ -871,12 +871,14 @@ func (m Model) createSubnetForNetwork() tea.Cmd {
 		networkEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", m.cloudProject, url.PathEscape(netID))
 		var netData map[string]interface{}
 		regionActive := false
+		openstackID := ""
 		if err := httpLib.Client.Get(networkEndpoint, &netData); err == nil {
 			if regions, ok := netData["regions"].([]interface{}); ok {
 				for _, rv := range regions {
 					if rm, ok := rv.(map[string]interface{}); ok {
 						if rm["region"] == region {
 							regionActive = true
+							openstackID, _ = rm["openstackId"].(string)
 						}
 					}
 				}
@@ -889,7 +891,7 @@ func (m Model) createSubnetForNetwork() tea.Cmd {
 			if err := httpLib.Client.Post(activateEndpoint, map[string]interface{}{"region": region}, &op); err != nil {
 				return subnetAddedMsg{networkID: netID, err: fmt.Errorf("failed to activate region %s on network: %w", region, err)}
 			}
-			// Poll until ACTIVE
+			// Poll until ACTIVE and capture the openstackId
 			for i := 0; i < 20; i++ {
 				time.Sleep(3 * time.Second)
 				var nd map[string]interface{}
@@ -899,6 +901,7 @@ func (m Model) createSubnetForNetwork() tea.Cmd {
 							if rm, ok := rv.(map[string]interface{}); ok {
 								if rm["region"] == region && rm["status"] == "ACTIVE" {
 									regionActive = true
+									openstackID, _ = rm["openstackId"].(string)
 								}
 							}
 						}
@@ -913,18 +916,32 @@ func (m Model) createSubnetForNetwork() tea.Cmd {
 			}
 		}
 
-		noGateway := m.wizard.privNetGatewayMode == 1
-		subnetBody := map[string]interface{}{
-			"dhcp":      m.wizard.privNetEnableDHCP,
-			"network":   m.wizard.privNetCIDR,
-			"noGateway": noGateway,
-			"region":    region,
-			"start":     m.wizard.privNetAllocStart,
-			"end":       m.wizard.privNetAllocEnd,
+		if openstackID == "" {
+			return subnetAddedMsg{networkID: netID, err: fmt.Errorf("could not find OpenStack network ID for region %s", region)}
 		}
+
+		// Detect IP version from CIDR
+		ipVersion := 4
+		if strings.Contains(m.wizard.privNetCIDR, ":") {
+			ipVersion = 6
+		}
+
+		enableGateway := m.wizard.privNetGatewayMode != 1 // mode 1 = noGateway
+
+		subnetBody := map[string]interface{}{
+			"cidr":            m.wizard.privNetCIDR,
+			"enableDhcp":      m.wizard.privNetEnableDHCP,
+			"enableGatewayIp": enableGateway,
+			"ipVersion":       ipVersion,
+			"name":            fmt.Sprintf("%s-%s", m.wizard.privNetName, region),
+			"allocationPools": []map[string]interface{}{
+				{"start": m.wizard.privNetAllocStart, "end": m.wizard.privNetAllocEnd},
+			},
+		}
+
 		var subnet map[string]interface{}
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet",
-			m.cloudProject, url.PathEscape(netID))
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(openstackID))
 		if err := httpLib.Client.Post(endpoint, subnetBody, &subnet); err != nil {
 			return subnetAddedMsg{networkID: netID, err: err}
 		}
