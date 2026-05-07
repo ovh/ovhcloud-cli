@@ -34,6 +34,7 @@ Manage instances in the given cloud project
 * [ovhcloud cloud instance activate-monthly-billing](ovhcloud_cloud_instance_activate-monthly-billing.md)	 - Activate monthly billing for the given instance
 * [ovhcloud cloud instance application-access](ovhcloud_cloud_instance_application-access.md)	 - Get application access credentials for the given instance
 * [ovhcloud cloud instance autobackup](ovhcloud_cloud_instance_autobackup.md)	 - Manage automatic backup workflows for instances
+* [ovhcloud cloud instance backup](ovhcloud_cloud_instance_backup.md)	 - Manage backups of the given instance
 * [ovhcloud cloud instance create](ovhcloud_cloud_instance_create.md)	 - Create a new instance
 * [ovhcloud cloud instance delete](ovhcloud_cloud_instance_delete.md)	 - Delete the given instance
 * [ovhcloud cloud instance exit-rescue](ovhcloud_cloud_instance_exit-rescue.md)	 - Exit the given instance from rescue mode
@@ -48,7 +49,6 @@ Manage instances in the given cloud project
 * [ovhcloud cloud instance set-flavor](ovhcloud_cloud_instance_set-flavor.md)	 - Migrate the given instance to the specified flavor
 * [ovhcloud cloud instance set-name](ovhcloud_cloud_instance_set-name.md)	 - Set the name of the given instance
 * [ovhcloud cloud instance shelve](ovhcloud_cloud_instance_shelve.md)	 - Shelve the given instance
-* [ovhcloud cloud instance snapshot](ovhcloud_cloud_instance_snapshot.md)	 - Manage snapshots of the given instance
 * [ovhcloud cloud instance start](ovhcloud_cloud_instance_start.md)	 - Start the given instance
 * [ovhcloud cloud instance stop](ovhcloud_cloud_instance_stop.md)	 - Stop the given instance
 * [ovhcloud cloud instance unshelve](ovhcloud_cloud_instance_unshelve.md)	 - Unshelve the given instance
