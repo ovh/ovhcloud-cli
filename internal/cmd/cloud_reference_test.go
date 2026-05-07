@@ -34,7 +34,7 @@ func (ms *MockSuite) TestCloudReferenceRancherVersionsListCmd(assert, require *t
 			}
 		]`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "rancher", "list-versions", "-o", "json", "--cloud-project", "fakeProjectID", "--filter", `status=="AVAILABLE"`)
+	out, err := cmd.Execute("cloud", "reference", "managed-rancher", "list-versions", "-o", "json", "--cloud-project", "fakeProjectID", "--filter", `status=="AVAILABLE"`)
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
@@ -64,7 +64,7 @@ func (ms *MockSuite) TestCloudReferenceRancherPlansListCmd(assert, require *td.T
 			}
 		]`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "rancher", "list-plans", "--cloud-project", "fakeProjectID", "-o", "name")
+	out, err := cmd.Execute("cloud", "reference", "managed-rancher", "list-plans", "--cloud-project", "fakeProjectID", "-o", "name")
 
 	require.CmpNoError(err)
 	assert.String(out, `"OVHCLOUD_EDITION"
@@ -85,7 +85,7 @@ func (ms *MockSuite) TestCloudReferenceRancherPlansListCmdWithNil(assert, requir
 			}
 		]`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "rancher", "list-plans", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "reference", "managed-rancher", "list-plans", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `
@@ -358,7 +358,7 @@ func (ms *MockSuite) TestCloudReferenceContainerRegistryPlansListCmd(assert, req
 			}
 		]`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "container-registry", "list-plans", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "reference", "managed-registry", "list-plans", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `
@@ -406,7 +406,7 @@ func (ms *MockSuite) TestCloudReferenceContainerRegistryPlansListCmdWithFilter(a
 			}
 		]`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "container-registry", "list-plans", "--cloud-project", "fakeProjectID", "--filter", `vulnerability==true`)
+	out, err := cmd.Execute("cloud", "reference", "managed-registry", "list-plans", "--cloud-project", "fakeProjectID", "--filter", `vulnerability==true`)
 
 	require.CmpNoError(err)
 	assert.String(out, `
@@ -438,7 +438,7 @@ func (ms *MockSuite) TestCloudReferenceContainerRegistryRegionsListCmd(assert, r
 			}
 		]`).Once())
 
-	out, err := cmd.Execute("cloud", "reference", "container-registry", "list-regions", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "reference", "managed-registry", "list-regions", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `

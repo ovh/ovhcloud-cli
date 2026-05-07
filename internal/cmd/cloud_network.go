@@ -24,8 +24,15 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Use:   "private",
 		Short: "Manage private networks in the given cloud project",
 	}
-	privateNetworkCmd.PersistentFlags().StringVar(&cloud.CloudNetworkRegionFilter, "region", "", "Filter by region or specify the region of the network")
 	networkCmd.AddCommand(privateNetworkCmd)
+
+	// vRack-based private network commands (private > vrack)
+	vrackPrivateNetworkCmd := &cobra.Command{
+		Use:   "vrack",
+		Short: "Manage vRack-based private networks in the given cloud project",
+	}
+	vrackPrivateNetworkCmd.PersistentFlags().StringVar(&cloud.CloudNetworkRegionFilter, "region", "", "Filter by region or specify the region of the network")
+	privateNetworkCmd.AddCommand(vrackPrivateNetworkCmd)
 
 	privateNetworkListCmd := &cobra.Command{
 		Use:     "list",
@@ -33,7 +40,7 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Short:   "List your private networks",
 		Run:     cloud.ListPrivateNetworks,
 	}
-	privateNetworkCmd.AddCommand(withFilterFlag(privateNetworkListCmd))
+	vrackPrivateNetworkCmd.AddCommand(withFilterFlag(privateNetworkListCmd))
 
 	privateNetworkGetCmd := &cobra.Command{
 		Use:   "get <network_id>",
@@ -41,11 +48,11 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.GetPrivateNetwork,
 		Args:  cobra.ExactArgs(1),
 	}
-	privateNetworkCmd.AddCommand(privateNetworkGetCmd)
+	vrackPrivateNetworkCmd.AddCommand(privateNetworkGetCmd)
 
-	privateNetworkCmd.AddCommand(getPrivateNetworkCreationCmd())
+	vrackPrivateNetworkCmd.AddCommand(getPrivateNetworkCreationCmd())
 
-	privateNetworkCmd.AddCommand(&cobra.Command{
+	vrackPrivateNetworkCmd.AddCommand(&cobra.Command{
 		Use:   "delete <network_id>",
 		Short: "Delete a specific private network",
 		Run:   cloud.DeletePrivateNetwork,
@@ -57,7 +64,7 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Use:   "subnet",
 		Short: "Manage subnets in a specific private network",
 	}
-	privateNetworkCmd.AddCommand(privateNetworkSubnetCmd)
+	vrackPrivateNetworkCmd.AddCommand(privateNetworkSubnetCmd)
 
 	subnetListCmd := &cobra.Command{
 		Use:     "list <network_id>",
@@ -207,37 +214,37 @@ There are three ways to define the parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud network private create <region> --name MyNetwork
+	ovhcloud cloud network private vrack create <region> --name MyNetwork
 
 2. Using a configuration file:
 
   First you can generate an example of parameters file using the following command:
 
-	ovhcloud cloud network private create <region> --init-file ./params.json
+	ovhcloud cloud network private vrack create <region> --init-file ./params.json
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
   After editing the file to set the correct creation parameters, run:
 
-	ovhcloud cloud network private create <region> --from-file ./params.json
+	ovhcloud cloud network private vrack create <region> --from-file ./params.json
 
   Note that you can also pipe the content of the parameters file, like the following:
 
-	cat ./params.json | ovhcloud cloud network private create <region>
+	cat ./params.json | ovhcloud cloud network private vrack create <region>
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovhcloud cloud network private create <region> --from-file ./params.json --name MyNetwork
+	ovhcloud cloud network private vrack create <region> --from-file ./params.json --name MyNetwork
 
 3. Using your default text editor:
 
-	ovhcloud cloud network private create <region> --editor
+	ovhcloud cloud network private vrack create <region> --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud network private create <region> --editor --name MyNetwork
+	ovhcloud cloud network private vrack create <region> --editor --name MyNetwork
 `,
 		Run:  cloud.CreatePrivateNetwork,
 		Args: cobra.ExactArgs(1),
@@ -264,37 +271,37 @@ There are three ways to define the parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud network private subnet create <network_id> --region GRA9 --name MySubnet --cidr 192.168.1.0/24 --ip-version 4
+	ovhcloud cloud network private vrack subnet create <network_id> --region GRA9 --name MySubnet --cidr 192.168.1.0/24 --ip-version 4
 
 2. Using a configuration file:
 
   First you can generate an example of parameters file using the following command:
 
-	ovhcloud cloud network private subnet create <network_id> --init-file ./params.json
+	ovhcloud cloud network private vrack subnet create <network_id> --init-file ./params.json
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
   After editing the file to set the correct creation parameters, run:
 
-	ovhcloud cloud network private subnet create <network_id> --from-file ./params.json
+	ovhcloud cloud network private vrack subnet create <network_id> --from-file ./params.json
 
   Note that you can also pipe the content of the parameters file, like the following:
 
-	cat ./params.json | ovhcloud cloud network private subnet create <network_id>
+	cat ./params.json | ovhcloud cloud network private vrack subnet create <network_id>
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovhcloud cloud network private subnet create <network_id> --from-file ./params.json --name MySubnet
+	ovhcloud cloud network private vrack subnet create <network_id> --from-file ./params.json --name MySubnet
 
 3. Using your default text editor:
 
-	ovhcloud cloud network private subnet create <network_id> --editor
+	ovhcloud cloud network private vrack subnet create <network_id> --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud network private subnet create <network_id> --editor --name MySubnet
+	ovhcloud cloud network private vrack subnet create <network_id> --editor --name MySubnet
 `,
 		Run:  cloud.CreatePrivateNetworkSubnet,
 		Args: cobra.ExactArgs(1),

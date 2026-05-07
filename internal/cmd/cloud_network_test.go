@@ -120,7 +120,7 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 		]`),
 	)
 
-	out, err := cmd.Execute("cloud", "network", "private", "create", "BHS5", "--cloud-project", "fakeProjectID",
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "create", "BHS5", "--cloud-project", "fakeProjectID",
 		"--name", "TestFromTheCLI", "--wait", "-o", "yaml")
 	require.CmpNoError(err)
 	assert.String(out, `message: ✅ Network 80c1de3e-9b09-11f0-993b-0050568ce122 created successfully in region
@@ -169,7 +169,7 @@ func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmd(assert, require *td.
 		),
 	)
 
-	out, err := cmd.Execute("cloud", "network", "private", "subnet", "create", "pn-123456", "--region", "BHS5", "--cloud-project", "fakeProjectID",
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "subnet", "create", "pn-123456", "--region", "BHS5", "--cloud-project", "fakeProjectID",
 		"--name", "my-subnet", "--cidr", "192.168.1.0/24", "--ip-version", "4", "--enable-dhcp", "--enable-gateway-ip", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
@@ -232,7 +232,7 @@ func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmdInferIPVersion(assert
 	)
 
 	// Note: --ip-version is NOT provided, it should be inferred from the CIDR
-	out, err := cmd.Execute("cloud", "network", "private", "subnet", "create", "pn-123456", "--region", "BHS5", "--cloud-project", "fakeProjectID",
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "subnet", "create", "pn-123456", "--region", "BHS5", "--cloud-project", "fakeProjectID",
 		"--name", "my-subnet", "--cidr", "192.168.1.0/24", "--enable-dhcp", "--enable-gateway-ip", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{

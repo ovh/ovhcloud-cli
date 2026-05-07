@@ -185,7 +185,7 @@ OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID>
 | Fetch details of a single VPS in JSON    | `ovhcloud vps get <service_id> -o json`         |
 | Reinstall a baremetal interactively      | `ovhcloud baremetal reinstall <id> --editor`    |
 | List instances and filter on GRA9 region | `ovhcloud cloud instance list --filter 'region=="GRA9"'` |
-| Get only the ID of a given MKS node pool | `NP_ID=$(ovhcloud cloud kube nodepool list xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --filter 'name=="my-np-autoscale"' -o 'id' \| xargs)` |
+| Get only the ID of a given MKS node pool | `NP_ID=$(ovhcloud cloud managed-kubernetes nodepool list xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --filter 'name=="my-np-autoscale"' -o 'id' \| xargs)` |
 
 # Available products
 
@@ -225,20 +225,20 @@ OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID>
 |                                       | dedicated-cluster               | Partially  |
 | **Public Cloud / Access**             | cloud ssh-key                   | Yes        |
 | **Public Cloud / Compute**            | cloud instance                  | Yes        |
-| **Public Cloud / Container Registry** | cloud container-registry        | Yes        |
-| **Public Cloud / Containers**         | cloud kube                      | Yes        |
-| **Public Cloud / Orchestration**      | cloud rancher                   | Yes        |
-| **Public Cloud / Databases**          | cloud database-service          | Partially  |
+| **Public Cloud / Container Registry** | cloud managed-registry          | Yes        |
+| **Public Cloud / Containers**         | cloud managed-kubernetes        | Yes        |
+| **Public Cloud / Orchestration**      | cloud managed-rancher           | Yes        |
+| **Public Cloud / Databases**          | cloud database-service          | Yes        |
 | **Public Cloud / Governance**         | cloud quota                     | Yes        |
 | **Public Cloud / Meta**               | cloud reference                 | Yes        |
 |                                       | cloud region                    | Yes        |
-| **Public Cloud / Network**            | cloud loadbalancer              | Partially  |
+| **Public Cloud / Network**            | cloud loadbalancer              | Yes        |
 |                                       | cloud network                   | Yes        |
-| **Public Cloud / Object Storage**     | cloud storage-s3                | Yes        |
+| **Public Cloud / Object Storage**     | cloud storage object            | Yes        |
 |                                       | cloud storage-swift             | Yes        |
 | **Public Cloud / Ops**                | cloud operation                 | Yes        |
 | **Public Cloud / Project**            | cloud project                   | Yes        |
-| **Public Cloud / Storage**            | cloud storage-block             | Yes        |
+| **Public Cloud / Storage**            | cloud storage block             | Yes        |
 | **Public Cloud / Identity**           | cloud user                      | Yes        |
 | **Security**                          | ssl                             | Partially  |
 |                                       | okms                            | Partially  |
