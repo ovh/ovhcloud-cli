@@ -79,8 +79,7 @@ func (m Model) fetchLBNetworks() tea.Cmd {
 		}
 		var filtered []map[string]interface{}
 		for _, n := range nets {
-			name := getStringValue(n, "name", "")
-			if name != "" && name != "Ext-Net" {
+			if getStringValue(n, "visibility", "") == "private" {
 				filtered = append(filtered, n)
 			}
 		}

@@ -1648,7 +1648,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
+		// Prefer name from API response, fall back to wizard input
 		lbName := getString(msg.lb, "name")
+		if lbName == "" {
+			lbName = getString(msg.lb, "id")
+		}
 		m.notification = fmt.Sprintf("✅ Load Balancer '%s' créé avec succès", lbName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.mode = LoadingView
@@ -1736,6 +1740,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.wizard.errorMsg = msg.err.Error()
 			return m, nil
 		}
+		// Sort flavors by known size order: small < medium < large < xl < xxl etc.
+		sizeOrder := map[string]int{
+			"small": 1, "s": 1,
+			"medium": 2, "m": 2,
+			"large": 3, "l": 3,
+			"xl": 4,
+			"2xl": 5, "xxl": 5,
+			"3xl": 6,
+		}
+		sortRank := func(name string) int {
+			n := strings.ToLower(name)
+			if v, ok := sizeOrder[n]; ok {
+				return v
+			}
+			return 99
+		}
+		sort.Slice(msg.flavors, func(i, j int) bool {
+			ri := sortRank(getStringValue(msg.flavors[i], "name", ""))
+			rj := sortRank(getStringValue(msg.flavors[j], "name", ""))
+			if ri != rj {
+				return ri < rj
+			}
+			return getStringValue(msg.flavors[i], "name", "") < getStringValue(msg.flavors[j], "name", "")
+		})
 		m.wizard.lbFlavors = msg.flavors
 		m.wizard.lbFlavorIdx = 0
 		return m, nil
