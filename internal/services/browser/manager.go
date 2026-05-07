@@ -196,6 +196,9 @@ const (
 	ProductNetworkGateway // Gateways (sub-nav)
 	ProductNetworkLB      // Load Balancers (sub-nav)
 	ProductProjects
+	ProductCompute         // Compute top-level nav
+	ProductInstanceBackup  // Instance Backup (compute sub-nav)
+	ProductWorkflow        // Workflow (compute sub-nav)
 )
 
 // WizardData holds the state for the creation wizard
@@ -466,6 +469,8 @@ type Model struct {
 	inStorageSubNav    bool // Whether the keyboard focus is in the storage sub-nav bar
 	networkSubIdx      int  // Index in network sub-navigation
 	inNetworkSubNav    bool // Whether the keyboard focus is in the network sub-nav bar
+	computeSubIdx      int  // Index in compute sub-navigation
+	inComputeSubNav    bool // Whether the keyboard focus is in the compute sub-nav bar
 	inTableFocus       bool // Whether the keyboard focus is in the table content (third navigation level)
 	table              table.Model
 	detailData         map[string]interface{}
@@ -1023,7 +1028,7 @@ type privNetDetailLoadedMsg struct {
 
 func getNavItems() []NavItem {
 	return []NavItem{
-		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
+		{Label: "Compute", Icon: "💻", Product: ProductCompute, Path: "/instances"},
 		{Label: " Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
 		{Label: " Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
 		{Label: "Managed Analytics", Icon: "📈", Product: ProductManagedAnalytics, Path: "/analytics"},
@@ -1062,6 +1067,21 @@ func getNetworkSubItems() []NetworkSubItem {
 		{Label: "Public IPs", Product: ProductNetworkPublic, Path: "/networks/floatingip", Enabled: true},
 		{Label: "Gateways", Product: ProductNetworkGateway, Path: "/networks/gateway", Enabled: true},
 		{Label: "Load Balancers", Product: ProductNetworkLB, Path: "/loadbalancer", Enabled: true},
+	}
+}
+
+type ComputeSubItem struct {
+	Label   string
+	Product ProductType
+	Path    string
+	Enabled bool
+}
+
+func getComputeSubItems() []ComputeSubItem {
+	return []ComputeSubItem{
+		{Label: "Instances", Product: ProductInstances, Path: "/instances", Enabled: true},
+		{Label: "Instance Backup", Product: ProductInstanceBackup, Path: "/instances/backup", Enabled: false},
+		{Label: "Workflow", Product: ProductWorkflow, Path: "/instances/workflow", Enabled: false},
 	}
 }
 
@@ -2344,7 +2364,7 @@ func (m Model) renderNavBar(width int) string {
 	navItems := getNavItems()
 	var items []string
 
-	isSubNavFocused := m.inStorageSubNav || m.inNetworkSubNav
+	isSubNavFocused := m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav
 	isInSubContext := isSubNavFocused || m.inTableFocus
 
 	for i, nav := range navItems {
@@ -2379,6 +2399,14 @@ func (m Model) renderNavBar(width int) string {
 		(m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB)
 	if isNetworkContext {
 		subNav := m.renderNetworkSubNav(width)
+		return mainNav + "\n" + subNav
+	}
+
+	// Show compute sub-navigation when on Compute or any compute sub-product
+	isComputeSubProduct := m.currentProduct == ProductInstances || m.currentProduct == ProductInstanceBackup || m.currentProduct == ProductWorkflow
+	isComputeContext := navItems[m.navIdx].Product == ProductCompute || isComputeSubProduct
+	if isComputeContext {
+		subNav := m.renderComputeSubNav(width)
 		return mainNav + "\n" + subNav
 	}
 
@@ -2489,6 +2517,61 @@ func (m Model) renderNetworkSubNav(width int) string {
 
 	borderColor := lipgloss.Color("#333333")
 	if m.inNetworkSubNav && !m.inTableFocus {
+		// Level 2: sub-nav is focused — bright green border
+		borderColor = lipgloss.Color("#00FF7F")
+	} else if m.inTableFocus {
+		// Level 3: focus is inside the table — dim the sub-nav border
+		borderColor = lipgloss.Color("#444444")
+	}
+	subBarStyle := lipgloss.NewStyle().
+		Padding(0, 1).
+		BorderTop(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(borderColor)
+	subContent := lipgloss.JoinHorizontal(lipgloss.Top, items...)
+	return subBarStyle.Width(width - 2).Render(subContent)
+}
+
+func (m Model) renderComputeSubNav(width int) string {
+	subItems := getComputeSubItems()
+	var items []string
+
+	subItemStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+	subItemDisabledStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#444444")).
+		Padding(0, 2)
+
+	activeSubIdx := m.computeSubIdx
+	for i, item := range subItems {
+		if item.Product == m.currentProduct {
+			activeSubIdx = i
+			break
+		}
+	}
+
+	for i, item := range subItems {
+		var style lipgloss.Style
+		label := item.Label
+		if i == activeSubIdx && m.inComputeSubNav && m.inTableFocus {
+			// Level 3: focus moved into the table — show arrow hint, dimmed
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+			label = "▼ " + item.Label
+		} else if i == activeSubIdx && m.inComputeSubNav {
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Padding(0, 2)
+		} else if i == activeSubIdx {
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+		} else if !item.Enabled {
+			style = subItemDisabledStyle
+		} else {
+			style = subItemStyle
+		}
+		items = append(items, style.Render(label))
+	}
+
+	borderColor := lipgloss.Color("#333333")
+	if m.inComputeSubNav && !m.inTableFocus {
 		// Level 2: sub-nav is focused — bright green border
 		borderColor = lipgloss.Color("#00FF7F")
 	} else if m.inTableFocus {
@@ -6278,7 +6361,7 @@ func (m Model) renderFooter() string {
 	case TableView:
 		if m.filterInput != "" {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
-		} else if (m.inStorageSubNav || m.inNetworkSubNav) && m.inTableFocus {
+		} else if (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.inTableFocus {
 			if m.currentProduct == ProductNetworkPrivate {
 				help = "↑↓: Navigate • ←→: Régions↔Local Zones • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else if m.currentProduct == ProductStorageObject {
@@ -6286,15 +6369,15 @@ func (m Model) renderFooter() string {
 			} else {
 				help = "↑↓: Navigate • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back to Sub-menu • q: Quit"
 			}
-		} else if m.inStorageSubNav || m.inNetworkSubNav {
+		} else if m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav {
 			help = "←→: Sub-menu • ↓/Enter: Enter Table • ↑/Esc: Back to main nav • d: Debug • p: Change Project • q: Quit"
 		} else {
 			help = "←→: Switch Product • Enter: Enter Sub-menu • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
 		}
 	case EmptyView:
-		if (m.inStorageSubNav || m.inNetworkSubNav) && m.inTableFocus {
+		if (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.inTableFocus {
 			help = "c: Create • d: Debug • Esc: Back to Sub-menu • q: Quit"
-		} else if m.inStorageSubNav || m.inNetworkSubNav {
+		} else if m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav {
 			help = "←→: Sub-menu • Enter: Enter Table • ↑/Esc: Back to main nav • c: Create • d: Debug • p: Change Project • q: Quit"
 		} else {
 			help = "←→: Switch Product • Enter: Enter Sub-menu • c: Create • d: Debug • p: Change Project • q: Quit"
@@ -6571,11 +6654,24 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.networkSubIdx = (m.networkSubIdx - 1 + len(subItems)) % len(subItems)
 			return m.loadNetworkSubProduct()
 		}
+		// In compute sub-nav (only when focused, not in table)
+		if m.inComputeSubNav && !m.inTableFocus && m.mode != DetailView {
+			subItems := getComputeSubItems()
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.computeSubIdx = i
+					break
+				}
+			}
+			m.computeSubIdx = (m.computeSubIdx - 1 + len(subItems)) % len(subItems)
+			return m.loadComputeSubProduct()
+		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects && !m.inTableFocus {
 			if m.navIdx > 0 {
 				m.navIdx--
 				m.inStorageSubNav = false
 				m.inNetworkSubNav = false
+				m.inComputeSubNav = false
 				return m.loadCurrentProduct()
 			}
 		}
@@ -6663,12 +6759,26 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.networkSubIdx = (m.networkSubIdx + 1) % len(subItems)
 			return m.loadNetworkSubProduct()
 		}
+		// In compute sub-nav (only when focused, not in table)
+		isComputeSubProduct2 := m.currentProduct == ProductInstances || m.currentProduct == ProductInstanceBackup || m.currentProduct == ProductWorkflow
+		if m.inComputeSubNav && !m.inTableFocus && isComputeSubProduct2 && m.mode != DetailView {
+			subItems := getComputeSubItems()
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.computeSubIdx = i
+					break
+				}
+			}
+			m.computeSubIdx = (m.computeSubIdx + 1) % len(subItems)
+			return m.loadComputeSubProduct()
+		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects && !m.inTableFocus {
 			navItems := getNavItems()
 			if m.navIdx < len(navItems)-1 {
 				m.navIdx++
 				m.inStorageSubNav = false
 				m.inNetworkSubNav = false
+				m.inComputeSubNav = false
 				return m.loadCurrentProduct()
 			}
 		}
@@ -6709,7 +6819,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		// Level 3 → Level 2: exit table focus (back to sub-nav focus)
-		if m.inTableFocus && (m.inStorageSubNav || m.inNetworkSubNav) && m.mode != DetailView && m.mode != WizardView {
+		if m.inTableFocus && (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.mode != DetailView && m.mode != WizardView {
 			m.inTableFocus = false
 			return m, nil
 		}
@@ -6720,6 +6830,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
 			m.inNetworkSubNav = false
+			return m, nil
+		}
+		if m.inComputeSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
+			m.inComputeSubNav = false
 			return m, nil
 		}
 		// Go back to node pools view from node pool detail view, or cancel action confirm
@@ -6801,6 +6915,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.inNetworkSubNav = true
 					m.inTableFocus = false
 					return m.loadNetworkSubProduct()
+				} else if !m.inTableFocus {
+					// Level 2 → Level 3: enter table focus
+					m.inTableFocus = true
+					return m, nil
+				}
+				// Level 3: fall through to normal enter handling
+			}
+			if m.navIdx < len(navItems) && navItems[m.navIdx].Product == ProductCompute {
+				if !m.inComputeSubNav {
+					// Level 1 → Level 2: enter sub-nav focus
+					m.inComputeSubNav = true
+					m.inTableFocus = false
+					return m.loadComputeSubProduct()
 				} else if !m.inTableFocus {
 					// Level 2 → Level 3: enter table focus
 					m.inTableFocus = true
@@ -7135,11 +7262,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		key := msg.String()
 		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
 		isNetworkSubProduct := m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB
-		isSubNavProduct := isStorageSubProduct || isNetworkSubProduct
+		isComputeSubProduct := m.currentProduct == ProductInstances || m.currentProduct == ProductInstanceBackup || m.currentProduct == ProductWorkflow
+		isSubNavProduct := isStorageSubProduct || isNetworkSubProduct || isComputeSubProduct
 		navItems := getNavItems()
 
-		// Level 1 → Level 2: ↓ from main nav enters sub-nav for Storage / Networks
-		if (key == "down" || key == "j") && !m.inStorageSubNav && !m.inNetworkSubNav && !m.inTableFocus &&
+		// Level 1 → Level 2: ↓ from main nav enters sub-nav for Storage / Networks / Compute
+		if (key == "down" || key == "j") && !m.inStorageSubNav && !m.inNetworkSubNav && !m.inComputeSubNav && !m.inTableFocus &&
 			m.mode != DetailView && m.mode != ProjectSelectView {
 			if navItems[m.navIdx].Product == ProductStorage {
 				m.inStorageSubNav = true
@@ -7150,6 +7278,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.inNetworkSubNav = true
 				m.inTableFocus = false
 				return m.loadNetworkSubProduct()
+			}
+			if navItems[m.navIdx].Product == ProductCompute {
+				m.inComputeSubNav = true
+				m.inTableFocus = false
+				return m.loadComputeSubProduct()
 			}
 		}
 
@@ -7169,8 +7302,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.inNetworkSubNav = false
 			return m, nil
 		}
+		if (key == "up" || key == "k") && m.inComputeSubNav && !m.inTableFocus && m.mode != DetailView {
+			m.inComputeSubNav = false
+			return m, nil
+		}
 		// In sub-nav focus (Level 2): down → enter table focus (Level 3)
-		if (key == "down" || key == "j") && isSubNavProduct && (m.inStorageSubNav || m.inNetworkSubNav) && !m.inTableFocus && m.mode != DetailView {
+		if (key == "down" || key == "j") && isSubNavProduct && (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && !m.inTableFocus && m.mode != DetailView {
 			m.inTableFocus = true
 			return m, nil
 		}
@@ -9133,6 +9270,7 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	m.currentData = nil
 	m.inStorageSubNav = false
 	m.inNetworkSubNav = false
+	m.inComputeSubNav = false
 	m.inTableFocus = false
 
 	// For Networks, go to default sub-item (Private Networks = index 0)
@@ -9147,10 +9285,16 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 		return m.loadStorageSubProduct()
 	}
 
+	// For Compute, go to default sub-item (Instances = index 0)
+	if currentNav.Product == ProductCompute {
+		m.computeSubIdx = 0
+		return m.loadComputeSubProduct()
+	}
+
 	m.mode = LoadingView
 
-	// For instances and Kubernetes, start the auto-refresh timer
-	if currentNav.Product == ProductInstances || currentNav.Product == ProductKubernetes {
+	// For Kubernetes, start the auto-refresh timer
+	if currentNav.Product == ProductKubernetes {
 		return m, tea.Batch(
 			m.fetchDataForPath(currentNav.Path),
 			m.scheduleRefresh(),
@@ -9192,6 +9336,30 @@ func (m Model) loadNetworkSubProduct() (Model, tea.Cmd) {
 	}
 
 	m.mode = LoadingView
+	return m, m.fetchDataForPath(sub.Path)
+}
+
+func (m Model) loadComputeSubProduct() (Model, tea.Cmd) {
+	subItems := getComputeSubItems()
+	sub := subItems[m.computeSubIdx]
+	m.currentProduct = sub.Product
+	m.detailData = nil
+	m.currentData = nil
+	m.inTableFocus = false
+
+	if !sub.Enabled {
+		m.mode = ComingSoonView
+		return m, nil
+	}
+
+	m.mode = LoadingView
+	// Instances need the auto-refresh timer
+	if sub.Product == ProductInstances {
+		return m, tea.Batch(
+			m.fetchDataForPath(sub.Path),
+			m.scheduleRefresh(),
+		)
+	}
 	return m, m.fetchDataForPath(sub.Path)
 }
 
