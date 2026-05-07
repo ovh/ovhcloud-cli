@@ -1707,6 +1707,62 @@ func (m Model) executeRegionDelete() tea.Cmd {
 	}
 }
 
+// executeGatewayDetachFromNetwork finds all gateway interfaces attached to this private network
+// (matched by OpenStack network ID) across all regions, and deletes them.
+func (m Model) executeGatewayDetachFromNetwork() tea.Cmd {
+	return func() tea.Msg {
+		netID := getStringValue(m.detailData, "id", "")
+		if netID == "" {
+			return gatewayDetachedMsg{err: fmt.Errorf("network ID missing")}
+		}
+		regions, _ := m.detailData["regions"].([]interface{})
+		if len(regions) == 0 {
+			return gatewayDetachedMsg{networkID: netID, err: fmt.Errorf("no regions found on this network")}
+		}
+
+		detached := 0
+		for _, rv := range regions {
+			rm, _ := rv.(map[string]interface{})
+			regionName := getString(rm, "region")
+			openstackID := getString(rm, "openstackId")
+			if regionName == "" || openstackID == "" {
+				continue
+			}
+			gwEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway", m.cloudProject, url.PathEscape(regionName))
+			var gateways []map[string]interface{}
+			if err := httpLib.Client.Get(gwEndpoint, &gateways); err != nil {
+				continue
+			}
+			for _, gw := range gateways {
+				gwID := getString(gw, "id")
+				if gwID == "" {
+					continue
+				}
+				interfaces, _ := gw["interfaces"].([]interface{})
+				for _, iface := range interfaces {
+					ifaceMap, _ := iface.(map[string]interface{})
+					if getString(ifaceMap, "networkId") != openstackID {
+						continue
+					}
+					ifaceID := getString(ifaceMap, "id")
+					if ifaceID == "" {
+						continue
+					}
+					ifaceEndpoint := fmt.Sprintf("%s/%s/interface/%s",
+						gwEndpoint, url.PathEscape(gwID), url.PathEscape(ifaceID))
+					if err := httpLib.Client.Delete(ifaceEndpoint, nil); err == nil {
+						detached++
+					}
+				}
+			}
+		}
+		if detached == 0 {
+			return gatewayDetachedMsg{networkID: netID, err: fmt.Errorf("no gateway interface found attached to this network")}
+		}
+		return gatewayDetachedMsg{networkID: netID}
+	}
+}
+
 func (m Model) executeSubnetDelete() tea.Cmd {
 	return func() tea.Msg {
 		subnets, _ := m.detailData["_subnets"].([]map[string]any)
@@ -2157,20 +2213,9 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 	case ProductStorageBackup:
 		m.table = createVolumeBackupsTable(msg.data, m.width, m.height)
 	case ProductNetworkPrivate:
-		// Split into vRack (tab 0) and Local Zones (tab 1)
-		var vRack, localZones []map[string]interface{}
-		for _, net := range msg.data {
-			if getString(net, "_regionType") == "localzone" {
-				localZones = append(localZones, net)
-			} else {
-				vRack = append(vRack, net)
-			}
-		}
-		m.privNetLocalZones = localZones
 		m.privNetTabIdx = 0
-		// currentData = vRack slice (tab 0); full list kept in msg.data via normal path
-		m.currentData = vRack
-		m.table = createPrivateNetworksTable(vRack, m.width, m.height)
+		m.currentData = msg.data
+		m.table = createPrivateNetworksTable(msg.data, m.width, m.height)
 		m.mode = TableView
 		return m, nil
 	case ProductNetworkPublic:

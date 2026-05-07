@@ -921,6 +921,11 @@ type regionDeletedMsg struct {
 	err       error
 }
 
+type gatewayDetachedMsg struct {
+	networkID string
+	err       error
+}
+
 type privNetDeletedMsg struct {
 	networkName string
 	err         error
@@ -1482,6 +1487,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fetchDataForPath("/networks/private"),
 			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
+
+	case gatewayDetachedMsg:
+		m.actionConfirm = false
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to detach gateway: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ Gateway detached from network"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		if m.detailData != nil {
+			return m, tea.Batch(
+				m.fetchPrivateNetworkDetail(msg.networkID),
+				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 
 	case subnetAddedMsg:
 		m.wizard = WizardData{}
@@ -5337,31 +5359,7 @@ func (m Model) renderObjectStorageWithTabs(tableContent string, width int) strin
 }
 
 func (m Model) renderPrivateNetworksWithTabs(tableContent string, width int) string {
-	var content strings.Builder
-
-	tabActiveStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("#7B68EE")).
-		Foreground(lipgloss.Color("#FFFFFF")).
-		Bold(true).
-		Padding(0, 2)
-	tabInactiveStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("#333333")).
-		Foreground(lipgloss.Color("#888888")).
-		Padding(0, 2)
-
-	tab1 := "Régions (vRack)"
-	tab2 := "Local Zones"
-	var t1, t2 string
-	if m.privNetTabIdx == 0 {
-		t1 = tabActiveStyle.Render(tab1)
-		t2 = tabInactiveStyle.Render(tab2)
-	} else {
-		t1 = tabInactiveStyle.Render(tab1)
-		t2 = tabActiveStyle.Render(tab2)
-	}
-	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, t1, "  ", t2) + "\n\n")
-	content.WriteString(tableContent)
-	return content.String()
+	return tableContent
 }
 
 func (m Model) renderPublicIPsWithTabs(tableContent string, width int) string {
@@ -5978,7 +5976,7 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 	_ = netName
 
 	// Actions
-	actions := []string{"Delete", "Assign Gateway", "Add Subnet", "Delete Subnet", "Delete Region"}
+	actions := []string{"Delete", "Assign Gateway", "Add Subnet", "Delete Subnet", "Delete Region", "Detach Gateway"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
@@ -6512,15 +6510,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// Private Networks: ←/→ switches between vRack and Local Zones tabs when in table focus
-		if m.inNetworkSubNav && m.inTableFocus && m.currentProduct == ProductNetworkPrivate &&
-			(m.mode == TableView || m.mode == EmptyView) {
-			if m.privNetTabIdx > 0 {
-				m.privNetTabIdx = 0
-				m.table = createPrivateNetworksTable(m.currentData, m.width, m.height)
-			}
-			return m, nil
-		}
 		// Object Storage: ←/→ switches between Containers and Users tabs when in table focus
 		if m.inStorageSubNav && m.inTableFocus && m.currentProduct == ProductStorageObject &&
 			(m.mode == TableView || m.mode == EmptyView) {
@@ -6591,7 +6580,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView for Private Networks, navigate actions (0=Delete, 1=Assign Gateway, 2=Add Subnet, 3=Delete Subnet)
 		if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate {
-			if m.selectedAction < 4 {
+			if m.selectedAction < 5 {
 				m.selectedAction++
 				m.actionConfirm = false
 			}
@@ -6608,15 +6597,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if fipAttached && m.selectedAction < 1 {
 				m.selectedAction++
 				m.actionConfirm = false
-			}
-			return m, nil
-		}
-		// Private Networks: ←/→ switches between vRack and Local Zones tabs when in table focus
-		if m.inNetworkSubNav && m.inTableFocus && m.currentProduct == ProductNetworkPrivate &&
-			(m.mode == TableView || m.mode == EmptyView) {
-			if m.privNetTabIdx < 1 {
-				m.privNetTabIdx = 1
-				m.table = createPrivateNetworksTable(m.privNetLocalZones, m.width, m.height)
 			}
 			return m, nil
 		}
@@ -7017,6 +6997,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.actionConfirm {
 					m.actionConfirm = false
 					return m, m.executeRegionDelete()
+				}
+				m.actionConfirm = true
+			case 5: // Detach Gateway
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.executeGatewayDetachFromNetwork()
 				}
 				m.actionConfirm = true
 			}
