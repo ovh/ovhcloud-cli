@@ -26,19 +26,19 @@ import (
 var (
 	cloudprojectStorageS3ColumnsToDisplay = []string{"name", "region", "createdAt"}
 
-	//go:embed templates/cloud_storage_s3.tmpl
+	//go:embed templates/cloud_storage_object.tmpl
 	cloudStorageS3Template string
 
-	//go:embed templates/cloud_storage_s3_object.tmpl
+	//go:embed templates/cloud_storage_object_object.tmpl
 	cloudStorageS3ObjectTemplate string
 
-	//go:embed parameter-samples/storage-s3-create.json
+	//go:embed parameter-samples/storage-object-create.json
 	CloudStorageS3CreationExample string
 
-	//go:embed parameter-samples/storage-s3-presigned-url.json
+	//go:embed parameter-samples/storage-object-presigned-url.json
 	CloudStorageS3PresignedURLExample string
 
-	//go:embed parameter-samples/storage-s3-lifecycle.json
+	//go:embed parameter-samples/storage-object-lifecycle.json
 	CloudStorageS3LifecycleExample string
 
 	StorageS3LifecycleSpec struct {

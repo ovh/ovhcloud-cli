@@ -117,8 +117,7 @@ func init() {
 	initCloudRancherCommand(cloudCmd)
 	initCloudReferenceCmd(cloudCmd)
 	initCloudSavingsPlanCommand(cloudCmd)
-	initCloudIPFailoverCommand(cloudCmd)
-	initCloudFloatingIPCommand(cloudCmd)
+	initCloudIPCommand(cloudCmd)
 	initCloudAlertingCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)

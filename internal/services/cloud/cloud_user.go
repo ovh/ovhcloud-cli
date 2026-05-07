@@ -34,7 +34,7 @@ var (
 	//go:embed parameter-samples/user-create.json
 	UserCreateExample string
 
-	//go:embed parameter-samples/storage-s3-policy.json
+	//go:embed parameter-samples/storage-object-policy.json
 	CloudStorageS3ContainerPolicyExample string
 
 	UserSpec struct {
