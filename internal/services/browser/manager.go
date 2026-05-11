@@ -56,6 +56,7 @@ const (
 	S3CredentialsView         // S3 user credentials display after creation
 	LBPoolDetailView          // Detail view for a single LB pool
 	LBListenerDetailView      // Detail view for a single LB listener
+	LBL7PolicyDetailView      // Detail view for a single L7 policy
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -532,6 +533,7 @@ type WizardData struct {
 	l7PolicyRedirectUrlInput string
 	l7PolicyRedirectUrl      string
 	l7PolicyConfirmIdx       int
+	l7PolicyEditId           string // non-empty = edit mode (policy ID being edited)
 
 	// Floating IP wizard fields
 	fipRegion            string
@@ -619,6 +621,10 @@ type Model struct {
 	lbListenerDetailConfirm   bool                  // Confirm mode in listener detail
 	lbDetailSection           int                   // 0=Listeners block focused, 1=Pools block focused
 	lbL7Policies              map[string][]map[string]interface{} // key = listenerId
+	lbL7PolicyListIdx         int                                 // Highlighted policy row in listener detail (-1 = none)
+	selectedLBL7Policy        map[string]interface{}              // Currently selected policy for detail view
+	lbL7PolicyDetailActionIdx int                                 // Selected action in policy detail (0=Edit, 1=Delete)
+	lbL7PolicyDetailConfirm   bool                                // Confirm mode in policy detail
 	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
 	detailRefreshId   string
 	detailRefreshName string
@@ -1157,6 +1163,16 @@ type lbL7PolicyCreatedMsg struct {
 type lbL7PoliciesLoadedMsg struct {
 	listenerID string
 	policies   []map[string]interface{}
+	err        error
+}
+
+type lbL7PolicyDeletedMsg struct {
+	policyName string
+	err        error
+}
+
+type lbL7PolicyUpdatedMsg struct {
+	policyName string
 	err        error
 }
 
@@ -2089,6 +2105,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbL7PolicyCreatedMsg:
 		m.wizard = WizardData{}
 		m.mode = LBListenerDetailView
+		m.lbL7PolicyListIdx = -1
 		if msg.err != nil {
 			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
@@ -2116,6 +2133,55 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.lbL7Policies[msg.listenerID] = msg.policies
 		}
 		return m, nil
+
+	case lbL7PolicyDeletedMsg:
+		m.mode = LBListenerDetailView
+		m.selectedLBL7Policy = nil
+		m.lbL7PolicyDetailActionIdx = 0
+		m.lbL7PolicyListIdx = -1
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ L7 Policy \"%s\" deleted successfully", msg.policyName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		if m.selectedLBListener != nil {
+			listenerID := getStringValue(m.selectedLBListener, "id", "")
+			region := getStringValue(m.detailData, "region", "")
+			if listenerID != "" && region != "" {
+				return m, tea.Batch(
+					m.fetchLBL7Policies(listenerID, region),
+					tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case lbL7PolicyUpdatedMsg:
+		m.wizard = WizardData{}
+		m.mode = LBListenerDetailView
+		m.selectedLBL7Policy = nil
+		m.lbL7PolicyDetailActionIdx = 0
+		m.lbL7PolicyListIdx = -1
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ L7 Policy \"%s\" updated successfully", msg.policyName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		if m.selectedLBListener != nil {
+			listenerID := getStringValue(m.selectedLBListener, "id", "")
+			region := getStringValue(m.detailData, "region", "")
+			if listenerID != "" && region != "" {
+				return m, tea.Batch(
+					m.fetchLBL7Policies(listenerID, region),
+					tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 
 	case lbRegionsLoadedMsg:
 		m.wizard.isLoading = false
@@ -3159,6 +3225,8 @@ func (m Model) renderContentBox(width int) string {
 		contentStr = m.renderLBPoolDetailView(width - 6)
 	case LBListenerDetailView:
 		contentStr = m.renderLBListenerDetailView(width - 6)
+	case LBL7PolicyDetailView:
+		contentStr = m.renderLBL7PolicyDetailView(width - 6)
 	case DeleteConfirmView:
 		contentStr = m.renderDeleteConfirmView()
 	case DebugView:
@@ -6861,14 +6929,14 @@ func (m Model) renderLBListenerDetailView(width int) string {
 		l7Content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
 			Render("  No L7 Policies. Select «L7 Policies» to create one."))
 	} else {
-		hName := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(28).Render("Name")
+		hName := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(28).Render("  Name")
 		hPos := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(12).Render("Position")
 		hAction := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22).Render("Action")
 		hStatus := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(16).Render("Status")
 		l7Content.WriteString(hName + hPos + hAction + hStatus + "\n")
 		l7Content.WriteString(strings.Repeat("─", min(width-8, 78)) + "\n")
-		for _, p := range l7Policies {
-			pName := truncate(getStringValue(p, "name", "-"), 26)
+		for i, p := range l7Policies {
+			pName := truncate(getStringValue(p, "name", "-"), 24)
 			pPos := fmt.Sprintf("%v", p["position"])
 			pAction := getStringValue(p, "action", "-")
 			pStatus := getStringValue(p, "provisioningStatus", getStringValue(p, "operatingStatus", "-"))
@@ -6880,17 +6948,118 @@ func (m Model) renderLBListenerDetailView(width int) string {
 					statusColor = lipgloss.Color("#FFD700")
 				}
 			}
+			cursor := "  "
+			nameStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Width(26)
+			if i == m.lbL7PolicyListIdx {
+				cursor = "▶ "
+				nameStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE")).Bold(true).Width(26)
+			}
 			l7Content.WriteString(
-				"  " +
-					lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Width(26).Render(pName) +
+				cursor +
+					nameStyle.Render(pName) +
 					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(12).Render(pPos) +
 					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(22).Render(pAction) +
 					lipgloss.NewStyle().Foreground(statusColor).Width(16).Render(pStatus) + "\n",
 			)
 		}
 	}
-	l7Box := renderBox(fmt.Sprintf("L7 Policies (%d)", len(l7Policies)), l7Content.String(), width-4)
+	l7Footer := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("  ↑↓: Navigate • Enter: Open details")
+	l7Box := renderBox(fmt.Sprintf("L7 Policies (%d)", len(l7Policies)), l7Content.String()+"\n"+l7Footer, width-4)
 	content.WriteString("\n\n" + l7Box)
+
+	return content.String()
+}
+
+func (m Model) renderLBL7PolicyDetailView(width int) string {
+	var content strings.Builder
+
+	if m.selectedLBL7Policy == nil {
+		return "No L7 policy selected"
+	}
+
+	policyID := getStringValue(m.selectedLBL7Policy, "id", "N/A")
+	policyName := getStringValue(m.selectedLBL7Policy, "name", "N/A")
+	action := getStringValue(m.selectedLBL7Policy, "action", "N/A")
+	position := fmt.Sprintf("%v", m.selectedLBL7Policy["position"])
+	operating := getStringValue(m.selectedLBL7Policy, "operatingStatus", "N/A")
+	provisioning := getStringValue(m.selectedLBL7Policy, "provisioningStatus", "N/A")
+	listenerName := "-"
+	if m.selectedLBListener != nil {
+		listenerName = getStringValue(m.selectedLBListener, "name", "-")
+	}
+	region := getStringValue(m.detailData, "region", "N/A")
+
+	// Redirect target
+	redirectTarget := "-"
+	if v := getStringValue(m.selectedLBL7Policy, "redirectUrl", ""); v != "" {
+		redirectTarget = v
+	} else if v := getStringValue(m.selectedLBL7Policy, "redirectPrefix", ""); v != "" {
+		redirectTarget = "[prefix] " + v
+	} else if poolID := getStringValue(m.selectedLBL7Policy, "redirectPoolId", ""); poolID != "" {
+		redirectTarget = poolID
+		lbID := getStringValue(m.detailData, "id", "")
+		if pools, ok := m.lbPools[lbID]; ok {
+			for _, p := range pools {
+				if getStringValue(p, "id", "") == poolID {
+					redirectTarget = getStringValue(p, "name", poolID)
+					break
+				}
+			}
+		}
+	}
+
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	// Actions: Edit / Delete
+	actions := []string{"Edit", "Delete"}
+	var actionParts []string
+	for i, act := range actions {
+		if i == m.lbL7PolicyDetailActionIdx {
+			bg := lipgloss.Color("#7B68EE")
+			if act == "Delete" {
+				bg = lipgloss.Color("#FF4444")
+			}
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(bg).Foreground(lipgloss.Color("#FFFFFF")).Bold(true).Padding(0, 1).Render(act))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+act+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.lbL7PolicyDetailConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).Bold(true).
+			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Esc to cancel", actions[m.lbL7PolicyDetailActionIdx]))
+	}
+	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
+	content.WriteString(actionsBox + "\n\n")
+
+	// Policy info
+	var infoContent strings.Builder
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(policyID, 36))))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Listener"), valueSt.Render(listenerName)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Region"), valueSt.Render(region)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Action"), valueSt.Render(action)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Position"), valueSt.Render(position)))
+	if redirectTarget != "-" {
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Redirect Target"), valueSt.Render(redirectTarget)))
+	}
+
+	statusColor := lipgloss.Color("#00FF7F")
+	if strings.ToLower(operating) != "online" && strings.ToLower(operating) != "active" {
+		statusColor = lipgloss.Color("#FFD700")
+		if strings.ToLower(operating) == "error" {
+			statusColor = lipgloss.Color("#FF6B6B")
+		}
+	}
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Operating Status"),
+		lipgloss.NewStyle().Foreground(statusColor).Render(operating)))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Supply Status"), valueSt.Render(provisioning)))
+
+	infoBox := renderBox("L7 Policy "+policyName, infoContent.String(), width-4)
+	content.WriteString(infoBox)
 
 	return content.String()
 }
@@ -7398,8 +7567,16 @@ func (m Model) renderFooter() string {
 	case LBListenerDetailView:
 		if m.lbListenerDetailConfirm {
 			help = "Enter: Confirm • Esc: Cancel"
+		} else if m.lbL7PolicyListIdx >= 0 {
+			help = "↑↓: Navigate Policies • Enter: Open • Esc: Deselect • q: Quit"
 		} else {
-			help = "←→: Select Action • Enter: Execute • Esc: Back to LB • q: Quit"
+			help = "←→: Select Action • Enter: Execute • ↓: Navigate Policies • Esc: Back to LB • q: Quit"
+		}
+	case LBL7PolicyDetailView:
+		if m.lbL7PolicyDetailConfirm {
+			help = "Enter: Confirm • Esc: Cancel"
+		} else {
+			help = "←→: Select Action • Enter: Execute • Esc: Back to Listener • q: Quit"
 		}
 	case WizardView:
 		if m.wizard.cleanupPending {
@@ -7620,8 +7797,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In LBListenerDetailView, navigate actions
-		if m.mode == LBListenerDetailView {
+		// In LBL7PolicyDetailView, navigate actions
+		if m.mode == LBL7PolicyDetailView {
+			if m.lbL7PolicyDetailActionIdx > 0 {
+				m.lbL7PolicyDetailActionIdx--
+				m.lbL7PolicyDetailConfirm = false
+			}
+			return m, nil
+		}
+		// In LBListenerDetailView, navigate actions (only when not navigating policies)
+		if m.mode == LBListenerDetailView && m.lbL7PolicyListIdx < 0 {
 			if m.lbListenerDetailActionIdx > 0 {
 				m.lbListenerDetailActionIdx--
 				m.lbListenerDetailConfirm = false
@@ -7749,8 +7934,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In LBListenerDetailView, navigate actions (0=Edit, 1=Delete, 2=L7 Policies)
-		if m.mode == LBListenerDetailView {
+		// In LBL7PolicyDetailView, navigate actions (0=Edit, 1=Delete)
+		if m.mode == LBL7PolicyDetailView {
+			if m.lbL7PolicyDetailActionIdx < 1 {
+				m.lbL7PolicyDetailActionIdx++
+				m.lbL7PolicyDetailConfirm = false
+			}
+			return m, nil
+		}
+		// In LBListenerDetailView, navigate actions (0=Edit, 1=Delete, 2=L7 Policies) — only when not navigating policies
+		if m.mode == LBListenerDetailView && m.lbL7PolicyListIdx < 0 {
 			if m.lbListenerDetailActionIdx < 2 {
 				m.lbListenerDetailActionIdx++
 				m.lbListenerDetailConfirm = false
@@ -7918,10 +8111,24 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// Go back to LB detail from LB listener detail view, or cancel confirm
+		// Go back to listener detail from L7 policy detail, or cancel confirm
+		if m.mode == LBL7PolicyDetailView {
+			if m.lbL7PolicyDetailConfirm {
+				m.lbL7PolicyDetailConfirm = false
+			} else {
+				m.mode = LBListenerDetailView
+				m.selectedLBL7Policy = nil
+				m.lbL7PolicyDetailActionIdx = 0
+				m.lbL7PolicyListIdx = -1
+			}
+			return m, nil
+		}
+		// Go back to LB detail from LB listener detail view, or cancel confirm / deselect policy
 		if m.mode == LBListenerDetailView {
 			if m.lbListenerDetailConfirm {
 				m.lbListenerDetailConfirm = false
+			} else if m.lbL7PolicyListIdx >= 0 {
+				m.lbL7PolicyListIdx = -1
 			} else {
 				m.mode = DetailView
 				m.selectedLBListener = nil
@@ -8095,7 +8302,82 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.lbPoolDetailConfirm = true
 			}
 			return m, nil
+		} else if m.mode == LBL7PolicyDetailView {
+			switch m.lbL7PolicyDetailActionIdx {
+			case 0: // Edit — launch edit wizard
+				policyName := getStringValue(m.selectedLBL7Policy, "name", "")
+				policyAction := getStringValue(m.selectedLBL7Policy, "action", "")
+				policyPosition := 1
+				if v, ok := m.selectedLBL7Policy["position"]; ok {
+					switch vt := v.(type) {
+					case float64:
+						policyPosition = int(vt)
+					case int:
+						policyPosition = vt
+					}
+				}
+				actionIdx := 0
+				for i, opt := range lbL7PolicyActionOptions {
+					if opt.value == policyAction {
+						actionIdx = i
+						break
+					}
+				}
+				redirectPoolId := getStringValue(m.selectedLBL7Policy, "redirectPoolId", "")
+				redirectUrl := getStringValue(m.selectedLBL7Policy, "redirectUrl", "")
+				if redirectUrl == "" {
+					redirectUrl = getStringValue(m.selectedLBL7Policy, "redirectPrefix", "")
+				}
+				redirectPoolIdx := 0
+				if redirectPoolId != "" {
+					allPools := m.lbPools[getStringValue(m.detailData, "id", "")]
+					for j, p := range allPools {
+						if getStringValue(p, "id", "") == redirectPoolId {
+							redirectPoolIdx = j
+							break
+						}
+					}
+				}
+				m.mode = WizardView
+				m.wizard = WizardData{
+					step:                    LBL7PolicyWizardStepName,
+					l7PolicyEditId:          getStringValue(m.selectedLBL7Policy, "id", ""),
+					l7PolicyListenerId:      getStringValue(m.selectedLBListener, "id", ""),
+					l7PolicyListenerName:    getStringValue(m.selectedLBListener, "name", ""),
+					l7PolicyLBRegion:        getStringValue(m.detailData, "region", ""),
+					l7PolicyLBId:            getStringValue(m.detailData, "id", ""),
+					l7PolicyNameInput:       policyName,
+					l7PolicyName:            policyName,
+					l7PolicyPositionInput:   fmt.Sprintf("%d", policyPosition),
+					l7PolicyPosition:        policyPosition,
+					l7PolicyActionIdx:       actionIdx,
+					l7PolicyAction:          policyAction,
+					l7PolicyRedirectPoolIdx: redirectPoolIdx,
+					l7PolicyRedirectPoolId:  redirectPoolId,
+					l7PolicyRedirectUrlInput: redirectUrl,
+					l7PolicyRedirectUrl:     redirectUrl,
+				}
+				return m, nil
+			case 1: // Delete
+				if m.lbL7PolicyDetailConfirm {
+					m.lbL7PolicyDetailConfirm = false
+					return m, m.executeDeleteLBL7Policy()
+				}
+				m.lbL7PolicyDetailConfirm = true
+			}
+			return m, nil
 		} else if m.mode == LBListenerDetailView {
+			// If a policy row is selected, Enter opens its detail view
+			if listenerID := getStringValue(m.selectedLBListener, "id", ""); listenerID != "" {
+				policies := m.lbL7Policies[listenerID]
+				if m.lbL7PolicyListIdx >= 0 && m.lbL7PolicyListIdx < len(policies) {
+					m.selectedLBL7Policy = policies[m.lbL7PolicyListIdx]
+					m.lbL7PolicyDetailActionIdx = 0
+					m.lbL7PolicyDetailConfirm = false
+					m.mode = LBL7PolicyDetailView
+					return m, nil
+				}
+			}
 			switch m.lbListenerDetailActionIdx {
 			case 0: // Edit — launch edit wizard
 				listenerName := getStringValue(m.selectedLBListener, "name", "")
@@ -8198,6 +8480,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.selectedLBListener = listeners[m.lbListenerListIdx]
 				m.lbListenerDetailActionIdx = 0
 				m.lbListenerDetailConfirm = false
+				m.lbL7PolicyListIdx = -1
 				m.mode = LBListenerDetailView
 				listenerID := getStringValue(m.selectedLBListener, "id", "")
 				region := getStringValue(m.detailData, "region", "")
@@ -8675,8 +8958,25 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// LBPoolDetailView / LBListenerDetailView: ↑/↓ not used
-		if m.mode == LBPoolDetailView || m.mode == LBListenerDetailView {
+		// LBPoolDetailView / LBL7PolicyDetailView: ↑/↓ not used
+		if m.mode == LBPoolDetailView || m.mode == LBL7PolicyDetailView {
+			return m, nil
+		}
+		// LBListenerDetailView: ↑/↓ to navigate L7 policies list
+		if m.mode == LBListenerDetailView {
+			listenerID := getStringValue(m.selectedLBListener, "id", "")
+			policies := m.lbL7Policies[listenerID]
+			if key == "down" || key == "j" {
+				if len(policies) > 0 && m.lbL7PolicyListIdx < len(policies)-1 {
+					m.lbL7PolicyListIdx++
+				}
+			} else {
+				if m.lbL7PolicyListIdx > 0 {
+					m.lbL7PolicyListIdx--
+				} else {
+					m.lbL7PolicyListIdx = -1
+				}
+			}
 			return m, nil
 		}
 		// Private network detail: ↑/↓ to select region when Delete Region action is active
@@ -9091,6 +9391,7 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			// L7 Policy wizard: return to listener detail view
 			m.wizard = WizardData{}
 			m.mode = LBListenerDetailView
+			m.lbL7PolicyListIdx = -1
 			return m, nil
 		} else if m.wizard.step >= 1400 {
 			// LB Listener wizard: return to LB detail view

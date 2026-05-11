@@ -340,6 +340,10 @@ func (m Model) handleLBL7PolicyWizardConfirmKeys(key string) (tea.Model, tea.Cmd
 			return m, nil
 		}
 		m.wizard.isLoading = true
+		if m.wizard.l7PolicyEditId != "" {
+			m.wizard.loadingMessage = "Updating L7 Policy..."
+			return m, m.updateLBL7Policy()
+		}
 		m.wizard.loadingMessage = "Creating L7 Policy..."
 		return m, m.createLBL7Policy()
 	}
@@ -403,5 +407,60 @@ func (m Model) fetchLBL7Policies(listenerID, region string) tea.Cmd {
 			}
 		}
 		return lbL7PoliciesLoadedMsg{listenerID: listenerID, policies: policies}
+	}
+}
+
+func (m Model) executeDeleteLBL7Policy() tea.Cmd {
+	return func() tea.Msg {
+		if m.selectedLBL7Policy == nil {
+			return lbL7PolicyDeletedMsg{err: fmt.Errorf("no L7 policy selected")}
+		}
+		if m.cloudProject == "" {
+			return lbL7PolicyDeletedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		policyID := getStringValue(m.selectedLBL7Policy, "id", "")
+		policyName := getStringValue(m.selectedLBL7Policy, "name", "")
+		region := getStringValue(m.detailData, "region", "")
+		if policyID == "" || region == "" {
+			return lbL7PolicyDeletedMsg{err: fmt.Errorf("L7 policy ID or region not found")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(policyID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbL7PolicyDeletedMsg{policyName: policyName, err: fmt.Errorf("deletion failed: %w", err)}
+		}
+		return lbL7PolicyDeletedMsg{policyName: policyName}
+	}
+}
+
+func (m Model) updateLBL7Policy() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbL7PolicyUpdatedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		if m.wizard.l7PolicyEditId == "" || m.wizard.l7PolicyLBRegion == "" {
+			return lbL7PolicyUpdatedMsg{err: fmt.Errorf("L7 policy ID or region missing")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s",
+			m.cloudProject, url.PathEscape(m.wizard.l7PolicyLBRegion), url.PathEscape(m.wizard.l7PolicyEditId))
+		body := map[string]interface{}{
+			"name":     m.wizard.l7PolicyName,
+			"position": m.wizard.l7PolicyPosition,
+			"action":   m.wizard.l7PolicyAction,
+		}
+		if m.wizard.l7PolicyAction == "redirectToPool" && m.wizard.l7PolicyRedirectPoolId != "" {
+			body["redirectPoolId"] = m.wizard.l7PolicyRedirectPoolId
+		}
+		if m.wizard.l7PolicyAction == "redirectToURL" {
+			body["redirectUrl"] = m.wizard.l7PolicyRedirectUrl
+		}
+		if m.wizard.l7PolicyAction == "redirectPrefix" {
+			body["redirectPrefix"] = m.wizard.l7PolicyRedirectUrl
+		}
+		var result map[string]interface{}
+		if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
+			return lbL7PolicyUpdatedMsg{policyName: m.wizard.l7PolicyName, err: fmt.Errorf("update failed: %w", err)}
+		}
+		return lbL7PolicyUpdatedMsg{policyName: m.wizard.l7PolicyName}
 	}
 }
