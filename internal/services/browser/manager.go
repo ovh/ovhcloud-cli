@@ -57,6 +57,7 @@ const (
 	LBPoolDetailView          // Detail view for a single LB pool
 	LBListenerDetailView      // Detail view for a single LB listener
 	LBL7PolicyDetailView      // Detail view for a single L7 policy
+	LBL7RulesView             // List view for L7 rules of a policy
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -213,6 +214,16 @@ const (
 	LBL7PolicyWizardStepRedirectPool                          // select redirect pool (only for redirectToPool)
 	LBL7PolicyWizardStepRedirectUrl                           // enter redirect URL (redirectToUrl / redirectPrefix)
 	LBL7PolicyWizardStepConfirm                               // confirm + create
+)
+
+const (
+	// L7 Rule wizard steps (offset by 1600)
+	LBL7RuleWizardStepType       WizardStep = iota + 1600 // select rule type
+	LBL7RuleWizardStepCompare                             // select comparison type
+	LBL7RuleWizardStepKey                                 // enter key (optional)
+	LBL7RuleWizardStepValue                               // enter value
+	LBL7RuleWizardStepInvert                              // toggle invert
+	LBL7RuleWizardStepConfirm                             // confirm + create
 )
 
 // ProductType represents a product category
@@ -535,6 +546,21 @@ type WizardData struct {
 	l7PolicyConfirmIdx       int
 	l7PolicyEditId           string // non-empty = edit mode (policy ID being edited)
 
+	// L7 Rule wizard fields
+	l7RulePolicyId    string // policy ID the rule belongs to
+	l7RulePolicyName  string // policy name (display)
+	l7RuleLBRegion    string // region
+	l7RuleTypeIdx     int    // selected index in lbL7RuleTypeOptions
+	l7RuleType        string // e.g. "HEADER", "PATH", "HOST_NAME", ...
+	l7RuleCompareIdx  int    // selected index in compare options for this type
+	l7RuleCompare     string // e.g. "EQUAL_TO", "STARTS_WITH", "REGEX", ...
+	l7RuleKeyInput    string // raw input for key field
+	l7RuleKey         string // key (for HEADER / COOKIE type)
+	l7RuleValueInput  string // raw input for value
+	l7RuleValue       string // value to compare against
+	l7RuleInvert      bool   // whether to invert the rule
+	l7RuleConfirmIdx  int    // 0=Confirm, 1=Cancel
+
 	// Floating IP wizard fields
 	fipRegion            string
 	fipRegionIdx         int
@@ -621,6 +647,7 @@ type Model struct {
 	lbListenerDetailConfirm   bool                  // Confirm mode in listener detail
 	lbDetailSection           int                   // 0=Listeners block focused, 1=Pools block focused
 	lbL7Policies              map[string][]map[string]interface{} // key = listenerId
+	lbL7Rules                 map[string][]map[string]interface{} // key = policyId
 	lbL7PolicyListIdx         int                                 // Highlighted policy row in listener detail (-1 = none)
 	selectedLBL7Policy        map[string]interface{}              // Currently selected policy for detail view
 	lbL7PolicyDetailActionIdx int                                 // Selected action in policy detail (0=Edit, 1=Delete)
@@ -1164,6 +1191,17 @@ type lbL7PoliciesLoadedMsg struct {
 	listenerID string
 	policies   []map[string]interface{}
 	err        error
+}
+
+type lbL7RulesLoadedMsg struct {
+	policyID string
+	rules    []map[string]interface{}
+	err      error
+}
+
+type lbL7RuleCreatedMsg struct {
+	policyID string
+	err      error
 }
 
 type lbL7PolicyDeletedMsg struct {
@@ -2134,10 +2172,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case lbL7RulesLoadedMsg:
+		if msg.err == nil {
+			if m.lbL7Rules == nil {
+				m.lbL7Rules = make(map[string][]map[string]interface{})
+			}
+			m.lbL7Rules[msg.policyID] = msg.rules
+		}
+		return m, nil
+
+	case lbL7RuleCreatedMsg:
+		m.wizard = WizardData{}
+		m.mode = LBL7RulesView
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ L7 Rule created successfully"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		region := getStringValue(m.detailData, "region", "")
+		if msg.policyID != "" && region != "" {
+			return m, tea.Batch(
+				m.fetchLBL7Rules(msg.policyID, region),
+				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
 	case lbL7PolicyDeletedMsg:
 		m.mode = LBListenerDetailView
 		m.selectedLBL7Policy = nil
 		m.lbL7PolicyDetailActionIdx = 0
+		m.lbL7PolicyListIdx = -1
 		m.lbL7PolicyListIdx = -1
 		if msg.err != nil {
 			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
@@ -3096,7 +3163,9 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 1500 {
+		if m.wizard.step >= 1600 {
+			titleText = " 📋 Create L7 Rule "
+		} else if m.wizard.step >= 1500 {
 			titleText = " 📋 Create L7 Policy "
 		} else if m.wizard.step >= 1400 {
 			titleText = " 🔊 Create Listener "
@@ -3227,6 +3296,8 @@ func (m Model) renderContentBox(width int) string {
 		contentStr = m.renderLBListenerDetailView(width - 6)
 	case LBL7PolicyDetailView:
 		contentStr = m.renderLBL7PolicyDetailView(width - 6)
+	case LBL7RulesView:
+		contentStr = m.renderLBL7RulesView(width - 6)
 	case DeleteConfirmView:
 		contentStr = m.renderDeleteConfirmView()
 	case DebugView:
@@ -4077,7 +4148,15 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 1400 {
+	if m.wizard.step >= 1600 {
+		// L7 Rule wizard
+		steps = append(steps, "Type", "Comparison", "Key", "Value", "Invert", "Confirm")
+		stepMapping = append(stepMapping, LBL7RuleWizardStepType, LBL7RuleWizardStepCompare, LBL7RuleWizardStepKey, LBL7RuleWizardStepValue, LBL7RuleWizardStepInvert, LBL7RuleWizardStepConfirm)
+	} else if m.wizard.step >= 1500 {
+		// L7 Policy wizard
+		steps = append(steps, "Name", "Position", "Action", "Confirm")
+		stepMapping = append(stepMapping, LBL7PolicyWizardStepName, LBL7PolicyWizardStepPosition, LBL7PolicyWizardStepAction, LBL7PolicyWizardStepConfirm)
+	} else if m.wizard.step >= 1400 {
 		// LB Listener wizard
 		steps = append(steps, "Name", "Protocol", "Port", "Pool", "Confirm")
 		stepMapping = append(stepMapping, LBListenerWizardStepName, LBListenerWizardStepProto, LBListenerWizardStepPort, LBListenerWizardStepPool, LBListenerWizardStepConfirm)
@@ -4375,6 +4454,19 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderLBL7PolicyWizardRedirectUrlStep(width))
 	case LBL7PolicyWizardStepConfirm:
 		content.WriteString(m.renderLBL7PolicyWizardConfirmStep(width))
+	// L7 Rule wizard steps
+	case LBL7RuleWizardStepType:
+		content.WriteString(m.renderLBL7RuleWizardTypeStep(width))
+	case LBL7RuleWizardStepCompare:
+		content.WriteString(m.renderLBL7RuleWizardCompareStep(width))
+	case LBL7RuleWizardStepKey:
+		content.WriteString(m.renderLBL7RuleWizardKeyStep(width))
+	case LBL7RuleWizardStepValue:
+		content.WriteString(m.renderLBL7RuleWizardValueStep(width))
+	case LBL7RuleWizardStepInvert:
+		content.WriteString(m.renderLBL7RuleWizardInvertStep(width))
+	case LBL7RuleWizardStepConfirm:
+		content.WriteString(m.renderLBL7RuleWizardConfirmStep(width))
 	// Workflow wizard steps
 	case WorkflowWizardStepType:
 		content.WriteString(m.renderWorkflowWizardTypeStep(width))
@@ -7011,14 +7103,16 @@ func (m Model) renderLBL7PolicyDetailView(width int) string {
 	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
 	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	// Actions: Edit / Delete
-	actions := []string{"Edit", "Delete"}
+	// Actions: Edit / Delete / L7 Rules
+	actions := []string{"Edit", "Delete", "L7 Rules"}
 	var actionParts []string
 	for i, act := range actions {
 		if i == m.lbL7PolicyDetailActionIdx {
 			bg := lipgloss.Color("#7B68EE")
 			if act == "Delete" {
 				bg = lipgloss.Color("#FF4444")
+			} else if act == "L7 Rules" {
+				bg = lipgloss.Color("#00AA55")
 			}
 			actionParts = append(actionParts, lipgloss.NewStyle().
 				Background(bg).Foreground(lipgloss.Color("#FFFFFF")).Bold(true).Padding(0, 1).Render(act))
@@ -7060,6 +7154,128 @@ func (m Model) renderLBL7PolicyDetailView(width int) string {
 
 	infoBox := renderBox("L7 Policy "+policyName, infoContent.String(), width-4)
 	content.WriteString(infoBox)
+
+	return content.String()
+}
+
+func (m Model) renderLBL7RulesView(width int) string {
+	var content strings.Builder
+
+	if m.selectedLBL7Policy == nil {
+		return "No L7 policy selected"
+	}
+
+	policyID := getStringValue(m.selectedLBL7Policy, "id", "")
+	policyName := getStringValue(m.selectedLBL7Policy, "name", "N/A")
+	rules := m.lbL7Rules[policyID]
+
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	// Action: Create Rule
+	createBtn := lipgloss.NewStyle().
+		Background(lipgloss.Color("#00AA55")).Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).Padding(0, 1).Render("+ Create Rule")
+	actionsBox := renderBox("Actions (Enter to execute)", createBtn, width-4)
+	content.WriteString(actionsBox + "\n\n")
+
+	var rulesContent strings.Builder
+	if len(rules) == 0 {
+		rulesContent.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
+			Render("  No L7 Rules defined for this policy."))
+	} else {
+		// Table header
+		hType := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18).Render("Type")
+		hComp := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(16).Render("Comparison")
+		hKey := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(16).Render("Key")
+		hVal := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22).Render("Value")
+		hInv := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(8).Render("Invert")
+		hSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(14).Render("Status")
+		rulesContent.WriteString("  " + hType + hComp + hKey + hVal + hInv + hSt + "\n")
+		rulesContent.WriteString("  " + strings.Repeat("─", min(width-10, 92)) + "\n")
+
+		for _, r := range rules {
+			rType := truncate(getStringValue(r, "type", "-"), 16)
+			rComp := truncate(getStringValue(r, "compareType", "-"), 14)
+			rKey := truncate(getStringValue(r, "key", "-"), 14)
+			rVal := truncate(getStringValue(r, "value", "-"), 20)
+			invertStr := "No"
+			if inv, ok := r["invert"].(bool); ok && inv {
+				invertStr = "Yes"
+			}
+			rStatus := getStringValue(r, "provisioningStatus", getStringValue(r, "operatingStatus", "-"))
+
+			statusColor := lipgloss.Color("#00FF7F")
+			if strings.ToLower(rStatus) != "active" && strings.ToLower(rStatus) != "online" {
+				if strings.ToLower(rStatus) == "error" {
+					statusColor = lipgloss.Color("#FF6B6B")
+				} else {
+					statusColor = lipgloss.Color("#FFD700")
+				}
+			}
+			invertColor := lipgloss.Color("#CCCCCC")
+			if invertStr == "Yes" {
+				invertColor = lipgloss.Color("#FFD700")
+			}
+
+			rulesContent.WriteString(
+				"  " +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Width(18).Render(rType) +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(16).Render(rComp) +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(16).Render(rKey) +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(22).Render(rVal) +
+					lipgloss.NewStyle().Foreground(invertColor).Width(8).Render(invertStr) +
+					lipgloss.NewStyle().Foreground(statusColor).Width(14).Render(rStatus) + "\n",
+			)
+		}
+	}
+
+	rulesBox := renderBox(fmt.Sprintf("L7 Rules (%d) — Policy: %s", len(rules), policyName), rulesContent.String(), width-4)
+	content.WriteString(rulesBox)
+
+	// If rules exist, show detail of first rule below (expanded view per rule)
+	if len(rules) > 0 {
+		content.WriteString("\n")
+		for idx, r := range rules {
+			rType := getStringValue(r, "type", "N/A")
+			rComp := getStringValue(r, "compareType", "N/A")
+			rKey := getStringValue(r, "key", "-")
+			rVal := getStringValue(r, "value", "-")
+			invertStr := "No"
+			if inv, ok := r["invert"].(bool); ok && inv {
+				invertStr = "Yes"
+			}
+			rStatus := getStringValue(r, "provisioningStatus", getStringValue(r, "operatingStatus", "N/A"))
+			rID := getStringValue(r, "id", "N/A")
+
+			var detailContent strings.Builder
+			detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(rID, 36))))
+			detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Type"), valueSt.Render(rType)))
+			detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Comparison"), valueSt.Render(rComp)))
+			if rKey != "-" {
+				detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Key"), valueSt.Render(rKey)))
+			}
+			detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Value"), valueSt.Render(rVal)))
+			invertStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+			if invertStr == "Yes" {
+				invertStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+			}
+			detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Invert"), invertStyle.Render(invertStr)))
+
+			statusColor := lipgloss.Color("#00FF7F")
+			if strings.ToLower(rStatus) != "active" && strings.ToLower(rStatus) != "online" {
+				statusColor = lipgloss.Color("#FFD700")
+				if strings.ToLower(rStatus) == "error" {
+					statusColor = lipgloss.Color("#FF6B6B")
+				}
+			}
+			detailContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Supply Status"),
+				lipgloss.NewStyle().Foreground(statusColor).Render(rStatus)))
+
+			box := renderBox(fmt.Sprintf("Rule #%d", idx+1), detailContent.String(), (width-4)/2)
+			content.WriteString(box + "\n")
+		}
+	}
 
 	return content.String()
 }
@@ -7578,6 +7794,8 @@ func (m Model) renderFooter() string {
 		} else {
 			help = "←→: Select Action • Enter: Execute • Esc: Back to Listener • q: Quit"
 		}
+	case LBL7RulesView:
+		help = "Enter: Create Rule • Esc: Back to Policy • q: Quit"
 	case WizardView:
 		if m.wizard.cleanupPending {
 			help = "←→: Select • Enter: Confirm • Esc: Keep resources"
@@ -7633,6 +7851,10 @@ func (m Model) renderFooter() string {
 			help = "Type name • Enter: Continue • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == BackupWizardStepConfirm {
 			help = "←→: Select • Enter: Confirm • Esc: Cancel"
+		} else if m.wizard.step == LBL7RuleWizardStepKey {
+			help = "Type key name • Enter: Confirm • Esc: Cancel"
+		} else if m.wizard.step == LBL7RuleWizardStepValue {
+			help = "Type value • Enter: Confirm • Esc: Cancel"
 		} else {
 			help = "↑↓: Navigate • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		}
@@ -7934,9 +8156,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In LBL7PolicyDetailView, navigate actions (0=Edit, 1=Delete)
+		// In LBL7PolicyDetailView, navigate actions (0=Edit, 1=Delete, 2=L7 Rules)
 		if m.mode == LBL7PolicyDetailView {
-			if m.lbL7PolicyDetailActionIdx < 1 {
+			if m.lbL7PolicyDetailActionIdx < 2 {
 				m.lbL7PolicyDetailActionIdx++
 				m.lbL7PolicyDetailConfirm = false
 			}
@@ -8123,6 +8345,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// Go back to policy detail from L7 rules view
+		if m.mode == LBL7RulesView {
+			m.mode = LBL7PolicyDetailView
+			return m, nil
+		}
 		// Go back to LB detail from LB listener detail view, or cancel confirm / deselect policy
 		if m.mode == LBListenerDetailView {
 			if m.lbListenerDetailConfirm {
@@ -8302,6 +8529,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.lbPoolDetailConfirm = true
 			}
 			return m, nil
+			// LBL7RulesView: Enter → launch Create Rule wizard
+		} else if m.mode == LBL7RulesView {
+			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
+			policyName := getStringValue(m.selectedLBL7Policy, "name", "")
+			region := getStringValue(m.detailData, "region", "")
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step:             LBL7RuleWizardStepType,
+				l7RulePolicyId:   policyID,
+				l7RulePolicyName: policyName,
+				l7RuleLBRegion:   region,
+			}
+			return m, nil
 		} else if m.mode == LBL7PolicyDetailView {
 			switch m.lbL7PolicyDetailActionIdx {
 			case 0: // Edit — launch edit wizard
@@ -8364,6 +8604,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					return m, m.executeDeleteLBL7Policy()
 				}
 				m.lbL7PolicyDetailConfirm = true
+			case 2: // L7 Rules
+				policyID := getStringValue(m.selectedLBL7Policy, "id", "")
+				region := getStringValue(m.detailData, "region", "")
+				m.mode = LBL7RulesView
+				if policyID != "" && region != "" {
+					return m, m.fetchLBL7Rules(policyID, region)
+				}
 			}
 			return m, nil
 		} else if m.mode == LBListenerDetailView {
@@ -9335,6 +9582,8 @@ func (m Model) isWizardTextInputStep() bool {
 		LBL7PolicyWizardStepName,
 		LBL7PolicyWizardStepPosition,
 		LBL7PolicyWizardStepRedirectUrl,
+		LBL7RuleWizardStepKey,
+		LBL7RuleWizardStepValue,
 		WorkflowWizardStepName,
 		WorkflowWizardStepSchedule:
 		return true
@@ -9660,6 +9909,19 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleLBL7PolicyWizardRedirectUrlKeys(key)
 	case LBL7PolicyWizardStepConfirm:
 		return m.handleLBL7PolicyWizardConfirmKeys(key)
+	// L7 Rule wizard steps
+	case LBL7RuleWizardStepType:
+		return m.handleLBL7RuleWizardTypeKeys(key)
+	case LBL7RuleWizardStepCompare:
+		return m.handleLBL7RuleWizardCompareKeys(key)
+	case LBL7RuleWizardStepKey:
+		return m.handleLBL7RuleWizardKeyKeys(key)
+	case LBL7RuleWizardStepValue:
+		return m.handleLBL7RuleWizardValueKeys(key)
+	case LBL7RuleWizardStepInvert:
+		return m.handleLBL7RuleWizardInvertKeys(key)
+	case LBL7RuleWizardStepConfirm:
+		return m.handleLBL7RuleWizardConfirmKeys(key)
 	// Workflow wizard steps
 	case WorkflowWizardStepType:
 		return m.handleWorkflowWizardTypeKeys(key)

@@ -464,3 +464,18 @@ func (m Model) updateLBL7Policy() tea.Cmd {
 		return lbL7PolicyUpdatedMsg{policyName: m.wizard.l7PolicyName}
 	}
 }
+
+func (m Model) fetchLBL7Rules(policyID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbL7RulesLoadedMsg{policyID: policyID, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s/l7Rule",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(policyID))
+		var rules []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &rules); err != nil {
+			return lbL7RulesLoadedMsg{policyID: policyID, err: err}
+		}
+		return lbL7RulesLoadedMsg{policyID: policyID, rules: rules}
+	}
+}
