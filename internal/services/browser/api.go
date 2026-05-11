@@ -1377,12 +1377,12 @@ func (m Model) executeDeleteLBPool() tea.Cmd {
 		poolName := getStringValue(m.selectedLBPool, "name", "")
 		region := getStringValue(m.detailData, "region", "")
 		if poolID == "" || region == "" {
-			return lbPoolDeletedMsg{err: fmt.Errorf("ID ou région du pool introuvable")}
+			return lbPoolDeletedMsg{err: fmt.Errorf("pool ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-			return lbPoolDeletedMsg{poolName: poolName, err: fmt.Errorf("échec de la suppression: %w", err)}
+			return lbPoolDeletedMsg{poolName: poolName, err: fmt.Errorf("deletion failed: %w", err)}
 		}
 		return lbPoolDeletedMsg{poolName: poolName}
 	}
@@ -1392,10 +1392,10 @@ func (m Model) executeDeleteLBPool() tea.Cmd {
 func (m Model) updateLBPool() tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
-			return lbPoolUpdatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return lbPoolUpdatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		if m.wizard.lbPoolEditPoolId == "" || m.wizard.lbPoolLBRegion == "" {
-			return lbPoolUpdatedMsg{err: fmt.Errorf("ID pool ou région manquant")}
+			return lbPoolUpdatedMsg{err: fmt.Errorf("pool ID or region missing")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s",
 			m.cloudProject, url.PathEscape(m.wizard.lbPoolLBRegion), url.PathEscape(m.wizard.lbPoolEditPoolId))
@@ -1412,7 +1412,7 @@ func (m Model) updateLBPool() tea.Cmd {
 
 		var result map[string]interface{}
 		if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
-			return lbPoolUpdatedMsg{poolName: m.wizard.lbPoolName, err: fmt.Errorf("échec de la mise à jour: %w", err)}
+			return lbPoolUpdatedMsg{poolName: m.wizard.lbPoolName, err: fmt.Errorf("update failed: %w", err)}
 		}
 		return lbPoolUpdatedMsg{poolName: m.wizard.lbPoolName}
 	}
@@ -1422,7 +1422,7 @@ func (m Model) updateLBPool() tea.Cmd {
 func (m Model) executeDeleteLBListener() tea.Cmd {
 	return func() tea.Msg {
 		if m.selectedLBListener == nil {
-			return lbListenerDeletedMsg{err: fmt.Errorf("aucun listener sélectionné")}
+			return lbListenerDeletedMsg{err: fmt.Errorf("no listener selected")}
 		}
 		if m.cloudProject == "" {
 			return lbListenerDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
@@ -1431,12 +1431,12 @@ func (m Model) executeDeleteLBListener() tea.Cmd {
 		listenerName := getStringValue(m.selectedLBListener, "name", "")
 		region := getStringValue(m.detailData, "region", "")
 		if listenerID == "" || region == "" {
-			return lbListenerDeletedMsg{err: fmt.Errorf("ID ou région du listener introuvable")}
+			return lbListenerDeletedMsg{err: fmt.Errorf("listener ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(listenerID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-			return lbListenerDeletedMsg{listenerName: listenerName, err: fmt.Errorf("échec de la suppression: %w", err)}
+			return lbListenerDeletedMsg{listenerName: listenerName, err: fmt.Errorf("deletion failed: %w", err)}
 		}
 		return lbListenerDeletedMsg{listenerName: listenerName}
 	}
@@ -1446,10 +1446,10 @@ func (m Model) executeDeleteLBListener() tea.Cmd {
 func (m Model) updateLBListener() tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
-			return lbListenerUpdatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return lbListenerUpdatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		if m.wizard.lbListenerEditId == "" || m.wizard.lbListenerLBRegion == "" {
-			return lbListenerUpdatedMsg{err: fmt.Errorf("ID listener ou région manquant")}
+			return lbListenerUpdatedMsg{err: fmt.Errorf("listener ID or region missing")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener/%s",
 			m.cloudProject, url.PathEscape(m.wizard.lbListenerLBRegion), url.PathEscape(m.wizard.lbListenerEditId))
@@ -1463,7 +1463,7 @@ func (m Model) updateLBListener() tea.Cmd {
 
 		var result map[string]interface{}
 		if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
-			return lbListenerUpdatedMsg{listenerName: m.wizard.lbListenerName, err: fmt.Errorf("échec de la mise à jour: %w", err)}
+			return lbListenerUpdatedMsg{listenerName: m.wizard.lbListenerName, err: fmt.Errorf("update failed: %w", err)}
 		}
 		return lbListenerUpdatedMsg{listenerName: m.wizard.lbListenerName}
 	}

@@ -204,6 +204,16 @@ const (
 	LBListenerWizardStepConfirm                          // confirm + create
 )
 
+const (
+	// L7 Policy wizard steps (offset by 1500)
+	LBL7PolicyWizardStepName         WizardStep = iota + 1500 // enter policy name
+	LBL7PolicyWizardStepPosition                              // enter position
+	LBL7PolicyWizardStepAction                                // select action
+	LBL7PolicyWizardStepRedirectPool                          // select redirect pool (only for redirectToPool)
+	LBL7PolicyWizardStepRedirectUrl                           // enter redirect URL (redirectToUrl / redirectPrefix)
+	LBL7PolicyWizardStepConfirm                               // confirm + create
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -506,6 +516,23 @@ type WizardData struct {
 	lbListenerConfirmIdx  int
 	lbListenerEditId      string // non-empty = edit mode (listener ID being edited)
 
+	// L7 Policy wizard fields
+	l7PolicyListenerId       string
+	l7PolicyListenerName     string
+	l7PolicyLBRegion         string
+	l7PolicyLBId             string
+	l7PolicyNameInput        string
+	l7PolicyName             string
+	l7PolicyPositionInput    string
+	l7PolicyPosition         int
+	l7PolicyActionIdx        int
+	l7PolicyAction           string
+	l7PolicyRedirectPoolIdx  int
+	l7PolicyRedirectPoolId   string
+	l7PolicyRedirectUrlInput string
+	l7PolicyRedirectUrl      string
+	l7PolicyConfirmIdx       int
+
 	// Floating IP wizard fields
 	fipRegion            string
 	fipRegionIdx         int
@@ -591,6 +618,7 @@ type Model struct {
 	lbListenerDetailActionIdx int                   // Selected action in listener detail view (0=Edit, 1=Delete)
 	lbListenerDetailConfirm   bool                  // Confirm mode in listener detail
 	lbDetailSection           int                   // 0=Listeners block focused, 1=Pools block focused
+	lbL7Policies              map[string][]map[string]interface{} // key = listenerId
 	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
 	detailRefreshId   string
 	detailRefreshName string
@@ -1119,6 +1147,17 @@ type lbListenersLoadedMsg struct {
 	lbID      string
 	listeners []map[string]interface{}
 	err       error
+}
+
+type lbL7PolicyCreatedMsg struct {
+	policyName string
+	err        error
+}
+
+type lbL7PoliciesLoadedMsg struct {
+	listenerID string
+	policies   []map[string]interface{}
+	err        error
 }
 
 type fipRegionsLoadedMsg struct {
@@ -1896,7 +1935,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = DetailView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Pool \"%s\" créé avec succès", msg.poolName)
+		m.notification = fmt.Sprintf("✅ Pool \"%s\" created successfully", msg.poolName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.mode = DetailView
 		// Refresh pools list
@@ -1930,7 +1969,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Pool \"%s\" supprimé avec succès", msg.poolName)
+		m.notification = fmt.Sprintf("✅ Pool \"%s\" deleted successfully", msg.poolName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		if m.detailData != nil {
 			lbID := getStringValue(m.detailData, "id", "")
@@ -1954,7 +1993,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Pool \"%s\" mis à jour avec succès", msg.poolName)
+		m.notification = fmt.Sprintf("✅ Pool \"%s\" updated successfully", msg.poolName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		if m.detailData != nil {
 			lbID := getStringValue(m.detailData, "id", "")
@@ -1976,7 +2015,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Listener \"%s\" créé avec succès", msg.listenerName)
+		m.notification = fmt.Sprintf("✅ Listener \"%s\" created successfully", msg.listenerName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		// Refresh listeners list
 		if m.detailData != nil {
@@ -2009,7 +2048,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Listener \"%s\" supprimé avec succès", msg.listenerName)
+		m.notification = fmt.Sprintf("✅ Listener \"%s\" deleted successfully", msg.listenerName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		if m.detailData != nil {
 			lbID := getStringValue(m.detailData, "id", "")
@@ -2033,7 +2072,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Listener \"%s\" mis à jour avec succès", msg.listenerName)
+		m.notification = fmt.Sprintf("✅ Listener \"%s\" updated successfully", msg.listenerName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		if m.detailData != nil {
 			lbID := getStringValue(m.detailData, "id", "")
@@ -2046,6 +2085,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case lbL7PolicyCreatedMsg:
+		m.wizard = WizardData{}
+		m.mode = LBListenerDetailView
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ L7 Policy \"%s\" created successfully", msg.policyName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		if m.selectedLBListener != nil {
+			listenerID := getStringValue(m.selectedLBListener, "id", "")
+			region := getStringValue(m.detailData, "region", "")
+			if listenerID != "" && region != "" {
+				return m, tea.Batch(
+					m.fetchLBL7Policies(listenerID, region),
+					tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case lbL7PoliciesLoadedMsg:
+		if msg.err == nil {
+			if m.lbL7Policies == nil {
+				m.lbL7Policies = make(map[string][]map[string]interface{})
+			}
+			m.lbL7Policies[msg.listenerID] = msg.policies
+		}
+		return m, nil
 
 	case lbRegionsLoadedMsg:
 		m.wizard.isLoading = false
@@ -2960,13 +3030,15 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 1400 {
-			titleText = " 🔊 Créer un Listener "
+		if m.wizard.step >= 1500 {
+			titleText = " 📋 Create L7 Policy "
+		} else if m.wizard.step >= 1400 {
+			titleText = " 🔊 Create Listener "
 		} else if m.wizard.step >= 1300 {
 			if m.wizard.lbPoolEditPoolId != "" {
-				titleText = " ✏️  Modifier un Pool "
+				titleText = " ✏️  Edit Pool "
 			} else {
-				titleText = " ⚖️  Créer un Pool "
+				titleText = " ⚖️  Create Pool "
 			}
 		} else if m.wizard.step >= 1200 {
 			// Workflow wizard
@@ -3939,11 +4011,11 @@ func (m Model) renderWizardView(width int) string {
 	// Build steps based on which wizard we're in (determine by first step >= 100)
 	if m.wizard.step >= 1400 {
 		// LB Listener wizard
-		steps = append(steps, "Nom", "Protocole", "Port", "Pool", "Confirmer")
+		steps = append(steps, "Name", "Protocol", "Port", "Pool", "Confirm")
 		stepMapping = append(stepMapping, LBListenerWizardStepName, LBListenerWizardStepProto, LBListenerWizardStepPort, LBListenerWizardStepPool, LBListenerWizardStepConfirm)
 	} else if m.wizard.step >= 1300 {
 		// LB Pool wizard
-		steps = append(steps, "Nom", "Algorithme", "Protocole", "Session", "Confirmer")
+		steps = append(steps, "Name", "Algorithm", "Protocol", "Session", "Confirm")
 		stepMapping = append(stepMapping, LBPoolWizardStepName, LBPoolWizardStepAlgo, LBPoolWizardStepProto, LBPoolWizardStepSession, LBPoolWizardStepConfirm)
 	} else if m.wizard.step >= 1200 {
 		// Workflow wizard
@@ -4222,6 +4294,19 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderLBListenerWizardPoolStep(width))
 	case LBListenerWizardStepConfirm:
 		content.WriteString(m.renderLBListenerWizardConfirmStep(width))
+	// L7 Policy wizard steps
+	case LBL7PolicyWizardStepName:
+		content.WriteString(m.renderLBL7PolicyWizardNameStep(width))
+	case LBL7PolicyWizardStepPosition:
+		content.WriteString(m.renderLBL7PolicyWizardPositionStep(width))
+	case LBL7PolicyWizardStepAction:
+		content.WriteString(m.renderLBL7PolicyWizardActionStep(width))
+	case LBL7PolicyWizardStepRedirectPool:
+		content.WriteString(m.renderLBL7PolicyWizardRedirectPoolStep(width))
+	case LBL7PolicyWizardStepRedirectUrl:
+		content.WriteString(m.renderLBL7PolicyWizardRedirectUrlStep(width))
+	case LBL7PolicyWizardStepConfirm:
+		content.WriteString(m.renderLBL7PolicyWizardConfirmStep(width))
 	// Workflow wizard steps
 	case WorkflowWizardStepType:
 		content.WriteString(m.renderWorkflowWizardTypeStep(width))
@@ -6501,12 +6586,12 @@ func (m Model) renderLBDetail(width int) string {
 	lbPools := m.lbPools[lbID]
 	if len(lbPools) == 0 {
 		poolsContent.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-			Render("  Aucun pool. Appuyez sur « Pools » pour en créer un."))
+			Render("  No pools. Press «Pools» to create one."))
 	} else {
-		colName := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(26).Render("Nom")
-		colAlgo := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20).Render("Algorithme")
-		colProto := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(12).Render("Protocole")
-		colStatus := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(16).Render("Statut")
+		colName := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(26).Render("Name")
+		colAlgo := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20).Render("Algorithm")
+		colProto := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(12).Render("Protocol")
+		colStatus := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(16).Render("Status")
 		poolsContent.WriteString(colName + colAlgo + colProto + colStatus + "\n")
 		poolsContent.WriteString(strings.Repeat("─", min(width-8, 74)) + "\n")
 		for i, p := range lbPools {
@@ -6537,7 +6622,7 @@ func (m Model) renderLBDetail(width int) string {
 			)
 		}
 	}
-	poolsFooter := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("↑↓: Naviguer • Enter: Ouvrir")
+	poolsFooter := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("\u2191\u2193: Navigate \u2022 Enter: Open")
 	poolsBox := renderBox(fmt.Sprintf("Pools (%d)", len(lbPools)), poolsContent.String()+"\n"+poolsFooter, width-4)
 
 	// Listeners section
@@ -6545,13 +6630,13 @@ func (m Model) renderLBDetail(width int) string {
 	var listenersContent strings.Builder
 	if len(lbListeners) == 0 {
 		listenersContent.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-			Render("  Aucun listener. Appuyez sur « Listeners » pour en créer un."))
+			Render("  No listeners. Press «Listeners» to create one."))
 	} else {
-		hName := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(26).Render("Nom")
-		hPool := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22).Render("Pool par défaut")
-		hProto := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18).Render("Protocole")
+		hName := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(26).Render("Name")
+		hPool := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22).Render("Default pool")
+		hProto := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18).Render("Protocol")
 		hPort := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(8).Render("Port")
-		hStatus := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(14).Render("Statut")
+		hStatus := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(14).Render("Status")
 		listenersContent.WriteString(hName + hPool + hProto + hPort + hStatus + "\n")
 		listenersContent.WriteString(strings.Repeat("─", min(width-8, 88)) + "\n")
 		for i, l := range lbListeners {
@@ -6596,7 +6681,7 @@ func (m Model) renderLBDetail(width int) string {
 			)
 		}
 	}
-	listenersFooter := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("↑↓: Naviguer • Enter: Ouvrir")
+	listenersFooter := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("\u2191\u2193: Navigate \u2022 Enter: Open")
 	listenersBox := renderBox(fmt.Sprintf("Listeners (%d)", len(lbListeners)), listenersContent.String()+"\n"+listenersFooter, width-4)
 
 	content.WriteString(actionsBox + "\n\n")
@@ -6632,12 +6717,12 @@ func (m Model) renderLBPoolDetailView(width int) string {
 	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
 	// Actions: Edit / Delete
-	actions := []string{"Modifier", "Supprimer"}
+	actions := []string{"Edit", "Delete"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.lbPoolDetailActionIdx {
 			bg := lipgloss.Color("#7B68EE")
-			if action == "Supprimer" {
+			if action == "Delete" {
 				bg = lipgloss.Color("#FF4444")
 			}
 			actionParts = append(actionParts, lipgloss.NewStyle().
@@ -6651,7 +6736,7 @@ func (m Model) renderLBPoolDetailView(width int) string {
 	if m.lbPoolDetailConfirm {
 		actionsContent += "\n\n" + lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFD700")).Bold(true).
-			Render(fmt.Sprintf("⚠️  Appuyez sur Enter pour confirmer %s, Esc pour annuler", actions[m.lbPoolDetailActionIdx]))
+			Render(fmt.Sprintf("\u26a0\ufe0f  Press Enter to confirm %s, Esc to cancel", actions[m.lbPoolDetailActionIdx]))
 	}
 	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
 	content.WriteString(actionsBox + "\n\n")
@@ -6660,9 +6745,9 @@ func (m Model) renderLBPoolDetailView(width int) string {
 	var infoContent strings.Builder
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(poolID, 36))))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Load Balancer"), valueSt.Render(lbName)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Région"), valueSt.Render(region)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Algorithme"), valueSt.Render(algo)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Protocole"), valueSt.Render(proto)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Region"), valueSt.Render(region)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Algorithm"), valueSt.Render(algo)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Protocol"), valueSt.Render(proto)))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Session"), valueSt.Render(sessionType)))
 
 	statusColor := lipgloss.Color("#00FF7F")
@@ -6718,14 +6803,16 @@ func (m Model) renderLBListenerDetailView(width int) string {
 	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
 	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	// Actions: Edit / Delete
-	actions := []string{"Modifier", "Supprimer"}
+	// Actions: Edit / Delete / L7 Policies
+	actions := []string{"Edit", "Delete", "L7 Policies"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.lbListenerDetailActionIdx {
 			bg := lipgloss.Color("#7B68EE")
-			if action == "Supprimer" {
+			if action == "Delete" {
 				bg = lipgloss.Color("#FF4444")
+			} else if action == "L7 Policies" {
+				bg = lipgloss.Color("#00AA55")
 			}
 			actionParts = append(actionParts, lipgloss.NewStyle().
 				Background(bg).Foreground(lipgloss.Color("#FFFFFF")).Bold(true).Padding(0, 1).Render(action))
@@ -6738,7 +6825,7 @@ func (m Model) renderLBListenerDetailView(width int) string {
 	if m.lbListenerDetailConfirm {
 		actionsContent += "\n\n" + lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFD700")).Bold(true).
-			Render(fmt.Sprintf("⚠️  Appuyez sur Enter pour confirmer %s, Esc pour annuler", actions[m.lbListenerDetailActionIdx]))
+			Render(fmt.Sprintf("\u26a0\ufe0f  Press Enter to confirm %s, Esc to cancel", actions[m.lbListenerDetailActionIdx]))
 	}
 	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
 	content.WriteString(actionsBox + "\n\n")
@@ -6747,10 +6834,10 @@ func (m Model) renderLBListenerDetailView(width int) string {
 	var infoContent strings.Builder
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(listenerID, 36))))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Load Balancer"), valueSt.Render(lbName)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Région"), valueSt.Render(region)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Protocole"), valueSt.Render(proto)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Region"), valueSt.Render(region)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Protocol"), valueSt.Render(proto)))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Port"), valueSt.Render(port)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Pool par défaut"), valueSt.Render(defaultPoolName)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Default pool"), valueSt.Render(defaultPoolName)))
 
 	statusColor := lipgloss.Color("#00FF7F")
 	if strings.ToLower(operating) != "online" {
@@ -6765,6 +6852,45 @@ func (m Model) renderLBListenerDetailView(width int) string {
 
 	infoBox := renderBox("Listener "+listenerName, infoContent.String(), width-4)
 	content.WriteString(infoBox)
+
+	// L7 Policies section
+	listenerID2 := getStringValue(m.selectedLBListener, "id", "")
+	l7Policies := m.lbL7Policies[listenerID2]
+	var l7Content strings.Builder
+	if len(l7Policies) == 0 {
+		l7Content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
+			Render("  No L7 Policies. Select «L7 Policies» to create one."))
+	} else {
+		hName := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(28).Render("Name")
+		hPos := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(12).Render("Position")
+		hAction := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22).Render("Action")
+		hStatus := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(16).Render("Status")
+		l7Content.WriteString(hName + hPos + hAction + hStatus + "\n")
+		l7Content.WriteString(strings.Repeat("─", min(width-8, 78)) + "\n")
+		for _, p := range l7Policies {
+			pName := truncate(getStringValue(p, "name", "-"), 26)
+			pPos := fmt.Sprintf("%v", p["position"])
+			pAction := getStringValue(p, "action", "-")
+			pStatus := getStringValue(p, "provisioningStatus", getStringValue(p, "operatingStatus", "-"))
+			statusColor := lipgloss.Color("#00FF7F")
+			if strings.ToLower(pStatus) != "active" && strings.ToLower(pStatus) != "online" {
+				if strings.ToLower(pStatus) == "error" {
+					statusColor = lipgloss.Color("#FF6B6B")
+				} else {
+					statusColor = lipgloss.Color("#FFD700")
+				}
+			}
+			l7Content.WriteString(
+				"  " +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Width(26).Render(pName) +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(12).Render(pPos) +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(22).Render(pAction) +
+					lipgloss.NewStyle().Foreground(statusColor).Width(16).Render(pStatus) + "\n",
+			)
+		}
+	}
+	l7Box := renderBox(fmt.Sprintf("L7 Policies (%d)", len(l7Policies)), l7Content.String(), width-4)
+	content.WriteString("\n\n" + l7Box)
 
 	return content.String()
 }
@@ -7254,11 +7380,11 @@ func (m Model) renderFooter() string {
 			help = "Enter: Confirm Action • Esc: Cancel"
 		} else if m.currentProduct == ProductNetworkLB {
 			if m.lbListenerListIdx >= 0 {
-				help = "↑↓: Naviguer listeners • Enter: Ouvrir • ←→: Sélectionner action • Esc: Retour à la liste • q: Quitter"
+				help = "↑↓: Navigate listeners • Enter: Open • ←→: Select action • Esc: Back to list • q: Quit"
 			} else if m.lbPoolListIdx >= 0 {
-				help = "↑↓: Naviguer pools • Enter: Ouvrir • ←→: Sélectionner action • Esc: Retour à la liste • q: Quitter"
+				help = "↑↓: Navigate pools • Enter: Open • ←→: Select action • Esc: Back to list • q: Quit"
 			} else {
-				help = "←→: Sélectionner action • Enter: Exécuter • ↓: Naviguer listeners/pools • d: Debug • Esc: Retour • q: Quitter"
+				help = "←→: Select action • Enter: Execute • ↓: Navigate listeners/pools • d: Debug • Esc: Back • q: Quit"
 			}
 		} else {
 			help = "←→: Select Action • Enter: Execute • d: Debug • Esc: Back to List • q: Quit"
@@ -7623,9 +7749,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In LBListenerDetailView, navigate actions (0=Edit, 1=Delete)
+		// In LBListenerDetailView, navigate actions (0=Edit, 1=Delete, 2=L7 Policies)
 		if m.mode == LBListenerDetailView {
-			if m.lbListenerDetailActionIdx < 1 {
+			if m.lbListenerDetailActionIdx < 2 {
 				m.lbListenerDetailActionIdx++
 				m.lbListenerDetailConfirm = false
 			}
@@ -8015,6 +8141,18 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					return m, m.executeDeleteLBListener()
 				}
 				m.lbListenerDetailConfirm = true
+			case 2: // L7 Policies — launch L7 policy creation wizard
+				m.mode = WizardView
+				m.wizard = WizardData{
+					step:                 LBL7PolicyWizardStepName,
+					l7PolicyListenerId:   getStringValue(m.selectedLBListener, "id", ""),
+					l7PolicyListenerName: getStringValue(m.selectedLBListener, "name", ""),
+					l7PolicyLBRegion:     getStringValue(m.detailData, "region", ""),
+					l7PolicyLBId:         getStringValue(m.detailData, "id", ""),
+					l7PolicyPosition:     1,
+					l7PolicyPositionInput: "1",
+				}
+				return m, nil
 			}
 			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
@@ -8061,6 +8199,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.lbListenerDetailActionIdx = 0
 				m.lbListenerDetailConfirm = false
 				m.mode = LBListenerDetailView
+				listenerID := getStringValue(m.selectedLBListener, "id", "")
+				region := getStringValue(m.detailData, "region", "")
+				if listenerID != "" && region != "" {
+					return m, m.fetchLBL7Policies(listenerID, region)
+				}
 				return m, nil
 			}
 			// If a pool row is selected in the list, Enter opens its detail view
@@ -8889,6 +9032,9 @@ func (m Model) isWizardTextInputStep() bool {
 		LBPoolWizardStepName,
 		LBListenerWizardStepName,
 		LBListenerWizardStepPort,
+		LBL7PolicyWizardStepName,
+		LBL7PolicyWizardStepPosition,
+		LBL7PolicyWizardStepRedirectUrl,
 		WorkflowWizardStepName,
 		WorkflowWizardStepSchedule:
 		return true
@@ -8941,7 +9087,12 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 1400 {
+		if m.wizard.step >= 1500 {
+			// L7 Policy wizard: return to listener detail view
+			m.wizard = WizardData{}
+			m.mode = LBListenerDetailView
+			return m, nil
+		} else if m.wizard.step >= 1400 {
 			// LB Listener wizard: return to LB detail view
 			m.wizard = WizardData{}
 			m.mode = DetailView
@@ -9195,6 +9346,19 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleLBListenerWizardPoolKeys(key)
 	case LBListenerWizardStepConfirm:
 		return m.handleLBListenerWizardConfirmKeys(key)
+	// L7 Policy wizard steps
+	case LBL7PolicyWizardStepName:
+		return m.handleLBL7PolicyWizardNameKeys(key)
+	case LBL7PolicyWizardStepPosition:
+		return m.handleLBL7PolicyWizardPositionKeys(key)
+	case LBL7PolicyWizardStepAction:
+		return m.handleLBL7PolicyWizardActionKeys(key)
+	case LBL7PolicyWizardStepRedirectPool:
+		return m.handleLBL7PolicyWizardRedirectPoolKeys(key)
+	case LBL7PolicyWizardStepRedirectUrl:
+		return m.handleLBL7PolicyWizardRedirectUrlKeys(key)
+	case LBL7PolicyWizardStepConfirm:
+		return m.handleLBL7PolicyWizardConfirmKeys(key)
 	// Workflow wizard steps
 	case WorkflowWizardStepType:
 		return m.handleWorkflowWizardTypeKeys(key)

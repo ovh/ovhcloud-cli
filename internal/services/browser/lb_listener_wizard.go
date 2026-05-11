@@ -20,13 +20,13 @@ import (
 // ─── Options ──────────────────────────────────────────────────────────────────
 
 var lbListenerProtoOptions = []struct{ label, value, desc string }{
-	{"HTTP", "http", "Protocole HTTP (couche 7)"},
-	{"HTTPS", "https", "Protocole HTTPS (terminaison TLS côté LB)"},
-	{"TCP", "tcp", "Protocole TCP (couche 4)"},
-	{"UDP", "udp", "Protocole UDP (couche 4)"},
-	{"Terminated HTTPS", "terminatedHTTPS", "TLS terminé par le LB, backend reçoit HTTP"},
-	{"PROMETHEUS", "prometheus", "Métriques Prometheus"},
-	{"SCTP", "sctp", "Protocole SCTP"},
+	{"HTTP", "http", "HTTP protocol (layer 7)"},
+	{"HTTPS", "https", "HTTPS protocol (TLS terminated at the LB)"},
+	{"TCP", "tcp", "TCP protocol (layer 4)"},
+	{"UDP", "udp", "UDP protocol (layer 4)"},
+	{"Terminated HTTPS", "terminatedHTTPS", "TLS terminated by LB, backend receives HTTP"},
+	{"PROMETHEUS", "prometheus", "Prometheus metrics"},
+	{"SCTP", "sctp", "SCTP protocol"},
 }
 
 // ─── Render ──────────────────────────────────────────────────────────────────
@@ -38,15 +38,15 @@ func (m Model) renderLBListenerWizardNameStep(width int) string {
 	inputStyle := lipgloss.NewStyle().Background(lipgloss.Color("#1A1A2E")).
 		Foreground(lipgloss.Color("#FFFFFF")).Padding(0, 1).Width(40)
 
-	b.WriteString(titleStyle.Render("Nom du listener") + "\n\n")
-	b.WriteString(descStyle.Render("LB : "+m.wizard.lbListenerLBName+" ("+m.wizard.lbListenerLBRegion+")") + "\n\n")
-	b.WriteString("  Nom : " + inputStyle.Render(m.wizard.lbListenerNameInput+"█") + "\n\n")
+	b.WriteString(titleStyle.Render("Listener name") + "\n\n")
+	b.WriteString(descStyle.Render("LB: "+m.wizard.lbListenerLBName+" ("+m.wizard.lbListenerLBRegion+")") + "\n\n")
+	b.WriteString("  Name: " + inputStyle.Render(m.wizard.lbListenerNameInput+"█") + "\n\n")
 	if m.wizard.errorMsg != "" {
 		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).
 			Render("⚠ "+m.wizard.errorMsg) + "\n\n")
 	}
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("Tapez le nom • Enter : Valider • Esc : Annuler"))
+		Render("Type name • Enter: Confirm • Esc: Cancel"))
 	return b.String()
 }
 
@@ -57,7 +57,7 @@ func (m Model) renderLBListenerWizardProtoStep(width int) string {
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
-	b.WriteString(titleStyle.Render("Protocole du listener") + "\n\n")
+	b.WriteString(titleStyle.Render("Listener protocol") + "\n\n")
 
 	for i, opt := range lbListenerProtoOptions {
 		if i == m.wizard.lbListenerProtoIdx {
@@ -70,7 +70,7 @@ func (m Model) renderLBListenerWizardProtoStep(width int) string {
 	}
 
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ : Naviguer • Enter : Sélectionner • ← : Retour • Esc : Annuler"))
+		Render("↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"))
 	return b.String()
 }
 
@@ -81,15 +81,15 @@ func (m Model) renderLBListenerWizardPortStep(width int) string {
 	inputStyle := lipgloss.NewStyle().Background(lipgloss.Color("#1A1A2E")).
 		Foreground(lipgloss.Color("#FFFFFF")).Padding(0, 1).Width(12)
 
-	b.WriteString(titleStyle.Render("Port d'écoute") + "\n\n")
-	b.WriteString(descStyle.Render("Protocole : "+m.wizard.lbListenerProto) + "\n\n")
-	b.WriteString("  Port (1-65535) : " + inputStyle.Render(m.wizard.lbListenerPortInput+"█") + "\n\n")
+	b.WriteString(titleStyle.Render("Listening port") + "\n\n")
+	b.WriteString(descStyle.Render("Protocol: "+m.wizard.lbListenerProto) + "\n\n")
+	b.WriteString("  Port (1-65535): " + inputStyle.Render(m.wizard.lbListenerPortInput+"█") + "\n\n")
 	if m.wizard.errorMsg != "" {
 		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).
 			Render("⚠ "+m.wizard.errorMsg) + "\n\n")
 	}
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("Tapez le port • Enter : Valider • ← : Retour • Esc : Annuler"))
+		Render("Type port • Enter: Confirm • ←: Back • Esc: Cancel"))
 	return b.String()
 }
 
@@ -131,14 +131,14 @@ func (m Model) renderLBListenerWizardPoolStep(width int) string {
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
-	b.WriteString(titleStyle.Render("Pool par défaut (facultatif)") + "\n\n")
+	b.WriteString(titleStyle.Render("Default pool (optional)") + "\n\n")
 
 	compatProtos := lbCompatiblePoolProtos(m.wizard.lbListenerProto)
 	compatNote := ""
 	if len(compatProtos) > 0 {
-		compatNote = "Protocoles compatibles avec " + m.wizard.lbListenerProto + " : " + strings.Join(compatProtos, ", ")
+		compatNote = "Compatible protocols with "+m.wizard.lbListenerProto+": "+strings.Join(compatProtos, ", ")
 	}
-	b.WriteString(descStyle.Render("Associez un pool existant à ce listener, ou ignorez cette étape.") + "\n")
+	b.WriteString(descStyle.Render("Attach an existing pool to this listener, or skip this step.") + "\n")
 	if compatNote != "" {
 		b.WriteString(descStyle.Render(compatNote) + "\n")
 	}
@@ -155,9 +155,9 @@ func (m Model) renderLBListenerWizardPoolStep(width int) string {
 
 	// Option 0: no pool
 	if m.wizard.lbListenerPoolIdx == 0 {
-		b.WriteString(selectedStyle.Render("▶ Aucun pool (ignorer)") + "\n\n")
+		b.WriteString(selectedStyle.Render("▶ No pool (skip)") + "\n\n")
 	} else {
-		b.WriteString(dimStyle.Render("  Aucun pool (ignorer)") + "\n\n")
+		b.WriteString(dimStyle.Render("  No pool (skip)") + "\n\n")
 	}
 
 	for i, p := range pools {
@@ -173,16 +173,16 @@ func (m Model) renderLBListenerWizardPoolStep(width int) string {
 	}
 
 	if len(pools) == 0 {
-		msg := "  (aucun pool disponible)"
+		msg := "  (no pool available)"
 		if len(allPools) > 0 {
-			msg = "  (aucun pool compatible — créez un pool avec un protocole compatible)"
+			msg = "  (no compatible pool — create a pool with a compatible protocol)"
 		}
 		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
 			Render(msg) + "\n\n")
 	}
 
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ : Naviguer • Enter : Sélectionner • ← : Retour • Esc : Annuler"))
+		Render("↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"))
 	return b.String()
 }
 
@@ -194,19 +194,19 @@ func (m Model) renderLBListenerWizardConfirmStep(width int) string {
 
 	isEdit := m.wizard.lbListenerEditId != ""
 	if isEdit {
-		b.WriteString(titleStyle.Render("Confirmer la modification du Listener :") + "\n\n")
+		b.WriteString(titleStyle.Render("Confirm listener update:") + "\n\n")
 	} else {
-		b.WriteString(titleStyle.Render("Confirmer la création du Listener :") + "\n\n")
+		b.WriteString(titleStyle.Render("Confirm listener creation:") + "\n\n")
 	}
-	b.WriteString(labelStyle.Render("  Load Balancer :") + valStyle.Render(m.wizard.lbListenerLBName) + "\n")
-	b.WriteString(labelStyle.Render("  Région :") + valStyle.Render(m.wizard.lbListenerLBRegion) + "\n")
-	b.WriteString(labelStyle.Render("  Nom :") + valStyle.Render(m.wizard.lbListenerName) + "\n")
+	b.WriteString(labelStyle.Render("  Load Balancer:") + valStyle.Render(m.wizard.lbListenerLBName) + "\n")
+	b.WriteString(labelStyle.Render("  Region:") + valStyle.Render(m.wizard.lbListenerLBRegion) + "\n")
+	b.WriteString(labelStyle.Render("  Name:") + valStyle.Render(m.wizard.lbListenerName) + "\n")
 	if !isEdit {
-		b.WriteString(labelStyle.Render("  Protocole :") + valStyle.Render(m.wizard.lbListenerProto) + "\n")
-		b.WriteString(labelStyle.Render("  Port :") + valStyle.Render(strconv.Itoa(m.wizard.lbListenerPort)) + "\n")
+		b.WriteString(labelStyle.Render("  Protocol:") + valStyle.Render(m.wizard.lbListenerProto) + "\n")
+		b.WriteString(labelStyle.Render("  Port:") + valStyle.Render(strconv.Itoa(m.wizard.lbListenerPort)) + "\n")
 	}
 
-	poolLabel := "Aucun"
+	poolLabel := "None"
 	if m.wizard.lbListenerPoolId != "" {
 		pools := m.lbPools[m.wizard.lbListenerLBId]
 		for _, p := range pools {
@@ -216,7 +216,7 @@ func (m Model) renderLBListenerWizardConfirmStep(width int) string {
 			}
 		}
 	}
-	b.WriteString(labelStyle.Render("  Pool par défaut :") + valStyle.Render(poolLabel) + "\n\n")
+	b.WriteString(labelStyle.Render("  Default pool:") + valStyle.Render(poolLabel) + "\n\n")
 
 	if m.wizard.isLoading {
 		b.WriteString(loadingStyle.Render("⏳ " + m.wizard.loadingMessage))
@@ -224,22 +224,22 @@ func (m Model) renderLBListenerWizardConfirmStep(width int) string {
 	}
 	if m.wizard.errorMsg != "" {
 		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).
-			Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+			Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
-	actionLabel := " Créer "
+	actionLabel := " Create "
 	if isEdit {
-		actionLabel = " Modifier "
+		actionLabel = " Update "
 	}
 	btnAction := lipgloss.NewStyle().Background(lipgloss.Color("#00AA55")).Foreground(lipgloss.Color("#FFFFFF")).Bold(true).Padding(0, 2).Render(actionLabel)
-	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Annuler ")
+	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Cancel ")
 	if m.wizard.lbListenerConfirmIdx == 1 {
 		btnAction = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(actionLabel)
-		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Annuler ")
+		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Cancel ")
 	}
 	b.WriteString(btnAction + "  " + btnCancel + "\n\n")
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("←→ : Sélectionner • Enter : Confirmer • Esc : Annuler"))
+		Render("←→: Select • Enter: Confirm • Esc: Cancel"))
 	return b.String()
 }
 
@@ -250,7 +250,7 @@ func (m Model) handleLBListenerWizardNameKeys(key string) (tea.Model, tea.Cmd) {
 	case "enter":
 		name := strings.TrimSpace(m.wizard.lbListenerNameInput)
 		if name == "" {
-			m.wizard.errorMsg = "Le nom ne peut pas être vide"
+			m.wizard.errorMsg = "Name cannot be empty"
 			return m, nil
 		}
 		m.wizard.errorMsg = ""
@@ -301,7 +301,7 @@ func (m Model) handleLBListenerWizardPortKeys(key string) (tea.Model, tea.Cmd) {
 		portStr := strings.TrimSpace(m.wizard.lbListenerPortInput)
 		port, err := strconv.Atoi(portStr)
 		if err != nil || port < 1 || port > 65535 {
-			m.wizard.errorMsg = "Port invalide (1-65535)"
+			m.wizard.errorMsg = "Invalid port (1-65535)"
 			return m, nil
 		}
 		m.wizard.errorMsg = ""
@@ -377,10 +377,10 @@ func (m Model) handleLBListenerWizardConfirmKeys(key string) (tea.Model, tea.Cmd
 		}
 		m.wizard.isLoading = true
 		if m.wizard.lbListenerEditId != "" {
-			m.wizard.loadingMessage = "Mise à jour du listener..."
+			m.wizard.loadingMessage = "Updating listener..."
 			return m, m.updateLBListener()
 		}
-		m.wizard.loadingMessage = "Création du listener..."
+		m.wizard.loadingMessage = "Creating listener..."
 		return m, m.createLBListener()
 	}
 	return m, nil
@@ -394,7 +394,7 @@ func (m Model) createLBListener() tea.Cmd {
 			return lbListenerCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		if m.wizard.lbListenerLBId == "" || m.wizard.lbListenerLBRegion == "" {
-			return lbListenerCreatedMsg{err: fmt.Errorf("LB ID ou région manquant")}
+			return lbListenerCreatedMsg{err: fmt.Errorf("LB ID or region missing")}
 		}
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener",
@@ -412,7 +412,7 @@ func (m Model) createLBListener() tea.Cmd {
 
 		var result map[string]interface{}
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
-			return lbListenerCreatedMsg{listenerName: m.wizard.lbListenerName, err: fmt.Errorf("échec de la création: %w", err)}
+			return lbListenerCreatedMsg{listenerName: m.wizard.lbListenerName, err: fmt.Errorf("creation failed: %w", err)}
 		}
 		return lbListenerCreatedMsg{listenerName: m.wizard.lbListenerName}
 	}
