@@ -54,6 +54,7 @@ const (
 	KubeKubeconfigPickerView  // Directory picker for saving kubeconfig
 	ComingSoonView            // Coming soon placeholder for unimplemented products
 	S3CredentialsView         // S3 user credentials display after creation
+	LBPoolDetailView          // Detail view for a single LB pool
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -182,6 +183,15 @@ const (
 	WorkflowWizardStepName                              // enter name
 	WorkflowWizardStepSchedule                          // define schedule/rotation
 	WorkflowWizardStepConfirm                           // confirm + create
+)
+
+const (
+	// LB Pool wizard steps (offset by 1300)
+	LBPoolWizardStepName    WizardStep = iota + 1300 // enter pool name
+	LBPoolWizardStepAlgo                             // select algorithm
+	LBPoolWizardStepProto                            // select protocol
+	LBPoolWizardStepSession                          // session persistence
+	LBPoolWizardStepConfirm                          // confirm + create
 )
 
 // ProductType represents a product category
@@ -456,6 +466,21 @@ type WizardData struct {
 	lbSubnetId          string
 	lbConfirmBtnIdx     int
 
+	// LB Pool wizard fields
+	lbPoolLBId          string
+	lbPoolLBName        string
+	lbPoolLBRegion      string
+	lbPoolNameInput     string
+	lbPoolName          string
+	lbPoolAlgoIdx       int
+	lbPoolAlgo          string
+	lbPoolProtoIdx      int
+	lbPoolProto         string
+	lbPoolSessionIdx    int    // 0=None, 1=Source IP
+	lbPoolSession       string // "" or "SOURCE_IP"
+	lbPoolConfirmIdx    int
+	lbPoolEditPoolId    string // non-empty = edit mode (pool ID being edited)
+
 	// Floating IP wizard fields
 	fipRegion            string
 	fipRegionIdx         int
@@ -528,6 +553,12 @@ type Model struct {
 	selectedNodePool        map[string]interface{}              // Currently selected node pool for detail view
 	nodePoolDetailActionIdx int                                 // Selected action index in node pool detail view
 	nodePoolDetailConfirm   bool                                // Whether we're in confirmation mode
+	// LB pools cache (lbId -> pools)
+	lbPools              map[string][]map[string]interface{}
+	selectedLBPool       map[string]interface{} // Currently selected pool for detail view
+	lbPoolDetailActionIdx int                   // Selected action in pool detail view (0=Edit, 1=Delete)
+	lbPoolDetailConfirm   bool                  // Whether we're in confirm mode in pool detail
+	lbPoolListIdx         int                   // Highlighted pool row in LB detail (-1 = none)
 	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
 	detailRefreshId   string
 	detailRefreshName string
@@ -1014,6 +1045,27 @@ type lbSubnetLoadedMsg struct {
 type lbDeletedMsg struct {
 	lbName string
 	err    error
+}
+
+type lbPoolCreatedMsg struct {
+	poolName string
+	err      error
+}
+
+type lbPoolsLoadedMsg struct {
+	lbID  string
+	pools []map[string]interface{}
+	err   error
+}
+
+type lbPoolDeletedMsg struct {
+	poolName string
+	err      error
+}
+
+type lbPoolUpdatedMsg struct {
+	poolName string
+	err      error
 }
 
 type fipRegionsLoadedMsg struct {
@@ -1782,6 +1834,86 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fetchDataForPath("/loadbalancer"),
 			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
+
+	case lbPoolCreatedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = DetailView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Pool \"%s\" créé avec succès", msg.poolName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = DetailView
+		// Refresh pools list
+		if m.detailData != nil {
+			lbID := getStringValue(m.detailData, "id", "")
+			lbRegion := getStringValue(m.detailData, "region", "")
+			if lbID != "" && lbRegion != "" {
+				return m, tea.Batch(
+					m.fetchLBPools(lbID, lbRegion),
+					tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case lbPoolsLoadedMsg:
+		if msg.err == nil {
+			if m.lbPools == nil {
+				m.lbPools = make(map[string][]map[string]interface{})
+			}
+			m.lbPools[msg.lbID] = msg.pools
+		}
+		return m, nil
+
+	case lbPoolDeletedMsg:
+		m.mode = DetailView
+		m.selectedLBPool = nil
+		m.lbPoolDetailActionIdx = 0
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Pool \"%s\" supprimé avec succès", msg.poolName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		if m.detailData != nil {
+			lbID := getStringValue(m.detailData, "id", "")
+			lbRegion := getStringValue(m.detailData, "region", "")
+			if lbID != "" && lbRegion != "" {
+				return m, tea.Batch(
+					m.fetchLBPools(lbID, lbRegion),
+					tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case lbPoolUpdatedMsg:
+		m.wizard = WizardData{}
+		m.mode = DetailView
+		m.selectedLBPool = nil
+		m.lbPoolDetailActionIdx = 0
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Pool \"%s\" mis à jour avec succès", msg.poolName)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		if m.detailData != nil {
+			lbID := getStringValue(m.detailData, "id", "")
+			lbRegion := getStringValue(m.detailData, "region", "")
+			if lbID != "" && lbRegion != "" {
+				return m, tea.Batch(
+					m.fetchLBPools(lbID, lbRegion),
+					tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 
 	case lbRegionsLoadedMsg:
 		m.wizard.isLoading = false
@@ -2696,7 +2828,13 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 1200 {
+		if m.wizard.step >= 1300 {
+			if m.wizard.lbPoolEditPoolId != "" {
+				titleText = " ✏️  Modifier un Pool "
+			} else {
+				titleText = " ⚖️  Créer un Pool "
+			}
+		} else if m.wizard.step >= 1200 {
 			// Workflow wizard
 			titleText = " ⚙️  Create a Backup Workflow "
 		} else if m.wizard.step >= 1100 {
@@ -2811,6 +2949,8 @@ func (m Model) renderContentBox(width int) string {
 		contentStr = m.renderNodePoolsView(width - 6)
 	case NodePoolDetailView:
 		contentStr = m.renderNodePoolDetailView(width - 6)
+	case LBPoolDetailView:
+		contentStr = m.renderLBPoolDetailView(width - 6)
 	case DeleteConfirmView:
 		contentStr = m.renderDeleteConfirmView()
 	case DebugView:
@@ -3661,7 +3801,11 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 1200 {
+	if m.wizard.step >= 1300 {
+		// LB Pool wizard
+		steps = append(steps, "Nom", "Algorithme", "Protocole", "Session", "Confirmer")
+		stepMapping = append(stepMapping, LBPoolWizardStepName, LBPoolWizardStepAlgo, LBPoolWizardStepProto, LBPoolWizardStepSession, LBPoolWizardStepConfirm)
+	} else if m.wizard.step >= 1200 {
 		// Workflow wizard
 		steps = append(steps, "Type", "Instance", "Nom", "Planification", "Confirmer")
 		stepMapping = append(stepMapping, WorkflowWizardStepType, WorkflowWizardStepInstance, WorkflowWizardStepName, WorkflowWizardStepSchedule, WorkflowWizardStepConfirm)
@@ -3916,6 +4060,17 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderFIPWizardInstanceStep(width))
 	case FIPWizardStepConfirm:
 		content.WriteString(m.renderFIPWizardConfirmStep(width))
+	// LB Pool wizard steps
+	case LBPoolWizardStepName:
+		content.WriteString(m.renderLBPoolWizardNameStep(width))
+	case LBPoolWizardStepAlgo:
+		content.WriteString(m.renderLBPoolWizardAlgoStep(width))
+	case LBPoolWizardStepProto:
+		content.WriteString(m.renderLBPoolWizardProtoStep(width))
+	case LBPoolWizardStepSession:
+		content.WriteString(m.renderLBPoolWizardSessionStep(width))
+	case LBPoolWizardStepConfirm:
+		content.WriteString(m.renderLBPoolWizardConfirmStep(width))
 	// Workflow wizard steps
 	case WorkflowWizardStepType:
 		content.WriteString(m.renderWorkflowWizardTypeStep(width))
@@ -6162,13 +6317,19 @@ func (m Model) renderLBDetail(width int) string {
 	netContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Private Network"), valueSt.Render(truncate(privateNetwork, 36))))
 	netBox := renderBox("Network", netContent.String(), boxWidth)
 
-	// Actions
-	actions := []string{"Delete"}
+	// Actions: Delete / Listeners / Pools
+	actions := []string{"Delete", "Listeners", "Pools"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
+			bg := lipgloss.Color("#7B68EE")
+			if action == "Delete" {
+				bg = lipgloss.Color("#FF4444")
+			} else if action == "Pools" {
+				bg = lipgloss.Color("#00AA55")
+			}
 			actionParts = append(actionParts, lipgloss.NewStyle().
-				Background(lipgloss.Color("#7B68EE")).
+				Background(bg).
 				Foreground(lipgloss.Color("#FFFFFF")).
 				Bold(true).Padding(0, 1).Render(action))
 		} else {
@@ -6184,8 +6345,129 @@ func (m Model) renderLBDetail(width int) string {
 	}
 	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
 
+	// Pools section
+	var poolsContent strings.Builder
+	lbPools := m.lbPools[lbID]
+	if len(lbPools) == 0 {
+		poolsContent.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
+			Render("  Aucun pool. Appuyez sur « Pools » pour en créer un."))
+	} else {
+		colName := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(26).Render("Nom")
+		colAlgo := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20).Render("Algorithme")
+		colProto := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(12).Render("Protocole")
+		colStatus := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(16).Render("Statut")
+		poolsContent.WriteString(colName + colAlgo + colProto + colStatus + "\n")
+		poolsContent.WriteString(strings.Repeat("─", min(width-8, 74)) + "\n")
+		for i, p := range lbPools {
+			pName := truncate(getStringValue(p, "name", "-"), 24)
+			pAlgo := getStringValue(p, "algorithm", "-")
+			pProto := getStringValue(p, "protocol", "-")
+			pStatus := getStringValue(p, "operatingStatus", getStringValue(p, "provisioningStatus", "-"))
+			statusColor := lipgloss.Color("#00FF7F")
+			if strings.ToLower(pStatus) != "online" && strings.ToLower(pStatus) != "active" {
+				if strings.ToLower(pStatus) == "error" {
+					statusColor = lipgloss.Color("#FF6B6B")
+				} else {
+					statusColor = lipgloss.Color("#FFD700")
+				}
+			}
+			cursor := "  "
+			nameColor := lipgloss.Color("#FFFFFF")
+			if i == m.lbPoolListIdx {
+				cursor = "▶ "
+				nameColor = lipgloss.Color("#00FF7F")
+			}
+			poolsContent.WriteString(
+				cursor +
+					lipgloss.NewStyle().Foreground(nameColor).Width(24).Render(pName) +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(20).Render(pAlgo) +
+					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(12).Render(pProto) +
+					lipgloss.NewStyle().Foreground(statusColor).Width(16).Render(pStatus) + "\n",
+			)
+		}
+	}
+	poolsFooter := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("↓↑: Select • Enter: Open")
+	poolsBox := renderBox(fmt.Sprintf("Pools (%d)", len(lbPools)), poolsContent.String()+"\n"+poolsFooter, width-4)
+
 	content.WriteString(actionsBox + "\n\n")
 	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", netBox))
+	content.WriteString("\n\n" + poolsBox)
+	return content.String()
+}
+
+// renderLBPoolDetailView displays detailed information about a single LB pool.
+func (m Model) renderLBPoolDetailView(width int) string {
+	var content strings.Builder
+
+	if m.selectedLBPool == nil {
+		return "Aucun pool sélectionné"
+	}
+
+	poolID := getStringValue(m.selectedLBPool, "id", "N/A")
+	poolName := getStringValue(m.selectedLBPool, "name", "N/A")
+	algo := getStringValue(m.selectedLBPool, "algorithm", "N/A")
+	proto := getStringValue(m.selectedLBPool, "protocol", "N/A")
+	operating := getStringValue(m.selectedLBPool, "operatingStatus", "N/A")
+	provisioning := getStringValue(m.selectedLBPool, "provisioningStatus", "N/A")
+	lbName := getStringValue(m.detailData, "name", "N/A")
+	region := getStringValue(m.detailData, "region", "N/A")
+
+	sessionType := "-"
+	if sp, ok := m.selectedLBPool["sessionPersistence"].(map[string]interface{}); ok {
+		sessionType = getStringValue(sp, "type", "-")
+	}
+
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+
+	// Actions: Edit / Delete
+	actions := []string{"Modifier", "Supprimer"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.lbPoolDetailActionIdx {
+			bg := lipgloss.Color("#7B68EE")
+			if action == "Supprimer" {
+				bg = lipgloss.Color("#FF4444")
+			}
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(bg).Foreground(lipgloss.Color("#FFFFFF")).Bold(true).Padding(0, 1).Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.lbPoolDetailConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).Bold(true).
+			Render(fmt.Sprintf("⚠️  Appuyez sur Enter pour confirmer %s, Esc pour annuler", actions[m.lbPoolDetailActionIdx]))
+	}
+	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
+	content.WriteString(actionsBox + "\n\n")
+
+	// Pool info
+	var infoContent strings.Builder
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(poolID, 36))))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Load Balancer"), valueSt.Render(lbName)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Région"), valueSt.Render(region)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Algorithme"), valueSt.Render(algo)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Protocole"), valueSt.Render(proto)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Session"), valueSt.Render(sessionType)))
+
+	statusColor := lipgloss.Color("#00FF7F")
+	if strings.ToLower(operating) != "online" {
+		statusColor = lipgloss.Color("#FFD700")
+		if strings.ToLower(operating) == "error" {
+			statusColor = lipgloss.Color("#FF6B6B")
+		}
+	}
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Operating Status"),
+		lipgloss.NewStyle().Foreground(statusColor).Render(operating)))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Supply Status"), valueSt.Render(provisioning)))
+
+	infoBox := renderBox("Pool "+poolName, infoContent.String(), width-4)
+	content.WriteString(infoBox)
+
 	return content.String()
 }
 
@@ -6672,8 +6954,20 @@ func (m Model) renderFooter() string {
 			}
 		} else if m.actionConfirm {
 			help = "Enter: Confirm Action • Esc: Cancel"
+		} else if m.currentProduct == ProductNetworkLB {
+			if m.lbPoolListIdx >= 0 {
+				help = "↑↓: Navigate Pools • Enter: Open Pool • ←→: Select Action • Esc: Back to List • q: Quit"
+			} else {
+				help = "←→: Select Action • Enter: Execute • ↓: Navigate Pools • d: Debug • Esc: Back to List • q: Quit"
+			}
 		} else {
 			help = "←→: Select Action • Enter: Execute • d: Debug • Esc: Back to List • q: Quit"
+		}
+	case LBPoolDetailView:
+		if m.lbPoolDetailConfirm {
+			help = "Enter: Confirm • Esc: Cancel"
+		} else {
+			help = "←→: Select Action • Enter: Execute • Esc: Back to LB • q: Quit"
 		}
 	case WizardView:
 		if m.wizard.cleanupPending {
@@ -6886,6 +7180,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// In LBPoolDetailView, navigate actions
+		if m.mode == LBPoolDetailView {
+			if m.lbPoolDetailActionIdx > 0 {
+				m.lbPoolDetailActionIdx--
+				m.lbPoolDetailConfirm = false
+			}
+			return m, nil
+		}
+		// In DetailView for Load Balancers, navigate actions (0=Delete, 1=Listeners, 2=Pools)
+		if m.mode == DetailView && m.currentProduct == ProductNetworkLB {
+			if m.selectedAction > 0 {
+				m.selectedAction--
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
 		// In DetailView for Workflow, only 1 action (Delete)
 		if m.mode == DetailView && m.currentProduct == ProductWorkflow {
 			return m, nil
@@ -6986,6 +7296,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// In DetailView for Private Networks, navigate actions (0=Delete, 1=Assign Gateway, 2=Add Subnet, 3=Delete Subnet)
 		if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate {
 			if m.selectedAction < 5 {
+				m.selectedAction++
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
+		// In LBPoolDetailView, navigate actions (0=Edit, 1=Delete)
+		if m.mode == LBPoolDetailView {
+			if m.lbPoolDetailActionIdx < 1 {
+				m.lbPoolDetailActionIdx++
+				m.lbPoolDetailConfirm = false
+			}
+			return m, nil
+		}
+		// In DetailView for Load Balancers, navigate actions (0=Delete, 1=Listeners, 2=Pools)
+		if m.mode == DetailView && m.currentProduct == ProductNetworkLB {
+			if m.selectedAction < 2 {
 				m.selectedAction++
 				m.actionConfirm = false
 			}
@@ -7136,6 +7462,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// Go back to LB detail from LB pool detail view, or cancel confirm
+		if m.mode == LBPoolDetailView {
+			if m.lbPoolDetailConfirm {
+				m.lbPoolDetailConfirm = false
+			} else {
+				m.mode = DetailView
+				m.selectedLBPool = nil
+				m.lbPoolDetailActionIdx = 0
+			}
+			return m, nil
+		}
 		// Go back to detail view from node pools view
 		if m.mode == NodePoolsView {
 			m.mode = DetailView
@@ -7245,6 +7582,63 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.nodePoolDetailConfirm = true
 				return m, nil
 			}
+		} else if m.mode == LBPoolDetailView {
+			switch m.lbPoolDetailActionIdx {
+			case 0: // Edit — launch edit wizard
+				region := getStringValue(m.detailData, "region", "")
+				poolAlgo := getStringValue(m.selectedLBPool, "algorithm", "roundRobin")
+				poolProto := getStringValue(m.selectedLBPool, "protocol", "tcp")
+				algoIdx := 0
+				protoIdx := 0
+				for i, o := range lbPoolAlgoOptions {
+					if o.value == poolAlgo {
+						algoIdx = i
+						break
+					}
+				}
+				for i, o := range lbPoolProtoOptions {
+					if o.value == poolProto {
+						protoIdx = i
+						break
+					}
+				}
+				sessionVal := ""
+				if sp, ok := m.selectedLBPool["sessionPersistence"].(map[string]interface{}); ok {
+					sessionVal = getStringValue(sp, "type", "")
+				}
+				sessionIdx := 0
+				for i, o := range lbPoolSessionOptions {
+					if o.value == sessionVal {
+						sessionIdx = i
+						break
+					}
+				}
+				poolName := getStringValue(m.selectedLBPool, "name", "")
+				m.mode = WizardView
+				m.wizard = WizardData{
+					step:             LBPoolWizardStepName,
+					lbPoolEditPoolId: getStringValue(m.selectedLBPool, "id", ""),
+					lbPoolLBId:       getStringValue(m.detailData, "id", ""),
+					lbPoolLBName:     getStringValue(m.detailData, "name", ""),
+					lbPoolLBRegion:   region,
+					lbPoolNameInput:  poolName,
+					lbPoolName:       poolName,
+					lbPoolAlgoIdx:    algoIdx,
+					lbPoolAlgo:       poolAlgo,
+					lbPoolProtoIdx:   protoIdx,
+					lbPoolProto:      poolProto,
+					lbPoolSessionIdx: sessionIdx,
+					lbPoolSession:    sessionVal,
+				}
+				return m, nil
+			case 1: // Delete
+				if m.lbPoolDetailConfirm {
+					m.lbPoolDetailConfirm = false
+					return m, m.executeDeleteLBPool()
+				}
+				m.lbPoolDetailConfirm = true
+			}
+			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
 			// Execute selected action on instance
 			if m.actionConfirm {
@@ -7282,6 +7676,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductNetworkLB {
+			// If a pool row is selected in the list, Enter opens its detail view
+			lbIDForPool := getStringValue(m.detailData, "id", "")
+			if pools, ok := m.lbPools[lbIDForPool]; ok && m.lbPoolListIdx >= 0 && m.lbPoolListIdx < len(pools) {
+				m.selectedLBPool = pools[m.lbPoolListIdx]
+				m.lbPoolDetailActionIdx = 0
+				m.lbPoolDetailConfirm = false
+				m.mode = LBPoolDetailView
+				return m, nil
+			}
 			switch m.selectedAction {
 			case 0: // Supprimer
 				if m.actionConfirm {
@@ -7289,6 +7692,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					return m, m.executeLBDelete()
 				}
 				m.actionConfirm = true
+			case 1: // Listeners — not yet implemented
+				m.notification = "ℹ️  Listeners : fonctionnalité à venir"
+				m.notificationExpiry = time.Now().Add(4 * time.Second)
+				return m, tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+			case 2: // Pools — launch pool creation wizard
+				m.mode = WizardView
+				m.wizard = WizardData{
+					step:           LBPoolWizardStepName,
+					lbPoolLBId:     getStringValue(m.detailData, "id", ""),
+					lbPoolLBName:   getStringValue(m.detailData, "name", ""),
+					lbPoolLBRegion: getStringValue(m.detailData, "region", ""),
+				}
+				return m, nil
 			}
 			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductNetworkPublic {
@@ -7567,6 +7983,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 							)
 						}
 					}
+					if m.currentProduct == ProductNetworkLB {
+						lbId := getStringValue(m.detailData, "id", "")
+						lbRegion := getStringValue(m.detailData, "region", "")
+						m.lbPoolListIdx = -1 // reset pool cursor when entering LB detail
+						if lbId != "" && lbRegion != "" {
+							return m, m.fetchLBPools(lbId, lbRegion)
+						}
+					}
 				}
 			}
 		}
@@ -7655,6 +8079,52 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
+			return m, nil
+		}
+		// LB detail: ↑/↓ to navigate pool list
+		if m.mode == DetailView && m.currentProduct == ProductNetworkLB {
+			lbID := getStringValue(m.detailData, "id", "")
+			pools := m.lbPools[lbID]
+			if len(pools) > 0 {
+				if key == "down" || key == "j" {
+					if m.lbPoolListIdx < len(pools)-1 {
+						m.lbPoolListIdx++
+					}
+				} else if key == "up" || key == "k" {
+					if m.lbPoolListIdx > 0 {
+						m.lbPoolListIdx--
+					} else if m.lbPoolListIdx == 0 {
+						m.lbPoolListIdx = -1
+					}
+				}
+			}
+			return m, nil
+		}
+		// LBPoolDetailView: ↑/↓ not used
+		if m.mode == LBPoolDetailView {
+			return m, nil
+		}
+		// LB detail: ↑/↓ to navigate pool list
+		if m.mode == DetailView && m.currentProduct == ProductNetworkLB {
+			lbID := getStringValue(m.detailData, "id", "")
+			pools := m.lbPools[lbID]
+			if len(pools) > 0 {
+				if key == "down" || key == "j" {
+					if m.lbPoolListIdx < len(pools)-1 {
+						m.lbPoolListIdx++
+					}
+				} else if key == "up" || key == "k" {
+					if m.lbPoolListIdx > 0 {
+						m.lbPoolListIdx--
+					} else if m.lbPoolListIdx == 0 {
+						m.lbPoolListIdx = -1
+					}
+				}
+			}
+			return m, nil
+		}
+		// LBPoolDetailView: ↑/↓ not used
+		if m.mode == LBPoolDetailView {
 			return m, nil
 		}
 		// Private network detail: ↑/↓ to select region when Delete Region action is active
@@ -8005,13 +8475,13 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// 'q' quits (except when typing in input fields)
-	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && m.wizard.step != GwWizardStepName && m.wizard.step != LBWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "q" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != NodePoolWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && m.wizard.step != GwWizardStepName && m.wizard.step != LBWizardStepName && m.wizard.step != LBPoolWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		return m, tea.Quit
 	}
 
 	// 'd' opens debug panel (except when typing in input fields)
 	// Disable debug shortcut when: in name step, filter mode, creating SSH key, or creating network
-	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && m.wizard.step != GwWizardStepName && m.wizard.step != LBWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
+	if key == "d" && m.wizard.step != WizardStepName && m.wizard.step != KubeWizardStepName && m.wizard.step != VolumeWizardStepName && m.wizard.step != VolumeWizardStepSize && m.wizard.step != FileWizardStepName && m.wizard.step != FileWizardStepSize && m.wizard.step != ObjectWizardStepName && m.wizard.step != S3UserWizardStepDescription && m.wizard.step != BackupWizardStepName && m.wizard.step != PrivNetWizardStepName && m.wizard.step != PrivNetWizardStepVlanID && m.wizard.step != PrivNetWizardStepSubnet && m.wizard.step != PrivNetWizardStepGateway && m.wizard.step != GwWizardStepName && m.wizard.step != LBWizardStepName && m.wizard.step != LBPoolWizardStepName && !m.wizard.filterMode && !m.wizard.creatingSSHKey && !m.wizard.creatingNetwork {
 		m.previousMode = m.mode
 		m.mode = DebugView
 		m.debugScrollOffset = 0
@@ -8029,7 +8499,15 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 1100 {
+		if m.wizard.step >= 1300 {
+			// LB Pool wizard: return to LB detail view
+			m.wizard = WizardData{}
+			m.mode = DetailView
+			return m, nil
+		} else if m.wizard.step >= 1200 {
+			// Workflow wizard: return to workflow list
+			returnPath = "/instances/workflow"
+		} else if m.wizard.step >= 1100 {
 			// Floating IP wizard: return to public IPs list
 			returnPath = "/networks/floatingip"
 		} else if m.wizard.step >= 1000 {
@@ -8248,6 +8726,17 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleFIPWizardInstanceKeys(key)
 	case FIPWizardStepConfirm:
 		return m.handleFIPWizardConfirmKeys(key)
+	// LB Pool wizard steps
+	case LBPoolWizardStepName:
+		return m.handleLBPoolWizardNameKeys(key)
+	case LBPoolWizardStepAlgo:
+		return m.handleLBPoolWizardAlgoKeys(key)
+	case LBPoolWizardStepProto:
+		return m.handleLBPoolWizardProtoKeys(key)
+	case LBPoolWizardStepSession:
+		return m.handleLBPoolWizardSessionKeys(key)
+	case LBPoolWizardStepConfirm:
+		return m.handleLBPoolWizardConfirmKeys(key)
 	// Workflow wizard steps
 	case WorkflowWizardStepType:
 		return m.handleWorkflowWizardTypeKeys(key)

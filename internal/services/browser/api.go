@@ -1310,6 +1310,76 @@ func (m Model) executeGatewayDelete() tea.Cmd {
 	}
 }
 
+// fetchLBPools fetches the list of pools for a given load balancer.
+func (m Model) fetchLBPools(lbID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbPoolsLoadedMsg{lbID: lbID, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool?loadbalancerId=%s",
+			m.cloudProject, url.PathEscape(region), url.QueryEscape(lbID))
+		var pools []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &pools); err != nil {
+			return lbPoolsLoadedMsg{lbID: lbID, err: err}
+		}
+		return lbPoolsLoadedMsg{lbID: lbID, pools: pools}
+	}
+}
+
+// executeDeleteLBPool deletes the selected LB pool.
+func (m Model) executeDeleteLBPool() tea.Cmd {
+	return func() tea.Msg {
+		if m.selectedLBPool == nil {
+			return lbPoolDeletedMsg{err: fmt.Errorf("aucun pool sélectionné")}
+		}
+		if m.cloudProject == "" {
+			return lbPoolDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		poolID := getStringValue(m.selectedLBPool, "id", "")
+		poolName := getStringValue(m.selectedLBPool, "name", "")
+		region := getStringValue(m.detailData, "region", "")
+		if poolID == "" || region == "" {
+			return lbPoolDeletedMsg{err: fmt.Errorf("ID ou région du pool introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbPoolDeletedMsg{poolName: poolName, err: fmt.Errorf("échec de la suppression: %w", err)}
+		}
+		return lbPoolDeletedMsg{poolName: poolName}
+	}
+}
+
+// updateLBPool updates the selected LB pool using wizard data.
+func (m Model) updateLBPool() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbPoolUpdatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		if m.wizard.lbPoolEditPoolId == "" || m.wizard.lbPoolLBRegion == "" {
+			return lbPoolUpdatedMsg{err: fmt.Errorf("ID pool ou région manquant")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s",
+			m.cloudProject, url.PathEscape(m.wizard.lbPoolLBRegion), url.PathEscape(m.wizard.lbPoolEditPoolId))
+
+		body := map[string]interface{}{
+			"name":      m.wizard.lbPoolName,
+			"algorithm": m.wizard.lbPoolAlgo,
+		}
+		if m.wizard.lbPoolSession != "" && m.wizard.lbPoolSession != "disabled" {
+			body["sessionPersistence"] = map[string]interface{}{
+				"type": m.wizard.lbPoolSession,
+			}
+		}
+
+		var result map[string]interface{}
+		if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
+			return lbPoolUpdatedMsg{poolName: m.wizard.lbPoolName, err: fmt.Errorf("échec de la mise à jour: %w", err)}
+		}
+		return lbPoolUpdatedMsg{poolName: m.wizard.lbPoolName}
+	}
+}
+
 // executeLBDelete deletes the currently selected load balancer.
 func (m Model) executeLBDelete() tea.Cmd {
 	return func() tea.Msg {
