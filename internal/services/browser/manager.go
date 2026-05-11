@@ -1083,7 +1083,7 @@ func getComputeSubItems() []ComputeSubItem {
 	return []ComputeSubItem{
 		{Label: "Instances", Product: ProductInstances, Path: "/instances", Enabled: true},
 		{Label: "Instance Backup", Product: ProductInstanceBackup, Path: "/instances/backup", Enabled: true},
-		{Label: "Workflow", Product: ProductWorkflow, Path: "/instances/workflow", Enabled: false},
+		{Label: "Workflow", Product: ProductWorkflow, Path: "/instances/workflow", Enabled: true},
 	}
 }
 

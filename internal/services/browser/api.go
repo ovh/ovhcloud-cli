@@ -135,6 +135,12 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 			msg.forProduct = product
 			return msg
 		}
+	case "/instances/workflow":
+		return func() tea.Msg {
+			msg := m.fetchWorkflowsData()
+			msg.forProduct = product
+			return msg
+		}
 	case "/storage/snapshot":
 		return func() tea.Msg {
 			msg := m.fetchVolumeSnapshotsData()
@@ -2274,6 +2280,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		}
 	case ProductInstanceBackup:
 		m.table = createInstanceBackupsTable(msg.data, m.width, m.height)
+	case ProductWorkflow:
+		m.table = createWorkflowsTable(msg.data, m.width, m.height)
 	case ProductStorageSnapshot:
 		m.table = createVolumeSnapshotsTable(msg.data, m.width, m.height)
 	case ProductStorageBackup:
@@ -2573,6 +2581,86 @@ func createInstanceBackupsTable(data []map[string]interface{}, width, height int
 		status := getString(s, "status")
 
 		rows = append(rows, table.Row{name, id, location, sizeStr, created, status})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+	return t
+}
+
+// createWorkflowsTable creates a table for backup workflows.
+// Columns: Name, ID, Backup, Location, Workflow (cron), Targeted Resource, Rotation, Last Execution, Last State
+func createWorkflowsTable(data []map[string]interface{}, width, height int) table.Model {
+	sort.Slice(data, func(i, j int) bool {
+		return getString(data[i], "name") < getString(data[j], "name")
+	})
+
+	columns := []table.Column{
+		{Title: "Name", Width: 22},
+		{Title: "ID", Width: 22},
+		{Title: "Backup", Width: 20},
+		{Title: "Location", Width: 12},
+		{Title: "Workflow", Width: 16},
+		{Title: "Targeted Resource", Width: 22},
+		{Title: "Ordinance", Width: 14},
+	}
+
+	var rows []table.Row
+	for _, w := range data {
+		name := getString(w, "name")
+		id := getString(w, "id")
+
+		// Backup name prefix
+		backup := getString(w, "backupName")
+		if backup == "" {
+			backup = "-"
+		}
+
+		// Location / region
+		location := getString(w, "region")
+		if location == "" {
+			location = "-"
+		}
+
+		// Workflow = type, always "Backup" for this endpoint
+		workflowStr := "Backup"
+
+		// Targeted resource = instanceId
+		instanceId := getString(w, "instanceId")
+		if instanceId == "" {
+			instanceId = "-"
+		}
+
+		// Ordinance = raw cron expression (e.g. "0 0 */7 * *")
+		ordinance := getString(w, "cron")
+		if ordinance == "" {
+			ordinance = "-"
+		}
+
+		rows = append(rows, table.Row{name, id, backup, location, workflowStr, instanceId, ordinance})
 	}
 
 	tableHeight := height - 15
@@ -3216,6 +3304,51 @@ func getString(m map[string]interface{}, key string) string {
 		return fmt.Sprintf("%v", val)
 	}
 	return ""
+}
+
+// parseCronHuman converts a cron expression to a human-readable string.
+// e.g. "0 3 * * *" → "Daily at 03:00", "0 3 * * 1" → "Weekly Mon at 03:00"
+func parseCronHuman(cron string) string {
+	if cron == "" {
+		return "-"
+	}
+	parts := strings.Fields(cron)
+	if len(parts) != 5 {
+		return cron
+	}
+	minute, hour, dom, month, dow := parts[0], parts[1], parts[2], parts[3], parts[4]
+
+	timeStr := ""
+	if hour != "*" && minute != "*" {
+		h := hour
+		mi := minute
+		if len(h) == 1 {
+			h = "0" + h
+		}
+		if len(mi) == 1 {
+			mi = "0" + mi
+		}
+		timeStr = " at " + h + ":" + mi
+	}
+
+	days := map[string]string{
+		"0": "Sun", "1": "Mon", "2": "Tue", "3": "Wed",
+		"4": "Thu", "5": "Fri", "6": "Sat", "7": "Sun",
+	}
+
+	switch {
+	case dom != "*" && month == "*" && dow == "*":
+		return fmt.Sprintf("Monthly (day %s)%s", dom, timeStr)
+	case dow != "*" && dom == "*":
+		if day, ok := days[dow]; ok {
+			return fmt.Sprintf("Weekly %s%s", day, timeStr)
+		}
+		return fmt.Sprintf("Weekly%s", timeStr)
+	case dom == "*" && month == "*" && dow == "*":
+		return fmt.Sprintf("Daily%s", timeStr)
+	default:
+		return cron
+	}
 }
 
 // ============================================
@@ -5436,6 +5569,48 @@ func (m Model) fetchInstanceBackupsData() dataLoadedMsg {
 		}
 	}
 	return dataLoadedMsg{data: snapshots}
+}
+
+// fetchWorkflowsData fetches the list of backup workflows across all project regions,
+// then enriches each entry with lastExecution and lastExecutionStatus via individual GET.
+func (m Model) fetchWorkflowsData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+	var regionNames []string
+	regionsEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	if err := httpLib.Client.Get(regionsEndpoint, &regionNames); err != nil {
+		return dataLoadedMsg{err: fmt.Errorf("failed to fetch regions: %w", err)}
+	}
+	var workflows []map[string]interface{}
+	for _, region := range regionNames {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup", m.cloudProject, url.PathEscape(region))
+		var raw []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &raw); err != nil {
+			continue
+		}
+		for _, obj := range raw {
+			if _, hasRegion := obj["region"]; !hasRegion {
+				obj["region"] = region
+			}
+			// Fetch individual workflow to get lastExecution + lastExecutionStatus
+			if wfID, ok := obj["id"].(string); ok && wfID != "" {
+				detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup/%s",
+					m.cloudProject, url.PathEscape(region), url.PathEscape(wfID))
+				var detail map[string]interface{}
+				if err := httpLib.Client.Get(detailEndpoint, &detail); err == nil {
+					if v, ok := detail["lastExecution"]; ok {
+						obj["lastExecution"] = v
+					}
+					if v, ok := detail["lastExecutionStatus"]; ok {
+						obj["lastExecutionStatus"] = v
+					}
+				}
+			}
+			workflows = append(workflows, obj)
+		}
+	}
+	return dataLoadedMsg{data: workflows}
 }
 
 // fetchVolumeSnapshotsData fetches the list of volume snapshots.
