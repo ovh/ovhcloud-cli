@@ -6874,6 +6874,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if isSubNavProd && !m.inTableFocus {
 				return m, nil
 			}
+			// Instance Backup: redirect to Instances and launch the instance creation wizard
+			// (a backup is created from an instance, not as a standalone resource)
+			if m.currentProduct == ProductInstanceBackup {
+				m.computeSubIdx = 0 // Instances is index 0 in compute sub-nav
+				m.currentProduct = ProductInstances
+				m.inComputeSubNav = true
+				m.inTableFocus = true
+				return m, m.launchCreationWizard()
+			}
 			// If viewing S3 users tab, launch user creation wizard
 			if m.currentProduct == ProductStorageObject && m.objectStorageTabIdx == 1 {
 				m.mode = WizardView
