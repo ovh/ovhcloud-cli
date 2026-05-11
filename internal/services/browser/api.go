@@ -1334,6 +1334,30 @@ func (m Model) executeLBDelete() tea.Cmd {
 	}
 }
 
+// executeWorkflowDelete deletes the currently selected backup workflow.
+func (m Model) executeWorkflowDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return workflowDeletedMsg{err: fmt.Errorf("aucun workflow sélectionné")}
+		}
+		if m.cloudProject == "" {
+			return workflowDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		wfID := getString(m.detailData, "id")
+		wfName := getString(m.detailData, "name")
+		region := getString(m.detailData, "region")
+		if wfID == "" || region == "" {
+			return workflowDeletedMsg{err: fmt.Errorf("ID ou région du workflow introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(wfID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return workflowDeletedMsg{name: wfName, err: fmt.Errorf("échec de la suppression: %w", err)}
+		}
+		return workflowDeletedMsg{name: wfName}
+	}
+}
+
 // executePrivNetworkDelete deletes the currently selected private network.
 func (m Model) executePrivNetworkDelete() tea.Cmd {
 	return func() tea.Msg {

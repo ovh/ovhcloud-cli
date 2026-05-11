@@ -1036,6 +1036,11 @@ type fipDeletedMsg struct {
 	err   error
 }
 
+type workflowDeletedMsg struct {
+	name string
+	err  error
+}
+
 type fipDetachedMsg struct {
 	fipIP string
 	err   error
@@ -1887,6 +1892,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.notification = fmt.Sprintf("✅ Workflow \"%s\" créé avec succès !", msg.name)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/instances/workflow"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case workflowDeletedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Workflow \"%s\" supprimé avec succès", msg.name)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.detailData = nil
 		m.mode = LoadingView
 		return m, tea.Batch(
 			m.fetchDataForPath("/instances/workflow"),
@@ -5647,9 +5668,75 @@ func (m Model) renderDetailView(width int) string {
                         return m.objectDetailView.Render(width, 0)
                 }
                 return m.renderGenericDetail(width)
+	case ProductWorkflow:
+		return m.renderWorkflowDetail(width)
         default:
                 return m.renderGenericDetail(width)
         }
+}
+
+func (m Model) renderWorkflowDetail(width int) string {
+	var content strings.Builder
+
+	name := getStringValue(m.detailData, "name", "N/A")
+	id := getStringValue(m.detailData, "id", "N/A")
+	region := getStringValue(m.detailData, "region", "N/A")
+	instanceId := getStringValue(m.detailData, "instanceId", "N/A")
+	cron := getStringValue(m.detailData, "cron", "N/A")
+	rotation := int(getFloatValue(m.detailData, "rotation", 0))
+	lastStatus := getStringValue(m.detailData, "lastExecutionStatus", "-")
+
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	boxWidth := width - 4
+
+	statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	statusIcon := "⏳"
+	switch strings.ToLower(lastStatus) {
+	case "success":
+		statusIcon = "✅"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+	case "error", "failed":
+		statusIcon = "❌"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+	case "running":
+		statusIcon = "🔄"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+	}
+
+	var infoContent strings.Builder
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(id, 36))))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Région"), valueSt.Render(region)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Instance"), valueSt.Render(truncate(instanceId, 36))))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Cron"), valueSt.Render(cron)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Rotation"), valueSt.Render(fmt.Sprintf("%d sauvegardes", rotation))))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Statut"), statusStyle.Render(statusIcon+" "+lastStatus)))
+	infoBox := renderBox("Workflow : "+name, infoContent.String(), boxWidth)
+
+	actions := []string{"Supprimer"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.selectedAction {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color("#FF6B6B")).
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).Padding(0, 1).Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.actionConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).Bold(true).
+			Render(fmt.Sprintf("⚠️  Appuyez sur Enter pour confirmer %s, Échap pour annuler", actions[m.selectedAction]))
+	}
+	actionsBox := renderBox("Actions (Enter pour exécuter, Échap pour retour)", actionsContent, width-4)
+
+	content.WriteString(actionsBox + "\n\n")
+	content.WriteString(infoBox)
+	return content.String()
 }
 
 func (m Model) renderInstanceDetail(width int) string {
@@ -6692,6 +6779,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// In DetailView for Workflow, only 1 action (Delete)
+		if m.mode == DetailView && m.currentProduct == ProductWorkflow {
+			return m, nil
+		}
 		// In DetailView for Floating IPs, navigate actions (0=Delete, 1=Detach)
 		if m.mode == DetailView && m.currentProduct == ProductNetworkPublic {
 			if m.selectedAction > 0 {
@@ -6787,6 +6878,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.selectedAction++
 				m.actionConfirm = false
 			}
+			return m, nil
+		}
+		// In DetailView for Workflow, only 1 action (Delete)
+		if m.mode == DetailView && m.currentProduct == ProductWorkflow {
 			return m, nil
 		}
 		// In DetailView for Floating IPs, navigate actions (0=Delete, 1=Detach)
@@ -7098,6 +7193,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.actionConfirm {
 					m.actionConfirm = false
 					return m, m.executeFIPDetach()
+				}
+				m.actionConfirm = true
+			}
+			return m, nil
+		} else if m.mode == DetailView && m.currentProduct == ProductWorkflow {
+			switch m.selectedAction {
+			case 0: // Supprimer
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.executeWorkflowDelete()
 				}
 				m.actionConfirm = true
 			}
