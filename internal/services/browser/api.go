@@ -1326,6 +1326,44 @@ func (m Model) fetchLBPools(lbID, region string) tea.Cmd {
 	}
 }
 
+// fetchLBListeners fetches the list of listeners for a given load balancer.
+func (m Model) fetchLBListeners(lbID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbListenersLoadedMsg{lbID: lbID, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener",
+			m.cloudProject, url.PathEscape(region))
+		var all []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &all); err != nil {
+			return lbListenersLoadedMsg{lbID: lbID, err: err}
+		}
+		// Filter client-side: handle both singular "loadbalancerId" and list "loadBalancerIds"
+		var listeners []map[string]interface{}
+		for _, l := range all {
+			// Case 1: singular string field "loadbalancerId"
+			if v, ok := l["loadbalancerId"].(string); ok && v == lbID {
+				listeners = append(listeners, l)
+				continue
+			}
+			// Case 2: list field "loadBalancerIds"
+			if ids, ok := l["loadBalancerIds"].([]interface{}); ok {
+				for _, id := range ids {
+					if fmt.Sprintf("%v", id) == lbID {
+						listeners = append(listeners, l)
+						break
+					}
+				}
+			}
+		}
+		// If no match found with either filter, return all (avoids empty list due to unknown field name)
+		if len(listeners) == 0 && len(all) > 0 {
+			listeners = all
+		}
+		return lbListenersLoadedMsg{lbID: lbID, listeners: listeners}
+	}
+}
+
 // executeDeleteLBPool deletes the selected LB pool.
 func (m Model) executeDeleteLBPool() tea.Cmd {
 	return func() tea.Msg {
@@ -1377,6 +1415,57 @@ func (m Model) updateLBPool() tea.Cmd {
 			return lbPoolUpdatedMsg{poolName: m.wizard.lbPoolName, err: fmt.Errorf("échec de la mise à jour: %w", err)}
 		}
 		return lbPoolUpdatedMsg{poolName: m.wizard.lbPoolName}
+	}
+}
+
+// executeDeleteLBListener deletes the selected LB listener.
+func (m Model) executeDeleteLBListener() tea.Cmd {
+	return func() tea.Msg {
+		if m.selectedLBListener == nil {
+			return lbListenerDeletedMsg{err: fmt.Errorf("aucun listener sélectionné")}
+		}
+		if m.cloudProject == "" {
+			return lbListenerDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		listenerID := getStringValue(m.selectedLBListener, "id", "")
+		listenerName := getStringValue(m.selectedLBListener, "name", "")
+		region := getStringValue(m.detailData, "region", "")
+		if listenerID == "" || region == "" {
+			return lbListenerDeletedMsg{err: fmt.Errorf("ID ou région du listener introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(listenerID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbListenerDeletedMsg{listenerName: listenerName, err: fmt.Errorf("échec de la suppression: %w", err)}
+		}
+		return lbListenerDeletedMsg{listenerName: listenerName}
+	}
+}
+
+// updateLBListener updates the selected LB listener using wizard data.
+func (m Model) updateLBListener() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbListenerUpdatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		if m.wizard.lbListenerEditId == "" || m.wizard.lbListenerLBRegion == "" {
+			return lbListenerUpdatedMsg{err: fmt.Errorf("ID listener ou région manquant")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener/%s",
+			m.cloudProject, url.PathEscape(m.wizard.lbListenerLBRegion), url.PathEscape(m.wizard.lbListenerEditId))
+
+		body := map[string]interface{}{
+			"name": m.wizard.lbListenerName,
+		}
+		if m.wizard.lbListenerPoolId != "" {
+			body["defaultPoolId"] = m.wizard.lbListenerPoolId
+		}
+
+		var result map[string]interface{}
+		if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
+			return lbListenerUpdatedMsg{listenerName: m.wizard.lbListenerName, err: fmt.Errorf("échec de la mise à jour: %w", err)}
+		}
+		return lbListenerUpdatedMsg{listenerName: m.wizard.lbListenerName}
 	}
 }
 
