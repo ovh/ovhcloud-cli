@@ -46,8 +46,9 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 
 	// Container registry reference commands
 	containerRegistryReferenceCmd := &cobra.Command{
-		Use:   "container-registry",
-		Short: "Fetch container registry reference data in the given cloud project",
+		Use:     "managed-registry",
+		Aliases: []string{"mpr"},
+		Short:   "Fetch container registry reference data in the given cloud project",
 	}
 	referenceCmd.AddCommand(containerRegistryReferenceCmd)
 
@@ -67,8 +68,9 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 
 	// Rancher reference commands
 	rancherReferenceCmd := &cobra.Command{
-		Use:   "rancher",
-		Short: "Fetch Rancher reference data in the given cloud project",
+		Use:     "managed-rancher",
+		Aliases: []string{"mrs"},
+		Short:   "Fetch Rancher reference data in the given cloud project",
 	}
 	referenceCmd.AddCommand(rancherReferenceCmd)
 
