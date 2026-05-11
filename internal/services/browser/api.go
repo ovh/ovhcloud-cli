@@ -1334,6 +1334,28 @@ func (m Model) executeLBDelete() tea.Cmd {
 	}
 }
 
+// executeInstanceBackupDelete deletes the currently selected instance snapshot/backup.
+func (m Model) executeInstanceBackupDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return instanceBackupDeletedMsg{err: fmt.Errorf("aucun backup sélectionné")}
+		}
+		if m.cloudProject == "" {
+			return instanceBackupDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		snapshotID := getString(m.detailData, "id")
+		snapshotName := getString(m.detailData, "name")
+		if snapshotID == "" {
+			return instanceBackupDeletedMsg{err: fmt.Errorf("ID du backup introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot/%s", m.cloudProject, url.PathEscape(snapshotID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return instanceBackupDeletedMsg{name: snapshotName, err: fmt.Errorf("échec de la suppression: %w", err)}
+		}
+		return instanceBackupDeletedMsg{name: snapshotName}
+	}
+}
+
 // executeWorkflowDelete deletes the currently selected backup workflow.
 func (m Model) executeWorkflowDelete() tea.Cmd {
 	return func() tea.Msg {
@@ -4411,7 +4433,7 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 			return instanceActionMsg{err: fmt.Errorf("instance ID not found")}
 		}
 
-		actions := []string{"ssh", "reboot", "rescue", "stop_or_start", "vnc", "reinstall", "backup"}
+		actions := []string{"ssh", "reboot", "rescue", "stop_or_start", "vnc", "reinstall", "backup", "delete"}
 		if actionIndex < 0 || actionIndex >= len(actions) {
 			return instanceActionMsg{err: fmt.Errorf("invalid action index")}
 		}
@@ -4548,6 +4570,14 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 			if err == nil {
 				return instanceActionMsg{action: "backup", instanceId: instanceId, backupName: snapshotName, err: nil}
 			}
+
+		case "delete":
+			// DELETE /cloud/project/{serviceName}/instance/{instanceId}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", m.cloudProject, instanceId)
+			err = httpLib.Client.Delete(endpoint, nil)
+			if err == nil {
+				return instanceActionMsg{action: "delete", instanceId: instanceId, err: nil}
+			}
 		}
 
 		return instanceActionMsg{
@@ -4570,6 +4600,7 @@ func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) 
 		"vnc":       "Console",
 		"reinstall": "Reinstall",
 		"backup":    "Instance Backup",
+		"delete":    "Delete",
 	}
 
 	actionName := actionNames[msg.action]
@@ -4603,6 +4634,18 @@ func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) 
 		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
 			return clearNotificationMsg{}
 		})
+	}
+
+	// For delete: go back to list, don't restore detail view
+	if msg.action == "delete" {
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/instances"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+				return clearNotificationMsg{}
+			}),
+		)
 	}
 
 	// Stay on detail view after action: set refresh IDs so handleDataLoaded returns to detail

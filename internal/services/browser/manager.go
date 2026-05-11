@@ -1041,6 +1041,11 @@ type workflowDeletedMsg struct {
 	err  error
 }
 
+type instanceBackupDeletedMsg struct {
+	name string
+	err  error
+}
+
 type fipDetachedMsg struct {
 	fipIP string
 	err   error
@@ -1911,6 +1916,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LoadingView
 		return m, tea.Batch(
 			m.fetchDataForPath("/instances/workflow"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case instanceBackupDeletedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Backup \"%s\" supprimé avec succès", msg.name)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/instances/backup"),
 			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
 
@@ -5670,6 +5691,8 @@ func (m Model) renderDetailView(width int) string {
                 return m.renderGenericDetail(width)
 	case ProductWorkflow:
 		return m.renderWorkflowDetail(width)
+	case ProductInstanceBackup:
+		return m.renderInstanceBackupDetail(width)
         default:
                 return m.renderGenericDetail(width)
         }
@@ -5719,6 +5742,86 @@ func (m Model) renderWorkflowDetail(width int) string {
 		if i == m.selectedAction {
 			actionParts = append(actionParts, lipgloss.NewStyle().
 				Background(lipgloss.Color("#FF6B6B")).
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).Padding(0, 1).Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.actionConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).Bold(true).
+			Render(fmt.Sprintf("⚠️  Appuyez sur Enter pour confirmer %s, Échap pour annuler", actions[m.selectedAction]))
+	}
+	actionsBox := renderBox("Actions (Enter pour exécuter, Échap pour retour)", actionsContent, width-4)
+
+	content.WriteString(actionsBox + "\n\n")
+	content.WriteString(infoBox)
+	return content.String()
+}
+
+func (m Model) renderInstanceBackupDetail(width int) string {
+	var content strings.Builder
+
+	name := getStringValue(m.detailData, "name", "N/A")
+	id := getStringValue(m.detailData, "id", "N/A")
+	status := getStringValue(m.detailData, "status", "N/A")
+	created := getStringValue(m.detailData, "creationDate", "-")
+	if len(created) >= 16 {
+		created = created[:16]
+	}
+	minDisk := int(getFloatValue(m.detailData, "minDisk", 0))
+	sizeStr := "-"
+	if minDisk > 0 {
+		sizeStr = fmt.Sprintf("%d GB", minDisk)
+	}
+	location := getStringValue(m.detailData, "region", "")
+	if location == "" {
+		if regions, ok := m.detailData["regions"].([]interface{}); ok && len(regions) > 0 {
+			var rnames []string
+			for _, r := range regions {
+				if rs, ok := r.(string); ok {
+					rnames = append(rnames, rs)
+				}
+			}
+			location = strings.Join(rnames, ", ")
+		}
+	}
+	if location == "" {
+		location = "-"
+	}
+
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	boxWidth := width - 4
+
+	statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	statusIcon := "🟡"
+	switch strings.ToLower(status) {
+	case "active":
+		statusIcon = "🟢"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+	case "error":
+		statusIcon = "🔴"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+	}
+
+	var infoContent strings.Builder
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(id, 36))))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Localisation"), valueSt.Render(location)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Taille disque"), valueSt.Render(sizeStr)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Créé le"), valueSt.Render(created)))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Statut"), statusStyle.Render(statusIcon+" "+status)))
+	infoBox := renderBox("Instance Backup : "+name, infoContent.String(), boxWidth)
+
+	actions := []string{"Supprimer"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.selectedAction {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color("#FF4444")).
 				Foreground(lipgloss.Color("#FFFFFF")).
 				Bold(true).Padding(0, 1).Render(action))
 		} else {
@@ -5862,13 +5965,17 @@ func (m Model) renderInstanceDetail(width int) string {
 	if strings.ToUpper(status) == "RESCUE" {
 		rescueAction = "Exit Rescue"
 	}
-	actions := []string{"SSH", "Reboot", rescueAction, stopStartAction, "Console", "Reinstall", "Backup"}
+	actions := []string{"SSH", "Reboot", rescueAction, stopStartAction, "Console", "Reinstall", "Backup", "Delete"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
-			// Selected action - highlighted
+			// Selected action - highlighted (Delete uses red)
+			bg := lipgloss.Color("#7B68EE")
+			if action == "Delete" {
+				bg = lipgloss.Color("#FF4444")
+			}
 			actionParts = append(actionParts, lipgloss.NewStyle().
-				Background(lipgloss.Color("#7B68EE")).
+				Background(bg).
 				Foreground(lipgloss.Color("#FFFFFF")).
 				Bold(true).
 				Padding(0, 1).
@@ -6783,6 +6890,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.mode == DetailView && m.currentProduct == ProductWorkflow {
 			return m, nil
 		}
+		// In DetailView for Instance Backup, only 1 action (Delete)
+		if m.mode == DetailView && m.currentProduct == ProductInstanceBackup {
+			return m, nil
+		}
 		// In DetailView for Floating IPs, navigate actions (0=Delete, 1=Detach)
 		if m.mode == DetailView && m.currentProduct == ProductNetworkPublic {
 			if m.selectedAction > 0 {
@@ -6858,7 +6969,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView, navigate actions
 		if m.mode == DetailView && m.currentProduct == ProductInstances {
-			if m.selectedAction < 6 { // 7 actions: 0-6
+			if m.selectedAction < 7 { // 8 actions: 0-7
 				m.selectedAction++
 				m.actionConfirm = false
 			}
@@ -6882,6 +6993,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView for Workflow, only 1 action (Delete)
 		if m.mode == DetailView && m.currentProduct == ProductWorkflow {
+			return m, nil
+		}
+		// In DetailView for Instance Backup, only 1 action (Delete)
+		if m.mode == DetailView && m.currentProduct == ProductInstanceBackup {
 			return m, nil
 		}
 		// In DetailView for Floating IPs, navigate actions (0=Delete, 1=Detach)
@@ -7197,12 +7312,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.actionConfirm = true
 			}
 			return m, nil
-		} else if m.mode == DetailView && m.currentProduct == ProductWorkflow {
+	} else if m.mode == DetailView && m.currentProduct == ProductWorkflow {
 			switch m.selectedAction {
 			case 0: // Supprimer
 				if m.actionConfirm {
 					m.actionConfirm = false
 					return m, m.executeWorkflowDelete()
+				}
+				m.actionConfirm = true
+			}
+			return m, nil
+		} else if m.mode == DetailView && m.currentProduct == ProductInstanceBackup {
+			switch m.selectedAction {
+			case 0: // Supprimer
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.executeInstanceBackupDelete()
 				}
 				m.actionConfirm = true
 			}
