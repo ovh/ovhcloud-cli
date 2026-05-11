@@ -6,6 +6,7 @@ package login
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/config"
@@ -92,6 +93,10 @@ func Login(_ *cobra.Command, _ []string) {
 			}
 		}
 
+		if err := os.Chmod(flags.CliConfigPath, 0600); err != nil {
+			display.OutputWarning(&flags.OutputFormatConfig, "failed to set secure permissions on config file: %s", err)
+		}
+
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "Credentials saved to profile %q", LoginProfileFlag)
 		return
 	}
@@ -108,5 +113,9 @@ func Login(_ *cobra.Command, _ []string) {
 			display.OutputError(&flags.OutputFormatConfig, "failed to write configuration %q: %s", k, err)
 			return
 		}
+	}
+
+	if err := os.Chmod(flags.CliConfigPath, 0600); err != nil {
+		display.OutputWarning(&flags.OutputFormatConfig, "failed to set secure permissions on config file: %s", err)
 	}
 }
