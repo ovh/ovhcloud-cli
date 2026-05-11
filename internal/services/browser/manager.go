@@ -175,6 +175,15 @@ const (
 	FIPWizardStepConfirm                           // confirm + create
 )
 
+const (
+	// Workflow wizard steps (offset by 1200)
+	WorkflowWizardStepType     WizardStep = iota + 1200 // select workflow type
+	WorkflowWizardStepInstance                          // select instance
+	WorkflowWizardStepName                              // enter name
+	WorkflowWizardStepSchedule                          // define schedule/rotation
+	WorkflowWizardStepConfirm                           // confirm + create
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -456,6 +465,20 @@ type WizardData struct {
 	fipInstanceId        string
 	fipInstanceName      string
 	fipConfirmBtnIdx     int
+
+	// Workflow wizard fields
+	wfInstances      []map[string]interface{}
+	wfInstanceIdx    int
+	wfInstanceId     string
+	wfInstanceName   string
+	wfRegion         string
+	wfName           string
+	wfNameInput      string
+	wfScheduleIdx    int    // 0=rotation7, 1=rotation14, 2=custom
+	wfCron           string
+	wfCronInput      string
+	wfRotation       int
+	wfConfirmBtnIdx  int
 }
 
 // Model represents the TUI application state
@@ -1285,6 +1308,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Loading regions...",
 			}
 			return m, m.fetchFIPRegions()
+		} else if msg.product == ProductWorkflow {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step: WorkflowWizardStepType,
+			}
+			return m, nil
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -1833,6 +1862,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.wizard.fipInstances = msg.instances
 		m.wizard.fipInstanceIdx = 0
 		return m, nil
+
+	case workflowInstancesLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.wfInstances = msg.instances
+		m.wizard.wfInstanceIdx = 0
+		return m, nil
+
+	case workflowCreatedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Batch(
+				m.fetchDataForPath("/instances/workflow"),
+				tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		m.notification = fmt.Sprintf("✅ Workflow \"%s\" créé avec succès !", msg.name)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/instances/workflow"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
 
 	case fipCreatedMsg:
 		m.wizard = WizardData{}
@@ -2595,7 +2654,10 @@ func (m Model) renderContentBox(width int) string {
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 1100 {
+		if m.wizard.step >= 1200 {
+			// Workflow wizard
+			titleText = " ⚙️  Créer un Workflow de sauvegarde "
+		} else if m.wizard.step >= 1100 {
 			// Floating IP wizard
 			titleText = " 🌐 Create Floating IP "
 		} else if m.wizard.step >= 1000 {
@@ -3557,7 +3619,11 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 1100 {
+	if m.wizard.step >= 1200 {
+		// Workflow wizard
+		steps = append(steps, "Type", "Instance", "Nom", "Planification", "Confirmer")
+		stepMapping = append(stepMapping, WorkflowWizardStepType, WorkflowWizardStepInstance, WorkflowWizardStepName, WorkflowWizardStepSchedule, WorkflowWizardStepConfirm)
+	} else if m.wizard.step >= 1100 {
 		// Floating IP wizard
 		steps = append(steps, "Region", "Instance", "Confirm")
 		stepMapping = append(stepMapping, FIPWizardStepRegion, FIPWizardStepInstance, FIPWizardStepConfirm)
@@ -3808,6 +3874,17 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderFIPWizardInstanceStep(width))
 	case FIPWizardStepConfirm:
 		content.WriteString(m.renderFIPWizardConfirmStep(width))
+	// Workflow wizard steps
+	case WorkflowWizardStepType:
+		content.WriteString(m.renderWorkflowWizardTypeStep(width))
+	case WorkflowWizardStepInstance:
+		content.WriteString(m.renderWorkflowWizardInstanceStep(width))
+	case WorkflowWizardStepName:
+		content.WriteString(m.renderWorkflowWizardNameStep(width))
+	case WorkflowWizardStepSchedule:
+		content.WriteString(m.renderWorkflowWizardScheduleStep(width))
+	case WorkflowWizardStepConfirm:
+		content.WriteString(m.renderWorkflowWizardConfirmStep(width))
 	// Volume Backup / Snapshot wizard steps
 	case BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm:
 		content.WriteString(m.renderBackupWizard(width))
@@ -7946,6 +8023,17 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleFIPWizardInstanceKeys(key)
 	case FIPWizardStepConfirm:
 		return m.handleFIPWizardConfirmKeys(key)
+	// Workflow wizard steps
+	case WorkflowWizardStepType:
+		return m.handleWorkflowWizardTypeKeys(key)
+	case WorkflowWizardStepInstance:
+		return m.handleWorkflowWizardInstanceKeys(key)
+	case WorkflowWizardStepName:
+		return m.handleWorkflowWizardNameKeys(key)
+	case WorkflowWizardStepSchedule:
+		return m.handleWorkflowWizardScheduleKeys(key)
+	case WorkflowWizardStepConfirm:
+		return m.handleWorkflowWizardConfirmKeys(key)
 	}
 	return m, nil
 }
