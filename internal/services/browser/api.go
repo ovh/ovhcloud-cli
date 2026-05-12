@@ -5989,3 +5989,79 @@ func createVolumeBackupsTable(data []map[string]interface{}, width, height int) 
 	return t
 }
 
+
+// fetchLBMembers fetches the list of members for a given pool.
+func (m Model) fetchLBMembers(poolID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbPoolMembersLoadedMsg{poolID: poolID, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member",
+m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
+		var members []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &members); err != nil {
+			return lbPoolMembersLoadedMsg{poolID: poolID, err: err}
+		}
+		return lbPoolMembersLoadedMsg{poolID: poolID, members: members}
+	}
+}
+
+// executeDeleteLBMember deletes a pool member.
+func (m Model) executeDeleteLBMember(poolID, memberID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbPoolMemberDeletedMsg{poolID: poolID, err: fmt.Errorf("no cloud project selected")}
+		}
+		if poolID == "" || memberID == "" || region == "" {
+			return lbPoolMemberDeletedMsg{poolID: poolID, err: fmt.Errorf("pool ID, member ID or region missing")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member/%s",
+m.cloudProject, url.PathEscape(region), url.PathEscape(poolID), url.PathEscape(memberID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbPoolMemberDeletedMsg{poolID: poolID, err: fmt.Errorf("deletion failed: %w", err)}
+		}
+		return lbPoolMemberDeletedMsg{poolID: poolID}
+	}
+}
+
+// saveLBMember creates or updates a pool member using wizard data.
+func (m Model) saveLBMember() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbPoolMemberSavedMsg{poolID: m.wizard.lbMemberPoolId, err: fmt.Errorf("no cloud project selected")}
+		}
+		poolID := m.wizard.lbMemberPoolId
+		region := m.wizard.lbMemberPoolRegion
+		if poolID == "" || region == "" {
+			return lbPoolMemberSavedMsg{poolID: poolID, err: fmt.Errorf("pool ID or region missing")}
+		}
+		if m.wizard.lbMemberEditId != "" {
+			// Edit: PUT — only name and weight are mutable; address and protocolPort are immutable
+			putBody := map[string]interface{}{
+				"name":   m.wizard.lbMemberName,
+				"weight": m.wizard.lbMemberWeight,
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member/%s",
+				m.cloudProject, url.PathEscape(region), url.PathEscape(poolID), url.PathEscape(m.wizard.lbMemberEditId))
+			var result map[string]interface{}
+			if err := httpLib.Client.Put(endpoint, putBody, &result); err != nil {
+				return lbPoolMemberSavedMsg{poolID: poolID, err: fmt.Errorf("update failed: %w", err)}
+			}
+		} else {
+			// Create: POST — send all fields
+			postBody := map[string]interface{}{
+				"name":         m.wizard.lbMemberName,
+				"address":      m.wizard.lbMemberIP,
+				"protocolPort": m.wizard.lbMemberPort,
+				"weight":       m.wizard.lbMemberWeight,
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member",
+				m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
+			var result map[string]interface{}
+			if err := httpLib.Client.Post(endpoint, postBody, &result); err != nil {
+				return lbPoolMemberSavedMsg{poolID: poolID, err: fmt.Errorf("creation failed: %w", err)}
+			}
+		}
+		return lbPoolMemberSavedMsg{poolID: poolID}
+	}
+}
