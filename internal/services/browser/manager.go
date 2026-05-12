@@ -652,6 +652,7 @@ type Model struct {
 	selectedLBL7Policy        map[string]interface{}              // Currently selected policy for detail view
 	lbL7PolicyDetailActionIdx int                                 // Selected action in policy detail (0=Edit, 1=Delete)
 	lbL7PolicyDetailConfirm   bool                                // Confirm mode in policy detail
+	lbL7RuleDetailIdx         int                                 // Currently displayed rule index in L7 Rules view
 	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
 	detailRefreshId   string
 	detailRefreshName string
@@ -2184,6 +2185,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbL7RuleCreatedMsg:
 		m.wizard = WizardData{}
 		m.mode = LBL7RulesView
+		m.lbL7RuleDetailIdx = 0
 		if msg.err != nil {
 			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
@@ -3320,6 +3322,17 @@ func (m Model) renderContentBox(width int) string {
 
 	// Combine title and content
 	fullContent := title + "\n\n" + contentStr
+
+	// Clamp content height so the nav bars and footer are never pushed off screen.
+	// ~12 lines are consumed by header, nav bars, spacing and footer outside this box.
+	if m.height > 14 {
+		maxLines := m.height - 12
+		lines := strings.Split(fullContent, "\n")
+		if len(lines) > maxLines {
+			lines = lines[:maxLines]
+			fullContent = strings.Join(lines, "\n")
+		}
+	}
 
 	// Level 3 (inTableFocus): highlight content box border in green to show focus is inside the table
 	boxStyle := contentBoxStyle
@@ -7179,104 +7192,64 @@ func (m Model) renderLBL7RulesView(width int) string {
 	actionsBox := renderBox("Actions (Enter to execute)", createBtn, width-4)
 	content.WriteString(actionsBox + "\n\n")
 
-	var rulesContent strings.Builder
+	// Summary line: rule count + pagination hint
+	titleLine := fmt.Sprintf("L7 Rules (%d) — Policy: %s", len(rules), policyName)
+
 	if len(rules) == 0 {
-		rulesContent.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-			Render("  No L7 Rules defined for this policy."))
-	} else {
-		// Table header
-		hType := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18).Render("Type")
-		hComp := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(16).Render("Comparison")
-		hKey := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(16).Render("Key")
-		hVal := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22).Render("Value")
-		hInv := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(8).Render("Invert")
-		hSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(14).Render("Status")
-		rulesContent.WriteString("  " + hType + hComp + hKey + hVal + hInv + hSt + "\n")
-		rulesContent.WriteString("  " + strings.Repeat("─", min(width-10, 92)) + "\n")
-
-		for _, r := range rules {
-			rType := truncate(getStringValue(r, "type", "-"), 16)
-			rComp := truncate(getStringValue(r, "compareType", "-"), 14)
-			rKey := truncate(getStringValue(r, "key", "-"), 14)
-			rVal := truncate(getStringValue(r, "value", "-"), 20)
-			invertStr := "No"
-			if inv, ok := r["invert"].(bool); ok && inv {
-				invertStr = "Yes"
-			}
-			rStatus := getStringValue(r, "provisioningStatus", getStringValue(r, "operatingStatus", "-"))
-
-			statusColor := lipgloss.Color("#00FF7F")
-			if strings.ToLower(rStatus) != "active" && strings.ToLower(rStatus) != "online" {
-				if strings.ToLower(rStatus) == "error" {
-					statusColor = lipgloss.Color("#FF6B6B")
-				} else {
-					statusColor = lipgloss.Color("#FFD700")
-				}
-			}
-			invertColor := lipgloss.Color("#CCCCCC")
-			if invertStr == "Yes" {
-				invertColor = lipgloss.Color("#FFD700")
-			}
-
-			rulesContent.WriteString(
-				"  " +
-					lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Width(18).Render(rType) +
-					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(16).Render(rComp) +
-					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(16).Render(rKey) +
-					lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC")).Width(22).Render(rVal) +
-					lipgloss.NewStyle().Foreground(invertColor).Width(8).Render(invertStr) +
-					lipgloss.NewStyle().Foreground(statusColor).Width(14).Render(rStatus) + "\n",
-			)
-		}
+		empty := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("  No L7 Rules defined for this policy.")
+		content.WriteString(renderBox(titleLine, empty, width-4))
+		return content.String()
 	}
 
-	rulesBox := renderBox(fmt.Sprintf("L7 Rules (%d) — Policy: %s", len(rules), policyName), rulesContent.String(), width-4)
-	content.WriteString(rulesBox)
-
-	// If rules exist, show detail of first rule below (expanded view per rule)
-	if len(rules) > 0 {
-		content.WriteString("\n")
-		for idx, r := range rules {
-			rType := getStringValue(r, "type", "N/A")
-			rComp := getStringValue(r, "compareType", "N/A")
-			rKey := getStringValue(r, "key", "-")
-			rVal := getStringValue(r, "value", "-")
-			invertStr := "No"
-			if inv, ok := r["invert"].(bool); ok && inv {
-				invertStr = "Yes"
-			}
-			rStatus := getStringValue(r, "provisioningStatus", getStringValue(r, "operatingStatus", "N/A"))
-			rID := getStringValue(r, "id", "N/A")
-
-			var detailContent strings.Builder
-			detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(rID, 36))))
-			detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Type"), valueSt.Render(rType)))
-			detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Comparison"), valueSt.Render(rComp)))
-			if rKey != "-" {
-				detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Key"), valueSt.Render(rKey)))
-			}
-			detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Value"), valueSt.Render(rVal)))
-			invertStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
-			if invertStr == "Yes" {
-				invertStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
-			}
-			detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Invert"), invertStyle.Render(invertStr)))
-
-			statusColor := lipgloss.Color("#00FF7F")
-			if strings.ToLower(rStatus) != "active" && strings.ToLower(rStatus) != "online" {
-				statusColor = lipgloss.Color("#FFD700")
-				if strings.ToLower(rStatus) == "error" {
-					statusColor = lipgloss.Color("#FF6B6B")
-				}
-			}
-			detailContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Supply Status"),
-				lipgloss.NewStyle().Foreground(statusColor).Render(rStatus)))
-
-			box := renderBox(fmt.Sprintf("Rule #%d", idx+1), detailContent.String(), (width-4)/2)
-			content.WriteString(box + "\n")
-		}
+	// Clamp index
+	idx := m.lbL7RuleDetailIdx
+	if idx < 0 {
+		idx = 0
+	}
+	if idx >= len(rules) {
+		idx = len(rules) - 1
 	}
 
+	// Pagination indicator in title
+	pagTitle := fmt.Sprintf("%s  [◄ %d/%d ►]", titleLine, idx+1, len(rules))
+
+	r := rules[idx]
+	rType := getStringValue(r, "ruleType", getStringValue(r, "type", "N/A"))
+	rComp := getStringValue(r, "compareType", "N/A")
+	rKey := getStringValue(r, "key", "-")
+	rVal := getStringValue(r, "value", "-")
+	rID := getStringValue(r, "id", "N/A")
+	invertStr := "No"
+	if inv, ok := r["invert"].(bool); ok && inv {
+		invertStr = "Yes"
+	}
+	rStatus := getStringValue(r, "provisioningStatus", getStringValue(r, "operatingStatus", "N/A"))
+
+	var detailContent strings.Builder
+	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(rID, 36))))
+	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Type"), valueSt.Render(rType)))
+	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Comparison"), valueSt.Render(rComp)))
+	if rKey != "-" {
+		detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Key"), valueSt.Render(rKey)))
+	}
+	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Value"), valueSt.Render(rVal)))
+	invertStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	if invertStr == "Yes" {
+		invertStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+	}
+	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Invert"), invertStyle.Render(invertStr)))
+
+	statusColor := lipgloss.Color("#00FF7F")
+	if strings.ToLower(rStatus) != "active" && strings.ToLower(rStatus) != "online" {
+		statusColor = lipgloss.Color("#FFD700")
+		if strings.ToLower(rStatus) == "error" {
+			statusColor = lipgloss.Color("#FF6B6B")
+		}
+	}
+	detailContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Prov. Status"),
+		lipgloss.NewStyle().Foreground(statusColor).Render(rStatus)))
+
+	content.WriteString(renderBox(pagTitle, detailContent.String(), width-4))
 	return content.String()
 }
 
@@ -7855,6 +7828,8 @@ func (m Model) renderFooter() string {
 			help = "Type key name • Enter: Confirm • Esc: Cancel"
 		} else if m.wizard.step == LBL7RuleWizardStepValue {
 			help = "Type value • Enter: Confirm • Esc: Cancel"
+		} else if m.mode == LBL7RulesView {
+			help = "←→: Navigate rules • Enter: Create Rule • Esc: Back"
 		} else {
 			help = "↑↓: Navigate • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		}
@@ -8027,6 +8002,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// In LBL7RulesView, paginate backwards through rules
+		if m.mode == LBL7RulesView {
+			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
+			if m.lbL7RuleDetailIdx > 0 {
+				m.lbL7RuleDetailIdx--
+			} else {
+				m.lbL7RuleDetailIdx = len(m.lbL7Rules[policyID]) - 1
+			}
+			return m, nil
+		}
 		// In LBListenerDetailView, navigate actions (only when not navigating policies)
 		if m.mode == LBListenerDetailView && m.lbL7PolicyListIdx < 0 {
 			if m.lbListenerDetailActionIdx > 0 {
@@ -8161,6 +8146,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.lbL7PolicyDetailActionIdx < 2 {
 				m.lbL7PolicyDetailActionIdx++
 				m.lbL7PolicyDetailConfirm = false
+			}
+			return m, nil
+		}
+		// In LBL7RulesView, paginate forward through rules
+		if m.mode == LBL7RulesView {
+			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
+			count := len(m.lbL7Rules[policyID])
+			if count > 0 {
+				m.lbL7RuleDetailIdx = (m.lbL7RuleDetailIdx + 1) % count
 			}
 			return m, nil
 		}
