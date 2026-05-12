@@ -560,6 +560,7 @@ type WizardData struct {
 	l7RuleValue       string // value to compare against
 	l7RuleInvert      bool   // whether to invert the rule
 	l7RuleConfirmIdx  int    // 0=Confirm, 1=Cancel
+	l7RuleEditId      string // non-empty = edit mode (rule ID being edited)
 
 	// Floating IP wizard fields
 	fipRegion            string
@@ -653,6 +654,7 @@ type Model struct {
 	lbL7PolicyDetailActionIdx int                                 // Selected action in policy detail (0=Edit, 1=Delete)
 	lbL7PolicyDetailConfirm   bool                                // Confirm mode in policy detail
 	lbL7RuleDetailIdx         int                                 // Currently displayed rule index in L7 Rules view
+	lbL7RuleConfirm           bool                                // Confirm mode for rule deletion
 	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
 	detailRefreshId   string
 	detailRefreshName string
@@ -1201,6 +1203,11 @@ type lbL7RulesLoadedMsg struct {
 }
 
 type lbL7RuleCreatedMsg struct {
+	policyID string
+	err      error
+}
+
+type lbL7RuleDeletedMsg struct {
 	policyID string
 	err      error
 }
@@ -2191,7 +2198,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = "✅ L7 Rule created successfully"
+		m.notification = "✅ L7 Rule saved successfully"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		region := getStringValue(m.detailData, "region", "")
+		if msg.policyID != "" && region != "" {
+			return m, tea.Batch(
+				m.fetchLBL7Rules(msg.policyID, region),
+				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case lbL7RuleDeletedMsg:
+		m.lbL7RuleConfirm = false
+		m.mode = LBL7RulesView
+		m.lbL7RuleDetailIdx = 0
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ L7 Rule deleted successfully"
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		region := getStringValue(m.detailData, "region", "")
 		if msg.policyID != "" && region != "" {
@@ -7185,11 +7212,30 @@ func (m Model) renderLBL7RulesView(width int) string {
 	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
 	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	// Action: Create Rule
+	// Actions bar
 	createBtn := lipgloss.NewStyle().
 		Background(lipgloss.Color("#00AA55")).Foreground(lipgloss.Color("#FFFFFF")).
-		Bold(true).Padding(0, 1).Render("+ Create Rule")
-	actionsBox := renderBox("Actions (Enter to execute)", createBtn, width-4)
+		Bold(true).Padding(0, 1).Render("+ Create  [Enter]")
+	editBtn := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).Padding(0, 1).Render("✏ Edit  [e]")
+	var deleteBtnContent string
+	if m.lbL7RuleConfirm {
+		deleteBtnContent = lipgloss.NewStyle().
+			Background(lipgloss.Color("#FF4444")).Foreground(lipgloss.Color("#FFFFFF")).
+			Bold(true).Padding(0, 1).Render("⚠ Confirm delete? Press [d] again • Esc to cancel")
+	} else {
+		deleteBtnContent = lipgloss.NewStyle().
+			Background(lipgloss.Color("#CC3333")).Foreground(lipgloss.Color("#FFFFFF")).
+			Bold(true).Padding(0, 1).Render("🗑 Delete  [d]")
+	}
+	var actionsContent string
+	if len(rules) > 0 {
+		actionsContent = lipgloss.JoinHorizontal(lipgloss.Top, createBtn, "  ", editBtn, "  ", deleteBtnContent)
+	} else {
+		actionsContent = createBtn
+	}
+	actionsBox := renderBox("Actions", actionsContent, width-4)
 	content.WriteString(actionsBox + "\n\n")
 
 	// Summary line: rule count + pagination hint
@@ -8339,9 +8385,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// Go back to policy detail from L7 rules view
+		// Go back to policy detail from L7 rules view, or cancel delete confirm
 		if m.mode == LBL7RulesView {
-			m.mode = LBL7PolicyDetailView
+			if m.lbL7RuleConfirm {
+				m.lbL7RuleConfirm = false
+			} else {
+				m.mode = LBL7PolicyDetailView
+			}
 			return m, nil
 		}
 		// Go back to LB detail from LB listener detail view, or cancel confirm / deselect policy
@@ -8402,6 +8452,74 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				clusterId: clusterId,
 				region:    region,
 			})
+		}
+		return m, nil
+
+	case "e":
+		// In LBL7RulesView: launch edit wizard for the currently displayed rule
+		if m.mode == LBL7RulesView && m.selectedLBL7Policy != nil {
+			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
+			policyName := getStringValue(m.selectedLBL7Policy, "name", "")
+			region := getStringValue(m.detailData, "region", "")
+			rules := m.lbL7Rules[policyID]
+			idx := m.lbL7RuleDetailIdx
+			if idx < 0 {
+				idx = 0
+			}
+			if len(rules) > 0 && idx < len(rules) {
+				r := rules[idx]
+				ruleID := getStringValue(r, "id", "")
+				ruleType := getStringValue(r, "ruleType", getStringValue(r, "type", ""))
+				compareType := getStringValue(r, "compareType", "")
+				ruleKey := getStringValue(r, "key", "")
+				ruleValue := getStringValue(r, "value", "")
+				ruleInvert := false
+				if inv, ok := r["invert"].(bool); ok {
+					ruleInvert = inv
+				}
+
+				typeIdx := 0
+				for i, opt := range lbL7RuleTypeOptions {
+					if opt.value == ruleType {
+						typeIdx = i
+						break
+					}
+				}
+				compareIdx := 0
+				validOpts := validCompareOptionsForType(ruleType)
+				for i, opt := range validOpts {
+					if opt.value == compareType {
+						compareIdx = i
+						break
+					}
+				}
+
+				// Only pre-fill key for types that require it
+				prefillKey := ""
+				for _, t := range lbL7RuleTypeOptions {
+					if t.value == ruleType && t.needsKey {
+						prefillKey = ruleKey
+						break
+					}
+				}
+				m.mode = WizardView
+				m.wizard = WizardData{
+					step:             LBL7RuleWizardStepType,
+					l7RulePolicyId:   policyID,
+					l7RulePolicyName: policyName,
+					l7RuleLBRegion:   region,
+					l7RuleEditId:     ruleID,
+					l7RuleTypeIdx:    typeIdx,
+					l7RuleType:       ruleType,
+					l7RuleCompareIdx: compareIdx,
+					l7RuleCompare:    compareType,
+					l7RuleKeyInput:   prefillKey,
+					l7RuleKey:        prefillKey,
+					l7RuleValueInput: ruleValue,
+					l7RuleValue:      ruleValue,
+					l7RuleInvert:     ruleInvert,
+				}
+			}
 		}
 		return m, nil
 
@@ -9297,6 +9415,29 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "d":
+		// In LBL7RulesView: delete the currently displayed rule (with confirmation)
+		if m.mode == LBL7RulesView && m.selectedLBL7Policy != nil {
+			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
+			rules := m.lbL7Rules[policyID]
+			if len(rules) > 0 {
+				idx := m.lbL7RuleDetailIdx
+				if idx < 0 {
+					idx = 0
+				}
+				if idx < len(rules) {
+					if m.lbL7RuleConfirm {
+						// Second press: execute delete
+						m.lbL7RuleConfirm = false
+						ruleID := getStringValue(rules[idx], "id", "")
+						region := getStringValue(m.detailData, "region", "")
+						return m, m.executeDeleteLBL7Rule(policyID, ruleID, region)
+					}
+					// First press: ask for confirm
+					m.lbL7RuleConfirm = true
+				}
+			}
+			return m, nil
+		}
 		// In Projects selection view: set selected project as default
 		if m.mode == ProjectSelectView || m.currentProduct == ProductProjects {
 			var project map[string]interface{}
@@ -9577,9 +9718,12 @@ func (m Model) isWizardTextInputStep() bool {
 		LBL7PolicyWizardStepPosition,
 		LBL7PolicyWizardStepRedirectUrl,
 		LBL7RuleWizardStepKey,
-		LBL7RuleWizardStepValue,
 		WorkflowWizardStepName,
 		WorkflowWizardStepSchedule:
+		return true
+	}
+	// Value step is text input only when not a bool-value type
+	if m.wizard.step == LBL7RuleWizardStepValue && !m.isBoolValueType() {
 		return true
 	}
 	return false
