@@ -1274,6 +1274,105 @@ func (m Model) handleVolumeActionDone(msg volumeActionDoneMsg) (tea.Model, tea.C
 	)
 }
 
+// executeGatewayDelete deletes the currently selected gateway.
+func (m Model) executeGatewayDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return gwDeletedMsg{err: fmt.Errorf("aucune gateway sélectionnée")}
+		}
+		if m.cloudProject == "" {
+			return gwDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		gwID := getString(m.detailData, "id")
+		gwName := getString(m.detailData, "name")
+		region := getString(m.detailData, "region")
+		if gwID == "" || region == "" {
+			return gwDeletedMsg{err: fmt.Errorf("ID ou région de la gateway introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(gwID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return gwDeletedMsg{gatewayName: gwName, err: fmt.Errorf("failed to delete gateway: %w", err)}
+		}
+		return gwDeletedMsg{gatewayName: gwName}
+	}
+}
+
+// executeLBDelete deletes the currently selected load balancer.
+func (m Model) executeLBDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return lbDeletedMsg{err: fmt.Errorf("aucun load balancer sélectionné")}
+		}
+		if m.cloudProject == "" {
+			return lbDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		lbID := getString(m.detailData, "id")
+		lbName := getString(m.detailData, "name")
+		region := getString(m.detailData, "region")
+		if lbID == "" || region == "" {
+			return lbDeletedMsg{err: fmt.Errorf("ID ou région du load balancer introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/loadbalancer/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(lbID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbDeletedMsg{lbName: lbName, err: fmt.Errorf("échec de la suppression: %w", err)}
+		}
+		return lbDeletedMsg{lbName: lbName}
+	}
+}
+
+// executePrivNetworkDelete deletes the currently selected private network.
+func (m Model) executePrivNetworkDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return privNetDeletedMsg{err: fmt.Errorf("aucun réseau sélectionné")}
+		}
+		networkName := getString(m.detailData, "name")
+		if m.cloudProject == "" {
+			return privNetDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+
+		// The region-based API uses openstackId, not the vRack pn-XXXXX_N id.
+		// Each network has regions[].{region, openstackId} — delete from all regions.
+		regions, ok := m.detailData["regions"].([]interface{})
+		if !ok || len(regions) == 0 {
+			return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf("aucune région trouvée pour ce réseau")}
+		}
+
+		var lastErr error
+		for _, r := range regions {
+			rm, ok := r.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			region := getString(rm, "region")
+			openstackID := getString(rm, "openstackId")
+			if region == "" || openstackID == "" {
+				continue
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s",
+				m.cloudProject,
+				url.PathEscape(region),
+				url.PathEscape(openstackID),
+			)
+			if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+				errMsg := err.Error()
+				if strings.Contains(errMsg, "409") || strings.Contains(errMsg, "Conflict") || strings.Contains(errMsg, "ports still in use") || strings.Contains(errMsg, "ports") {
+					return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf(
+						"impossible de supprimer le réseau : des ressources y sont encore attachées (instances, gateway, routeur). Détachez-les d'abord puis réessayez",
+					)}
+				}
+				lastErr = err
+			}
+		}
+		if lastErr != nil {
+			return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf("failed to delete network: %w", lastErr)}
+		}
+		return privNetDeletedMsg{networkName: networkName}
+	}
+}
+
 // fetchPrivateNetworksData fetches private networks and enriches each with subnet details
 func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 	if m.cloudProject == "" {
@@ -1326,6 +1425,59 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 	for i, subnets := range allSubnets {
 		if i < len(networks) {
 			networks[i]["_subnets"] = subnets
+		}
+	}
+
+	// Enrich with gateway data: fetch all gateways across all regions then match by OpenStack network ID.
+	// Collect all unique region names used by these networks.
+	regionSet := map[string]bool{}
+	for _, n := range networks {
+		if regions, ok := n["regions"].([]interface{}); ok {
+			for _, rv := range regions {
+				if rm, ok := rv.(map[string]interface{}); ok {
+					if r := getString(rm, "region"); r != "" {
+						regionSet[r] = true
+					}
+				}
+			}
+		}
+	}
+	uniqueRegions := make([]any, 0, len(regionSet))
+	for r := range regionSet {
+		uniqueRegions = append(uniqueRegions, r)
+	}
+	if len(uniqueRegions) > 0 {
+		gwRegionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+		allRegionGateways, _ := httpLib.FetchObjectsParallel[[]map[string]any](gwRegionEndpoint+"/%s/gateway", uniqueRegions, true)
+		// Build a map: openstackNetworkID → gateway name
+		openstackToGateway := map[string]string{}
+		for _, regionGWs := range allRegionGateways {
+			for _, gw := range regionGWs {
+				gwName := getString(gw, "name")
+				if interfaces, ok := gw["interfaces"].([]interface{}); ok {
+					for _, iface := range interfaces {
+						if ifaceMap, ok := iface.(map[string]interface{}); ok {
+							if netID := getString(ifaceMap, "networkId"); netID != "" {
+								openstackToGateway[netID] = gwName
+							}
+						}
+					}
+				}
+			}
+		}
+		// Match each network's openstackId against the map
+		for i, n := range networks {
+			if regions, ok := n["regions"].([]interface{}); ok {
+				for _, rv := range regions {
+					if rm, ok := rv.(map[string]interface{}); ok {
+						opID := getString(rm, "openstackId")
+						if gwName, found := openstackToGateway[opID]; found && gwName != "" {
+							networks[i]["_gatewayName"] = gwName
+							break
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -1463,7 +1615,331 @@ func (m Model) fetchFloatingIPsData() dataLoadedMsg {
 		}
 	}
 
-	return dataLoadedMsg{data: floatingIPs, err: nil}
+	// Also fetch failover IPs (Additional IPs)
+	var failoverIPs []map[string]interface{}
+	failEndpoint := fmt.Sprintf("/v1/cloud/project/%s/ip/failover", m.cloudProject)
+	httpLib.Client.Get(failEndpoint, &failoverIPs) // ignore error — not all projects have failover IPs
+
+	return dataLoadedMsg{data: floatingIPs, additionalIPs: failoverIPs, err: nil}
+}
+
+// fetchFIPRegions loads network-capable regions for the floating IP wizard.
+func (m Model) fetchFIPRegions() tea.Cmd {
+	return func() tea.Msg {
+		regions, err := m.fetchNetworkRegions()
+		if err != nil {
+			return fipRegionsLoadedMsg{err: err}
+		}
+		sort.Strings(regions)
+		return fipRegionsLoadedMsg{regions: regions}
+	}
+}
+
+// fetchFIPInstances loads instances in the selected region for the floating IP wizard.
+func (m Model) fetchFIPInstances() tea.Cmd {
+	region := m.wizard.fipRegion
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance?region=%s",
+			m.cloudProject, url.QueryEscape(region))
+		var instances []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &instances); err != nil {
+			return fipInstancesLoadedMsg{err: err}
+		}
+		return fipInstancesLoadedMsg{instances: instances}
+	}
+}
+
+// createStandaloneFloatingIP creates a floating IP and attaches it to an instance.
+func (m Model) createStandaloneFloatingIP() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return fipCreatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		if m.wizard.fipInstanceId == "" {
+			return fipCreatedMsg{err: fmt.Errorf("veuillez sélectionner une instance pour créer une Floating IP")}
+		}
+
+		// Find the private IPv4 of the selected instance — required by the API.
+		var privateIP string
+		for _, inst := range m.wizard.fipInstances {
+			if id, _ := inst["id"].(string); id == m.wizard.fipInstanceId {
+				if addrs, ok := inst["ipAddresses"].([]interface{}); ok {
+					for _, a := range addrs {
+						addrMap, ok := a.(map[string]interface{})
+						if !ok {
+							continue
+						}
+						ip, _ := addrMap["ip"].(string)
+						ipType, _ := addrMap["type"].(string)
+						version := fmt.Sprint(addrMap["version"])
+						if ip != "" && version == "4" && ipType != "public" {
+							privateIP = ip
+							break
+						}
+					}
+				}
+				break
+			}
+		}
+		if privateIP == "" {
+			return fipCreatedMsg{err: fmt.Errorf("aucune adresse IP privée trouvée pour cette instance")}
+		}
+
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/floatingIp",
+			m.cloudProject, url.PathEscape(m.wizard.fipRegion), url.PathEscape(m.wizard.fipInstanceId))
+
+		// First attempt: without gateway (subnet already has one)
+		var result map[string]interface{}
+		err := httpLib.Client.Post(endpoint, map[string]interface{}{"ip": privateIP}, &result)
+		if err != nil && strings.Contains(err.Error(), "subnet require to have router") {
+			// Subnet has no gateway yet — auto-create one and retry
+			bodyWithGW := map[string]interface{}{
+				"ip": privateIP,
+				"gateway": map[string]interface{}{
+					"model": "s",
+					"name":  "gw-" + m.wizard.fipInstanceName,
+				},
+			}
+			result = nil
+			err = httpLib.Client.Post(endpoint, bodyWithGW, &result)
+		}
+		if err != nil {
+			return fipCreatedMsg{err: fmt.Errorf("échec de la création: %w", err)}
+		}
+		return fipCreatedMsg{floatingIP: result}
+	}
+}
+
+// executeFIPDelete deletes the currently selected floating IP via the cloud API.
+func (m Model) fetchNetworkSubnets(networkID string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", m.cloudProject, networkID)
+		var subnets []map[string]any
+		_ = httpLib.Client.Get(endpoint, &subnets)
+		return subnetsLoadedMsg{networkID: networkID, subnets: subnets}
+	}
+}
+
+func (m Model) fetchPrivateNetworkDetail(networkID string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", m.cloudProject, url.PathEscape(networkID))
+		var netData map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &netData); err != nil {
+			return privNetDetailLoadedMsg{networkID: networkID}
+		}
+		regions, _ := netData["regions"].([]interface{})
+		return privNetDetailLoadedMsg{networkID: networkID, regions: regions}
+	}
+}
+
+func (m Model) executeRegionDelete() tea.Cmd {
+	return func() tea.Msg {
+		netID := getStringValue(m.detailData, "id", "")
+		if netID == "" {
+			return regionDeletedMsg{err: fmt.Errorf("network ID missing")}
+		}
+		regions, _ := m.detailData["regions"].([]interface{})
+		if m.privNetSelectedRegion >= len(regions) {
+			return regionDeletedMsg{networkID: netID, err: fmt.Errorf("no region selected")}
+		}
+		rm, _ := regions[m.privNetSelectedRegion].(map[string]interface{})
+		regionName := getString(rm, "region")
+		if regionName == "" {
+			return regionDeletedMsg{networkID: netID, err: fmt.Errorf("region name missing")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/region/%s",
+			m.cloudProject, url.PathEscape(netID), url.PathEscape(regionName))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "409") || strings.Contains(errMsg, "ports") || strings.Contains(errMsg, "Conflict") {
+				return regionDeletedMsg{networkID: netID, region: regionName, err: fmt.Errorf("cannot remove region %s: resources still attached (instances, subnets)", regionName)}
+			}
+			return regionDeletedMsg{networkID: netID, region: regionName, err: fmt.Errorf("failed to remove region: %w", err)}
+		}
+		return regionDeletedMsg{networkID: netID, region: regionName}
+	}
+}
+
+// executeGatewayDetachFromNetwork finds all gateway interfaces attached to this private network
+// (matched by OpenStack network ID) across all regions, and deletes them.
+func (m Model) executeGatewayDetachFromNetwork() tea.Cmd {
+	return func() tea.Msg {
+		netID := getStringValue(m.detailData, "id", "")
+		if netID == "" {
+			return gatewayDetachedMsg{err: fmt.Errorf("network ID missing")}
+		}
+		regions, _ := m.detailData["regions"].([]interface{})
+		if len(regions) == 0 {
+			return gatewayDetachedMsg{networkID: netID, err: fmt.Errorf("no regions found on this network")}
+		}
+
+		detached := 0
+		for _, rv := range regions {
+			rm, _ := rv.(map[string]interface{})
+			regionName := getString(rm, "region")
+			openstackID := getString(rm, "openstackId")
+			if regionName == "" || openstackID == "" {
+				continue
+			}
+			gwEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway", m.cloudProject, url.PathEscape(regionName))
+			var gateways []map[string]interface{}
+			if err := httpLib.Client.Get(gwEndpoint, &gateways); err != nil {
+				continue
+			}
+			for _, gw := range gateways {
+				gwID := getString(gw, "id")
+				if gwID == "" {
+					continue
+				}
+				interfaces, _ := gw["interfaces"].([]interface{})
+				for _, iface := range interfaces {
+					ifaceMap, _ := iface.(map[string]interface{})
+					if getString(ifaceMap, "networkId") != openstackID {
+						continue
+					}
+					ifaceID := getString(ifaceMap, "id")
+					if ifaceID == "" {
+						continue
+					}
+					ifaceEndpoint := fmt.Sprintf("%s/%s/interface/%s",
+						gwEndpoint, url.PathEscape(gwID), url.PathEscape(ifaceID))
+					if err := httpLib.Client.Delete(ifaceEndpoint, nil); err == nil {
+						detached++
+					}
+				}
+			}
+		}
+		if detached == 0 {
+			return gatewayDetachedMsg{networkID: netID, err: fmt.Errorf("no gateway interface found attached to this network")}
+		}
+		return gatewayDetachedMsg{networkID: netID}
+	}
+}
+
+func (m Model) executeSubnetDelete() tea.Cmd {
+	return func() tea.Msg {
+		subnets, _ := m.detailData["_subnets"].([]map[string]any)
+		if m.privNetSelectedSubnet >= len(subnets) {
+			return subnetDeletedMsg{err: fmt.Errorf("no subnet selected")}
+		}
+		sub := subnets[m.privNetSelectedSubnet]
+		subID := getStringValue(sub, "id", "")
+		netID := getStringValue(m.detailData, "id", "")
+		openstackNetID := getStringValue(sub, "networkId", "")
+		if subID == "" || netID == "" {
+			return subnetDeletedMsg{networkID: netID, err: fmt.Errorf("subnet or network ID missing")}
+		}
+
+		// Resolve region by matching openstackId from the network's regions list.
+		// Fast path: subnet has networkId (returned by new regional endpoint).
+		// Fallback: query each region's subnet list to find where this subnet lives.
+		region := ""
+		if regions, ok := m.detailData["regions"].([]interface{}); ok {
+			for _, rv := range regions {
+				if rm, ok := rv.(map[string]interface{}); ok {
+					if getString(rm, "openstackId") == openstackNetID {
+						region = getString(rm, "region")
+						break
+					}
+				}
+			}
+			if region == "" {
+				for _, rv := range regions {
+					if rm, ok := rv.(map[string]interface{}); ok {
+						rName := getString(rm, "region")
+						opID := getString(rm, "openstackId")
+						if rName == "" || opID == "" {
+							continue
+						}
+						searchEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
+							m.cloudProject, url.PathEscape(rName), url.PathEscape(opID))
+						var regionSubnets []map[string]interface{}
+						if err := httpLib.Client.Get(searchEndpoint, &regionSubnets); err == nil {
+							for _, rs := range regionSubnets {
+								if getString(rs, "id") == subID {
+									region = rName
+									openstackNetID = opID
+									break
+								}
+							}
+						}
+						if region != "" {
+							break
+						}
+					}
+				}
+			}
+		}
+		if region == "" {
+			return subnetDeletedMsg{networkID: netID, err: fmt.Errorf("could not determine region for subnet")}
+		}
+
+		// DELETE /v1/cloud/project/{id}/region/{region}/network/{openstackNetId}/subnet/{subnetId}
+		deleteEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(openstackNetID), url.PathEscape(subID))
+
+		if err := httpLib.Client.Delete(deleteEndpoint, nil); err != nil {
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "400") || strings.Contains(errMsg, "Unable to complete operation") ||
+				strings.Contains(errMsg, "ports") || strings.Contains(errMsg, "409") {
+				gatewayIp := getStringValue(sub, "gatewayIp", "")
+				hint := "Remove attached instances, gateways, or router interfaces first"
+				if gatewayIp != "" && gatewayIp != "N/A" {
+					hint = fmt.Sprintf("A gateway is attached (IP: %s). Delete the associated OVH Gateway from Network > Gateway first", gatewayIp)
+				}
+				return subnetDeletedMsg{networkID: netID, err: fmt.Errorf("cannot delete subnet: %s", hint)}
+			}
+			return subnetDeletedMsg{networkID: netID, err: fmt.Errorf("failed to delete subnet: %w", err)}
+		}
+		return subnetDeletedMsg{networkID: netID}
+	}
+}
+
+func (m Model) executeFIPDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return fipDeletedMsg{err: fmt.Errorf("aucune Floating IP sélectionnée")}
+		}
+		if m.cloudProject == "" {
+			return fipDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		fipID := getString(m.detailData, "id")
+		fipIP := getString(m.detailData, "ip")
+		region := getString(m.detailData, "region")
+		if fipID == "" || region == "" {
+			return fipDeletedMsg{err: fmt.Errorf("ID ou région de la Floating IP introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(fipID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "NotFound") {
+			return fipDeletedMsg{fipIP: fipIP, err: fmt.Errorf("échec de la suppression: %w", err)}
+		}
+		return fipDeletedMsg{fipIP: fipIP}
+	}
+}
+
+// executeFIPDetach detaches the currently selected floating IP from its resource.
+func (m Model) executeFIPDetach() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return fipDetachedMsg{err: fmt.Errorf("aucune Floating IP sélectionnée")}
+		}
+		if m.cloudProject == "" {
+			return fipDetachedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+		}
+		fipID := getString(m.detailData, "id")
+		fipIP := getString(m.detailData, "ip")
+		region := getString(m.detailData, "region")
+		if fipID == "" || region == "" {
+			return fipDetachedMsg{err: fmt.Errorf("ID ou région de la Floating IP introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip/%s/detach",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(fipID))
+		if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+			return fipDetachedMsg{fipIP: fipIP, err: fmt.Errorf("échec du détachement: %w", err)}
+		}
+		return fipDetachedMsg{fipIP: fipIP}
+	}
 }
 
 // fetchLoadBalancersData fetches load balancers from octavia-capable regions
@@ -1536,6 +2012,26 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 				}
 			}
 			lbs = append(lbs, lb)
+		}
+	}
+
+	// Build networkId -> name map by fetching private networks for each octavia region
+	allRegionNetworks, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/network", regions, true)
+	networkNameMap := make(map[string]string) // openstackId -> name
+	for _, nets := range allRegionNetworks {
+		for _, n := range nets {
+			if id, ok := n["id"].(string); ok {
+				if name, ok := n["name"].(string); ok && name != "" && name != "Ext-Net" {
+					networkNameMap[id] = name
+				}
+			}
+		}
+	}
+	for _, lb := range lbs {
+		if netID, ok := lb["vipNetworkId"].(string); ok && netID != "" {
+			if name, found := networkNameMap[netID]; found {
+				lb["_networkName"] = name
+			}
 		}
 	}
 
@@ -1770,23 +2266,15 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 	case ProductStorageBackup:
 		m.table = createVolumeBackupsTable(msg.data, m.width, m.height)
 	case ProductNetworkPrivate:
-		// Split into vRack (tab 0) and Local Zones (tab 1)
-		var vRack, localZones []map[string]interface{}
-		for _, net := range msg.data {
-			if getString(net, "_regionType") == "localzone" {
-				localZones = append(localZones, net)
-			} else {
-				vRack = append(vRack, net)
-			}
-		}
-		m.privNetLocalZones = localZones
 		m.privNetTabIdx = 0
-		// currentData = vRack slice (tab 0); full list kept in msg.data via normal path
-		m.currentData = vRack
-		m.table = createPrivateNetworksTable(vRack, m.width, m.height)
+		m.currentData = msg.data
+		m.table = createPrivateNetworksTable(msg.data, m.width, m.height)
 		m.mode = TableView
 		return m, nil
 	case ProductNetworkPublic:
+		m.currentData = msg.data
+		m.additionalIPsData = msg.additionalIPs
+		m.publicIPTabIdx = 0
 		m.table = createFloatingIPsTable(msg.data, m.width, m.height)
 	case ProductNetworkGateway:
 		m.table = createGatewaysTable(msg.data, m.width, m.height)
@@ -2158,8 +2646,10 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		{Title: "Name", Width: 22},
 		{Title: "Location", Width: 20},
 		{Title: "CIDR", Width: 18},
-		{Title: "Gateway", Width: 16},
+		{Title: "Gateway IP", Width: 16},
 		{Title: "DHCP", Width: 6},
+		{Title: "IP address allocated", Width: 34},
+		{Title: "OVH Gateway", Width: 20},
 	}
 
 	var rows []table.Row
@@ -2193,6 +2683,7 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		cidr := "-"
 		gateway := "-"
 		dhcp := "-"
+		allocPool := "-"
 		if subnets, ok := net["_subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
 			sub := subnets[0]
 			if v := getString(sub, "cidr"); v != "" {
@@ -2208,8 +2699,21 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 					dhcp = "✗"
 				}
 			}
+			if pools, ok := sub["ipPools"].([]interface{}); ok && len(pools) > 0 {
+				if pool, ok := pools[0].(map[string]interface{}); ok {
+					start := getString(pool, "start")
+					end := getString(pool, "end")
+					if start != "" && end != "" {
+						allocPool = start + " – " + end
+					}
+				}
+			}
 		}
-		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp})
+		gwName := "-"
+		if v := getString(net, "_gatewayName"); v != "" {
+			gwName = v
+		}
+		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp, allocPool, gwName})
 	}
 
 	tableHeight := height - 15
@@ -2261,7 +2765,10 @@ func createLoadBalancersTable(data []map[string]interface{}, width, height int) 
 		if size == "" {
 			size = getString(lb, "flavorId")
 		}
-		privateNetwork := getString(lb, "vipNetworkId")
+		privateNetwork := getString(lb, "_networkName")
+		if privateNetwork == "" {
+			privateNetwork = getString(lb, "vipNetworkId")
+		}
 		privateIP := getString(lb, "vipAddress")
 		provisioning := getString(lb, "provisioningStatus")
 		status := getString(lb, "operatingStatus")
@@ -2459,6 +2966,62 @@ func createFloatingIPsTable(data []map[string]interface{}, width, height int) ta
 		Bold(false)
 	t.SetStyles(s)
 
+	return t
+}
+
+// createAdditionalIPsTable creates a table for failover/additional IPs.
+func createAdditionalIPsTable(data []map[string]interface{}, width, height int) table.Model {
+	columns := []table.Column{
+		{Title: "IP Address", Width: 20},
+		{Title: "Block", Width: 20},
+		{Title: "Routed To (Instance)", Width: 36},
+		{Title: "Geoloc", Width: 20},
+		{Title: "Status", Width: 16},
+	}
+	var rows []table.Row
+	for _, ip := range data {
+		addr := getString(ip, "ip")
+		if addr == "" {
+			addr = "-"
+		}
+		block := getString(ip, "block")
+		if block == "" {
+			block = "-"
+		}
+		routedTo := getString(ip, "routedTo")
+		if routedTo == "" {
+			routedTo = "-"
+		}
+		geoloc := getString(ip, "geoloc")
+		if geoloc == "" {
+			geoloc = getString(ip, "continentCode")
+		}
+		if geoloc == "" {
+			geoloc = "-"
+		}
+		status := getString(ip, "status")
+		if status == "" {
+			status = "-"
+		}
+		rows = append(rows, table.Row{addr, block, routedTo, geoloc, status})
+	}
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240")).BorderBottom(true).Bold(true)
+	s.Selected = s.Selected.Foreground(lipgloss.Color("229")).Background(lipgloss.Color("57")).Bold(false)
+	t.SetStyles(s)
 	return t
 }
 
