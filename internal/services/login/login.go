@@ -64,8 +64,21 @@ func Login(_ *cobra.Command, _ []string) {
 		delete(credentials, "endpoint")
 	}
 
+	// Check if config file exists before writing
+	_, fileExistsErr := os.Stat(flags.CliConfigPath)
+	fileIsNew := os.IsNotExist(fileExistsErr)
+
 	// If a profile name is provided, store credentials in the profile section
 	if LoginProfileFlag != "" {
+		// Defer chmod to set restrictive permissions only if file was newly created
+		if fileIsNew {
+			defer func() {
+				if err := os.Chmod(flags.CliConfigPath, 0600); err != nil {
+					display.OutputWarning(&flags.OutputFormatConfig, "failed to set secure permissions on config file: %s", err)
+				}
+			}()
+		}
+
 		if config.IsDefaultProfile(LoginProfileFlag) {
 			display.OutputError(&flags.OutputFormatConfig, "%q is a reserved profile name, please choose a different name", config.DefaultProfileName)
 			return
@@ -93,10 +106,6 @@ func Login(_ *cobra.Command, _ []string) {
 			}
 		}
 
-		if err := os.Chmod(flags.CliConfigPath, 0600); err != nil {
-			display.OutputWarning(&flags.OutputFormatConfig, "failed to set secure permissions on config file: %s", err)
-		}
-
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "Credentials saved to profile %q", LoginProfileFlag)
 		return
 	}
@@ -108,14 +117,18 @@ func Login(_ *cobra.Command, _ []string) {
 	}
 	serviceconfig.SetEndpoint(nil, []string{selectedRegion})
 
+	if fileIsNew {
+		defer func() {
+			if err := os.Chmod(flags.CliConfigPath, 0600); err != nil {
+				display.OutputWarning(&flags.OutputFormatConfig, "failed to set secure permissions on config file: %s", err)
+			}
+		}()
+	}
+
 	for k, v := range credentials {
 		if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, configSection, k, v); err != nil {
 			display.OutputError(&flags.OutputFormatConfig, "failed to write configuration %q: %s", k, err)
 			return
 		}
-	}
-
-	if err := os.Chmod(flags.CliConfigPath, 0600); err != nil {
-		display.OutputWarning(&flags.OutputFormatConfig, "failed to set secure permissions on config file: %s", err)
 	}
 }
