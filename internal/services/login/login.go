@@ -6,6 +6,7 @@ package login
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/config"
@@ -54,6 +55,12 @@ func Login(_ *cobra.Command, _ []string) {
 		}
 
 		flags.CliConfigPath = path
+
+		defer func() {
+			if err := os.Chmod(flags.CliConfigPath, 0600); err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "failed to set permissions on config file: %s", err)
+			}
+		}()
 	}
 
 	// Determine the endpoint value
@@ -110,3 +117,4 @@ func Login(_ *cobra.Command, _ []string) {
 		}
 	}
 }
+
