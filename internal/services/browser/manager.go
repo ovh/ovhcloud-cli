@@ -707,6 +707,8 @@ type Model struct {
 	lbPoolMembers         map[string][]map[string]interface{} // poolID → members
 	lbPoolMemberDetailIdx int                               // Currently displayed member index
 	lbPoolMemberConfirm   bool                              // Confirm mode for member deletion
+	lbMembersSection      int                               // 0=actions bar, 1=member pagination
+	lbMembersActionIdx    int                               // Selected action: 0=Create,1=Edit,2=Delete,3=HealthMonitor
 	// LB health monitors cache (poolId -> health monitor)
 	lbHealthMonitors      map[string]map[string]interface{}  // poolID → health monitor (one per pool)
 	lbHMConfirm           bool                              // Confirm mode for HM deletion
@@ -7555,33 +7557,55 @@ func (m Model) renderLBPoolMembersView(width int) string {
 	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
 	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	// Actions bar
-	createBtn := lipgloss.NewStyle().
-		Background(lipgloss.Color("#00AA55")).Foreground(lipgloss.Color("#FFFFFF")).
-		Bold(true).Padding(0, 1).Render("+ Create  [Enter]")
-	editBtn := lipgloss.NewStyle().
-		Background(lipgloss.Color("#7B68EE")).Foreground(lipgloss.Color("#FFFFFF")).
-		Bold(true).Padding(0, 1).Render("✏ Edit  [e]")
-	var deleteBtnContent string
-	if m.lbPoolMemberConfirm {
-		deleteBtnContent = lipgloss.NewStyle().
-			Background(lipgloss.Color("#FF4444")).Foreground(lipgloss.Color("#FFFFFF")).
-			Bold(true).Padding(0, 1).Render("⚠ Confirm delete? Press [d] again • Esc to cancel")
-	} else {
-		deleteBtnContent = lipgloss.NewStyle().
-			Background(lipgloss.Color("#CC3333")).Foreground(lipgloss.Color("#FFFFFF")).
-			Bold(true).Padding(0, 1).Render("🗑 Delete  [d]")
+	// Build action buttons — same style as LBPoolDetailView
+	type actionDef struct {
+		label string
+		color string
 	}
-	hmBtn := lipgloss.NewStyle().
-		Background(lipgloss.Color("#FF8C00")).Foreground(lipgloss.Color("#FFFFFF")).
-		Bold(true).Padding(0, 1).Render("💓 Health Monitor  [h]")
-	var actionsContent string
+	allActions := []actionDef{
+		{"Create", "#00AA55"},
+		{"Edit", "#7B68EE"},
+		{"Delete", "#CC3333"},
+		{"Health Monitor", "#FF8C00"},
+	}
+	// When no members, only show Create and Health Monitor
+	var actions []actionDef
+	var actionLocalIdx []int // maps local idx → allActions idx
+	actions = append(actions, allActions[0])
+	actionLocalIdx = append(actionLocalIdx, 0)
 	if len(members) > 0 {
-		actionsContent = lipgloss.JoinHorizontal(lipgloss.Top, createBtn, "  ", editBtn, "  ", deleteBtnContent, "  ", hmBtn)
-	} else {
-		actionsContent = lipgloss.JoinHorizontal(lipgloss.Top, createBtn, "  ", hmBtn)
+		actions = append(actions, allActions[1], allActions[2])
+		actionLocalIdx = append(actionLocalIdx, 1, 2)
 	}
-	actionsBox := renderBox("Actions", actionsContent, width-4)
+	actions = append(actions, allActions[3])
+	actionLocalIdx = append(actionLocalIdx, 3)
+
+	// Clamp action index to valid range
+	actionIdx := m.lbMembersActionIdx
+	if actionIdx >= len(actions) {
+		actionIdx = len(actions) - 1
+	}
+
+	var actionParts []string
+	for i, a := range actions {
+		label := a.label
+		if actionLocalIdx[i] == 2 && m.lbPoolMemberConfirm {
+			label = "Confirm delete?"
+		}
+		if i == actionIdx && m.lbMembersSection == 0 {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color(a.color)).Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).Padding(0, 1).Render(label))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+label+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.lbMembersSection == 0 && len(members) > 0 {
+		actionsContent += "   " + lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("↓ browse members")
+	}
+	actionsBox := renderBox("Actions  ←→: Navigate • Enter: Confirm", actionsContent, width-4)
 	content.WriteString(actionsBox + "\n\n")
 
 	titleLine := fmt.Sprintf("Members (%d) — Pool: %s", len(members), poolName)
@@ -7592,7 +7616,7 @@ func (m Model) renderLBPoolMembersView(width int) string {
 		return content.String()
 	}
 
-	// Clamp index
+	// Clamp member index
 	idx := m.lbPoolMemberDetailIdx
 	if idx < 0 {
 		idx = 0
@@ -7601,7 +7625,11 @@ func (m Model) renderLBPoolMembersView(width int) string {
 		idx = len(members) - 1
 	}
 
-	pagTitle := fmt.Sprintf("%s  [◄ %d/%d ►]", titleLine, idx+1, len(members))
+	sectionFocus := ""
+	if m.lbMembersSection == 1 {
+		sectionFocus = " [← prev  → next  ↑ Actions]"
+	}
+	pagTitle := fmt.Sprintf("%s  %d/%d%s", titleLine, idx+1, len(members), sectionFocus)
 
 	mem := members[idx]
 	memName := getStringValue(mem, "name", "N/A")
@@ -8151,7 +8179,11 @@ func (m Model) renderFooter() string {
 	case LBL7RulesView:
 		help = "Enter: Create Rule • Esc: Back to Policy • q: Quit"
 	case LBPoolMembersView:
-		help = "Enter: Create Member • e: Edit • d: Delete • h: Health Monitor • ←→: Navigate • Esc: Back to Pool • q: Quit"
+		if m.lbMembersSection == 0 {
+			help = "←→: Select action • Enter: Confirm • ↓: Browse members • Esc: Back • q: Quit"
+		} else {
+			help = "←→ / ↑↓: Navigate members • ↑: Back to actions • Enter: Confirm action • Esc: Back • q: Quit"
+		}
 	case LBHealthMonitorView:
 		if m.lbHMConfirm {
 			help = "d: Confirm delete • Esc: Cancel"
@@ -8431,15 +8463,29 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In LBPoolMembersView, paginate backwards through members
+		// In LBPoolMembersView: left navigates action buttons (section 0) or prev member (section 1)
 		if m.mode == LBPoolMembersView && m.selectedLBPool != nil {
-			poolID := getStringValue(m.selectedLBPool, "id", "")
-			count := len(m.lbPoolMembers[poolID])
-			if count > 0 {
-				if m.lbPoolMemberDetailIdx > 0 {
-					m.lbPoolMemberDetailIdx--
+			if m.lbMembersSection == 0 {
+				// Count available actions
+				poolID := getStringValue(m.selectedLBPool, "id", "")
+				nActions := 2 // Create + HM
+				if len(m.lbPoolMembers[poolID]) > 0 {
+					nActions = 4 // Create + Edit + Delete + HM
+				}
+				if m.lbMembersActionIdx > 0 {
+					m.lbMembersActionIdx--
 				} else {
-					m.lbPoolMemberDetailIdx = count - 1
+					m.lbMembersActionIdx = nActions - 1
+				}
+			} else {
+				poolID := getStringValue(m.selectedLBPool, "id", "")
+				count := len(m.lbPoolMembers[poolID])
+				if count > 0 {
+					if m.lbPoolMemberDetailIdx > 0 {
+						m.lbPoolMemberDetailIdx--
+					} else {
+						m.lbPoolMemberDetailIdx = count - 1
+					}
 				}
 			}
 			return m, nil
@@ -8590,12 +8636,21 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In LBPoolMembersView, paginate forward through members
+		// In LBPoolMembersView: right navigates action buttons (section 0) or next member (section 1)
 		if m.mode == LBPoolMembersView && m.selectedLBPool != nil {
-			poolID := getStringValue(m.selectedLBPool, "id", "")
-			count := len(m.lbPoolMembers[poolID])
-			if count > 0 {
-				m.lbPoolMemberDetailIdx = (m.lbPoolMemberDetailIdx + 1) % count
+			if m.lbMembersSection == 0 {
+				poolID := getStringValue(m.selectedLBPool, "id", "")
+				nActions := 2
+				if len(m.lbPoolMembers[poolID]) > 0 {
+					nActions = 4
+				}
+				m.lbMembersActionIdx = (m.lbMembersActionIdx + 1) % nActions
+			} else {
+				poolID := getStringValue(m.selectedLBPool, "id", "")
+				count := len(m.lbPoolMembers[poolID])
+				if count > 0 {
+					m.lbPoolMemberDetailIdx = (m.lbPoolMemberDetailIdx + 1) % count
+				}
 			}
 			return m, nil
 		}
@@ -8789,10 +8844,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// Go back to pool detail from pool members view, or cancel delete confirm
+		// Go back to pool detail from pool members view, or cancel delete confirm / exit pagination
 		if m.mode == LBPoolMembersView {
 			if m.lbPoolMemberConfirm {
 				m.lbPoolMemberConfirm = false
+			} else if m.lbMembersSection == 1 {
+				m.lbMembersSection = 0
 			} else {
 				m.mode = LBPoolDetailView
 			}
@@ -9036,66 +9093,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-		// In LBPoolMembersView: launch edit wizard for the currently displayed member
-		if m.mode == LBPoolMembersView && m.selectedLBPool != nil {
-			poolID := getStringValue(m.selectedLBPool, "id", "")
-			region := getStringValue(m.detailData, "region", "")
-			members := m.lbPoolMembers[poolID]
-			idx := m.lbPoolMemberDetailIdx
-			if idx < 0 {
-				idx = 0
-			}
-			if len(members) > 0 && idx < len(members) {
-				mem := members[idx]
-				memberID := getStringValue(mem, "id", "")
-				memberName := getStringValue(mem, "name", "")
-				memberAddr := getStringValue(mem, "address", "")
-				memberPort := 0
-				if v, ok := mem["protocolPort"]; ok {
-					switch p := v.(type) {
-					case float64:
-						memberPort = int(p)
-					case int:
-						memberPort = p
-					}
-				}
-				memberWeight := 1
-				if v, ok := mem["weight"]; ok {
-					switch w := v.(type) {
-					case float64:
-						memberWeight = int(w)
-					case int:
-						memberWeight = w
-					}
-				}
-				m.mode = WizardView
-				m.wizard = WizardData{
-					step:                LBMemberWizardStepName,
-					lbMemberPoolId:      poolID,
-					lbMemberPoolRegion:  region,
-					lbMemberEditId:      memberID,
-					lbMemberNameInput:   memberName,
-					lbMemberName:        memberName,
-					lbMemberIPInput:     memberAddr,
-					lbMemberIP:          memberAddr,
-					lbMemberPortInput:   fmt.Sprintf("%d", memberPort),
-					lbMemberPort:        memberPort,
-					lbMemberWeightInput: fmt.Sprintf("%d", memberWeight),
-					lbMemberWeight:      memberWeight,
-				}
-			}
-		}
-		return m, nil
 
 	case "h":
-		// In LBPoolMembersView: open Health Monitor view for this pool
-		if m.mode == LBPoolMembersView && m.selectedLBPool != nil {
-			poolID := getStringValue(m.selectedLBPool, "id", "")
-			region := getStringValue(m.detailData, "region", "")
-			m.mode = LBHealthMonitorView
-			m.lbHMConfirm = false
-			return m, m.fetchLBHealthMonitor(poolID, region)
-		}
+		// (LBPoolMembersView now uses action-based navigation — h kept for other views if needed)
 		return m, nil
 
 	case "enter":
@@ -9223,16 +9223,88 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, m.fetchLBMembers(poolID, region)
 			}
 			return m, nil
-			// LBPoolMembersView: Enter → launch Create Member wizard
+			// LBPoolMembersView: Enter dispatches the selected action
 		} else if m.mode == LBPoolMembersView {
 			poolID := getStringValue(m.selectedLBPool, "id", "")
 			region := getStringValue(m.detailData, "region", "")
-			m.mode = WizardView
-			m.wizard = WizardData{
-				step:                LBMemberWizardStepName,
-				lbMemberPoolId:      poolID,
-				lbMemberPoolRegion:  region,
-				lbMemberWeightInput: "1",
+			members := m.lbPoolMembers[poolID]
+			idx := m.lbPoolMemberDetailIdx
+			if idx < 0 {
+				idx = 0
+			}
+			// Resolve actual action index (when no members, actions are 0=Create, 1=HM)
+			actionIdx := m.lbMembersActionIdx
+			if len(members) == 0 {
+				// Remap: 0=Create stays 0, 1 is HM (maps to logical 3)
+				if actionIdx == 1 {
+					actionIdx = 3
+				}
+			}
+			switch actionIdx {
+			case 0: // Create
+				m.lbMembersSection = 0
+				m.mode = WizardView
+				m.wizard = WizardData{
+					step:                LBMemberWizardStepName,
+					lbMemberPoolId:      poolID,
+					lbMemberPoolRegion:  region,
+					lbMemberWeightInput: "1",
+				}
+			case 1: // Edit
+				if len(members) > 0 && idx < len(members) {
+					mem := members[idx]
+					memberID := getStringValue(mem, "id", "")
+					memberName := getStringValue(mem, "name", "")
+					memberAddr := getStringValue(mem, "address", "")
+					memberPort := 0
+					if v, ok := mem["protocolPort"]; ok {
+						switch p := v.(type) {
+						case float64:
+							memberPort = int(p)
+						case int:
+							memberPort = p
+						}
+					}
+					memberWeight := 1
+					if v, ok := mem["weight"]; ok {
+						switch w := v.(type) {
+						case float64:
+							memberWeight = int(w)
+						case int:
+							memberWeight = w
+						}
+					}
+					m.lbMembersSection = 0
+					m.mode = WizardView
+					m.wizard = WizardData{
+						step:                LBMemberWizardStepName,
+						lbMemberPoolId:      poolID,
+						lbMemberPoolRegion:  region,
+						lbMemberEditId:      memberID,
+						lbMemberNameInput:   memberName,
+						lbMemberName:        memberName,
+						lbMemberIPInput:     memberAddr,
+						lbMemberIP:          memberAddr,
+						lbMemberPortInput:   fmt.Sprintf("%d", memberPort),
+						lbMemberPort:        memberPort,
+						lbMemberWeightInput: fmt.Sprintf("%d", memberWeight),
+						lbMemberWeight:      memberWeight,
+					}
+				}
+			case 2: // Delete
+				if len(members) > 0 && idx < len(members) {
+					if m.lbPoolMemberConfirm {
+						m.lbPoolMemberConfirm = false
+						memberID := getStringValue(members[idx], "id", "")
+						return m, m.executeDeleteLBMember(poolID, memberID, region)
+					}
+					m.lbPoolMemberConfirm = true
+				}
+			case 3: // Health Monitor
+				m.lbMembersSection = 0
+				m.mode = LBHealthMonitorView
+				m.lbHMConfirm = false
+				return m, m.fetchLBHealthMonitor(poolID, region)
 			}
 			return m, nil
 			// LBHealthMonitorView: Enter → launch Create HM wizard (only if no HM yet)
@@ -9825,27 +9897,27 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 		// In table focus (Level 3): up at row 0 → back to sub-nav focus (Level 2)
-		if (key == "up" || key == "k") && m.inTableFocus && isSubNavProduct && m.mode != DetailView {
+		if (key == "up" || key == "k") && m.inTableFocus && isSubNavProduct && m.mode != DetailView && !m.isDeepNavigationView() {
 			if m.mode == TableView && m.table.Cursor() == 0 {
 				m.inTableFocus = false
 				return m, nil
 			}
 		}
 		// In sub-nav focus (Level 2): up → back to main nav (Level 1)
-		if (key == "up" || key == "k") && m.inStorageSubNav && !m.inTableFocus && m.mode != DetailView {
+		if (key == "up" || key == "k") && m.inStorageSubNav && !m.inTableFocus && m.mode != DetailView && !m.isDeepNavigationView() {
 			m.inStorageSubNav = false
 			return m, nil
 		}
-		if (key == "up" || key == "k") && m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView {
+		if (key == "up" || key == "k") && m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView && !m.isDeepNavigationView() {
 			m.inNetworkSubNav = false
 			return m, nil
 		}
-		if (key == "up" || key == "k") && m.inComputeSubNav && !m.inTableFocus && m.mode != DetailView {
+		if (key == "up" || key == "k") && m.inComputeSubNav && !m.inTableFocus && m.mode != DetailView && !m.isDeepNavigationView() {
 			m.inComputeSubNav = false
 			return m, nil
 		}
 		// In sub-nav focus (Level 2): down → enter table focus (Level 3)
-		if (key == "down" || key == "j") && isSubNavProduct && (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && !m.inTableFocus && m.mode != DetailView {
+		if (key == "down" || key == "j") && isSubNavProduct && (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && !m.inTableFocus && m.mode != DetailView && !m.isDeepNavigationView() {
 			m.inTableFocus = true
 			return m, nil
 		}
@@ -9930,6 +10002,29 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.lbListenerListIdx--
 					} else {
 						m.lbListenerListIdx = -1
+					}
+				}
+			}
+			return m, nil
+		}
+		// LBPoolMembersView: ↓ enters pagination from actions; ↑ returns to actions from pagination; in pagination ↑↓ navigate members
+		if m.mode == LBPoolMembersView && m.selectedLBPool != nil {
+			poolID := getStringValue(m.selectedLBPool, "id", "")
+			count := len(m.lbPoolMembers[poolID])
+			if (key == "down" || key == "j") && m.lbMembersSection == 0 {
+				if count > 0 {
+					m.lbMembersSection = 1
+				}
+			} else if (key == "up" || key == "k") && m.lbMembersSection == 1 {
+				m.lbMembersSection = 0
+			} else if m.lbMembersSection == 1 && count > 0 {
+				if key == "down" || key == "j" {
+					m.lbPoolMemberDetailIdx = (m.lbPoolMemberDetailIdx + 1) % count
+				} else if key == "up" || key == "k" {
+					if m.lbPoolMemberDetailIdx > 0 {
+						m.lbPoolMemberDetailIdx--
+					} else {
+						m.lbPoolMemberDetailIdx = count - 1
 					}
 				}
 			}
@@ -10052,29 +10147,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 					// First press: ask for confirm
 					m.lbL7RuleConfirm = true
-				}
-			}
-			return m, nil
-		}
-		// In LBPoolMembersView: delete the currently displayed member (with confirmation)
-		if m.mode == LBPoolMembersView && m.selectedLBPool != nil {
-			poolID := getStringValue(m.selectedLBPool, "id", "")
-			members := m.lbPoolMembers[poolID]
-			if len(members) > 0 {
-				idx := m.lbPoolMemberDetailIdx
-				if idx < 0 {
-					idx = 0
-				}
-				if idx < len(members) {
-					if m.lbPoolMemberConfirm {
-						// Second press: execute delete
-						m.lbPoolMemberConfirm = false
-						memberID := getStringValue(members[idx], "id", "")
-						region := getStringValue(m.detailData, "region", "")
-						return m, m.executeDeleteLBMember(poolID, memberID, region)
-					}
-					// First press: ask for confirm
-					m.lbPoolMemberConfirm = true
 				}
 			}
 			return m, nil

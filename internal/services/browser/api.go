@@ -6048,16 +6048,20 @@ func (m Model) saveLBMember() tea.Cmd {
 				return lbPoolMemberSavedMsg{poolID: poolID, err: fmt.Errorf("update failed: %w", err)}
 			}
 		} else {
-			// Create: POST — send all fields
+			// Create: POST — body is {"members": [...]}
 			postBody := map[string]interface{}{
-				"name":         m.wizard.lbMemberName,
-				"address":      m.wizard.lbMemberIP,
-				"protocolPort": m.wizard.lbMemberPort,
-				"weight":       m.wizard.lbMemberWeight,
+				"members": []map[string]interface{}{
+					{
+						"name":         m.wizard.lbMemberName,
+						"address":      m.wizard.lbMemberIP,
+						"protocolPort": m.wizard.lbMemberPort,
+						"weight":       m.wizard.lbMemberWeight,
+					},
+				},
 			}
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member",
 				m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
-			var result map[string]interface{}
+			var result []map[string]interface{}
 			if err := httpLib.Client.Post(endpoint, postBody, &result); err != nil {
 				return lbPoolMemberSavedMsg{poolID: poolID, err: fmt.Errorf("creation failed: %w", err)}
 			}
