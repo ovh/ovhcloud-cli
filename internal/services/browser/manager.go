@@ -8729,20 +8729,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		// Level 3 → Level 2: exit table focus (back to sub-nav focus)
-		if m.inTableFocus && (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.mode != DetailView && m.mode != WizardView {
+		if m.inTableFocus && (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && !m.isDeepNavigationView() {
 			m.inTableFocus = false
 			return m, nil
 		}
 		// Level 2 → Level 1: exit sub-nav focus (back to main nav)
-		if m.inStorageSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
+		if m.inStorageSubNav && !m.inTableFocus && !m.isDeepNavigationView() {
 			m.inStorageSubNav = false
 			return m, nil
 		}
-		if m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
+		if m.inNetworkSubNav && !m.inTableFocus && !m.isDeepNavigationView() {
 			m.inNetworkSubNav = false
 			return m, nil
 		}
-		if m.inComputeSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
+		if m.inComputeSubNav && !m.inTableFocus && !m.isDeepNavigationView() {
 			m.inComputeSubNav = false
 			return m, nil
 		}
@@ -10343,6 +10343,18 @@ func (m *Model) applyTableFilter() {
 }
 
 // handleWizardKeyPress handles key presses in wizard mode
+func (m Model) isDeepNavigationView() bool {
+	switch m.mode {
+	case DetailView, WizardView,
+		NodePoolDetailView, NodePoolsView,
+		LBPoolDetailView, LBListenerDetailView,
+		LBL7PolicyDetailView, LBL7RulesView,
+		LBPoolMembersView, LBHealthMonitorView:
+		return true
+	}
+	return false
+}
+
 // isWizardTextInputStep returns true when the current wizard step is a free-form text or numeric
 // input field, so that single-character shortcut keys (q, d, p, etc.) are suppressed.
 func (m Model) isWizardTextInputStep() bool {
