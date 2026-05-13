@@ -2529,6 +2529,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.table = createFloatingIPsTable(msg.data, m.width, m.height)
 	case ProductManagedDatabases:
 		m.table = createManagedDatabasesTable(msg.data, m.width, m.height)
+	case ProductManagedAnalytics:
+		m.table = createManagedDatabasesTable(msg.data, m.width, m.height)
 	case ProductNetworkGateway:
 		m.table = createGatewaysTable(msg.data, m.width, m.height)
 	case ProductNetworkLB:

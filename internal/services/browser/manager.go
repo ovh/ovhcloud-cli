@@ -265,6 +265,20 @@ const (
 	DBWizardStepConfirm                          // confirm + create
 )
 
+const (
+	// Managed Analytics wizard steps (offset by 2000)
+	AnalyticsWizardStepName    WizardStep = iota + 2000 // enter service name
+	AnalyticsWizardStepEngine                           // select engine
+	AnalyticsWizardStepVersion                          // select version
+	AnalyticsWizardStepRegion                           // select datacenter/region
+	AnalyticsWizardStepPlan                             // select plan
+	AnalyticsWizardStepFlavor                           // select instance flavor
+	AnalyticsWizardStepNodes                            // number of nodes
+	AnalyticsWizardStepStorage                          // storage size
+	AnalyticsWizardStepNetwork                          // network type
+	AnalyticsWizardStepConfirm                          // confirm + create
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -688,7 +702,7 @@ type WizardData struct {
 	dbNetworkId    string
 	dbAvailItems   []map[string]interface{} // from /database/availability
 	dbCapsRegions  []string                 // fallback regions from capabilities
-	dbConfirmIdx   int    // 0=Create 1=Cancel
+	dbConfirmIdx   int                      // 0=Create 1=Cancel
 }
 
 // Model represents the TUI application state
@@ -1252,6 +1266,17 @@ type dbCreatedMsg struct {
 	err    error
 }
 
+type analyticsCreatedMsg struct {
+	name string
+	err  error
+}
+
+type analyticsEngineAvailLoadedMsg struct {
+	engine    string
+	availItems []map[string]interface{}
+	err       error
+}
+
 type lbFlavorsLoadedMsg struct {
 	flavors []map[string]interface{}
 	err     error
@@ -1675,6 +1700,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = WizardView
 			m.wizard = WizardData{
 				step: DBWizardStepName,
+			}
+			return m, nil
+		} else if msg.product == ProductManagedAnalytics {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step: AnalyticsWizardStepName,
 			}
 			return m, nil
 		} else if msg.product == ProductNetworkLB {
@@ -2579,6 +2610,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LoadingView
 		return m, tea.Batch(
 			m.fetchDataForPath("/databases"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case analyticsEngineAvailLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.dbAvailItems = msg.availItems
+		m.wizard.dbEngine = msg.engine
+		m.wizard.dbVersionIdx = 0
+		m.wizard.dbVersion = ""
+		m.wizard.errorMsg = ""
+		m.wizard.step = AnalyticsWizardStepVersion
+		return m, nil
+
+	case analyticsCreatedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.notification = fmt.Sprintf("✅ Analytics service '%s' created successfully!", msg.name)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/analytics"),
 			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
 
@@ -4519,6 +4579,10 @@ func (m Model) renderWizardView(width int) string {
 		// Floating IP wizard
 		steps = append(steps, "Region", "Instance", "Confirm")
 		stepMapping = append(stepMapping, FIPWizardStepRegion, FIPWizardStepInstance, FIPWizardStepConfirm)
+	} else if m.wizard.step >= 2000 {
+		// Managed Analytics wizard
+		steps = append(steps, "Name", "Engine", "Version", "Region", "Plan", "Flavor", "Nodes", "Storage", "Network", "Confirm")
+		stepMapping = append(stepMapping, AnalyticsWizardStepName, AnalyticsWizardStepEngine, AnalyticsWizardStepVersion, AnalyticsWizardStepRegion, AnalyticsWizardStepPlan, AnalyticsWizardStepFlavor, AnalyticsWizardStepNodes, AnalyticsWizardStepStorage, AnalyticsWizardStepNetwork, AnalyticsWizardStepConfirm)
 	} else if m.wizard.step >= 1900 {
 		// Managed Database wizard
 		steps = append(steps, "Name", "Engine", "Version", "Region", "Plan", "Flavor", "Nodes", "Storage", "Network", "Confirm")
@@ -4773,6 +4837,27 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderDBWizardNetworkStep(width))
 	case DBWizardStepConfirm:
 		content.WriteString(m.renderDBWizardConfirmStep(width))
+	// Managed Analytics wizard steps
+	case AnalyticsWizardStepName:
+		content.WriteString(m.renderAnalyticsWizardNameStep(width))
+	case AnalyticsWizardStepEngine:
+		content.WriteString(m.renderAnalyticsWizardEngineStep(width))
+	case AnalyticsWizardStepVersion:
+		content.WriteString(m.renderAnalyticsWizardVersionStep(width))
+	case AnalyticsWizardStepRegion:
+		content.WriteString(m.renderAnalyticsWizardRegionStep(width))
+	case AnalyticsWizardStepPlan:
+		content.WriteString(m.renderAnalyticsWizardPlanStep(width))
+	case AnalyticsWizardStepFlavor:
+		content.WriteString(m.renderAnalyticsWizardFlavorStep(width))
+	case AnalyticsWizardStepNodes:
+		content.WriteString(m.renderAnalyticsWizardNodesStep(width))
+	case AnalyticsWizardStepStorage:
+		content.WriteString(m.renderAnalyticsWizardStorageStep(width))
+	case AnalyticsWizardStepNetwork:
+		content.WriteString(m.renderAnalyticsWizardNetworkStep(width))
+	case AnalyticsWizardStepConfirm:
+		content.WriteString(m.renderAnalyticsWizardConfirmStep(width))
 	// Load Balancer wizard steps
 	case LBWizardStepName:
 		content.WriteString(m.renderLBWizardNameStep(width))
@@ -6631,6 +6716,8 @@ func (m Model) renderDetailView(width int) string {
 	case ProductNetworkPrivate:
 		return m.renderPrivateNetworkDetail(width)
 	case ProductManagedDatabases:
+		return m.renderManagedDatabaseDetail(width)
+	case ProductManagedAnalytics:
 		return m.renderManagedDatabaseDetail(width)
 	case ProductNetworkGateway:
 		return m.renderGatewayDetail(width)
@@ -10854,7 +10941,9 @@ func (m Model) isWizardTextInputStep() bool {
 		LBHMWizardStepTimeout,
 		DBWizardStepName,
 		DBWizardStepNodes,
-		DBWizardStepStorage:
+		DBWizardStepStorage,
+		AnalyticsWizardStepName,
+		AnalyticsWizardStepNodes:
 		return true
 	}
 	// Value step is text input only when not a bool-value type
@@ -11160,6 +11249,27 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleDBWizardNetworkKeys(key)
 	case DBWizardStepConfirm:
 		return m.handleDBWizardConfirmKeys(key)
+	// Managed Analytics wizard steps
+	case AnalyticsWizardStepName:
+		return m.handleAnalyticsWizardNameKeys(msg)
+	case AnalyticsWizardStepEngine:
+		return m.handleAnalyticsWizardEngineKeys(key)
+	case AnalyticsWizardStepVersion:
+		return m.handleAnalyticsWizardVersionKeys(key)
+	case AnalyticsWizardStepRegion:
+		return m.handleAnalyticsWizardRegionKeys(key)
+	case AnalyticsWizardStepPlan:
+		return m.handleAnalyticsWizardPlanKeys(key)
+	case AnalyticsWizardStepFlavor:
+		return m.handleAnalyticsWizardFlavorKeys(key)
+	case AnalyticsWizardStepNodes:
+		return m.handleAnalyticsWizardNodesKeys(msg)
+	case AnalyticsWizardStepStorage:
+		return m.handleAnalyticsWizardStorageKeys(msg)
+	case AnalyticsWizardStepNetwork:
+		return m.handleAnalyticsWizardNetworkKeys(key)
+	case AnalyticsWizardStepConfirm:
+		return m.handleAnalyticsWizardConfirmKeys(key)
 	// Load Balancer wizard steps
 	case LBWizardStepName:
 		return m.handleLBWizardNameKeys(msg)

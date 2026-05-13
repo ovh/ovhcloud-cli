@@ -20,11 +20,13 @@ import (
 
 // ─── API / fetch ──────────────────────────────────────────────────────────────
 
-// fetchDBCapabilities fetches capabilities and availability for managed databases.
-func (m Model) fetchDBCapabilities() tea.Cmd {
+// fetchAnalyticsCapabilities fetches capabilities and availability for managed analytics services.
+// It uses the same general availability endpoint as the databases wizard, then filters
+// the engines list to only those with category "analysis".
+func (m Model) fetchAnalyticsCapabilities() tea.Cmd {
 	return func() tea.Msg {
 		capEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", m.cloudProject)
-		availEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/availability?action=create", m.cloudProject)
+		availEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/availability", m.cloudProject)
 
 		var caps map[string]interface{}
 		if err := httpLib.Client.Get(capEndpoint, &caps); err != nil {
@@ -45,11 +47,14 @@ func (m Model) fetchDBCapabilities() tea.Cmd {
 			sort.Strings(capsRegions)
 		}
 
+		// Only keep analytics engines (category == "analysis")
 		engines, _ := caps["engines"].([]interface{})
 		var engMaps []map[string]interface{}
 		for _, e := range engines {
 			if em, ok := e.(map[string]interface{}); ok {
-				engMaps = append(engMaps, em)
+				if strings.ToLower(getStringValue(em, "category", "")) == "analysis" {
+					engMaps = append(engMaps, em)
+				}
 			}
 		}
 		sort.Slice(engMaps, func(i, j int) bool {
@@ -95,12 +100,33 @@ func (m Model) fetchDBCapabilities() tea.Cmd {
 	}
 }
 
-// createManagedDBFromWizard calls the OVHcloud API to create the managed DB service.
-func (m Model) createManagedDBFromWizard() tea.Cmd {
+// fetchAnalyticsEngineAvail fetches availability data for a specific analytics engine.
+// The general /database/availability endpoint does not return analytics engines,
+// so we must call /database/{engine}/availability per engine after selection.
+func (m Model) fetchAnalyticsEngineAvail(engineName string) tea.Cmd {
+	return func() tea.Msg {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/availability",
+			m.cloudProject, url.PathEscape(engineName))
+		var items []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &items); err != nil {
+			return analyticsEngineAvailLoadedMsg{engine: engineName, err: err}
+		}
+		// Ensure each item carries the engine name so downstream filters work.
+		for i := range items {
+			if getStringValue(items[i], "engine", "") == "" {
+				items[i]["engine"] = engineName
+			}
+		}
+		return analyticsEngineAvailLoadedMsg{engine: engineName, availItems: items}
+	}
+}
+
+// createAnalyticsFromWizard calls the OVHcloud API to create the managed analytics service.
+func (m Model) createAnalyticsFromWizard() tea.Cmd {
 	return func() tea.Msg {
 		engine := m.wizard.dbEngine
 		if engine == "" {
-			return dbCreatedMsg{err: fmt.Errorf("no engine selected")}
+			return analyticsCreatedMsg{err: fmt.Errorf("no engine selected")}
 		}
 		body := map[string]interface{}{
 			"description": m.wizard.dbName,
@@ -123,326 +149,24 @@ func (m Model) createManagedDBFromWizard() tea.Cmd {
 			m.cloudProject, url.PathEscape(engine))
 		var result map[string]interface{}
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
-			return dbCreatedMsg{err: fmt.Errorf("failed to create database: %w", err)}
+			return analyticsCreatedMsg{err: fmt.Errorf("failed to create analytics service: %w", err)}
 		}
 		name := m.wizard.dbName
 		if name == "" {
-			name = getStringValue(result, "id", "database")
+			name = getStringValue(result, "id", "analytics")
 		}
-		return dbCreatedMsg{dbName: name}
+		return analyticsCreatedMsg{name: name}
 	}
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-// dbFilteredVersions returns versions available for the selected engine.
-func (m Model) dbFilteredVersions() []string {
-	engLower := strings.ToLower(m.wizard.dbEngine)
-	for _, e := range m.wizard.dbEngines {
-		if strings.ToLower(getStringValue(e, "name", "")) == engLower {
-			if versions, ok := e["versions"].([]interface{}); ok {
-				var vs []string
-				for _, v := range versions {
-					if s, ok := v.(string); ok {
-						vs = append(vs, s)
-					}
-				}
-				return vs
-			}
-		}
-	}
-	return nil
-}
-
-// dbFilteredRegions returns unique regions from availability matching engine+version.
-// Falls back to capabilities regions if the availability endpoint returned nothing.
-func (m Model) dbFilteredRegions() []string {
-	seen := map[string]bool{}
-	var regions []string
-	engLower := strings.ToLower(m.wizard.dbEngine)
-	for _, a := range m.wizard.dbAvailItems {
-		if strings.ToLower(getStringValue(a, "engine", "")) != engLower {
-			continue
-		}
-		if getStringValue(a, "version", "") != m.wizard.dbVersion {
-			continue
-		}
-		r := getStringValue(a, "region", "")
-		if r != "" && !seen[r] {
-			seen[r] = true
-			regions = append(regions, r)
-		}
-	}
-	if len(regions) == 0 {
-		// Availability endpoint returned nothing — use capabilities regions as fallback
-		return m.wizard.dbCapsRegions
-	}
-	sort.Strings(regions)
-	return regions
-}
-
-// dbFilteredPlans returns unique plans from availability matching engine+version+region.
-// Falls back to capabilities plans when availability returns nothing.
-func (m Model) dbFilteredPlans() []string {
-	seen := map[string]bool{}
-	var plans []string
-	engLower := strings.ToLower(m.wizard.dbEngine)
-	for _, a := range m.wizard.dbAvailItems {
-		if strings.ToLower(getStringValue(a, "engine", "")) != engLower {
-			continue
-		}
-		if getStringValue(a, "version", "") != m.wizard.dbVersion {
-			continue
-		}
-		if !strings.EqualFold(getStringValue(a, "region", ""), m.wizard.dbRegion) {
-			continue
-		}
-		p := getStringValue(a, "plan", "")
-		if p != "" && !seen[p] {
-			seen[p] = true
-			plans = append(plans, p)
-		}
-	}
-	if len(plans) == 0 {
-		// Fallback: use capabilities plan list
-		plans = append(plans, m.wizard.dbCapPlans...)
-	}
-	// Sort by predefined order
-	order := map[string]int{"discovery": 0, "production": 1, "advanced": 2}
-	sort.Slice(plans, func(i, j int) bool {
-		oi, iok := order[plans[i]]
-		oj, jok := order[plans[j]]
-		if iok && jok {
-			return oi < oj
-		}
-		return plans[i] < plans[j]
-	})
-	return plans
-}
-
-// dbFilteredFlavors returns unique flavors from availability matching engine+version+region+plan.
-// Falls back to capabilities flavors filtered by engine category prefix when availability is empty.
-func (m Model) dbFilteredFlavors() []string {
-	seen := map[string]bool{}
-	var flavors []string
-	engLower := strings.ToLower(m.wizard.dbEngine)
-	for _, a := range m.wizard.dbAvailItems {
-		if strings.ToLower(getStringValue(a, "engine", "")) != engLower {
-			continue
-		}
-		if getStringValue(a, "version", "") != m.wizard.dbVersion {
-			continue
-		}
-		if !strings.EqualFold(getStringValue(a, "region", ""), m.wizard.dbRegion) {
-			continue
-		}
-		if !strings.EqualFold(getStringValue(a, "plan", ""), m.wizard.dbPlan) {
-			continue
-		}
-		f := getStringValue(a, "flavor", "")
-		if f != "" && !seen[f] {
-			seen[f] = true
-			flavors = append(flavors, f)
-		}
-	}
-	if len(flavors) == 0 {
-		// Fallback: availability returned nothing, show all capabilities flavors.
-		for _, f := range m.wizard.dbFlavors {
-			name := getStringValue(f, "name", "")
-			if name != "" {
-				flavors = append(flavors, name)
-			}
-		}
-		return flavors
-	}
-	// Sort by order in dbFlavors list
-	orderMap := map[string]int{}
-	for i, f := range m.wizard.dbFlavors {
-		orderMap[getStringValue(f, "name", "")] = i
-	}
-	sort.Slice(flavors, func(i, j int) bool {
-		oi := orderMap[flavors[i]]
-		oj := orderMap[flavors[j]]
-		if oi != oj {
-			return oi < oj
-		}
-		return flavors[i] < flavors[j]
-	})
-	return flavors
-}
-
-// dbActiveAvail returns the availability entry matching current engine+version+region+plan+flavor.
-func (m Model) dbActiveAvail() map[string]interface{} {
-	engLower := strings.ToLower(m.wizard.dbEngine)
-	for _, a := range m.wizard.dbAvailItems {
-		if strings.ToLower(getStringValue(a, "engine", "")) != engLower {
-			continue
-		}
-		if getStringValue(a, "version", "") != m.wizard.dbVersion {
-			continue
-		}
-		if !strings.EqualFold(getStringValue(a, "region", ""), m.wizard.dbRegion) {
-			continue
-		}
-		if !strings.EqualFold(getStringValue(a, "plan", ""), m.wizard.dbPlan) {
-			continue
-		}
-		if !strings.EqualFold(getStringValue(a, "flavor", ""), m.wizard.dbFlavor) {
-			continue
-		}
-		return a
-	}
-	return nil
-}
-
-// dbFlavorInfo returns the capabilities.flavor entry for the specified flavor name.
-func (m Model) dbFlavorInfo(flavorName string) map[string]interface{} {
-	for _, f := range m.wizard.dbFlavors {
-		if strings.EqualFold(getStringValue(f, "name", ""), flavorName) {
-			return f
-		}
-	}
-	return nil
-}
-
-// dbNodesConstraints returns (min, max) nodes allowed for the selected plan+flavor from availability.
-func (m Model) dbNodesConstraints() (int, int) {
-	avail := m.dbActiveAvail()
-	if avail == nil {
-		// Fallback based on plan
-		switch m.wizard.dbPlan {
-		case "discovery":
-			return 1, 1
-		case "production":
-			return 2, 2
-		case "advanced":
-			return 3, 3
-		default:
-			return 1, 3
-		}
-	}
-	min := 0
-	max := 0
-	// Prefer specifications.nodes (new format) over deprecated top-level fields
-	if specs, ok := avail["specifications"].(map[string]interface{}); ok {
-		if nodes, ok := specs["nodes"].(map[string]interface{}); ok {
-			if v, ok := nodes["minimum"].(float64); ok && v > 0 {
-				min = int(v)
-			}
-			if v, ok := nodes["maximum"].(float64); ok && v > 0 {
-				max = int(v)
-			}
-		}
-	}
-	// Fall back to deprecated fields
-	if min == 0 {
-		if v, ok := avail["minNodeNumber"].(float64); ok && v > 0 {
-			min = int(v)
-		}
-	}
-	if max == 0 {
-		if v, ok := avail["maxNodeNumber"].(float64); ok && v > 0 {
-			max = int(v)
-		}
-	}
-	if min < 1 {
-		min = 1
-	}
-	if max < min {
-		max = min
-	}
-	min =3
-	max = 3
-	return min, max
-}
-
-// dbStorageConstraints returns (min, max, step) disk sizes in GB from availability.
-func (m Model) dbStorageConstraints() (int, int, int) {
-	avail := m.dbActiveAvail()
-	min, max, step := 10, 1000, 10
-	if avail != nil {
-		// Prefer specifications.storage (new format) over deprecated top-level fields
-		if specs, ok := avail["specifications"].(map[string]interface{}); ok {
-			if storage, ok := specs["storage"].(map[string]interface{}); ok {
-				if minS, ok := storage["minimum"].(map[string]interface{}); ok {
-					if v, ok := minS["value"].(float64); ok && v > 0 {
-						min = int(v)
-					}
-				}
-				if maxS, ok := storage["maximum"].(map[string]interface{}); ok {
-					if v, ok := maxS["value"].(float64); ok && v > 0 {
-						max = int(v)
-					}
-				}
-				if stepS, ok := storage["step"].(map[string]interface{}); ok {
-					if v, ok := stepS["value"].(float64); ok && v > 0 {
-						step = int(v)
-					}
-				}
-			}
-		}
-		// Fall back to deprecated fields
-		if v, ok := avail["minDiskSize"].(float64); ok && v > 0 && min == 10 {
-			min = int(v)
-		}
-		if v, ok := avail["maxDiskSize"].(float64); ok && v > 0 && max == 1000 {
-			max = int(v)
-		}
-		if v, ok := avail["stepDiskSize"].(float64); ok && v > 0 && step == 10 {
-			step = int(v)
-		}
-	}
-	return min, max, step
-}
-
-// dbEngineDescription returns the description for a given engine name.
-func dbEngineDescription(name string) string {
-	switch strings.ToLower(name) {
-	case "postgresql":
-		return "Relational and object-relational database"
-	case "mysql":
-		return "Relational database management system"
-	case "mongodb":
-		return "Document-oriented database system"
-	case "valkey":
-		return "In-memory key-value data store"
-	case "redis":
-		return "In-memory key-value data store"
-	case "kafka":
-		return "Distributed event streaming platform"
-	case "cassandra":
-		return "Wide-column distributed database"
-	case "opensearch":
-		return "Distributed search and analytics engine"
-	case "grafana":
-		return "Analytics and monitoring platform"
-	case "m3db":
-		return "Distributed time series database"
-	}
-	return ""
-}
-
-// dbPlanDescription returns the description for a given plan name.
-func dbPlanDescription(plan string) string {
-	switch plan {
-	case "discovery":
-		return "1 node • Manual and automatic backups • Private networks"
-	case "production":
-		return "2 nodes • Manual and automatic backups • Private networks"
-	case "advanced":
-		return "3 nodes • Manual and automatic backups • Private networks"
-	}
-	return ""
 }
 
 // ─── Render functions ─────────────────────────────────────────────────────────
 
-func (m Model) renderDBWizardNameStep(_ int) string {
+func (m Model) renderAnalyticsWizardNameStep(_ int) string {
 	var sb strings.Builder
 	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
 	desc := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 	sb.WriteString(title.Render("Service name:") + "\n\n")
-	sb.WriteString(desc.Render("Choose a unique name to identify your managed database service.") + "\n\n")
+	sb.WriteString(desc.Render("Choose a unique name to identify your managed analytics service.") + "\n\n")
 	if m.wizard.errorMsg != "" {
 		sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).
 			Render("Error: "+m.wizard.errorMsg) + "\n\n")
@@ -457,13 +181,13 @@ func (m Model) renderDBWizardNameStep(_ int) string {
 	return sb.String()
 }
 
-func (m Model) renderDBWizardEngineStep(_ int) string {
+func (m Model) renderAnalyticsWizardEngineStep(_ int) string {
 	var sb strings.Builder
 	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
 	sel := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
 	dim := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 	sub := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
-	sb.WriteString(title.Render("Select a database engine:") + "\n\n")
+	sb.WriteString(title.Render("Select an analytics engine:") + "\n\n")
 	if m.wizard.isLoading {
 		sb.WriteString(loadingStyle.Render("⏳ Loading capabilities..."))
 		return sb.String()
@@ -488,7 +212,7 @@ func (m Model) renderDBWizardEngineStep(_ int) string {
 	return sb.String()
 }
 
-func (m Model) renderDBWizardVersionStep(_ int) string {
+func (m Model) renderAnalyticsWizardVersionStep(_ int) string {
 	versions := m.dbFilteredVersions()
 	var sb strings.Builder
 	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
@@ -518,7 +242,7 @@ func (m Model) renderDBWizardVersionStep(_ int) string {
 	return sb.String()
 }
 
-func (m Model) renderDBWizardRegionStep(_ int) string {
+func (m Model) renderAnalyticsWizardRegionStep(_ int) string {
 	regions := m.dbFilteredRegions()
 	var sb strings.Builder
 	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
@@ -562,7 +286,7 @@ func (m Model) renderDBWizardRegionStep(_ int) string {
 	return sb.String()
 }
 
-func (m Model) renderDBWizardPlanStep(_ int) string {
+func (m Model) renderAnalyticsWizardPlanStep(_ int) string {
 	plans := m.dbFilteredPlans()
 	var sb strings.Builder
 	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
@@ -597,7 +321,7 @@ func (m Model) renderDBWizardPlanStep(_ int) string {
 	return sb.String()
 }
 
-func (m Model) renderDBWizardFlavorStep(_ int) string {
+func (m Model) renderAnalyticsWizardFlavorStep(_ int) string {
 	flavors := m.dbFilteredFlavors()
 	var sb strings.Builder
 	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
@@ -649,7 +373,7 @@ func (m Model) renderDBWizardFlavorStep(_ int) string {
 	return sb.String()
 }
 
-func (m Model) renderDBWizardNodesStep(_ int) string {
+func (m Model) renderAnalyticsWizardNodesStep(_ int) string {
 	var sb strings.Builder
 	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
 	desc := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
@@ -675,7 +399,7 @@ func (m Model) renderDBWizardNodesStep(_ int) string {
 	return sb.String()
 }
 
-func (m Model) renderDBWizardStorageStep(_ int) string {
+func (m Model) renderAnalyticsWizardStorageStep(_ int) string {
 	var sb strings.Builder
 	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
 	desc := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
@@ -684,29 +408,16 @@ func (m Model) renderDBWizardStorageStep(_ int) string {
 	sb.WriteString(desc.Render(fmt.Sprintf(
 		"Flavor: %s  •  Plan: %s",
 		m.wizard.dbFlavor, strings.ToUpper(m.wizard.dbPlan))) + "\n\n")
-	if m.wizard.errorMsg != "" {
-		sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).
-			Render("Error: "+m.wizard.errorMsg) + "\n\n")
-	}
-	if m.dbActiveAvail() == nil {
-		sb.WriteString(info.Render("No storage constraints available — default storage will be used.") + "\n\n")
-		sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-			Render("Enter: Continue with default • ← Back • Esc: Cancel"))
-		return sb.String()
-	}
-	minS, maxS, stepS := m.dbStorageConstraints()
-	input := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#00FF7F")).
-		Padding(0, 1).Width(14)
-	sb.WriteString(input.Render(m.wizard.dbStorageInput+"▌") + "\n\n")
-	sb.WriteString(info.Render(fmt.Sprintf("Range: %d – %d GB  (step: %d GB)", minS, maxS, stepS)) + "\n\n")
+	// Storage is fixed for analytics — show the pre-selected value
+	val := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F"))
+	sb.WriteString(info.Render("Storage is fixed for this configuration:") + " " +
+		val.Render(fmt.Sprintf("%d GB", m.wizard.dbDiskSize)) + "\n\n")
 	sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("Type a number • Enter: Continue • ← Back • Esc: Cancel"))
+		Render("Enter: Continue • ← Back • Esc: Cancel"))
 	return sb.String()
 }
 
-func (m Model) renderDBWizardNetworkStep(_ int) string {
+func (m Model) renderAnalyticsWizardNetworkStep(_ int) string {
 	var sb strings.Builder
 	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
 	sel := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
@@ -735,7 +446,7 @@ func (m Model) renderDBWizardNetworkStep(_ int) string {
 	return sb.String()
 }
 
-func (m Model) renderDBWizardConfirmStep(_ int) string {
+func (m Model) renderAnalyticsWizardConfirmStep(_ int) string {
 	var sb strings.Builder
 	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
 	lbl := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
@@ -756,7 +467,7 @@ func (m Model) renderDBWizardConfirmStep(_ int) string {
 	}
 	sb.WriteString(lbl.Render("  Network:") + val.Render(networkLabel) + "\n\n")
 	if m.wizard.isLoading {
-		sb.WriteString(loadingStyle.Render("⏳ Creating database service..."))
+		sb.WriteString(loadingStyle.Render("⏳ Creating analytics service..."))
 		return sb.String()
 	}
 	if m.wizard.errorMsg != "" {
@@ -785,7 +496,7 @@ func (m Model) renderDBWizardConfirmStep(_ int) string {
 
 // ─── Key handlers ─────────────────────────────────────────────────────────────
 
-func (m Model) handleDBWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleAnalyticsWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
 	case "enter":
@@ -796,10 +507,10 @@ func (m Model) handleDBWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.wizard.dbName = name
 		m.wizard.errorMsg = ""
-		m.wizard.step = DBWizardStepEngine
+		m.wizard.step = AnalyticsWizardStepEngine
 		m.wizard.isLoading = true
 		m.wizard.loadingMessage = "Loading capabilities..."
-		return m, m.fetchDBCapabilities()
+		return m, m.fetchAnalyticsCapabilities()
 	case "backspace":
 		if len(m.wizard.dbNameInput) > 0 {
 			m.wizard.dbNameInput = m.wizard.dbNameInput[:len(m.wizard.dbNameInput)-1]
@@ -812,7 +523,7 @@ func (m Model) handleDBWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleDBWizardEngineKeys(key string) (tea.Model, tea.Cmd) {
+func (m Model) handleAnalyticsWizardEngineKeys(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case "up", "k":
 		if m.wizard.dbEngineIdx > 0 {
@@ -828,18 +539,18 @@ func (m Model) handleDBWizardEngineKeys(key string) (tea.Model, tea.Cmd) {
 		}
 		e := m.wizard.dbEngines[m.wizard.dbEngineIdx]
 		m.wizard.dbEngine = getStringValue(e, "name", "")
-		m.wizard.dbEngineCategory = getStringValue(e, "category", "operational")
+		m.wizard.dbEngineCategory = getStringValue(e, "category", "analysis")
 		m.wizard.dbVersionIdx = 0
 		m.wizard.dbVersion = ""
 		m.wizard.errorMsg = ""
-		m.wizard.step = DBWizardStepVersion
+		m.wizard.step = AnalyticsWizardStepVersion
 	case "left":
-		m.wizard.step = DBWizardStepName
+		m.wizard.step = AnalyticsWizardStepName
 	}
 	return m, nil
 }
 
-func (m Model) handleDBWizardVersionKeys(key string) (tea.Model, tea.Cmd) {
+func (m Model) handleAnalyticsWizardVersionKeys(key string) (tea.Model, tea.Cmd) {
 	versions := m.dbFilteredVersions()
 	switch key {
 	case "up", "k":
@@ -858,14 +569,14 @@ func (m Model) handleDBWizardVersionKeys(key string) (tea.Model, tea.Cmd) {
 		m.wizard.dbRegionIdx = 0
 		m.wizard.dbRegion = ""
 		m.wizard.errorMsg = ""
-		m.wizard.step = DBWizardStepRegion
+		m.wizard.step = AnalyticsWizardStepRegion
 	case "left":
-		m.wizard.step = DBWizardStepEngine
+		m.wizard.step = AnalyticsWizardStepEngine
 	}
 	return m, nil
 }
 
-func (m Model) handleDBWizardRegionKeys(key string) (tea.Model, tea.Cmd) {
+func (m Model) handleAnalyticsWizardRegionKeys(key string) (tea.Model, tea.Cmd) {
 	regions := m.dbFilteredRegions()
 	switch key {
 	case "up", "k":
@@ -884,14 +595,14 @@ func (m Model) handleDBWizardRegionKeys(key string) (tea.Model, tea.Cmd) {
 		m.wizard.dbPlanIdx = 0
 		m.wizard.dbPlan = ""
 		m.wizard.errorMsg = ""
-		m.wizard.step = DBWizardStepPlan
+		m.wizard.step = AnalyticsWizardStepPlan
 	case "left":
-		m.wizard.step = DBWizardStepVersion
+		m.wizard.step = AnalyticsWizardStepVersion
 	}
 	return m, nil
 }
 
-func (m Model) handleDBWizardPlanKeys(key string) (tea.Model, tea.Cmd) {
+func (m Model) handleAnalyticsWizardPlanKeys(key string) (tea.Model, tea.Cmd) {
 	plans := m.dbFilteredPlans()
 	switch key {
 	case "up", "k":
@@ -910,14 +621,14 @@ func (m Model) handleDBWizardPlanKeys(key string) (tea.Model, tea.Cmd) {
 		m.wizard.dbFlavorIdx = 0
 		m.wizard.dbFlavor = ""
 		m.wizard.errorMsg = ""
-		m.wizard.step = DBWizardStepFlavor
+		m.wizard.step = AnalyticsWizardStepFlavor
 	case "left":
-		m.wizard.step = DBWizardStepRegion
+		m.wizard.step = AnalyticsWizardStepRegion
 	}
 	return m, nil
 }
 
-func (m Model) handleDBWizardFlavorKeys(key string) (tea.Model, tea.Cmd) {
+func (m Model) handleAnalyticsWizardFlavorKeys(key string) (tea.Model, tea.Cmd) {
 	flavors := m.dbFilteredFlavors()
 	switch key {
 	case "up", "k":
@@ -937,24 +648,40 @@ func (m Model) handleDBWizardFlavorKeys(key string) (tea.Model, tea.Cmd) {
 		minN, _ := m.dbNodesConstraints()
 		m.wizard.dbNodes = minN
 		m.wizard.dbNodesInput = strconv.Itoa(minN)
-		// Pre-fill storage only when availability data provides valid constraints
+		// Storage is fixed for analytics — read the max from specifications directly.
+		// specifications.storage.maximum.value is the actual required disk size (e.g. 30 GB).
+		// We do NOT use min or step since deprecated fields can be stale/wrong.
+		diskSize := 0
 		if avail := m.dbActiveAvail(); avail != nil {
-			minS, _, _ := m.dbStorageConstraints()
-			m.wizard.dbDiskSize = minS
-			m.wizard.dbStorageInput = strconv.Itoa(minS)
-		} else {
-			m.wizard.dbDiskSize = 0
-			m.wizard.dbStorageInput = ""
+			if specs, ok := avail["specifications"].(map[string]interface{}); ok {
+				if storage, ok := specs["storage"].(map[string]interface{}); ok {
+					if maxS, ok := storage["maximum"].(map[string]interface{}); ok {
+						if v, ok := maxS["value"].(float64); ok && v > 0 {
+							diskSize = int(v)
+						}
+					}
+					// If maximum is absent or zero, fall back to minimum
+					if diskSize == 0 {
+						if minS, ok := storage["minimum"].(map[string]interface{}); ok {
+							if v, ok := minS["value"].(float64); ok && v > 0 {
+								diskSize = int(v)
+							}
+						}
+					}
+				}
+			}
 		}
+		m.wizard.dbDiskSize = diskSize
+		m.wizard.dbStorageInput = strconv.Itoa(diskSize)
 		m.wizard.errorMsg = ""
-		m.wizard.step = DBWizardStepNodes
+		m.wizard.step = AnalyticsWizardStepNodes
 	case "left":
-		m.wizard.step = DBWizardStepPlan
+		m.wizard.step = AnalyticsWizardStepPlan
 	}
 	return m, nil
 }
 
-func (m Model) handleDBWizardNodesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleAnalyticsWizardNodesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	minN, maxN := m.dbNodesConstraints()
 	switch key {
@@ -966,13 +693,13 @@ func (m Model) handleDBWizardNodesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.wizard.dbNodes = n
 		m.wizard.errorMsg = ""
-		m.wizard.step = DBWizardStepStorage
+		m.wizard.step = AnalyticsWizardStepStorage
 	case "backspace":
 		if len(m.wizard.dbNodesInput) > 0 {
 			m.wizard.dbNodesInput = m.wizard.dbNodesInput[:len(m.wizard.dbNodesInput)-1]
 		}
 	case "left":
-		m.wizard.step = DBWizardStepFlavor
+		m.wizard.step = AnalyticsWizardStepFlavor
 	default:
 		if len(msg.Runes) == 1 && msg.Runes[0] >= '0' && msg.Runes[0] <= '9' {
 			m.wizard.dbNodesInput += string(msg.Runes)
@@ -981,53 +708,18 @@ func (m Model) handleDBWizardNodesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleDBWizardStorageKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	key := msg.String()
-	// If no availability data, skip this step entirely
-	if m.dbActiveAvail() == nil {
-		m.wizard.dbDiskSize = 0
-		switch key {
-		case "left":
-			m.wizard.step = DBWizardStepNodes
-		default:
-			m.wizard.step = DBWizardStepNetwork
-		}
-		return m, nil
-	}
-	minS, maxS, _ := m.dbStorageConstraints()
-	switch key {
-	case "enter":
-		storageStr := strings.TrimSpace(m.wizard.dbStorageInput)
-		if storageStr == "" {
-			// Empty = use default (omit from request)
-			m.wizard.dbDiskSize = 0
-			m.wizard.errorMsg = ""
-			m.wizard.step = DBWizardStepNetwork
-			return m, nil
-		}
-		s, err := strconv.Atoi(storageStr)
-		if err != nil || s < minS || s > maxS {
-			m.wizard.errorMsg = fmt.Sprintf("Please enter a value between %d and %d GB", minS, maxS)
-			return m, nil
-		}
-		m.wizard.dbDiskSize = s
-		m.wizard.errorMsg = ""
-		m.wizard.step = DBWizardStepNetwork
-	case "backspace":
-		if len(m.wizard.dbStorageInput) > 0 {
-			m.wizard.dbStorageInput = m.wizard.dbStorageInput[:len(m.wizard.dbStorageInput)-1]
-		}
+func (m Model) handleAnalyticsWizardStorageKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Storage is fixed for analytics — just navigate forward or back
+	switch msg.String() {
 	case "left":
-		m.wizard.step = DBWizardStepNodes
+		m.wizard.step = AnalyticsWizardStepNodes
 	default:
-		if len(msg.Runes) == 1 && msg.Runes[0] >= '0' && msg.Runes[0] <= '9' {
-			m.wizard.dbStorageInput += string(msg.Runes)
-		}
+		m.wizard.step = AnalyticsWizardStepNetwork
 	}
 	return m, nil
 }
 
-func (m Model) handleDBWizardNetworkKeys(key string) (tea.Model, tea.Cmd) {
+func (m Model) handleAnalyticsWizardNetworkKeys(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case "up", "k":
 		if m.wizard.dbNetworkIdx > 0 {
@@ -1039,14 +731,14 @@ func (m Model) handleDBWizardNetworkKeys(key string) (tea.Model, tea.Cmd) {
 		}
 	case "enter":
 		m.wizard.errorMsg = ""
-		m.wizard.step = DBWizardStepConfirm
+		m.wizard.step = AnalyticsWizardStepConfirm
 	case "left":
-		m.wizard.step = DBWizardStepStorage
+		m.wizard.step = AnalyticsWizardStepStorage
 	}
 	return m, nil
 }
 
-func (m Model) handleDBWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
+func (m Model) handleAnalyticsWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case "left", "h":
 		m.wizard.dbConfirmIdx = 0
@@ -1054,12 +746,12 @@ func (m Model) handleDBWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 		m.wizard.dbConfirmIdx = 1
 	case "enter":
 		if m.wizard.dbConfirmIdx == 1 {
-			m.wizard.step = DBWizardStepNetwork
+			m.wizard.step = AnalyticsWizardStepNetwork
 			return m, nil
 		}
 		m.wizard.isLoading = true
-		m.wizard.loadingMessage = "Creating database service..."
-		return m, m.createManagedDBFromWizard()
+		m.wizard.loadingMessage = "Creating analytics service..."
+		return m, m.createAnalyticsFromWizard()
 	}
 	return m, nil
 }
