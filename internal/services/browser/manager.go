@@ -251,6 +251,20 @@ const (
 	LBHMWizardStepConfirm                                // confirm + save
 )
 
+const (
+	// Managed Database wizard steps (offset by 1900)
+	DBWizardStepName    WizardStep = iota + 1900 // enter service name
+	DBWizardStepEngine                           // select engine
+	DBWizardStepVersion                          // select version
+	DBWizardStepRegion                           // select datacenter/region
+	DBWizardStepPlan                             // select plan
+	DBWizardStepFlavor                           // select instance flavor
+	DBWizardStepNodes                            // number of nodes
+	DBWizardStepStorage                          // storage size
+	DBWizardStepNetwork                          // network type
+	DBWizardStepConfirm                          // confirm + create
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -648,6 +662,33 @@ type WizardData struct {
 	wfCronInput      string
 	wfRotation       int
 	wfConfirmBtnIdx  int
+
+	// Managed Database wizard fields
+	dbNameInput    string
+	dbName         string
+	dbEngines      []map[string]interface{} // from capabilities
+	dbEngineIdx    int
+	dbEngine          string
+	dbEngineCategory  string // "operational" or "analysis"
+	dbVersionIdx   int
+	dbVersion      string
+	dbRegionIdx    int
+	dbRegion       string
+	dbPlanIdx      int
+	dbPlan         string
+	dbFlavors      []map[string]interface{} // from capabilities
+	dbFlavorIdx    int
+	dbFlavor       string
+	dbCapPlans     []string                 // fallback plan names from capabilities
+	dbNodesInput   string
+	dbNodes        int
+	dbStorageInput string
+	dbDiskSize     int
+	dbNetworkIdx   int    // 0=public 1=private
+	dbNetworkId    string
+	dbAvailItems   []map[string]interface{} // from /database/availability
+	dbCapsRegions  []string                 // fallback regions from capabilities
+	dbConfirmIdx   int    // 0=Create 1=Cancel
 }
 
 // Model represents the TUI application state
@@ -1197,6 +1238,20 @@ type lbRegionsLoadedMsg struct {
 	err     error
 }
 
+type dbCapabilitiesLoadedMsg struct {
+	engines     []map[string]interface{}
+	flavors     []map[string]interface{}
+	plans       []map[string]interface{}
+	availItems  []map[string]interface{}
+	capsRegions []string
+	err         error
+}
+
+type dbCreatedMsg struct {
+	dbName string
+	err    error
+}
+
 type lbFlavorsLoadedMsg struct {
 	flavors []map[string]interface{}
 	err     error
@@ -1616,6 +1671,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Loading regions...",
 			}
 			return m, m.fetchGwRegions()
+		} else if msg.product == ProductManagedDatabases {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step: DBWizardStepName,
+			}
+			return m, nil
 		} else if msg.product == ProductNetworkLB {
 			m.mode = WizardView
 			m.wizard = WizardData{
@@ -2486,6 +2547,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 		}
 		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case dbCapabilitiesLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.dbEngines = msg.engines
+		m.wizard.dbFlavors = msg.flavors
+		m.wizard.dbAvailItems = msg.availItems
+		m.wizard.dbCapsRegions = msg.capsRegions
+		// Build capabilities plan names sorted by order for fallback
+		for _, p := range msg.plans {
+			if name := getStringValue(p, "name", ""); name != "" {
+				m.wizard.dbCapPlans = append(m.wizard.dbCapPlans, name)
+			}
+		}
+		m.wizard.dbEngineIdx = 0
+		return m, nil
+
+	case dbCreatedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.notification = fmt.Sprintf("✅ Database service '%s' created successfully!", msg.dbName)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/databases"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
 
 	case lbRegionsLoadedMsg:
 		m.wizard.isLoading = false
@@ -4424,6 +4519,10 @@ func (m Model) renderWizardView(width int) string {
 		// Floating IP wizard
 		steps = append(steps, "Region", "Instance", "Confirm")
 		stepMapping = append(stepMapping, FIPWizardStepRegion, FIPWizardStepInstance, FIPWizardStepConfirm)
+	} else if m.wizard.step >= 1900 {
+		// Managed Database wizard
+		steps = append(steps, "Name", "Engine", "Version", "Region", "Plan", "Flavor", "Nodes", "Storage", "Network", "Confirm")
+		stepMapping = append(stepMapping, DBWizardStepName, DBWizardStepEngine, DBWizardStepVersion, DBWizardStepRegion, DBWizardStepPlan, DBWizardStepFlavor, DBWizardStepNodes, DBWizardStepStorage, DBWizardStepNetwork, DBWizardStepConfirm)
 	} else if m.wizard.step >= 1000 {
 		// Load Balancer wizard
 		steps = append(steps, "Name", "Region", "Size", "Network", "Confirm")
@@ -4653,6 +4752,27 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderGwWizardNetworkStep(width))
 	case GwWizardStepConfirm:
 		content.WriteString(m.renderGwWizardConfirmStep(width))
+	// Managed Database wizard steps
+	case DBWizardStepName:
+		content.WriteString(m.renderDBWizardNameStep(width))
+	case DBWizardStepEngine:
+		content.WriteString(m.renderDBWizardEngineStep(width))
+	case DBWizardStepVersion:
+		content.WriteString(m.renderDBWizardVersionStep(width))
+	case DBWizardStepRegion:
+		content.WriteString(m.renderDBWizardRegionStep(width))
+	case DBWizardStepPlan:
+		content.WriteString(m.renderDBWizardPlanStep(width))
+	case DBWizardStepFlavor:
+		content.WriteString(m.renderDBWizardFlavorStep(width))
+	case DBWizardStepNodes:
+		content.WriteString(m.renderDBWizardNodesStep(width))
+	case DBWizardStepStorage:
+		content.WriteString(m.renderDBWizardStorageStep(width))
+	case DBWizardStepNetwork:
+		content.WriteString(m.renderDBWizardNetworkStep(width))
+	case DBWizardStepConfirm:
+		content.WriteString(m.renderDBWizardConfirmStep(width))
 	// Load Balancer wizard steps
 	case LBWizardStepName:
 		content.WriteString(m.renderLBWizardNameStep(width))
@@ -10731,7 +10851,10 @@ func (m Model) isWizardTextInputStep() bool {
 		LBHMWizardStepDelay,
 		LBHMWizardStepMaxRetries,
 		LBHMWizardStepMaxRetriesDown,
-		LBHMWizardStepTimeout:
+		LBHMWizardStepTimeout,
+		DBWizardStepName,
+		DBWizardStepNodes,
+		DBWizardStepStorage:
 		return true
 	}
 	// Value step is text input only when not a bool-value type
@@ -11016,6 +11139,27 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleGwWizardNetworkKeys(key)
 	case GwWizardStepConfirm:
 		return m.handleGwWizardConfirmKeys(key)
+	// Managed Database wizard steps
+	case DBWizardStepName:
+		return m.handleDBWizardNameKeys(msg)
+	case DBWizardStepEngine:
+		return m.handleDBWizardEngineKeys(key)
+	case DBWizardStepVersion:
+		return m.handleDBWizardVersionKeys(key)
+	case DBWizardStepRegion:
+		return m.handleDBWizardRegionKeys(key)
+	case DBWizardStepPlan:
+		return m.handleDBWizardPlanKeys(key)
+	case DBWizardStepFlavor:
+		return m.handleDBWizardFlavorKeys(key)
+	case DBWizardStepNodes:
+		return m.handleDBWizardNodesKeys(msg)
+	case DBWizardStepStorage:
+		return m.handleDBWizardStorageKeys(msg)
+	case DBWizardStepNetwork:
+		return m.handleDBWizardNetworkKeys(key)
+	case DBWizardStepConfirm:
+		return m.handleDBWizardConfirmKeys(key)
 	// Load Balancer wizard steps
 	case LBWizardStepName:
 		return m.handleLBWizardNameKeys(msg)
