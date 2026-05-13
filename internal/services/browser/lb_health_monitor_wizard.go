@@ -106,6 +106,15 @@ func (m Model) renderLBHealthMonitorView(width int) string {
 	hmMaxRetriesDown := fmt.Sprintf("%v", hm["maxRetriesDown"])
 	hmOpStatus := getStringValue(hm, "operatingStatus", "N/A")
 	hmProvStatus := getStringValue(hm, "provisioningStatus", "N/A")
+	// Extract HTTP-specific fields from httpConfiguration if present
+	hmHttpMethod := ""
+	hmUrlPath := ""
+	hmExpectedCodes := ""
+	if httpCfg, ok := hm["httpConfiguration"].(map[string]interface{}); ok {
+		hmHttpMethod = getStringValue(httpCfg, "httpMethod", "")
+		hmUrlPath = getStringValue(httpCfg, "urlPath", "")
+		hmExpectedCodes = getStringValue(httpCfg, "expectedCodes", "")
+	}
 
 	statusColor := lipgloss.Color("#00FF7F")
 	if strings.ToLower(hmOpStatus) != "online" {
@@ -119,6 +128,15 @@ func (m Model) renderLBHealthMonitorView(width int) string {
 	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(hmID, 36))))
 	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Name"), valueSt.Render(hmName)))
 	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Type"), valueSt.Render(hmMonitorType)))
+	if hmHttpMethod != "" {
+		detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("HTTP Method"), valueSt.Render(hmHttpMethod)))
+	}
+	if hmUrlPath != "" {
+		detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("URL Path"), valueSt.Render(hmUrlPath)))
+	}
+	if hmExpectedCodes != "" {
+		detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Expected Codes"), valueSt.Render(hmExpectedCodes)))
+	}
 	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Delay"), valueSt.Render(hmDelay)))
 	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Timeout"), valueSt.Render(hmTimeout)))
 	detailContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Max Retries"), valueSt.Render(hmMaxRetries)))
@@ -197,6 +215,37 @@ func (m Model) renderLBHMWizardHttpMethodStep(width int) string {
 	return b.String()
 }
 
+func (m Model) renderLBHMWizardUrlPathStep(width int) string {
+	var b strings.Builder
+	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE")).Bold(true)
+	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#1A1A2E")).Padding(0, 1)
+	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+
+	b.WriteString(titleStyle.Render("  Health Monitor — URL Path") + "\n\n")
+	b.WriteString(descStyle.Render("  HTTP path to probe on the backend members (must start with /).") + "\n\n")
+	b.WriteString("  URL Path: " + inputStyle.Render(m.wizard.lbHMUrlPathInput+"█") + "\n")
+	if v := strings.TrimSpace(m.wizard.lbHMUrlPathInput); len(v) > 0 && v[0] != '/' {
+		b.WriteString("  " + warnStyle.Render("⚠ Must start with /") + "\n")
+	}
+	b.WriteString("\n")
+	b.WriteString(descStyle.Render("  Enter: Confirm • Backspace: Delete • ←: Back • Esc: Cancel\n"))
+	return b.String()
+}
+
+func (m Model) renderLBHMWizardExpectedCodesStep(width int) string {
+	var b strings.Builder
+	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE")).Bold(true)
+	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#1A1A2E")).Padding(0, 1)
+
+	b.WriteString(titleStyle.Render("  Health Monitor — Expected HTTP Codes") + "\n\n")
+	b.WriteString(descStyle.Render("  HTTP status code considered healthy (e.g. 200).") + "\n\n")
+	b.WriteString("  Expected Codes: " + inputStyle.Render(m.wizard.lbHMExpectedCodesInput+"█") + "\n\n")
+	b.WriteString(descStyle.Render("  Enter: Confirm • Backspace: Delete • ←: Back • Esc: Cancel\n"))
+	return b.String()
+}
+
 func (m Model) renderLBHMWizardDelayStep(width int) string {
 	var b strings.Builder
 	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE")).Bold(true)
@@ -244,10 +293,20 @@ func (m Model) renderLBHMWizardTimeoutStep(width int) string {
 	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
 
 	b.WriteString(titleStyle.Render("  Health Monitor — Timeout") + "\n\n")
-	b.WriteString(descStyle.Render(fmt.Sprintf("  Maximum wait time in seconds per check. Must be ≥ 1 and ≤ delay (%d s).", m.wizard.lbHMDelay)) + "\n\n")
+	maxTimeout := m.wizard.lbHMDelay
+	if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) && maxTimeout > 4 {
+		maxTimeout = 4
+	}
+	b.WriteString(descStyle.Render(fmt.Sprintf("  Maximum wait time in seconds per check. Must be ≥ 1 and ≤ %d s.", maxTimeout)) + "\n\n")
 	b.WriteString("  Timeout (s): " + inputStyle.Render(m.wizard.lbHMTimeoutInput+"█") + "\n")
-	if v, err := strconv.Atoi(strings.TrimSpace(m.wizard.lbHMTimeoutInput)); err == nil && v > m.wizard.lbHMDelay {
-		b.WriteString("  " + warnStyle.Render(fmt.Sprintf("⚠ Timeout must be ≤ delay (%d s)", m.wizard.lbHMDelay)) + "\n")
+	if v, err := strconv.Atoi(strings.TrimSpace(m.wizard.lbHMTimeoutInput)); err == nil {
+		maxT := m.wizard.lbHMDelay
+		if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) && maxT > 4 {
+			maxT = 4
+		}
+		if v > maxT {
+			b.WriteString("  " + warnStyle.Render(fmt.Sprintf("⚠ Timeout must be ≤ %d s", maxT)) + "\n")
+		}
 	}
 	b.WriteString("\n")
 	b.WriteString(descStyle.Render("  Enter: Confirm • Backspace: Delete • ←: Back • Esc: Cancel\n"))
@@ -276,6 +335,8 @@ func (m Model) renderLBHMWizardConfirmStep(width int) string {
 	}
 	if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) {
 		b.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("  HTTP Method"), valueSt.Render(m.wizard.lbHMHttpMethod)))
+		b.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("  URL Path"), valueSt.Render(m.wizard.lbHMUrlPath)))
+		b.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("  Expected Codes"), valueSt.Render(m.wizard.lbHMExpectedCodes)))
 	}
 	b.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("  Delay"), valueSt.Render(strconv.Itoa(m.wizard.lbHMDelay)+" s")))
 	b.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("  Max Retries"), valueSt.Render(strconv.Itoa(m.wizard.lbHMMaxRetries))))
@@ -363,12 +424,67 @@ func (m Model) handleLBHMWizardHttpMethodKeys(key string) (tea.Model, tea.Cmd) {
 		}
 	case "enter":
 		m.wizard.lbHMHttpMethod = lbHMHttpMethodOptions[m.wizard.lbHMHttpMethodIdx]
-		m.wizard.step = LBHMWizardStepDelay
+		if m.wizard.lbHMUrlPathInput == "" {
+			m.wizard.lbHMUrlPathInput = "/"
+		}
+		if m.wizard.lbHMExpectedCodesInput == "" {
+			m.wizard.lbHMExpectedCodesInput = "200"
+		}
+		m.wizard.step = LBHMWizardStepUrlPath
 	case "left", "h":
 		if m.wizard.lbHMEditId != "" {
 			m.wizard.step = LBHMWizardStepName
 		} else {
 			m.wizard.step = LBHMWizardStepType
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleLBHMWizardUrlPathKeys(key string) (tea.Model, tea.Cmd) {
+	switch key {
+	case "enter":
+		v := strings.TrimSpace(m.wizard.lbHMUrlPathInput)
+		if v == "" || v[0] != '/' {
+			return m, nil
+		}
+		m.wizard.lbHMUrlPath = v
+		m.wizard.step = LBHMWizardStepExpectedCodes
+	case "left", "h":
+		m.wizard.step = LBHMWizardStepHttpMethod
+	case "backspace":
+		if len(m.wizard.lbHMUrlPathInput) > 0 {
+			m.wizard.lbHMUrlPathInput = m.wizard.lbHMUrlPathInput[:len(m.wizard.lbHMUrlPathInput)-1]
+		}
+	default:
+		if len(key) == 1 {
+			m.wizard.lbHMUrlPathInput += key
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleLBHMWizardExpectedCodesKeys(key string) (tea.Model, tea.Cmd) {
+	switch key {
+	case "enter":
+		v := strings.TrimSpace(m.wizard.lbHMExpectedCodesInput)
+		if v == "" {
+			return m, nil
+		}
+		m.wizard.lbHMExpectedCodes = v
+		if m.wizard.lbHMDelayInput == "" {
+			m.wizard.lbHMDelayInput = "5"
+		}
+		m.wizard.step = LBHMWizardStepDelay
+	case "left", "h":
+		m.wizard.step = LBHMWizardStepUrlPath
+	case "backspace":
+		if len(m.wizard.lbHMExpectedCodesInput) > 0 {
+			m.wizard.lbHMExpectedCodesInput = m.wizard.lbHMExpectedCodesInput[:len(m.wizard.lbHMExpectedCodesInput)-1]
+		}
+	default:
+		if len(key) == 1 {
+			m.wizard.lbHMExpectedCodesInput += key
 		}
 	}
 	return m, nil
@@ -396,9 +512,15 @@ func (m Model) handleLBHMWizardDelayKeys(key string) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.wizard.lbHMDelay = v
-		// Clamp any existing timeout input so it can never exceed the new delay
-		if tv, err2 := strconv.Atoi(strings.TrimSpace(m.wizard.lbHMTimeoutInput)); err2 == nil && tv > v {
-			m.wizard.lbHMTimeoutInput = strconv.Itoa(v)
+		// Clamp timeout to min(delay, 4 for http/https)
+		if tv, err2 := strconv.Atoi(strings.TrimSpace(m.wizard.lbHMTimeoutInput)); err2 == nil {
+			maxT := v
+			if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) && maxT > 4 {
+				maxT = 4
+			}
+			if tv > maxT {
+				m.wizard.lbHMTimeoutInput = strconv.Itoa(maxT)
+			}
 		}
 		if m.wizard.lbHMMaxRetriesInput == "" {
 			m.wizard.lbHMMaxRetriesInput = "3"
@@ -406,7 +528,7 @@ func (m Model) handleLBHMWizardDelayKeys(key string) (tea.Model, tea.Cmd) {
 		m.wizard.step = LBHMWizardStepMaxRetries
 	case "left", "h":
 		if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) {
-			m.wizard.step = LBHMWizardStepHttpMethod
+			m.wizard.step = LBHMWizardStepExpectedCodes
 		} else if m.wizard.lbHMEditId != "" {
 			m.wizard.step = LBHMWizardStepName
 		} else {
@@ -446,11 +568,14 @@ func (m Model) handleLBHMWizardMaxRetriesDownKeys(key string) (tea.Model, tea.Cm
 			return m, nil
 		}
 		m.wizard.lbHMMaxRetriesDown = v
-		// Default timeout = min(5, delay) so it is always valid
+		// Default timeout = min(5, effective max)
 		if m.wizard.lbHMTimeoutInput == "" {
 			defaultTimeout := 5
 			if m.wizard.lbHMDelay > 0 && defaultTimeout > m.wizard.lbHMDelay {
 				defaultTimeout = m.wizard.lbHMDelay
+			}
+			if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) && defaultTimeout > 4 {
+				defaultTimeout = 4
 			}
 			m.wizard.lbHMTimeoutInput = strconv.Itoa(defaultTimeout)
 		}
@@ -470,8 +595,12 @@ func (m Model) handleLBHMWizardTimeoutKeys(key string) (tea.Model, tea.Cmd) {
 		if err != nil || v < 1 {
 			return m, nil
 		}
-		// timeout must be <= delay
-		if m.wizard.lbHMDelay > 0 && v > m.wizard.lbHMDelay {
+		maxTimeout := m.wizard.lbHMDelay
+		if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) && maxTimeout > 4 {
+			maxTimeout = 4
+		}
+		// timeout must be <= min(delay, 4 for http/https)
+		if m.wizard.lbHMDelay > 0 && v > maxTimeout {
 			return m, nil
 		}
 		m.wizard.lbHMTimeout = v

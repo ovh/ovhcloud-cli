@@ -6107,7 +6107,9 @@ func (m Model) saveHealthMonitor() tea.Cmd {
 			}
 			if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) {
 				putBody["httpConfiguration"] = map[string]interface{}{
-					"httpMethod": m.wizard.lbHMHttpMethod,
+					"httpMethod":    m.wizard.lbHMHttpMethod,
+					"urlPath":       m.wizard.lbHMUrlPath,
+					"expectedCodes": m.wizard.lbHMExpectedCodes,
 				}
 			}
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor/%s",
@@ -6129,7 +6131,9 @@ m.cloudProject, url.PathEscape(region), url.PathEscape(m.wizard.lbHMEditId))
 			}
 			if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) {
 				postBody["httpConfiguration"] = map[string]interface{}{
-					"httpMethod": m.wizard.lbHMHttpMethod,
+					"httpMethod":    m.wizard.lbHMHttpMethod,
+					"urlPath":       m.wizard.lbHMUrlPath,
+					"expectedCodes": m.wizard.lbHMExpectedCodes,
 				}
 			}
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor",

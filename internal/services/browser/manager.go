@@ -242,6 +242,8 @@ const (
 	LBHMWizardStepName          WizardStep = iota + 1800 // enter name
 	LBHMWizardStepType                                   // select monitor type
 	LBHMWizardStepHttpMethod                             // select HTTP method (http/https only)
+	LBHMWizardStepUrlPath                                // enter URL path (http/https only)
+	LBHMWizardStepExpectedCodes                          // enter expected HTTP codes (http/https only)
 	LBHMWizardStepDelay                                  // enter delay (seconds)
 	LBHMWizardStepMaxRetries                             // enter max retries
 	LBHMWizardStepMaxRetriesDown                         // enter max retries down
@@ -617,6 +619,10 @@ type WizardData struct {
 	lbHMTimeout             int    // confirmed timeout (seconds)
 	lbHMHttpMethodIdx       int    // selected index in lbHMHttpMethodOptions
 	lbHMHttpMethod          string // e.g. "GET", "HEAD"
+	lbHMUrlPathInput        string // raw input for URL path (http/https)
+	lbHMUrlPath             string // confirmed URL path
+	lbHMExpectedCodesInput  string // raw input for expected HTTP codes, e.g. "200"
+	lbHMExpectedCodes       string // confirmed expected codes
 	lbHMConfirmIdx          int    // 0=Save, 1=Cancel
 
 	// Floating IP wizard fields
@@ -4727,6 +4733,10 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderLBHMWizardTypeStep(width))
 	case LBHMWizardStepHttpMethod:
 		content.WriteString(m.renderLBHMWizardHttpMethodStep(width))
+	case LBHMWizardStepUrlPath:
+		content.WriteString(m.renderLBHMWizardUrlPathStep(width))
+	case LBHMWizardStepExpectedCodes:
+		content.WriteString(m.renderLBHMWizardExpectedCodesStep(width))
 	case LBHMWizardStepDelay:
 		content.WriteString(m.renderLBHMWizardDelayStep(width))
 	case LBHMWizardStepMaxRetries:
@@ -8223,6 +8233,10 @@ func (m Model) renderFooter() string {
 			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == LBHMWizardStepHttpMethod {
 			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == LBHMWizardStepUrlPath {
+			help = "Type URL path (e.g. /) • Enter: Continue • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == LBHMWizardStepExpectedCodes {
+			help = "Type expected HTTP codes (e.g. 200) • Enter: Continue • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == LBHMWizardStepDelay {
 			help = "Type delay in seconds • Enter: Continue • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == LBHMWizardStepMaxRetries {
@@ -8973,9 +8987,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 				}
 				m.mode = WizardView
-				// Extract httpMethod from existing httpConfiguration if present
+				// Extract httpMethod, urlPath, expectedCodes from existing httpConfiguration if present
 				hmHttpMethod := "GET"
 				hmHttpMethodIdx := 2 // GET is index 2 in lbHMHttpMethodOptions
+				hmUrlPath := "/"
+				hmExpectedCodes := "200"
 				if httpCfg, ok := hm["httpConfiguration"].(map[string]interface{}); ok {
 					if method, ok := httpCfg["httpMethod"].(string); ok && method != "" {
 						hmHttpMethod = method
@@ -8985,6 +9001,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 								break
 							}
 						}
+					}
+					if up, ok := httpCfg["urlPath"].(string); ok && up != "" {
+						hmUrlPath = up
+					}
+					if ec, ok := httpCfg["expectedCodes"].(string); ok && ec != "" {
+						hmExpectedCodes = ec
 					}
 				}
 				m.wizard = WizardData{
@@ -8998,6 +9020,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					lbHMType:                hmType,
 					lbHMHttpMethodIdx:       hmHttpMethodIdx,
 					lbHMHttpMethod:          hmHttpMethod,
+					lbHMUrlPathInput:        hmUrlPath,
+					lbHMUrlPath:             hmUrlPath,
+					lbHMExpectedCodesInput:  hmExpectedCodes,
+					lbHMExpectedCodes:       hmExpectedCodes,
 					lbHMDelayInput:          fmt.Sprintf("%d", hmDelay),
 					lbHMDelay:               hmDelay,
 					lbHMMaxRetriesInput:     fmt.Sprintf("%d", hmMaxRetries),
@@ -9226,6 +9252,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					lbHMTimeoutInput:        "5",
 					lbHMHttpMethodIdx:       2, // default to GET
 					lbHMHttpMethod:          "GET",
+					lbHMUrlPathInput:        "/",
+					lbHMUrlPath:             "/",
+					lbHMExpectedCodesInput:  "200",
+					lbHMExpectedCodes:       "200",
 				}
 			}
 			return m, nil
@@ -10351,6 +10381,8 @@ func (m Model) isWizardTextInputStep() bool {
 		LBMemberWizardStepPort,
 		LBMemberWizardStepWeight,
 		LBHMWizardStepName,
+		LBHMWizardStepUrlPath,
+		LBHMWizardStepExpectedCodes,
 		LBHMWizardStepDelay,
 		LBHMWizardStepMaxRetries,
 		LBHMWizardStepMaxRetriesDown,
@@ -10723,6 +10755,10 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleLBHMWizardTypeKeys(key)
 	case LBHMWizardStepHttpMethod:
 		return m.handleLBHMWizardHttpMethodKeys(key)
+	case LBHMWizardStepUrlPath:
+		return m.handleLBHMWizardUrlPathKeys(key)
+	case LBHMWizardStepExpectedCodes:
+		return m.handleLBHMWizardExpectedCodesKeys(key)
 	case LBHMWizardStepDelay:
 		return m.handleLBHMWizardDelayKeys(key)
 	case LBHMWizardStepMaxRetries:
