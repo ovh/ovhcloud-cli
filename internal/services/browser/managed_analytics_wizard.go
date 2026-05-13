@@ -69,8 +69,8 @@ func (m Model) fetchAnalyticsCapabilities() tea.Cmd {
 			}
 		}
 		sort.Slice(flavMaps, func(i, j int) bool {
-			oi, _ := flavMaps[i]["order"].(float64)
-			oj, _ := flavMaps[j]["order"].(float64)
+			oi, _ := toFloat64(flavMaps[i]["order"])
+			oj, _ := toFloat64(flavMaps[j]["order"])
 			if oi != oj {
 				return oi < oj
 			}
@@ -85,8 +85,8 @@ func (m Model) fetchAnalyticsCapabilities() tea.Cmd {
 			}
 		}
 		sort.Slice(planMaps, func(i, j int) bool {
-			oi, _ := planMaps[i]["order"].(float64)
-			oj, _ := planMaps[j]["order"].(float64)
+			oi, _ := toFloat64(planMaps[i]["order"])
+			oj, _ := toFloat64(planMaps[j]["order"])
 			return oi < oj
 		})
 
@@ -345,8 +345,8 @@ func (m Model) renderAnalyticsWizardFlavorStep(_ int) string {
 			fi := m.dbFlavorInfo(f)
 			detail := ""
 			if fi != nil {
-				core, _ := fi["core"].(float64)
-				mem, _ := fi["memory"].(float64)
+				core, _ := toFloat64(fi["core"])
+				mem, _ := toFloat64(fi["memory"])
 				if core > 0 || mem > 0 {
 					detail = fmt.Sprintf("  %d vCores  %d GB RAM", int(core), int(mem))
 				}
@@ -656,14 +656,14 @@ func (m Model) handleAnalyticsWizardFlavorKeys(key string) (tea.Model, tea.Cmd) 
 			if specs, ok := avail["specifications"].(map[string]interface{}); ok {
 				if storage, ok := specs["storage"].(map[string]interface{}); ok {
 					if maxS, ok := storage["maximum"].(map[string]interface{}); ok {
-						if v, ok := maxS["value"].(float64); ok && v > 0 {
+						if v, ok := toFloat64(maxS["value"]); ok && v > 0 {
 							diskSize = int(v)
 						}
 					}
 					// If maximum is absent or zero, fall back to minimum
 					if diskSize == 0 {
 						if minS, ok := storage["minimum"].(map[string]interface{}); ok {
-							if v, ok := minS["value"].(float64); ok && v > 0 {
+							if v, ok := toFloat64(minS["value"]); ok && v > 0 {
 								diskSize = int(v)
 							}
 						}

@@ -7,6 +7,7 @@
 package browser
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"sort"
@@ -64,8 +65,8 @@ func (m Model) fetchDBCapabilities() tea.Cmd {
 			}
 		}
 		sort.Slice(flavMaps, func(i, j int) bool {
-			oi, _ := flavMaps[i]["order"].(float64)
-			oj, _ := flavMaps[j]["order"].(float64)
+			oi, _ := toFloat64(flavMaps[i]["order"])
+			oj, _ := toFloat64(flavMaps[j]["order"])
 			if oi != oj {
 				return oi < oj
 			}
@@ -80,8 +81,8 @@ func (m Model) fetchDBCapabilities() tea.Cmd {
 			}
 		}
 		sort.Slice(planMaps, func(i, j int) bool {
-			oi, _ := planMaps[i]["order"].(float64)
-			oj, _ := planMaps[j]["order"].(float64)
+			oi, _ := toFloat64(planMaps[i]["order"])
+			oj, _ := toFloat64(planMaps[j]["order"])
 			return oi < oj
 		})
 
@@ -134,6 +135,35 @@ func (m Model) createManagedDBFromWizard() tea.Cmd {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// getAvailFlavor returns the flavor name from an availability item,
+// checking the deprecated top-level field first, then specifications.flavor (new format).
+func getAvailFlavor(a map[string]interface{}) string {
+	if f := getStringValue(a, "flavor", ""); f != "" {
+		return f
+	}
+	if specs, ok := a["specifications"].(map[string]interface{}); ok {
+		return getStringValue(specs, "flavor", "")
+	}
+	return ""
+}
+
+// toFloat64 converts a JSON value to float64, handling both float64 and json.Number
+// (go-ovh uses UseNumber() so all numbers come as json.Number).
+func toFloat64(v interface{}) (float64, bool) {
+	switch n := v.(type) {
+	case float64:
+		return n, true
+	case json.Number:
+		f, err := n.Float64()
+		return f, err == nil
+	case int64:
+		return float64(n), true
+	case int:
+		return float64(n), true
+	}
+	return 0, false
+}
 
 // dbFilteredVersions returns versions available for the selected engine.
 func (m Model) dbFilteredVersions() []string {
@@ -239,7 +269,7 @@ func (m Model) dbFilteredFlavors() []string {
 		if !strings.EqualFold(getStringValue(a, "plan", ""), m.wizard.dbPlan) {
 			continue
 		}
-		f := getStringValue(a, "flavor", "")
+		f := getAvailFlavor(a)
 		if f != "" && !seen[f] {
 			seen[f] = true
 			flavors = append(flavors, f)
@@ -272,8 +302,12 @@ func (m Model) dbFilteredFlavors() []string {
 }
 
 // dbActiveAvail returns the availability entry matching current engine+version+region+plan+flavor.
+// It tries progressively relaxed matches to handle analytics per-engine items
+// where some top-level deprecated fields may be absent or formatted differently.
 func (m Model) dbActiveAvail() map[string]interface{} {
 	engLower := strings.ToLower(m.wizard.dbEngine)
+
+	// Pass 1: strict — all 5 fields
 	for _, a := range m.wizard.dbAvailItems {
 		if strings.ToLower(getStringValue(a, "engine", "")) != engLower {
 			continue
@@ -287,11 +321,42 @@ func (m Model) dbActiveAvail() map[string]interface{} {
 		if !strings.EqualFold(getStringValue(a, "plan", ""), m.wizard.dbPlan) {
 			continue
 		}
-		if !strings.EqualFold(getStringValue(a, "flavor", ""), m.wizard.dbFlavor) {
+		if !strings.EqualFold(getAvailFlavor(a), m.wizard.dbFlavor) {
 			continue
 		}
 		return a
 	}
+
+	// Pass 2: engine + region + plan + flavor, relaxing version.
+	// If the item has empty region or plan (per-engine endpoints may omit them),
+	// treat that field as a wildcard match.
+	for _, a := range m.wizard.dbAvailItems {
+		if strings.ToLower(getStringValue(a, "engine", "")) != engLower {
+			continue
+		}
+		if r := getStringValue(a, "region", ""); r != "" && !strings.EqualFold(r, m.wizard.dbRegion) {
+			continue
+		}
+		if p := getStringValue(a, "plan", ""); p != "" && !strings.EqualFold(p, m.wizard.dbPlan) {
+			continue
+		}
+		if !strings.EqualFold(getAvailFlavor(a), m.wizard.dbFlavor) {
+			continue
+		}
+		return a
+	}
+
+	// Pass 3: engine + flavor only (absolute last resort)
+	for _, a := range m.wizard.dbAvailItems {
+		if strings.ToLower(getStringValue(a, "engine", "")) != engLower {
+			continue
+		}
+		if !strings.EqualFold(getAvailFlavor(a), m.wizard.dbFlavor) {
+			continue
+		}
+		return a
+	}
+
 	return nil
 }
 
@@ -326,22 +391,22 @@ func (m Model) dbNodesConstraints() (int, int) {
 	// Prefer specifications.nodes (new format) over deprecated top-level fields
 	if specs, ok := avail["specifications"].(map[string]interface{}); ok {
 		if nodes, ok := specs["nodes"].(map[string]interface{}); ok {
-			if v, ok := nodes["minimum"].(float64); ok && v > 0 {
+			if v, ok := toFloat64(nodes["minimum"]); ok && v > 0 {
 				min = int(v)
 			}
-			if v, ok := nodes["maximum"].(float64); ok && v > 0 {
+			if v, ok := toFloat64(nodes["maximum"]); ok && v > 0 {
 				max = int(v)
 			}
 		}
 	}
 	// Fall back to deprecated fields
 	if min == 0 {
-		if v, ok := avail["minNodeNumber"].(float64); ok && v > 0 {
+		if v, ok := toFloat64(avail["minNodeNumber"]); ok && v > 0 {
 			min = int(v)
 		}
 	}
 	if max == 0 {
-		if v, ok := avail["maxNodeNumber"].(float64); ok && v > 0 {
+		if v, ok := toFloat64(avail["maxNodeNumber"]); ok && v > 0 {
 			max = int(v)
 		}
 	}
@@ -351,8 +416,6 @@ func (m Model) dbNodesConstraints() (int, int) {
 	if max < min {
 		max = min
 	}
-	min =3
-	max = 3
 	return min, max
 }
 
@@ -365,30 +428,30 @@ func (m Model) dbStorageConstraints() (int, int, int) {
 		if specs, ok := avail["specifications"].(map[string]interface{}); ok {
 			if storage, ok := specs["storage"].(map[string]interface{}); ok {
 				if minS, ok := storage["minimum"].(map[string]interface{}); ok {
-					if v, ok := minS["value"].(float64); ok && v > 0 {
+					if v, ok := toFloat64(minS["value"]); ok && v > 0 {
 						min = int(v)
 					}
 				}
 				if maxS, ok := storage["maximum"].(map[string]interface{}); ok {
-					if v, ok := maxS["value"].(float64); ok && v > 0 {
+					if v, ok := toFloat64(maxS["value"]); ok && v > 0 {
 						max = int(v)
 					}
 				}
 				if stepS, ok := storage["step"].(map[string]interface{}); ok {
-					if v, ok := stepS["value"].(float64); ok && v > 0 {
+					if v, ok := toFloat64(stepS["value"]); ok && v > 0 {
 						step = int(v)
 					}
 				}
 			}
 		}
 		// Fall back to deprecated fields
-		if v, ok := avail["minDiskSize"].(float64); ok && v > 0 && min == 10 {
+		if v, ok := toFloat64(avail["minDiskSize"]); ok && v > 0 && min == 10 {
 			min = int(v)
 		}
-		if v, ok := avail["maxDiskSize"].(float64); ok && v > 0 && max == 1000 {
+		if v, ok := toFloat64(avail["maxDiskSize"]); ok && v > 0 && max == 1000 {
 			max = int(v)
 		}
-		if v, ok := avail["stepDiskSize"].(float64); ok && v > 0 && step == 10 {
+		if v, ok := toFloat64(avail["stepDiskSize"]); ok && v > 0 && step == 10 {
 			step = int(v)
 		}
 	}
@@ -621,8 +684,8 @@ func (m Model) renderDBWizardFlavorStep(_ int) string {
 			fi := m.dbFlavorInfo(f)
 			detail := ""
 			if fi != nil {
-				core, _ := fi["core"].(float64)
-				mem, _ := fi["memory"].(float64)
+				core, _ := toFloat64(fi["core"])
+				mem, _ := toFloat64(fi["memory"])
 				if core > 0 || mem > 0 {
 					detail = fmt.Sprintf("  %d vCores  %d GB RAM", int(core), int(mem))
 				}
