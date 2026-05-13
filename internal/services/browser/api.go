@@ -2252,6 +2252,31 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 		}
 	}
 
+	// Fetch floating IPs per octavia region and attach to matching LBs
+	allRegionFIPs, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/floatingip", regions, true)
+	lbFIPMap := make(map[string]string) // lbID -> floatingIP address
+	for _, fips := range allRegionFIPs {
+		for _, fip := range fips {
+			if entity, ok := fip["associatedEntity"].(map[string]interface{}); ok {
+				if getStringValue(entity, "type", "") == "loadbalancer" {
+					lbID := getStringValue(entity, "id", "")
+					if lbID != "" {
+						if ip, ok := fip["ip"].(string); ok && ip != "" {
+							lbFIPMap[lbID] = ip
+						}
+					}
+				}
+			}
+		}
+	}
+	for _, lb := range lbs {
+		if lbID, ok := lb["id"].(string); ok {
+			if ip, found := lbFIPMap[lbID]; found {
+				lb["floatingIp"] = map[string]interface{}{"ip": ip}
+			}
+		}
+	}
+
 	return dataLoadedMsg{data: lbs, err: nil}
 }
 
