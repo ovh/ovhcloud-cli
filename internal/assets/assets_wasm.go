@@ -28,6 +28,7 @@ var (
 	SmsOpenapiSchema                             []byte
 	SslgatewayOpenapiSchema                      []byte
 	StoragenetappOpenapiSchema                   []byte
+	SupportOpenapiSchema                         []byte
 	TelephonyOpenapiSchema                       []byte
 	VmwareclouddirectorbackupOpenapiSchema       []byte
 	VmwareclouddirectororganizationOpenapiSchema []byte
