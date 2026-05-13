@@ -6510,6 +6510,8 @@ func (m Model) renderDetailView(width int) string {
                 return m.renderGenericDetail(width)
 	case ProductNetworkPrivate:
 		return m.renderPrivateNetworkDetail(width)
+	case ProductManagedDatabases:
+		return m.renderManagedDatabaseDetail(width)
 	case ProductNetworkGateway:
 		return m.renderGatewayDetail(width)
 	case ProductNetworkLB:
@@ -6839,6 +6841,110 @@ func (m Model) renderInstanceDetail(width int) string {
 	leftRight := lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", networkBox)
 	content.WriteString(leftRight)
 
+	return content.String()
+}
+
+func (m Model) renderManagedDatabaseDetail(width int) string {
+	var content strings.Builder
+
+	dbID := getStringValue(m.detailData, "id", "N/A")
+	dbName := getStringValue(m.detailData, "description", "")
+	if dbName == "" {
+		dbName = dbID
+	}
+	engine := getStringValue(m.detailData, "engine", "N/A")
+	version := getStringValue(m.detailData, "version", "")
+	if version != "" {
+		engine = engine + " " + version
+	}
+	plan := getStringValue(m.detailData, "plan", "N/A")
+	flavor := getStringValue(m.detailData, "flavor", "N/A")
+	status := getStringValue(m.detailData, "status", "N/A")
+	createdAt := getStringValue(m.detailData, "createdAt", "N/A")
+	if len(createdAt) >= 10 {
+		createdAt = createdAt[:10]
+	}
+
+	storageStr := "-"
+	if storage, ok := m.detailData["storage"].(map[string]interface{}); ok {
+		if size, ok := storage["size"].(map[string]interface{}); ok {
+			val := getStringValue(size, "value", "")
+			unit := getStringValue(size, "unit", "")
+			if val != "" {
+				storageStr = val + " " + unit
+			}
+		}
+	}
+
+	location := "-"
+	nodesCount := 0
+	if nodes, ok := m.detailData["nodes"].([]interface{}); ok {
+		nodesCount = len(nodes)
+		if len(nodes) > 0 {
+			if node, ok := nodes[0].(map[string]interface{}); ok {
+				if r := getStringValue(node, "region", ""); r != "" {
+					location = r
+				}
+			}
+		}
+	}
+
+	statusIcon := "🟢"
+	statusStyle := statusRunningStyle
+	switch strings.ToUpper(status) {
+	case "CREATING", "UPDATING", "RESTARTING", "PENDING", "MAINTENANCE":
+		statusIcon = "🟡"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+	case "ERROR", "ERROR_INCONSISTENT_SPEC", "DELETING", "SUSPENDED", "LOCKED":
+		statusIcon = "🔴"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF4444"))
+	}
+
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	boxWidth := (width - 6) / 2
+	if boxWidth < 35 {
+		boxWidth = 35
+	}
+
+	var infoContent strings.Builder
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Status"), statusStyle.Render(statusIcon+" "+status)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(dbID, 36))))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Engine"), valueSt.Render(engine)))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Plan"), valueSt.Render(plan)))
+	infoBox := renderBox("Database "+dbName, infoContent.String(), boxWidth)
+
+	var cfgContent strings.Builder
+	cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Flavor"), valueSt.Render(flavor)))
+	cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Storage"), valueSt.Render(storageStr)))
+	cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Location"), valueSt.Render(location)))
+	cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Nodes"), valueSt.Render(fmt.Sprintf("%d", nodesCount))))
+	cfgContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Created"), valueSt.Render(createdAt)))
+	cfgBox := renderBox("Configuration", cfgContent.String(), boxWidth)
+
+	actions := []string{"Delete"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.selectedAction {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color("#7B68EE")).
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).Padding(0, 1).Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.actionConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).Bold(true).
+			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actions[m.selectedAction]))
+	}
+	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
+
+	content.WriteString(actionsBox + "\n\n")
+	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", cfgBox))
 	return content.String()
 }
 

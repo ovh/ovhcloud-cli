@@ -2527,6 +2527,8 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		m.additionalIPsData = msg.additionalIPs
 		m.publicIPTabIdx = 0
 		m.table = createFloatingIPsTable(msg.data, m.width, m.height)
+	case ProductManagedDatabases:
+		m.table = createManagedDatabasesTable(msg.data, m.width, m.height)
 	case ProductNetworkGateway:
 		m.table = createGatewaysTable(msg.data, m.width, m.height)
 	case ProductNetworkLB:
@@ -3241,6 +3243,110 @@ func createLoadBalancersTable(data []map[string]interface{}, width, height int) 
 		Bold(false)
 	t.SetStyles(s)
 
+	return t
+}
+
+// createManagedDatabasesTable creates a table for managed database services.
+func createManagedDatabasesTable(data []map[string]interface{}, width, height int) table.Model {
+	sort.Slice(data, func(i, j int) bool {
+		return getString(data[i], "description") < getString(data[j], "description")
+	})
+
+	columns := []table.Column{
+		{Title: "Name", Width: 22},
+		{Title: "Engine", Width: 16},
+		{Title: "Plan", Width: 12},
+		{Title: "Flavor", Width: 14},
+		{Title: "Storage", Width: 10},
+		{Title: "Location", Width: 10},
+		{Title: "Nodes", Width: 6},
+		{Title: "Created", Width: 12},
+		{Title: "Status", Width: 12},
+	}
+
+	var rows []table.Row
+	for _, db := range data {
+		name := getString(db, "description")
+		if name == "" {
+			name = getString(db, "id")
+		}
+		engine := getString(db, "engine")
+		version := getString(db, "version")
+		if version != "" {
+			engine = engine + " " + version
+		}
+		plan := getString(db, "plan")
+		flavor := getString(db, "flavor")
+
+		storageStr := "-"
+		if storage, ok := db["storage"].(map[string]interface{}); ok {
+			if size, ok := storage["size"].(map[string]interface{}); ok {
+				val := getString(size, "value")
+				unit := getString(size, "unit")
+				if val != "" {
+					storageStr = val + " " + unit
+				}
+			}
+		}
+
+		location := "-"
+		nodesCount := 0
+		if nodes, ok := db["nodes"].([]interface{}); ok {
+			nodesCount = len(nodes)
+			if len(nodes) > 0 {
+				if node, ok := nodes[0].(map[string]interface{}); ok {
+					if r, ok := node["region"].(string); ok && r != "" {
+						location = r
+					}
+				}
+			}
+		}
+
+		createdAt := getString(db, "createdAt")
+		if len(createdAt) >= 10 {
+			createdAt = createdAt[:10]
+		}
+
+		status := getString(db, "status")
+		statusIcon := "🟢"
+		switch strings.ToUpper(status) {
+		case "CREATING", "UPDATING", "RESTARTING", "PENDING", "MAINTENANCE":
+			statusIcon = "🟡"
+		case "ERROR", "ERROR_INCONSISTENT_SPEC", "DELETING", "SUSPENDED", "LOCKED":
+			statusIcon = "🔴"
+		}
+
+		rows = append(rows, table.Row{
+			name, engine, plan, flavor, storageStr, location,
+			fmt.Sprintf("%d", nodesCount), createdAt, statusIcon + " " + status,
+		})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 25 {
+		tableHeight = 25
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
 	return t
 }
 
