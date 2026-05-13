@@ -6065,3 +6065,98 @@ func (m Model) saveLBMember() tea.Cmd {
 		return lbPoolMemberSavedMsg{poolID: poolID}
 	}
 }
+
+// fetchLBHealthMonitor fetches the health monitor for a given pool (there is at most one).
+func (m Model) fetchLBHealthMonitor(poolID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbHMLoadedMsg{poolID: poolID, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor?poolId=%s",
+m.cloudProject, url.PathEscape(region), url.QueryEscape(poolID))
+		var monitors []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &monitors); err != nil {
+			return lbHMLoadedMsg{poolID: poolID, err: err}
+		}
+		if len(monitors) == 0 {
+			return lbHMLoadedMsg{poolID: poolID, hm: nil}
+		}
+		return lbHMLoadedMsg{poolID: poolID, hm: monitors[0]}
+	}
+}
+
+// saveHealthMonitor creates or updates the health monitor for a pool using wizard data.
+func (m Model) saveHealthMonitor() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbHMSavedMsg{poolID: m.wizard.lbHMPoolId, err: fmt.Errorf("no cloud project selected")}
+		}
+		poolID := m.wizard.lbHMPoolId
+		region := m.wizard.lbHMPoolRegion
+		if poolID == "" || region == "" {
+			return lbHMSavedMsg{poolID: poolID, err: fmt.Errorf("pool ID or region missing")}
+		}
+		if m.wizard.lbHMEditId != "" {
+			// Update: PUT — monitorType and poolId are immutable
+			putBody := map[string]interface{}{
+				"name":           m.wizard.lbHMName,
+				"delay":          m.wizard.lbHMDelay,
+				"maxRetries":     m.wizard.lbHMMaxRetries,
+				"maxRetriesDown": m.wizard.lbHMMaxRetriesDown,
+				"timeout":        m.wizard.lbHMTimeout,
+			}
+			if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) {
+				putBody["httpConfiguration"] = map[string]interface{}{
+					"httpMethod": m.wizard.lbHMHttpMethod,
+				}
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor/%s",
+m.cloudProject, url.PathEscape(region), url.PathEscape(m.wizard.lbHMEditId))
+			var result map[string]interface{}
+			if err := httpLib.Client.Put(endpoint, putBody, &result); err != nil {
+				return lbHMSavedMsg{poolID: poolID, err: fmt.Errorf("update failed: %w", err)}
+			}
+		} else {
+			// Create: POST
+			postBody := map[string]interface{}{
+				"name":           m.wizard.lbHMName,
+				"monitorType":    m.wizard.lbHMType,
+				"poolId":         poolID,
+				"delay":          m.wizard.lbHMDelay,
+				"maxRetries":     m.wizard.lbHMMaxRetries,
+				"maxRetriesDown": m.wizard.lbHMMaxRetriesDown,
+				"timeout":        m.wizard.lbHMTimeout,
+			}
+			if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) {
+				postBody["httpConfiguration"] = map[string]interface{}{
+					"httpMethod": m.wizard.lbHMHttpMethod,
+				}
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor",
+m.cloudProject, url.PathEscape(region))
+			var result map[string]interface{}
+			if err := httpLib.Client.Post(endpoint, postBody, &result); err != nil {
+				return lbHMSavedMsg{poolID: poolID, err: fmt.Errorf("creation failed: %w", err)}
+			}
+		}
+		return lbHMSavedMsg{poolID: poolID}
+	}
+}
+
+// deleteHealthMonitor deletes the health monitor for a pool.
+func (m Model) deleteHealthMonitor(hmID, poolID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbHMDeletedMsg{poolID: poolID, err: fmt.Errorf("no cloud project selected")}
+		}
+		if hmID == "" || region == "" {
+			return lbHMDeletedMsg{poolID: poolID, err: fmt.Errorf("health monitor ID or region missing")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor/%s",
+m.cloudProject, url.PathEscape(region), url.PathEscape(hmID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbHMDeletedMsg{poolID: poolID, err: fmt.Errorf("deletion failed: %w", err)}
+		}
+		return lbHMDeletedMsg{poolID: poolID}
+	}
+}

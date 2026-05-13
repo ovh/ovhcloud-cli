@@ -59,6 +59,7 @@ const (
 	LBL7PolicyDetailView      // Detail view for a single L7 policy
 	LBL7RulesView             // List view for L7 rules of a policy
 	LBPoolMembersView         // List view for members of a pool
+	LBHealthMonitorView       // Detail/edit view for a pool's health monitor
 )
 
 // ASCII OVHcloud logo for loading screen
@@ -234,6 +235,18 @@ const (
 	LBMemberWizardStepPort                            // enter protocol port
 	LBMemberWizardStepWeight                          // enter weight
 	LBMemberWizardStepConfirm                         // confirm + save
+)
+
+const (
+	// LB Health Monitor wizard steps (offset by 1800)
+	LBHMWizardStepName          WizardStep = iota + 1800 // enter name
+	LBHMWizardStepType                                   // select monitor type
+	LBHMWizardStepHttpMethod                             // select HTTP method (http/https only)
+	LBHMWizardStepDelay                                  // enter delay (seconds)
+	LBHMWizardStepMaxRetries                             // enter max retries
+	LBHMWizardStepMaxRetriesDown                         // enter max retries down
+	LBHMWizardStepTimeout                                // enter timeout
+	LBHMWizardStepConfirm                                // confirm + save
 )
 
 // ProductType represents a product category
@@ -586,6 +599,26 @@ type WizardData struct {
 	lbMemberWeight      int    // confirmed weight (0-256)
 	lbMemberConfirmIdx  int    // 0=Save, 1=Cancel
 
+	// LB Health Monitor wizard fields
+	lbHMPoolId             string // pool ID the monitor belongs to
+	lbHMPoolRegion         string // region
+	lbHMEditId             string // non-empty = edit mode (HM ID being edited)
+	lbHMNameInput          string // raw input for name
+	lbHMName               string // confirmed name
+	lbHMTypeIdx            int    // selected index in lbHMTypeOptions
+	lbHMType               string // e.g. "http", "tcp", ...
+	lbHMDelayInput         string // raw input for delay
+	lbHMDelay              int    // confirmed delay (seconds)
+	lbHMMaxRetriesInput    string // raw input for max retries
+	lbHMMaxRetries         int    // confirmed max retries
+	lbHMMaxRetriesDownInput string // raw input for max retries down
+	lbHMMaxRetriesDown     int    // confirmed max retries down
+	lbHMTimeoutInput        string // raw input for timeout
+	lbHMTimeout             int    // confirmed timeout (seconds)
+	lbHMHttpMethodIdx       int    // selected index in lbHMHttpMethodOptions
+	lbHMHttpMethod          string // e.g. "GET", "HEAD"
+	lbHMConfirmIdx          int    // 0=Save, 1=Cancel
+
 	// Floating IP wizard fields
 	fipRegion            string
 	fipRegionIdx         int
@@ -668,6 +701,9 @@ type Model struct {
 	lbPoolMembers         map[string][]map[string]interface{} // poolID → members
 	lbPoolMemberDetailIdx int                               // Currently displayed member index
 	lbPoolMemberConfirm   bool                              // Confirm mode for member deletion
+	// LB health monitors cache (poolId -> health monitor)
+	lbHealthMonitors      map[string]map[string]interface{}  // poolID → health monitor (one per pool)
+	lbHMConfirm           bool                              // Confirm mode for HM deletion
 	// LB listeners cache (lbId -> listeners)
 	lbListeners       map[string][]map[string]interface{}
 	lbListenerListIdx int // Highlighted listener row in LB detail (-1 = none)
@@ -1262,6 +1298,22 @@ type lbPoolMemberDeletedMsg struct {
 }
 
 type lbPoolMemberSavedMsg struct {
+	poolID string
+	err    error
+}
+
+type lbHMLoadedMsg struct {
+	poolID string
+	hm     map[string]interface{} // nil if not found
+	err    error
+}
+
+type lbHMSavedMsg struct {
+	poolID string
+	err    error
+}
+
+type lbHMDeletedMsg struct {
 	poolID string
 	err    error
 }
@@ -2373,6 +2425,58 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 
+	case lbHMLoadedMsg:
+		if msg.err == nil {
+			if m.lbHealthMonitors == nil {
+				m.lbHealthMonitors = make(map[string]map[string]interface{})
+			}
+			m.lbHealthMonitors[msg.poolID] = msg.hm // can be nil (no HM)
+		}
+		return m, nil
+
+	case lbHMSavedMsg:
+		poolID := msg.poolID
+		m.mode = LBHealthMonitorView
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ Health monitor saved successfully"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		region := getStringValue(m.detailData, "region", "")
+		if poolID != "" && region != "" {
+			return m, tea.Batch(
+				m.fetchLBHealthMonitor(poolID, region),
+				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case lbHMDeletedMsg:
+		poolID := msg.poolID
+		m.lbHMConfirm = false
+		m.mode = LBHealthMonitorView
+		if m.lbHealthMonitors != nil {
+			m.lbHealthMonitors[poolID] = nil
+		}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ Health monitor deleted successfully"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		region := getStringValue(m.detailData, "region", "")
+		if poolID != "" && region != "" {
+			return m, tea.Batch(
+				m.fetchLBHealthMonitor(poolID, region),
+				tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
 	case lbRegionsLoadedMsg:
 		m.wizard.isLoading = false
 		m.wizard.loadingMessage = ""
@@ -3423,6 +3527,8 @@ func (m Model) renderContentBox(width int) string {
 		contentStr = m.renderLBL7RulesView(width - 6)
 	case LBPoolMembersView:
 		contentStr = m.renderLBPoolMembersView(width - 6)
+	case LBHealthMonitorView:
+		contentStr = m.renderLBHealthMonitorView(width - 6)
 	case DeleteConfirmView:
 		contentStr = m.renderDeleteConfirmView()
 	case DebugView:
@@ -4614,6 +4720,23 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderLBMemberWizardWeightStep(width))
 	case LBMemberWizardStepConfirm:
 		content.WriteString(m.renderLBMemberWizardConfirmStep(width))
+	// LB Health Monitor wizard steps
+	case LBHMWizardStepName:
+		content.WriteString(m.renderLBHMWizardNameStep(width))
+	case LBHMWizardStepType:
+		content.WriteString(m.renderLBHMWizardTypeStep(width))
+	case LBHMWizardStepHttpMethod:
+		content.WriteString(m.renderLBHMWizardHttpMethodStep(width))
+	case LBHMWizardStepDelay:
+		content.WriteString(m.renderLBHMWizardDelayStep(width))
+	case LBHMWizardStepMaxRetries:
+		content.WriteString(m.renderLBHMWizardMaxRetriesStep(width))
+	case LBHMWizardStepMaxRetriesDown:
+		content.WriteString(m.renderLBHMWizardMaxRetriesDownStep(width))
+	case LBHMWizardStepTimeout:
+		content.WriteString(m.renderLBHMWizardTimeoutStep(width))
+	case LBHMWizardStepConfirm:
+		content.WriteString(m.renderLBHMWizardConfirmStep(width))
 	// Workflow wizard steps
 	case WorkflowWizardStepType:
 		content.WriteString(m.renderWorkflowWizardTypeStep(width))
@@ -7439,11 +7562,14 @@ func (m Model) renderLBPoolMembersView(width int) string {
 			Background(lipgloss.Color("#CC3333")).Foreground(lipgloss.Color("#FFFFFF")).
 			Bold(true).Padding(0, 1).Render("🗑 Delete  [d]")
 	}
+	hmBtn := lipgloss.NewStyle().
+		Background(lipgloss.Color("#FF8C00")).Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).Padding(0, 1).Render("💓 Health Monitor  [h]")
 	var actionsContent string
 	if len(members) > 0 {
-		actionsContent = lipgloss.JoinHorizontal(lipgloss.Top, createBtn, "  ", editBtn, "  ", deleteBtnContent)
+		actionsContent = lipgloss.JoinHorizontal(lipgloss.Top, createBtn, "  ", editBtn, "  ", deleteBtnContent, "  ", hmBtn)
 	} else {
-		actionsContent = createBtn
+		actionsContent = lipgloss.JoinHorizontal(lipgloss.Top, createBtn, "  ", hmBtn)
 	}
 	actionsBox := renderBox("Actions", actionsContent, width-4)
 	content.WriteString(actionsBox + "\n\n")
@@ -8015,7 +8141,13 @@ func (m Model) renderFooter() string {
 	case LBL7RulesView:
 		help = "Enter: Create Rule • Esc: Back to Policy • q: Quit"
 	case LBPoolMembersView:
-		help = "Enter: Create Member • e: Edit • d: Delete • ←→: Navigate • Esc: Back to Pool • q: Quit"
+		help = "Enter: Create Member • e: Edit • d: Delete • h: Health Monitor • ←→: Navigate • Esc: Back to Pool • q: Quit"
+	case LBHealthMonitorView:
+		if m.lbHMConfirm {
+			help = "d: Confirm delete • Esc: Cancel"
+		} else {
+			help = "Enter: Create • e: Edit • d: Delete • Esc: Back to Members • q: Quit"
+		}
 	case WizardView:
 		if m.wizard.cleanupPending {
 			help = "←→: Select • Enter: Confirm • Esc: Keep resources"
@@ -8084,6 +8216,22 @@ func (m Model) renderFooter() string {
 		} else if m.wizard.step == LBMemberWizardStepWeight {
 			help = "Type weight (0-256) • Enter: Continue • ←: Back • Esc: Cancel"
 		} else if m.wizard.step == LBMemberWizardStepConfirm {
+			help = "←→: Select • Enter: Save • Esc: Cancel"
+		} else if m.wizard.step == LBHMWizardStepName {
+			help = "Type name (letters/digits/_-.) • Enter: Continue • Esc: Cancel"
+		} else if m.wizard.step == LBHMWizardStepType {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == LBHMWizardStepHttpMethod {
+			help = "↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == LBHMWizardStepDelay {
+			help = "Type delay in seconds • Enter: Continue • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == LBHMWizardStepMaxRetries {
+			help = "Type max retries (1-10) • Enter: Continue • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == LBHMWizardStepMaxRetriesDown {
+			help = "Type max retries down (1-10) • Enter: Continue • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == LBHMWizardStepTimeout {
+			help = "Type timeout in seconds • Enter: Continue • ←: Back • Esc: Cancel"
+		} else if m.wizard.step == LBHMWizardStepConfirm {
 			help = "←→: Select • Enter: Save • Esc: Cancel"
 		} else if m.mode == LBL7RulesView {
 			help = "←→: Navigate rules • Enter: Create Rule • Esc: Back"
@@ -8636,6 +8784,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// Go back to pool members view from health monitor view, or cancel delete confirm
+		if m.mode == LBHealthMonitorView {
+			if m.lbHMConfirm {
+				m.lbHMConfirm = false
+			} else {
+				m.mode = LBPoolMembersView
+			}
+			return m, nil
+		}
 		// Go back to LB detail from LB listener detail view, or cancel confirm / deselect policy
 		if m.mode == LBListenerDetailView {
 			if m.lbListenerDetailConfirm {
@@ -8763,6 +8920,96 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+		// In LBHealthMonitorView: launch edit wizard for the health monitor
+		if m.mode == LBHealthMonitorView && m.selectedLBPool != nil {
+			poolID := getStringValue(m.selectedLBPool, "id", "")
+			region := getStringValue(m.detailData, "region", "")
+			hm := m.lbHealthMonitors[poolID]
+			if hm != nil {
+				hmID := getStringValue(hm, "id", "")
+				hmName := getStringValue(hm, "name", "")
+				hmType := getStringValue(hm, "monitorType", "http")
+				hmTypeIdx := 0
+				for i, opt := range lbHMTypeOptions {
+					if opt.value == hmType {
+						hmTypeIdx = i
+						break
+					}
+				}
+				hmDelay := 5
+				if v, ok := hm["delay"]; ok {
+					switch d := v.(type) {
+					case float64:
+						hmDelay = int(d)
+					case int:
+						hmDelay = d
+					}
+				}
+				hmTimeout := 5
+				if v, ok := hm["timeout"]; ok {
+					switch d := v.(type) {
+					case float64:
+						hmTimeout = int(d)
+					case int:
+						hmTimeout = d
+					}
+				}
+				hmMaxRetries := 3
+				if v, ok := hm["maxRetries"]; ok {
+					switch d := v.(type) {
+					case float64:
+						hmMaxRetries = int(d)
+					case int:
+						hmMaxRetries = d
+					}
+				}
+				hmMaxRetriesDown := 3
+				if v, ok := hm["maxRetriesDown"]; ok {
+					switch d := v.(type) {
+					case float64:
+						hmMaxRetriesDown = int(d)
+					case int:
+						hmMaxRetriesDown = d
+					}
+				}
+				m.mode = WizardView
+				// Extract httpMethod from existing httpConfiguration if present
+				hmHttpMethod := "GET"
+				hmHttpMethodIdx := 2 // GET is index 2 in lbHMHttpMethodOptions
+				if httpCfg, ok := hm["httpConfiguration"].(map[string]interface{}); ok {
+					if method, ok := httpCfg["httpMethod"].(string); ok && method != "" {
+						hmHttpMethod = method
+						for i, opt := range lbHMHttpMethodOptions {
+							if opt == hmHttpMethod {
+								hmHttpMethodIdx = i
+								break
+							}
+						}
+					}
+				}
+				m.wizard = WizardData{
+					step:                    LBHMWizardStepName,
+					lbHMPoolId:              poolID,
+					lbHMPoolRegion:          region,
+					lbHMEditId:              hmID,
+					lbHMNameInput:           hmName,
+					lbHMName:                hmName,
+					lbHMTypeIdx:             hmTypeIdx,
+					lbHMType:                hmType,
+					lbHMHttpMethodIdx:       hmHttpMethodIdx,
+					lbHMHttpMethod:          hmHttpMethod,
+					lbHMDelayInput:          fmt.Sprintf("%d", hmDelay),
+					lbHMDelay:               hmDelay,
+					lbHMMaxRetriesInput:     fmt.Sprintf("%d", hmMaxRetries),
+					lbHMMaxRetries:          hmMaxRetries,
+					lbHMMaxRetriesDownInput: fmt.Sprintf("%d", hmMaxRetriesDown),
+					lbHMMaxRetriesDown:      hmMaxRetriesDown,
+					lbHMTimeoutInput:        fmt.Sprintf("%d", hmTimeout),
+					lbHMTimeout:             hmTimeout,
+				}
+			}
+		}
+		return m, nil
 		// In LBPoolMembersView: launch edit wizard for the currently displayed member
 		if m.mode == LBPoolMembersView && m.selectedLBPool != nil {
 			poolID := getStringValue(m.selectedLBPool, "id", "")
@@ -8811,6 +9058,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					lbMemberWeight:      memberWeight,
 				}
 			}
+		}
+		return m, nil
+
+	case "h":
+		// In LBPoolMembersView: open Health Monitor view for this pool
+		if m.mode == LBPoolMembersView && m.selectedLBPool != nil {
+			poolID := getStringValue(m.selectedLBPool, "id", "")
+			region := getStringValue(m.detailData, "region", "")
+			m.mode = LBHealthMonitorView
+			m.lbHMConfirm = false
+			return m, m.fetchLBHealthMonitor(poolID, region)
 		}
 		return m, nil
 
@@ -8945,10 +9203,30 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			region := getStringValue(m.detailData, "region", "")
 			m.mode = WizardView
 			m.wizard = WizardData{
-				step:               LBMemberWizardStepName,
-				lbMemberPoolId:     poolID,
-				lbMemberPoolRegion: region,
+				step:                LBMemberWizardStepName,
+				lbMemberPoolId:      poolID,
+				lbMemberPoolRegion:  region,
 				lbMemberWeightInput: "1",
+			}
+			return m, nil
+			// LBHealthMonitorView: Enter → launch Create HM wizard (only if no HM yet)
+		} else if m.mode == LBHealthMonitorView {
+			poolID := getStringValue(m.selectedLBPool, "id", "")
+			region := getStringValue(m.detailData, "region", "")
+			hm := m.lbHealthMonitors[poolID]
+			if hm == nil {
+				m.mode = WizardView
+				m.wizard = WizardData{
+					step:                    LBHMWizardStepName,
+					lbHMPoolId:              poolID,
+					lbHMPoolRegion:          region,
+					lbHMDelayInput:          "5",
+					lbHMMaxRetriesInput:     "3",
+					lbHMMaxRetriesDownInput: "3",
+					lbHMTimeoutInput:        "5",
+					lbHMHttpMethodIdx:       2, // default to GET
+					lbHMHttpMethod:          "GET",
+				}
 			}
 			return m, nil
 			// LBL7RulesView: Enter → launch Create Rule wizard
@@ -9771,6 +10049,21 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// In LBHealthMonitorView: delete the health monitor (with confirmation)
+		if m.mode == LBHealthMonitorView && m.selectedLBPool != nil {
+			poolID := getStringValue(m.selectedLBPool, "id", "")
+			region := getStringValue(m.detailData, "region", "")
+			hm := m.lbHealthMonitors[poolID]
+			if hm != nil {
+				if m.lbHMConfirm {
+					m.lbHMConfirm = false
+					hmID := getStringValue(hm, "id", "")
+					return m, m.deleteHealthMonitor(hmID, poolID, region)
+				}
+				m.lbHMConfirm = true
+			}
+			return m, nil
+		}
 		// In Projects selection view: set selected project as default
 		if m.mode == ProjectSelectView || m.currentProduct == ProductProjects {
 			var project map[string]interface{}
@@ -10056,7 +10349,12 @@ func (m Model) isWizardTextInputStep() bool {
 		LBMemberWizardStepName,
 		LBMemberWizardStepIP,
 		LBMemberWizardStepPort,
-		LBMemberWizardStepWeight:
+		LBMemberWizardStepWeight,
+		LBHMWizardStepName,
+		LBHMWizardStepDelay,
+		LBHMWizardStepMaxRetries,
+		LBHMWizardStepMaxRetriesDown,
+		LBHMWizardStepTimeout:
 		return true
 	}
 	// Value step is text input only when not a bool-value type
@@ -10111,7 +10409,12 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// Determine which product we were on and return to it
 		returnPath := "/instances"
-		if m.wizard.step >= 1700 {
+		if m.wizard.step >= 1800 {
+			// LB Health Monitor wizard: return to health monitor view
+			m.wizard = WizardData{}
+			m.mode = LBHealthMonitorView
+			return m, nil
+		} else if m.wizard.step >= 1700 {
 			// LB Member wizard: return to pool members view
 			m.wizard = WizardData{}
 			m.mode = LBPoolMembersView
@@ -10413,6 +10716,23 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleLBMemberWizardWeightKeys(key)
 	case LBMemberWizardStepConfirm:
 		return m.handleLBMemberWizardConfirmKeys(key)
+	// LB Health Monitor wizard steps
+	case LBHMWizardStepName:
+		return m.handleLBHMWizardNameKeys(key)
+	case LBHMWizardStepType:
+		return m.handleLBHMWizardTypeKeys(key)
+	case LBHMWizardStepHttpMethod:
+		return m.handleLBHMWizardHttpMethodKeys(key)
+	case LBHMWizardStepDelay:
+		return m.handleLBHMWizardDelayKeys(key)
+	case LBHMWizardStepMaxRetries:
+		return m.handleLBHMWizardMaxRetriesKeys(key)
+	case LBHMWizardStepMaxRetriesDown:
+		return m.handleLBHMWizardMaxRetriesDownKeys(key)
+	case LBHMWizardStepTimeout:
+		return m.handleLBHMWizardTimeoutKeys(key)
+	case LBHMWizardStepConfirm:
+		return m.handleLBHMWizardConfirmKeys(key)
 	// Workflow wizard steps
 	case WorkflowWizardStepType:
 		return m.handleWorkflowWizardTypeKeys(key)
