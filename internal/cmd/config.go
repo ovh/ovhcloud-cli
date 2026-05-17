@@ -5,6 +5,8 @@
 package cmd
 
 import (
+	"runtime"
+
 	"github.com/ovh/ovhcloud-cli/internal/services/config"
 	"github.com/ovh/ovhcloud-cli/internal/services/profile"
 	"github.com/spf13/cobra"
@@ -35,14 +37,16 @@ func init() {
 		DisableFlagsInUseLine: true,
 	})
 
-	configCmd.AddCommand(&cobra.Command{
-		Example:               "ovhcloud config set-endpoint EU",
-		Use:                   "set-endpoint <region>",
-		Short:                 "Configure CLI to use the given API endpoint (EU, CA, US), or a specific URL (e.g. https://eu.api.ovh.com/v1)",
-		Run:                   config.SetEndpoint,
-		Args:                  cobra.ExactArgs(1),
-		DisableFlagsInUseLine: true,
-	})
+	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
+		configCmd.AddCommand(&cobra.Command{
+			Example:               "ovhcloud config set-endpoint EU",
+			Use:                   "set-endpoint <region>",
+			Short:                 "Configure CLI to use the given API endpoint (EU, CA, US), or a specific URL (e.g. https://eu.api.ovh.com/v1)",
+			Run:                   config.SetEndpoint,
+			Args:                  cobra.ExactArgs(1),
+			DisableFlagsInUseLine: true,
+		})
+	}
 
 	// Profile management subcommands
 	profileCmd := &cobra.Command{
