@@ -25,7 +25,8 @@ import (
 func (m Model) fetchDBCapabilities() tea.Cmd {
 	return func() tea.Msg {
 		capEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", m.cloudProject)
-		availEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/availability?action=create", m.cloudProject)
+		availEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/availability", m.cloudProject)
+
 
 		var caps map[string]interface{}
 		if err := httpLib.Client.Get(capEndpoint, &caps); err != nil {
@@ -50,7 +51,10 @@ func (m Model) fetchDBCapabilities() tea.Cmd {
 		var engMaps []map[string]interface{}
 		for _, e := range engines {
 			if em, ok := e.(map[string]interface{}); ok {
-				engMaps = append(engMaps, em)
+				// Exclude analytics engines — those belong to the Managed Analytics wizard
+				if strings.ToLower(getStringValue(em, "category", "")) != "analysis" {
+					engMaps = append(engMaps, em)
+				}
 			}
 		}
 		sort.Slice(engMaps, func(i, j int) bool {
