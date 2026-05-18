@@ -813,13 +813,23 @@ type Model struct {
 	dbLogsLoaded        bool // true once fetchDBLogs has returned
 	dbLogsUnsupported   bool // true when the engine does not expose a /logs endpoint
 	dbLogsScrollOffset  int  // scroll offset for logs tab (0 = bottom/newest)
-	dbDetailACL         []map[string]interface{} // ACL entries (analytics only)
+	dbDetailACL         []map[string]interface{} // ACL entries (kafka only)
 	dbACLLoaded         bool // true once fetchDBACL has returned
 	// ACL creation state (ACL tab) — multi-step inline wizard
 	dbACLCreateStep  int    // -1=inactive, 0=username, 1=topic, 2=permission
 	dbACLCreateUser  string
 	dbACLCreateTopic string
 	dbACLCreatePerm  int    // 0=read 1=write 2=admin
+	dbDetailTopics      []map[string]interface{} // Topics (kafka only)
+	dbTopicsLoaded      bool // true once fetchDBTopics has returned
+	// Topic creation state (Topics tab) — multi-step inline wizard
+	dbTopicCreateStep         int    // -1=inactive, 0=name..5=retentionHours
+	dbTopicCreateName         string
+	dbTopicCreateMinSync      string // minInsyncReplicas
+	dbTopicCreatePartitions   string
+	dbTopicCreateReplication  string
+	dbTopicCreateRetentionByt string // bytes (-1 = unlimited)
+	dbTopicCreateRetentionHrs string // hours (-1 = unlimited)
 	// DB user state (Users tab)
 	dbUserCreateMode   bool                   // true when typing a new username
 	dbUserCreateInput  string                 // username being typed
@@ -2689,6 +2699,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbDetailACL = nil
 		m.dbACLLoaded = false
 		m.dbACLCreateStep = -1
+		m.dbDetailTopics = nil
+		m.dbTopicsLoaded = false
+		m.dbTopicCreateStep = -1
 		m.mode = LoadingView
 		path := "/databases"
 		if m.currentProduct == ProductManagedAnalytics {
@@ -2832,6 +2845,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbDetailACL = msg.acl
 		return m, nil
 
+	case dbTopicsMsg:
+		m.dbTopicsLoaded = true
+		if msg.err != nil {
+			m.dbDetailTopics = nil
+			if strings.Contains(msg.err.Error(), "status code 404") {
+				return m, nil
+			}
+			m.notification = fmt.Sprintf("❌ Failed to fetch topics: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbDetailTopics = msg.topics
+		return m, nil
+
 	case dbACLCreatedMsg:
 		if msg.err != nil {
 			m.notification = fmt.Sprintf("❌ Failed to create ACL entry: %s", msg.err.Error())
@@ -2843,6 +2870,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notificationExpiry = time.Now().Add(4 * time.Second)
 		return m, tea.Batch(
 			m.fetchDBACL(),
+			tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case dbTopicCreatedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to create topic: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.dbTopicsLoaded = true
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ Topic created"
+		m.notificationExpiry = time.Now().Add(4 * time.Second)
+		return m, tea.Batch(
+			m.fetchDBTopics(),
 			tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
 
@@ -7332,10 +7373,10 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		Foreground(lipgloss.Color("#444444")).
 		Padding(0, 2)
 
-	tabNames := []string{"Service", "Users", "Backups", "Databases", "Pools", "Logs", "ACL"}
+	tabNames := []string{"Service", "Users", "Backups", "Databases", "Pools", "Logs", "ACL", "Topics"}
 	var tabParts []string
 	for i, name := range tabNames {
-		disabled := (i == 4 && !isPostgres) || (i == 2 && isAnalytics) || (i == 6 && !isKafka)
+		disabled := (i == 4 && !isPostgres) || (i == 2 && isAnalytics) || (i == 6 && !isKafka) || (i == 7 && !isKafka)
 		if disabled {
 			tabParts = append(tabParts, tabDisabledStyle.Render(name))
 		} else if i == m.dbDetailTab {
@@ -7904,6 +7945,94 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			}
 		}
 		content.WriteString(renderBox(fmt.Sprintf("ACL (%d)", len(m.dbDetailACL)), strings.TrimRight(aclContent.String(), "\n"), fullWidth))
+
+	case 7: // ── Topics (Kafka only) ──────────────────────────────
+		// ── Create wizard ─────────────────────────────────────────────
+		if m.dbTopicCreateStep >= 0 {
+			inputSt := lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FF7F")).
+				Padding(0, 1).Width(36)
+			stepLabels := []string{"Topic name", "Replica in-sync minimum", "Partitions", "Replication factor", "Retention size (bytes, -1=unlimited)", "Retention time (hours, -1=unlimited)"}
+			var wiz strings.Builder
+			wiz.WriteString(headSt.Width(0).Render(fmt.Sprintf("Step %d/6 — %s", m.dbTopicCreateStep+1, stepLabels[m.dbTopicCreateStep])) + "\n\n")
+			var curVal string
+			switch m.dbTopicCreateStep {
+			case 0: curVal = m.dbTopicCreateName
+			case 1: curVal = m.dbTopicCreateMinSync
+			case 2: curVal = m.dbTopicCreatePartitions
+			case 3: curVal = m.dbTopicCreateReplication
+			case 4: curVal = m.dbTopicCreateRetentionByt
+			case 5: curVal = m.dbTopicCreateRetentionHrs
+			}
+			wiz.WriteString(inputSt.Render(curVal+"▌") + "\n\n")
+			wiz.WriteString(dimSt.Render("Enter → next   Esc → cancel"))
+			content.WriteString(renderBox("Create Topic", wiz.String(), fullWidth))
+			break
+		}
+		// ── List ──────────────────────────────────────────────────
+		createTopicBtn := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7B68EE")).Bold(true).Padding(0, 1).Render("[+ Create Topic]")
+		content.WriteString(createTopicBtn + "  " + dimSt.Render("Enter → new topic") + "\n\n")
+		var topicsContent strings.Builder
+		if !m.dbTopicsLoaded {
+			topicsContent.WriteString(dimSt.Render("Loading..."))
+		} else if len(m.dbDetailTopics) == 0 {
+			topicsContent.WriteString(dimSt.Render("No topics found"))
+		} else {
+			col := func(w int) lipgloss.Style {
+				return lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Bold(true).Width(w)
+			}
+			val2 := func(w int) lipgloss.Style {
+				return lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Width(w)
+			}
+			topicsContent.WriteString(
+				col(26).Render("Topic") +
+					col(12).Render("Partitions") +
+					col(13).Render("Replication") +
+					col(14).Render("Replica Sync") +
+					col(18).Render("Retention Time") +
+					col(18).Render("Retention Size") + "\n")
+			for _, t := range m.dbDetailTopics {
+				name := getStringValue(t, "name", "—")
+				partitions := "—"
+				if v, ok := toFloat64(t["partitions"]); ok {
+					partitions = fmt.Sprintf("%d", int(v))
+				}
+				replication := "—"
+				if v, ok := toFloat64(t["replication"]); ok {
+					replication = fmt.Sprintf("%d", int(v))
+				}
+				replicaSync := "—"
+				if v, ok := toFloat64(t["minInsyncReplicas"]); ok {
+					replicaSync = fmt.Sprintf("%d", int(v))
+				}
+				retentionTime := "—"
+				if v, ok := toFloat64(t["retentionHours"]); ok {
+					if v == -1 {
+						retentionTime = "unlimited"
+					} else {
+						retentionTime = fmt.Sprintf("%dh", int(v))
+					}
+				}
+				retentionBytes := "—"
+				if v, ok := toFloat64(t["retentionBytes"]); ok {
+					if v == -1 {
+						retentionBytes = "unlimited"
+					} else if v > 0 {
+						retentionBytes = fmt.Sprintf("%d MB", int(v/1024/1024))
+					}
+				}
+				topicsContent.WriteString(
+					val2(26).Render(truncate(name, 25)) +
+						val2(12).Render(partitions) +
+						val2(13).Render(replication) +
+						val2(14).Render(replicaSync) +
+						val2(18).Render(retentionTime) +
+						val2(18).Render(retentionBytes) + "\n")
+			}
+		}
+		content.WriteString(renderBox(fmt.Sprintf("Topics (%d)", len(m.dbDetailTopics)), strings.TrimRight(topicsContent.String(), "\n"), fullWidth))
 	}
 
 	return content.String()
@@ -9704,6 +9833,114 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Intercept all keys during Topic creation inline wizard
+	if m.dbTopicCreateStep >= 0 && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			m.dbTopicCreateStep = -1
+		case "enter":
+			switch m.dbTopicCreateStep {
+			case 0: // name
+				if strings.TrimSpace(m.dbTopicCreateName) == "" {
+					return m, nil
+				}
+				m.dbTopicCreateStep = 1
+			case 1: // minInsyncReplicas
+				if _, err := strconv.Atoi(m.dbTopicCreateMinSync); err != nil {
+					return m, nil
+				}
+				m.dbTopicCreateStep = 2
+			case 2: // partitions
+				if _, err := strconv.Atoi(m.dbTopicCreatePartitions); err != nil {
+					return m, nil
+				}
+				m.dbTopicCreateStep = 3
+			case 3: // replication
+				if _, err := strconv.Atoi(m.dbTopicCreateReplication); err != nil {
+					return m, nil
+				}
+				m.dbTopicCreateStep = 4
+			case 4: // retentionBytes
+				if _, err := strconv.Atoi(m.dbTopicCreateRetentionByt); err != nil {
+					return m, nil
+				}
+				m.dbTopicCreateStep = 5
+			case 5: // retentionHours — last step, submit
+				if _, err := strconv.Atoi(m.dbTopicCreateRetentionHrs); err != nil {
+					return m, nil
+				}
+				minSync, _ := strconv.Atoi(m.dbTopicCreateMinSync)
+				parts, _ := strconv.Atoi(m.dbTopicCreatePartitions)
+				repl, _ := strconv.Atoi(m.dbTopicCreateReplication)
+				retByt, _ := strconv.Atoi(m.dbTopicCreateRetentionByt)
+				retHrs, _ := strconv.Atoi(m.dbTopicCreateRetentionHrs)
+				name := strings.TrimSpace(m.dbTopicCreateName)
+				m.dbTopicCreateStep = -1
+				m.dbTopicsLoaded = false
+				return m, m.createDBTopic(name, minSync, parts, repl, retByt, retHrs)
+			}
+		case "backspace":
+			switch m.dbTopicCreateStep {
+			case 0:
+				if len(m.dbTopicCreateName) > 0 {
+					m.dbTopicCreateName = m.dbTopicCreateName[:len(m.dbTopicCreateName)-1]
+				}
+			case 1:
+				if len(m.dbTopicCreateMinSync) > 0 {
+					m.dbTopicCreateMinSync = m.dbTopicCreateMinSync[:len(m.dbTopicCreateMinSync)-1]
+				}
+			case 2:
+				if len(m.dbTopicCreatePartitions) > 0 {
+					m.dbTopicCreatePartitions = m.dbTopicCreatePartitions[:len(m.dbTopicCreatePartitions)-1]
+				}
+			case 3:
+				if len(m.dbTopicCreateReplication) > 0 {
+					m.dbTopicCreateReplication = m.dbTopicCreateReplication[:len(m.dbTopicCreateReplication)-1]
+				}
+			case 4:
+				if len(m.dbTopicCreateRetentionByt) > 0 {
+					m.dbTopicCreateRetentionByt = m.dbTopicCreateRetentionByt[:len(m.dbTopicCreateRetentionByt)-1]
+				}
+			case 5:
+				if len(m.dbTopicCreateRetentionHrs) > 0 {
+					m.dbTopicCreateRetentionHrs = m.dbTopicCreateRetentionHrs[:len(m.dbTopicCreateRetentionHrs)-1]
+				}
+			}
+		default:
+			if len(msg.Runes) > 0 {
+				r := string(msg.Runes)
+				switch m.dbTopicCreateStep {
+				case 0:
+					m.dbTopicCreateName += r
+				case 1:
+					if (msg.Runes[0] >= '0' && msg.Runes[0] <= '9') || (r == "-" && m.dbTopicCreateMinSync == "") {
+						m.dbTopicCreateMinSync += r
+					}
+				case 2:
+					if msg.Runes[0] >= '0' && msg.Runes[0] <= '9' {
+						m.dbTopicCreatePartitions += r
+					}
+				case 3:
+					if msg.Runes[0] >= '0' && msg.Runes[0] <= '9' {
+						m.dbTopicCreateReplication += r
+					}
+				case 4:
+					if (msg.Runes[0] >= '0' && msg.Runes[0] <= '9') || (r == "-" && m.dbTopicCreateRetentionByt == "") {
+						m.dbTopicCreateRetentionByt += r
+					}
+				case 5:
+					if (msg.Runes[0] >= '0' && msg.Runes[0] <= '9') || (r == "-" && m.dbTopicCreateRetentionHrs == "") {
+						m.dbTopicCreateRetentionHrs += r
+					}
+				}
+			}
+		}
+		return m, nil
+	}
+
         switch msg.String() {
         case "left":
 		// In NodePoolDetailView, navigate actions
@@ -9842,9 +10079,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.currentProduct == ProductManagedAnalytics && m.dbDetailTab == 2 {
 					m.dbDetailTab--
 				}
-				// Non-kafka: skip ACL tab (6)
-				if !strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka") && m.dbDetailTab == 6 {
-					m.dbDetailTab--
+				// Non-kafka: skip ACL (6) and Topics (7)
+				isKafkaNav := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka")
+				if !isKafkaNav && m.dbDetailTab >= 6 {
+					m.dbDetailTab = 5
 				}
 				m.actionConfirm = false
 				m.dbUserSelectedIdx = -1
@@ -10024,16 +10262,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView for ManagedDatabases/Analytics, → switches tabs
 		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
-			maxTab := 6
+			maxTab := 7
 			if m.dbDetailTab < maxTab {
 				m.dbDetailTab++
 				// Analytics: skip Backups tab (2)
 				if m.currentProduct == ProductManagedAnalytics && m.dbDetailTab == 2 {
 					m.dbDetailTab++
 				}
-				// Non-kafka: skip ACL tab (6)
-				if !strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka") && m.dbDetailTab == 6 {
-					m.dbDetailTab-- // stay at 5
+				// Non-kafka: skip ACL (6) and Topics (7)
+				isKafkaNav := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka")
+				if !isKafkaNav && m.dbDetailTab >= 6 {
+					m.dbDetailTab = 5 // stay at Logs
 				}
 				m.actionConfirm = false
 				m.dbUserSelectedIdx = -1
@@ -10051,6 +10290,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.dbACLLoaded = false
 					m.dbDetailACL = nil
 					return m, m.fetchDBACL()
+				}
+				// Entering Topics tab: trigger fetch
+				if m.dbDetailTab == 7 {
+					m.dbTopicsLoaded = false
+					m.dbDetailTopics = nil
+					return m, m.fetchDBTopics()
 				}
 			}
 			return m, nil
@@ -11044,6 +11289,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.dbACLCreateUser = ""
 				m.dbACLCreateTopic = ""
 				m.dbACLCreatePerm = 0
+			case 7: // Topics tab — open create wizard
+				m.dbTopicCreateStep = 0
+				m.dbTopicCreateName = ""
+				m.dbTopicCreateMinSync = "1"
+				m.dbTopicCreatePartitions = "3"
+				m.dbTopicCreateReplication = "2"
+				m.dbTopicCreateRetentionByt = "-1"
+				m.dbTopicCreateRetentionHrs = "-1"
 			}
 			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
@@ -11448,6 +11701,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbDetailACL = nil
 						m.dbACLLoaded = false
 						m.dbACLCreateStep = -1
+						m.dbDetailTopics = nil
+						m.dbTopicsLoaded = false
+						m.dbTopicCreateStep = -1
 						if engine != "" && serviceId != "" {
 							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}

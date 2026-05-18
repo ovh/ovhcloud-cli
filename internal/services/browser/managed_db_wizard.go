@@ -161,6 +161,37 @@ type dbACLMsg struct {
 	err error
 }
 
+// dbTopicsMsg is sent after fetching Kafka topic list.
+type dbTopicsMsg struct {
+	topics []map[string]interface{}
+	err    error
+}
+
+// fetchDBTopics fetches the topic list for the current Kafka service.
+func (m Model) fetchDBTopics() tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbTopicsMsg{err: fmt.Errorf("missing engine or service ID")}
+		}
+		base := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/topic",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		var ids []string
+		if err := httpLib.Client.Get(base, &ids); err != nil {
+			return dbTopicsMsg{err: err}
+		}
+		var topics []map[string]interface{}
+		for _, id := range ids {
+			var entry map[string]interface{}
+			if err := httpLib.Client.Get(base+"/"+url.PathEscape(id), &entry); err == nil {
+				topics = append(topics, entry)
+			}
+		}
+		return dbTopicsMsg{topics: topics}
+	}
+}
+
 // dbACLCreatedMsg is sent after an ACL entry creation attempt.
 type dbACLCreatedMsg struct {
 	err error
@@ -186,6 +217,37 @@ func (m Model) createDBACL(username, topic, permission string) tea.Cmd {
 			return dbACLCreatedMsg{err: err}
 		}
 		return dbACLCreatedMsg{}
+	}
+}
+
+// dbTopicCreatedMsg is sent after a topic creation attempt.
+type dbTopicCreatedMsg struct {
+	err error
+}
+
+// createDBTopic POSTs a new topic for the current Kafka service.
+func (m Model) createDBTopic(name string, minInsyncReplicas, partitions, replication, retentionBytes, retentionHours int) tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbTopicCreatedMsg{err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/topic",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		body := map[string]interface{}{
+			"name":              name,
+			"minInsyncReplicas": minInsyncReplicas,
+			"partitions":        partitions,
+			"replication":       replication,
+			"retentionBytes":    retentionBytes,
+			"retentionHours":    retentionHours,
+		}
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
+			return dbTopicCreatedMsg{err: err}
+		}
+		return dbTopicCreatedMsg{}
 	}
 }
 
@@ -687,9 +749,10 @@ func (m Model) dbNodesConstraints() (int, int) {
 }
 
 // dbStorageConstraints returns (min, max, step) disk sizes in GB from availability.
+// Returns (0, 0, 0) when no valid constraints are found — caller should omit disk from request.
 func (m Model) dbStorageConstraints() (int, int, int) {
 	avail := m.dbActiveAvail()
-	min, max, step := 10, 1000, 10
+	min, max, step := 0, 0, 0
 	if avail != nil {
 		// Prefer specifications.storage (new format) over deprecated top-level fields
 		if specs, ok := avail["specifications"].(map[string]interface{}); ok {
@@ -711,15 +774,21 @@ func (m Model) dbStorageConstraints() (int, int, int) {
 				}
 			}
 		}
-		// Fall back to deprecated fields
-		if v, ok := toFloat64(avail["minDiskSize"]); ok && v > 0 && min == 10 {
-			min = int(v)
+		// Fall back to deprecated fields only when new format gave nothing
+		if min == 0 {
+			if v, ok := toFloat64(avail["minDiskSize"]); ok && v > 0 {
+				min = int(v)
+			}
 		}
-		if v, ok := toFloat64(avail["maxDiskSize"]); ok && v > 0 && max == 1000 {
-			max = int(v)
+		if max == 0 {
+			if v, ok := toFloat64(avail["maxDiskSize"]); ok && v > 0 {
+				max = int(v)
+			}
 		}
-		if v, ok := toFloat64(avail["stepDiskSize"]); ok && v > 0 && step == 10 {
-			step = int(v)
+		if step == 0 {
+			if v, ok := toFloat64(avail["stepDiskSize"]); ok && v > 0 {
+				step = int(v)
+			}
 		}
 	}
 	return min, max, step
@@ -1018,13 +1087,13 @@ func (m Model) renderDBWizardStorageStep(_ int) string {
 		sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).
 			Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
-	if m.dbActiveAvail() == nil {
-		sb.WriteString(info.Render("No storage constraints available — default storage will be used.") + "\n\n")
+	minS, maxS, stepS := m.dbStorageConstraints()
+	if minS == 0 {
+		sb.WriteString(info.Render("Storage is managed automatically for this configuration.") + "\n\n")
 		sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-			Render("Enter: Continue with default • ← Back • Esc: Cancel"))
+			Render("Enter: Continue • ← Back • Esc: Cancel"))
 		return sb.String()
 	}
-	minS, maxS, stepS := m.dbStorageConstraints()
 	input := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#00FF7F")).
@@ -1268,8 +1337,8 @@ func (m Model) handleDBWizardFlavorKeys(key string) (tea.Model, tea.Cmd) {
 		m.wizard.dbNodes = minN
 		m.wizard.dbNodesInput = strconv.Itoa(minN)
 		// Pre-fill storage only when availability data provides valid constraints
-		if avail := m.dbActiveAvail(); avail != nil {
-			minS, _, _ := m.dbStorageConstraints()
+		minS, _, _ := m.dbStorageConstraints()
+		if minS > 0 {
 			m.wizard.dbDiskSize = minS
 			m.wizard.dbStorageInput = strconv.Itoa(minS)
 		} else {
@@ -1313,8 +1382,9 @@ func (m Model) handleDBWizardNodesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleDBWizardStorageKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
-	// If no availability data, skip this step entirely
-	if m.dbActiveAvail() == nil {
+	minS, maxS, _ := m.dbStorageConstraints()
+	// If no valid constraints (min=0), skip this step — don't send disk in request
+	if minS == 0 {
 		m.wizard.dbDiskSize = 0
 		switch key {
 		case "left":
@@ -1324,18 +1394,15 @@ func (m Model) handleDBWizardStorageKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
-	minS, maxS, _ := m.dbStorageConstraints()
 	switch key {
 	case "enter":
 		storageStr := strings.TrimSpace(m.wizard.dbStorageInput)
 		if storageStr == "" {
-			// Empty = use default (omit from request)
-			m.wizard.dbDiskSize = 0
-			m.wizard.errorMsg = ""
-			m.wizard.step = DBWizardStepNetwork
-			return m, nil
+			// Empty = use min as default
+			m.wizard.dbDiskSize = minS
+			m.wizard.dbStorageInput = strconv.Itoa(minS)
 		}
-		s, err := strconv.Atoi(storageStr)
+		s, err := strconv.Atoi(strings.TrimSpace(m.wizard.dbStorageInput))
 		if err != nil || s < minS || s > maxS {
 			m.wizard.errorMsg = fmt.Sprintf("Please enter a value between %d and %d GB", minS, maxS)
 			return m, nil
