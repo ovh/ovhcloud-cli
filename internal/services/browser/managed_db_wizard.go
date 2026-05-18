@@ -143,6 +143,12 @@ type dbUserCreatedMsg struct {
 	err  error
 }
 
+// dbUserDeletedMsg is sent after a DB user deletion attempt.
+type dbUserDeletedMsg struct {
+	username string
+	err      error
+}
+
 // createDBUser POSTs to the database user endpoint to create a new user.
 func (m Model) createDBUser(username string) tea.Cmd {
 	return func() tea.Msg {
@@ -159,6 +165,23 @@ func (m Model) createDBUser(username string) tea.Cmd {
 			return dbUserCreatedMsg{err: err}
 		}
 		return dbUserCreatedMsg{user: result}
+	}
+}
+
+// deleteDBUser deletes a database user by ID.
+func (m Model) deleteDBUser(userId, username string) tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbUserDeletedMsg{username: username, err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user/%s",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId), url.PathEscape(userId))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return dbUserDeletedMsg{username: username, err: err}
+		}
+		return dbUserDeletedMsg{username: username}
 	}
 }
 

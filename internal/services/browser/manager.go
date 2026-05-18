@@ -809,10 +809,12 @@ type Model struct {
 	dbDetailPools     []map[string]interface{}
 	dbDetailLoaded    bool // true once fetchDBDetailSubresources has returned
 	dbDetailTab       int  // 0=Service, 1=Users, 2=Backups, 3=Databases, 4=Pools
-	// DB user creation state (Users tab)
-	dbUserCreateMode  bool                   // true when typing a new username
-	dbUserCreateInput string                 // username being typed
-	dbUserCreatedData map[string]interface{} // creation result (has password + endpoints)
+	// DB user state (Users tab)
+	dbUserCreateMode   bool                   // true when typing a new username
+	dbUserCreateInput  string                 // username being typed
+	dbUserCreatedData  map[string]interface{} // creation result (has password + endpoints)
+	dbUserSelectedIdx  int                    // currently highlighted user row (-1 = none)
+	dbUserDeleteConfirm bool                  // waiting for second Enter to confirm delete
 	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
 	privNetTabIdx           int
 	privNetLocalZones       []map[string]interface{}
@@ -2652,6 +2654,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbUserCreateMode = false
 		m.dbUserCreateInput = ""
 		m.dbUserCreatedData = nil
+		m.dbUserSelectedIdx = -1
+		m.dbUserDeleteConfirm = false
 		m.mode = LoadingView
 		path := "/databases"
 		if m.currentProduct == ProductManagedAnalytics {
@@ -2681,6 +2685,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.dbDetailLoaded = true
 		return m, nil
+
+	case dbUserDeletedMsg:
+		m.dbUserDeleteConfirm = false
+		m.dbUserSelectedIdx = -1
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to delete user: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ User '%s' deleted", msg.username)
+		m.notificationExpiry = time.Now().Add(4 * time.Second)
+		if m.detailData != nil {
+			engine := getStringValue(m.detailData, "engine", "")
+			serviceId := getStringValue(m.detailData, "id", "")
+			if engine != "" && serviceId != "" {
+				m.dbDetailLoaded = false
+				return m, tea.Batch(
+					m.fetchDBDetailSubresources(engine, serviceId),
+					tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 
 	case dbCreatedMsg:
 		m.wizard.isLoading = false
@@ -7351,7 +7378,17 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			createBtn := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#7B68EE")).
 				Bold(true).Padding(0, 1).Render("[+ Create User]")
-			content.WriteString(createBtn + "  " + dimSt.Render("Enter → new user") + "\n\n")
+			hint := "Enter → new user"
+			if m.dbUserSelectedIdx >= 0 {
+				hint = "Enter → delete selected   Esc → deselect"
+			}
+			content.WriteString(createBtn + "  " + dimSt.Render(hint) + "\n\n")
+
+			selectedRowSt := lipgloss.NewStyle().
+				Background(lipgloss.Color("#3a2a2a")).
+				Foreground(lipgloss.Color("#FF8888"))
+			deleteSt := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FF4444")).Bold(true)
 
 			var usersContent strings.Builder
 			if len(m.dbDetailUsers) == 0 {
@@ -7366,7 +7403,7 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 					headSt.Render("Roles"),
 					headSt.Render("Created"),
 					headSt.Render("Status")))
-				for _, u := range m.dbDetailUsers {
+				for i, u := range m.dbDetailUsers {
 					username := getStringValue(u, "username", getStringValue(u, "name", "—"))
 					created := getStringValue(u, "createdAt", "—")
 					if len(created) >= 10 {
@@ -7385,11 +7422,27 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 					if rolesStr == "" {
 						rolesStr = "—"
 					}
-					usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
-						labelSt.Render(truncate(username, 17)),
-						labelSt.Render(truncate(rolesStr, 17)),
-						labelSt.Render(created),
-						valueSt.Render(userStatus)))
+					if i == m.dbUserSelectedIdx {
+						prefix := "▶ "
+						row := fmt.Sprintf("%s%s%s%s%s",
+							prefix,
+							selectedRowSt.Width(16).Render(truncate(username, 15)),
+							selectedRowSt.Width(18).Render(truncate(rolesStr, 17)),
+							selectedRowSt.Width(18).Render(created),
+							selectedRowSt.Render(userStatus))
+						usersContent.WriteString(row + "\n")
+					} else {
+						usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
+							labelSt.Render(truncate(username, 17)),
+							labelSt.Render(truncate(rolesStr, 17)),
+							labelSt.Render(created),
+							valueSt.Render(userStatus)))
+					}
+				}
+				if m.dbUserDeleteConfirm && m.dbUserSelectedIdx >= 0 && m.dbUserSelectedIdx < len(m.dbDetailUsers) {
+					selUser := m.dbDetailUsers[m.dbUserSelectedIdx]
+					uname := getStringValue(selUser, "username", getStringValue(selUser, "name", "—"))
+					usersContent.WriteString("\n" + deleteSt.Render(fmt.Sprintf("⚠  Delete user '%s'? Press Enter to confirm, Esc to cancel", uname)))
 				}
 			}
 			content.WriteString(renderBox(fmt.Sprintf("Users (%d)", len(m.dbDetailUsers)), usersContent.String(), fullWidth))
@@ -9237,6 +9290,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.dbDetailTab > 0 {
 				m.dbDetailTab--
 				m.actionConfirm = false
+				m.dbUserSelectedIdx = -1
+				m.dbUserDeleteConfirm = false
 			}
 			return m, nil
 		}
@@ -9414,6 +9469,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.dbDetailTab < maxTab {
 				m.dbDetailTab++
 				m.actionConfirm = false
+				m.dbUserSelectedIdx = -1
+				m.dbUserDeleteConfirm = false
 			}
 			return m, nil
 		}
@@ -9423,14 +9480,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView for Instance Backup, only 1 action (Delete)
 		if m.mode == DetailView && m.currentProduct == ProductInstanceBackup {
-			return m, nil
-		}
-		// In DetailView for ManagedDatabases/Analytics, → switches tabs
-		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
-			if m.dbDetailTab < 4 {
-				m.dbDetailTab++
-				m.actionConfirm = false
-			}
 			return m, nil
 		}
 		// In DetailView for Floating IPs, navigate actions (0=Delete, 1=Detach)
@@ -9639,6 +9688,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// Dismiss DB user creation result panel before going back to list
 		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			if m.dbUserDeleteConfirm {
+				m.dbUserDeleteConfirm = false
+				return m, nil
+			}
 			if m.dbUserCreatedData != nil {
 				m.dbUserCreatedData = nil
 				return m, nil
@@ -10363,10 +10416,23 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					return m, m.deleteManagedDBService()
 				}
 				m.actionConfirm = true
-			case 1: // Users tab — create new user or dismiss result
+			case 1: // Users tab — navigate actions
 				if m.dbUserCreatedData != nil {
+					// Dismiss the result panel
 					m.dbUserCreatedData = nil
+				} else if m.dbUserSelectedIdx >= 0 && m.dbUserSelectedIdx < len(m.dbDetailUsers) {
+					// A user row is selected — confirm then delete
+					u := m.dbDetailUsers[m.dbUserSelectedIdx]
+					userId := getStringValue(u, "id", "")
+					username := getStringValue(u, "username", getStringValue(u, "name", "—"))
+					if m.dbUserDeleteConfirm {
+						m.dbUserDeleteConfirm = false
+						m.dbDetailLoaded = false
+						return m, m.deleteDBUser(userId, username)
+					}
+					m.dbUserDeleteConfirm = true
 				} else {
+					// No row selected — open create form
 					m.dbUserCreateMode = true
 					m.dbUserCreateInput = ""
 				}
@@ -10762,6 +10828,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbUserCreateMode = false
 						m.dbUserCreateInput = ""
 						m.dbUserCreatedData = nil
+						m.dbUserSelectedIdx = -1
+						m.dbUserDeleteConfirm = false
 						if engine != "" && serviceId != "" {
 							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}
@@ -10777,6 +10845,26 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		isComputeSubProduct := m.currentProduct == ProductInstances || m.currentProduct == ProductInstanceBackup || m.currentProduct == ProductWorkflow
 		isSubNavProduct := isStorageSubProduct || isNetworkSubProduct || isComputeSubProduct
 		navItems := getNavItems()
+
+		// DB Users tab: ↑/↓ navigate user rows
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) &&
+			m.dbDetailTab == 1 && !m.dbUserCreateMode && m.dbUserCreatedData == nil {
+			if len(m.dbDetailUsers) > 0 {
+				if key == "down" || key == "j" {
+					if m.dbUserSelectedIdx < len(m.dbDetailUsers)-1 {
+						m.dbUserSelectedIdx++
+					}
+				} else if key == "up" || key == "k" {
+					if m.dbUserSelectedIdx > 0 {
+						m.dbUserSelectedIdx--
+					} else {
+						m.dbUserSelectedIdx = -1 // deselect when going above first row
+					}
+				}
+				m.dbUserDeleteConfirm = false
+			}
+			return m, nil
+		}
 
 		// Level 1 → Level 2: ↓ from main nav enters sub-nav for Storage / Networks / Compute
 		if (key == "down" || key == "j") && !m.inStorageSubNav && !m.inNetworkSubNav && !m.inComputeSubNav && !m.inTableFocus &&
