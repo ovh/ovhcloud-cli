@@ -808,6 +808,7 @@ type Model struct {
 	dbDetailDatabases []map[string]interface{}
 	dbDetailPools     []map[string]interface{}
 	dbDetailLoaded    bool // true once fetchDBDetailSubresources has returned
+	dbDetailTab       int  // 0=Service, 1=Users, 2=Backups, 3=Databases, 4=Pools
 	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
 	privNetTabIdx           int
 	privNetLocalZones       []map[string]interface{}
@@ -7109,243 +7110,287 @@ func (m Model) renderInstanceDetail(width int) string {
 func (m Model) renderManagedDatabaseDetail(width int) string {
 	var content strings.Builder
 
+	// ── Common data ───────────────────────────────────────────────────────
 	dbID := getStringValue(m.detailData, "id", "N/A")
 	dbName := getStringValue(m.detailData, "description", "")
 	if dbName == "" {
 		dbName = dbID
 	}
-	engine := getStringValue(m.detailData, "engine", "N/A")
+	engineRaw := getStringValue(m.detailData, "engine", "N/A")
+	engineDisplay := engineRaw
 	version := getStringValue(m.detailData, "version", "")
 	if version != "" {
-		engine = engine + " " + version
+		engineDisplay = engineRaw + " " + version
 	}
-	plan := getStringValue(m.detailData, "plan", "N/A")
-	flavor := getStringValue(m.detailData, "flavor", "N/A")
-	status := getStringValue(m.detailData, "status", "N/A")
-	createdAt := getStringValue(m.detailData, "createdAt", "N/A")
-	if len(createdAt) >= 10 {
-		createdAt = createdAt[:10]
-	}
+	isPostgres := strings.EqualFold(engineRaw, "postgresql")
 
-	storageStr := "-"
-	if storage, ok := m.detailData["storage"].(map[string]interface{}); ok {
-		if size, ok := storage["size"].(map[string]interface{}); ok {
-			val := getStringValue(size, "value", "")
-			unit := getStringValue(size, "unit", "")
-			if val != "" {
-				storageStr = val + " " + unit
-			}
+	// ── Tab bar ───────────────────────────────────────────────────────────
+	tabActiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).
+		Padding(0, 2)
+	tabInactiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#333333")).
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+	tabDisabledStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#1a1a1a")).
+		Foreground(lipgloss.Color("#444444")).
+		Padding(0, 2)
+
+	tabNames := []string{"Service", "Users", "Backups", "Databases", "Pools"}
+	var tabParts []string
+	for i, name := range tabNames {
+		if i == 4 && !isPostgres {
+			tabParts = append(tabParts, tabDisabledStyle.Render(name))
+		} else if i == m.dbDetailTab {
+			tabParts = append(tabParts, tabActiveStyle.Render(name))
+		} else {
+			tabParts = append(tabParts, tabInactiveStyle.Render(name))
 		}
 	}
+	tabRow := lipgloss.JoinHorizontal(lipgloss.Top, tabParts...)
+	tabHint := lipgloss.NewStyle().Foreground(lipgloss.Color("#444444")).Render("  ←/→ navigate tabs")
+	content.WriteString(tabRow + tabHint + "\n\n")
 
-	location := "-"
-	nodesCount := 0
-	if nodes, ok := m.detailData["nodes"].([]interface{}); ok {
-		nodesCount = len(nodes)
-		if len(nodes) > 0 {
-			if node, ok := nodes[0].(map[string]interface{}); ok {
-				if r := getStringValue(node, "region", ""); r != "" {
-					location = r
+	// ── Shared styles ─────────────────────────────────────────────────────
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	dimSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	headSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#AAAAAA")).Width(18)
+	fullWidth := width - 4
+
+	switch m.dbDetailTab {
+	case 0: // ── Service ──────────────────────────────────────────────────
+		plan := getStringValue(m.detailData, "plan", "N/A")
+		flavor := getStringValue(m.detailData, "flavor", "N/A")
+		status := getStringValue(m.detailData, "status", "N/A")
+		createdAt := getStringValue(m.detailData, "createdAt", "N/A")
+		if len(createdAt) >= 10 {
+			createdAt = createdAt[:10]
+		}
+
+		storageStr := "-"
+		if storage, ok := m.detailData["storage"].(map[string]interface{}); ok {
+			if size, ok := storage["size"].(map[string]interface{}); ok {
+				val := getStringValue(size, "value", "")
+				unit := getStringValue(size, "unit", "")
+				if val != "" {
+					storageStr = val + " " + unit
 				}
 			}
 		}
-	}
 
-	statusIcon := "🟢"
-	statusStyle := statusRunningStyle
-	switch strings.ToUpper(status) {
-	case "CREATING", "UPDATING", "RESTARTING", "PENDING", "MAINTENANCE":
-		statusIcon = "🟡"
-		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
-	case "ERROR", "ERROR_INCONSISTENT_SPEC", "DELETING", "SUSPENDED", "LOCKED":
-		statusIcon = "🔴"
-		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF4444"))
-	}
-
-	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18)
-	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
-	boxWidth := (width - 6) / 2
-	if boxWidth < 35 {
-		boxWidth = 35
-	}
-
-	var infoContent strings.Builder
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Status"), statusStyle.Render(statusIcon+" "+status)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(dbID, 36))))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Engine"), valueSt.Render(engine)))
-	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Plan"), valueSt.Render(plan)))
-	infoBox := renderBox("Database "+dbName, infoContent.String(), boxWidth)
-
-	var cfgContent strings.Builder
-	cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Flavor"), valueSt.Render(flavor)))
-	cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Storage"), valueSt.Render(storageStr)))
-	cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Location"), valueSt.Render(location)))
-	cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Nodes"), valueSt.Render(fmt.Sprintf("%d", nodesCount))))
-	cfgContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Created"), valueSt.Render(createdAt)))
-	cfgBox := renderBox("Configuration", cfgContent.String(), boxWidth)
-
-	actions := []string{"Delete"}
-	var actionParts []string
-	for i, action := range actions {
-		if i == m.selectedAction {
-			actionParts = append(actionParts, lipgloss.NewStyle().
-				Background(lipgloss.Color("#7B68EE")).
-				Foreground(lipgloss.Color("#FFFFFF")).
-				Bold(true).Padding(0, 1).Render(action))
-		} else {
-			actionParts = append(actionParts, lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
-		}
-	}
-	actionsContent := strings.Join(actionParts, " ")
-	if m.actionConfirm {
-		actionsContent += "\n\n" + lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFD700")).Bold(true).
-			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actions[m.selectedAction]))
-	}
-	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
-
-	content.WriteString(actionsBox + "\n\n")
-	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", cfgBox))
-
-	// ── Users ──────────────────────────────────────────────────────────────
-	fullWidth := width - 4
-	headSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#AAAAAA")).Width(18)
-	dimSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
-	var usersContent strings.Builder
-	if len(m.dbDetailUsers) == 0 {
-		if m.dbDetailLoaded {
-			usersContent.WriteString(dimSt.Render("None"))
-		} else {
-			usersContent.WriteString(dimSt.Render("Loading..."))
-		}
-	} else {
-		usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
-			headSt.Render("Username"),
-			headSt.Render("Roles"),
-			headSt.Render("Created"),
-			headSt.Render("Status")))
-		for _, u := range m.dbDetailUsers {
-			username := getStringValue(u, "username", getStringValue(u, "name", "—"))
-			created := getStringValue(u, "createdAt", "—")
-			if len(created) >= 10 {
-				created = created[:10]
-			}
-			userStatus := getStringValue(u, "status", "—")
-			var roles []string
-			if rawRoles, ok := u["roles"].([]interface{}); ok {
-				for _, r := range rawRoles {
-					if s, ok := r.(string); ok {
-						roles = append(roles, s)
+		location := "-"
+		nodesCount := 0
+		if nodes, ok := m.detailData["nodes"].([]interface{}); ok {
+			nodesCount = len(nodes)
+			if len(nodes) > 0 {
+				if node, ok := nodes[0].(map[string]interface{}); ok {
+					if r := getStringValue(node, "region", ""); r != "" {
+						location = r
 					}
 				}
 			}
-			rolesStr := strings.Join(roles, ", ")
-			if rolesStr == "" {
-				rolesStr = "—"
-			}
-			usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
-				labelSt.Render(truncate(username, 17)),
-				labelSt.Render(truncate(rolesStr, 17)),
-				labelSt.Render(created),
-				valueSt.Render(userStatus)))
 		}
-	}
-	content.WriteString("\n\n" + renderBox(fmt.Sprintf("Users (%d)", len(m.dbDetailUsers)), usersContent.String(), fullWidth))
 
-	// ── Backups ────────────────────────────────────────────────────────────
-	var backupsContent strings.Builder
-	if len(m.dbDetailBackups) == 0 {
-		if m.dbDetailLoaded {
-			backupsContent.WriteString(dimSt.Render("None"))
-		} else {
-			backupsContent.WriteString(dimSt.Render("Loading..."))
+		statusIcon := "🟢"
+		statusStyle := statusRunningStyle
+		switch strings.ToUpper(status) {
+		case "CREATING", "UPDATING", "RESTARTING", "PENDING", "MAINTENANCE":
+			statusIcon = "🟡"
+			statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+		case "ERROR", "ERROR_INCONSISTENT_SPEC", "DELETING", "SUSPENDED", "LOCKED":
+			statusIcon = "🔴"
+			statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF4444"))
 		}
-	} else {
-		backupsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
-			headSt.Render("Name"),
-			headSt.Render("Location"),
-			headSt.Render("Created"),
-			headSt.Render("Expires"),
-			headSt.Render("Status")))
-		for _, b := range m.dbDetailBackups {
-			bname := getStringValue(b, "name", getStringValue(b, "id", "—"))
-			bloc := getStringValue(b, "region", "—")
-			bcreated := getStringValue(b, "createdAt", "—")
-			if len(bcreated) >= 10 {
-				bcreated = bcreated[:10]
-			}
-			bexpires := getStringValue(b, "expiresAt", "—")
-			if len(bexpires) >= 10 {
-				bexpires = bexpires[:10]
-			}
-			bstatus := getStringValue(b, "status", "—")
-			backupsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
-				labelSt.Render(truncate(bname, 17)),
-				labelSt.Render(truncate(bloc, 17)),
-				labelSt.Render(bcreated),
-				labelSt.Render(bexpires),
-				valueSt.Render(bstatus)))
-		}
-	}
-	content.WriteString("\n" + renderBox(fmt.Sprintf("Backups (%d)", len(m.dbDetailBackups)), backupsContent.String(), fullWidth))
 
-	// ── Databases (DB names within the service) ────────────────────────────
-	var dbNamesContent strings.Builder
-	if len(m.dbDetailDatabases) == 0 {
-		if m.dbDetailLoaded {
-			dbNamesContent.WriteString(dimSt.Render("None"))
-		} else {
-			dbNamesContent.WriteString(dimSt.Render("Loading..."))
+		boxWidth := (width - 6) / 2
+		if boxWidth < 35 {
+			boxWidth = 35
 		}
-	} else {
-		for _, d := range m.dbDetailDatabases {
-			dbname := getStringValue(d, "name", getStringValue(d, "id", "—"))
-			dbNamesContent.WriteString(valueSt.Render("  • "+dbname) + "\n")
-		}
-	}
-	content.WriteString("\n" + renderBox(fmt.Sprintf("Databases (%d)", len(m.dbDetailDatabases)), strings.TrimRight(dbNamesContent.String(), "\n"), fullWidth))
 
-	// ── Connection Pools (PostgreSQL only) ────────────────────────────────
-	if strings.EqualFold(getStringValue(m.detailData, "engine", ""), "postgresql") {
-	var poolsContent strings.Builder
-	if len(m.dbDetailPools) == 0 {
-		if m.dbDetailLoaded {
-			poolsContent.WriteString(dimSt.Render("None"))
-		} else {
-			poolsContent.WriteString(dimSt.Render("Loading..."))
-		}
-	} else {
-		poolsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
-			headSt.Render("Name"),
-			headSt.Render("Database"),
-			headSt.Render("Mode"),
-			headSt.Render("Size"),
-			headSt.Render("Username")))
-		for _, p := range m.dbDetailPools {
-			pname := getStringValue(p, "name", "—")
-			pdb := getStringValue(p, "databaseId", getStringValue(p, "database", "—"))
-			pmode := getStringValue(p, "mode", "—")
-			var psize string
-			if v, ok := toFloat64(p["size"]); ok && v > 0 {
-				psize = fmt.Sprintf("%d", int(v))
+		var infoContent strings.Builder
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Status"), statusStyle.Render(statusIcon+" "+status)))
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(dbID, 36))))
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Engine"), valueSt.Render(engineDisplay)))
+		infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Plan"), valueSt.Render(plan)))
+		infoBox := renderBox("Database "+dbName, infoContent.String(), boxWidth)
+
+		var cfgContent strings.Builder
+		cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Flavor"), valueSt.Render(flavor)))
+		cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Storage"), valueSt.Render(storageStr)))
+		cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Location"), valueSt.Render(location)))
+		cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Nodes"), valueSt.Render(fmt.Sprintf("%d", nodesCount))))
+		cfgContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Created"), valueSt.Render(createdAt)))
+		cfgBox := renderBox("Configuration", cfgContent.String(), boxWidth)
+
+		actions := []string{"Delete"}
+		var actionParts []string
+		for i, action := range actions {
+			if i == m.selectedAction {
+				actionParts = append(actionParts, lipgloss.NewStyle().
+					Background(lipgloss.Color("#7B68EE")).
+					Foreground(lipgloss.Color("#FFFFFF")).
+					Bold(true).Padding(0, 1).Render(action))
 			} else {
-				psize = "—"
+				actionParts = append(actionParts, lipgloss.NewStyle().
+					Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
 			}
-			puser := getStringValue(p, "userId", getStringValue(p, "username", "—"))
-			poolsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
-				labelSt.Render(truncate(pname, 17)),
-				labelSt.Render(truncate(pdb, 17)),
-				labelSt.Render(truncate(pmode, 17)),
-				labelSt.Render(psize),
-				valueSt.Render(truncate(puser, 17))))
+		}
+		actionsContent := strings.Join(actionParts, " ")
+		if m.actionConfirm {
+			actionsContent += "\n\n" + lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFD700")).Bold(true).
+				Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actions[m.selectedAction]))
+		}
+		actionsBox := renderBox("Actions (Enter to execute)", actionsContent, width-4)
+
+		content.WriteString(actionsBox + "\n\n")
+		content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", cfgBox))
+
+	case 1: // ── Users ─────────────────────────────────────────────────────
+		var usersContent strings.Builder
+		if len(m.dbDetailUsers) == 0 {
+			if m.dbDetailLoaded {
+				usersContent.WriteString(dimSt.Render("None"))
+			} else {
+				usersContent.WriteString(dimSt.Render("Loading..."))
+			}
+		} else {
+			usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
+				headSt.Render("Username"),
+				headSt.Render("Roles"),
+				headSt.Render("Created"),
+				headSt.Render("Status")))
+			for _, u := range m.dbDetailUsers {
+				username := getStringValue(u, "username", getStringValue(u, "name", "—"))
+				created := getStringValue(u, "createdAt", "—")
+				if len(created) >= 10 {
+					created = created[:10]
+				}
+				userStatus := getStringValue(u, "status", "—")
+				var roles []string
+				if rawRoles, ok := u["roles"].([]interface{}); ok {
+					for _, r := range rawRoles {
+						if s, ok := r.(string); ok {
+							roles = append(roles, s)
+						}
+					}
+				}
+				rolesStr := strings.Join(roles, ", ")
+				if rolesStr == "" {
+					rolesStr = "—"
+				}
+				usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
+					labelSt.Render(truncate(username, 17)),
+					labelSt.Render(truncate(rolesStr, 17)),
+					labelSt.Render(created),
+					valueSt.Render(userStatus)))
+			}
+		}
+		content.WriteString(renderBox(fmt.Sprintf("Users (%d)", len(m.dbDetailUsers)), usersContent.String(), fullWidth))
+
+	case 2: // ── Backups ───────────────────────────────────────────────────
+		var backupsContent strings.Builder
+		if len(m.dbDetailBackups) == 0 {
+			if m.dbDetailLoaded {
+				backupsContent.WriteString(dimSt.Render("None"))
+			} else {
+				backupsContent.WriteString(dimSt.Render("Loading..."))
+			}
+		} else {
+			backupsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+				headSt.Render("Name"),
+				headSt.Render("Location"),
+				headSt.Render("Created"),
+				headSt.Render("Expires"),
+				headSt.Render("Status")))
+			for _, b := range m.dbDetailBackups {
+				bname := getStringValue(b, "name", getStringValue(b, "id", "—"))
+				bloc := getStringValue(b, "region", "—")
+				bcreated := getStringValue(b, "createdAt", "—")
+				if len(bcreated) >= 10 {
+					bcreated = bcreated[:10]
+				}
+				bexpires := getStringValue(b, "expiresAt", "—")
+				if len(bexpires) >= 10 {
+					bexpires = bexpires[:10]
+				}
+				bstatus := getStringValue(b, "status", "—")
+				backupsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+					labelSt.Render(truncate(bname, 17)),
+					labelSt.Render(truncate(bloc, 17)),
+					labelSt.Render(bcreated),
+					labelSt.Render(bexpires),
+					valueSt.Render(bstatus)))
+			}
+		}
+		content.WriteString(renderBox(fmt.Sprintf("Backups (%d)", len(m.dbDetailBackups)), backupsContent.String(), fullWidth))
+
+	case 3: // ── Databases ─────────────────────────────────────────────────
+		var dbNamesContent strings.Builder
+		if len(m.dbDetailDatabases) == 0 {
+			if m.dbDetailLoaded {
+				dbNamesContent.WriteString(dimSt.Render("None"))
+			} else {
+				dbNamesContent.WriteString(dimSt.Render("Loading..."))
+			}
+		} else {
+			for _, d := range m.dbDetailDatabases {
+				dbname := getStringValue(d, "name", getStringValue(d, "id", "—"))
+				dbNamesContent.WriteString(valueSt.Render("  • "+dbname) + "\n")
+			}
+		}
+		content.WriteString(renderBox(fmt.Sprintf("Databases (%d)", len(m.dbDetailDatabases)), strings.TrimRight(dbNamesContent.String(), "\n"), fullWidth))
+
+	case 4: // ── Pools ─────────────────────────────────────────────────────
+		if !isPostgres {
+			content.WriteString(renderBox("Connection Pools", dimSt.Render("Connection pools are only available for PostgreSQL."), fullWidth))
+		} else {
+			var poolsContent strings.Builder
+			if len(m.dbDetailPools) == 0 {
+				if m.dbDetailLoaded {
+					poolsContent.WriteString(dimSt.Render("None"))
+				} else {
+					poolsContent.WriteString(dimSt.Render("Loading..."))
+				}
+			} else {
+				poolsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+					headSt.Render("Name"),
+					headSt.Render("Database"),
+					headSt.Render("Mode"),
+					headSt.Render("Size"),
+					headSt.Render("Username")))
+				for _, p := range m.dbDetailPools {
+					pname := getStringValue(p, "name", "—")
+					pdb := getStringValue(p, "databaseId", getStringValue(p, "database", "—"))
+					pmode := getStringValue(p, "mode", "—")
+					var psize string
+					if v, ok := toFloat64(p["size"]); ok && v > 0 {
+						psize = fmt.Sprintf("%d", int(v))
+					} else {
+						psize = "—"
+					}
+					puser := getStringValue(p, "userId", getStringValue(p, "username", "—"))
+					poolsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+						labelSt.Render(truncate(pname, 17)),
+						labelSt.Render(truncate(pdb, 17)),
+						labelSt.Render(truncate(pmode, 17)),
+						labelSt.Render(psize),
+						valueSt.Render(truncate(puser, 17))))
+				}
+			}
+			content.WriteString(renderBox(fmt.Sprintf("Connection Pools (%d)", len(m.dbDetailPools)), strings.TrimRight(poolsContent.String(), "\n"), fullWidth))
 		}
 	}
-	content.WriteString("\n" + renderBox(fmt.Sprintf("Connection Pools (%d)", len(m.dbDetailPools)), strings.TrimRight(poolsContent.String(), "\n"), fullWidth))
-	} // end postgresql-only pools section
 
 	return content.String()
 }
+
+func (m Model) renderGatewayDetail_PLACEHOLDER() string { return "" }
+
 
 func (m Model) renderGatewayDetail(width int) string {
 	var content strings.Builder
@@ -9054,6 +9099,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.mode == DetailView && m.currentProduct == ProductInstanceBackup {
 			return m, nil
 		}
+		// In DetailView for ManagedDatabases/Analytics, ← switches tabs
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			if m.dbDetailTab > 0 {
+				m.dbDetailTab--
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
 		// In DetailView for Floating IPs, navigate actions (0=Delete, 1=Detach)
 		if m.mode == DetailView && m.currentProduct == ProductNetworkPublic {
 			if m.selectedAction > 0 {
@@ -9222,12 +9275,29 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// In DetailView for ManagedDatabases/Analytics, → switches tabs
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			maxTab := 4
+			if m.dbDetailTab < maxTab {
+				m.dbDetailTab++
+				m.actionConfirm = false
+			}
+			return m, nil
+		}
 		// In DetailView for Workflow, only 1 action (Delete)
 		if m.mode == DetailView && m.currentProduct == ProductWorkflow {
 			return m, nil
 		}
 		// In DetailView for Instance Backup, only 1 action (Delete)
 		if m.mode == DetailView && m.currentProduct == ProductInstanceBackup {
+			return m, nil
+		}
+		// In DetailView for ManagedDatabases/Analytics, → switches tabs
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			if m.dbDetailTab < 4 {
+				m.dbDetailTab++
+				m.actionConfirm = false
+			}
 			return m, nil
 		}
 		// In DetailView for Floating IPs, navigate actions (0=Delete, 1=Detach)
@@ -10545,6 +10615,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbDetailBackups = nil
 						m.dbDetailDatabases = nil
 						m.dbDetailPools = nil
+						m.dbDetailTab = 0
 						if engine != "" && serviceId != "" {
 							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}
