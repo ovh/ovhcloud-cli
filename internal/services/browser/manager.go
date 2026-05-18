@@ -815,6 +815,11 @@ type Model struct {
 	dbLogsScrollOffset  int  // scroll offset for logs tab (0 = bottom/newest)
 	dbDetailACL         []map[string]interface{} // ACL entries (analytics only)
 	dbACLLoaded         bool // true once fetchDBACL has returned
+	// ACL creation state (ACL tab) — multi-step inline wizard
+	dbACLCreateStep  int    // -1=inactive, 0=username, 1=topic, 2=permission
+	dbACLCreateUser  string
+	dbACLCreateTopic string
+	dbACLCreatePerm  int    // 0=read 1=write 2=admin
 	// DB user state (Users tab)
 	dbUserCreateMode   bool                   // true when typing a new username
 	dbUserCreateInput  string                 // username being typed
@@ -2683,6 +2688,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbLogsScrollOffset = 0
 		m.dbDetailACL = nil
 		m.dbACLLoaded = false
+		m.dbACLCreateStep = -1
 		m.mode = LoadingView
 		path := "/databases"
 		if m.currentProduct == ProductManagedAnalytics {
@@ -2825,6 +2831,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.dbDetailACL = msg.acl
 		return m, nil
+
+	case dbACLCreatedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to create ACL entry: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.dbACLLoaded = true
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ ACL entry created"
+		m.notificationExpiry = time.Now().Add(4 * time.Second)
+		return m, tea.Batch(
+			m.fetchDBACL(),
+			tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
 
 	case dbCreatedMsg:
 		m.wizard.isLoading = false
@@ -7817,7 +7837,43 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			strings.TrimRight(logsContent.String(), "\n"),
 			fullWidth))
 
-	case 6: // ── ACL (Analytics only) ────────────────────────────────────
+	case 6: // ── ACL (Kafka only) ────────────────────────────────────
+		// ── Create wizard ──────────────────────────────────────────────
+		if m.dbACLCreateStep >= 0 {
+			inputSt := lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FF7F")).
+				Padding(0, 1).Width(36)
+			selectedItemSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+			var wiz strings.Builder
+			aclPerms := []string{"read", "write", "admin"}
+			stepLabels := []string{"Username", "Topic", "Permission"}
+			wiz.WriteString(headSt.Width(0).Render(fmt.Sprintf("Step %d/3 — %s", m.dbACLCreateStep+1, stepLabels[m.dbACLCreateStep])) + "\n\n")
+			switch m.dbACLCreateStep {
+			case 0:
+				wiz.WriteString(inputSt.Render(m.dbACLCreateUser+"▌") + "\n\n")
+			case 1:
+				wiz.WriteString(dimSt.Render("User: "+m.dbACLCreateUser) + "\n")
+				wiz.WriteString(inputSt.Render(m.dbACLCreateTopic+"▌") + "\n\n")
+			case 2:
+				wiz.WriteString(dimSt.Render("User: "+m.dbACLCreateUser+"  Topic: "+m.dbACLCreateTopic) + "\n")
+				for j, p := range aclPerms {
+					if j == m.dbACLCreatePerm {
+						wiz.WriteString(selectedItemSt.Render("▶ "+strings.ToUpper(p)) + "\n")
+					} else {
+						wiz.WriteString(dimSt.Render("  "+strings.ToUpper(p)) + "\n")
+					}
+				}
+				wiz.WriteString("\n")
+			}
+			wiz.WriteString(dimSt.Render("Enter → next   ⇑/⇓ → select   Esc → cancel"))
+			content.WriteString(renderBox("Create ACL Entry", wiz.String(), fullWidth))
+			break
+		}
+		// ── List ────────────────────────────────────────────────────────
+		createBtn := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7B68EE")).Bold(true).Padding(0, 1).Render("[+ Create ACL]")
+		content.WriteString(createBtn + "  " + dimSt.Render("Enter → new entry") + "\n\n")
 		var aclContent strings.Builder
 		if !m.dbACLLoaded {
 			aclContent.WriteString(dimSt.Render("Loading..."))
@@ -9586,6 +9642,68 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Intercept all keys during ACL creation inline wizard
+	if m.dbACLCreateStep >= 0 && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		aclPerms := []string{"read", "write", "admin"}
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			m.dbACLCreateStep = -1
+		case "enter":
+			switch m.dbACLCreateStep {
+			case 0: // username
+				if strings.TrimSpace(m.dbACLCreateUser) == "" {
+					return m, nil
+				}
+				m.dbACLCreateStep = 1
+			case 1: // topic
+				if strings.TrimSpace(m.dbACLCreateTopic) == "" {
+					return m, nil
+				}
+				m.dbACLCreateStep = 2
+				m.dbACLCreatePerm = 0
+			case 2: // permission confirm
+				permName := aclPerms[m.dbACLCreatePerm]
+				user := strings.TrimSpace(m.dbACLCreateUser)
+				topic := strings.TrimSpace(m.dbACLCreateTopic)
+				m.dbACLCreateStep = -1
+				m.dbACLLoaded = false
+				return m, m.createDBACL(user, topic, permName)
+			}
+		case "up", "k":
+			if m.dbACLCreateStep == 2 && m.dbACLCreatePerm > 0 {
+				m.dbACLCreatePerm--
+			}
+		case "down", "j":
+			if m.dbACLCreateStep == 2 && m.dbACLCreatePerm < len(aclPerms)-1 {
+				m.dbACLCreatePerm++
+			}
+		case "backspace":
+			switch m.dbACLCreateStep {
+			case 0:
+				if len(m.dbACLCreateUser) > 0 {
+					m.dbACLCreateUser = m.dbACLCreateUser[:len(m.dbACLCreateUser)-1]
+				}
+			case 1:
+				if len(m.dbACLCreateTopic) > 0 {
+					m.dbACLCreateTopic = m.dbACLCreateTopic[:len(m.dbACLCreateTopic)-1]
+				}
+			}
+		default:
+			if len(msg.Runes) > 0 {
+				switch m.dbACLCreateStep {
+				case 0:
+					m.dbACLCreateUser += string(msg.Runes)
+				case 1:
+					m.dbACLCreateTopic += string(msg.Runes)
+				}
+			}
+		}
+		return m, nil
+	}
+
         switch msg.String() {
         case "left":
 		// In NodePoolDetailView, navigate actions
@@ -10921,6 +11039,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.dbLogsScrollOffset = 0
 				m.dbLogsUnsupported = false
 				return m, m.fetchDBLogs()
+			case 6: // ACL tab — open create wizard
+				m.dbACLCreateStep = 0
+				m.dbACLCreateUser = ""
+				m.dbACLCreateTopic = ""
+				m.dbACLCreatePerm = 0
 			}
 			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
@@ -11324,6 +11447,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbLogsScrollOffset = 0
 						m.dbDetailACL = nil
 						m.dbACLLoaded = false
+						m.dbACLCreateStep = -1
 						if engine != "" && serviceId != "" {
 							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}

@@ -161,6 +161,34 @@ type dbACLMsg struct {
 	err error
 }
 
+// dbACLCreatedMsg is sent after an ACL entry creation attempt.
+type dbACLCreatedMsg struct {
+	err error
+}
+
+// createDBACL POSTs a new ACL entry for the current analytics service.
+func (m Model) createDBACL(username, topic, permission string) tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbACLCreatedMsg{err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/acl",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		body := map[string]interface{}{
+			"username":   username,
+			"topic":      topic,
+			"permission": permission,
+		}
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
+			return dbACLCreatedMsg{err: err}
+		}
+		return dbACLCreatedMsg{}
+	}
+}
+
 // fetchDBACL fetches the ACL list for the current analytics service.
 func (m Model) fetchDBACL() tea.Cmd {
 	return func() tea.Msg {
