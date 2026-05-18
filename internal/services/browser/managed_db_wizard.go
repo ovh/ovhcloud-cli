@@ -149,6 +149,30 @@ type dbPoolCreatedMsg struct {
 	err  error
 }
 
+// dbLogsMsg is sent after fetching service log entries.
+type dbLogsMsg struct {
+	logs []map[string]interface{}
+	err  error
+}
+
+// fetchDBLogs fetches the most recent log entries for the current DB service.
+func (m Model) fetchDBLogs() tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbLogsMsg{err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/logs",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		var logs []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &logs); err != nil {
+			return dbLogsMsg{err: err}
+		}
+		return dbLogsMsg{logs: logs}
+	}
+}
+
 // createDBDatabase POSTs to the database/database endpoint to create a new logical database.
 func (m Model) createDBDatabase(name string) tea.Cmd {
 	return func() tea.Msg {

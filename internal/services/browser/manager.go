@@ -808,7 +808,10 @@ type Model struct {
 	dbDetailDatabases []map[string]interface{}
 	dbDetailPools     []map[string]interface{}
 	dbDetailLoaded    bool // true once fetchDBDetailSubresources has returned
-	dbDetailTab       int  // 0=Service, 1=Users, 2=Backups, 3=Databases, 4=Pools
+	dbDetailTab       int  // 0=Service, 1=Users, 2=Backups, 3=Databases, 4=Pools, 5=Logs
+	dbDetailLogs        []map[string]interface{} // last fetched log entries
+	dbLogsLoaded        bool // true once fetchDBLogs has returned
+	dbLogsScrollOffset  int  // scroll offset for logs tab (0 = bottom/newest)
 	// DB user state (Users tab)
 	dbUserCreateMode   bool                   // true when typing a new username
 	dbUserCreateInput  string                 // username being typed
@@ -955,6 +958,9 @@ type setDefaultProjectMsg struct {
 
 // clearNotificationMsg is sent to clear the notification after timeout
 type clearNotificationMsg struct{}
+
+// dbLogsRefreshTickMsg triggers a periodic re-fetch of DB logs
+type dbLogsRefreshTickMsg struct{}
 
 // refreshTickMsg is sent to trigger automatic refresh of data
 type refreshTickMsg struct{}
@@ -2668,6 +2674,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbDBCreateMode = false
 		m.dbDBCreateInput = ""
 		m.dbPoolCreateStep = -1
+		m.dbDetailLogs = nil
+		m.dbLogsLoaded = false
+		m.dbLogsScrollOffset = 0
 		m.mode = LoadingView
 		path := "/databases"
 		if m.currentProduct == ProductManagedAnalytics {
@@ -2767,6 +2776,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case dbLogsMsg:
+		m.dbLogsLoaded = true
+		if msg.err != nil {
+			m.dbDetailLogs = nil
+			m.notification = fmt.Sprintf("❌ Failed to fetch logs: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbDetailLogs = msg.logs
+		// Schedule next auto-refresh in 10 s
+		return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return dbLogsRefreshTickMsg{} })
+
+	case dbLogsRefreshTickMsg:
+		// Only re-fetch if still viewing the Logs tab
+		if m.mode == DetailView &&
+			(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) &&
+			m.dbDetailTab == 5 {
+			return m, m.fetchDBLogs()
+		}
+		// Tab was left — stop the loop
+		return m, nil
 
 	case dbCreatedMsg:
 		m.wizard.isLoading = false
@@ -7252,7 +7283,7 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		Foreground(lipgloss.Color("#444444")).
 		Padding(0, 2)
 
-	tabNames := []string{"Service", "Users", "Backups", "Databases", "Pools"}
+	tabNames := []string{"Service", "Users", "Backups", "Databases", "Pools", "Logs"}
 	var tabParts []string
 	for i, name := range tabNames {
 		if i == 4 && !isPostgres {
@@ -7692,6 +7723,66 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			}
 			content.WriteString(renderBox(fmt.Sprintf("Connection Pools (%d)", len(m.dbDetailPools)), strings.TrimRight(poolsContent.String(), "\n"), fullWidth))
 		}
+
+	case 5: // ── Logs ───────────────────────────────────────────────────
+		refreshBtn := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7B68EE")).Bold(true).Padding(0, 1).Render("[↻ Refresh]")
+		liveIndicator := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Render("● live")
+		content.WriteString(refreshBtn + "  " + dimSt.Render("Enter → reload") + "   " + liveIndicator + dimSt.Render(" (auto every 10s)") + "\n\n")
+
+		var logsContent strings.Builder
+		if !m.dbLogsLoaded {
+			logsContent.WriteString(dimSt.Render("Loading..."))
+		} else if len(m.dbDetailLogs) == 0 {
+			logsContent.WriteString(dimSt.Render("No log entries found"))
+		} else {
+			timeSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+			hostSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE"))
+			msgSt  := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+			indentSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+			// Derive maxVisible from terminal height.
+			// Each entry uses 2 lines (header + message), so halve available lines.
+			maxVisible := (m.height - 27) / 2
+			if maxVisible < 3 {
+				maxVisible = 3
+			}
+			// Show entries most-recent first, with scroll window
+			total := len(m.dbDetailLogs)
+			startIdx := m.dbLogsScrollOffset
+			if startIdx > total-1 {
+				startIdx = total - 1
+			}
+			if startIdx < 0 {
+				startIdx = 0
+			}
+			endIdx := startIdx + maxVisible
+			if endIdx > total {
+				endIdx = total
+			}
+			scrollHint := lipgloss.NewStyle().Foreground(lipgloss.Color("#444444")).Render(
+				fmt.Sprintf("  ↑/↓ scroll  (%d-%d / %d)", startIdx+1, endIdx, total))
+			logsContent.WriteString(scrollHint + "\n")
+			// iterate reversed (newest = index 0)
+			for ri := startIdx; ri < endIdx; ri++ {
+				i := total - 1 - ri // actual index in m.dbDetailLogs
+				e := m.dbDetailLogs[i]
+				msgStr := getStringValue(e, "message", "")
+				host := getStringValue(e, "hostname", "")
+				ts := ""
+				if v, ok := toFloat64(e["timestamp"]); ok {
+					t2 := time.Unix(int64(v), 0).UTC()
+					ts = t2.Format("2006-01-02 15:04:05")
+				}
+				// Line 1: timestamp  hostname
+				logsContent.WriteString(timeSt.Render(ts) + "  " + hostSt.Render(host) + "\n")
+				// Line 2: indented full message
+				logsContent.WriteString(indentSt.Render("  ↳ ") + msgSt.Render(msgStr) + "\n")
+			}
+		}
+		content.WriteString(renderBox(
+			fmt.Sprintf("Logs (%d)", len(m.dbDetailLogs)),
+			strings.TrimRight(logsContent.String(), "\n"),
+			fullWidth))
 	}
 
 	return content.String()
@@ -9568,6 +9659,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.dbUserSelectedIdx = -1
 				m.dbUserDeleteConfirm = false
 				m.dbPoolCreateStep = -1
+				m.dbLogsScrollOffset = 0
 			}
 			return m, nil
 		}
@@ -9741,13 +9833,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView for ManagedDatabases/Analytics, → switches tabs
 		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
-			maxTab := 4
+			maxTab := 5
 			if m.dbDetailTab < maxTab {
 				m.dbDetailTab++
 				m.actionConfirm = false
 				m.dbUserSelectedIdx = -1
 				m.dbUserDeleteConfirm = false
 				m.dbPoolCreateStep = -1
+				m.dbLogsScrollOffset = 0
+				// Entering Logs tab: trigger fetch
+				if m.dbDetailTab == 5 {
+					m.dbLogsLoaded = false
+					m.dbDetailLogs = nil
+					return m, m.fetchDBLogs()
+				}
 			}
 			return m, nil
 		}
@@ -10729,6 +10828,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.dbPoolCreateMode = 0
 					m.dbPoolCreateSize = "10"
 				}
+			case 5: // Logs tab — refresh
+				m.dbLogsLoaded = false
+				m.dbDetailLogs = nil
+				m.dbLogsScrollOffset = 0
+				return m, m.fetchDBLogs()
 			}
 			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
@@ -11126,6 +11230,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbDBCreateMode = false
 						m.dbDBCreateInput = ""
 						m.dbPoolCreateStep = -1
+						m.dbDetailLogs = nil
+						m.dbLogsLoaded = false
+						m.dbLogsScrollOffset = 0
 						if engine != "" && serviceId != "" {
 							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}
@@ -11141,6 +11248,27 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		isComputeSubProduct := m.currentProduct == ProductInstances || m.currentProduct == ProductInstanceBackup || m.currentProduct == ProductWorkflow
 		isSubNavProduct := isStorageSubProduct || isNetworkSubProduct || isComputeSubProduct
 		navItems := getNavItems()
+
+		// DB Logs tab: ↑/↓ scroll
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) &&
+			m.dbDetailTab == 5 && m.dbLogsLoaded {
+			total := len(m.dbDetailLogs)
+			maxVisible := 20
+			maxOffset := total - maxVisible
+			if maxOffset < 0 {
+				maxOffset = 0
+			}
+			if key == "up" || key == "k" {
+				if m.dbLogsScrollOffset < maxOffset {
+					m.dbLogsScrollOffset++
+				}
+			} else if key == "down" || key == "j" {
+				if m.dbLogsScrollOffset > 0 {
+					m.dbLogsScrollOffset--
+				}
+			}
+			return m, nil
+		}
 
 		// DB Users tab: ↑/↓ navigate user rows
 		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) &&
