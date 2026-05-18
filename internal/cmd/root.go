@@ -5,13 +5,14 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"runtime"
 	"sync/atomic"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -21,6 +22,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httplib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/upgrade"
 	"github.com/ovh/ovhcloud-cli/internal/version"
 )
 
@@ -45,6 +47,7 @@ var (
 	wasmHiddenCommands = []string{
 		"login",
 		"config",
+		"upgrade",
 	}
 )
 
@@ -152,25 +155,14 @@ Examples:
 					return
 				}
 
-				const latestURL = "https://github.com/ovh/ovhcloud-cli/releases/latest"
-				req, err := http.NewRequest("GET", latestURL, nil)
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				tag, err := upgrade.LatestTag(ctx)
 				if err != nil {
 					return
 				}
-				req.Header.Set("Accept", "application/json")
-				resp, err := http.DefaultClient.Do(req)
-				if err != nil {
-					return
-				}
-				defer resp.Body.Close()
-				var data struct {
-					TagName string `json:"tag_name"`
-				}
-				if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-					return
-				}
-				if data.TagName != "" && data.TagName != version.Version {
-					message := fmt.Sprintf("A new version of ovhcloud-cli is available: %s (current: %s)", data.TagName, version.Version)
+				if tag != "" && tag != version.Version {
+					message := fmt.Sprintf("A new version of ovhcloud-cli is available: %s (current: %s). Run `ovhcloud upgrade` to update.", tag, version.Version)
 					newVersionMessage.Store(&message)
 				}
 			}()
