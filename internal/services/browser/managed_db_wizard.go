@@ -137,6 +137,31 @@ func (m Model) fetchDBDetailSubresources(engine, serviceId string) tea.Cmd {
 	}
 }
 
+// dbDatabaseCreatedMsg is sent after a DB database creation attempt.
+type dbDatabaseCreatedMsg struct {
+	name string
+	err  error
+}
+
+// createDBDatabase POSTs to the database/database endpoint to create a new logical database.
+func (m Model) createDBDatabase(name string) tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbDatabaseCreatedMsg{name: name, err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/database",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		body := map[string]interface{}{"name": name}
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
+			return dbDatabaseCreatedMsg{name: name, err: err}
+		}
+		return dbDatabaseCreatedMsg{name: name}
+	}
+}
+
 // dbUserCreatedMsg is sent after a DB user creation attempt.
 type dbUserCreatedMsg struct {
 	user map[string]interface{}

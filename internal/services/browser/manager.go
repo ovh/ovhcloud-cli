@@ -815,6 +815,9 @@ type Model struct {
 	dbUserCreatedData  map[string]interface{} // creation result (has password + endpoints)
 	dbUserSelectedIdx  int                    // currently highlighted user row (-1 = none)
 	dbUserDeleteConfirm bool                  // waiting for second Enter to confirm delete
+	// DB database state (Databases tab)
+	dbDBCreateMode  bool   // true when typing a new database name
+	dbDBCreateInput string // database name being typed
 	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
 	privNetTabIdx           int
 	privNetLocalZones       []map[string]interface{}
@@ -2656,6 +2659,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbUserCreatedData = nil
 		m.dbUserSelectedIdx = -1
 		m.dbUserDeleteConfirm = false
+		m.dbDBCreateMode = false
+		m.dbDBCreateInput = ""
 		m.mode = LoadingView
 		path := "/databases"
 		if m.currentProduct == ProductManagedAnalytics {
@@ -2695,6 +2700,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
 		m.notification = fmt.Sprintf("✅ User '%s' deleted", msg.username)
+		m.notificationExpiry = time.Now().Add(4 * time.Second)
+		if m.detailData != nil {
+			engine := getStringValue(m.detailData, "engine", "")
+			serviceId := getStringValue(m.detailData, "id", "")
+			if engine != "" && serviceId != "" {
+				m.dbDetailLoaded = false
+				return m, tea.Batch(
+					m.fetchDBDetailSubresources(engine, serviceId),
+					tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case dbDatabaseCreatedMsg:
+		m.dbDBCreateMode = false
+		m.dbDBCreateInput = ""
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to create database: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.dbDetailLoaded = true
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Database '%s' created", msg.name)
 		m.notificationExpiry = time.Now().Add(4 * time.Second)
 		if m.detailData != nil {
 			engine := getStringValue(m.detailData, "engine", "")
@@ -7486,20 +7515,36 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		content.WriteString(renderBox(fmt.Sprintf("Backups (%d)", len(m.dbDetailBackups)), backupsContent.String(), fullWidth))
 
 	case 3: // ── Databases ─────────────────────────────────────────────────
-		var dbNamesContent strings.Builder
-		if len(m.dbDetailDatabases) == 0 {
-			if m.dbDetailLoaded {
-				dbNamesContent.WriteString(dimSt.Render("None"))
-			} else {
-				dbNamesContent.WriteString(dimSt.Render("Loading..."))
-			}
+		if m.dbDBCreateMode {
+			inputSt := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Background(lipgloss.Color("#2a2a2a")).
+				Padding(0, 1)
+			var inputContent strings.Builder
+			inputContent.WriteString(labelSt.Render("Name") + "\n\n")
+			inputContent.WriteString(inputSt.Render(m.dbDBCreateInput+"▌") + "\n\n")
+			inputContent.WriteString(dimSt.Render("Enter → confirm   Esc → cancel"))
+			content.WriteString(renderBox("Create New Database", inputContent.String(), fullWidth))
 		} else {
-			for _, d := range m.dbDetailDatabases {
-				dbname := getStringValue(d, "name", getStringValue(d, "id", "—"))
-				dbNamesContent.WriteString(valueSt.Render("  • "+dbname) + "\n")
+			createBtn := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#7B68EE")).Bold(true).Padding(0, 1).Render("[+ Create Database]")
+			content.WriteString(createBtn + "  " + dimSt.Render("Enter → new database") + "\n\n")
+
+			var dbNamesContent strings.Builder
+			if len(m.dbDetailDatabases) == 0 {
+				if m.dbDetailLoaded {
+					dbNamesContent.WriteString(dimSt.Render("None"))
+				} else {
+					dbNamesContent.WriteString(dimSt.Render("Loading..."))
+				}
+			} else {
+				for _, d := range m.dbDetailDatabases {
+					dbname := getStringValue(d, "name", getStringValue(d, "id", "—"))
+					dbNamesContent.WriteString(valueSt.Render("  • "+dbname) + "\n")
+				}
 			}
+			content.WriteString(renderBox(fmt.Sprintf("Databases (%d)", len(m.dbDetailDatabases)), strings.TrimRight(dbNamesContent.String(), "\n"), fullWidth))
 		}
-		content.WriteString(renderBox(fmt.Sprintf("Databases (%d)", len(m.dbDetailDatabases)), strings.TrimRight(dbNamesContent.String(), "\n"), fullWidth))
 
 	case 4: // ── Pools ─────────────────────────────────────────────────────
 		if !isPostgres {
@@ -9155,6 +9200,36 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Intercept all keys when DB database creation text input is active
+	if m.dbDBCreateMode && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			m.dbDBCreateMode = false
+			m.dbDBCreateInput = ""
+		case "backspace":
+			if len(m.dbDBCreateInput) > 0 {
+				m.dbDBCreateInput = m.dbDBCreateInput[:len(m.dbDBCreateInput)-1]
+			}
+		case "enter":
+			dbname := strings.TrimSpace(m.dbDBCreateInput)
+			if dbname == "" {
+				return m, nil
+			}
+			m.dbDBCreateMode = false
+			m.dbDBCreateInput = ""
+			m.dbDetailLoaded = false
+			return m, m.createDBDatabase(dbname)
+		default:
+			if len(msg.Runes) > 0 {
+				m.dbDBCreateInput += string(msg.Runes)
+			}
+		}
+		return m, nil
+	}
+
         switch msg.String() {
         case "left":
 		// In NodePoolDetailView, navigate actions
@@ -10436,6 +10511,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.dbUserCreateMode = true
 					m.dbUserCreateInput = ""
 				}
+			case 3: // Databases tab — create database
+				m.dbDBCreateMode = true
+				m.dbDBCreateInput = ""
 			}
 			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
@@ -10830,6 +10908,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbUserCreatedData = nil
 						m.dbUserSelectedIdx = -1
 						m.dbUserDeleteConfirm = false
+						m.dbDBCreateMode = false
+						m.dbDBCreateInput = ""
 						if engine != "" && serviceId != "" {
 							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}
