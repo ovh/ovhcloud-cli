@@ -143,6 +143,12 @@ type dbDatabaseCreatedMsg struct {
 	err  error
 }
 
+// dbPoolCreatedMsg is sent after a connection pool creation attempt.
+type dbPoolCreatedMsg struct {
+	name string
+	err  error
+}
+
 // createDBDatabase POSTs to the database/database endpoint to create a new logical database.
 func (m Model) createDBDatabase(name string) tea.Cmd {
 	return func() tea.Msg {
@@ -159,6 +165,30 @@ func (m Model) createDBDatabase(name string) tea.Cmd {
 			return dbDatabaseCreatedMsg{name: name, err: err}
 		}
 		return dbDatabaseCreatedMsg{name: name}
+	}
+}
+
+// createDBPool POSTs to the connectionPool endpoint to create a new connection pool.
+func (m Model) createDBPool(name, databaseId, mode string, size int) tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbPoolCreatedMsg{name: name, err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/connectionPool",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		body := map[string]interface{}{
+			"name":       name,
+			"databaseId": databaseId,
+			"mode":       mode,
+			"size":       size,
+		}
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
+			return dbPoolCreatedMsg{name: name, err: err}
+		}
+		return dbPoolCreatedMsg{name: name}
 	}
 }
 

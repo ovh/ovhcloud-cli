@@ -818,6 +818,12 @@ type Model struct {
 	// DB database state (Databases tab)
 	dbDBCreateMode  bool   // true when typing a new database name
 	dbDBCreateInput string // database name being typed
+	// DB connection pool creation state (Pools tab) — multi-step inline wizard
+	dbPoolCreateStep  int    // 0=name, 1=database, 2=mode, 3=size  (-1 = not active)
+	dbPoolCreateName  string
+	dbPoolCreateDBIdx int    // index into dbDetailDatabases
+	dbPoolCreateMode  int    // 0=session 1=statement 2=transaction
+	dbPoolCreateSize  string // numeric input
 	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
 	privNetTabIdx           int
 	privNetLocalZones       []map[string]interface{}
@@ -2661,6 +2667,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbUserDeleteConfirm = false
 		m.dbDBCreateMode = false
 		m.dbDBCreateInput = ""
+		m.dbPoolCreateStep = -1
 		m.mode = LoadingView
 		path := "/databases"
 		if m.currentProduct == ProductManagedAnalytics {
@@ -2724,6 +2731,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
 		m.notification = fmt.Sprintf("✅ Database '%s' created", msg.name)
+		m.notificationExpiry = time.Now().Add(4 * time.Second)
+		if m.detailData != nil {
+			engine := getStringValue(m.detailData, "engine", "")
+			serviceId := getStringValue(m.detailData, "id", "")
+			if engine != "" && serviceId != "" {
+				m.dbDetailLoaded = false
+				return m, tea.Batch(
+					m.fetchDBDetailSubresources(engine, serviceId),
+					tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case dbPoolCreatedMsg:
+		m.dbPoolCreateStep = -1
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to create pool: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.dbDetailLoaded = true
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Pool '%s' created", msg.name)
 		m.notificationExpiry = time.Now().Add(4 * time.Second)
 		if m.detailData != nil {
 			engine := getStringValue(m.detailData, "engine", "")
@@ -7396,6 +7426,8 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			inputSt := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#FFFFFF")).
 				Background(lipgloss.Color("#2a2a2a")).
+				BorderStyle(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FF7F")).
 				Padding(0, 1)
 			var inputContent strings.Builder
 			inputContent.WriteString(labelSt.Render("Username") + "\n\n")
@@ -7519,6 +7551,8 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			inputSt := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#FFFFFF")).
 				Background(lipgloss.Color("#2a2a2a")).
+				BorderStyle(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FF7F")).
 				Padding(0, 1)
 			var inputContent strings.Builder
 			inputContent.WriteString(labelSt.Render("Name") + "\n\n")
@@ -7549,7 +7583,80 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 	case 4: // ── Pools ─────────────────────────────────────────────────────
 		if !isPostgres {
 			content.WriteString(renderBox("Connection Pools", dimSt.Render("Connection pools are only available for PostgreSQL."), fullWidth))
+		} else if m.dbPoolCreateStep >= 0 {
+			// ── Pool creation inline wizard ───────────────────────────────
+			dbModes := []string{"session", "statement", "transaction"}
+			inputSt := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Background(lipgloss.Color("#2a2a2a")).
+				BorderStyle(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FF7F")).
+				Padding(0, 1)
+			selectedItemSt := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#7B68EE")).Bold(true)
+
+			var wiz strings.Builder
+			stepLabels := []string{"Name", "Database", "Mode", "Size"}
+			for i, lbl := range stepLabels {
+				if i < m.dbPoolCreateStep {
+					// completed step
+					var val string
+					switch i {
+					case 0:
+						val = m.dbPoolCreateName
+					case 1:
+						if len(m.dbDetailDatabases) > m.dbPoolCreateDBIdx {
+							val = getStringValue(m.dbDetailDatabases[m.dbPoolCreateDBIdx], "name", "—")
+						}
+					case 2:
+						val = dbModes[m.dbPoolCreateMode]
+					case 3:
+						val = m.dbPoolCreateSize
+					}
+					wiz.WriteString(fmt.Sprintf("%s %s\n",
+						labelSt.Render(lbl),
+						valueSt.Render(val)))
+				} else if i == m.dbPoolCreateStep {
+					// active step
+					wiz.WriteString(labelSt.Render(lbl) + "\n\n")
+					switch i {
+					case 0:
+						wiz.WriteString(inputSt.Render(m.dbPoolCreateName+"▌") + "\n\n")
+					case 1:
+						if len(m.dbDetailDatabases) == 0 {
+							wiz.WriteString(dimSt.Render("No databases found — create one first") + "\n\n")
+						} else {
+							for j, d := range m.dbDetailDatabases {
+								dname := getStringValue(d, "name", getStringValue(d, "id", "—"))
+								if j == m.dbPoolCreateDBIdx {
+									wiz.WriteString(selectedItemSt.Render("▶ "+dname) + "\n")
+								} else {
+									wiz.WriteString(dimSt.Render("  "+dname) + "\n")
+								}
+							}
+							wiz.WriteString("\n")
+						}
+					case 2:
+						for j, m2 := range dbModes {
+							if j == m.dbPoolCreateMode {
+								wiz.WriteString(selectedItemSt.Render("▶ "+m2) + "\n")
+							} else {
+								wiz.WriteString(dimSt.Render("  "+m2) + "\n")
+							}
+						}
+						wiz.WriteString("\n")
+					case 3:
+						wiz.WriteString(inputSt.Render(m.dbPoolCreateSize+"▌") + "\n\n")
+					}
+					wiz.WriteString(dimSt.Render("Enter → next   ↑/↓ → select   Esc → cancel"))
+				}
+			}
+			content.WriteString(renderBox("Create Connection Pool", wiz.String(), fullWidth))
 		} else {
+			createBtn := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#7B68EE")).Bold(true).Padding(0, 1).Render("[+ Create Pool]")
+			content.WriteString(createBtn + "  " + dimSt.Render("Enter → new pool") + "\n\n")
+
 			var poolsContent strings.Builder
 			if len(m.dbDetailPools) == 0 {
 				if m.dbDetailLoaded {
@@ -9230,6 +9337,99 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Intercept all keys during pool creation inline wizard
+	if m.dbPoolCreateStep >= 0 && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		dbModes := []string{"session", "statement", "transaction"}
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			m.dbPoolCreateStep = -1
+		case "enter":
+			switch m.dbPoolCreateStep {
+			case 0: // name
+				if strings.TrimSpace(m.dbPoolCreateName) == "" {
+					return m, nil
+				}
+				m.dbPoolCreateStep = 1
+				m.dbPoolCreateDBIdx = 0
+			case 1: // database selection
+				if len(m.dbDetailDatabases) == 0 {
+					return m, nil
+				}
+				m.dbPoolCreateStep = 2
+				m.dbPoolCreateMode = 0
+			case 2: // mode selection
+				m.dbPoolCreateStep = 3
+				m.dbPoolCreateSize = "10"
+			case 3: // size
+				sizeStr := strings.TrimSpace(m.dbPoolCreateSize)
+				size := 10
+				if n, err := strconv.Atoi(sizeStr); err == nil && n > 0 {
+					size = n
+				}
+				if len(m.dbDetailDatabases) == 0 {
+					return m, nil
+				}
+				dbId := getStringValue(m.dbDetailDatabases[m.dbPoolCreateDBIdx], "id", "")
+				modeName := dbModes[m.dbPoolCreateMode]
+				poolName := strings.TrimSpace(m.dbPoolCreateName)
+				m.dbPoolCreateStep = -1
+				m.dbDetailLoaded = false
+				return m, m.createDBPool(poolName, dbId, modeName, size)
+			}
+		case "up", "k":
+			switch m.dbPoolCreateStep {
+			case 1:
+				if m.dbPoolCreateDBIdx > 0 {
+					m.dbPoolCreateDBIdx--
+				}
+			case 2:
+				if m.dbPoolCreateMode > 0 {
+					m.dbPoolCreateMode--
+				}
+			}
+		case "down", "j":
+			switch m.dbPoolCreateStep {
+			case 1:
+				if m.dbPoolCreateDBIdx < len(m.dbDetailDatabases)-1 {
+					m.dbPoolCreateDBIdx++
+				}
+			case 2:
+				if m.dbPoolCreateMode < len(dbModes)-1 {
+					m.dbPoolCreateMode++
+				}
+			}
+		case "backspace":
+			switch m.dbPoolCreateStep {
+			case 0:
+				if len(m.dbPoolCreateName) > 0 {
+					m.dbPoolCreateName = m.dbPoolCreateName[:len(m.dbPoolCreateName)-1]
+				}
+			case 3:
+				if len(m.dbPoolCreateSize) > 0 {
+					m.dbPoolCreateSize = m.dbPoolCreateSize[:len(m.dbPoolCreateSize)-1]
+				}
+			}
+		default:
+			if len(msg.Runes) > 0 {
+				switch m.dbPoolCreateStep {
+				case 0:
+					m.dbPoolCreateName += string(msg.Runes)
+				case 3:
+					// only digits
+					for _, r := range msg.Runes {
+						if r >= '0' && r <= '9' {
+							m.dbPoolCreateSize += string(r)
+						}
+					}
+				}
+			}
+		}
+		return m, nil
+	}
+
         switch msg.String() {
         case "left":
 		// In NodePoolDetailView, navigate actions
@@ -9367,6 +9567,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.actionConfirm = false
 				m.dbUserSelectedIdx = -1
 				m.dbUserDeleteConfirm = false
+				m.dbPoolCreateStep = -1
 			}
 			return m, nil
 		}
@@ -9546,6 +9747,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.actionConfirm = false
 				m.dbUserSelectedIdx = -1
 				m.dbUserDeleteConfirm = false
+				m.dbPoolCreateStep = -1
 			}
 			return m, nil
 		}
@@ -9763,6 +9965,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// Dismiss DB user creation result panel before going back to list
 		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			if m.dbPoolCreateStep >= 0 {
+				m.dbPoolCreateStep = -1
+				return m, nil
+			}
 			if m.dbUserDeleteConfirm {
 				m.dbUserDeleteConfirm = false
 				return m, nil
@@ -10514,6 +10720,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			case 3: // Databases tab — create database
 				m.dbDBCreateMode = true
 				m.dbDBCreateInput = ""
+			case 4: // Pools tab — start pool creation wizard (PostgreSQL only)
+				isPostgresEnter := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "postgresql")
+				if isPostgresEnter {
+					m.dbPoolCreateStep = 0
+					m.dbPoolCreateName = ""
+					m.dbPoolCreateDBIdx = 0
+					m.dbPoolCreateMode = 0
+					m.dbPoolCreateSize = "10"
+				}
 			}
 			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
@@ -10910,6 +11125,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbUserDeleteConfirm = false
 						m.dbDBCreateMode = false
 						m.dbDBCreateInput = ""
+						m.dbPoolCreateStep = -1
 						if engine != "" && serviceId != "" {
 							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}
