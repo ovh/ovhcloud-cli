@@ -6,24 +6,22 @@ package upgrade
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
+
+	"github.com/jarcoal/httpmock"
 )
 
 func TestLatestTag(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := r.Header.Get("Accept"); got != "application/json" {
-			t.Errorf("Accept header = %q, want application/json", got)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"tag_name":"v1.4.2","name":"v1.4.2"}`))
-	}))
-	defer server.Close()
+	httpmock.Activate(t)
+	httpmock.RegisterResponder("GET", latestReleaseURL,
+		httpmock.NewJsonResponderOrPanic(http.StatusOK, json.RawMessage(`{"tag_name":"v1.4.2","name":"v1.4.2"}`)))
+	httpmock.RegisterNoResponder(httpmock.NewNotFoundResponder(t.Fatal))
 
-	tag, err := latestTag(context.Background(), server.Client(), server.URL)
+	tag, err := LatestTag(context.Background())
 	if err != nil {
-		t.Fatalf("latestTag: %v", err)
+		t.Fatalf("LatestTag: %v", err)
 	}
 	if tag != "v1.4.2" {
 		t.Fatalf("tag = %q, want v1.4.2", tag)
@@ -31,24 +29,24 @@ func TestLatestTag(t *testing.T) {
 }
 
 func TestLatestTagHTTPError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "nope", http.StatusInternalServerError)
-	}))
-	defer server.Close()
+	httpmock.Activate(t)
+	httpmock.RegisterResponder("GET", latestReleaseURL,
+		httpmock.NewStringResponder(http.StatusInternalServerError, "nope"))
+	httpmock.RegisterNoResponder(httpmock.NewNotFoundResponder(t.Fatal))
 
-	_, err := latestTag(context.Background(), server.Client(), server.URL)
+	_, err := LatestTag(context.Background())
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
 
 func TestLatestTagMissingField(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{}`))
-	}))
-	defer server.Close()
+	httpmock.Activate(t)
+	httpmock.RegisterResponder("GET", latestReleaseURL,
+		httpmock.NewStringResponder(http.StatusOK, `{}`))
+	httpmock.RegisterNoResponder(httpmock.NewNotFoundResponder(t.Fatal))
 
-	_, err := latestTag(context.Background(), server.Client(), server.URL)
+	_, err := LatestTag(context.Background())
 	if err == nil {
 		t.Fatal("expected error for missing tag_name, got nil")
 	}

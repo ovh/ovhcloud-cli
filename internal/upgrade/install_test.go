@@ -10,11 +10,12 @@ import (
 	"compress/gzip"
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
+	"runtime"
 	"testing"
+
+	"github.com/jarcoal/httpmock"
 )
 
 func buildTarGz(t *testing.T, files map[string][]byte) []byte {
@@ -49,26 +50,21 @@ func TestSelfReplace(t *testing.T) {
 		"ovhcloud": []byte("NEW_BINARY_CONTENTS"),
 	})
 
-	var requestedPath string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestedPath = r.URL.Path
-		w.Header().Set("Content-Type", "application/gzip")
-		w.Write(tarball)
-	}))
-	defer server.Close()
+	url := downloadBaseURL + "/v1.4.2/" + assetName(runtime.GOOS, runtime.GOARCH)
+
+	httpmock.Activate(t)
+	httpmock.RegisterResponder("GET", url,
+		httpmock.NewBytesResponder(http.StatusOK, tarball).
+			HeaderAdd(http.Header{"Content-Type": []string{"application/gzip"}}))
+	httpmock.RegisterNoResponder(httpmock.NewNotFoundResponder(t.Fatal))
 
 	target := filepath.Join(t.TempDir(), "ovhcloud")
 	if err := os.WriteFile(target, []byte("OLD"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	err := selfReplace(context.Background(), server.Client(), server.URL, "v1.4.2", target, "linux", "amd64")
-	if err != nil {
-		t.Fatalf("selfReplace: %v", err)
-	}
-
-	if !strings.HasSuffix(requestedPath, "/v1.4.2/ovhcloud-cli_Linux_x86_64.tar.gz") {
-		t.Errorf("requested %q, want suffix /v1.4.2/ovhcloud-cli_Linux_x86_64.tar.gz", requestedPath)
+	if err := SelfReplace(context.Background(), "v1.4.2", target); err != nil {
+		t.Fatalf("SelfReplace: %v", err)
 	}
 
 	got, err := os.ReadFile(target)
@@ -122,15 +118,13 @@ func TestCheckWritable(t *testing.T) {
 }
 
 func TestSelfReplaceHTTPError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "not found", http.StatusNotFound)
-	}))
-	defer server.Close()
+	httpmock.Activate(t)
+	httpmock.RegisterNoResponder(httpmock.NewStringResponder(http.StatusNotFound, "not found"))
 
 	target := filepath.Join(t.TempDir(), "ovhcloud")
 	os.WriteFile(target, []byte("OLD"), 0o755)
 
-	err := selfReplace(context.Background(), server.Client(), server.URL, "v1.4.2", target, "linux", "amd64")
+	err := SelfReplace(context.Background(), "v1.4.2", target)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

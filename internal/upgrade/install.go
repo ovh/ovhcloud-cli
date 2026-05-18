@@ -101,21 +101,18 @@ func selfReplace(ctx context.Context, client *http.Client, baseURL, tag, targetP
 		return fmt.Errorf("create temp file: %w", err)
 	}
 	tmpPath := tmp.Name()
-	defer func() {
-		if _, statErr := os.Stat(tmpPath); statErr == nil {
-			os.Remove(tmpPath)
-		}
-	}()
+	defer os.Remove(tmpPath)
 
 	if err := extractBinary(resp.Body, tmp); err != nil {
 		tmp.Close()
 		return err
 	}
+	if err := tmp.Chmod(0o755); err != nil {
+		tmp.Close()
+		return fmt.Errorf("chmod temp file: %w", err)
+	}
 	if err := tmp.Close(); err != nil {
 		return fmt.Errorf("close temp file: %w", err)
-	}
-	if err := os.Chmod(tmpPath, 0o755); err != nil {
-		return fmt.Errorf("chmod temp file: %w", err)
 	}
 	if err := os.Rename(tmpPath, targetPath); err != nil {
 		return fmt.Errorf("replace %s: %w", targetPath, err)
@@ -133,10 +130,10 @@ func extractBinary(r io.Reader, out io.Writer) error {
 	tr := tar.NewReader(gz)
 	for {
 		hdr, err := tr.Next()
-		if err == io.EOF {
-			return errors.New("ovhcloud binary not found in archive")
-		}
 		if err != nil {
+			if err == io.EOF {
+				return errors.New("ovhcloud binary not found in archive")
+			}
 			return fmt.Errorf("tar next: %w", err)
 		}
 		if filepath.Base(hdr.Name) != "ovhcloud" {

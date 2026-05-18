@@ -13,12 +13,9 @@ import (
 // DetectInstallMethod inspects the running binary's path and environment to
 // guess how the CLI was installed.
 func DetectInstallMethod() Method {
-	exePath, err := os.Executable()
+	exePath, err := ResolveExecutable()
 	if err != nil {
 		return MethodBinary
-	}
-	if resolved, err := filepath.EvalSymlinks(exePath); err == nil {
-		exePath = resolved
 	}
 	return detect(exePath, os.Getenv("GOBIN"), os.Getenv("GOPATH"), os.Getenv("HOME"))
 }
