@@ -802,6 +802,12 @@ type Model struct {
 	// Object Storage tabs (0=Containers, 1=Users)
 	objectStorageTabIdx int
 	objectStorageUsers  []map[string]interface{}
+	// Managed DB/Analytics detail sub-resources
+	dbDetailUsers     []map[string]interface{}
+	dbDetailBackups   []map[string]interface{}
+	dbDetailDatabases []map[string]interface{}
+	dbDetailPools     []map[string]interface{}
+	dbDetailLoaded    bool // true once fetchDBDetailSubresources has returned
 	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
 	privNetTabIdx           int
 	privNetLocalZones       []map[string]interface{}
@@ -1269,6 +1275,20 @@ type dbCreatedMsg struct {
 type analyticsCreatedMsg struct {
 	name string
 	err  error
+}
+
+type dbDetailSubresourcesMsg struct {
+	serviceId string
+	users     []map[string]interface{}
+	backups   []map[string]interface{}
+	databases []map[string]interface{}
+	pools     []map[string]interface{}
+	err       error
+}
+
+type dbServiceDeletedMsg struct {
+	serviceId string
+	err       error
 }
 
 type analyticsEngineAvailLoadedMsg struct {
@@ -2598,6 +2618,41 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.wizard.dbEngineIdx = 0
 		return m, nil
+
+	case dbDetailSubresourcesMsg:
+		if msg.err == nil && (m.detailData == nil || getStringValue(m.detailData, "id", "") == msg.serviceId) {
+			m.dbDetailUsers = msg.users
+			m.dbDetailBackups = msg.backups
+			m.dbDetailDatabases = msg.databases
+			m.dbDetailPools = msg.pools
+			m.dbDetailLoaded = true
+		}
+		return m, nil
+
+	case dbServiceDeletedMsg:
+		m.actionConfirm = false
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to delete service: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ Database service deleted successfully"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.detailData = nil
+		m.dbDetailUsers = nil
+		m.dbDetailBackups = nil
+		m.dbDetailDatabases = nil
+		m.dbDetailPools = nil
+		m.dbDetailLoaded = false
+		m.mode = LoadingView
+		path := "/databases"
+		if m.currentProduct == ProductManagedAnalytics {
+			path = "/analytics"
+		}
+		return m, tea.Batch(
+			m.fetchDataForPath(path),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
 
 	case dbCreatedMsg:
 		m.wizard.isLoading = false
@@ -7152,6 +7207,143 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 
 	content.WriteString(actionsBox + "\n\n")
 	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", cfgBox))
+
+	// ── Users ──────────────────────────────────────────────────────────────
+	fullWidth := width - 4
+	headSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#AAAAAA")).Width(18)
+	dimSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	var usersContent strings.Builder
+	if len(m.dbDetailUsers) == 0 {
+		if m.dbDetailLoaded {
+			usersContent.WriteString(dimSt.Render("None"))
+		} else {
+			usersContent.WriteString(dimSt.Render("Loading..."))
+		}
+	} else {
+		usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
+			headSt.Render("Username"),
+			headSt.Render("Roles"),
+			headSt.Render("Created"),
+			headSt.Render("Status")))
+		for _, u := range m.dbDetailUsers {
+			username := getStringValue(u, "username", getStringValue(u, "name", "—"))
+			created := getStringValue(u, "createdAt", "—")
+			if len(created) >= 10 {
+				created = created[:10]
+			}
+			userStatus := getStringValue(u, "status", "—")
+			var roles []string
+			if rawRoles, ok := u["roles"].([]interface{}); ok {
+				for _, r := range rawRoles {
+					if s, ok := r.(string); ok {
+						roles = append(roles, s)
+					}
+				}
+			}
+			rolesStr := strings.Join(roles, ", ")
+			if rolesStr == "" {
+				rolesStr = "—"
+			}
+			usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
+				labelSt.Render(truncate(username, 17)),
+				labelSt.Render(truncate(rolesStr, 17)),
+				labelSt.Render(created),
+				valueSt.Render(userStatus)))
+		}
+	}
+	content.WriteString("\n\n" + renderBox(fmt.Sprintf("Users (%d)", len(m.dbDetailUsers)), usersContent.String(), fullWidth))
+
+	// ── Backups ────────────────────────────────────────────────────────────
+	var backupsContent strings.Builder
+	if len(m.dbDetailBackups) == 0 {
+		if m.dbDetailLoaded {
+			backupsContent.WriteString(dimSt.Render("None"))
+		} else {
+			backupsContent.WriteString(dimSt.Render("Loading..."))
+		}
+	} else {
+		backupsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+			headSt.Render("Name"),
+			headSt.Render("Location"),
+			headSt.Render("Created"),
+			headSt.Render("Expires"),
+			headSt.Render("Status")))
+		for _, b := range m.dbDetailBackups {
+			bname := getStringValue(b, "name", getStringValue(b, "id", "—"))
+			bloc := getStringValue(b, "region", "—")
+			bcreated := getStringValue(b, "createdAt", "—")
+			if len(bcreated) >= 10 {
+				bcreated = bcreated[:10]
+			}
+			bexpires := getStringValue(b, "expiresAt", "—")
+			if len(bexpires) >= 10 {
+				bexpires = bexpires[:10]
+			}
+			bstatus := getStringValue(b, "status", "—")
+			backupsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+				labelSt.Render(truncate(bname, 17)),
+				labelSt.Render(truncate(bloc, 17)),
+				labelSt.Render(bcreated),
+				labelSt.Render(bexpires),
+				valueSt.Render(bstatus)))
+		}
+	}
+	content.WriteString("\n" + renderBox(fmt.Sprintf("Backups (%d)", len(m.dbDetailBackups)), backupsContent.String(), fullWidth))
+
+	// ── Databases (DB names within the service) ────────────────────────────
+	var dbNamesContent strings.Builder
+	if len(m.dbDetailDatabases) == 0 {
+		if m.dbDetailLoaded {
+			dbNamesContent.WriteString(dimSt.Render("None"))
+		} else {
+			dbNamesContent.WriteString(dimSt.Render("Loading..."))
+		}
+	} else {
+		for _, d := range m.dbDetailDatabases {
+			dbname := getStringValue(d, "name", getStringValue(d, "id", "—"))
+			dbNamesContent.WriteString(valueSt.Render("  • "+dbname) + "\n")
+		}
+	}
+	content.WriteString("\n" + renderBox(fmt.Sprintf("Databases (%d)", len(m.dbDetailDatabases)), strings.TrimRight(dbNamesContent.String(), "\n"), fullWidth))
+
+	// ── Connection Pools (PostgreSQL only) ────────────────────────────────
+	if strings.EqualFold(getStringValue(m.detailData, "engine", ""), "postgresql") {
+	var poolsContent strings.Builder
+	if len(m.dbDetailPools) == 0 {
+		if m.dbDetailLoaded {
+			poolsContent.WriteString(dimSt.Render("None"))
+		} else {
+			poolsContent.WriteString(dimSt.Render("Loading..."))
+		}
+	} else {
+		poolsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+			headSt.Render("Name"),
+			headSt.Render("Database"),
+			headSt.Render("Mode"),
+			headSt.Render("Size"),
+			headSt.Render("Username")))
+		for _, p := range m.dbDetailPools {
+			pname := getStringValue(p, "name", "—")
+			pdb := getStringValue(p, "databaseId", getStringValue(p, "database", "—"))
+			pmode := getStringValue(p, "mode", "—")
+			var psize string
+			if v, ok := toFloat64(p["size"]); ok && v > 0 {
+				psize = fmt.Sprintf("%d", int(v))
+			} else {
+				psize = "—"
+			}
+			puser := getStringValue(p, "userId", getStringValue(p, "username", "—"))
+			poolsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+				labelSt.Render(truncate(pname, 17)),
+				labelSt.Render(truncate(pdb, 17)),
+				labelSt.Render(truncate(pmode, 17)),
+				labelSt.Render(psize),
+				valueSt.Render(truncate(puser, 17))))
+		}
+	}
+	content.WriteString("\n" + renderBox(fmt.Sprintf("Connection Pools (%d)", len(m.dbDetailPools)), strings.TrimRight(poolsContent.String(), "\n"), fullWidth))
+	} // end postgresql-only pools section
+
 	return content.String()
 }
 
@@ -9953,6 +10145,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, nil
+		} else if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			if m.actionConfirm {
+				m.actionConfirm = false
+				return m, m.deleteManagedDBService()
+			}
+			m.actionConfirm = true
+			return m, nil
+		} else if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			if m.actionConfirm {
+				m.actionConfirm = false
+				return m, m.deleteManagedDBService()
+			}
+			m.actionConfirm = true
+			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
 			// Execute selected action on instance
 			if m.actionConfirm {
@@ -10330,6 +10536,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 								m.fetchLBPools(lbId, lbRegion),
 								m.fetchLBListeners(lbId, lbRegion),
 							)
+						}
+					}
+					if m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics {
+						engine := getStringValue(m.detailData, "engine", "")
+						serviceId := getStringValue(m.detailData, "id", "")
+						m.dbDetailUsers = nil
+						m.dbDetailBackups = nil
+						m.dbDetailDatabases = nil
+						m.dbDetailPools = nil
+						if engine != "" && serviceId != "" {
+							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}
 					}
 				}

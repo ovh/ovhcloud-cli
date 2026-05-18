@@ -100,6 +100,60 @@ func (m Model) fetchDBCapabilities() tea.Cmd {
 	}
 }
 
+// fetchDBDetailSubresources fetches users, backups, and databases for a DB service detail view.
+func (m Model) fetchDBDetailSubresources(engine, serviceId string) tea.Cmd {
+	return func() tea.Msg {
+		base := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+
+		fetchList := func(suffix string) []map[string]interface{} {
+			var ids []string
+			if err := httpLib.Client.Get(base+suffix, &ids); err != nil {
+				return nil
+			}
+			var items []map[string]interface{}
+			for _, id := range ids {
+				var item map[string]interface{}
+				if err := httpLib.Client.Get(base+suffix+"/"+url.PathEscape(id), &item); err == nil {
+					items = append(items, item)
+				}
+			}
+			return items
+		}
+
+		// Connection pools are only supported by PostgreSQL
+		var pools []map[string]interface{}
+		if strings.EqualFold(engine, "postgresql") {
+			pools = fetchList("/connectionPool")
+		}
+
+		return dbDetailSubresourcesMsg{
+			serviceId: serviceId,
+			users:     fetchList("/user"),
+			backups:   fetchList("/backup"),
+			databases: fetchList("/database"),
+			pools:     pools,
+		}
+	}
+}
+
+// deleteManagedDBService deletes the currently viewed managed DB/Analytics service.
+func (m Model) deleteManagedDBService() tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbServiceDeletedMsg{err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return dbServiceDeletedMsg{serviceId: serviceId, err: err}
+		}
+		return dbServiceDeletedMsg{serviceId: serviceId}
+	}
+}
+
 // createManagedDBFromWizard calls the OVHcloud API to create the managed DB service.
 func (m Model) createManagedDBFromWizard() tea.Cmd {
 	return func() tea.Msg {
