@@ -1,0 +1,947 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/v1"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "format": "mac-address",
+        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "support.Message": {
+        "type": "object",
+        "description": "Support ticket message",
+        "properties": {
+          "body": {
+            "type": "string",
+            "description": "Message body"
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Message creation date",
+            "format": "date-time"
+          },
+          "from": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/support.MessageSenderEnum"
+              }
+            ],
+            "description": "Message sender type"
+          },
+          "messageId": {
+            "type": "integer",
+            "description": "Message identifier"
+          },
+          "ticketId": {
+            "type": "integer",
+            "description": "Ticket identifier"
+          },
+          "updateDate": {
+            "type": "string",
+            "description": "Message last update date",
+            "format": "date-time"
+          }
+        }
+      },
+      "support.MessageSenderEnum": {
+        "type": "string",
+        "description": "Message sender type",
+        "enum": [
+          "customer",
+          "support"
+        ]
+      },
+      "support.NewMessageInfo": {
+        "type": "object",
+        "description": "Newly created support identifiers",
+        "properties": {
+          "additionalNotice": {
+            "type": "string",
+            "description": "Notice or warning",
+            "nullable": true
+          },
+          "messageId": {
+            "type": "integer",
+            "description": "Message identifier"
+          },
+          "ticketId": {
+            "type": "integer",
+            "description": "Ticket identifier"
+          },
+          "ticketNumber": {
+            "type": "integer",
+            "description": "Ticket external number"
+          }
+        }
+      },
+      "support.Ticket": {
+        "type": "object",
+        "description": "Support Ticket",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "Customer account identifier"
+          },
+          "canBeClosed": {
+            "type": "boolean",
+            "description": "Can this ticket be closed or not"
+          },
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/support.TicketCategoryEnum"
+              }
+            ],
+            "description": "Ticket request category",
+            "nullable": true
+          },
+          "creationDate": {
+            "type": "string",
+            "description": "Ticket creation date",
+            "format": "date-time"
+          },
+          "lastMessageFrom": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/support.MessageSenderEnum"
+              }
+            ],
+            "description": "Sender type of last message"
+          },
+          "product": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/support.TicketProductEnum"
+              }
+            ],
+            "description": "Product service concerned by ticket",
+            "nullable": true
+          },
+          "score": {
+            "type": "string",
+            "description": "Ticket score"
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Name of service concerned by ticket",
+            "nullable": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/support.TicketStatusEnum"
+              }
+            ],
+            "description": "State of ticket"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Ticket subject"
+          },
+          "ticketId": {
+            "type": "integer",
+            "description": "Ticket identifier"
+          },
+          "ticketNumber": {
+            "type": "integer",
+            "description": "Ticket external number"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/support.TicketTypeEnum"
+              }
+            ],
+            "description": "Ticket type"
+          },
+          "updateDate": {
+            "type": "string",
+            "description": "Ticket last update date",
+            "format": "date-time"
+          }
+        }
+      },
+      "support.TicketCategoryEnum": {
+        "type": "string",
+        "description": "Ticket request category",
+        "enum": [
+          "assistance",
+          "billing",
+          "incident"
+        ]
+      },
+      "support.TicketImpactUrgencyEnum": {
+        "type": "string",
+        "description": "Ticket level of impact or urgency (reserved for Business or Enterprise support level accounts)",
+        "enum": [
+          "high",
+          "low",
+          "medium"
+        ]
+      },
+      "support.TicketProductEnum": {
+        "type": "string",
+        "description": "Ticket product",
+        "enum": [
+          "adsl",
+          "cdn",
+          "dedicated",
+          "dedicated-billing",
+          "dedicated-other",
+          "dedicatedcloud",
+          "domain",
+          "exchange",
+          "fax",
+          "hosting",
+          "housing",
+          "iaas",
+          "mail",
+          "network",
+          "publiccloud",
+          "sms",
+          "ssl",
+          "storage",
+          "telecom-billing",
+          "telecom-other",
+          "vac",
+          "voip",
+          "vps",
+          "web-billing",
+          "web-other"
+        ]
+      },
+      "support.TicketStatusEnum": {
+        "type": "string",
+        "description": "Support ticket statuses",
+        "enum": [
+          "closed",
+          "open",
+          "unknown"
+        ]
+      },
+      "support.TicketSubCategoryEnum": {
+        "type": "string",
+        "description": "Ticket request subcategory",
+        "enum": [
+          "alerts",
+          "autorenew",
+          "bill",
+          "down",
+          "inProgress",
+          "new",
+          "other",
+          "perfs",
+          "start",
+          "usage"
+        ]
+      },
+      "support.TicketTypeEnum": {
+        "type": "string",
+        "description": "DEPRECATED - Ticket type (criticalIntervention requires VIP support level)",
+        "enum": [
+          "criticalIntervention",
+          "genericRequest"
+        ]
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.eu.ovhcloud.com/oauth2/authorize",
+            "tokenUrl": "https://auth.eu.ovhcloud.com/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/support/tickets": {
+      "get": {
+        "summary": "List support tickets identifiers for this service",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "archived",
+            "description": "Search archived tickets",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "description": "Search by ticket category",
+            "schema": {
+              "$ref": "#/components/schemas/support.TicketCategoryEnum"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customerReplyNeeded",
+            "description": "Tickets pending a customer reply",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "excludeAutogenerated",
+            "description": "Exclude auto-generated tickets",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "maxCreationDate",
+            "description": "Maximum creation date",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "minCreationDate",
+            "description": "Minimum creation date",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "description": "Page of tickets to fetch (only if pageSize is defined)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "description": "Number of ticket to fetch",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product",
+            "description": "Search by ticket product",
+            "schema": {
+              "$ref": "#/components/schemas/support.TicketProductEnum"
+            }
+          },
+          {
+            "in": "query",
+            "name": "serviceName",
+            "description": "Ticket message service name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "description": "Status of ticket",
+            "schema": {
+              "$ref": "#/components/schemas/support.TicketStatusEnum"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subject",
+            "description": "Search by ticket subject",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ticketNumber",
+            "description": "Search by ticket number",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:support/tickets/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "SupportTicket"
+      }
+    },
+    "/support/tickets/create": {
+      "post": {
+        "summary": "Create a new ticket",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "description": "Ticket message body"
+                  },
+                  "category": {
+                    "description": "Ticket message category",
+                    "$ref": "#/components/schemas/support.TicketCategoryEnum"
+                  },
+                  "impact": {
+                    "description": "Ticket impact (reserved for Business or Enterprise support level accounts)",
+                    "$ref": "#/components/schemas/support.TicketImpactUrgencyEnum"
+                  },
+                  "product": {
+                    "description": "Ticket message product",
+                    "$ref": "#/components/schemas/support.TicketProductEnum"
+                  },
+                  "serviceName": {
+                    "type": "string",
+                    "description": "Ticket message service name"
+                  },
+                  "subcategory": {
+                    "description": "Ticket message subcategory",
+                    "$ref": "#/components/schemas/support.TicketSubCategoryEnum"
+                  },
+                  "subject": {
+                    "type": "string",
+                    "description": "Ticket message subject"
+                  },
+                  "type": {
+                    "description": "DEPRECATED - Ticket type (criticalIntervention requires VIP support level)",
+                    "$ref": "#/components/schemas/support.TicketTypeEnum"
+                  },
+                  "urgency": {
+                    "description": "Ticket urgency (reserved for Business or Enterprise support level accounts)",
+                    "$ref": "#/components/schemas/support.TicketImpactUrgencyEnum"
+                  },
+                  "watchers": {
+                    "type": "array",
+                    "description": "List of e-mail addresses to notify on ticket updates (max. 10)",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "body",
+                  "subject"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/support.NewMessageInfo"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:support/tickets/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/support/tickets/{ticketId}": {
+      "get": {
+        "summary": "Get ticket",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticketId",
+            "description": "internal identifier ticket",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/support.Ticket"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:support/tickets/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/support/tickets/{ticketId}/canBeScored": {
+      "get": {
+        "summary": "Checks whether ticket can be scored",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticketId",
+            "description": "internal ticket identifier",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:support/tickets/canBeScored/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/support/tickets/{ticketId}/close": {
+      "post": {
+        "summary": "Close ticket",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticketId",
+            "description": "internal ticket identifier",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:support/tickets/close",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/support/tickets/{ticketId}/messages": {
+      "get": {
+        "summary": "Get ticket messages",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticketId",
+            "description": "internal ticket identifier",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/support.Message"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:support/tickets/messages/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/support/tickets/{ticketId}/reopen": {
+      "post": {
+        "summary": "Reopen a ticket",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticketId",
+            "description": "internal ticket identifier",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "description": "ticket reopen reason"
+                  }
+                },
+                "required": [
+                  "body"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:support/tickets/reopen",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/support/tickets/{ticketId}/reply": {
+      "post": {
+        "summary": "Reply to ticket",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticketId",
+            "description": "internal ticket identifier",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "description": "text body of ticket response"
+                  }
+                },
+                "required": [
+                  "body"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:support/tickets/reply",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/support/tickets/{ticketId}/score": {
+      "post": {
+        "summary": "Set ticket score",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticketId",
+            "description": "internal ticket identifier",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "score": {
+                    "type": "string",
+                    "description": "ticket score"
+                  },
+                  "scoreComment": {
+                    "type": "string",
+                    "description": "ticket comment about the score"
+                  }
+                },
+                "required": [
+                  "score"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:support/tickets/score",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}
