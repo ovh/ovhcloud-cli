@@ -137,7 +137,7 @@ type Cilium struct {
 
 type ClusterMesh struct {
 	Enabled   *bool                 `json:"enabled,omitempty"`
-	APIServer *ClusterMeshAPIServer `json:"apiserver,omitempty"`
+	APIServer *ClusterMeshAPIServer `json:"apiServer,omitempty"`
 }
 
 type ClusterMeshAPIServer struct {

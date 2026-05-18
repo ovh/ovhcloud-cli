@@ -281,7 +281,7 @@ func (ms *MockSuite) TestCloudKubeCreateCiliumClusterMeshWithAllOptions(assert, 
 					"clusterId": 123,
 					"clusterMesh": {
 						"enabled": true,
-						"apiserver": {
+						"apiServer": {
 							"serviceType": "NodePort",
 							"nodePort": 30000
 						}
@@ -558,7 +558,7 @@ func (ms *MockSuite) TestCloudKubeResetCiliumClusterMeshWithAllOptions(assert, r
 					"clusterId": 42,
 					"clusterMesh": {
 						"enabled": true,
-						"apiserver": {
+						"apiServer": {
 							"serviceType": "LoadBalancer",
 							"nodePort": 31000
 						}
