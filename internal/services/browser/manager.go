@@ -808,10 +808,13 @@ type Model struct {
 	dbDetailDatabases []map[string]interface{}
 	dbDetailPools     []map[string]interface{}
 	dbDetailLoaded    bool // true once fetchDBDetailSubresources has returned
-	dbDetailTab       int  // 0=Service, 1=Users, 2=Backups, 3=Databases, 4=Pools, 5=Logs
+	dbDetailTab       int  // 0=Service, 1=Users, 2=Backups, 3=Databases, 4=Pools, 5=Logs, 6=ACL
 	dbDetailLogs        []map[string]interface{} // last fetched log entries
 	dbLogsLoaded        bool // true once fetchDBLogs has returned
+	dbLogsUnsupported   bool // true when the engine does not expose a /logs endpoint
 	dbLogsScrollOffset  int  // scroll offset for logs tab (0 = bottom/newest)
+	dbDetailACL         []map[string]interface{} // ACL entries (analytics only)
+	dbACLLoaded         bool // true once fetchDBACL has returned
 	// DB user state (Users tab)
 	dbUserCreateMode   bool                   // true when typing a new username
 	dbUserCreateInput  string                 // username being typed
@@ -2676,7 +2679,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbPoolCreateStep = -1
 		m.dbDetailLogs = nil
 		m.dbLogsLoaded = false
+		m.dbLogsUnsupported = false
 		m.dbLogsScrollOffset = 0
+		m.dbDetailACL = nil
+		m.dbACLLoaded = false
 		m.mode = LoadingView
 		path := "/databases"
 		if m.currentProduct == ProductManagedAnalytics {
@@ -2781,22 +2787,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbLogsLoaded = true
 		if msg.err != nil {
 			m.dbDetailLogs = nil
-			m.notification = fmt.Sprintf("❌ Failed to fetch logs: %s", msg.err.Error())
-			m.notificationExpiry = time.Now().Add(8 * time.Second)
-			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+			// 404 means this engine doesn't expose logs via the public API
+			if strings.Contains(msg.err.Error(), "status code 404") {
+				m.dbLogsUnsupported = true
+				return m, nil
+			}
+			m.notification = fmt.Sprintf("❌ Logs: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(10 * time.Second)
+			return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
+		m.dbLogsUnsupported = false
 		m.dbDetailLogs = msg.logs
 		// Schedule next auto-refresh in 10 s
 		return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return dbLogsRefreshTickMsg{} })
 
 	case dbLogsRefreshTickMsg:
-		// Only re-fetch if still viewing the Logs tab
+		// Only re-fetch if still viewing the Logs tab and endpoint is supported
 		if m.mode == DetailView &&
 			(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) &&
-			m.dbDetailTab == 5 {
+			m.dbDetailTab == 5 && !m.dbLogsUnsupported {
 			return m, m.fetchDBLogs()
 		}
-		// Tab was left — stop the loop
+		// Tab was left or unsupported — stop the loop
+		return m, nil
+
+	case dbACLMsg:
+		m.dbACLLoaded = true
+		if msg.err != nil {
+			m.dbDetailACL = nil
+			// 404 = endpoint not supported for this engine
+			if strings.Contains(msg.err.Error(), "status code 404") {
+				return m, nil
+			}
+			m.notification = fmt.Sprintf("❌ Failed to fetch ACL: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbDetailACL = msg.acl
 		return m, nil
 
 	case dbCreatedMsg:
@@ -7267,6 +7294,8 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		engineDisplay = engineRaw + " " + version
 	}
 	isPostgres := strings.EqualFold(engineRaw, "postgresql")
+	isAnalytics := m.currentProduct == ProductManagedAnalytics
+	isKafka := strings.EqualFold(engineRaw, "kafka")
 
 	// ── Tab bar ───────────────────────────────────────────────────────────
 	tabActiveStyle := lipgloss.NewStyle().
@@ -7283,10 +7312,11 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		Foreground(lipgloss.Color("#444444")).
 		Padding(0, 2)
 
-	tabNames := []string{"Service", "Users", "Backups", "Databases", "Pools", "Logs"}
+	tabNames := []string{"Service", "Users", "Backups", "Databases", "Pools", "Logs", "ACL"}
 	var tabParts []string
 	for i, name := range tabNames {
-		if i == 4 && !isPostgres {
+		disabled := (i == 4 && !isPostgres) || (i == 2 && isAnalytics) || (i == 6 && !isKafka)
+		if disabled {
 			tabParts = append(tabParts, tabDisabledStyle.Render(name))
 		} else if i == m.dbDetailTab {
 			tabParts = append(tabParts, tabActiveStyle.Render(name))
@@ -7731,7 +7761,10 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		content.WriteString(refreshBtn + "  " + dimSt.Render("Enter → reload") + "   " + liveIndicator + dimSt.Render(" (auto every 10s)") + "\n\n")
 
 		var logsContent strings.Builder
-		if !m.dbLogsLoaded {
+		if m.dbLogsUnsupported {
+			logsContent.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700")).Render(
+				"None logs"))
+		} else if !m.dbLogsLoaded {
 			logsContent.WriteString(dimSt.Render("Loading..."))
 		} else if len(m.dbDetailLogs) == 0 {
 			logsContent.WriteString(dimSt.Render("No log entries found"))
@@ -7783,6 +7816,38 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			fmt.Sprintf("Logs (%d)", len(m.dbDetailLogs)),
 			strings.TrimRight(logsContent.String(), "\n"),
 			fullWidth))
+
+	case 6: // ── ACL (Analytics only) ────────────────────────────────────
+		var aclContent strings.Builder
+		if !m.dbACLLoaded {
+			aclContent.WriteString(dimSt.Render("Loading..."))
+		} else if len(m.dbDetailACL) == 0 {
+			aclContent.WriteString(dimSt.Render("No ACL entries found"))
+		} else {
+			userW := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Bold(true).Width(24)
+			topicW := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Bold(true).Width(30)
+			permW := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Bold(true).Width(16)
+			aclContent.WriteString(userW.Render("User") + topicW.Render("Topic") + permW.Render("Permission") + "\n")
+			for _, entry := range m.dbDetailACL {
+				user := getStringValue(entry, "username", getStringValue(entry, "user", "—"))
+				topic := getStringValue(entry, "topic", "—")
+				perm := getStringValue(entry, "permission", "—")
+				permColor := lipgloss.Color("#7B68EE")
+				switch strings.ToLower(perm) {
+				case "admin":
+					permColor = lipgloss.Color("#FF6B6B")
+				case "write", "readwrite":
+					permColor = lipgloss.Color("#FFD700")
+				case "read":
+					permColor = lipgloss.Color("#00FF7F")
+				}
+				aclContent.WriteString(
+					labelSt.Width(24).Render(truncate(user, 23)) +
+						labelSt.Width(30).Render(truncate(topic, 29)) +
+						lipgloss.NewStyle().Foreground(permColor).Render(perm) + "\n")
+			}
+		}
+		content.WriteString(renderBox(fmt.Sprintf("ACL (%d)", len(m.dbDetailACL)), strings.TrimRight(aclContent.String(), "\n"), fullWidth))
 	}
 
 	return content.String()
@@ -9655,6 +9720,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
 			if m.dbDetailTab > 0 {
 				m.dbDetailTab--
+				// Analytics: skip Backups tab (2)
+				if m.currentProduct == ProductManagedAnalytics && m.dbDetailTab == 2 {
+					m.dbDetailTab--
+				}
+				// Non-kafka: skip ACL tab (6)
+				if !strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka") && m.dbDetailTab == 6 {
+					m.dbDetailTab--
+				}
 				m.actionConfirm = false
 				m.dbUserSelectedIdx = -1
 				m.dbUserDeleteConfirm = false
@@ -9833,9 +9906,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView for ManagedDatabases/Analytics, → switches tabs
 		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
-			maxTab := 5
+			maxTab := 6
 			if m.dbDetailTab < maxTab {
 				m.dbDetailTab++
+				// Analytics: skip Backups tab (2)
+				if m.currentProduct == ProductManagedAnalytics && m.dbDetailTab == 2 {
+					m.dbDetailTab++
+				}
+				// Non-kafka: skip ACL tab (6)
+				if !strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka") && m.dbDetailTab == 6 {
+					m.dbDetailTab-- // stay at 5
+				}
 				m.actionConfirm = false
 				m.dbUserSelectedIdx = -1
 				m.dbUserDeleteConfirm = false
@@ -9846,6 +9927,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.dbLogsLoaded = false
 					m.dbDetailLogs = nil
 					return m, m.fetchDBLogs()
+				}
+				// Entering ACL tab: trigger fetch
+				if m.dbDetailTab == 6 {
+					m.dbACLLoaded = false
+					m.dbDetailACL = nil
+					return m, m.fetchDBACL()
 				}
 			}
 			return m, nil
@@ -10832,6 +10919,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.dbLogsLoaded = false
 				m.dbDetailLogs = nil
 				m.dbLogsScrollOffset = 0
+				m.dbLogsUnsupported = false
 				return m, m.fetchDBLogs()
 			}
 			return m, nil
@@ -11232,7 +11320,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbPoolCreateStep = -1
 						m.dbDetailLogs = nil
 						m.dbLogsLoaded = false
+						m.dbLogsUnsupported = false
 						m.dbLogsScrollOffset = 0
+						m.dbDetailACL = nil
+						m.dbACLLoaded = false
 						if engine != "" && serviceId != "" {
 							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}

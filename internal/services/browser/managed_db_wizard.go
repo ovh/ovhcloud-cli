@@ -155,19 +155,73 @@ type dbLogsMsg struct {
 	err  error
 }
 
-// fetchDBLogs fetches the most recent log entries for the current DB service.
-func (m Model) fetchDBLogs() tea.Cmd {
+// dbACLMsg is sent after fetching ACL entries for an analytics service.
+type dbACLMsg struct {
+	acl []map[string]interface{}
+	err error
+}
+
+// fetchDBACL fetches the ACL list for the current analytics service.
+func (m Model) fetchDBACL() tea.Cmd {
 	return func() tea.Msg {
 		engine := getStringValue(m.detailData, "engine", "")
 		serviceId := getStringValue(m.detailData, "id", "")
 		if engine == "" || serviceId == "" {
-			return dbLogsMsg{err: fmt.Errorf("missing engine or service ID")}
+			return dbACLMsg{err: fmt.Errorf("missing engine or service ID")}
 		}
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/logs",
+		base := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/acl",
 			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		// API returns a list of IDs (strings)
+		var ids []string
+		if err := httpLib.Client.Get(base, &ids); err != nil {
+			return dbACLMsg{err: err}
+		}
+		var acl []map[string]interface{}
+		for _, id := range ids {
+			var entry map[string]interface{}
+			if err := httpLib.Client.Get(base+"/"+url.PathEscape(id), &entry); err == nil {
+				acl = append(acl, entry)
+			}
+		}
+		return dbACLMsg{acl: acl}
+	}
+}
+
+// fetchDBLogs fetches the most recent log entries for the current DB service.
+// It tries the engine-specific endpoint first, then falls back to the generic service endpoint.
+func (m Model) fetchDBLogs() tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if serviceId == "" {
+			return dbLogsMsg{err: fmt.Errorf("missing service ID")}
+		}
 		var logs []map[string]interface{}
-		if err := httpLib.Client.Get(endpoint, &logs); err != nil {
-			return dbLogsMsg{err: err}
+
+		// Try engine-specific endpoint first (works for postgresql, mysql, etc.)
+		if engine != "" {
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/logs",
+				m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+			if err := httpLib.Client.Get(endpoint, &logs); err == nil {
+				return dbLogsMsg{logs: logs}
+			}
+			// Also try lowercase engine name (some analytics engines use camelCase in service
+			// detail but lowercase in URL routing)
+			engineLower := strings.ToLower(engine)
+			if engineLower != engine {
+				endpoint2 := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/logs",
+					m.cloudProject, url.PathEscape(engineLower), url.PathEscape(serviceId))
+				if err := httpLib.Client.Get(endpoint2, &logs); err == nil {
+					return dbLogsMsg{logs: logs}
+				}
+			}
+		}
+
+		// Fall back to generic service endpoint
+		fallback := fmt.Sprintf("/v1/cloud/project/%s/database/service/%s/logs",
+			m.cloudProject, url.PathEscape(serviceId))
+		if err := httpLib.Client.Get(fallback, &logs); err != nil {
+			return dbLogsMsg{err: fmt.Errorf("engine=%q tried all endpoints, last error: %w", engine, err)}
 		}
 		return dbLogsMsg{logs: logs}
 	}
