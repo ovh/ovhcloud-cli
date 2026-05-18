@@ -137,6 +137,31 @@ func (m Model) fetchDBDetailSubresources(engine, serviceId string) tea.Cmd {
 	}
 }
 
+// dbUserCreatedMsg is sent after a DB user creation attempt.
+type dbUserCreatedMsg struct {
+	user map[string]interface{}
+	err  error
+}
+
+// createDBUser POSTs to the database user endpoint to create a new user.
+func (m Model) createDBUser(username string) tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbUserCreatedMsg{err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		body := map[string]interface{}{"name": username}
+		var result map[string]interface{}
+		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
+			return dbUserCreatedMsg{err: err}
+		}
+		return dbUserCreatedMsg{user: result}
+	}
+}
+
 // deleteManagedDBService deletes the currently viewed managed DB/Analytics service.
 func (m Model) deleteManagedDBService() tea.Cmd {
 	return func() tea.Msg {

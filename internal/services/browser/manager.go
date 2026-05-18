@@ -809,6 +809,10 @@ type Model struct {
 	dbDetailPools     []map[string]interface{}
 	dbDetailLoaded    bool // true once fetchDBDetailSubresources has returned
 	dbDetailTab       int  // 0=Service, 1=Users, 2=Backups, 3=Databases, 4=Pools
+	// DB user creation state (Users tab)
+	dbUserCreateMode  bool                   // true when typing a new username
+	dbUserCreateInput string                 // username being typed
+	dbUserCreatedData map[string]interface{} // creation result (has password + endpoints)
 	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
 	privNetTabIdx           int
 	privNetLocalZones       []map[string]interface{}
@@ -2645,6 +2649,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbDetailDatabases = nil
 		m.dbDetailPools = nil
 		m.dbDetailLoaded = false
+		m.dbUserCreateMode = false
+		m.dbUserCreateInput = ""
+		m.dbUserCreatedData = nil
 		m.mode = LoadingView
 		path := "/databases"
 		if m.currentProduct == ProductManagedAnalytics {
@@ -2654,6 +2661,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fetchDataForPath(path),
 			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
+
+	case dbUserCreatedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to create user: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.dbDetailLoaded = true
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbUserCreatedData = msg.user
+		// Refresh user list in the background
+		if m.detailData != nil {
+			engine := getStringValue(m.detailData, "engine", "")
+			serviceId := getStringValue(m.detailData, "id", "")
+			if engine != "" && serviceId != "" {
+				m.dbDetailLoaded = false
+				return m, m.fetchDBDetailSubresources(engine, serviceId)
+			}
+		}
+		m.dbDetailLoaded = true
+		return m, nil
 
 	case dbCreatedMsg:
 		m.wizard.isLoading = false
@@ -7251,46 +7278,122 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", cfgBox))
 
 	case 1: // ── Users ─────────────────────────────────────────────────────
-		var usersContent strings.Builder
-		if len(m.dbDetailUsers) == 0 {
-			if m.dbDetailLoaded {
-				usersContent.WriteString(dimSt.Render("None"))
-			} else {
-				usersContent.WriteString(dimSt.Render("Loading..."))
-			}
-		} else {
-			usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
-				headSt.Render("Username"),
-				headSt.Render("Roles"),
-				headSt.Render("Created"),
-				headSt.Render("Status")))
-			for _, u := range m.dbDetailUsers {
-				username := getStringValue(u, "username", getStringValue(u, "name", "—"))
-				created := getStringValue(u, "createdAt", "—")
-				if len(created) >= 10 {
-					created = created[:10]
+		if m.dbUserCreatedData != nil {
+			// ── User creation result panel ────────────────────────────────
+			createdUsername := getStringValue(m.dbUserCreatedData, "username", getStringValue(m.dbUserCreatedData, "name", "—"))
+			password := getStringValue(m.dbUserCreatedData, "password", "—")
+
+			// Build URIs from the service's endpoints
+			host, port, dbname, scheme, sslMode := "", "", "defaultdb", engineRaw, "require"
+			if endpoints, ok := m.detailData["endpoints"].([]interface{}); ok {
+				for _, ep := range endpoints {
+					epMap, ok := ep.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					if !strings.EqualFold(getStringValue(epMap, "component", ""), engineRaw) {
+						continue
+					}
+					host = getStringValue(epMap, "domain", "")
+					if p, ok := toFloat64(epMap["port"]); ok {
+						port = fmt.Sprintf("%d", int(p))
+					}
+					if sch := getStringValue(epMap, "scheme", ""); sch != "" {
+						scheme = sch
+					}
+					if sm := getStringValue(epMap, "sslMode", ""); sm != "" {
+						sslMode = sm
+					}
+					if pa := getStringValue(epMap, "path", ""); pa != "" {
+						dbname = strings.TrimPrefix(pa, "/")
+					}
+					break
 				}
-				userStatus := getStringValue(u, "status", "—")
-				var roles []string
-				if rawRoles, ok := u["roles"].([]interface{}); ok {
-					for _, r := range rawRoles {
-						if s, ok := r.(string); ok {
-							roles = append(roles, s)
+			}
+
+			highlightSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700")).Bold(true)
+			uriSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#00BFFF"))
+			connSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#98FB98"))
+			warnSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF8C00")).Bold(true)
+
+			var panel strings.Builder
+			panel.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Username"), valueSt.Render(createdUsername)))
+			panel.WriteString(fmt.Sprintf("%s %s\n\n", labelSt.Render("Password"), highlightSt.Render(password)))
+
+			if host != "" {
+				quickURI := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
+					scheme, createdUsername, password, host, port, dbname, sslMode)
+				connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s",
+					host, port, dbname, createdUsername, password, sslMode)
+
+				panel.WriteString(labelSt.Render("Connection URI") + "\n")
+				panel.WriteString(uriSt.Render(quickURI) + "\n\n")
+				panel.WriteString(labelSt.Render("Connection String") + "\n")
+				panel.WriteString(connSt.Render(connStr) + "\n\n")
+			}
+
+			panel.WriteString(warnSt.Render("⚠  Save your password now — it will not be shown again.") + "\n")
+			panel.WriteString(dimSt.Render("   Press Enter or Esc to dismiss"))
+			content.WriteString(renderBox("✅ User Created: "+createdUsername, panel.String(), fullWidth))
+		} else if m.dbUserCreateMode {
+			// ── User creation text input ──────────────────────────────────
+			inputSt := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Background(lipgloss.Color("#2a2a2a")).
+				Padding(0, 1)
+			var inputContent strings.Builder
+			inputContent.WriteString(labelSt.Render("Username") + "\n\n")
+			inputContent.WriteString(inputSt.Render(m.dbUserCreateInput+"▌") + "\n\n")
+			inputContent.WriteString(dimSt.Render("Enter → confirm   Esc → cancel"))
+			content.WriteString(renderBox("Create New User", inputContent.String(), fullWidth))
+		} else {
+			// ── Users list with Create action ─────────────────────────────
+			createBtn := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#7B68EE")).
+				Bold(true).Padding(0, 1).Render("[+ Create User]")
+			content.WriteString(createBtn + "  " + dimSt.Render("Enter → new user") + "\n\n")
+
+			var usersContent strings.Builder
+			if len(m.dbDetailUsers) == 0 {
+				if m.dbDetailLoaded {
+					usersContent.WriteString(dimSt.Render("None"))
+				} else {
+					usersContent.WriteString(dimSt.Render("Loading..."))
+				}
+			} else {
+				usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
+					headSt.Render("Username"),
+					headSt.Render("Roles"),
+					headSt.Render("Created"),
+					headSt.Render("Status")))
+				for _, u := range m.dbDetailUsers {
+					username := getStringValue(u, "username", getStringValue(u, "name", "—"))
+					created := getStringValue(u, "createdAt", "—")
+					if len(created) >= 10 {
+						created = created[:10]
+					}
+					userStatus := getStringValue(u, "status", "—")
+					var roles []string
+					if rawRoles, ok := u["roles"].([]interface{}); ok {
+						for _, r := range rawRoles {
+							if s, ok := r.(string); ok {
+								roles = append(roles, s)
+							}
 						}
 					}
+					rolesStr := strings.Join(roles, ", ")
+					if rolesStr == "" {
+						rolesStr = "—"
+					}
+					usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
+						labelSt.Render(truncate(username, 17)),
+						labelSt.Render(truncate(rolesStr, 17)),
+						labelSt.Render(created),
+						valueSt.Render(userStatus)))
 				}
-				rolesStr := strings.Join(roles, ", ")
-				if rolesStr == "" {
-					rolesStr = "—"
-				}
-				usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
-					labelSt.Render(truncate(username, 17)),
-					labelSt.Render(truncate(rolesStr, 17)),
-					labelSt.Render(created),
-					valueSt.Render(userStatus)))
 			}
+			content.WriteString(renderBox(fmt.Sprintf("Users (%d)", len(m.dbDetailUsers)), usersContent.String(), fullWidth))
 		}
-		content.WriteString(renderBox(fmt.Sprintf("Users (%d)", len(m.dbDetailUsers)), usersContent.String(), fullWidth))
 
 	case 2: // ── Backups ───────────────────────────────────────────────────
 		var backupsContent strings.Builder
@@ -8969,6 +9072,36 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
                 return m, cmd
         }
 
+	// Intercept all keys when DB user creation text input is active
+	if m.dbUserCreateMode && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			m.dbUserCreateMode = false
+			m.dbUserCreateInput = ""
+		case "backspace":
+			if len(m.dbUserCreateInput) > 0 {
+				m.dbUserCreateInput = m.dbUserCreateInput[:len(m.dbUserCreateInput)-1]
+			}
+		case "enter":
+			username := strings.TrimSpace(m.dbUserCreateInput)
+			if username == "" {
+				return m, nil
+			}
+			m.dbUserCreateMode = false
+			m.dbUserCreateInput = ""
+			m.dbDetailLoaded = false
+			return m, m.createDBUser(username)
+		default:
+			if len(msg.Runes) > 0 {
+				m.dbUserCreateInput += string(msg.Runes)
+			}
+		}
+		return m, nil
+	}
+
         switch msg.String() {
         case "left":
 		// In NodePoolDetailView, navigate actions
@@ -9503,6 +9636,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.mode == NodePoolsView {
 			m.mode = DetailView
 			return m, nil
+		}
+		// Dismiss DB user creation result panel before going back to list
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			if m.dbUserCreatedData != nil {
+				m.dbUserCreatedData = nil
+				return m, nil
+			}
 		}
 		// Go back to table view from detail view, or cancel action confirm
 		if m.mode == DetailView {
@@ -10216,18 +10356,21 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		} else if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
-			if m.actionConfirm {
-				m.actionConfirm = false
-				return m, m.deleteManagedDBService()
+			switch m.dbDetailTab {
+			case 0: // Service tab — Delete action
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.deleteManagedDBService()
+				}
+				m.actionConfirm = true
+			case 1: // Users tab — create new user or dismiss result
+				if m.dbUserCreatedData != nil {
+					m.dbUserCreatedData = nil
+				} else {
+					m.dbUserCreateMode = true
+					m.dbUserCreateInput = ""
+				}
 			}
-			m.actionConfirm = true
-			return m, nil
-		} else if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
-			if m.actionConfirm {
-				m.actionConfirm = false
-				return m, m.deleteManagedDBService()
-			}
-			m.actionConfirm = true
 			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
 			// Execute selected action on instance
@@ -10616,6 +10759,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbDetailDatabases = nil
 						m.dbDetailPools = nil
 						m.dbDetailTab = 0
+						m.dbUserCreateMode = false
+						m.dbUserCreateInput = ""
+						m.dbUserCreatedData = nil
 						if engine != "" && serviceId != "" {
 							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}
