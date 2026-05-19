@@ -1722,7 +1722,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.wizard = WizardData{
 				step:           BackupWizardStepVolume,
 				isLoading:      true,
-				loadingMessage: "Chargement des volumes...",
+				loadingMessage: "Loading volumes...",
 			}
 			return m, m.fetchBackupVolumes()
 		} else if msg.product == ProductNetworkPrivate {
@@ -2052,7 +2052,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case privNetCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(10 * time.Second)
 			m.mode = LoadingView
 			// Always reload the network list (network may have been created even if subnet failed)
@@ -2072,7 +2072,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case privNetDeletedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2089,7 +2089,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case gwDeletedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2107,7 +2107,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		attachMode := m.wizard.gwAttachMode
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			if attachMode {
 				m.mode = DetailView
@@ -2168,7 +2168,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2200,7 +2200,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fipDeletedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2216,7 +2216,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fipDetachedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2233,7 +2233,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbDeletedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2250,7 +2250,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbPoolCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = DetailView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2285,7 +2285,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedLBPool = nil
 		m.lbPoolDetailActionIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2309,7 +2309,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedLBPool = nil
 		m.lbPoolDetailActionIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2331,7 +2331,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.wizard = WizardData{}
 		m.mode = DetailView
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2364,7 +2364,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedLBListener = nil
 		m.lbListenerDetailActionIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2388,7 +2388,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedLBListener = nil
 		m.lbListenerDetailActionIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2411,7 +2411,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LBListenerDetailView
 		m.lbL7PolicyListIdx = -1
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2452,7 +2452,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LBL7RulesView
 		m.lbL7RuleDetailIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2472,7 +2472,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LBL7RulesView
 		m.lbL7RuleDetailIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2494,7 +2494,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lbL7PolicyListIdx = -1
 		m.lbL7PolicyListIdx = -1
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2519,7 +2519,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lbL7PolicyDetailActionIdx = 0
 		m.lbL7PolicyListIdx = -1
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2551,7 +2551,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LBPoolMembersView
 		m.lbPoolMemberDetailIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2572,7 +2572,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lbPoolMemberDetailIdx = 0
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2601,7 +2601,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LBHealthMonitorView
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2624,7 +2624,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.lbHealthMonitors[poolID] = nil
 		}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -3034,7 +3034,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case workflowCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Batch(
@@ -3052,7 +3052,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case workflowDeletedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -3068,7 +3068,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case instanceBackupDeletedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -3085,14 +3085,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fipCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
 		ip := getString(msg.floatingIP, "ip")
 		if ip == "" {
-			ip = "en cours de provisioning"
+			ip = "being provisioned"
 		}
 		m.notification = fmt.Sprintf("✅ Floating IP %s created successfully", ip)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
@@ -3857,7 +3857,7 @@ func (m Model) renderContentBox(width int) string {
 			}
 		} else if m.wizard.step >= 1200 {
 			// Workflow wizard
-			titleText = " ⚙️  Create a backup Workflow "
+			titleText = " ⚙️  Create Backup Workflow "
 		} else if m.wizard.step >= 1100 {
 			// Floating IP wizard
 			titleText = " 🌐 Create Floating IP "
@@ -4861,7 +4861,7 @@ func (m Model) renderWizardView(width int) string {
 		stepMapping = append(stepMapping, LBPoolWizardStepName, LBPoolWizardStepAlgo, LBPoolWizardStepProto, LBPoolWizardStepSession, LBPoolWizardStepConfirm)
 	} else if m.wizard.step >= 1200 {
 		// Workflow wizard
-		steps = append(steps, "Type", "Instance", "Nom", "Planification", "Confirmer")
+		steps = append(steps, "Type", "Instance", "Name", "Schedule", "Confirm")
 		stepMapping = append(stepMapping, WorkflowWizardStepType, WorkflowWizardStepInstance, WorkflowWizardStepName, WorkflowWizardStepSchedule, WorkflowWizardStepConfirm)
 	} else if m.wizard.step >= 1100 {
 		// Floating IP wizard
@@ -7064,11 +7064,11 @@ func (m Model) renderWorkflowDetail(width int) string {
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Region"), valueSt.Render(region)))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Instance"), valueSt.Render(truncate(instanceId, 36))))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Cron"), valueSt.Render(cron)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Rotation"), valueSt.Render(fmt.Sprintf("%d sauvegardes", rotation))))
-	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Statut"), statusStyle.Render(statusIcon+" "+lastStatus)))
-	infoBox := renderBox("Workflow : "+name, infoContent.String(), boxWidth)
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Rotation"), valueSt.Render(fmt.Sprintf("%d backups", rotation))))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Status"), statusStyle.Render(statusIcon+" "+lastStatus)))
+	infoBox := renderBox("Workflow: "+name, infoContent.String(), boxWidth)
 
-	actions := []string{"Supprimer"}
+	actions := []string{"Delete"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
@@ -7142,13 +7142,13 @@ func (m Model) renderInstanceBackupDetail(width int) string {
 
 	var infoContent strings.Builder
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(id, 36))))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Localisation"), valueSt.Render(location)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Taille disque"), valueSt.Render(sizeStr)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Created"), valueSt.Render(created)))
-	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Statut"), statusStyle.Render(statusIcon+" "+status)))
-	infoBox := renderBox("Instance Backup : "+name, infoContent.String(), boxWidth)
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Location"), valueSt.Render(location)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Disk size"), valueSt.Render(sizeStr)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Created on"), valueSt.Render(created)))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Status"), statusStyle.Render(statusIcon+" "+status)))
+	infoBox := renderBox("Instance Backup: "+name, infoContent.String(), boxWidth)
 
-	actions := []string{"Supprimer"}
+	actions := []string{"Delete"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
@@ -9319,7 +9319,7 @@ func (m Model) renderFooter() string {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
 		} else if (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.inTableFocus {
 			if m.currentProduct == ProductNetworkPrivate {
-				help = "↑↓: Navigate • ←→: vRack Regions↔Local Zones • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
+				help = "↑↓: Navigate • ←→: Regions↔Local Zones • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else if m.currentProduct == ProductStorageObject {
 				help = "↑↓: Navigate • ←→: Containers↔Users • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else {
@@ -9349,7 +9349,7 @@ func (m Model) renderFooter() string {
 			help = m.backupDetailView.HelpText()
 		} else if m.currentProduct == ProductNetworkPrivate {
 			if m.actionConfirm {
-				help = "Enter: Confirmer l'action • Esc: Annuler"
+				help = "Enter: Confirm action • Esc: Cancel"
 			} else {
 				help = "←→: Select action • Enter: Execute • Esc: Back to list • q: Quit"
 			}
@@ -10079,6 +10079,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.currentProduct == ProductManagedAnalytics && m.dbDetailTab == 2 {
 					m.dbDetailTab--
 				}
+				// Non-postgres: skip disabled Pools tab (4)
+				isPostgresNav := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "postgresql")
+				if !isPostgresNav && m.dbDetailTab == 4 {
+					m.dbDetailTab--
+				}
 				// Non-kafka: skip ACL (6) and Topics (7)
 				isKafkaNav := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka")
 				if !isKafkaNav && m.dbDetailTab >= 6 {
@@ -10262,11 +10267,21 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView for ManagedDatabases/Analytics, → switches tabs
 		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			isKafkaRight := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka")
+			// Already at the last available tab — don't re-fetch or do anything
+			if (!isKafkaRight && m.dbDetailTab == 5) || (isKafkaRight && m.dbDetailTab == 7) {
+				return m, nil
+			}
 			maxTab := 7
 			if m.dbDetailTab < maxTab {
 				m.dbDetailTab++
 				// Analytics: skip Backups tab (2)
 				if m.currentProduct == ProductManagedAnalytics && m.dbDetailTab == 2 {
+					m.dbDetailTab++
+				}
+				// Non-postgres: skip disabled Pools tab (4)
+				isPostgresRight := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "postgresql")
+				if !isPostgresRight && m.dbDetailTab == 4 {
 					m.dbDetailTab++
 				}
 				// Non-kafka: skip ACL (6) and Topics (7)
@@ -11472,7 +11487,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 				}
 				if len(regionNames) == 0 {
-					m.notification = "❌ No compatible region: OVH Gateway can only be added to subnets created without a gateway (mode 'OVH Gateway'). Recreate the network with this mode."
+					m.notification = "❌ No compatible region: the OVH Gateway can only be attached to subnets created without a gateway (mode 'OVH Gateway'). Recreate the network with this option."
 					m.notificationExpiry = time.Now().Add(10 * time.Second)
 					return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 				}
@@ -11668,7 +11683,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					if m.currentProduct == ProductNetworkLB {
 						lbId := getStringValue(m.detailData, "id", "")
 						lbRegion := getStringValue(m.detailData, "region", "")
-						m.lbDetailSection = 0   // always start in Listeners section
+						m.lbDetailSection = 0    // always start in Listeners section
 						m.lbPoolListIdx = -1     // reset pool cursor when entering LB detail
 						m.lbListenerListIdx = -1 // reset listener cursor when entering LB detail
 						if lbId != "" && lbRegion != "" {
@@ -11850,16 +11865,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					// In Listeners section
 					if m.lbListenerListIdx < len(listeners)-1 {
 						m.lbListenerListIdx++
-					} else {
-						// Reached end of listeners → jump to Pools section
+					} else if len(pools) > 0 {
+						// Reached end of listeners → jump to Pools section only if pools exist
 						m.lbDetailSection = 1
 						m.lbListenerListIdx = -1
-						if len(pools) > 0 {
-							m.lbPoolListIdx = 0
-						} else {
-							m.lbPoolListIdx = -1
-						}
+						m.lbPoolListIdx = 0
 					}
+					// If no pools, stay on last listener (don't transition to empty pools section)
 				} else {
 					// In Pools section
 					if m.lbPoolListIdx < len(pools)-1 {
@@ -14540,7 +14552,7 @@ func (m Model) handleVolumeWizardTypeKeys(key string, msg tea.KeyMsg) (tea.Model
 		m.wizard.volumeAvailabilityZone = ""
 		m.wizard.step = VolumeWizardStepAvailabilityZone
 		m.wizard.isLoading = true
-		m.wizard.loadingMessage = "Chargement des zones..."
+		m.wizard.loadingMessage = "Loading zones..."
 		return m, m.fetchVolumeAvailabilityZones(m.wizard.selectedRegion)
 	case "left":
 		m.wizard.step = VolumeWizardStepRegion

@@ -1577,7 +1577,7 @@ func (m Model) executePrivNetworkDelete() tea.Cmd {
 				errMsg := err.Error()
 				if strings.Contains(errMsg, "409") || strings.Contains(errMsg, "Conflict") || strings.Contains(errMsg, "ports still in use") || strings.Contains(errMsg, "ports") {
 					return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf(
-						"cannot delete network: resources are still attached (instances, gateway, router). Detach them first then retry",
+						"cannot delete the network: resources are still attached (instances, gateway, router). Detach them first and try again",
 					)}
 				}
 				lastErr = err
