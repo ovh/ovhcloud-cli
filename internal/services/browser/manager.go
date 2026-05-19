@@ -836,9 +836,10 @@ type Model struct {
 	dbMetricNames       []string        // list of available metric names
 	dbMetricNamesLoaded bool
 	dbMetricSelectedIdx int             // selected metric in the list
-	dbMetricPeriodIdx   int             // 0=lastHour 1=lastDay 2=lastWeek 3=lastMonth
-	dbMetricPoints      []dbMetricPoint // current chart data
+	dbMetricPeriodIdx   int             // 0=lastHour 1=lastDay
+	dbMetricSeries      []dbMetricSeries // current chart data (one per API series)
 	dbMetricLoaded      bool
+	dbMetricLoading     bool             // true while a fetch is in flight
 	dbMetricName        string          // currently displayed metric name
 	dbUserCreateMode   bool                   // true when typing a new username
 	dbUserCreateInput  string                 // username being typed
@@ -2713,7 +2714,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbTopicCreateStep = -1
 		m.dbMetricNames = nil
 		m.dbMetricNamesLoaded = false
-		m.dbMetricPoints = nil
+		m.dbMetricSeries = nil
 		m.dbMetricLoaded = false
 		m.dbMetricName = ""
 		m.mode = LoadingView
@@ -2912,23 +2913,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbMetricSelectedIdx = 0
 		// Auto-load the first metric
 		if len(m.dbMetricNames) > 0 {
-			periods := []string{"lastHour", "lastDay", "lastWeek", "lastMonth"}
+			periods := []string{"lastHour", "lastDay"}
 			name := m.dbMetricNames[0]
 			m.dbMetricName = name
+			m.dbMetricLoading = true
 			return m, m.fetchDBMetric(name, periods[m.dbMetricPeriodIdx])
 		}
 		return m, nil
 
 	case dbMetricDataMsg:
-		m.dbMetricLoaded = true
-		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Metric error: %s", msg.err.Error())
-			m.notificationExpiry = time.Now().Add(6 * time.Second)
-			return m, tea.Tick(6*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
-		}
-		m.dbMetricName = msg.name
-		m.dbMetricPoints = msg.points
-		return m, nil
+                m.dbMetricLoading = false
+                // Discard stale responses from a previous metric/period selection
+                if msg.name != m.dbMetricName {
+                        return m, nil
+                }
+                m.dbMetricLoaded = true
+                if msg.err != nil {
+                        m.notification = fmt.Sprintf("❌ Metric error: %s", msg.err.Error())
+                        m.notificationExpiry = time.Now().Add(6 * time.Second)
+                        return m, tea.Tick(6*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+                }
+                m.dbMetricSeries = msg.series
 
 	case dbCreatedMsg:
 		m.wizard.isLoading = false
@@ -8078,8 +8083,8 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		content.WriteString(renderBox(fmt.Sprintf("Topics (%d)", len(m.dbDetailTopics)), strings.TrimRight(topicsContent.String(), "\n"), fullWidth))
 
 	case 8: // ── Metrics ──────────────────────────────────────────────────
-		periods := []string{"lastHour", "lastDay", "lastWeek", "lastMonth"}
-		periodLabels := []string{"1h", "1d", "1w", "1mo"}
+		periods := []string{"lastHour", "lastDay"}
+		periodLabels := []string{"1h", "1d"}
 		selPeriodSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FFD0")).Padding(0, 1)
 		unselPeriodSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#555555")).Padding(0, 1)
 		selMetricSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FFD0"))
@@ -8139,101 +8144,127 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 
 			// Build chart
 			var chartBuf strings.Builder
-			if !m.dbMetricLoaded {
+			if m.dbMetricLoading {
+				chartBuf.WriteString(dimSt.Render("Loading...") + "\n")
+			} else if !m.dbMetricLoaded {
 				chartBuf.WriteString(dimSt.Render("Press Enter to load metric") + "\n")
-			} else if len(m.dbMetricPoints) == 0 {
-				chartBuf.WriteString(dimSt.Render("No data for this metric/period") + "\n")
-			} else {
-				pts := m.dbMetricPoints
+                        } else if len(m.dbMetricSeries) == 0 {
+                                chartBuf.WriteString(dimSt.Render("No data for this metric/period") + "\n")
+                        } else {
+                                // Palette for multiple series
+                                seriesColors := []string{"#00FFD0", "#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#C77DFF"}
 
-				// Compute explicit time and value ranges from the data
-				minT := pts[0].T
-				maxT := pts[len(pts)-1].T
-				if maxT.Equal(minT) {
-					maxT = minT.Add(time.Second)
-				}
-				var minV, maxV float64
-				for i, p := range pts {
-					if i == 0 || p.V < minV {
-						minV = p.V
-					}
-					if i == 0 || p.V > maxV {
-						maxV = p.V
-					}
-				}
-				yPad := (maxV - minV) * 0.1
-				if yPad == 0 {
-					yPad = 0.1
-				}
-				minV = math.Max(0, minV-yPad)
-				maxV = maxV + yPad
+                                // Compute global time and value ranges across all series
+                                var minT, maxT time.Time
+                                var minV, maxV float64
+                                first := true
+                                for _, s := range m.dbMetricSeries {
+                                        for _, p := range s.Points {
+                                                if first || p.T.Before(minT) {
+                                                        minT = p.T
+                                                }
+                                                if first || p.T.After(maxT) {
+                                                        maxT = p.T
+                                                }
+                                                if first || p.V < minV {
+                                                        minV = p.V
+                                                }
+                                                if first || p.V > maxV {
+                                                        maxV = p.V
+                                                }
+                                                first = false
+                                        }
+                                }
+                                if maxT.Equal(minT) {
+                                        maxT = minT.Add(time.Second)
+                                }
+                                yPad := (maxV - minV) * 0.1
+                                if yPad == 0 {
+                                        yPad = 0.1
+                                }
+                                minV = math.Max(0, minV-yPad)
+                                maxV = maxV + yPad
 
-				// Choose X label format based on period
-				xFmt := timeserieslinechart.HourTimeLabelFormatter()
-				if periods[m.dbMetricPeriodIdx] == "lastWeek" || periods[m.dbMetricPeriodIdx] == "lastMonth" {
-					xFmt = timeserieslinechart.DateTimeLabelFormatter()
-				}
+                                xFmt := timeserieslinechart.HourTimeLabelFormatter()
 
-				chart := timeserieslinechart.New(chartInnerWidth, chartHeight,
-					timeserieslinechart.WithTimeRange(minT, maxT),
-					timeserieslinechart.WithXYSteps(4, 4),
-					timeserieslinechart.WithXLabelFormatter(xFmt),
-					timeserieslinechart.WithYLabelFormatter(func(_ int, v float64) string {
-						if v >= 1000 {
-							return fmt.Sprintf("%.0f", v)
-						} else if v >= 10 {
-							return fmt.Sprintf("%.1f", v)
-						}
-						return fmt.Sprintf("%.2f", v)
-					}),
-				)
-				chart.AxisStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
-				chart.LabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
-				chart.SetStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("#00FFD0")))
+                                chart := timeserieslinechart.New(chartInnerWidth, chartHeight,
+                                        timeserieslinechart.WithTimeRange(minT, maxT),
+                                        timeserieslinechart.WithYRange(minV, maxV),
+                                        timeserieslinechart.WithXYSteps(4, 4),
+                                        timeserieslinechart.WithXLabelFormatter(xFmt),
+                                        timeserieslinechart.WithYLabelFormatter(func(_ int, v float64) string {
+                                                if v >= 1000 {
+                                                        return fmt.Sprintf("%.0f", v)
+                                                } else if v >= 10 {
+                                                        return fmt.Sprintf("%.1f", v)
+                                                }
+                                                return fmt.Sprintf("%.2f", v)
+                                        }),
+                                )
+                                chart.AxisStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
+                                chart.LabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
-				// Disable auto-range so Push() never alters the scale mid-loop.
-				// New() enables AutoXYRange by default — each Push() would rescale
-				// the buffer, leaving some columns with inconsistent Y coords → gaps.
-				chart.AutoMinX = false
-				chart.AutoMaxX = false
-				chart.AutoMinY = false
-				chart.AutoMaxY = false
-				chart.SetViewTimeAndYRange(minT, maxT, minV, maxV)
+                                // Disable auto-range so Push() never alters the scale mid-loop.
+                                chart.AutoMinX = false
+                                chart.AutoMaxX = false
+                                chart.AutoMinY = false
+                                chart.AutoMaxY = false
+                                chart.SetViewTimeAndYRange(minT, maxT, minV, maxV)
 
-				// Downsample to the actual graphing area width (not total chart width)
-				// so every column has a data point and no column is left at 0
-				graphW := chart.GraphWidth()
-				if graphW < 1 {
-					graphW = chartInnerWidth
-				}
-				if len(pts) > graphW {
-					bucket := len(pts) / graphW
-					sampled := make([]dbMetricPoint, 0, graphW)
-					for i := 0; i < len(pts); i += bucket {
-						end := i + bucket
-						if end > len(pts) {
-							end = len(pts)
-						}
-						var sum float64
-						for _, p := range pts[i:end] {
-							sum += p.V
-						}
-						sampled = append(sampled, dbMetricPoint{T: pts[i].T, V: sum / float64(end-i)})
-					}
-					pts = sampled
-				}
+                                graphW := chart.GraphWidth()
+                                if graphW < 1 {
+                                        graphW = chartInnerWidth
+                                }
 
-				for _, pt := range pts {
-					chart.Push(timeserieslinechart.TimePoint{Time: pt.T, Value: pt.V})
-				}
-				chart.Draw()
-				chartTitle := m.dbMetricName + "  [" + periods[m.dbMetricPeriodIdx] + "]"
-				chartBuf.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render(chartTitle) + "\n")
-				chartBuf.WriteString(chart.View())
-			}
+                                var dsNames []string
+                                for si, s := range m.dbMetricSeries {
+                                        color := seriesColors[si%len(seriesColors)]
+                                        dsName := s.Name
+                                        chart.SetDataSetStyle(dsName, lipgloss.NewStyle().Foreground(lipgloss.Color(color)))
+                                        dsNames = append(dsNames, dsName)
 
-			// Join list and chart side by side
-			listBox := lipgloss.NewStyle().
+                                        // Downsample per series so every column has a point
+                                        pts := s.Points
+                                        if len(pts) > graphW {
+                                                bucket := len(pts) / graphW
+                                                sampled := make([]dbMetricPoint, 0, graphW)
+                                                for i := 0; i < len(pts); i += bucket {
+                                                        end := i + bucket
+                                                        if end > len(pts) {
+                                                                end = len(pts)
+                                                        }
+                                                        var sum float64
+                                                        for _, p := range pts[i:end] {
+                                                                sum += p.V
+                                                        }
+                                                        sampled = append(sampled, dbMetricPoint{T: pts[i].T, V: sum / float64(end-i)})
+                                                }
+                                                pts = sampled
+                                        }
+                                        for _, pt := range pts {
+                                                chart.PushDataSet(dsName, timeserieslinechart.TimePoint{Time: pt.T, Value: pt.V})
+                                        }
+                                }
+                                chart.DrawDataSets(dsNames)
+
+                                chartTitle := m.dbMetricName + "  [" + periods[m.dbMetricPeriodIdx] + "]"
+                                chartBuf.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render(chartTitle) + "\n")
+                                chartBuf.WriteString(chart.View())
+
+                                // Legend (only if more than one series)
+                                if len(m.dbMetricSeries) > 1 {
+                                        var legend strings.Builder
+                                        for si, s := range m.dbMetricSeries {
+                                                color := seriesColors[si%len(seriesColors)]
+                                                dot := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render("━")
+                                                legend.WriteString(dot + " " + dimSt.Render(s.Name) + "  ")
+                                        }
+                                        chartBuf.WriteString(legend.String() + "\n")
+                                }
+                        }
+
+                        // Join list and chart side by side
+                        listBox := lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("#333333")).
 				Width(listWidth).Padding(0, 1).
@@ -10156,7 +10187,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Intercept keys for Metrics tab navigation (tab 8)
 	if m.dbDetailTab == 8 && m.mode == DetailView &&
 		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
-		periods := []string{"lastHour", "lastDay", "lastWeek", "lastMonth"}
+		periods := []string{"lastHour", "lastDay"}
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
@@ -10166,27 +10197,47 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mode = TableView
 			m.dbDetailTab = 0
 			m.dbMetricLoaded = false
-			m.dbMetricPoints = nil
+			m.dbMetricSeries = nil
 			return m, nil
 		case "up", "k":
-			if m.dbMetricSelectedIdx > 0 {
+			if m.dbMetricSelectedIdx > 0 && m.dbMetricNamesLoaded {
 				m.dbMetricSelectedIdx--
+				m.dbMetricSeries = nil
 				m.dbMetricLoaded = false
+				name := m.dbMetricNames[m.dbMetricSelectedIdx]
+				m.dbMetricName = name
+				m.dbMetricLoading = true
+				return m, m.fetchDBMetric(name, periods[m.dbMetricPeriodIdx])
 			}
 		case "down", "j":
-			if m.dbMetricSelectedIdx < len(m.dbMetricNames)-1 {
+			if m.dbMetricSelectedIdx < len(m.dbMetricNames)-1 && m.dbMetricNamesLoaded {
 				m.dbMetricSelectedIdx++
+				m.dbMetricSeries = nil
 				m.dbMetricLoaded = false
+				name := m.dbMetricNames[m.dbMetricSelectedIdx]
+				m.dbMetricName = name
+				m.dbMetricLoading = true
+				return m, m.fetchDBMetric(name, periods[m.dbMetricPeriodIdx])
 			}
 		case "left":
-			if m.dbMetricPeriodIdx > 0 {
+			if m.dbMetricPeriodIdx > 0 && m.dbMetricNamesLoaded && len(m.dbMetricNames) > 0 {
 				m.dbMetricPeriodIdx--
+				m.dbMetricSeries = nil
 				m.dbMetricLoaded = false
+				name := m.dbMetricNames[m.dbMetricSelectedIdx]
+				m.dbMetricName = name
+				m.dbMetricLoading = true
+				return m, m.fetchDBMetric(name, periods[m.dbMetricPeriodIdx])
 			}
 		case "right":
-			if m.dbMetricPeriodIdx < len(periods)-1 {
+			if m.dbMetricPeriodIdx < len(periods)-1 && m.dbMetricNamesLoaded && len(m.dbMetricNames) > 0 {
 				m.dbMetricPeriodIdx++
+				m.dbMetricSeries = nil
 				m.dbMetricLoaded = false
+				name := m.dbMetricNames[m.dbMetricSelectedIdx]
+				m.dbMetricName = name
+				m.dbMetricLoading = true
+				return m, m.fetchDBMetric(name, periods[m.dbMetricPeriodIdx])
 			}
 		case "enter":
 			if m.dbMetricNamesLoaded && len(m.dbMetricNames) > 0 {
@@ -10194,7 +10245,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				period := periods[m.dbMetricPeriodIdx]
 				m.dbMetricName = name
 				m.dbMetricLoaded = false
-				m.dbMetricPoints = nil
+				m.dbMetricSeries = nil
+				m.dbMetricLoading = true
 				return m, m.fetchDBMetric(name, period)
 			}
 		}
@@ -10360,7 +10412,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.dbDetailTab == 8 {
 					m.dbMetricNamesLoaded = false
 					m.dbMetricNames = nil
-					m.dbMetricPoints = nil
+					m.dbMetricSeries = nil
 					m.dbMetricLoaded = false
 					m.dbMetricSelectedIdx = 0
 					return m, m.fetchDBMetricNames()
@@ -10593,7 +10645,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.dbDetailTab == 8 {
 					m.dbMetricNamesLoaded = false
 					m.dbMetricNames = nil
-					m.dbMetricPoints = nil
+					m.dbMetricSeries = nil
 					m.dbMetricLoaded = false
 					m.dbMetricSelectedIdx = 0
 					return m, m.fetchDBMetricNames()
@@ -12007,7 +12059,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbTopicCreateStep = -1
 						m.dbMetricNames = nil
 						m.dbMetricNamesLoaded = false
-						m.dbMetricPoints = nil
+						m.dbMetricSeries = nil
 						m.dbMetricLoaded = false
 						m.dbMetricName = ""
 						if engine != "" && serviceId != "" {

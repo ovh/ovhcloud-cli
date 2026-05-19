@@ -263,8 +263,14 @@ type dbMetricNamesMsg struct {
 // dbMetricDataMsg is sent after fetching one metric's time-series data.
 type dbMetricDataMsg struct {
 	name   string
-	points []dbMetricPoint
+	series []dbMetricSeries
 	err    error
+}
+
+// dbMetricSeries holds one named time-series returned by the API (one per node/disk/etc.).
+type dbMetricSeries struct {
+	Name   string
+	Points []dbMetricPoint
 }
 
 type dbMetricPoint struct {
@@ -305,6 +311,7 @@ func (m Model) fetchDBMetric(metricName, period string) tea.Cmd {
 			url.PathEscape(metricName), url.QueryEscape(period))
 		var result struct {
 			Metrics []struct {
+				Name       string `json:"name"`
 				DataPoints []struct {
 					Timestamp float64  `json:"timestamp"`
 					Value     *float64 `json:"value"` // pointer to detect null entries (gaps in monitoring data)
@@ -314,21 +321,29 @@ func (m Model) fetchDBMetric(metricName, period string) tea.Cmd {
 		if err := httpLib.Client.Get(endpoint, &result); err != nil {
 			return dbMetricDataMsg{name: metricName, err: err}
 		}
-		var pts []dbMetricPoint
-		for _, metric := range result.Metrics {
+		var series []dbMetricSeries
+		for i, metric := range result.Metrics {
+			sName := metric.Name
+			if sName == "" {
+				sName = fmt.Sprintf("series %d", i+1)
+			}
+			var pts []dbMetricPoint
 			for _, dp := range metric.DataPoints {
 				if dp.Value == nil || dp.Timestamp <= 0 {
-					continue // skip null/gap entries — they would appear as 0 and break the curve
+					continue // skip null/gap entries
 				}
 				pts = append(pts, dbMetricPoint{
 					T: time.Unix(int64(dp.Timestamp), 0),
 					V: *dp.Value,
 				})
 			}
+			if len(pts) == 0 {
+				continue
+			}
+			sort.Slice(pts, func(i, j int) bool { return pts[i].T.Before(pts[j].T) })
+			series = append(series, dbMetricSeries{Name: sName, Points: pts})
 		}
-		// Sort by time
-		sort.Slice(pts, func(i, j int) bool { return pts[i].T.Before(pts[j].T) })
-		return dbMetricDataMsg{name: metricName, points: pts}
+		return dbMetricDataMsg{name: metricName, series: series}
 	}
 }
 
