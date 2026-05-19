@@ -5,6 +5,7 @@ go 1.26.0
 require (
 	code.cloudfoundry.org/bytefmt v0.64.0
 	dario.cat/mergo v1.0.2
+	github.com/NimbleMarkets/ntcharts v0.5.1
 	github.com/PaesslerAG/gval v1.2.4
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/amstuta/fx v0.0.0-20250411141758-99b16761e78b
@@ -48,6 +49,7 @@ require (
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/lrstanley/bubblezone v0.0.0-20240914071701-b48c55a5e78e // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

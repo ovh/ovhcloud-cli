@@ -21,6 +21,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/NimbleMarkets/ntcharts/linechart/timeserieslinechart"
 	"github.com/ovh/ovhcloud-cli/internal/config"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
@@ -830,7 +831,14 @@ type Model struct {
 	dbTopicCreateReplication  string
 	dbTopicCreateRetentionByt string // bytes (-1 = unlimited)
 	dbTopicCreateRetentionHrs string // hours (-1 = unlimited)
-	// DB user state (Users tab)
+	// Metrics tab (tab 8)
+	dbMetricNames       []string        // list of available metric names
+	dbMetricNamesLoaded bool
+	dbMetricSelectedIdx int             // selected metric in the list
+	dbMetricPeriodIdx   int             // 0=lastHour 1=lastDay 2=lastWeek 3=lastMonth
+	dbMetricPoints      []dbMetricPoint // current chart data
+	dbMetricLoaded      bool
+	dbMetricName        string          // currently displayed metric name
 	dbUserCreateMode   bool                   // true when typing a new username
 	dbUserCreateInput  string                 // username being typed
 	dbUserCreatedData  map[string]interface{} // creation result (has password + endpoints)
@@ -2702,6 +2710,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dbDetailTopics = nil
 		m.dbTopicsLoaded = false
 		m.dbTopicCreateStep = -1
+		m.dbMetricNames = nil
+		m.dbMetricNamesLoaded = false
+		m.dbMetricPoints = nil
+		m.dbMetricLoaded = false
+		m.dbMetricName = ""
 		m.mode = LoadingView
 		path := "/databases"
 		if m.currentProduct == ProductManagedAnalytics {
@@ -2886,6 +2899,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fetchDBTopics(),
 			tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 		)
+
+	case dbMetricNamesMsg:
+		m.dbMetricNamesLoaded = true
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to load metrics: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(6 * time.Second)
+			return m, tea.Tick(6*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbMetricNames = msg.names
+		m.dbMetricSelectedIdx = 0
+		// Auto-load the first metric
+		if len(m.dbMetricNames) > 0 {
+			periods := []string{"lastHour", "lastDay", "lastWeek", "lastMonth"}
+			name := m.dbMetricNames[0]
+			m.dbMetricName = name
+			return m, m.fetchDBMetric(name, periods[m.dbMetricPeriodIdx])
+		}
+		return m, nil
+
+	case dbMetricDataMsg:
+		m.dbMetricLoaded = true
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Metric error: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(6 * time.Second)
+			return m, tea.Tick(6*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbMetricName = msg.name
+		m.dbMetricPoints = msg.points
+		return m, nil
 
 	case dbCreatedMsg:
 		m.wizard.isLoading = false
@@ -7373,7 +7415,7 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		Foreground(lipgloss.Color("#444444")).
 		Padding(0, 2)
 
-	tabNames := []string{"Service", "Users", "Backups", "Databases", "Pools", "Logs", "ACL", "Topics"}
+	tabNames := []string{"Service", "Users", "Backups", "Databases", "Pools", "Logs", "ACL", "Topics", "Metrics"}
 	var tabParts []string
 	for i, name := range tabNames {
 		disabled := (i == 4 && !isPostgres) || (i == 2 && isAnalytics) || (i == 6 && !isKafka) || (i == 7 && !isKafka)
@@ -8033,6 +8075,117 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			}
 		}
 		content.WriteString(renderBox(fmt.Sprintf("Topics (%d)", len(m.dbDetailTopics)), strings.TrimRight(topicsContent.String(), "\n"), fullWidth))
+
+	case 8: // ── Metrics ──────────────────────────────────────────────────
+		periods := []string{"lastHour", "lastDay", "lastWeek", "lastMonth"}
+		periodLabels := []string{"1h", "1d", "1w", "1mo"}
+		selPeriodSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FFD0")).Padding(0, 1)
+		unselPeriodSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#555555")).Padding(0, 1)
+		selMetricSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FFD0"))
+		unselMetricSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+
+		// Period selector bar
+		var periodBar strings.Builder
+		for i, lbl := range periodLabels {
+			if i == m.dbMetricPeriodIdx {
+				periodBar.WriteString(selPeriodSt.Render("[" + lbl + "]"))
+			} else {
+				periodBar.WriteString(unselPeriodSt.Render(lbl))
+			}
+		}
+		content.WriteString(periodBar.String() + "  " + dimSt.Render("←/→ period  ↑/↓ metric  Enter: load") + "\n\n")
+
+		if !m.dbMetricNamesLoaded {
+			content.WriteString(dimSt.Render("Loading metric list...") + "\n")
+		} else if len(m.dbMetricNames) == 0 {
+			content.WriteString(dimSt.Render("No metrics available") + "\n")
+		} else {
+			// Metric list (left column) + chart (right column)
+			listWidth := 28
+			chartWidth := fullWidth - listWidth - 3
+			if chartWidth < 20 {
+				chartWidth = 20
+			}
+			chartHeight := m.height - 26
+			if chartHeight < 10 {
+				chartHeight = 10
+			}
+
+			// Build metric list
+			var listBuf strings.Builder
+			visibleCount := chartHeight
+			startIdx := 0
+			if m.dbMetricSelectedIdx >= visibleCount {
+				startIdx = m.dbMetricSelectedIdx - visibleCount + 1
+			}
+			for i := startIdx; i < len(m.dbMetricNames) && i < startIdx+visibleCount; i++ {
+				name := m.dbMetricNames[i]
+				if len(name) > listWidth-2 {
+					name = name[:listWidth-2]
+				}
+				if i == m.dbMetricSelectedIdx {
+					listBuf.WriteString(selMetricSt.Render("▶ " + name) + "\n")
+				} else {
+					listBuf.WriteString(unselMetricSt.Render("  " + name) + "\n")
+				}
+			}
+
+			// Build chart
+			var chartBuf strings.Builder
+			if !m.dbMetricLoaded {
+				chartBuf.WriteString(dimSt.Render("Press Enter to load metric") + "\n")
+			} else if len(m.dbMetricPoints) == 0 {
+				chartBuf.WriteString(dimSt.Render("No data for this metric/period") + "\n")
+			} else {
+				// Downsample: braille gives 2 columns per cell, so max useful points = chartWidth*2
+				pts := m.dbMetricPoints
+				maxPts := chartWidth * 2
+				if len(pts) > maxPts && maxPts > 0 {
+					stride := len(pts) / maxPts
+					sampled := make([]dbMetricPoint, 0, maxPts)
+					for i := 0; i < len(pts); i += stride {
+						end := i + stride
+						if end > len(pts) {
+							end = len(pts)
+						}
+						// average the bucket
+						var sum float64
+						for _, p := range pts[i:end] {
+							sum += p.V
+						}
+						sampled = append(sampled, dbMetricPoint{T: pts[i].T, V: sum / float64(end-i)})
+					}
+					pts = sampled
+				}
+
+				// Build time series chart using ntcharts
+				chart := timeserieslinechart.New(chartWidth, chartHeight)
+				chart.AxisStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
+				chart.LabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+				lineStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FFD0"))
+				chart.SetStyle(lineStyle)
+				for _, pt := range pts {
+					chart.Push(timeserieslinechart.TimePoint{Time: pt.T, Value: pt.V})
+				}
+				chart.DrawBraille()
+				chartTitle := m.dbMetricName + "  [" + periods[m.dbMetricPeriodIdx] + "]"
+				chartBuf.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render(chartTitle) + "\n")
+				chartBuf.WriteString(chart.View())
+			}
+
+			// Join list and chart side by side
+			listBox := lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#333333")).
+				Width(listWidth).Padding(0, 1).
+				Render(strings.TrimRight(listBuf.String(), "\n"))
+			chartBox := lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FFD0")).
+				Width(chartWidth).Padding(0, 1).
+				Render(chartBuf.String())
+			content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, listBox, " ", chartBox) + "\n")
+		}
 	}
 
 	return content.String()
@@ -9941,6 +10094,46 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Intercept keys for Metrics tab navigation (tab 8)
+	if m.dbDetailTab == 8 && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		periods := []string{"lastHour", "lastDay", "lastWeek", "lastMonth"}
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "up", "k":
+			if m.dbMetricSelectedIdx > 0 {
+				m.dbMetricSelectedIdx--
+				m.dbMetricLoaded = false
+			}
+		case "down", "j":
+			if m.dbMetricSelectedIdx < len(m.dbMetricNames)-1 {
+				m.dbMetricSelectedIdx++
+				m.dbMetricLoaded = false
+			}
+		case "left":
+			if m.dbMetricPeriodIdx > 0 {
+				m.dbMetricPeriodIdx--
+				m.dbMetricLoaded = false
+			}
+		case "right":
+			if m.dbMetricPeriodIdx < len(periods)-1 {
+				m.dbMetricPeriodIdx++
+				m.dbMetricLoaded = false
+			}
+		case "enter":
+			if m.dbMetricNamesLoaded && len(m.dbMetricNames) > 0 {
+				name := m.dbMetricNames[m.dbMetricSelectedIdx]
+				period := periods[m.dbMetricPeriodIdx]
+				m.dbMetricName = name
+				m.dbMetricLoaded = false
+				m.dbMetricPoints = nil
+				return m, m.fetchDBMetric(name, period)
+			}
+		}
+		return m, nil
+	}
+
         switch msg.String() {
         case "left":
 		// In NodePoolDetailView, navigate actions
@@ -10086,7 +10279,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				// Non-kafka: skip ACL (6) and Topics (7)
 				isKafkaNav := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka")
-				if !isKafkaNav && m.dbDetailTab >= 6 {
+				if !isKafkaNav && m.dbDetailTab == 7 {
+					m.dbDetailTab = 5 // jump back to Logs
+				} else if !isKafkaNav && m.dbDetailTab == 6 {
 					m.dbDetailTab = 5
 				}
 				m.actionConfirm = false
@@ -10094,6 +10289,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.dbUserDeleteConfirm = false
 				m.dbPoolCreateStep = -1
 				m.dbLogsScrollOffset = 0
+				// Entering Metrics tab going left
+				if m.dbDetailTab == 8 {
+					m.dbMetricNamesLoaded = false
+					m.dbMetricNames = nil
+					m.dbMetricPoints = nil
+					m.dbMetricLoaded = false
+					m.dbMetricSelectedIdx = 0
+					return m, m.fetchDBMetricNames()
+				}
 			}
 			return m, nil
 		}
@@ -10269,10 +10473,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
 			isKafkaRight := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka")
 			// Already at the last available tab — don't re-fetch or do anything
-			if (!isKafkaRight && m.dbDetailTab == 5) || (isKafkaRight && m.dbDetailTab == 7) {
+			if m.dbDetailTab == 8 {
 				return m, nil
 			}
-			maxTab := 7
+			_ = isKafkaRight
+			maxTab := 8
 			if m.dbDetailTab < maxTab {
 				m.dbDetailTab++
 				// Analytics: skip Backups tab (2)
@@ -10286,8 +10491,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				// Non-kafka: skip ACL (6) and Topics (7)
 				isKafkaNav := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka")
-				if !isKafkaNav && m.dbDetailTab >= 6 {
-					m.dbDetailTab = 5 // stay at Logs
+				if !isKafkaNav && m.dbDetailTab == 6 {
+					m.dbDetailTab = 8 // jump to Metrics, skipping ACL+Topics
+				} else if !isKafkaNav && m.dbDetailTab == 7 {
+					m.dbDetailTab = 8
+				}
+				if m.dbDetailTab > 8 {
+					m.dbDetailTab = 8
 				}
 				m.actionConfirm = false
 				m.dbUserSelectedIdx = -1
@@ -10311,6 +10521,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.dbTopicsLoaded = false
 					m.dbDetailTopics = nil
 					return m, m.fetchDBTopics()
+				}
+				// Entering Metrics tab: trigger fetch of metric names
+				if m.dbDetailTab == 8 {
+					m.dbMetricNamesLoaded = false
+					m.dbMetricNames = nil
+					m.dbMetricPoints = nil
+					m.dbMetricLoaded = false
+					m.dbMetricSelectedIdx = 0
+					return m, m.fetchDBMetricNames()
 				}
 			}
 			return m, nil
@@ -11719,6 +11938,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.dbDetailTopics = nil
 						m.dbTopicsLoaded = false
 						m.dbTopicCreateStep = -1
+						m.dbMetricNames = nil
+						m.dbMetricNamesLoaded = false
+						m.dbMetricPoints = nil
+						m.dbMetricLoaded = false
+						m.dbMetricName = ""
 						if engine != "" && serviceId != "" {
 							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}
