@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"math"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -8106,6 +8107,12 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			if chartWidth < 20 {
 				chartWidth = 20
 			}
+			// The chartBox has border (2 chars) + padding (2 chars) = 4 chars overhead.
+			// The chart must be created 4 chars narrower so its lines don't wrap inside the box.
+			chartInnerWidth := chartWidth - 4
+			if chartInnerWidth < 16 {
+				chartInnerWidth = 16
+			}
 			chartHeight := m.height - 26
 			if chartHeight < 10 {
 				chartHeight = 10
@@ -8137,18 +8144,76 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			} else if len(m.dbMetricPoints) == 0 {
 				chartBuf.WriteString(dimSt.Render("No data for this metric/period") + "\n")
 			} else {
-				// Downsample: braille gives 2 columns per cell, so max useful points = chartWidth*2
 				pts := m.dbMetricPoints
-				maxPts := chartWidth * 2
-				if len(pts) > maxPts && maxPts > 0 {
-					stride := len(pts) / maxPts
-					sampled := make([]dbMetricPoint, 0, maxPts)
-					for i := 0; i < len(pts); i += stride {
-						end := i + stride
+
+				// Compute explicit time and value ranges from the data
+				minT := pts[0].T
+				maxT := pts[len(pts)-1].T
+				if maxT.Equal(minT) {
+					maxT = minT.Add(time.Second)
+				}
+				var minV, maxV float64
+				for i, p := range pts {
+					if i == 0 || p.V < minV {
+						minV = p.V
+					}
+					if i == 0 || p.V > maxV {
+						maxV = p.V
+					}
+				}
+				yPad := (maxV - minV) * 0.1
+				if yPad == 0 {
+					yPad = 0.1
+				}
+				minV = math.Max(0, minV-yPad)
+				maxV = maxV + yPad
+
+				// Choose X label format based on period
+				xFmt := timeserieslinechart.HourTimeLabelFormatter()
+				if periods[m.dbMetricPeriodIdx] == "lastWeek" || periods[m.dbMetricPeriodIdx] == "lastMonth" {
+					xFmt = timeserieslinechart.DateTimeLabelFormatter()
+				}
+
+				chart := timeserieslinechart.New(chartInnerWidth, chartHeight,
+					timeserieslinechart.WithTimeRange(minT, maxT),
+					timeserieslinechart.WithXYSteps(4, 4),
+					timeserieslinechart.WithXLabelFormatter(xFmt),
+					timeserieslinechart.WithYLabelFormatter(func(_ int, v float64) string {
+						if v >= 1000 {
+							return fmt.Sprintf("%.0f", v)
+						} else if v >= 10 {
+							return fmt.Sprintf("%.1f", v)
+						}
+						return fmt.Sprintf("%.2f", v)
+					}),
+				)
+				chart.AxisStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
+				chart.LabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+				chart.SetStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("#00FFD0")))
+
+				// Disable auto-range so Push() never alters the scale mid-loop.
+				// New() enables AutoXYRange by default — each Push() would rescale
+				// the buffer, leaving some columns with inconsistent Y coords → gaps.
+				chart.AutoMinX = false
+				chart.AutoMaxX = false
+				chart.AutoMinY = false
+				chart.AutoMaxY = false
+				chart.SetViewTimeAndYRange(minT, maxT, minV, maxV)
+
+				// Downsample to the actual graphing area width (not total chart width)
+				// so every column has a data point and no column is left at 0
+				graphW := chart.GraphWidth()
+				if graphW < 1 {
+					graphW = chartInnerWidth
+				}
+				if len(pts) > graphW {
+					bucket := len(pts) / graphW
+					sampled := make([]dbMetricPoint, 0, graphW)
+					for i := 0; i < len(pts); i += bucket {
+						end := i + bucket
 						if end > len(pts) {
 							end = len(pts)
 						}
-						// average the bucket
 						var sum float64
 						for _, p := range pts[i:end] {
 							sum += p.V
@@ -8158,16 +8223,10 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 					pts = sampled
 				}
 
-				// Build time series chart using ntcharts
-				chart := timeserieslinechart.New(chartWidth, chartHeight)
-				chart.AxisStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
-				chart.LabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
-				lineStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FFD0"))
-				chart.SetStyle(lineStyle)
 				for _, pt := range pts {
 					chart.Push(timeserieslinechart.TimePoint{Time: pt.T, Value: pt.V})
 				}
-				chart.DrawBraille()
+				chart.Draw()
 				chartTitle := m.dbMetricName + "  [" + periods[m.dbMetricPeriodIdx] + "]"
 				chartBuf.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render(chartTitle) + "\n")
 				chartBuf.WriteString(chart.View())

@@ -306,8 +306,8 @@ func (m Model) fetchDBMetric(metricName, period string) tea.Cmd {
 		var result struct {
 			Metrics []struct {
 				DataPoints []struct {
-					Timestamp float64 `json:"timestamp"`
-					Value     float64 `json:"value"`
+					Timestamp float64  `json:"timestamp"`
+					Value     *float64 `json:"value"` // pointer to detect null entries (gaps in monitoring data)
 				} `json:"dataPoints"`
 			} `json:"metrics"`
 		}
@@ -317,9 +317,12 @@ func (m Model) fetchDBMetric(metricName, period string) tea.Cmd {
 		var pts []dbMetricPoint
 		for _, metric := range result.Metrics {
 			for _, dp := range metric.DataPoints {
+				if dp.Value == nil || dp.Timestamp <= 0 {
+					continue // skip null/gap entries — they would appear as 0 and break the curve
+				}
 				pts = append(pts, dbMetricPoint{
 					T: time.Unix(int64(dp.Timestamp), 0),
-					V: dp.Value,
+					V: *dp.Value,
 				})
 			}
 		}
