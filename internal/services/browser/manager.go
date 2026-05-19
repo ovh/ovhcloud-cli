@@ -10160,6 +10160,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
+		case "q":
+			return m, tea.Quit
+		case "esc":
+			m.mode = TableView
+			m.dbDetailTab = 0
+			m.dbMetricLoaded = false
+			m.dbMetricPoints = nil
+			return m, nil
 		case "up", "k":
 			if m.dbMetricSelectedIdx > 0 {
 				m.dbMetricSelectedIdx--
