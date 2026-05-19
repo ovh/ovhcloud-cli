@@ -1368,10 +1368,10 @@ func (m Model) fetchLBListeners(lbID, region string) tea.Cmd {
 func (m Model) executeDeleteLBPool() tea.Cmd {
 	return func() tea.Msg {
 		if m.selectedLBPool == nil {
-			return lbPoolDeletedMsg{err: fmt.Errorf("aucun pool sélectionné")}
+			return lbPoolDeletedMsg{err: fmt.Errorf("no pool selected")}
 		}
 		if m.cloudProject == "" {
-			return lbPoolDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return lbPoolDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		poolID := getStringValue(m.selectedLBPool, "id", "")
 		poolName := getStringValue(m.selectedLBPool, "name", "")
@@ -1425,7 +1425,7 @@ func (m Model) executeDeleteLBListener() tea.Cmd {
 			return lbListenerDeletedMsg{err: fmt.Errorf("no listener selected")}
 		}
 		if m.cloudProject == "" {
-			return lbListenerDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return lbListenerDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		listenerID := getStringValue(m.selectedLBListener, "id", "")
 		listenerName := getStringValue(m.selectedLBListener, "name", "")
@@ -1505,7 +1505,7 @@ func (m Model) executeInstanceBackupDelete() tea.Cmd {
 		snapshotID := getString(m.detailData, "id")
 		snapshotName := getString(m.detailData, "name")
 		if snapshotID == "" {
-			return instanceBackupDeletedMsg{err: fmt.Errorf("ID du backup introuvable")}
+			return instanceBackupDeletedMsg{err: fmt.Errorf("backup ID not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot/%s", m.cloudProject, url.PathEscape(snapshotID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
@@ -1577,7 +1577,7 @@ func (m Model) executePrivNetworkDelete() tea.Cmd {
 				errMsg := err.Error()
 				if strings.Contains(errMsg, "409") || strings.Contains(errMsg, "Conflict") || strings.Contains(errMsg, "ports still in use") || strings.Contains(errMsg, "ports") {
 					return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf(
-						"cannot delete network: resources are still attached (instances, gateway, router). Detach them first and try again",
+						"cannot delete network: resources are still attached (instances, gateway, router). Detach them first then retry",
 					)}
 				}
 				lastErr = err

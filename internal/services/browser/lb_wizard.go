@@ -109,7 +109,7 @@ func (m Model) createLBFromWizard() tea.Cmd {
 			return lbCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		if m.wizard.lbNetworkId == "" || m.wizard.lbSubnetId == "" {
-			return lbCreatedMsg{err: fmt.Errorf("a private network with subnet is required to create a load balancer")}
+			return lbCreatedMsg{err: fmt.Errorf("a private network with a subnet is required to create a load balancer")}
 		}
 		body := map[string]interface{}{
 			"name":     m.wizard.lbName,
@@ -166,7 +166,7 @@ func (m Model) renderLBWizardRegionStep(width int) string {
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
 	content.WriteString(titleStyle.Render("Choose a region:") + "\n\n")
-	content.WriteString(descStyle.Render(fmt.Sprintf("Nom : %s", m.wizard.lbName)) + "\n\n")
+	content.WriteString(descStyle.Render(fmt.Sprintf("Name: %s", m.wizard.lbName)) + "\n\n")
 
 	if m.wizard.isLoading {
 		content.WriteString(loadingStyle.Render("⏳ Loading regions..."))
@@ -278,7 +278,7 @@ func (m Model) renderLBWizardNetworkStep(width int) string {
 
 	if len(m.wizard.lbNetworks) == 0 {
 		content.WriteString(warnStyle.Render("⚠️  No private network available in region "+m.wizard.lbRegion+".") + "\n")
-		content.WriteString(descStyle.Render("Create a private network in this region first, then restart the wizard.") + "\n\n")
+		content.WriteString(descStyle.Render("First create a private network in this region, then restart the wizard.") + "\n\n")
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
 			Render("← : Retour • Esc : Annuler"))
 		return content.String()

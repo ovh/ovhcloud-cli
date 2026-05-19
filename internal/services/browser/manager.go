@@ -3412,7 +3412,7 @@ func (m Model) renderContentBox(width int) string {
 			}
 		} else if m.wizard.step >= 1200 {
 			// Workflow wizard
-			titleText = " ⚙️  Create a Backup Workflow "
+			titleText = " ⚙️  Create a backup Workflow "
 		} else if m.wizard.step >= 1100 {
 			// Floating IP wizard
 			titleText = " 🌐 Create Floating IP "
@@ -7138,7 +7138,7 @@ func (m Model) renderLBPoolDetailView(width int) string {
 	var content strings.Builder
 
 	if m.selectedLBPool == nil {
-		return "Aucun pool sélectionné"
+		return "No pool selected"
 	}
 
 	poolID := getStringValue(m.selectedLBPool, "id", "N/A")
@@ -7215,7 +7215,7 @@ func (m Model) renderLBListenerDetailView(width int) string {
 	var content strings.Builder
 
 	if m.selectedLBListener == nil {
-		return "Aucun listener sélectionné"
+		return "No listener selected"
 	}
 
 	listenerID := getStringValue(m.selectedLBListener, "id", "N/A")
@@ -8109,7 +8109,7 @@ func (m Model) renderFooter() string {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
 		} else if (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.inTableFocus {
 			if m.currentProduct == ProductNetworkPrivate {
-				help = "↑↓: Navigate • ←→: Regions↔Local Zones • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
+				help = "↑↓: Navigate • ←→: vRack Regions↔Local Zones • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else if m.currentProduct == ProductStorageObject {
 				help = "↑↓: Navigate • ←→: Containers↔Users • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else {

@@ -33,7 +33,7 @@ func (m Model) renderWorkflowWizardTypeStep(width int) string {
 	b.WriteString(descStyle.Render("A Workflow describes one or more actions.") + "\n\n")
 
 	inner := selectedStyle.Render("▶ Automated instance backup") + "\n\n" +
-		descStyle.Render("This Workflow will generate Instance backups that can be used to start new Instances.")
+		descStyle.Render("This Workflow will generate Instance backups that\ncan be used to start new Instances.")
 
 	b.WriteString(boxStyle.Render(inner) + "\n\n")
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
@@ -48,7 +48,7 @@ func (m Model) renderWorkflowWizardInstanceStep(width int) string {
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
-	b.WriteString(titleStyle.Render("Select an Instance to back up:") + "\n\n")
+	b.WriteString(titleStyle.Render("Select an Instance to backup:") + "\n\n")
 
 	if m.wizard.isLoading {
 		b.WriteString(loadingStyle.Render("⏳ Chargement des instances..."))
@@ -95,7 +95,7 @@ func (m Model) renderWorkflowWizardNameStep(width int) string {
 	inputStyle := lipgloss.NewStyle().Background(lipgloss.Color("#1A1A2E")).
 		Foreground(lipgloss.Color("#FFFFFF")).Padding(0, 1).Width(40)
 
-	b.WriteString(titleStyle.Render("Give a name to this Workflow:") + "\n\n")
+	b.WriteString(titleStyle.Render("Give this Workflow a name:") + "\n\n")
 	b.WriteString("  Nom : " + inputStyle.Render(m.wizard.wfNameInput+"█") + "\n\n")
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
 		Render("Tapez le nom • Enter : Valider • ← : Retour • Esc : Annuler"))
@@ -111,12 +111,12 @@ func (m Model) renderWorkflowWizardScheduleStep(width int) string {
 	inputStyle := lipgloss.NewStyle().Background(lipgloss.Color("#1A1A2E")).
 		Foreground(lipgloss.Color("#FFFFFF")).Padding(0, 1).Width(30)
 
-	b.WriteString(titleStyle.Render("Define scheduling") + "\n\n")
+	b.WriteString(titleStyle.Render("Define the schedule") + "\n\n")
 
 	options := []struct{ label, desc string }{
-{"Rotation 7", "Keep the last 7 backups"},
-			{"Rotation 14", "Keep the last 14 backups"},
-			{"Custom", "Define your own schedule"},
+		{"Rotation 7", "Keep the last 7 backups"},
+		{"Rotation 14", "Keep the last 14 backups"},
+		{"Custom", "Define your own schedule"},
 	}
 
 	for i, opt := range options {
@@ -126,7 +126,7 @@ func (m Model) renderWorkflowWizardScheduleStep(width int) string {
 			if i == 2 {
 				// Custom cron input
 				b.WriteString("\n   Cron : " + inputStyle.Render(m.wizard.wfCronInput+"█") + "\n")
-				b.WriteString("   " + descStyle.Render("e.g. 0 0 * * * (every day at midnight)") + "\n")
+				b.WriteString("   " + descStyle.Render("e.g.: 0 0 * * * (every day at midnight)") + "\n")
 				b.WriteString("   Rotation : " + inputStyle.Render(fmt.Sprintf("%d", m.wizard.wfRotation)) + "\n")
 			}
 			b.WriteString("\n")
