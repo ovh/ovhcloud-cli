@@ -10194,10 +10194,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "q":
 			return m, tea.Quit
 		case "esc":
-			m.mode = TableView
-			m.dbDetailTab = 0
+			// Return to tab navigation — stay in DetailView, just leave the Metrics focus
 			m.dbMetricLoaded = false
 			m.dbMetricSeries = nil
+			m.dbDetailTab = 0
 			return m, nil
 		case "up", "k":
 			if m.dbMetricSelectedIdx > 0 && m.dbMetricNamesLoaded {
