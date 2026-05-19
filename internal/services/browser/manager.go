@@ -9855,6 +9855,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					if m.currentProduct == ProductNetworkLB {
 						lbId := getStringValue(m.detailData, "id", "")
 						lbRegion := getStringValue(m.detailData, "region", "")
+						m.lbDetailSection = 0   // always start in Listeners section
 						m.lbPoolListIdx = -1     // reset pool cursor when entering LB detail
 						m.lbListenerListIdx = -1 // reset listener cursor when entering LB detail
 						if lbId != "" && lbRegion != "" {
