@@ -1290,16 +1290,16 @@ func (m Model) handleVolumeActionDone(msg volumeActionDoneMsg) (tea.Model, tea.C
 func (m Model) executeGatewayDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return gwDeletedMsg{err: fmt.Errorf("aucune gateway sélectionnée")}
+			return gwDeletedMsg{err: fmt.Errorf("no gateway selected")}
 		}
 		if m.cloudProject == "" {
-			return gwDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return gwDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		gwID := getString(m.detailData, "id")
 		gwName := getString(m.detailData, "name")
 		region := getString(m.detailData, "region")
 		if gwID == "" || region == "" {
-			return gwDeletedMsg{err: fmt.Errorf("ID ou région de la gateway introuvable")}
+			return gwDeletedMsg{err: fmt.Errorf("gateway ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(gwID))
@@ -1314,21 +1314,21 @@ func (m Model) executeGatewayDelete() tea.Cmd {
 func (m Model) executeLBDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return lbDeletedMsg{err: fmt.Errorf("aucun load balancer sélectionné")}
+			return lbDeletedMsg{err: fmt.Errorf("no load balancer selected")}
 		}
 		if m.cloudProject == "" {
-			return lbDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return lbDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		lbID := getString(m.detailData, "id")
 		lbName := getString(m.detailData, "name")
 		region := getString(m.detailData, "region")
 		if lbID == "" || region == "" {
-			return lbDeletedMsg{err: fmt.Errorf("ID ou région du load balancer introuvable")}
+			return lbDeletedMsg{err: fmt.Errorf("load balancer ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/loadbalancer/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(lbID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-			return lbDeletedMsg{lbName: lbName, err: fmt.Errorf("échec de la suppression: %w", err)}
+			return lbDeletedMsg{lbName: lbName, err: fmt.Errorf("deletion failed: %w", err)}
 		}
 		return lbDeletedMsg{lbName: lbName}
 	}
@@ -1338,10 +1338,10 @@ func (m Model) executeLBDelete() tea.Cmd {
 func (m Model) executeInstanceBackupDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return instanceBackupDeletedMsg{err: fmt.Errorf("aucun backup sélectionné")}
+			return instanceBackupDeletedMsg{err: fmt.Errorf("no backup selected")}
 		}
 		if m.cloudProject == "" {
-			return instanceBackupDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return instanceBackupDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		snapshotID := getString(m.detailData, "id")
 		snapshotName := getString(m.detailData, "name")
@@ -1350,7 +1350,7 @@ func (m Model) executeInstanceBackupDelete() tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot/%s", m.cloudProject, url.PathEscape(snapshotID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-			return instanceBackupDeletedMsg{name: snapshotName, err: fmt.Errorf("échec de la suppression: %w", err)}
+			return instanceBackupDeletedMsg{name: snapshotName, err: fmt.Errorf("deletion failed: %w", err)}
 		}
 		return instanceBackupDeletedMsg{name: snapshotName}
 	}
@@ -1360,21 +1360,21 @@ func (m Model) executeInstanceBackupDelete() tea.Cmd {
 func (m Model) executeWorkflowDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return workflowDeletedMsg{err: fmt.Errorf("aucun workflow sélectionné")}
+			return workflowDeletedMsg{err: fmt.Errorf("no workflow selected")}
 		}
 		if m.cloudProject == "" {
-			return workflowDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return workflowDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		wfID := getString(m.detailData, "id")
 		wfName := getString(m.detailData, "name")
 		region := getString(m.detailData, "region")
 		if wfID == "" || region == "" {
-			return workflowDeletedMsg{err: fmt.Errorf("ID ou région du workflow introuvable")}
+			return workflowDeletedMsg{err: fmt.Errorf("workflow ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(wfID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-			return workflowDeletedMsg{name: wfName, err: fmt.Errorf("échec de la suppression: %w", err)}
+			return workflowDeletedMsg{name: wfName, err: fmt.Errorf("deletion failed: %w", err)}
 		}
 		return workflowDeletedMsg{name: wfName}
 	}
@@ -1384,18 +1384,18 @@ func (m Model) executeWorkflowDelete() tea.Cmd {
 func (m Model) executePrivNetworkDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return privNetDeletedMsg{err: fmt.Errorf("aucun réseau sélectionné")}
+			return privNetDeletedMsg{err: fmt.Errorf("no network selected")}
 		}
 		networkName := getString(m.detailData, "name")
 		if m.cloudProject == "" {
-			return privNetDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return privNetDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
 		// The region-based API uses openstackId, not the vRack pn-XXXXX_N id.
 		// Each network has regions[].{region, openstackId} — delete from all regions.
 		regions, ok := m.detailData["regions"].([]interface{})
 		if !ok || len(regions) == 0 {
-			return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf("aucune région trouvée pour ce réseau")}
+			return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf("no region found for this network")}
 		}
 
 		var lastErr error
@@ -1418,7 +1418,7 @@ func (m Model) executePrivNetworkDelete() tea.Cmd {
 				errMsg := err.Error()
 				if strings.Contains(errMsg, "409") || strings.Contains(errMsg, "Conflict") || strings.Contains(errMsg, "ports still in use") || strings.Contains(errMsg, "ports") {
 					return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf(
-						"impossible de supprimer le réseau : des ressources y sont encore attachées (instances, gateway, routeur). Détachez-les d'abord puis réessayez",
+						"cannot delete network: resources are still attached (instances, gateway, router). Detach them first and try again",
 					)}
 				}
 				lastErr = err
@@ -1711,10 +1711,10 @@ func (m Model) fetchFIPInstances() tea.Cmd {
 func (m Model) createStandaloneFloatingIP() tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
-			return fipCreatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return fipCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		if m.wizard.fipInstanceId == "" {
-			return fipCreatedMsg{err: fmt.Errorf("veuillez sélectionner une instance pour créer une Floating IP")}
+			return fipCreatedMsg{err: fmt.Errorf("please select an instance to create a Floating IP")}
 		}
 
 		// Find the private IPv4 of the selected instance — required by the API.
@@ -1740,7 +1740,7 @@ func (m Model) createStandaloneFloatingIP() tea.Cmd {
 			}
 		}
 		if privateIP == "" {
-			return fipCreatedMsg{err: fmt.Errorf("aucune adresse IP privée trouvée pour cette instance")}
+			return fipCreatedMsg{err: fmt.Errorf("no private IP address found for this instance")}
 		}
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/floatingIp",
@@ -1762,7 +1762,7 @@ func (m Model) createStandaloneFloatingIP() tea.Cmd {
 			err = httpLib.Client.Post(endpoint, bodyWithGW, &result)
 		}
 		if err != nil {
-			return fipCreatedMsg{err: fmt.Errorf("échec de la création: %w", err)}
+			return fipCreatedMsg{err: fmt.Errorf("creation failed: %w", err)}
 		}
 		return fipCreatedMsg{floatingIP: result}
 	}
@@ -1956,21 +1956,21 @@ func (m Model) executeSubnetDelete() tea.Cmd {
 func (m Model) executeFIPDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return fipDeletedMsg{err: fmt.Errorf("aucune Floating IP sélectionnée")}
+			return fipDeletedMsg{err: fmt.Errorf("no Floating IP selected")}
 		}
 		if m.cloudProject == "" {
-			return fipDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return fipDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		fipID := getString(m.detailData, "id")
 		fipIP := getString(m.detailData, "ip")
 		region := getString(m.detailData, "region")
 		if fipID == "" || region == "" {
-			return fipDeletedMsg{err: fmt.Errorf("ID ou région de la Floating IP introuvable")}
+			return fipDeletedMsg{err: fmt.Errorf("Floating IP ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(fipID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "NotFound") {
-			return fipDeletedMsg{fipIP: fipIP, err: fmt.Errorf("échec de la suppression: %w", err)}
+			return fipDeletedMsg{fipIP: fipIP, err: fmt.Errorf("deletion failed: %w", err)}
 		}
 		return fipDeletedMsg{fipIP: fipIP}
 	}
@@ -1980,21 +1980,21 @@ func (m Model) executeFIPDelete() tea.Cmd {
 func (m Model) executeFIPDetach() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return fipDetachedMsg{err: fmt.Errorf("aucune Floating IP sélectionnée")}
+			return fipDetachedMsg{err: fmt.Errorf("no Floating IP selected")}
 		}
 		if m.cloudProject == "" {
-			return fipDetachedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return fipDetachedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		fipID := getString(m.detailData, "id")
 		fipIP := getString(m.detailData, "ip")
 		region := getString(m.detailData, "region")
 		if fipID == "" || region == "" {
-			return fipDetachedMsg{err: fmt.Errorf("ID ou région de la Floating IP introuvable")}
+			return fipDetachedMsg{err: fmt.Errorf("Floating IP ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip/%s/detach",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(fipID))
 		if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-			return fipDetachedMsg{fipIP: fipIP, err: fmt.Errorf("échec du détachement: %w", err)}
+			return fipDetachedMsg{fipIP: fipIP, err: fmt.Errorf("detachment failed: %w", err)}
 		}
 		return fipDetachedMsg{fipIP: fipIP}
 	}

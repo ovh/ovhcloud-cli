@@ -56,12 +56,12 @@ func (m Model) renderFIPWizardRegionStep(width int) string {
 		}
 		if len(m.wizard.fipAvailableRegions) > maxVisible {
 			content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-				Render(fmt.Sprintf("\n  %d / %d régions", m.wizard.fipRegionIdx+1, len(m.wizard.fipAvailableRegions))))
+				Render(fmt.Sprintf("\n  %d / %d regions", m.wizard.fipRegionIdx+1, len(m.wizard.fipAvailableRegions))))
 		}
 	}
 
 	content.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ Naviguer • Enter : Sélectionner • Esc : Annuler"))
+		Render("↑↓ Navigate • Enter: Select • Esc: Cancel"))
 	return content.String()
 }
 

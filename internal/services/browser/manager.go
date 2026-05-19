@@ -1598,7 +1598,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 		}
 		netName, _ := msg.network["name"].(string)
-		m.notification = fmt.Sprintf("✅ Réseau privé '%s' créé avec succès", netName)
+		m.notification = fmt.Sprintf("✅ Private network '%s' created successfully", netName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.mode = LoadingView
 		return m, tea.Batch(
@@ -1613,7 +1613,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Réseau privé '%s' supprimé avec succès", msg.networkName)
+		m.notification = fmt.Sprintf("✅ Private network '%s' deleted successfully", msg.networkName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.detailData = nil
 		m.mode = LoadingView
@@ -1652,7 +1652,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = "✅ Gateway créée avec succès"
+		m.notification = "✅ Gateway created successfully"
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		if attachMode {
 			// Return to private network list
@@ -1714,7 +1714,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if lbName == "" {
 			lbName = getString(msg.lb, "id")
 		}
-		m.notification = fmt.Sprintf("✅ Load Balancer '%s' créé avec succès", lbName)
+		m.notification = fmt.Sprintf("✅ Load Balancer '%s' created successfully", lbName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.mode = LoadingView
 		return m, tea.Batch(
@@ -1774,7 +1774,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Load Balancer '%s' supprimé avec succès", msg.lbName)
+		m.notification = fmt.Sprintf("✅ Load Balancer '%s' deleted successfully", msg.lbName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.detailData = nil
 		m.mode = LoadingView
@@ -1895,7 +1895,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
 			)
 		}
-		m.notification = fmt.Sprintf("✅ Workflow \"%s\" créé avec succès !", msg.name)
+		m.notification = fmt.Sprintf("✅ Workflow \"%s\" created successfully!", msg.name)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.mode = LoadingView
 		return m, tea.Batch(
@@ -1910,7 +1910,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Workflow \"%s\" supprimé avec succès", msg.name)
+		m.notification = fmt.Sprintf("✅ Workflow \"%s\" deleted successfully", msg.name)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.detailData = nil
 		m.mode = LoadingView
@@ -1926,7 +1926,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Backup \"%s\" supprimé avec succès", msg.name)
+		m.notification = fmt.Sprintf("✅ Backup \"%s\" deleted successfully", msg.name)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.detailData = nil
 		m.mode = LoadingView
@@ -1947,7 +1947,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if ip == "" {
 			ip = "en cours de provisioning"
 		}
-		m.notification = fmt.Sprintf("✅ Floating IP %s créée avec succès", ip)
+		m.notification = fmt.Sprintf("✅ Floating IP %s created successfully", ip)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.mode = LoadingView
 		return m, tea.Batch(
@@ -2698,7 +2698,7 @@ func (m Model) renderContentBox(width int) string {
 		// Determine which wizard we're in based on the step
 		if m.wizard.step >= 1200 {
 			// Workflow wizard
-			titleText = " ⚙️  Créer un Workflow de sauvegarde "
+			titleText = " ⚙️  Create a Backup Workflow "
 		} else if m.wizard.step >= 1100 {
 			// Floating IP wizard
 			titleText = " 🌐 Create Floating IP "
@@ -5729,7 +5729,7 @@ func (m Model) renderWorkflowDetail(width int) string {
 
 	var infoContent strings.Builder
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(id, 36))))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Région"), valueSt.Render(region)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Region"), valueSt.Render(region)))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Instance"), valueSt.Render(truncate(instanceId, 36))))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Cron"), valueSt.Render(cron)))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Rotation"), valueSt.Render(fmt.Sprintf("%d sauvegardes", rotation))))
@@ -5753,9 +5753,9 @@ func (m Model) renderWorkflowDetail(width int) string {
 	if m.actionConfirm {
 		actionsContent += "\n\n" + lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFD700")).Bold(true).
-			Render(fmt.Sprintf("⚠️  Appuyez sur Enter pour confirmer %s, Échap pour annuler", actions[m.selectedAction]))
+			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Esc to cancel", actions[m.selectedAction]))
 	}
-	actionsBox := renderBox("Actions (Enter pour exécuter, Échap pour retour)", actionsContent, width-4)
+	actionsBox := renderBox("Actions (Enter to execute, Esc to go back)", actionsContent, width-4)
 
 	content.WriteString(actionsBox + "\n\n")
 	content.WriteString(infoBox)
@@ -5812,7 +5812,7 @@ func (m Model) renderInstanceBackupDetail(width int) string {
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(id, 36))))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Localisation"), valueSt.Render(location)))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Taille disque"), valueSt.Render(sizeStr)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Créé le"), valueSt.Render(created)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Created"), valueSt.Render(created)))
 	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Statut"), statusStyle.Render(statusIcon+" "+status)))
 	infoBox := renderBox("Instance Backup : "+name, infoContent.String(), boxWidth)
 
@@ -5833,9 +5833,9 @@ func (m Model) renderInstanceBackupDetail(width int) string {
 	if m.actionConfirm {
 		actionsContent += "\n\n" + lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFD700")).Bold(true).
-			Render(fmt.Sprintf("⚠️  Appuyez sur Enter pour confirmer %s, Échap pour annuler", actions[m.selectedAction]))
+			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Esc to cancel", actions[m.selectedAction]))
 	}
-	actionsBox := renderBox("Actions (Enter pour exécuter, Échap pour retour)", actionsContent, width-4)
+	actionsBox := renderBox("Actions (Enter to execute, Esc to go back)", actionsContent, width-4)
 
 	content.WriteString(actionsBox + "\n\n")
 	content.WriteString(infoBox)
@@ -6636,11 +6636,11 @@ func (m Model) renderFooter() string {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
 		} else if (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.inTableFocus {
 			if m.currentProduct == ProductNetworkPrivate {
-				help = "↑↓: Navigate • ←→: Régions↔Local Zones • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
+				help = "↑↓: Navigate • ←→: Regions↔Local Zones • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else if m.currentProduct == ProductStorageObject {
-				help = "↑↓: Navigate • ←→: Containers↔Users • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
+				help = "↑↓: Navigate • ←→: Containers↔Users • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else {
-				help = "↑↓: Navigate • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back to Sub-menu • q: Quit"
+				help = "↑↓: Navigate • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back to Sub-menu • q: Quit"
 			}
 		} else if m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav {
 			help = "←→: Sub-menu • ↓/Enter: Enter Table • ↑/Esc: Back to main nav • d: Debug • p: Change Project • q: Quit"
@@ -6668,7 +6668,7 @@ func (m Model) renderFooter() string {
 			if m.actionConfirm {
 				help = "Enter: Confirmer l'action • Esc: Annuler"
 			} else {
-				help = "←→: Sélectionner action • Enter: Exécuter • Esc: Retour à la liste • q: Quitter"
+				help = "←→: Select action • Enter: Execute • Esc: Back to list • q: Quit"
 			}
 		} else if m.actionConfirm {
 			help = "Enter: Confirm Action • Esc: Cancel"
@@ -7304,7 +7304,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					return m, m.executeFIPDelete()
 				}
 				m.actionConfirm = true
-			case 1: // Détacher
+			case 1: // Detach
 				if m.actionConfirm {
 					m.actionConfirm = false
 					return m, m.executeFIPDetach()
@@ -7379,7 +7379,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 				}
 				if len(regionNames) == 0 {
-					m.notification = "❌ Aucune région compatible : l'OVH Gateway ne peut être ajoutée qu'à des sous-réseaux créés sans passerelle (mode 'OVH Gateway'). Recréez le réseau avec ce mode."
+					m.notification = "❌ No compatible region: OVH Gateway can only be added to subnets created without a gateway (mode 'OVH Gateway'). Recreate the network with this mode."
 					m.notificationExpiry = time.Now().Add(10 * time.Second)
 					return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 				}
@@ -7388,7 +7388,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					// Only one region: pre-select and go directly to model
 					rd := regionMap[regionNames[0]]
 					if rd["subnetId"] == "" {
-						m.notification = "❌ Ce réseau n'a pas de sous-réseau. Créez d'abord un sous-réseau."
+						m.notification = "❌ This network has no subnet. Create a subnet first."
 						m.notificationExpiry = time.Now().Add(5 * time.Second)
 						return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 					}

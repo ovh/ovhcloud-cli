@@ -106,10 +106,10 @@ func (m Model) fetchLBSubnet(networkID string) tea.Cmd {
 func (m Model) createLBFromWizard() tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
-			return lbCreatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return lbCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		if m.wizard.lbNetworkId == "" || m.wizard.lbSubnetId == "" {
-			return lbCreatedMsg{err: fmt.Errorf("un réseau privé avec sous-réseau est obligatoire pour créer un load balancer")}
+			return lbCreatedMsg{err: fmt.Errorf("a private network with subnet is required to create a load balancer")}
 		}
 		body := map[string]interface{}{
 			"name":     m.wizard.lbName,
@@ -127,7 +127,7 @@ func (m Model) createLBFromWizard() tea.Cmd {
 			m.cloudProject, url.PathEscape(m.wizard.lbRegion))
 		var result map[string]interface{}
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
-			return lbCreatedMsg{err: fmt.Errorf("échec de la création du load balancer: %w", err)}
+			return lbCreatedMsg{err: fmt.Errorf("load balancer creation failed: %w", err)}
 		}
 		return lbCreatedMsg{lb: result}
 	}
@@ -165,11 +165,11 @@ func (m Model) renderLBWizardRegionStep(width int) string {
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
-	content.WriteString(titleStyle.Render("Choisir la région :") + "\n\n")
+	content.WriteString(titleStyle.Render("Choose a region:") + "\n\n")
 	content.WriteString(descStyle.Render(fmt.Sprintf("Nom : %s", m.wizard.lbName)) + "\n\n")
 
 	if m.wizard.isLoading {
-		content.WriteString(loadingStyle.Render("⏳ Chargement des régions..."))
+		content.WriteString(loadingStyle.Render("⏳ Loading regions..."))
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
@@ -179,7 +179,7 @@ func (m Model) renderLBWizardRegionStep(width int) string {
 
 	if len(m.wizard.lbAvailableRegions) == 0 {
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).
-			Render("Aucune région compatible avec le Load Balancer (Octavia) trouvée.") + "\n")
+			Render("No region compatible with Load Balancer (Octavia) found.") + "\n")
 	} else {
 		maxVisible := 14
 		startIdx := 0
@@ -200,12 +200,12 @@ func (m Model) renderLBWizardRegionStep(width int) string {
 		}
 		if len(m.wizard.lbAvailableRegions) > maxVisible {
 			content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-				Render(fmt.Sprintf("\n  %d / %d régions", m.wizard.lbRegionIdx+1, len(m.wizard.lbAvailableRegions))))
+				Render(fmt.Sprintf("\n  %d / %d regions", m.wizard.lbRegionIdx+1, len(m.wizard.lbAvailableRegions))))
 		}
 	}
 
 	content.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ Naviguer • Enter : Sélectionner • ← : Retour • Esc : Annuler"))
+		Render("↑↓ Navigate • Enter: Select • ←: Back • Esc: Cancel"))
 	return content.String()
 }
 
@@ -217,7 +217,7 @@ func (m Model) renderLBWizardFlavorStep(width int) string {
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
 	content.WriteString(titleStyle.Render("Choisir la taille du Load Balancer :") + "\n\n")
-	content.WriteString(descStyle.Render(fmt.Sprintf("Nom : %s  •  Région : %s",
+	content.WriteString(descStyle.Render(fmt.Sprintf("Name: %s  •  Region: %s",
 		m.wizard.lbName, m.wizard.lbRegion)) + "\n\n")
 
 	if m.wizard.isLoading {
@@ -231,7 +231,7 @@ func (m Model) renderLBWizardFlavorStep(width int) string {
 
 	if len(m.wizard.lbFlavors) == 0 {
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).
-			Render("Aucune taille disponible dans cette région.") + "\n")
+			Render("No size available in this region.") + "\n")
 	} else {
 		for i, f := range m.wizard.lbFlavors {
 			name := getStringValue(f, "name", getStringValue(f, "id", "unknown"))
@@ -244,7 +244,7 @@ func (m Model) renderLBWizardFlavorStep(width int) string {
 	}
 
 	content.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ Naviguer • Enter : Sélectionner • ← : Retour • Esc : Annuler"))
+		Render("↑↓ Navigate • Enter: Select • ←: Back • Esc: Cancel"))
 	return content.String()
 }
 
@@ -261,14 +261,14 @@ func (m Model) renderLBWizardNetworkStep(width int) string {
 		flavorDisplay = m.wizard.lbFlavorId
 	}
 
-	content.WriteString(titleStyle.Render("Sélectionner un réseau privé :") + "\n\n")
+	content.WriteString(titleStyle.Render("Select a private network:") + "\n\n")
 	content.WriteString(descStyle.Render(fmt.Sprintf(
-		"Nom : %s  •  Région : %s  •  Taille : %s",
+		"Name: %s  •  Region: %s  •  Size: %s",
 		m.wizard.lbName, m.wizard.lbRegion, strings.ToUpper(flavorDisplay),
 	)) + "\n\n")
 
 	if m.wizard.isLoading {
-		content.WriteString(loadingStyle.Render("⏳ Chargement des réseaux..."))
+		content.WriteString(loadingStyle.Render("⏳ Loading networks..."))
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
@@ -277,8 +277,8 @@ func (m Model) renderLBWizardNetworkStep(width int) string {
 	}
 
 	if len(m.wizard.lbNetworks) == 0 {
-		content.WriteString(warnStyle.Render("⚠️  Aucun réseau privé disponible dans la région "+m.wizard.lbRegion+".") + "\n")
-		content.WriteString(descStyle.Render("Créez d'abord un réseau privé dans cette région, puis relancez le wizard.") + "\n\n")
+		content.WriteString(warnStyle.Render("⚠️  No private network available in region "+m.wizard.lbRegion+".") + "\n")
+		content.WriteString(descStyle.Render("Create a private network in this region first, then restart the wizard.") + "\n\n")
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
 			Render("← : Retour • Esc : Annuler"))
 		return content.String()
@@ -294,7 +294,7 @@ func (m Model) renderLBWizardNetworkStep(width int) string {
 	}
 
 	content.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ Naviguer • Enter : Sélectionner • ← : Retour • Esc : Annuler"))
+		Render("↑↓ Navigate • Enter: Select • ←: Back • Esc: Cancel"))
 	return content.String()
 }
 
@@ -304,9 +304,9 @@ func (m Model) renderLBWizardConfirmStep(width int) string {
 	lbLabelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
 	valStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	content.WriteString(titleStyle.Render("Confirmer la création du Load Balancer :") + "\n\n")
+	content.WriteString(titleStyle.Render("Confirm Load Balancer creation:") + "\n\n")
 	content.WriteString(lbLabelStyle.Render("  Nom :") + valStyle.Render(m.wizard.lbName) + "\n")
-	content.WriteString(lbLabelStyle.Render("  Région :") + valStyle.Render(m.wizard.lbRegion) + "\n")
+	content.WriteString(lbLabelStyle.Render("  Region:") + valStyle.Render(m.wizard.lbRegion) + "\n")
 
 	flavorDisplay := m.wizard.lbFlavorName
 	if flavorDisplay == "" {
@@ -315,12 +315,12 @@ func (m Model) renderLBWizardConfirmStep(width int) string {
 	content.WriteString(lbLabelStyle.Render("  Taille :") + valStyle.Render(strings.ToUpper(flavorDisplay)) + "\n")
 
 	if m.wizard.lbNetworkName != "" {
-		content.WriteString(lbLabelStyle.Render("  Réseau privé :") + valStyle.Render(m.wizard.lbNetworkName) + "\n")
+		content.WriteString(lbLabelStyle.Render("  Private network:") + valStyle.Render(m.wizard.lbNetworkName) + "\n")
 	}
 	content.WriteString("\n")
 
 	if m.wizard.isLoading {
-		content.WriteString(loadingStyle.Render("⏳ Création en cours..."))
+		content.WriteString(loadingStyle.Render("⏳ Creating..."))
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
@@ -328,15 +328,15 @@ func (m Model) renderLBWizardConfirmStep(width int) string {
 			Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
 	}
 
-	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Créer ")
+	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Create ")
 	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Annuler ")
 	if m.wizard.lbConfirmBtnIdx == 1 {
-		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Créer ")
+		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Create ")
 		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Annuler ")
 	}
 	content.WriteString(btnCreate + "  " + btnCancel + "\n\n")
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("←→ : Sélectionner • Enter : Confirmer • Esc : Annuler"))
+		Render("←→: Select • Enter: Confirm • Esc: Cancel"))
 	return content.String()
 }
 
@@ -348,14 +348,14 @@ func (m Model) handleLBWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		name := strings.TrimSpace(m.wizard.lbNameInput)
 		if name == "" {
-			m.wizard.errorMsg = "Le nom ne peut pas être vide"
+			m.wizard.errorMsg = "Name cannot be empty"
 			return m, nil
 		}
 		m.wizard.lbName = name
 		m.wizard.errorMsg = ""
 		m.wizard.step = LBWizardStepRegion
 		m.wizard.isLoading = true
-		m.wizard.loadingMessage = "Chargement des régions..."
+		m.wizard.loadingMessage = "Loading regions..."
 		return m, m.fetchLBRegions()
 	case "backspace":
 		if len(m.wizard.lbNameInput) > 0 {
@@ -412,7 +412,7 @@ func (m Model) handleLBWizardFlavorKeys(key string) (tea.Model, tea.Cmd) {
 			m.wizard.lbNetworkIdx = 0
 			m.wizard.step = LBWizardStepNetwork
 			m.wizard.isLoading = true
-			m.wizard.loadingMessage = "Chargement des réseaux..."
+			m.wizard.loadingMessage = "Loading networks..."
 			return m, m.fetchLBNetworks()
 		}
 	case "left":
@@ -456,7 +456,7 @@ func (m Model) handleLBWizardNetworkKeys(key string) (tea.Model, tea.Cmd) {
 		} else {
 			// Need to fetch subnet separately
 			m.wizard.isLoading = true
-			m.wizard.loadingMessage = "Vérification du sous-réseau..."
+			m.wizard.loadingMessage = "Checking subnet..."
 			return m, m.fetchLBSubnet(m.wizard.lbNetworkId)
 		}
 	case "left":
@@ -478,7 +478,7 @@ func (m Model) handleLBWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.wizard.isLoading = true
-		m.wizard.loadingMessage = "Création du Load Balancer..."
+		m.wizard.loadingMessage = "Creating Load Balancer..."
 		return m, m.createLBFromWizard()
 	}
 	return m, nil

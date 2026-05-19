@@ -61,7 +61,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 				netID = getString(op, "id")
 			}
 			if netID == "" {
-				return privNetCreatedMsg{err: fmt.Errorf("réseau créé mais ID manquant dans la réponse")}
+				return privNetCreatedMsg{err: fmt.Errorf("network created but ID missing from response")}
 			}
 			network = map[string]interface{}{"id": netID, "name": m.wizard.privNetName}
 
@@ -98,7 +98,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 				if subnetErr != nil {
 					return privNetCreatedMsg{
 						network: network,
-						err:     fmt.Errorf("réseau créé mais échec du sous-réseau (CIDR: %s): %w", m.wizard.privNetCIDR, subnetErr),
+						err:     fmt.Errorf("network created but subnet failed (CIDR: %s): %w", m.wizard.privNetCIDR, subnetErr),
 					}
 				}
 			}
@@ -120,7 +120,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 			if m.wizard.privNetEnableSubnet && m.wizard.privNetCIDR != "" {
 				netID, _ := network["id"].(string)
 				if netID == "" {
-					return privNetCreatedMsg{err: fmt.Errorf("réseau créé mais ID manquant, impossible de créer le sous-réseau")}
+					return privNetCreatedMsg{err: fmt.Errorf("network created but ID missing, cannot create subnet")}
 				}
 
 				// Poll until the network region becomes ACTIVE (OVH creates async)
@@ -151,7 +151,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 				if !regionActive {
 					return privNetCreatedMsg{
 						network: network,
-						err:     fmt.Errorf("réseau créé mais la région '%s' n'est pas devenue active à temps — sous-réseau non créé. Réessayez depuis l'interface OVH.", region),
+						err:     fmt.Errorf("network created but region '%s' did not become active in time — subnet not created. Retry from the OVH interface.", region),
 					}
 				}
 
@@ -171,7 +171,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 				if err := httpLib.Client.Post(subnetEndpoint, subnetBody, &subnet); err != nil {
 					return privNetCreatedMsg{
 						network: network,
-						err:     fmt.Errorf("réseau créé mais échec du sous-réseau (%s, CIDR: %s): %w", netID, m.wizard.privNetCIDR, err),
+						err:     fmt.Errorf("network created but subnet failed (%s, CIDR: %s): %w", netID, m.wizard.privNetCIDR, err),
 					}
 				}
 			}
@@ -186,10 +186,10 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 func (m Model) renderPrivNetWizardRegionStep(width int) string {
 	var content strings.Builder
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	content.WriteString(titleStyle.Render("Choisir la localisation du réseau privé :") + "\n\n")
+	content.WriteString(titleStyle.Render("Choose private network location:") + "\n\n")
 
 	if m.wizard.isLoading {
-		content.WriteString(loadingStyle.Render("Chargement des régions..."))
+		content.WriteString(loadingStyle.Render("Loading regions..."))
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
@@ -222,7 +222,7 @@ func (m Model) renderPrivNetWizardRegionStep(width int) string {
 
 	for i, e := range allEntries {
 		if i == 0 {
-			content.WriteString(typeStyle.Render("  ── Régions (vRack) ──") + "\n")
+			content.WriteString(typeStyle.Render("  ── Regions (vRack) ──") + "\n")
 		} else if i == sectionStart {
 			content.WriteString(typeStyle.Render("  ── Local Zones ──") + "\n")
 		}
@@ -235,18 +235,18 @@ func (m Model) renderPrivNetWizardRegionStep(width int) string {
 	}
 
 	if len(allEntries) == 0 {
-		content.WriteString(dimStyle.Render("  Aucune région disponible.") + "\n")
+		content.WriteString(dimStyle.Render("  No region available.") + "\n")
 	}
 
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0).
-		Render("↑↓ Naviguer • Enter : Sélectionner • Esc : Annuler"))
+		Render("↑↓ Navigate • Enter: Select • Esc: Cancel"))
 	return content.String()
 }
 
 func (m Model) renderPrivNetWizardNameStep(width int) string {
 	var content strings.Builder
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	content.WriteString(titleStyle.Render("Nom du réseau privé :") + "\n\n")
+	content.WriteString(titleStyle.Render("Private network name:") + "\n\n")
 
 	if m.wizard.errorMsg != "" {
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
@@ -269,7 +269,7 @@ func (m Model) renderPrivNetWizardVlanStep(width int) string {
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 
-	content.WriteString(titleStyle.Render("Option réseau layer 2 – VLAN ID :") + "\n\n")
+	content.WriteString(titleStyle.Render("Layer 2 network option – VLAN ID:") + "\n\n")
 
 	// Show already-used VLAN IDs as a hint
 	if len(m.wizard.privNetUsedVlanIDs) > 0 {
@@ -279,7 +279,7 @@ func (m Model) renderPrivNetWizardVlanStep(width int) string {
 		}
 		sort.Strings(used)
 		warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
-		content.WriteString(warnStyle.Render("  VLAN déjà utilisés : "+strings.Join(used, ", ")) + "\n\n")
+		content.WriteString(warnStyle.Render("  VLANs already in use: "+strings.Join(used, ", ")) + "\n\n")
 	}
 
 	// Option 0 : auto
@@ -291,7 +291,7 @@ func (m Model) renderPrivNetWizardVlanStep(width int) string {
 
 	// Option 1 : define VLAN
 	if m.wizard.privNetDefineVlan {
-		content.WriteString(selectedStyle.Render("▶ Définir un VLAN ID") + "\n\n")
+		content.WriteString(selectedStyle.Render("▶ Set a VLAN ID") + "\n\n")
 		content.WriteString(descStyle.Render("  VLAN ID (plage valide : 1 – 4094) :") + "\n")
 		inputStyle := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -303,7 +303,7 @@ func (m Model) renderPrivNetWizardVlanStep(width int) string {
 		}
 		content.WriteString(inputStyle.Render(val+"▌") + "\n\n")
 	} else {
-		content.WriteString(dimStyle.Render("  Définir un VLAN ID") + "\n\n")
+		content.WriteString(dimStyle.Render("  Set a VLAN ID") + "\n\n")
 	}
 
 	if m.wizard.errorMsg != "" {
@@ -419,12 +419,12 @@ func (m Model) renderPrivNetWizardGatewayStep(width int) string {
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 
-	content.WriteString(titleStyle.Render("Options de passerelle réseau :") + "\n\n")
+	content.WriteString(titleStyle.Render("Gateway options:") + "\n\n")
 
 	// Option 0
-	label0 := "Annoncer la première adresse d'un CIDR donné comme passerelle par défaut"
+	label0 := "Advertise the first address of a given CIDR as the default gateway"
 	// Option 1
-	label1 := "Assigner une Gateway et connectez-vous au réseau privé"
+	label1 := "Assign a Gateway and connect to the private network"
 
 	if m.wizard.privNetGatewayMode == 0 {
 		content.WriteString(selectedStyle.Render("▶ "+label0) + "\n")
@@ -433,7 +433,7 @@ func (m Model) renderPrivNetWizardGatewayStep(width int) string {
 		content.WriteString(dimStyle.Render("  "+label0) + "\n")
 		content.WriteString(selectedStyle.Render("▶ "+label1) + "\n\n")
 		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
-		content.WriteString(descStyle.Render("  Adresse IP de la passerelle (vide = première IP du CIDR) :") + "\n")
+		content.WriteString(descStyle.Render("  Gateway IP address (empty = first IP of CIDR):") + "\n")
 		inputStyle := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("#00FF7F")).
@@ -560,7 +560,7 @@ func (m Model) handlePrivNetWizardNameKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 	case "enter":
 		name := strings.TrimSpace(m.wizard.privNetNameInput)
 		if name == "" {
-			m.wizard.errorMsg = "Le nom ne peut pas être vide"
+			m.wizard.errorMsg = "Name cannot be empty"
 			return m, nil
 		}
 		m.wizard.privNetName = name
@@ -608,7 +608,7 @@ func (m Model) handlePrivNetWizardVlanKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 				return m, nil
 			}
 			if m.wizard.privNetUsedVlanIDs[v] {
-				m.wizard.errorMsg = fmt.Sprintf("VLAN ID %d est déjà utilisé par un réseau existant", v)
+				m.wizard.errorMsg = fmt.Sprintf("VLAN ID %d is already used by an existing network", v)
 				return m, nil
 			}
 			m.wizard.privNetVlanID = v
@@ -649,7 +649,7 @@ func (m Model) handlePrivNetWizardSubnetKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd
 		if m.wizard.privNetEnableSubnet {
 			cidr := strings.TrimSpace(m.wizard.privNetCIDRInput)
 			if cidr == "" {
-				m.wizard.errorMsg = "Le CIDR ne peut pas être vide"
+				m.wizard.errorMsg = "CIDR cannot be empty"
 				return m, nil
 			}
 			m.wizard.privNetCIDR = cidr
@@ -830,7 +830,7 @@ func (m Model) handlePrivNetWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 			m.wizard.loadingMessage = "Adding subnet..."
 			return m, m.createSubnetForNetwork()
 		}
-		m.wizard.loadingMessage = "Création du réseau privé..."
+		m.wizard.loadingMessage = "Creating private network..."
 		return m, m.createPrivateNetworkFromWizard()
 	}
 	return m, nil

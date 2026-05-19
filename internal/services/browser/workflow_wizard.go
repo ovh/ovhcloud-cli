@@ -29,11 +29,11 @@ func (m Model) renderWorkflowWizardTypeStep(width int) string {
 		Padding(1, 2).
 		Width(width - 8)
 
-	b.WriteString(titleStyle.Render("Sélectionnez un Workflow") + "\n\n")
-	b.WriteString(descStyle.Render("Un Workflow décrit une ou plusieurs actions.") + "\n\n")
+	b.WriteString(titleStyle.Render("Select a Workflow") + "\n\n")
+	b.WriteString(descStyle.Render("A Workflow describes one or more actions.") + "\n\n")
 
-	inner := selectedStyle.Render("▶ Sauvegarde automatisée des instances") + "\n\n" +
-		descStyle.Render("Ce Workflow générera des sauvegardes d'Instance, les sauvegardes\npourront être utilisées pour démarrer de nouvelles Instances.")
+	inner := selectedStyle.Render("▶ Automated instance backup") + "\n\n" +
+		descStyle.Render("This Workflow will generate Instance backups that can be used to start new Instances.")
 
 	b.WriteString(boxStyle.Render(inner) + "\n\n")
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
@@ -48,7 +48,7 @@ func (m Model) renderWorkflowWizardInstanceStep(width int) string {
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
-	b.WriteString(titleStyle.Render("Sélectionnez une Instance à sauvegarder :") + "\n\n")
+	b.WriteString(titleStyle.Render("Select an Instance to back up:") + "\n\n")
 
 	if m.wizard.isLoading {
 		b.WriteString(loadingStyle.Render("⏳ Chargement des instances..."))
@@ -85,7 +85,7 @@ func (m Model) renderWorkflowWizardInstanceStep(width int) string {
 		}
 	}
 	b.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ : Naviguer • Enter : Sélectionner • ← : Retour • Esc : Annuler"))
+		Render("↑↓: Navigate • Enter: Select • ←: Back • Esc: Cancel"))
 	return b.String()
 }
 
@@ -95,7 +95,7 @@ func (m Model) renderWorkflowWizardNameStep(width int) string {
 	inputStyle := lipgloss.NewStyle().Background(lipgloss.Color("#1A1A2E")).
 		Foreground(lipgloss.Color("#FFFFFF")).Padding(0, 1).Width(40)
 
-	b.WriteString(titleStyle.Render("Donnez un nom à ce Workflow :") + "\n\n")
+	b.WriteString(titleStyle.Render("Give a name to this Workflow:") + "\n\n")
 	b.WriteString("  Nom : " + inputStyle.Render(m.wizard.wfNameInput+"█") + "\n\n")
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
 		Render("Tapez le nom • Enter : Valider • ← : Retour • Esc : Annuler"))
@@ -111,12 +111,12 @@ func (m Model) renderWorkflowWizardScheduleStep(width int) string {
 	inputStyle := lipgloss.NewStyle().Background(lipgloss.Color("#1A1A2E")).
 		Foreground(lipgloss.Color("#FFFFFF")).Padding(0, 1).Width(30)
 
-	b.WriteString(titleStyle.Render("Définir l'ordonnancement") + "\n\n")
+	b.WriteString(titleStyle.Render("Define scheduling") + "\n\n")
 
 	options := []struct{ label, desc string }{
-		{"Rotation 7", "Conserver les 7 dernières sauvegardes"},
-		{"Rotation 14", "Conserver les 14 dernières sauvegardes"},
-		{"Personnalisé", "Définir votre propre planification"},
+{"Rotation 7", "Keep the last 7 backups"},
+			{"Rotation 14", "Keep the last 14 backups"},
+			{"Custom", "Define your own schedule"},
 	}
 
 	for i, opt := range options {
@@ -126,7 +126,7 @@ func (m Model) renderWorkflowWizardScheduleStep(width int) string {
 			if i == 2 {
 				// Custom cron input
 				b.WriteString("\n   Cron : " + inputStyle.Render(m.wizard.wfCronInput+"█") + "\n")
-				b.WriteString("   " + descStyle.Render("ex: 0 0 * * * (tous les jours à minuit)") + "\n")
+				b.WriteString("   " + descStyle.Render("e.g. 0 0 * * * (every day at midnight)") + "\n")
 				b.WriteString("   Rotation : " + inputStyle.Render(fmt.Sprintf("%d", m.wizard.wfRotation)) + "\n")
 			}
 			b.WriteString("\n")
@@ -137,7 +137,7 @@ func (m Model) renderWorkflowWizardScheduleStep(width int) string {
 	}
 
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ : Choisir • Enter : Sélectionner • ← : Retour • Esc : Annuler"))
+		Render("↑↓: Choose • Enter: Select • ←: Back • Esc: Cancel"))
 	return b.String()
 }
 
@@ -147,20 +147,20 @@ func (m Model) renderWorkflowWizardConfirmStep(width int) string {
 	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
 	valStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	b.WriteString(titleStyle.Render("Confirmer la création du Workflow :") + "\n\n")
-	b.WriteString(labelStyle.Render("  Workflow :") + valStyle.Render("Sauvegarde automatisée") + "\n")
+	b.WriteString(titleStyle.Render("Confirm Workflow creation:") + "\n\n")
+	b.WriteString(labelStyle.Render("  Workflow:") + valStyle.Render("Automated backup") + "\n")
 	instName := m.wizard.wfInstanceName
 	if instName == "" {
 		instName = m.wizard.wfInstanceId
 	}
 	b.WriteString(labelStyle.Render("  Instance :") + valStyle.Render(instName) + "\n")
-	b.WriteString(labelStyle.Render("  Région :") + valStyle.Render(m.wizard.wfRegion) + "\n")
+	b.WriteString(labelStyle.Render("  Region:") + valStyle.Render(m.wizard.wfRegion) + "\n")
 	b.WriteString(labelStyle.Render("  Nom :") + valStyle.Render(m.wizard.wfName) + "\n")
 	b.WriteString(labelStyle.Render("  Cron :") + valStyle.Render(m.wizard.wfCron) + "\n")
 	b.WriteString(labelStyle.Render("  Rotation :") + valStyle.Render(fmt.Sprintf("%d sauvegardes", m.wizard.wfRotation)) + "\n\n")
 
 	if m.wizard.isLoading {
-		b.WriteString(loadingStyle.Render("⏳ Création en cours..."))
+		b.WriteString(loadingStyle.Render("⏳ Creating..."))
 		return b.String()
 	}
 	if m.wizard.errorMsg != "" {
@@ -168,15 +168,15 @@ func (m Model) renderWorkflowWizardConfirmStep(width int) string {
 			Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
 	}
 
-	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Créer ")
+	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Create ")
 	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Annuler ")
 	if m.wizard.wfConfirmBtnIdx == 1 {
-		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Créer ")
+		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Create ")
 		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Annuler ")
 	}
 	b.WriteString(btnCreate + "  " + btnCancel + "\n\n")
 	b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("←→ : Sélectionner • Enter : Confirmer • Esc : Annuler"))
+		Render("←→: Select • Enter: Confirm • Esc: Cancel"))
 	return b.String()
 }
 
@@ -301,7 +301,7 @@ func (m Model) handleWorkflowWizardConfirmKeys(key string) (tea.Model, tea.Cmd) 
 			return m, nil
 		}
 		m.wizard.isLoading = true
-		m.wizard.loadingMessage = "Création du Workflow..."
+		m.wizard.loadingMessage = "Creating Workflow..."
 		return m, m.createWorkflow()
 	}
 	return m, nil
