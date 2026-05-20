@@ -171,7 +171,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 				if err := httpLib.Client.Post(subnetEndpoint, subnetBody, &subnet); err != nil {
 					return privNetCreatedMsg{
 						network: network,
-						err:     fmt.Errorf("network created but subnet failed (%s, CIDR: %s): %w", netID, m.wizard.privNetCIDR, err),
+						err:     fmt.Errorf("network created but subnet failed (id: %s, CIDR: %s): %w", netID, m.wizard.privNetCIDR, err),
 					}
 				}
 			}
@@ -186,14 +186,14 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 func (m Model) renderPrivNetWizardRegionStep(width int) string {
 	var content strings.Builder
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF"))
-	content.WriteString(titleStyle.Render("Choose private network location:") + "\n\n")
+	content.WriteString(titleStyle.Render("Choose the location of the private network:") + "\n\n")
 
 	if m.wizard.isLoading {
 		content.WriteString(loadingStyle.Render("Loading regions..."))
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
@@ -235,7 +235,7 @@ func (m Model) renderPrivNetWizardRegionStep(width int) string {
 	}
 
 	if len(allEntries) == 0 {
-		content.WriteString(dimStyle.Render("  No region available.") + "\n")
+		content.WriteString(dimStyle.Render("  No regions available.") + "\n")
 	}
 
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Margin(1, 0, 0, 0).
@@ -249,7 +249,7 @@ func (m Model) renderPrivNetWizardNameStep(width int) string {
 	content.WriteString(titleStyle.Render("Private network name:") + "\n\n")
 
 	if m.wizard.errorMsg != "" {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
 	inputStyle := lipgloss.NewStyle().
@@ -258,7 +258,7 @@ func (m Model) renderPrivNetWizardNameStep(width int) string {
 		Padding(0, 1).Width(40)
 	content.WriteString(inputStyle.Render(m.wizard.privNetNameInput+"▌") + "\n\n")
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("Tapez le nom • Enter : Continuer • ← : Retour • Esc : Annuler"))
+		Render("Type a name • Enter: Continue • ←: Back • Esc: Cancel"))
 	return content.String()
 }
 
@@ -291,7 +291,7 @@ func (m Model) renderPrivNetWizardVlanStep(width int) string {
 
 	// Option 1 : define VLAN
 	if m.wizard.privNetDefineVlan {
-		content.WriteString(selectedStyle.Render("▶ Set a VLAN ID") + "\n\n")
+		content.WriteString(selectedStyle.Render("▶ Define a VLAN ID") + "\n\n")
 		content.WriteString(descStyle.Render("  VLAN ID (plage valide : 1 – 4094) :") + "\n")
 		inputStyle := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -303,15 +303,15 @@ func (m Model) renderPrivNetWizardVlanStep(width int) string {
 		}
 		content.WriteString(inputStyle.Render(val+"▌") + "\n\n")
 	} else {
-		content.WriteString(dimStyle.Render("  Set a VLAN ID") + "\n\n")
+		content.WriteString(dimStyle.Render("  Define a VLAN ID") + "\n\n")
 	}
 
 	if m.wizard.errorMsg != "" {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ Naviguer • Enter : Continuer • ← : Retour • Esc : Annuler"))
+		Render("↑↓ Navigate • Enter: Continue • ←: Back • Esc: Cancel"))
 	return content.String()
 }
 
@@ -446,11 +446,11 @@ func (m Model) renderPrivNetWizardGatewayStep(width int) string {
 	}
 
 	if m.wizard.errorMsg != "" {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("↑↓ Naviguer • Enter : Continuer • ← : Retour • Esc : Annuler"))
+		Render("↑↓ Navigate • Enter: Continue • ←: Back • Esc: Cancel"))
 	return content.String()
 }
 
@@ -599,12 +599,12 @@ func (m Model) handlePrivNetWizardVlanKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 		if m.wizard.privNetDefineVlan {
 			input := strings.TrimSpace(m.wizard.privNetVlanInput)
 			if input == "" {
-				m.wizard.errorMsg = "Entrez un VLAN ID (1–4094)"
+				m.wizard.errorMsg = "Enter a VLAN ID (1–4094)"
 				return m, nil
 			}
 			var v int
 			if _, err := fmt.Sscanf(input, "%d", &v); err != nil || v < 1 || v > 4094 {
-				m.wizard.errorMsg = "VLAN ID invalide (1–4094)"
+				m.wizard.errorMsg = "Invalid VLAN ID (1–4094)"
 				return m, nil
 			}
 			if m.wizard.privNetUsedVlanIDs[v] {

@@ -119,7 +119,7 @@ func (m Model) createGatewayFromWizard() tea.Cmd {
 				strings.Contains(errMsg, "gateway IP") && strings.Contains(errMsg, "port") {
 				return gwCreatedMsg{err: fmt.Errorf(
 					"the subnet already has a gateway IP in use. " +
-						"OVH Gateway can only be created on a subnet with no static gateway (mode 'OVH Gateway'). " +
+						"The OVH Gateway can only be created on a subnet configured without a static gateway (mode 'OVH Gateway'). " +
 						"Recreate the private network with this option")}
 			}
 			return gwCreatedMsg{err: fmt.Errorf("failed to create gateway: %w", err)}
@@ -136,18 +136,18 @@ func (m Model) renderGwWizardRegionStep(width int) string {
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 
-	content.WriteString(titleStyle.Render("Choose a region:") + "\n\n")
+	content.WriteString(titleStyle.Render("Choose region:") + "\n\n")
 
 	if m.wizard.isLoading {
 		content.WriteString(loadingStyle.Render("⏳ Loading regions..."))
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
 	if len(m.wizard.gwAvailableRegions) == 0 {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No region available.") + "\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render("No regions available.") + "\n")
 	} else {
 		for i, r := range m.wizard.gwAvailableRegions {
 			if i == m.wizard.gwRegionIdx {
@@ -170,7 +170,7 @@ func (m Model) renderGwWizardModelStep(width int) string {
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 
-	content.WriteString(titleStyle.Render("Choisir la taille de la Gateway :") + "\n\n")
+	content.WriteString(titleStyle.Render("Choose gateway size:") + "\n\n")
 	content.WriteString(descStyle.Render(fmt.Sprintf("Region: %s", m.wizard.gwRegion)) + "\n\n")
 
 	models := m.gwActiveModels()
@@ -182,7 +182,7 @@ func (m Model) renderGwWizardModelStep(width int) string {
 		}
 	}
 
-	backHint := "← : Retour "
+	backHint := "←: Back "
 	if len(m.wizard.gwAvailableRegions) == 0 {
 		backHint = ""
 	}
@@ -202,14 +202,14 @@ func (m Model) renderGwWizardNameStep(width int) string {
 		modelName = strings.ToUpper(models[m.wizard.gwModelIdx])
 	}
 
-	content.WriteString(titleStyle.Render("Nom de la Gateway :") + "\n\n")
+	content.WriteString(titleStyle.Render("Gateway name:") + "\n\n")
 	content.WriteString(descStyle.Render(
 		fmt.Sprintf("Region: %s  •  Size: %s",
 			m.wizard.gwRegion, modelName),
 	) + "\n\n")
 
 	if m.wizard.errorMsg != "" {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
 	inputStyle := lipgloss.NewStyle().
@@ -218,7 +218,7 @@ func (m Model) renderGwWizardNameStep(width int) string {
 		Padding(0, 1).Width(40)
 	content.WriteString(inputStyle.Render(m.wizard.gwNameInput+"▌") + "\n\n")
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-		Render("Tapez le nom • Enter : Continuer • ← : Retour • Esc : Annuler"))
+		Render("Type a name • Enter: Continue • ←: Back • Esc: Cancel"))
 	return content.String()
 }
 
@@ -246,14 +246,14 @@ func (m Model) renderGwWizardNetworkStep(width int) string {
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
 	if len(m.wizard.gwAvailableNetworks) == 0 {
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).
 			Render("No private network available in this region.") + "\n\n")
 		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-			Render("← : Retour • Esc : Annuler"))
+			Render("←: Back • Esc: Cancel"))
 	} else {
 		for i, net := range m.wizard.gwAvailableNetworks {
 			name := getStringValue(net, "name", getStringValue(net, "id", "unknown"))
@@ -275,9 +275,9 @@ func (m Model) renderGwWizardConfirmStep(width int) string {
 	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
 	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	content.WriteString(titleStyle.Render("Confirm Gateway creation:") + "\n\n")
+	content.WriteString(titleStyle.Render("Confirm gateway creation:") + "\n\n")
 	content.WriteString(labelStyle.Render("  Region:") + valueStyle.Render(m.wizard.gwRegion) + "\n")
-	content.WriteString(labelStyle.Render("  Taille :") + valueStyle.Render(func() string {
+	content.WriteString(labelStyle.Render("  Size:") + valueStyle.Render(func() string {
 		models := m.gwActiveModels()
 		if m.wizard.gwModelIdx < len(models) {
 			return strings.ToUpper(models[m.wizard.gwModelIdx])
@@ -295,14 +295,14 @@ func (m Model) renderGwWizardConfirmStep(width int) string {
 		return content.String()
 	}
 	if m.wizard.errorMsg != "" {
-		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Erreur : "+m.wizard.errorMsg) + "\n\n")
+		content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Render("Error: "+m.wizard.errorMsg) + "\n\n")
 	}
 
 	btnCreate := lipgloss.NewStyle().Background(lipgloss.Color("#00FF7F")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Create ")
-	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Annuler ")
+	btnCancel := lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Cancel ")
 	if m.wizard.gwConfirmBtnIdx == 1 {
 		btnCreate = lipgloss.NewStyle().Background(lipgloss.Color("#333333")).Foreground(lipgloss.Color("#CCCCCC")).Padding(0, 2).Render(" Create ")
-		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Annuler ")
+		btnCancel = lipgloss.NewStyle().Background(lipgloss.Color("#FF6B6B")).Foreground(lipgloss.Color("#000000")).Bold(true).Padding(0, 2).Render(" Cancel ")
 	}
 	content.WriteString(btnCreate + "  " + btnCancel + "\n\n")
 	content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
@@ -429,7 +429,7 @@ func (m Model) handleGwWizardNetworkKeys(key string) (tea.Model, tea.Cmd) {
 			}
 			// Subnet IDs not embedded — fetch them
 			m.wizard.isLoading = true
-			m.wizard.loadingMessage = "Checking subnet..."
+			m.wizard.loadingMessage = "Verifying subnet..."
 			return m, m.fetchGwSubnet(m.wizard.gwNetworkID)
 		}
 	case "left":
@@ -455,7 +455,7 @@ func (m Model) handleGwWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.wizard.isLoading = true
-		m.wizard.loadingMessage = "Creating Gateway..."
+		m.wizard.loadingMessage = "Creating gateway..."
 		return m, m.createGatewayFromWizard()
 	}
 	return m, nil
