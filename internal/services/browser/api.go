@@ -2671,7 +2671,7 @@ func createWorkflowsTable(data []map[string]interface{}, width, height int) tabl
 		{Title: "Location", Width: 12},
 		{Title: "Workflow", Width: 16},
 		{Title: "Targeted Resource", Width: 22},
-		{Title: "Ordinance", Width: 14},
+		{Title: "Scheduling", Width: 14},
 	}
 
 	var rows []table.Row
@@ -2700,13 +2700,13 @@ func createWorkflowsTable(data []map[string]interface{}, width, height int) tabl
 			instanceId = "-"
 		}
 
-		// Ordinance = raw cron expression (e.g. "0 0 */7 * *")
-		ordinance := getString(w, "cron")
-		if ordinance == "" {
-			ordinance = "-"
+		// Scheduling = raw cron expression (e.g. "0 0 */7 * *")
+		Scheduling := getString(w, "cron")
+		if Scheduling == "" {
+			Scheduling = "-"
 		}
 
-		rows = append(rows, table.Row{name, id, backup, location, workflowStr, instanceId, ordinance})
+		rows = append(rows, table.Row{name, id, backup, location, workflowStr, instanceId, Scheduling})
 	}
 
 	tableHeight := height - 15
