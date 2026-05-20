@@ -8,6 +8,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudAlertingCommand(cloudCmd *cobra.Command) {
@@ -16,6 +17,7 @@ func initCloudAlertingCommand(cloudCmd *cobra.Command) {
 		Short: "Manage billing alert configurations in the given cloud project",
 	}
 	alertingCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	alertingCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	// List alerting configurations
 	alertingListCmd := &cobra.Command{

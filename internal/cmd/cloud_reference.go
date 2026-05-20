@@ -7,6 +7,7 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudReferenceCmd(cloudCmd *cobra.Command) {
@@ -16,6 +17,7 @@ func initCloudReferenceCmd(cloudCmd *cobra.Command) {
 	}
 
 	referenceCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	referenceCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	// Flavors
 	var region string

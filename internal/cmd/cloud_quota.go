@@ -7,6 +7,7 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudQuotaCommand(cloudCmd *cobra.Command) {
@@ -15,6 +16,7 @@ func initCloudQuotaCommand(cloudCmd *cobra.Command) {
 		Short: "Check quotas in the given cloud project",
 	}
 	quotaCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	quotaCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	quotaCmd.AddCommand(&cobra.Command{
 		Use:   "get <region>",

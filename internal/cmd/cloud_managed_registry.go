@@ -8,6 +8,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initContainerRegistryCommand(cloudCmd *cobra.Command) {
@@ -17,6 +18,7 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 		Short:   "Manage container registries in the given cloud project",
 	}
 	registryCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	registryCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	listCmd := &cobra.Command{
 		Use:     "list",

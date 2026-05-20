@@ -7,6 +7,7 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 		Short: "Retrieve information and manage your CloudProject services",
 	}
 	cloudprojectCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	cloudprojectCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	// Command to list CloudProject services
 	cloudprojectCmd.AddCommand(withFilterFlag(&cobra.Command{

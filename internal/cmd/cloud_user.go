@@ -8,6 +8,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudUserCommand(cloudCmd *cobra.Command) {
@@ -16,6 +17,7 @@ func initCloudUserCommand(cloudCmd *cobra.Command) {
 		Short: "Manage users in the given cloud project",
 	}
 	userCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	userCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	userListCmd := &cobra.Command{
 		Use:     "list",

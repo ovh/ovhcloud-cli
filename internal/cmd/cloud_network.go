@@ -9,6 +9,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudNetworkCommand(cloudCmd *cobra.Command) {
@@ -17,6 +18,7 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Short: "Manage networks in the given cloud project",
 	}
 	networkCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	networkCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 	cloudCmd.AddCommand(networkCmd)
 
 	// Private network commands

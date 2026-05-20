@@ -8,6 +8,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
@@ -16,6 +17,7 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 		Short: "Manage file storage shares in the given cloud project",
 	}
 	storageFileCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	storageFileCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 	storageFileCmd.PersistentFlags().StringVar(&cloud.ShareRegion, "region", "", "Region (skip region discovery if set)")
 
 	// Share commands

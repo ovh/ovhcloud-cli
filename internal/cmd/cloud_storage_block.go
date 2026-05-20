@@ -9,6 +9,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudVolumeCommand(cloudCmd *cobra.Command) {
@@ -17,6 +18,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Short: "Manage block storage volumes in the given cloud project",
 	}
 	storageBlockCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	storageBlockCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	volumeListCmd := &cobra.Command{
 		Use:     "list",
