@@ -839,9 +839,10 @@ type Model struct {
 	dbMetricPeriodIdx   int             // 0=lastHour 1=lastDay
 	dbNodeNames         []string         // ordered node names for legend labels
 	dbMetricSeries      []dbMetricSeries // current chart data (one per API series)
-	dbMetricLoaded      bool
-	dbMetricLoading     bool             // true while a fetch is in flight
-	dbMetricName        string          // currently displayed metric name
+	dbMetricLoaded       bool
+	dbMetricLoading      bool             // true while a fetch is in flight
+	dbMetricName         string          // currently displayed metric name
+	dbMetricSeriesHidden map[int]bool    // set of series indices the user has toggled off
 	dbUserCreateMode   bool                   // true when typing a new username
 	dbUserCreateInput  string                 // username being typed
 	dbUserCreatedData  map[string]interface{} // creation result (has password + endpoints)
@@ -8161,11 +8162,14 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
                                 // Palette for multiple series
                                 seriesColors := []string{"#00FFD0", "#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#C77DFF"}
 
-                                // Compute global time and value ranges across all series
+                                // Compute global time and value ranges across visible series only
                                 var minT, maxT time.Time
                                 var minV, maxV float64
                                 first := true
-                                for _, s := range m.dbMetricSeries {
+                                for si, s := range m.dbMetricSeries {
+                                        if m.dbMetricSeriesHidden[si] {
+                                                continue
+                                        }
                                         for _, p := range s.Points {
                                                 if first || p.T.Before(minT) {
                                                         minT = p.T
@@ -8181,6 +8185,11 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
                                                 }
                                                 first = false
                                         }
+                                }
+                                if first {
+                                        // All series hidden
+                                        chartBuf.WriteString(dimSt.Render("All series hidden — press 1-9 to show") + "\n")
+                                        goto renderColumns
                                 }
                                 if maxT.Equal(minT) {
                                         maxT = minT.Add(time.Second)
@@ -8225,6 +8234,9 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 
                                 var dsNames []string
                                 for si, s := range m.dbMetricSeries {
+                                        if m.dbMetricSeriesHidden[si] {
+                                                continue
+                                        }
                                         color := seriesColors[si%len(seriesColors)]
                                         dsName := s.Name
                                         chart.SetDataSetStyle(dsName, lipgloss.NewStyle().Foreground(lipgloss.Color(color)))
@@ -8259,21 +8271,31 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
                                 chartBuf.WriteString(chart.View())
 
                                 // Legend — use real node names when available, always shown
+                                // Press number key (1-9) to toggle a series on/off
                                 var legend strings.Builder
                                 for si, s := range m.dbMetricSeries {
                                         color := seriesColors[si%len(seriesColors)]
                                         label := s.Name
                                         if si < len(m.dbNodeNames) && m.dbNodeNames[si] != "" {
-                                                label = m.dbNodeNames[si]
+                                                label = strings.TrimSuffix(m.dbNodeNames[si], ".cloud.ovh.net")
                                         }
-                                        dot := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render("━")
-                                        legend.WriteString(dot + " " + dimSt.Render(label) + "  ")
+                                        numKey := fmt.Sprintf("[%d]", si+1)
+                                        if m.dbMetricSeriesHidden[si] {
+                                                // Dimmed, struck-through style for hidden series
+                                                hiddenSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
+                                                legend.WriteString(hiddenSt.Render(numKey+" ━ "+label) + "  ")
+                                        } else {
+                                                dot := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render("━")
+                                                numSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render(numKey)
+                                                legend.WriteString(numSt + " " + dot + " " + dimSt.Render(label) + "  ")
+                                        }
                                 }
                                 if legend.Len() > 0 {
-                                        chartBuf.WriteString(legend.String() + "\n")
+                                        chartBuf.WriteString("\n" + legend.String() + "\n")
                                 }
                         }
 
+                        renderColumns:
                         // Join list and chart side by side
                         listBox := lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
@@ -10214,6 +10236,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.dbMetricSelectedIdx > 0 && m.dbMetricNamesLoaded {
 				m.dbMetricSelectedIdx--
 				m.dbMetricSeries = nil
+				m.dbMetricSeriesHidden = nil
 				m.dbMetricLoaded = false
 				name := m.dbMetricNames[m.dbMetricSelectedIdx]
 				m.dbMetricName = name
@@ -10224,6 +10247,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.dbMetricSelectedIdx < len(m.dbMetricNames)-1 && m.dbMetricNamesLoaded {
 				m.dbMetricSelectedIdx++
 				m.dbMetricSeries = nil
+				m.dbMetricSeriesHidden = nil
 				m.dbMetricLoaded = false
 				name := m.dbMetricNames[m.dbMetricSelectedIdx]
 				m.dbMetricName = name
@@ -10234,6 +10258,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.dbMetricPeriodIdx > 0 && m.dbMetricNamesLoaded && len(m.dbMetricNames) > 0 {
 				m.dbMetricPeriodIdx--
 				m.dbMetricSeries = nil
+				m.dbMetricSeriesHidden = nil
 				m.dbMetricLoaded = false
 				name := m.dbMetricNames[m.dbMetricSelectedIdx]
 				m.dbMetricName = name
@@ -10244,6 +10269,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.dbMetricPeriodIdx < len(periods)-1 && m.dbMetricNamesLoaded && len(m.dbMetricNames) > 0 {
 				m.dbMetricPeriodIdx++
 				m.dbMetricSeries = nil
+				m.dbMetricSeriesHidden = nil
 				m.dbMetricLoaded = false
 				name := m.dbMetricNames[m.dbMetricSelectedIdx]
 				m.dbMetricName = name
@@ -10257,8 +10283,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.dbMetricName = name
 				m.dbMetricLoaded = false
 				m.dbMetricSeries = nil
+				m.dbMetricSeriesHidden = nil
 				m.dbMetricLoading = true
 				return m, m.fetchDBMetric(name, period)
+			}
+		default:
+			// 1-9: toggle visibility of the corresponding series
+			if len(msg.Runes) == 1 && msg.Runes[0] >= '1' && msg.Runes[0] <= '9' {
+				idx := int(msg.Runes[0] - '1')
+				if idx < len(m.dbMetricSeries) {
+					if m.dbMetricSeriesHidden == nil {
+						m.dbMetricSeriesHidden = make(map[int]bool)
+					}
+					m.dbMetricSeriesHidden[idx] = !m.dbMetricSeriesHidden[idx]
+				}
 			}
 		}
 		return m, nil
