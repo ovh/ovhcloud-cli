@@ -175,6 +175,15 @@ const (
 	FIPWizardStepConfirm                           // confirm + create
 )
 
+const (
+	// Workflow wizard steps (offset by 1200)
+	WorkflowWizardStepType     WizardStep = iota + 1200 // select workflow type
+	WorkflowWizardStepInstance                          // select instance
+	WorkflowWizardStepName                              // enter name
+	WorkflowWizardStepSchedule                          // define schedule/rotation
+	WorkflowWizardStepConfirm                           // confirm + create
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -196,6 +205,9 @@ const (
 	ProductNetworkGateway // Gateways (sub-nav)
 	ProductNetworkLB      // Load Balancers (sub-nav)
 	ProductProjects
+	ProductCompute         // Compute top-level nav
+	ProductInstanceBackup  // Instance Backup (compute sub-nav)
+	ProductWorkflow        // Workflow (compute sub-nav)
 )
 
 // WizardData holds the state for the creation wizard
@@ -249,6 +261,7 @@ type WizardData struct {
 	filterInput string // Current filter input text for wizard lists
 	// Cleanup tracking - IDs of resources created during wizard
 	createdSSHKeyId     string // ID of SSH key created during wizard
+	
 	createdNetworkId    string // ID of network created during wizard
 	createdSubnetId     string // ID of subnet created during wizard
 	createdGatewayId    string // ID of gateway created during wizard
@@ -452,6 +465,20 @@ type WizardData struct {
 	fipInstanceId        string
 	fipInstanceName      string
 	fipConfirmBtnIdx     int
+
+	// Workflow wizard fields
+	wfInstances      []map[string]interface{}
+	wfInstanceIdx    int
+	wfInstanceId     string
+	wfInstanceName   string
+	wfRegion         string
+	wfName           string
+	wfNameInput      string
+	wfScheduleIdx    int    // 0=rotation7, 1=rotation14, 2=custom
+	wfCron           string
+	wfCronInput      string
+	wfRotation       int
+	wfConfirmBtnIdx  int
 }
 
 // Model represents the TUI application state
@@ -466,6 +493,8 @@ type Model struct {
 	inStorageSubNav    bool // Whether the keyboard focus is in the storage sub-nav bar
 	networkSubIdx      int  // Index in network sub-navigation
 	inNetworkSubNav    bool // Whether the keyboard focus is in the network sub-nav bar
+	computeSubIdx      int  // Index in compute sub-navigation
+	inComputeSubNav    bool // Whether the keyboard focus is in the compute sub-nav bar
 	inTableFocus       bool // Whether the keyboard focus is in the table content (third navigation level)
 	table              table.Model
 	detailData         map[string]interface{}
@@ -749,6 +778,7 @@ type progressMsg struct {
 type instanceActionMsg struct {
 	action     string
 	instanceId string
+	backupName string
 	err        error
 }
 
@@ -1006,6 +1036,16 @@ type fipDeletedMsg struct {
 	err   error
 }
 
+type workflowDeletedMsg struct {
+	name string
+	err  error
+}
+
+type instanceBackupDeletedMsg struct {
+	name string
+	err  error
+}
+
 type fipDetachedMsg struct {
 	fipIP string
 	err   error
@@ -1023,7 +1063,7 @@ type privNetDetailLoadedMsg struct {
 
 func getNavItems() []NavItem {
 	return []NavItem{
-		{Label: "Instances", Icon: "💻", Product: ProductInstances, Path: "/instances"},
+		{Label: "Compute", Icon: "💻", Product: ProductCompute, Path: "/instances"},
 		{Label: " Kubernetes", Icon: "☸️", Product: ProductKubernetes, Path: "/kubernetes"},
 		{Label: " Managed Databases", Icon: "🗄️", Product: ProductManagedDatabases, Path: "/databases"},
 		{Label: "Managed Analytics", Icon: "📈", Product: ProductManagedAnalytics, Path: "/analytics"},
@@ -1062,6 +1102,21 @@ func getNetworkSubItems() []NetworkSubItem {
 		{Label: "Public IPs", Product: ProductNetworkPublic, Path: "/networks/floatingip", Enabled: true},
 		{Label: "Gateways", Product: ProductNetworkGateway, Path: "/networks/gateway", Enabled: true},
 		{Label: "Load Balancers", Product: ProductNetworkLB, Path: "/loadbalancer", Enabled: true},
+	}
+}
+
+type ComputeSubItem struct {
+	Label   string
+	Product ProductType
+	Path    string
+	Enabled bool
+}
+
+func getComputeSubItems() []ComputeSubItem {
+	return []ComputeSubItem{
+		{Label: "Instances", Product: ProductInstances, Path: "/instances", Enabled: true},
+		{Label: "Instance Backup", Product: ProductInstanceBackup, Path: "/instances/backup", Enabled: true},
+		{Label: "Workflow", Product: ProductWorkflow, Path: "/instances/workflow", Enabled: true},
 	}
 }
 
@@ -1263,6 +1318,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Loading regions...",
 			}
 			return m, m.fetchFIPRegions()
+		} else if msg.product == ProductWorkflow {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step: WorkflowWizardStepType,
+			}
+			return m, nil
 		}
 		// Store the creation command to be displayed after exit
 		_, cmd := m.getProductCreationInfo()
@@ -1537,7 +1598,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 		}
 		netName, _ := msg.network["name"].(string)
-		m.notification = fmt.Sprintf("✅ Réseau privé '%s' créé avec succès", netName)
+		m.notification = fmt.Sprintf("✅ Private network '%s' created successfully", netName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.mode = LoadingView
 		return m, tea.Batch(
@@ -1552,7 +1613,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Réseau privé '%s' supprimé avec succès", msg.networkName)
+		m.notification = fmt.Sprintf("✅ Private network '%s' deleted successfully", msg.networkName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.detailData = nil
 		m.mode = LoadingView
@@ -1591,7 +1652,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = "✅ Gateway créée avec succès"
+		m.notification = "✅ Gateway created successfully"
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		if attachMode {
 			// Return to private network list
@@ -1653,7 +1714,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if lbName == "" {
 			lbName = getString(msg.lb, "id")
 		}
-		m.notification = fmt.Sprintf("✅ Load Balancer '%s' créé avec succès", lbName)
+		m.notification = fmt.Sprintf("✅ Load Balancer '%s' created successfully", lbName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.mode = LoadingView
 		return m, tea.Batch(
@@ -1713,7 +1774,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
-		m.notification = fmt.Sprintf("✅ Load Balancer '%s' supprimé avec succès", msg.lbName)
+		m.notification = fmt.Sprintf("✅ Load Balancer '%s' deleted successfully", msg.lbName)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.detailData = nil
 		m.mode = LoadingView
@@ -1812,6 +1873,68 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.wizard.fipInstanceIdx = 0
 		return m, nil
 
+	case workflowInstancesLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.wfInstances = msg.instances
+		m.wizard.wfInstanceIdx = 0
+		return m, nil
+
+	case workflowCreatedMsg:
+		m.wizard = WizardData{}
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Batch(
+				m.fetchDataForPath("/instances/workflow"),
+				tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+			)
+		}
+		m.notification = fmt.Sprintf("✅ Workflow \"%s\" created successfully!", msg.name)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/instances/workflow"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case workflowDeletedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Workflow \"%s\" deleted successfully", msg.name)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/instances/workflow"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case instanceBackupDeletedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.mode = TableView
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Backup \"%s\" deleted successfully", msg.name)
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/instances/backup"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
 	case fipCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
@@ -1824,7 +1947,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if ip == "" {
 			ip = "en cours de provisioning"
 		}
-		m.notification = fmt.Sprintf("✅ Floating IP %s créée avec succès", ip)
+		m.notification = fmt.Sprintf("✅ Floating IP %s created successfully", ip)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
 		m.mode = LoadingView
 		return m, tea.Batch(
@@ -2344,7 +2467,7 @@ func (m Model) renderNavBar(width int) string {
 	navItems := getNavItems()
 	var items []string
 
-	isSubNavFocused := m.inStorageSubNav || m.inNetworkSubNav
+	isSubNavFocused := m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav
 	isInSubContext := isSubNavFocused || m.inTableFocus
 
 	for i, nav := range navItems {
@@ -2379,6 +2502,14 @@ func (m Model) renderNavBar(width int) string {
 		(m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB)
 	if isNetworkContext {
 		subNav := m.renderNetworkSubNav(width)
+		return mainNav + "\n" + subNav
+	}
+
+	// Show compute sub-navigation when on Compute or any compute sub-product
+	isComputeSubProduct := m.currentProduct == ProductInstances || m.currentProduct == ProductInstanceBackup || m.currentProduct == ProductWorkflow
+	isComputeContext := navItems[m.navIdx].Product == ProductCompute || isComputeSubProduct
+	if isComputeContext {
+		subNav := m.renderComputeSubNav(width)
 		return mainNav + "\n" + subNav
 	}
 
@@ -2504,13 +2635,71 @@ func (m Model) renderNetworkSubNav(width int) string {
 	return subBarStyle.Width(width - 2).Render(subContent)
 }
 
+func (m Model) renderComputeSubNav(width int) string {
+	subItems := getComputeSubItems()
+	var items []string
+
+	subItemStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+	subItemDisabledStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#444444")).
+		Padding(0, 2)
+
+	activeSubIdx := m.computeSubIdx
+	for i, item := range subItems {
+		if item.Product == m.currentProduct {
+			activeSubIdx = i
+			break
+		}
+	}
+
+	for i, item := range subItems {
+		var style lipgloss.Style
+		label := item.Label
+		if i == activeSubIdx && m.inComputeSubNav && m.inTableFocus {
+			// Level 3: focus moved into the table — show arrow hint, dimmed
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+			label = "▼ " + item.Label
+		} else if i == activeSubIdx && m.inComputeSubNav {
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Bold(true).Padding(0, 2)
+		} else if i == activeSubIdx {
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#00AA55")).Padding(0, 2)
+		} else if !item.Enabled {
+			style = subItemDisabledStyle
+		} else {
+			style = subItemStyle
+		}
+		items = append(items, style.Render(label))
+	}
+
+	borderColor := lipgloss.Color("#333333")
+	if m.inComputeSubNav && !m.inTableFocus {
+		// Level 2: sub-nav is focused — bright green border
+		borderColor = lipgloss.Color("#00FF7F")
+	} else if m.inTableFocus {
+		// Level 3: focus is inside the table — dim the sub-nav border
+		borderColor = lipgloss.Color("#444444")
+	}
+	subBarStyle := lipgloss.NewStyle().
+		Padding(0, 1).
+		BorderTop(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(borderColor)
+	subContent := lipgloss.JoinHorizontal(lipgloss.Top, items...)
+	return subBarStyle.Width(width - 2).Render(subContent)
+}
+
 func (m Model) renderContentBox(width int) string {
 	var titleText string
 
 	// Handle wizard mode with special title
 	if m.mode == WizardView {
 		// Determine which wizard we're in based on the step
-		if m.wizard.step >= 1100 {
+		if m.wizard.step >= 1200 {
+			// Workflow wizard
+			titleText = " ⚙️  Create a Backup Workflow "
+		} else if m.wizard.step >= 1100 {
 			// Floating IP wizard
 			titleText = " 🌐 Create Floating IP "
 		} else if m.wizard.step >= 1000 {
@@ -3472,7 +3661,11 @@ func (m Model) renderWizardView(width int) string {
 	var stepMapping []WizardStep // Maps display index to actual step
 
 	// Build steps based on which wizard we're in (determine by first step >= 100)
-	if m.wizard.step >= 1100 {
+	if m.wizard.step >= 1200 {
+		// Workflow wizard
+		steps = append(steps, "Type", "Instance", "Nom", "Planification", "Confirmer")
+		stepMapping = append(stepMapping, WorkflowWizardStepType, WorkflowWizardStepInstance, WorkflowWizardStepName, WorkflowWizardStepSchedule, WorkflowWizardStepConfirm)
+	} else if m.wizard.step >= 1100 {
 		// Floating IP wizard
 		steps = append(steps, "Region", "Instance", "Confirm")
 		stepMapping = append(stepMapping, FIPWizardStepRegion, FIPWizardStepInstance, FIPWizardStepConfirm)
@@ -3723,6 +3916,17 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderFIPWizardInstanceStep(width))
 	case FIPWizardStepConfirm:
 		content.WriteString(m.renderFIPWizardConfirmStep(width))
+	// Workflow wizard steps
+	case WorkflowWizardStepType:
+		content.WriteString(m.renderWorkflowWizardTypeStep(width))
+	case WorkflowWizardStepInstance:
+		content.WriteString(m.renderWorkflowWizardInstanceStep(width))
+	case WorkflowWizardStepName:
+		content.WriteString(m.renderWorkflowWizardNameStep(width))
+	case WorkflowWizardStepSchedule:
+		content.WriteString(m.renderWorkflowWizardScheduleStep(width))
+	case WorkflowWizardStepConfirm:
+		content.WriteString(m.renderWorkflowWizardConfirmStep(width))
 	// Volume Backup / Snapshot wizard steps
 	case BackupWizardStepVolume, BackupWizardStepType, BackupWizardStepName, BackupWizardStepConfirm:
 		content.WriteString(m.renderBackupWizard(width))
@@ -5485,9 +5689,157 @@ func (m Model) renderDetailView(width int) string {
                         return m.objectDetailView.Render(width, 0)
                 }
                 return m.renderGenericDetail(width)
+	case ProductWorkflow:
+		return m.renderWorkflowDetail(width)
+	case ProductInstanceBackup:
+		return m.renderInstanceBackupDetail(width)
         default:
                 return m.renderGenericDetail(width)
         }
+}
+
+func (m Model) renderWorkflowDetail(width int) string {
+	var content strings.Builder
+
+	name := getStringValue(m.detailData, "name", "N/A")
+	id := getStringValue(m.detailData, "id", "N/A")
+	region := getStringValue(m.detailData, "region", "N/A")
+	instanceId := getStringValue(m.detailData, "instanceId", "N/A")
+	cron := getStringValue(m.detailData, "cron", "N/A")
+	rotation := int(getFloatValue(m.detailData, "rotation", 0))
+	lastStatus := getStringValue(m.detailData, "lastExecutionStatus", "-")
+
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	boxWidth := width - 4
+
+	statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	statusIcon := "⏳"
+	switch strings.ToLower(lastStatus) {
+	case "success":
+		statusIcon = "✅"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+	case "error", "failed":
+		statusIcon = "❌"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+	case "running":
+		statusIcon = "🔄"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+	}
+
+	var infoContent strings.Builder
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(id, 36))))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Region"), valueSt.Render(region)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Instance"), valueSt.Render(truncate(instanceId, 36))))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Cron"), valueSt.Render(cron)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Rotation"), valueSt.Render(fmt.Sprintf("%d sauvegardes", rotation))))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Statut"), statusStyle.Render(statusIcon+" "+lastStatus)))
+	infoBox := renderBox("Workflow : "+name, infoContent.String(), boxWidth)
+
+	actions := []string{"Supprimer"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.selectedAction {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color("#FF6B6B")).
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).Padding(0, 1).Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.actionConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).Bold(true).
+			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Esc to cancel", actions[m.selectedAction]))
+	}
+	actionsBox := renderBox("Actions (Enter to execute, Esc to go back)", actionsContent, width-4)
+
+	content.WriteString(actionsBox + "\n\n")
+	content.WriteString(infoBox)
+	return content.String()
+}
+
+func (m Model) renderInstanceBackupDetail(width int) string {
+	var content strings.Builder
+
+	name := getStringValue(m.detailData, "name", "N/A")
+	id := getStringValue(m.detailData, "id", "N/A")
+	status := getStringValue(m.detailData, "status", "N/A")
+	created := getStringValue(m.detailData, "creationDate", "-")
+	if len(created) >= 16 {
+		created = created[:16]
+	}
+	minDisk := int(getFloatValue(m.detailData, "minDisk", 0))
+	sizeStr := "-"
+	if minDisk > 0 {
+		sizeStr = fmt.Sprintf("%d GB", minDisk)
+	}
+	location := getStringValue(m.detailData, "region", "")
+	if location == "" {
+		if regions, ok := m.detailData["regions"].([]interface{}); ok && len(regions) > 0 {
+			var rnames []string
+			for _, r := range regions {
+				if rs, ok := r.(string); ok {
+					rnames = append(rnames, rs)
+				}
+			}
+			location = strings.Join(rnames, ", ")
+		}
+	}
+	if location == "" {
+		location = "-"
+	}
+
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	boxWidth := width - 4
+
+	statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
+	statusIcon := "🟡"
+	switch strings.ToLower(status) {
+	case "active":
+		statusIcon = "🟢"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
+	case "error":
+		statusIcon = "🔴"
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
+	}
+
+	var infoContent strings.Builder
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(id, 36))))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Localisation"), valueSt.Render(location)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Taille disque"), valueSt.Render(sizeStr)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Created"), valueSt.Render(created)))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Statut"), statusStyle.Render(statusIcon+" "+status)))
+	infoBox := renderBox("Instance Backup : "+name, infoContent.String(), boxWidth)
+
+	actions := []string{"Supprimer"}
+	var actionParts []string
+	for i, action := range actions {
+		if i == m.selectedAction {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(lipgloss.Color("#FF4444")).
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Bold(true).Padding(0, 1).Render(action))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.actionConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).Bold(true).
+			Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Esc to cancel", actions[m.selectedAction]))
+	}
+	actionsBox := renderBox("Actions (Enter to execute, Esc to go back)", actionsContent, width-4)
+
+	content.WriteString(actionsBox + "\n\n")
+	content.WriteString(infoBox)
+	return content.String()
 }
 
 func (m Model) renderInstanceDetail(width int) string {
@@ -5613,13 +5965,17 @@ func (m Model) renderInstanceDetail(width int) string {
 	if strings.ToUpper(status) == "RESCUE" {
 		rescueAction = "Exit Rescue"
 	}
-	actions := []string{"SSH", "Reboot", rescueAction, stopStartAction, "Console", "Reinstall"}
+	actions := []string{"SSH", "Reboot", rescueAction, stopStartAction, "Console", "Reinstall", "Backup", "Delete"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
-			// Selected action - highlighted
+			// Selected action - highlighted (Delete uses red)
+			bg := lipgloss.Color("#7B68EE")
+			if action == "Delete" {
+				bg = lipgloss.Color("#FF4444")
+			}
 			actionParts = append(actionParts, lipgloss.NewStyle().
-				Background(lipgloss.Color("#7B68EE")).
+				Background(bg).
 				Foreground(lipgloss.Color("#FFFFFF")).
 				Bold(true).
 				Padding(0, 1).
@@ -6278,23 +6634,23 @@ func (m Model) renderFooter() string {
 	case TableView:
 		if m.filterInput != "" {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
-		} else if (m.inStorageSubNav || m.inNetworkSubNav) && m.inTableFocus {
+		} else if (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.inTableFocus {
 			if m.currentProduct == ProductNetworkPrivate {
-				help = "↑↓: Navigate • ←→: Régions↔Local Zones • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
+				help = "↑↓: Navigate • ←→: Regions↔Local Zones • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else if m.currentProduct == ProductStorageObject {
-				help = "↑↓: Navigate • ←→: Containers↔Users • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
+				help = "↑↓: Navigate • ←→: Containers↔Users • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else {
-				help = "↑↓: Navigate • Enter: Détails • c: Create • /: Filter • d: Debug • Esc: Back to Sub-menu • q: Quit"
+				help = "↑↓: Navigate • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back to Sub-menu • q: Quit"
 			}
-		} else if m.inStorageSubNav || m.inNetworkSubNav {
+		} else if m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav {
 			help = "←→: Sub-menu • ↓/Enter: Enter Table • ↑/Esc: Back to main nav • d: Debug • p: Change Project • q: Quit"
 		} else {
 			help = "←→: Switch Product • Enter: Enter Sub-menu • ↑↓: Navigate • /: Filter • Enter: Details • c: Create • Del: Delete • d: Debug • p: Change Project • q: Quit"
 		}
 	case EmptyView:
-		if (m.inStorageSubNav || m.inNetworkSubNav) && m.inTableFocus {
+		if (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.inTableFocus {
 			help = "c: Create • d: Debug • Esc: Back to Sub-menu • q: Quit"
-		} else if m.inStorageSubNav || m.inNetworkSubNav {
+		} else if m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav {
 			help = "←→: Sub-menu • Enter: Enter Table • ↑/Esc: Back to main nav • c: Create • d: Debug • p: Change Project • q: Quit"
 		} else {
 			help = "←→: Switch Product • Enter: Enter Sub-menu • c: Create • d: Debug • p: Change Project • q: Quit"
@@ -6312,7 +6668,7 @@ func (m Model) renderFooter() string {
 			if m.actionConfirm {
 				help = "Enter: Confirmer l'action • Esc: Annuler"
 			} else {
-				help = "←→: Sélectionner action • Enter: Exécuter • Esc: Retour à la liste • q: Quitter"
+				help = "←→: Select action • Enter: Execute • Esc: Back to list • q: Quit"
 			}
 		} else if m.actionConfirm {
 			help = "Enter: Confirm Action • Esc: Cancel"
@@ -6530,6 +6886,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// In DetailView for Workflow, only 1 action (Delete)
+		if m.mode == DetailView && m.currentProduct == ProductWorkflow {
+			return m, nil
+		}
+		// In DetailView for Instance Backup, only 1 action (Delete)
+		if m.mode == DetailView && m.currentProduct == ProductInstanceBackup {
+			return m, nil
+		}
 		// In DetailView for Floating IPs, navigate actions (0=Delete, 1=Detach)
 		if m.mode == DetailView && m.currentProduct == ProductNetworkPublic {
 			if m.selectedAction > 0 {
@@ -6571,11 +6935,24 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.networkSubIdx = (m.networkSubIdx - 1 + len(subItems)) % len(subItems)
 			return m.loadNetworkSubProduct()
 		}
+		// In compute sub-nav (only when focused, not in table)
+		if m.inComputeSubNav && !m.inTableFocus && m.mode != DetailView {
+			subItems := getComputeSubItems()
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.computeSubIdx = i
+					break
+				}
+			}
+			m.computeSubIdx = (m.computeSubIdx - 1 + len(subItems)) % len(subItems)
+			return m.loadComputeSubProduct()
+		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects && !m.inTableFocus {
 			if m.navIdx > 0 {
 				m.navIdx--
 				m.inStorageSubNav = false
 				m.inNetworkSubNav = false
+				m.inComputeSubNav = false
 				return m.loadCurrentProduct()
 			}
 		}
@@ -6592,7 +6969,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView, navigate actions
 		if m.mode == DetailView && m.currentProduct == ProductInstances {
-			if m.selectedAction < 5 { // 6 actions: 0-5
+			if m.selectedAction < 7 { // 8 actions: 0-7
 				m.selectedAction++
 				m.actionConfirm = false
 			}
@@ -6612,6 +6989,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.selectedAction++
 				m.actionConfirm = false
 			}
+			return m, nil
+		}
+		// In DetailView for Workflow, only 1 action (Delete)
+		if m.mode == DetailView && m.currentProduct == ProductWorkflow {
+			return m, nil
+		}
+		// In DetailView for Instance Backup, only 1 action (Delete)
+		if m.mode == DetailView && m.currentProduct == ProductInstanceBackup {
 			return m, nil
 		}
 		// In DetailView for Floating IPs, navigate actions (0=Delete, 1=Detach)
@@ -6663,12 +7048,26 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.networkSubIdx = (m.networkSubIdx + 1) % len(subItems)
 			return m.loadNetworkSubProduct()
 		}
+		// In compute sub-nav (only when focused, not in table)
+		isComputeSubProduct2 := m.currentProduct == ProductInstances || m.currentProduct == ProductInstanceBackup || m.currentProduct == ProductWorkflow
+		if m.inComputeSubNav && !m.inTableFocus && isComputeSubProduct2 && m.mode != DetailView {
+			subItems := getComputeSubItems()
+			for i, item := range subItems {
+				if item.Product == m.currentProduct {
+					m.computeSubIdx = i
+					break
+				}
+			}
+			m.computeSubIdx = (m.computeSubIdx + 1) % len(subItems)
+			return m.loadComputeSubProduct()
+		}
 		if m.mode != ProjectSelectView && m.currentProduct != ProductProjects && !m.inTableFocus {
 			navItems := getNavItems()
 			if m.navIdx < len(navItems)-1 {
 				m.navIdx++
 				m.inStorageSubNav = false
 				m.inNetworkSubNav = false
+				m.inComputeSubNav = false
 				return m.loadCurrentProduct()
 			}
 		}
@@ -6709,7 +7108,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		// Level 3 → Level 2: exit table focus (back to sub-nav focus)
-		if m.inTableFocus && (m.inStorageSubNav || m.inNetworkSubNav) && m.mode != DetailView && m.mode != WizardView {
+		if m.inTableFocus && (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.mode != DetailView && m.mode != WizardView {
 			m.inTableFocus = false
 			return m, nil
 		}
@@ -6720,6 +7119,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if m.inNetworkSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
 			m.inNetworkSubNav = false
+			return m, nil
+		}
+		if m.inComputeSubNav && !m.inTableFocus && m.mode != DetailView && m.mode != WizardView {
+			m.inComputeSubNav = false
 			return m, nil
 		}
 		// Go back to node pools view from node pool detail view, or cancel action confirm
@@ -6756,6 +7159,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			// Require table focus (Level 3) for sub-nav products
 			isSubNavProd := (m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB)
 			if isSubNavProd && !m.inTableFocus {
+				return m, nil
+			}
+			// Instance Backup: creation is done from an instance detail view, not here
+			if m.currentProduct == ProductInstanceBackup {
 				return m, nil
 			}
 			// If viewing S3 users tab, launch user creation wizard
@@ -6801,6 +7208,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.inNetworkSubNav = true
 					m.inTableFocus = false
 					return m.loadNetworkSubProduct()
+				} else if !m.inTableFocus {
+					// Level 2 → Level 3: enter table focus
+					m.inTableFocus = true
+					return m, nil
+				}
+				// Level 3: fall through to normal enter handling
+			}
+			if m.navIdx < len(navItems) && navItems[m.navIdx].Product == ProductCompute {
+				if !m.inComputeSubNav {
+					// Level 1 → Level 2: enter sub-nav focus
+					m.inComputeSubNav = true
+					m.inTableFocus = false
+					return m.loadComputeSubProduct()
 				} else if !m.inTableFocus {
 					// Level 2 → Level 3: enter table focus
 					m.inTableFocus = true
@@ -6879,10 +7299,30 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					return m, m.executeFIPDelete()
 				}
 				m.actionConfirm = true
-			case 1: // Détacher
+			case 1: // Detach
 				if m.actionConfirm {
 					m.actionConfirm = false
 					return m, m.executeFIPDetach()
+				}
+				m.actionConfirm = true
+			}
+			return m, nil
+	} else if m.mode == DetailView && m.currentProduct == ProductWorkflow {
+			switch m.selectedAction {
+			case 0: // Supprimer
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.executeWorkflowDelete()
+				}
+				m.actionConfirm = true
+			}
+			return m, nil
+		} else if m.mode == DetailView && m.currentProduct == ProductInstanceBackup {
+			switch m.selectedAction {
+			case 0: // Supprimer
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.executeInstanceBackupDelete()
 				}
 				m.actionConfirm = true
 			}
@@ -6934,7 +7374,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 				}
 				if len(regionNames) == 0 {
-					m.notification = "❌ Aucune région compatible : l'OVH Gateway ne peut être ajoutée qu'à des sous-réseaux créés sans passerelle (mode 'OVH Gateway'). Recréez le réseau avec ce mode."
+					m.notification = "❌ No compatible region: OVH Gateway can only be added to subnets created without a gateway (mode 'OVH Gateway'). Recreate the network with this mode."
 					m.notificationExpiry = time.Now().Add(10 * time.Second)
 					return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 				}
@@ -6943,7 +7383,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					// Only one region: pre-select and go directly to model
 					rd := regionMap[regionNames[0]]
 					if rd["subnetId"] == "" {
-						m.notification = "❌ Ce réseau n'a pas de sous-réseau. Créez d'abord un sous-réseau."
+						m.notification = "❌ This network has no subnet. Create a subnet first."
 						m.notificationExpiry = time.Now().Add(5 * time.Second)
 						return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 					}
@@ -7135,11 +7575,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		key := msg.String()
 		isStorageSubProduct := m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductStorageArchive
 		isNetworkSubProduct := m.currentProduct >= ProductNetworkPrivate && m.currentProduct <= ProductNetworkLB
-		isSubNavProduct := isStorageSubProduct || isNetworkSubProduct
+		isComputeSubProduct := m.currentProduct == ProductInstances || m.currentProduct == ProductInstanceBackup || m.currentProduct == ProductWorkflow
+		isSubNavProduct := isStorageSubProduct || isNetworkSubProduct || isComputeSubProduct
 		navItems := getNavItems()
 
-		// Level 1 → Level 2: ↓ from main nav enters sub-nav for Storage / Networks
-		if (key == "down" || key == "j") && !m.inStorageSubNav && !m.inNetworkSubNav && !m.inTableFocus &&
+		// Level 1 → Level 2: ↓ from main nav enters sub-nav for Storage / Networks / Compute
+		if (key == "down" || key == "j") && !m.inStorageSubNav && !m.inNetworkSubNav && !m.inComputeSubNav && !m.inTableFocus &&
 			m.mode != DetailView && m.mode != ProjectSelectView {
 			if navItems[m.navIdx].Product == ProductStorage {
 				m.inStorageSubNav = true
@@ -7150,6 +7591,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.inNetworkSubNav = true
 				m.inTableFocus = false
 				return m.loadNetworkSubProduct()
+			}
+			if navItems[m.navIdx].Product == ProductCompute {
+				m.inComputeSubNav = true
+				m.inTableFocus = false
+				return m.loadComputeSubProduct()
 			}
 		}
 
@@ -7169,8 +7615,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.inNetworkSubNav = false
 			return m, nil
 		}
+		if (key == "up" || key == "k") && m.inComputeSubNav && !m.inTableFocus && m.mode != DetailView {
+			m.inComputeSubNav = false
+			return m, nil
+		}
 		// In sub-nav focus (Level 2): down → enter table focus (Level 3)
-		if (key == "down" || key == "j") && isSubNavProduct && (m.inStorageSubNav || m.inNetworkSubNav) && !m.inTableFocus && m.mode != DetailView {
+		if (key == "down" || key == "j") && isSubNavProduct && (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && !m.inTableFocus && m.mode != DetailView {
 			m.inTableFocus = true
 			return m, nil
 		}
@@ -7798,6 +8248,17 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleFIPWizardInstanceKeys(key)
 	case FIPWizardStepConfirm:
 		return m.handleFIPWizardConfirmKeys(key)
+	// Workflow wizard steps
+	case WorkflowWizardStepType:
+		return m.handleWorkflowWizardTypeKeys(key)
+	case WorkflowWizardStepInstance:
+		return m.handleWorkflowWizardInstanceKeys(key)
+	case WorkflowWizardStepName:
+		return m.handleWorkflowWizardNameKeys(key)
+	case WorkflowWizardStepSchedule:
+		return m.handleWorkflowWizardScheduleKeys(key)
+	case WorkflowWizardStepConfirm:
+		return m.handleWorkflowWizardConfirmKeys(key)
 	}
 	return m, nil
 }
@@ -9133,6 +9594,7 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 	m.currentData = nil
 	m.inStorageSubNav = false
 	m.inNetworkSubNav = false
+	m.inComputeSubNav = false
 	m.inTableFocus = false
 
 	// For Networks, go to default sub-item (Private Networks = index 0)
@@ -9147,10 +9609,16 @@ func (m Model) loadCurrentProduct() (Model, tea.Cmd) {
 		return m.loadStorageSubProduct()
 	}
 
+	// For Compute, go to default sub-item (Instances = index 0)
+	if currentNav.Product == ProductCompute {
+		m.computeSubIdx = 0
+		return m.loadComputeSubProduct()
+	}
+
 	m.mode = LoadingView
 
-	// For instances and Kubernetes, start the auto-refresh timer
-	if currentNav.Product == ProductInstances || currentNav.Product == ProductKubernetes {
+	// For Kubernetes, start the auto-refresh timer
+	if currentNav.Product == ProductKubernetes {
 		return m, tea.Batch(
 			m.fetchDataForPath(currentNav.Path),
 			m.scheduleRefresh(),
@@ -9192,6 +9660,30 @@ func (m Model) loadNetworkSubProduct() (Model, tea.Cmd) {
 	}
 
 	m.mode = LoadingView
+	return m, m.fetchDataForPath(sub.Path)
+}
+
+func (m Model) loadComputeSubProduct() (Model, tea.Cmd) {
+	subItems := getComputeSubItems()
+	sub := subItems[m.computeSubIdx]
+	m.currentProduct = sub.Product
+	m.detailData = nil
+	m.currentData = nil
+	m.inTableFocus = false
+
+	if !sub.Enabled {
+		m.mode = ComingSoonView
+		return m, nil
+	}
+
+	m.mode = LoadingView
+	// Instances need the auto-refresh timer
+	if sub.Product == ProductInstances {
+		return m, tea.Batch(
+			m.fetchDataForPath(sub.Path),
+			m.scheduleRefresh(),
+		)
+	}
 	return m, m.fetchDataForPath(sub.Path)
 }
 
