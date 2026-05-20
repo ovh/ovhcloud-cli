@@ -251,6 +251,34 @@ const (
 	LBHMWizardStepConfirm                                // confirm + save
 )
 
+const (
+	// Managed Database wizard steps (offset by 1900)
+	DBWizardStepName    WizardStep = iota + 1900 // enter service name
+	DBWizardStepEngine                           // select engine
+	DBWizardStepVersion                          // select version
+	DBWizardStepRegion                           // select datacenter/region
+	DBWizardStepPlan                             // select plan
+	DBWizardStepFlavor                           // select instance flavor
+	DBWizardStepNodes                            // number of nodes
+	DBWizardStepStorage                          // storage size
+	DBWizardStepNetwork                          // network type
+	DBWizardStepConfirm                          // confirm + create
+)
+
+const (
+	// Managed Analytics wizard steps (offset by 2000)
+	AnalyticsWizardStepName    WizardStep = iota + 2000 // enter service name
+	AnalyticsWizardStepEngine                           // select engine
+	AnalyticsWizardStepVersion                          // select version
+	AnalyticsWizardStepRegion                           // select datacenter/region
+	AnalyticsWizardStepPlan                             // select plan
+	AnalyticsWizardStepFlavor                           // select instance flavor
+	AnalyticsWizardStepNodes                            // number of nodes
+	AnalyticsWizardStepStorage                          // storage size
+	AnalyticsWizardStepNetwork                          // network type
+	AnalyticsWizardStepConfirm                          // confirm + create
+)
+
 // ProductType represents a product category
 type ProductType int
 
@@ -648,6 +676,33 @@ type WizardData struct {
 	wfCronInput      string
 	wfRotation       int
 	wfConfirmBtnIdx  int
+
+	// Managed Database wizard fields
+	dbNameInput    string
+	dbName         string
+	dbEngines      []map[string]interface{} // from capabilities
+	dbEngineIdx    int
+	dbEngine          string
+	dbEngineCategory  string // "operational" or "analysis"
+	dbVersionIdx   int
+	dbVersion      string
+	dbRegionIdx    int
+	dbRegion       string
+	dbPlanIdx      int
+	dbPlan         string
+	dbFlavors      []map[string]interface{} // from capabilities
+	dbFlavorIdx    int
+	dbFlavor       string
+	dbCapPlans     []string                 // fallback plan names from capabilities
+	dbNodesInput   string
+	dbNodes        int
+	dbStorageInput string
+	dbDiskSize     int
+	dbNetworkIdx   int    // 0=public 1=private
+	dbNetworkId    string
+	dbAvailItems   []map[string]interface{} // from /database/availability
+	dbCapsRegions  []string                 // fallback regions from capabilities
+	dbConfirmIdx   int                      // 0=Create 1=Cancel
 }
 
 // Model represents the TUI application state
@@ -747,6 +802,49 @@ type Model struct {
 	// Object Storage tabs (0=Containers, 1=Users)
 	objectStorageTabIdx int
 	objectStorageUsers  []map[string]interface{}
+	// Managed DB/Analytics detail sub-resources
+	dbDetailUsers     []map[string]interface{}
+	dbDetailBackups   []map[string]interface{}
+	dbDetailDatabases []map[string]interface{}
+	dbDetailPools     []map[string]interface{}
+	dbDetailLoaded    bool // true once fetchDBDetailSubresources has returned
+	dbDetailTab       int  // 0=Service, 1=Users, 2=Backups, 3=Databases, 4=Pools, 5=Logs, 6=ACL
+	dbDetailLogs        []map[string]interface{} // last fetched log entries
+	dbLogsLoaded        bool // true once fetchDBLogs has returned
+	dbLogsUnsupported   bool // true when the engine does not expose a /logs endpoint
+	dbLogsScrollOffset  int  // scroll offset for logs tab (0 = bottom/newest)
+	dbDetailACL         []map[string]interface{} // ACL entries (kafka only)
+	dbACLLoaded         bool // true once fetchDBACL has returned
+	// ACL creation state (ACL tab) — multi-step inline wizard
+	dbACLCreateStep  int    // -1=inactive, 0=username, 1=topic, 2=permission
+	dbACLCreateUser  string
+	dbACLCreateTopic string
+	dbACLCreatePerm  int    // 0=read 1=write 2=admin
+	dbDetailTopics      []map[string]interface{} // Topics (kafka only)
+	dbTopicsLoaded      bool // true once fetchDBTopics has returned
+	// Topic creation state (Topics tab) — multi-step inline wizard
+	dbTopicCreateStep         int    // -1=inactive, 0=name..5=retentionHours
+	dbTopicCreateName         string
+	dbTopicCreateMinSync      string // minInsyncReplicas
+	dbTopicCreatePartitions   string
+	dbTopicCreateReplication  string
+	dbTopicCreateRetentionByt string // bytes (-1 = unlimited)
+	dbTopicCreateRetentionHrs string // hours (-1 = unlimited)
+	// DB user state (Users tab)
+	dbUserCreateMode   bool                   // true when typing a new username
+	dbUserCreateInput  string                 // username being typed
+	dbUserCreatedData  map[string]interface{} // creation result (has password + endpoints)
+	dbUserSelectedIdx  int                    // currently highlighted user row (-1 = none)
+	dbUserDeleteConfirm bool                  // waiting for second Enter to confirm delete
+	// DB database state (Databases tab)
+	dbDBCreateMode  bool   // true when typing a new database name
+	dbDBCreateInput string // database name being typed
+	// DB connection pool creation state (Pools tab) — multi-step inline wizard
+	dbPoolCreateStep  int    // 0=name, 1=database, 2=mode, 3=size  (-1 = not active)
+	dbPoolCreateName  string
+	dbPoolCreateDBIdx int    // index into dbDetailDatabases
+	dbPoolCreateMode  int    // 0=session 1=statement 2=transaction
+	dbPoolCreateSize  string // numeric input
 	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
 	privNetTabIdx           int
 	privNetLocalZones       []map[string]interface{}
@@ -878,6 +976,9 @@ type setDefaultProjectMsg struct {
 
 // clearNotificationMsg is sent to clear the notification after timeout
 type clearNotificationMsg struct{}
+
+// dbLogsRefreshTickMsg triggers a periodic re-fetch of DB logs
+type dbLogsRefreshTickMsg struct{}
 
 // refreshTickMsg is sent to trigger automatic refresh of data
 type refreshTickMsg struct{}
@@ -1195,6 +1296,45 @@ type lbCreatedMsg struct {
 type lbRegionsLoadedMsg struct {
 	regions []string
 	err     error
+}
+
+type dbCapabilitiesLoadedMsg struct {
+	engines     []map[string]interface{}
+	flavors     []map[string]interface{}
+	plans       []map[string]interface{}
+	availItems  []map[string]interface{}
+	capsRegions []string
+	err         error
+}
+
+type dbCreatedMsg struct {
+	dbName string
+	err    error
+}
+
+type analyticsCreatedMsg struct {
+	name string
+	err  error
+}
+
+type dbDetailSubresourcesMsg struct {
+	serviceId string
+	users     []map[string]interface{}
+	backups   []map[string]interface{}
+	databases []map[string]interface{}
+	pools     []map[string]interface{}
+	err       error
+}
+
+type dbServiceDeletedMsg struct {
+	serviceId string
+	err       error
+}
+
+type analyticsEngineAvailLoadedMsg struct {
+	engine    string
+	availItems []map[string]interface{}
+	err       error
 }
 
 type lbFlavorsLoadedMsg struct {
@@ -1582,7 +1722,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.wizard = WizardData{
 				step:           BackupWizardStepVolume,
 				isLoading:      true,
-				loadingMessage: "Chargement des volumes...",
+				loadingMessage: "Loading volumes...",
 			}
 			return m, m.fetchBackupVolumes()
 		} else if msg.product == ProductNetworkPrivate {
@@ -1616,6 +1756,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadingMessage: "Loading regions...",
 			}
 			return m, m.fetchGwRegions()
+		} else if msg.product == ProductManagedDatabases {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step: DBWizardStepName,
+			}
+			return m, nil
+		} else if msg.product == ProductManagedAnalytics {
+			m.mode = WizardView
+			m.wizard = WizardData{
+				step: AnalyticsWizardStepName,
+			}
+			return m, nil
 		} else if msg.product == ProductNetworkLB {
 			m.mode = WizardView
 			m.wizard = WizardData{
@@ -1900,7 +2052,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case privNetCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(10 * time.Second)
 			m.mode = LoadingView
 			// Always reload the network list (network may have been created even if subnet failed)
@@ -1920,7 +2072,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case privNetDeletedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -1937,7 +2089,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case gwDeletedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -1955,7 +2107,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		attachMode := m.wizard.gwAttachMode
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			if attachMode {
 				m.mode = DetailView
@@ -2016,7 +2168,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2048,7 +2200,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fipDeletedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2064,7 +2216,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fipDetachedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2081,7 +2233,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbDeletedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2098,7 +2250,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbPoolCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = DetailView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2133,7 +2285,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedLBPool = nil
 		m.lbPoolDetailActionIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2157,7 +2309,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedLBPool = nil
 		m.lbPoolDetailActionIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2179,7 +2331,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.wizard = WizardData{}
 		m.mode = DetailView
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2212,7 +2364,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedLBListener = nil
 		m.lbListenerDetailActionIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2236,7 +2388,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedLBListener = nil
 		m.lbListenerDetailActionIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2259,7 +2411,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LBListenerDetailView
 		m.lbL7PolicyListIdx = -1
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2300,7 +2452,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LBL7RulesView
 		m.lbL7RuleDetailIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2320,7 +2472,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LBL7RulesView
 		m.lbL7RuleDetailIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2342,7 +2494,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lbL7PolicyListIdx = -1
 		m.lbL7PolicyListIdx = -1
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2367,7 +2519,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lbL7PolicyDetailActionIdx = 0
 		m.lbL7PolicyListIdx = -1
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2399,7 +2551,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LBPoolMembersView
 		m.lbPoolMemberDetailIdx = 0
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2420,7 +2572,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lbPoolMemberDetailIdx = 0
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2449,7 +2601,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.mode = LBHealthMonitorView
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2472,7 +2624,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.lbHealthMonitors[poolID] = nil
 		}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
@@ -2486,6 +2638,297 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 		}
 		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case dbCapabilitiesLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.dbEngines = msg.engines
+		m.wizard.dbFlavors = msg.flavors
+		m.wizard.dbAvailItems = msg.availItems
+		m.wizard.dbCapsRegions = msg.capsRegions
+		// Build capabilities plan names sorted by order for fallback
+		for _, p := range msg.plans {
+			if name := getStringValue(p, "name", ""); name != "" {
+				m.wizard.dbCapPlans = append(m.wizard.dbCapPlans, name)
+			}
+		}
+		m.wizard.dbEngineIdx = 0
+		return m, nil
+
+	case dbDetailSubresourcesMsg:
+		if msg.err == nil && (m.detailData == nil || getStringValue(m.detailData, "id", "") == msg.serviceId) {
+			m.dbDetailUsers = msg.users
+			m.dbDetailBackups = msg.backups
+			m.dbDetailDatabases = msg.databases
+			m.dbDetailPools = msg.pools
+			m.dbDetailLoaded = true
+		}
+		return m, nil
+
+	case dbServiceDeletedMsg:
+		m.actionConfirm = false
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to delete service: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ Database service deleted successfully"
+		m.notificationExpiry = time.Now().Add(5 * time.Second)
+		m.detailData = nil
+		m.dbDetailUsers = nil
+		m.dbDetailBackups = nil
+		m.dbDetailDatabases = nil
+		m.dbDetailPools = nil
+		m.dbDetailLoaded = false
+		m.dbUserCreateMode = false
+		m.dbUserCreateInput = ""
+		m.dbUserCreatedData = nil
+		m.dbUserSelectedIdx = -1
+		m.dbUserDeleteConfirm = false
+		m.dbDBCreateMode = false
+		m.dbDBCreateInput = ""
+		m.dbPoolCreateStep = -1
+		m.dbDetailLogs = nil
+		m.dbLogsLoaded = false
+		m.dbLogsUnsupported = false
+		m.dbLogsScrollOffset = 0
+		m.dbDetailACL = nil
+		m.dbACLLoaded = false
+		m.dbACLCreateStep = -1
+		m.dbDetailTopics = nil
+		m.dbTopicsLoaded = false
+		m.dbTopicCreateStep = -1
+		m.mode = LoadingView
+		path := "/databases"
+		if m.currentProduct == ProductManagedAnalytics {
+			path = "/analytics"
+		}
+		return m, tea.Batch(
+			m.fetchDataForPath(path),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case dbUserCreatedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to create user: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.dbDetailLoaded = true
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbUserCreatedData = msg.user
+		// Refresh user list in the background
+		if m.detailData != nil {
+			engine := getStringValue(m.detailData, "engine", "")
+			serviceId := getStringValue(m.detailData, "id", "")
+			if engine != "" && serviceId != "" {
+				m.dbDetailLoaded = false
+				return m, m.fetchDBDetailSubresources(engine, serviceId)
+			}
+		}
+		m.dbDetailLoaded = true
+		return m, nil
+
+	case dbUserDeletedMsg:
+		m.dbUserDeleteConfirm = false
+		m.dbUserSelectedIdx = -1
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to delete user: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ User '%s' deleted", msg.username)
+		m.notificationExpiry = time.Now().Add(4 * time.Second)
+		if m.detailData != nil {
+			engine := getStringValue(m.detailData, "engine", "")
+			serviceId := getStringValue(m.detailData, "id", "")
+			if engine != "" && serviceId != "" {
+				m.dbDetailLoaded = false
+				return m, tea.Batch(
+					m.fetchDBDetailSubresources(engine, serviceId),
+					tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case dbDatabaseCreatedMsg:
+		m.dbDBCreateMode = false
+		m.dbDBCreateInput = ""
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to create database: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.dbDetailLoaded = true
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Database '%s' created", msg.name)
+		m.notificationExpiry = time.Now().Add(4 * time.Second)
+		if m.detailData != nil {
+			engine := getStringValue(m.detailData, "engine", "")
+			serviceId := getStringValue(m.detailData, "id", "")
+			if engine != "" && serviceId != "" {
+				m.dbDetailLoaded = false
+				return m, tea.Batch(
+					m.fetchDBDetailSubresources(engine, serviceId),
+					tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case dbPoolCreatedMsg:
+		m.dbPoolCreateStep = -1
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to create pool: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.dbDetailLoaded = true
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = fmt.Sprintf("✅ Pool '%s' created", msg.name)
+		m.notificationExpiry = time.Now().Add(4 * time.Second)
+		if m.detailData != nil {
+			engine := getStringValue(m.detailData, "engine", "")
+			serviceId := getStringValue(m.detailData, "id", "")
+			if engine != "" && serviceId != "" {
+				m.dbDetailLoaded = false
+				return m, tea.Batch(
+					m.fetchDBDetailSubresources(engine, serviceId),
+					tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+				)
+			}
+		}
+		return m, tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+
+	case dbLogsMsg:
+		m.dbLogsLoaded = true
+		if msg.err != nil {
+			m.dbDetailLogs = nil
+			// 404 means this engine doesn't expose logs via the public API
+			if strings.Contains(msg.err.Error(), "status code 404") {
+				m.dbLogsUnsupported = true
+				return m, nil
+			}
+			m.notification = fmt.Sprintf("❌ Logs: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(10 * time.Second)
+			return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbLogsUnsupported = false
+		m.dbDetailLogs = msg.logs
+		// Schedule next auto-refresh in 10 s
+		return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return dbLogsRefreshTickMsg{} })
+
+	case dbLogsRefreshTickMsg:
+		// Only re-fetch if still viewing the Logs tab and endpoint is supported
+		if m.mode == DetailView &&
+			(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) &&
+			m.dbDetailTab == 5 && !m.dbLogsUnsupported {
+			return m, m.fetchDBLogs()
+		}
+		// Tab was left or unsupported — stop the loop
+		return m, nil
+
+	case dbACLMsg:
+		m.dbACLLoaded = true
+		if msg.err != nil {
+			m.dbDetailACL = nil
+			// 404 = endpoint not supported for this engine
+			if strings.Contains(msg.err.Error(), "status code 404") {
+				return m, nil
+			}
+			m.notification = fmt.Sprintf("❌ Failed to fetch ACL: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbDetailACL = msg.acl
+		return m, nil
+
+	case dbTopicsMsg:
+		m.dbTopicsLoaded = true
+		if msg.err != nil {
+			m.dbDetailTopics = nil
+			if strings.Contains(msg.err.Error(), "status code 404") {
+				return m, nil
+			}
+			m.notification = fmt.Sprintf("❌ Failed to fetch topics: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbDetailTopics = msg.topics
+		return m, nil
+
+	case dbACLCreatedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to create ACL entry: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.dbACLLoaded = true
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ ACL entry created"
+		m.notificationExpiry = time.Now().Add(4 * time.Second)
+		return m, tea.Batch(
+			m.fetchDBACL(),
+			tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case dbTopicCreatedMsg:
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Failed to create topic: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(8 * time.Second)
+			m.dbTopicsLoaded = true
+			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.notification = "✅ Topic created"
+		m.notificationExpiry = time.Now().Add(4 * time.Second)
+		return m, tea.Batch(
+			m.fetchDBTopics(),
+			tea.Tick(4*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case dbCreatedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.notification = fmt.Sprintf("✅ Database service '%s' created successfully!", msg.dbName)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/databases"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
+
+	case analyticsEngineAvailLoadedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.wizard.dbAvailItems = msg.availItems
+		m.wizard.dbEngine = msg.engine
+		m.wizard.dbVersionIdx = 0
+		m.wizard.dbVersion = ""
+		m.wizard.errorMsg = ""
+		m.wizard.step = AnalyticsWizardStepVersion
+		return m, nil
+
+	case analyticsCreatedMsg:
+		m.wizard.isLoading = false
+		m.wizard.loadingMessage = ""
+		if msg.err != nil {
+			m.wizard.errorMsg = msg.err.Error()
+			return m, nil
+		}
+		m.notification = fmt.Sprintf("✅ Analytics service '%s' created successfully!", msg.name)
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/analytics"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} }),
+		)
 
 	case lbRegionsLoadedMsg:
 		m.wizard.isLoading = false
@@ -2591,7 +3034,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case workflowCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Batch(
@@ -2609,7 +3052,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case workflowDeletedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2625,7 +3068,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case instanceBackupDeletedMsg:
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
@@ -2642,14 +3085,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fipCreatedMsg:
 		m.wizard = WizardData{}
 		if msg.err != nil {
-			m.notification = fmt.Sprintf("❌ Erreur: %s", msg.err.Error())
+			m.notification = fmt.Sprintf("❌ Error: %s", msg.err.Error())
 			m.notificationExpiry = time.Now().Add(8 * time.Second)
 			m.mode = TableView
 			return m, tea.Tick(8*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		}
 		ip := getString(msg.floatingIP, "ip")
 		if ip == "" {
-			ip = "en cours de provisioning"
+			ip = "being provisioned"
 		}
 		m.notification = fmt.Sprintf("✅ Floating IP %s created successfully", ip)
 		m.notificationExpiry = time.Now().Add(5 * time.Second)
@@ -3414,7 +3857,7 @@ func (m Model) renderContentBox(width int) string {
 			}
 		} else if m.wizard.step >= 1200 {
 			// Workflow wizard
-			titleText = " ⚙️  Create a backup Workflow "
+			titleText = " ⚙️  Create Backup Workflow "
 		} else if m.wizard.step >= 1100 {
 			// Floating IP wizard
 			titleText = " 🌐 Create Floating IP "
@@ -4418,12 +4861,20 @@ func (m Model) renderWizardView(width int) string {
 		stepMapping = append(stepMapping, LBPoolWizardStepName, LBPoolWizardStepAlgo, LBPoolWizardStepProto, LBPoolWizardStepSession, LBPoolWizardStepConfirm)
 	} else if m.wizard.step >= 1200 {
 		// Workflow wizard
-		steps = append(steps, "Type", "Instance", "Nom", "Planification", "Confirmer")
+		steps = append(steps, "Type", "Instance", "Name", "Schedule", "Confirm")
 		stepMapping = append(stepMapping, WorkflowWizardStepType, WorkflowWizardStepInstance, WorkflowWizardStepName, WorkflowWizardStepSchedule, WorkflowWizardStepConfirm)
 	} else if m.wizard.step >= 1100 {
 		// Floating IP wizard
 		steps = append(steps, "Region", "Instance", "Confirm")
 		stepMapping = append(stepMapping, FIPWizardStepRegion, FIPWizardStepInstance, FIPWizardStepConfirm)
+	} else if m.wizard.step >= 2000 {
+		// Managed Analytics wizard
+		steps = append(steps, "Name", "Engine", "Version", "Region", "Plan", "Flavor", "Nodes", "Storage", "Network", "Confirm")
+		stepMapping = append(stepMapping, AnalyticsWizardStepName, AnalyticsWizardStepEngine, AnalyticsWizardStepVersion, AnalyticsWizardStepRegion, AnalyticsWizardStepPlan, AnalyticsWizardStepFlavor, AnalyticsWizardStepNodes, AnalyticsWizardStepStorage, AnalyticsWizardStepNetwork, AnalyticsWizardStepConfirm)
+	} else if m.wizard.step >= 1900 {
+		// Managed Database wizard
+		steps = append(steps, "Name", "Engine", "Version", "Region", "Plan", "Flavor", "Nodes", "Storage", "Network", "Confirm")
+		stepMapping = append(stepMapping, DBWizardStepName, DBWizardStepEngine, DBWizardStepVersion, DBWizardStepRegion, DBWizardStepPlan, DBWizardStepFlavor, DBWizardStepNodes, DBWizardStepStorage, DBWizardStepNetwork, DBWizardStepConfirm)
 	} else if m.wizard.step >= 1000 {
 		// Load Balancer wizard
 		steps = append(steps, "Name", "Region", "Size", "Network", "Confirm")
@@ -4653,6 +5104,48 @@ func (m Model) renderWizardView(width int) string {
 		content.WriteString(m.renderGwWizardNetworkStep(width))
 	case GwWizardStepConfirm:
 		content.WriteString(m.renderGwWizardConfirmStep(width))
+	// Managed Database wizard steps
+	case DBWizardStepName:
+		content.WriteString(m.renderDBWizardNameStep(width))
+	case DBWizardStepEngine:
+		content.WriteString(m.renderDBWizardEngineStep(width))
+	case DBWizardStepVersion:
+		content.WriteString(m.renderDBWizardVersionStep(width))
+	case DBWizardStepRegion:
+		content.WriteString(m.renderDBWizardRegionStep(width))
+	case DBWizardStepPlan:
+		content.WriteString(m.renderDBWizardPlanStep(width))
+	case DBWizardStepFlavor:
+		content.WriteString(m.renderDBWizardFlavorStep(width))
+	case DBWizardStepNodes:
+		content.WriteString(m.renderDBWizardNodesStep(width))
+	case DBWizardStepStorage:
+		content.WriteString(m.renderDBWizardStorageStep(width))
+	case DBWizardStepNetwork:
+		content.WriteString(m.renderDBWizardNetworkStep(width))
+	case DBWizardStepConfirm:
+		content.WriteString(m.renderDBWizardConfirmStep(width))
+	// Managed Analytics wizard steps
+	case AnalyticsWizardStepName:
+		content.WriteString(m.renderAnalyticsWizardNameStep(width))
+	case AnalyticsWizardStepEngine:
+		content.WriteString(m.renderAnalyticsWizardEngineStep(width))
+	case AnalyticsWizardStepVersion:
+		content.WriteString(m.renderAnalyticsWizardVersionStep(width))
+	case AnalyticsWizardStepRegion:
+		content.WriteString(m.renderAnalyticsWizardRegionStep(width))
+	case AnalyticsWizardStepPlan:
+		content.WriteString(m.renderAnalyticsWizardPlanStep(width))
+	case AnalyticsWizardStepFlavor:
+		content.WriteString(m.renderAnalyticsWizardFlavorStep(width))
+	case AnalyticsWizardStepNodes:
+		content.WriteString(m.renderAnalyticsWizardNodesStep(width))
+	case AnalyticsWizardStepStorage:
+		content.WriteString(m.renderAnalyticsWizardStorageStep(width))
+	case AnalyticsWizardStepNetwork:
+		content.WriteString(m.renderAnalyticsWizardNetworkStep(width))
+	case AnalyticsWizardStepConfirm:
+		content.WriteString(m.renderAnalyticsWizardConfirmStep(width))
 	// Load Balancer wizard steps
 	case LBWizardStepName:
 		content.WriteString(m.renderLBWizardNameStep(width))
@@ -6510,6 +7003,10 @@ func (m Model) renderDetailView(width int) string {
                 return m.renderGenericDetail(width)
 	case ProductNetworkPrivate:
 		return m.renderPrivateNetworkDetail(width)
+	case ProductManagedDatabases:
+		return m.renderManagedDatabaseDetail(width)
+	case ProductManagedAnalytics:
+		return m.renderManagedDatabaseDetail(width)
 	case ProductNetworkGateway:
 		return m.renderGatewayDetail(width)
 	case ProductNetworkLB:
@@ -6567,11 +7064,11 @@ func (m Model) renderWorkflowDetail(width int) string {
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Region"), valueSt.Render(region)))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Instance"), valueSt.Render(truncate(instanceId, 36))))
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Cron"), valueSt.Render(cron)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Rotation"), valueSt.Render(fmt.Sprintf("%d sauvegardes", rotation))))
-	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Statut"), statusStyle.Render(statusIcon+" "+lastStatus)))
-	infoBox := renderBox("Workflow : "+name, infoContent.String(), boxWidth)
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Rotation"), valueSt.Render(fmt.Sprintf("%d backups", rotation))))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Status"), statusStyle.Render(statusIcon+" "+lastStatus)))
+	infoBox := renderBox("Workflow: "+name, infoContent.String(), boxWidth)
 
-	actions := []string{"Supprimer"}
+	actions := []string{"Delete"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
@@ -6645,13 +7142,13 @@ func (m Model) renderInstanceBackupDetail(width int) string {
 
 	var infoContent strings.Builder
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(id, 36))))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Localisation"), valueSt.Render(location)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Taille disque"), valueSt.Render(sizeStr)))
-	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Created"), valueSt.Render(created)))
-	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Statut"), statusStyle.Render(statusIcon+" "+status)))
-	infoBox := renderBox("Instance Backup : "+name, infoContent.String(), boxWidth)
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Location"), valueSt.Render(location)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Disk size"), valueSt.Render(sizeStr)))
+	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Created on"), valueSt.Render(created)))
+	infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Status"), statusStyle.Render(statusIcon+" "+status)))
+	infoBox := renderBox("Instance Backup: "+name, infoContent.String(), boxWidth)
 
-	actions := []string{"Supprimer"}
+	actions := []string{"Delete"}
 	var actionParts []string
 	for i, action := range actions {
 		if i == m.selectedAction {
@@ -6841,6 +7338,708 @@ func (m Model) renderInstanceDetail(width int) string {
 
 	return content.String()
 }
+
+func (m Model) renderManagedDatabaseDetail(width int) string {
+	var content strings.Builder
+
+	// ── Common data ───────────────────────────────────────────────────────
+	dbID := getStringValue(m.detailData, "id", "N/A")
+	dbName := getStringValue(m.detailData, "description", "")
+	if dbName == "" {
+		dbName = dbID
+	}
+	engineRaw := getStringValue(m.detailData, "engine", "N/A")
+	engineDisplay := engineRaw
+	version := getStringValue(m.detailData, "version", "")
+	if version != "" {
+		engineDisplay = engineRaw + " " + version
+	}
+	isPostgres := strings.EqualFold(engineRaw, "postgresql")
+	isAnalytics := m.currentProduct == ProductManagedAnalytics
+	isKafka := strings.EqualFold(engineRaw, "kafka")
+
+	// ── Tab bar ───────────────────────────────────────────────────────────
+	tabActiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#7B68EE")).
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Bold(true).
+		Padding(0, 2)
+	tabInactiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#333333")).
+		Foreground(lipgloss.Color("#888888")).
+		Padding(0, 2)
+	tabDisabledStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("#1a1a1a")).
+		Foreground(lipgloss.Color("#444444")).
+		Padding(0, 2)
+
+	tabNames := []string{"Service", "Users", "Backups", "Databases", "Pools", "Logs", "ACL", "Topics"}
+	var tabParts []string
+	for i, name := range tabNames {
+		disabled := (i == 4 && !isPostgres) || (i == 2 && isAnalytics) || (i == 6 && !isKafka) || (i == 7 && !isKafka)
+		if disabled {
+			tabParts = append(tabParts, tabDisabledStyle.Render(name))
+		} else if i == m.dbDetailTab {
+			tabParts = append(tabParts, tabActiveStyle.Render(name))
+		} else {
+			tabParts = append(tabParts, tabInactiveStyle.Render(name))
+		}
+	}
+	tabRow := lipgloss.JoinHorizontal(lipgloss.Top, tabParts...)
+	tabHint := lipgloss.NewStyle().Foreground(lipgloss.Color("#444444")).Render("  ←/→ navigate tabs")
+	content.WriteString(tabRow + tabHint + "\n\n")
+
+	// ── Shared styles ─────────────────────────────────────────────────────
+	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18)
+	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	dimSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	headSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#AAAAAA")).Width(18)
+	fullWidth := width - 4
+
+	switch m.dbDetailTab {
+	case 0: // ── Service ──────────────────────────────────────────────────
+		plan := getStringValue(m.detailData, "plan", "N/A")
+		flavor := getStringValue(m.detailData, "flavor", "N/A")
+		status := getStringValue(m.detailData, "status", "N/A")
+		createdAt := getStringValue(m.detailData, "createdAt", "N/A")
+		if len(createdAt) >= 10 {
+			createdAt = createdAt[:10]
+		}
+
+		storageStr := "-"
+		if storage, ok := m.detailData["storage"].(map[string]interface{}); ok {
+			if size, ok := storage["size"].(map[string]interface{}); ok {
+				val := getStringValue(size, "value", "")
+				unit := getStringValue(size, "unit", "")
+				if val != "" {
+					storageStr = val + " " + unit
+				}
+			}
+		}
+
+		location := "-"
+		nodesCount := 0
+		if nodes, ok := m.detailData["nodes"].([]interface{}); ok {
+			nodesCount = len(nodes)
+			if len(nodes) > 0 {
+				if node, ok := nodes[0].(map[string]interface{}); ok {
+					if r := getStringValue(node, "region", ""); r != "" {
+						location = r
+					}
+				}
+			}
+		}
+
+		statusIcon := "🟢"
+		statusStyle := statusRunningStyle
+		switch strings.ToUpper(status) {
+		case "CREATING", "UPDATING", "RESTARTING", "PENDING", "MAINTENANCE":
+			statusIcon = "🟡"
+			statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+		case "ERROR", "ERROR_INCONSISTENT_SPEC", "DELETING", "SUSPENDED", "LOCKED":
+			statusIcon = "🔴"
+			statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF4444"))
+		}
+
+		boxWidth := (width - 6) / 2
+		if boxWidth < 35 {
+			boxWidth = 35
+		}
+
+		var infoContent strings.Builder
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Status"), statusStyle.Render(statusIcon+" "+status)))
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("ID"), valueSt.Render(truncate(dbID, 36))))
+		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Engine"), valueSt.Render(engineDisplay)))
+		infoContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Plan"), valueSt.Render(plan)))
+		infoBox := renderBox("Database "+dbName, infoContent.String(), boxWidth)
+
+		var cfgContent strings.Builder
+		cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Flavor"), valueSt.Render(flavor)))
+		cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Storage"), valueSt.Render(storageStr)))
+		cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Location"), valueSt.Render(location)))
+		cfgContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Nodes"), valueSt.Render(fmt.Sprintf("%d", nodesCount))))
+		cfgContent.WriteString(fmt.Sprintf("%s %s", labelSt.Render("Created"), valueSt.Render(createdAt)))
+		cfgBox := renderBox("Configuration", cfgContent.String(), boxWidth)
+
+		actions := []string{"Delete"}
+		var actionParts []string
+		for i, action := range actions {
+			if i == m.selectedAction {
+				actionParts = append(actionParts, lipgloss.NewStyle().
+					Background(lipgloss.Color("#7B68EE")).
+					Foreground(lipgloss.Color("#FFFFFF")).
+					Bold(true).Padding(0, 1).Render(action))
+			} else {
+				actionParts = append(actionParts, lipgloss.NewStyle().
+					Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+action+"]"))
+			}
+		}
+		actionsContent := strings.Join(actionParts, " ")
+		if m.actionConfirm {
+			actionsContent += "\n\n" + lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFD700")).Bold(true).
+				Render(fmt.Sprintf("⚠️  Press Enter to confirm %s, Escape to cancel", actions[m.selectedAction]))
+		}
+		actionsBox := renderBox("Actions (Enter to execute)", actionsContent, width-4)
+
+		content.WriteString(actionsBox + "\n\n")
+		content.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, infoBox, "  ", cfgBox))
+
+	case 1: // ── Users ─────────────────────────────────────────────────────
+		if m.dbUserCreatedData != nil {
+			// ── User creation result panel ────────────────────────────────
+			createdUsername := getStringValue(m.dbUserCreatedData, "username", getStringValue(m.dbUserCreatedData, "name", "—"))
+			password := getStringValue(m.dbUserCreatedData, "password", "—")
+
+			// Build URIs from the service's endpoints
+			host, port, dbname, scheme, sslMode := "", "", "defaultdb", engineRaw, "require"
+			if endpoints, ok := m.detailData["endpoints"].([]interface{}); ok {
+				for _, ep := range endpoints {
+					epMap, ok := ep.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					if !strings.EqualFold(getStringValue(epMap, "component", ""), engineRaw) {
+						continue
+					}
+					host = getStringValue(epMap, "domain", "")
+					if p, ok := toFloat64(epMap["port"]); ok {
+						port = fmt.Sprintf("%d", int(p))
+					}
+					if sch := getStringValue(epMap, "scheme", ""); sch != "" {
+						scheme = sch
+					}
+					if sm := getStringValue(epMap, "sslMode", ""); sm != "" {
+						sslMode = sm
+					}
+					if pa := getStringValue(epMap, "path", ""); pa != "" {
+						dbname = strings.TrimPrefix(pa, "/")
+					}
+					break
+				}
+			}
+
+			highlightSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700")).Bold(true)
+			uriSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#00BFFF"))
+			connSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#98FB98"))
+			warnSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF8C00")).Bold(true)
+
+			var panel strings.Builder
+			panel.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Username"), valueSt.Render(createdUsername)))
+			panel.WriteString(fmt.Sprintf("%s %s\n\n", labelSt.Render("Password"), highlightSt.Render(password)))
+
+			if host != "" {
+				quickURI := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=%s",
+					scheme, createdUsername, password, host, port, dbname, sslMode)
+				connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s",
+					host, port, dbname, createdUsername, password, sslMode)
+
+				panel.WriteString(labelSt.Render("Connection URI") + "\n")
+				panel.WriteString(uriSt.Render(quickURI) + "\n\n")
+				panel.WriteString(labelSt.Render("Connection String") + "\n")
+				panel.WriteString(connSt.Render(connStr) + "\n\n")
+			}
+
+			panel.WriteString(warnSt.Render("⚠  Save your password now — it will not be shown again.") + "\n")
+			panel.WriteString(dimSt.Render("   Press Enter or Esc to dismiss"))
+			content.WriteString(renderBox("✅ User Created: "+createdUsername, panel.String(), fullWidth))
+		} else if m.dbUserCreateMode {
+			// ── User creation text input ──────────────────────────────────
+			inputSt := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Background(lipgloss.Color("#2a2a2a")).
+				BorderStyle(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FF7F")).
+				Padding(0, 1)
+			var inputContent strings.Builder
+			inputContent.WriteString(labelSt.Render("Username") + "\n\n")
+			inputContent.WriteString(inputSt.Render(m.dbUserCreateInput+"▌") + "\n\n")
+			inputContent.WriteString(dimSt.Render("Enter → confirm   Esc → cancel"))
+			content.WriteString(renderBox("Create New User", inputContent.String(), fullWidth))
+		} else {
+			// ── Users list with Create action ─────────────────────────────
+			createBtn := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#7B68EE")).
+				Bold(true).Padding(0, 1).Render("[+ Create User]")
+			hint := "Enter → new user"
+			if m.dbUserSelectedIdx >= 0 {
+				hint = "Enter → delete selected   Esc → deselect"
+			}
+			content.WriteString(createBtn + "  " + dimSt.Render(hint) + "\n\n")
+
+			selectedRowSt := lipgloss.NewStyle().
+				Background(lipgloss.Color("#3a2a2a")).
+				Foreground(lipgloss.Color("#FF8888"))
+			deleteSt := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FF4444")).Bold(true)
+
+			var usersContent strings.Builder
+			if len(m.dbDetailUsers) == 0 {
+				if m.dbDetailLoaded {
+					usersContent.WriteString(dimSt.Render("None"))
+				} else {
+					usersContent.WriteString(dimSt.Render("Loading..."))
+				}
+			} else {
+				usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
+					headSt.Render("Username"),
+					headSt.Render("Roles"),
+					headSt.Render("Created"),
+					headSt.Render("Status")))
+				for i, u := range m.dbDetailUsers {
+					username := getStringValue(u, "username", getStringValue(u, "name", "—"))
+					created := getStringValue(u, "createdAt", "—")
+					if len(created) >= 10 {
+						created = created[:10]
+					}
+					userStatus := getStringValue(u, "status", "—")
+					var roles []string
+					if rawRoles, ok := u["roles"].([]interface{}); ok {
+						for _, r := range rawRoles {
+							if s, ok := r.(string); ok {
+								roles = append(roles, s)
+							}
+						}
+					}
+					rolesStr := strings.Join(roles, ", ")
+					if rolesStr == "" {
+						rolesStr = "—"
+					}
+					if i == m.dbUserSelectedIdx {
+						prefix := "▶ "
+						row := fmt.Sprintf("%s%s%s%s%s",
+							prefix,
+							selectedRowSt.Width(16).Render(truncate(username, 15)),
+							selectedRowSt.Width(18).Render(truncate(rolesStr, 17)),
+							selectedRowSt.Width(18).Render(created),
+							selectedRowSt.Render(userStatus))
+						usersContent.WriteString(row + "\n")
+					} else {
+						usersContent.WriteString(fmt.Sprintf("%s%s%s%s\n",
+							labelSt.Render(truncate(username, 17)),
+							labelSt.Render(truncate(rolesStr, 17)),
+							labelSt.Render(created),
+							valueSt.Render(userStatus)))
+					}
+				}
+				if m.dbUserDeleteConfirm && m.dbUserSelectedIdx >= 0 && m.dbUserSelectedIdx < len(m.dbDetailUsers) {
+					selUser := m.dbDetailUsers[m.dbUserSelectedIdx]
+					uname := getStringValue(selUser, "username", getStringValue(selUser, "name", "—"))
+					usersContent.WriteString("\n" + deleteSt.Render(fmt.Sprintf("⚠  Delete user '%s'? Press Enter to confirm, Esc to cancel", uname)))
+				}
+			}
+			content.WriteString(renderBox(fmt.Sprintf("Users (%d)", len(m.dbDetailUsers)), usersContent.String(), fullWidth))
+		}
+
+	case 2: // ── Backups ───────────────────────────────────────────────────
+		var backupsContent strings.Builder
+		if len(m.dbDetailBackups) == 0 {
+			if m.dbDetailLoaded {
+				backupsContent.WriteString(dimSt.Render("None"))
+			} else {
+				backupsContent.WriteString(dimSt.Render("Loading..."))
+			}
+		} else {
+			backupsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+				headSt.Render("Name"),
+				headSt.Render("Location"),
+				headSt.Render("Created"),
+				headSt.Render("Expires"),
+				headSt.Render("Status")))
+			for _, b := range m.dbDetailBackups {
+				bname := getStringValue(b, "name", getStringValue(b, "id", "—"))
+				bloc := getStringValue(b, "region", "—")
+				bcreated := getStringValue(b, "createdAt", "—")
+				if len(bcreated) >= 10 {
+					bcreated = bcreated[:10]
+				}
+				bexpires := getStringValue(b, "expiresAt", "—")
+				if len(bexpires) >= 10 {
+					bexpires = bexpires[:10]
+				}
+				bstatus := getStringValue(b, "status", "—")
+				backupsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+					labelSt.Render(truncate(bname, 17)),
+					labelSt.Render(truncate(bloc, 17)),
+					labelSt.Render(bcreated),
+					labelSt.Render(bexpires),
+					valueSt.Render(bstatus)))
+			}
+		}
+		content.WriteString(renderBox(fmt.Sprintf("Backups (%d)", len(m.dbDetailBackups)), backupsContent.String(), fullWidth))
+
+	case 3: // ── Databases ─────────────────────────────────────────────────
+		if m.dbDBCreateMode {
+			inputSt := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Background(lipgloss.Color("#2a2a2a")).
+				BorderStyle(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FF7F")).
+				Padding(0, 1)
+			var inputContent strings.Builder
+			inputContent.WriteString(labelSt.Render("Name") + "\n\n")
+			inputContent.WriteString(inputSt.Render(m.dbDBCreateInput+"▌") + "\n\n")
+			inputContent.WriteString(dimSt.Render("Enter → confirm   Esc → cancel"))
+			content.WriteString(renderBox("Create New Database", inputContent.String(), fullWidth))
+		} else {
+			createBtn := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#7B68EE")).Bold(true).Padding(0, 1).Render("[+ Create Database]")
+			content.WriteString(createBtn + "  " + dimSt.Render("Enter → new database") + "\n\n")
+
+			var dbNamesContent strings.Builder
+			if len(m.dbDetailDatabases) == 0 {
+				if m.dbDetailLoaded {
+					dbNamesContent.WriteString(dimSt.Render("None"))
+				} else {
+					dbNamesContent.WriteString(dimSt.Render("Loading..."))
+				}
+			} else {
+				for _, d := range m.dbDetailDatabases {
+					dbname := getStringValue(d, "name", getStringValue(d, "id", "—"))
+					dbNamesContent.WriteString(valueSt.Render("  • "+dbname) + "\n")
+				}
+			}
+			content.WriteString(renderBox(fmt.Sprintf("Databases (%d)", len(m.dbDetailDatabases)), strings.TrimRight(dbNamesContent.String(), "\n"), fullWidth))
+		}
+
+	case 4: // ── Pools ─────────────────────────────────────────────────────
+		if !isPostgres {
+			content.WriteString(renderBox("Connection Pools", dimSt.Render("Connection pools are only available for PostgreSQL."), fullWidth))
+		} else if m.dbPoolCreateStep >= 0 {
+			// ── Pool creation inline wizard ───────────────────────────────
+			dbModes := []string{"session", "statement", "transaction"}
+			inputSt := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Background(lipgloss.Color("#2a2a2a")).
+				BorderStyle(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FF7F")).
+				Padding(0, 1)
+			selectedItemSt := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#7B68EE")).Bold(true)
+
+			var wiz strings.Builder
+			stepLabels := []string{"Name", "Database", "Mode", "Size"}
+			for i, lbl := range stepLabels {
+				if i < m.dbPoolCreateStep {
+					// completed step
+					var val string
+					switch i {
+					case 0:
+						val = m.dbPoolCreateName
+					case 1:
+						if len(m.dbDetailDatabases) > m.dbPoolCreateDBIdx {
+							val = getStringValue(m.dbDetailDatabases[m.dbPoolCreateDBIdx], "name", "—")
+						}
+					case 2:
+						val = dbModes[m.dbPoolCreateMode]
+					case 3:
+						val = m.dbPoolCreateSize
+					}
+					wiz.WriteString(fmt.Sprintf("%s %s\n",
+						labelSt.Render(lbl),
+						valueSt.Render(val)))
+				} else if i == m.dbPoolCreateStep {
+					// active step
+					wiz.WriteString(labelSt.Render(lbl) + "\n\n")
+					switch i {
+					case 0:
+						wiz.WriteString(inputSt.Render(m.dbPoolCreateName+"▌") + "\n\n")
+					case 1:
+						if len(m.dbDetailDatabases) == 0 {
+							wiz.WriteString(dimSt.Render("No databases found — create one first") + "\n\n")
+						} else {
+							for j, d := range m.dbDetailDatabases {
+								dname := getStringValue(d, "name", getStringValue(d, "id", "—"))
+								if j == m.dbPoolCreateDBIdx {
+									wiz.WriteString(selectedItemSt.Render("▶ "+dname) + "\n")
+								} else {
+									wiz.WriteString(dimSt.Render("  "+dname) + "\n")
+								}
+							}
+							wiz.WriteString("\n")
+						}
+					case 2:
+						for j, m2 := range dbModes {
+							if j == m.dbPoolCreateMode {
+								wiz.WriteString(selectedItemSt.Render("▶ "+m2) + "\n")
+							} else {
+								wiz.WriteString(dimSt.Render("  "+m2) + "\n")
+							}
+						}
+						wiz.WriteString("\n")
+					case 3:
+						wiz.WriteString(inputSt.Render(m.dbPoolCreateSize+"▌") + "\n\n")
+					}
+					wiz.WriteString(dimSt.Render("Enter → next   ↑/↓ → select   Esc → cancel"))
+				}
+			}
+			content.WriteString(renderBox("Create Connection Pool", wiz.String(), fullWidth))
+		} else {
+			createBtn := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#7B68EE")).Bold(true).Padding(0, 1).Render("[+ Create Pool]")
+			content.WriteString(createBtn + "  " + dimSt.Render("Enter → new pool") + "\n\n")
+
+			var poolsContent strings.Builder
+			if len(m.dbDetailPools) == 0 {
+				if m.dbDetailLoaded {
+					poolsContent.WriteString(dimSt.Render("None"))
+				} else {
+					poolsContent.WriteString(dimSt.Render("Loading..."))
+				}
+			} else {
+				poolsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+					headSt.Render("Name"),
+					headSt.Render("Database"),
+					headSt.Render("Mode"),
+					headSt.Render("Size"),
+					headSt.Render("Username")))
+				for _, p := range m.dbDetailPools {
+					pname := getStringValue(p, "name", "—")
+					pdb := getStringValue(p, "databaseId", getStringValue(p, "database", "—"))
+					pmode := getStringValue(p, "mode", "—")
+					var psize string
+					if v, ok := toFloat64(p["size"]); ok && v > 0 {
+						psize = fmt.Sprintf("%d", int(v))
+					} else {
+						psize = "—"
+					}
+					puser := getStringValue(p, "userId", getStringValue(p, "username", "—"))
+					poolsContent.WriteString(fmt.Sprintf("%s%s%s%s%s\n",
+						labelSt.Render(truncate(pname, 17)),
+						labelSt.Render(truncate(pdb, 17)),
+						labelSt.Render(truncate(pmode, 17)),
+						labelSt.Render(psize),
+						valueSt.Render(truncate(puser, 17))))
+				}
+			}
+			content.WriteString(renderBox(fmt.Sprintf("Connection Pools (%d)", len(m.dbDetailPools)), strings.TrimRight(poolsContent.String(), "\n"), fullWidth))
+		}
+
+	case 5: // ── Logs ───────────────────────────────────────────────────
+		refreshBtn := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7B68EE")).Bold(true).Padding(0, 1).Render("[↻ Refresh]")
+		liveIndicator := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F")).Render("● live")
+		content.WriteString(refreshBtn + "  " + dimSt.Render("Enter → reload") + "   " + liveIndicator + dimSt.Render(" (auto every 10s)") + "\n\n")
+
+		var logsContent strings.Builder
+		if m.dbLogsUnsupported {
+			logsContent.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700")).Render(
+				"None logs"))
+		} else if !m.dbLogsLoaded {
+			logsContent.WriteString(dimSt.Render("Loading..."))
+		} else if len(m.dbDetailLogs) == 0 {
+			logsContent.WriteString(dimSt.Render("No log entries found"))
+		} else {
+			timeSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+			hostSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE"))
+			msgSt  := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+			indentSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+			// Derive maxVisible from terminal height.
+			// Each entry uses 2 lines (header + message), so halve available lines.
+			maxVisible := (m.height - 27) / 2
+			if maxVisible < 3 {
+				maxVisible = 3
+			}
+			// Show entries most-recent first, with scroll window
+			total := len(m.dbDetailLogs)
+			startIdx := m.dbLogsScrollOffset
+			if startIdx > total-1 {
+				startIdx = total - 1
+			}
+			if startIdx < 0 {
+				startIdx = 0
+			}
+			endIdx := startIdx + maxVisible
+			if endIdx > total {
+				endIdx = total
+			}
+			scrollHint := lipgloss.NewStyle().Foreground(lipgloss.Color("#444444")).Render(
+				fmt.Sprintf("  ↑/↓ scroll  (%d-%d / %d)", startIdx+1, endIdx, total))
+			logsContent.WriteString(scrollHint + "\n")
+			// iterate reversed (newest = index 0)
+			for ri := startIdx; ri < endIdx; ri++ {
+				i := total - 1 - ri // actual index in m.dbDetailLogs
+				e := m.dbDetailLogs[i]
+				msgStr := getStringValue(e, "message", "")
+				host := getStringValue(e, "hostname", "")
+				ts := ""
+				if v, ok := toFloat64(e["timestamp"]); ok {
+					t2 := time.Unix(int64(v), 0).UTC()
+					ts = t2.Format("2006-01-02 15:04:05")
+				}
+				// Line 1: timestamp  hostname
+				logsContent.WriteString(timeSt.Render(ts) + "  " + hostSt.Render(host) + "\n")
+				// Line 2: indented full message
+				logsContent.WriteString(indentSt.Render("  ↳ ") + msgSt.Render(msgStr) + "\n")
+			}
+		}
+		content.WriteString(renderBox(
+			fmt.Sprintf("Logs (%d)", len(m.dbDetailLogs)),
+			strings.TrimRight(logsContent.String(), "\n"),
+			fullWidth))
+
+	case 6: // ── ACL (Kafka only) ────────────────────────────────────
+		// ── Create wizard ──────────────────────────────────────────────
+		if m.dbACLCreateStep >= 0 {
+			inputSt := lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FF7F")).
+				Padding(0, 1).Width(36)
+			selectedItemSt := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
+			var wiz strings.Builder
+			aclPerms := []string{"read", "write", "admin"}
+			stepLabels := []string{"Username", "Topic", "Permission"}
+			wiz.WriteString(headSt.Width(0).Render(fmt.Sprintf("Step %d/3 — %s", m.dbACLCreateStep+1, stepLabels[m.dbACLCreateStep])) + "\n\n")
+			switch m.dbACLCreateStep {
+			case 0:
+				wiz.WriteString(inputSt.Render(m.dbACLCreateUser+"▌") + "\n\n")
+			case 1:
+				wiz.WriteString(dimSt.Render("User: "+m.dbACLCreateUser) + "\n")
+				wiz.WriteString(inputSt.Render(m.dbACLCreateTopic+"▌") + "\n\n")
+			case 2:
+				wiz.WriteString(dimSt.Render("User: "+m.dbACLCreateUser+"  Topic: "+m.dbACLCreateTopic) + "\n")
+				for j, p := range aclPerms {
+					if j == m.dbACLCreatePerm {
+						wiz.WriteString(selectedItemSt.Render("▶ "+strings.ToUpper(p)) + "\n")
+					} else {
+						wiz.WriteString(dimSt.Render("  "+strings.ToUpper(p)) + "\n")
+					}
+				}
+				wiz.WriteString("\n")
+			}
+			wiz.WriteString(dimSt.Render("Enter → next   ⇑/⇓ → select   Esc → cancel"))
+			content.WriteString(renderBox("Create ACL Entry", wiz.String(), fullWidth))
+			break
+		}
+		// ── List ────────────────────────────────────────────────────────
+		createBtn := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7B68EE")).Bold(true).Padding(0, 1).Render("[+ Create ACL]")
+		content.WriteString(createBtn + "  " + dimSt.Render("Enter → new entry") + "\n\n")
+		var aclContent strings.Builder
+		if !m.dbACLLoaded {
+			aclContent.WriteString(dimSt.Render("Loading..."))
+		} else if len(m.dbDetailACL) == 0 {
+			aclContent.WriteString(dimSt.Render("No ACL entries found"))
+		} else {
+			userW := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Bold(true).Width(24)
+			topicW := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Bold(true).Width(30)
+			permW := lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Bold(true).Width(16)
+			aclContent.WriteString(userW.Render("User") + topicW.Render("Topic") + permW.Render("Permission") + "\n")
+			for _, entry := range m.dbDetailACL {
+				user := getStringValue(entry, "username", getStringValue(entry, "user", "—"))
+				topic := getStringValue(entry, "topic", "—")
+				perm := getStringValue(entry, "permission", "—")
+				permColor := lipgloss.Color("#7B68EE")
+				switch strings.ToLower(perm) {
+				case "admin":
+					permColor = lipgloss.Color("#FF6B6B")
+				case "write", "readwrite":
+					permColor = lipgloss.Color("#FFD700")
+				case "read":
+					permColor = lipgloss.Color("#00FF7F")
+				}
+				aclContent.WriteString(
+					labelSt.Width(24).Render(truncate(user, 23)) +
+						labelSt.Width(30).Render(truncate(topic, 29)) +
+						lipgloss.NewStyle().Foreground(permColor).Render(perm) + "\n")
+			}
+		}
+		content.WriteString(renderBox(fmt.Sprintf("ACL (%d)", len(m.dbDetailACL)), strings.TrimRight(aclContent.String(), "\n"), fullWidth))
+
+	case 7: // ── Topics (Kafka only) ──────────────────────────────
+		// ── Create wizard ─────────────────────────────────────────────
+		if m.dbTopicCreateStep >= 0 {
+			inputSt := lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#00FF7F")).
+				Padding(0, 1).Width(36)
+			stepLabels := []string{"Topic name", "Replica in-sync minimum", "Partitions", "Replication factor", "Retention size (bytes, -1=unlimited)", "Retention time (hours, -1=unlimited)"}
+			var wiz strings.Builder
+			wiz.WriteString(headSt.Width(0).Render(fmt.Sprintf("Step %d/6 — %s", m.dbTopicCreateStep+1, stepLabels[m.dbTopicCreateStep])) + "\n\n")
+			var curVal string
+			switch m.dbTopicCreateStep {
+			case 0: curVal = m.dbTopicCreateName
+			case 1: curVal = m.dbTopicCreateMinSync
+			case 2: curVal = m.dbTopicCreatePartitions
+			case 3: curVal = m.dbTopicCreateReplication
+			case 4: curVal = m.dbTopicCreateRetentionByt
+			case 5: curVal = m.dbTopicCreateRetentionHrs
+			}
+			wiz.WriteString(inputSt.Render(curVal+"▌") + "\n\n")
+			wiz.WriteString(dimSt.Render("Enter → next   Esc → cancel"))
+			content.WriteString(renderBox("Create Topic", wiz.String(), fullWidth))
+			break
+		}
+		// ── List ──────────────────────────────────────────────────
+		createTopicBtn := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7B68EE")).Bold(true).Padding(0, 1).Render("[+ Create Topic]")
+		content.WriteString(createTopicBtn + "  " + dimSt.Render("Enter → new topic") + "\n\n")
+		var topicsContent strings.Builder
+		if !m.dbTopicsLoaded {
+			topicsContent.WriteString(dimSt.Render("Loading..."))
+		} else if len(m.dbDetailTopics) == 0 {
+			topicsContent.WriteString(dimSt.Render("No topics found"))
+		} else {
+			col := func(w int) lipgloss.Style {
+				return lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")).Bold(true).Width(w)
+			}
+			val2 := func(w int) lipgloss.Style {
+				return lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Width(w)
+			}
+			topicsContent.WriteString(
+				col(26).Render("Topic") +
+					col(12).Render("Partitions") +
+					col(13).Render("Replication") +
+					col(14).Render("Replica Sync") +
+					col(18).Render("Retention Time") +
+					col(18).Render("Retention Size") + "\n")
+			for _, t := range m.dbDetailTopics {
+				name := getStringValue(t, "name", "—")
+				partitions := "—"
+				if v, ok := toFloat64(t["partitions"]); ok {
+					partitions = fmt.Sprintf("%d", int(v))
+				}
+				replication := "—"
+				if v, ok := toFloat64(t["replication"]); ok {
+					replication = fmt.Sprintf("%d", int(v))
+				}
+				replicaSync := "—"
+				if v, ok := toFloat64(t["minInsyncReplicas"]); ok {
+					replicaSync = fmt.Sprintf("%d", int(v))
+				}
+				retentionTime := "—"
+				if v, ok := toFloat64(t["retentionHours"]); ok {
+					if v == -1 {
+						retentionTime = "unlimited"
+					} else {
+						retentionTime = fmt.Sprintf("%dh", int(v))
+					}
+				}
+				retentionBytes := "—"
+				if v, ok := toFloat64(t["retentionBytes"]); ok {
+					if v == -1 {
+						retentionBytes = "unlimited"
+					} else if v > 0 {
+						retentionBytes = fmt.Sprintf("%d MB", int(v/1024/1024))
+					}
+				}
+				topicsContent.WriteString(
+					val2(26).Render(truncate(name, 25)) +
+						val2(12).Render(partitions) +
+						val2(13).Render(replication) +
+						val2(14).Render(replicaSync) +
+						val2(18).Render(retentionTime) +
+						val2(18).Render(retentionBytes) + "\n")
+			}
+		}
+		content.WriteString(renderBox(fmt.Sprintf("Topics (%d)", len(m.dbDetailTopics)), strings.TrimRight(topicsContent.String(), "\n"), fullWidth))
+	}
+
+	return content.String()
+}
+
+func (m Model) renderGatewayDetail_PLACEHOLDER() string { return "" }
+
 
 func (m Model) renderGatewayDetail(width int) string {
 	var content strings.Builder
@@ -8120,7 +9319,7 @@ func (m Model) renderFooter() string {
 			help = "←→: Switch Product • ↑↓: Navigate • /: Edit Filter • Enter: Details • c: Create • Del: Delete • d: Debug • Esc: Clear Filter • q: Quit"
 		} else if (m.inStorageSubNav || m.inNetworkSubNav || m.inComputeSubNav) && m.inTableFocus {
 			if m.currentProduct == ProductNetworkPrivate {
-				help = "↑↓: Navigate • ←→: vRack Regions↔Local Zones • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
+				help = "↑↓: Navigate • ←→: Regions↔Local Zones • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else if m.currentProduct == ProductStorageObject {
 				help = "↑↓: Navigate • ←→: Containers↔Users • Enter: Details • c: Create • /: Filter • d: Debug • Esc: Back • q: Quit"
 			} else {
@@ -8150,7 +9349,7 @@ func (m Model) renderFooter() string {
 			help = m.backupDetailView.HelpText()
 		} else if m.currentProduct == ProductNetworkPrivate {
 			if m.actionConfirm {
-				help = "Enter: Confirmer l'action • Esc: Annuler"
+				help = "Enter: Confirm action • Esc: Cancel"
 			} else {
 				help = "←→: Select action • Enter: Execute • Esc: Back to list • q: Quit"
 			}
@@ -8419,6 +9618,329 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
                 return m, cmd
         }
 
+	// Intercept all keys when DB user creation text input is active
+	if m.dbUserCreateMode && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			m.dbUserCreateMode = false
+			m.dbUserCreateInput = ""
+		case "backspace":
+			if len(m.dbUserCreateInput) > 0 {
+				m.dbUserCreateInput = m.dbUserCreateInput[:len(m.dbUserCreateInput)-1]
+			}
+		case "enter":
+			username := strings.TrimSpace(m.dbUserCreateInput)
+			if username == "" {
+				return m, nil
+			}
+			m.dbUserCreateMode = false
+			m.dbUserCreateInput = ""
+			m.dbDetailLoaded = false
+			return m, m.createDBUser(username)
+		default:
+			if len(msg.Runes) > 0 {
+				m.dbUserCreateInput += string(msg.Runes)
+			}
+		}
+		return m, nil
+	}
+
+	// Intercept all keys when DB database creation text input is active
+	if m.dbDBCreateMode && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			m.dbDBCreateMode = false
+			m.dbDBCreateInput = ""
+		case "backspace":
+			if len(m.dbDBCreateInput) > 0 {
+				m.dbDBCreateInput = m.dbDBCreateInput[:len(m.dbDBCreateInput)-1]
+			}
+		case "enter":
+			dbname := strings.TrimSpace(m.dbDBCreateInput)
+			if dbname == "" {
+				return m, nil
+			}
+			m.dbDBCreateMode = false
+			m.dbDBCreateInput = ""
+			m.dbDetailLoaded = false
+			return m, m.createDBDatabase(dbname)
+		default:
+			if len(msg.Runes) > 0 {
+				m.dbDBCreateInput += string(msg.Runes)
+			}
+		}
+		return m, nil
+	}
+
+	// Intercept all keys during pool creation inline wizard
+	if m.dbPoolCreateStep >= 0 && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		dbModes := []string{"session", "statement", "transaction"}
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			m.dbPoolCreateStep = -1
+		case "enter":
+			switch m.dbPoolCreateStep {
+			case 0: // name
+				if strings.TrimSpace(m.dbPoolCreateName) == "" {
+					return m, nil
+				}
+				m.dbPoolCreateStep = 1
+				m.dbPoolCreateDBIdx = 0
+			case 1: // database selection
+				if len(m.dbDetailDatabases) == 0 {
+					return m, nil
+				}
+				m.dbPoolCreateStep = 2
+				m.dbPoolCreateMode = 0
+			case 2: // mode selection
+				m.dbPoolCreateStep = 3
+				m.dbPoolCreateSize = "10"
+			case 3: // size
+				sizeStr := strings.TrimSpace(m.dbPoolCreateSize)
+				size := 10
+				if n, err := strconv.Atoi(sizeStr); err == nil && n > 0 {
+					size = n
+				}
+				if len(m.dbDetailDatabases) == 0 {
+					return m, nil
+				}
+				dbId := getStringValue(m.dbDetailDatabases[m.dbPoolCreateDBIdx], "id", "")
+				modeName := dbModes[m.dbPoolCreateMode]
+				poolName := strings.TrimSpace(m.dbPoolCreateName)
+				m.dbPoolCreateStep = -1
+				m.dbDetailLoaded = false
+				return m, m.createDBPool(poolName, dbId, modeName, size)
+			}
+		case "up", "k":
+			switch m.dbPoolCreateStep {
+			case 1:
+				if m.dbPoolCreateDBIdx > 0 {
+					m.dbPoolCreateDBIdx--
+				}
+			case 2:
+				if m.dbPoolCreateMode > 0 {
+					m.dbPoolCreateMode--
+				}
+			}
+		case "down", "j":
+			switch m.dbPoolCreateStep {
+			case 1:
+				if m.dbPoolCreateDBIdx < len(m.dbDetailDatabases)-1 {
+					m.dbPoolCreateDBIdx++
+				}
+			case 2:
+				if m.dbPoolCreateMode < len(dbModes)-1 {
+					m.dbPoolCreateMode++
+				}
+			}
+		case "backspace":
+			switch m.dbPoolCreateStep {
+			case 0:
+				if len(m.dbPoolCreateName) > 0 {
+					m.dbPoolCreateName = m.dbPoolCreateName[:len(m.dbPoolCreateName)-1]
+				}
+			case 3:
+				if len(m.dbPoolCreateSize) > 0 {
+					m.dbPoolCreateSize = m.dbPoolCreateSize[:len(m.dbPoolCreateSize)-1]
+				}
+			}
+		default:
+			if len(msg.Runes) > 0 {
+				switch m.dbPoolCreateStep {
+				case 0:
+					m.dbPoolCreateName += string(msg.Runes)
+				case 3:
+					// only digits
+					for _, r := range msg.Runes {
+						if r >= '0' && r <= '9' {
+							m.dbPoolCreateSize += string(r)
+						}
+					}
+				}
+			}
+		}
+		return m, nil
+	}
+
+	// Intercept all keys during ACL creation inline wizard
+	if m.dbACLCreateStep >= 0 && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		aclPerms := []string{"read", "write", "admin"}
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			m.dbACLCreateStep = -1
+		case "enter":
+			switch m.dbACLCreateStep {
+			case 0: // username
+				if strings.TrimSpace(m.dbACLCreateUser) == "" {
+					return m, nil
+				}
+				m.dbACLCreateStep = 1
+			case 1: // topic
+				if strings.TrimSpace(m.dbACLCreateTopic) == "" {
+					return m, nil
+				}
+				m.dbACLCreateStep = 2
+				m.dbACLCreatePerm = 0
+			case 2: // permission confirm
+				permName := aclPerms[m.dbACLCreatePerm]
+				user := strings.TrimSpace(m.dbACLCreateUser)
+				topic := strings.TrimSpace(m.dbACLCreateTopic)
+				m.dbACLCreateStep = -1
+				m.dbACLLoaded = false
+				return m, m.createDBACL(user, topic, permName)
+			}
+		case "up", "k":
+			if m.dbACLCreateStep == 2 && m.dbACLCreatePerm > 0 {
+				m.dbACLCreatePerm--
+			}
+		case "down", "j":
+			if m.dbACLCreateStep == 2 && m.dbACLCreatePerm < len(aclPerms)-1 {
+				m.dbACLCreatePerm++
+			}
+		case "backspace":
+			switch m.dbACLCreateStep {
+			case 0:
+				if len(m.dbACLCreateUser) > 0 {
+					m.dbACLCreateUser = m.dbACLCreateUser[:len(m.dbACLCreateUser)-1]
+				}
+			case 1:
+				if len(m.dbACLCreateTopic) > 0 {
+					m.dbACLCreateTopic = m.dbACLCreateTopic[:len(m.dbACLCreateTopic)-1]
+				}
+			}
+		default:
+			if len(msg.Runes) > 0 {
+				switch m.dbACLCreateStep {
+				case 0:
+					m.dbACLCreateUser += string(msg.Runes)
+				case 1:
+					m.dbACLCreateTopic += string(msg.Runes)
+				}
+			}
+		}
+		return m, nil
+	}
+
+	// Intercept all keys during Topic creation inline wizard
+	if m.dbTopicCreateStep >= 0 && m.mode == DetailView &&
+		(m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			m.dbTopicCreateStep = -1
+		case "enter":
+			switch m.dbTopicCreateStep {
+			case 0: // name
+				if strings.TrimSpace(m.dbTopicCreateName) == "" {
+					return m, nil
+				}
+				m.dbTopicCreateStep = 1
+			case 1: // minInsyncReplicas
+				if _, err := strconv.Atoi(m.dbTopicCreateMinSync); err != nil {
+					return m, nil
+				}
+				m.dbTopicCreateStep = 2
+			case 2: // partitions
+				if _, err := strconv.Atoi(m.dbTopicCreatePartitions); err != nil {
+					return m, nil
+				}
+				m.dbTopicCreateStep = 3
+			case 3: // replication
+				if _, err := strconv.Atoi(m.dbTopicCreateReplication); err != nil {
+					return m, nil
+				}
+				m.dbTopicCreateStep = 4
+			case 4: // retentionBytes
+				if _, err := strconv.Atoi(m.dbTopicCreateRetentionByt); err != nil {
+					return m, nil
+				}
+				m.dbTopicCreateStep = 5
+			case 5: // retentionHours — last step, submit
+				if _, err := strconv.Atoi(m.dbTopicCreateRetentionHrs); err != nil {
+					return m, nil
+				}
+				minSync, _ := strconv.Atoi(m.dbTopicCreateMinSync)
+				parts, _ := strconv.Atoi(m.dbTopicCreatePartitions)
+				repl, _ := strconv.Atoi(m.dbTopicCreateReplication)
+				retByt, _ := strconv.Atoi(m.dbTopicCreateRetentionByt)
+				retHrs, _ := strconv.Atoi(m.dbTopicCreateRetentionHrs)
+				name := strings.TrimSpace(m.dbTopicCreateName)
+				m.dbTopicCreateStep = -1
+				m.dbTopicsLoaded = false
+				return m, m.createDBTopic(name, minSync, parts, repl, retByt, retHrs)
+			}
+		case "backspace":
+			switch m.dbTopicCreateStep {
+			case 0:
+				if len(m.dbTopicCreateName) > 0 {
+					m.dbTopicCreateName = m.dbTopicCreateName[:len(m.dbTopicCreateName)-1]
+				}
+			case 1:
+				if len(m.dbTopicCreateMinSync) > 0 {
+					m.dbTopicCreateMinSync = m.dbTopicCreateMinSync[:len(m.dbTopicCreateMinSync)-1]
+				}
+			case 2:
+				if len(m.dbTopicCreatePartitions) > 0 {
+					m.dbTopicCreatePartitions = m.dbTopicCreatePartitions[:len(m.dbTopicCreatePartitions)-1]
+				}
+			case 3:
+				if len(m.dbTopicCreateReplication) > 0 {
+					m.dbTopicCreateReplication = m.dbTopicCreateReplication[:len(m.dbTopicCreateReplication)-1]
+				}
+			case 4:
+				if len(m.dbTopicCreateRetentionByt) > 0 {
+					m.dbTopicCreateRetentionByt = m.dbTopicCreateRetentionByt[:len(m.dbTopicCreateRetentionByt)-1]
+				}
+			case 5:
+				if len(m.dbTopicCreateRetentionHrs) > 0 {
+					m.dbTopicCreateRetentionHrs = m.dbTopicCreateRetentionHrs[:len(m.dbTopicCreateRetentionHrs)-1]
+				}
+			}
+		default:
+			if len(msg.Runes) > 0 {
+				r := string(msg.Runes)
+				switch m.dbTopicCreateStep {
+				case 0:
+					m.dbTopicCreateName += r
+				case 1:
+					if (msg.Runes[0] >= '0' && msg.Runes[0] <= '9') || (r == "-" && m.dbTopicCreateMinSync == "") {
+						m.dbTopicCreateMinSync += r
+					}
+				case 2:
+					if msg.Runes[0] >= '0' && msg.Runes[0] <= '9' {
+						m.dbTopicCreatePartitions += r
+					}
+				case 3:
+					if msg.Runes[0] >= '0' && msg.Runes[0] <= '9' {
+						m.dbTopicCreateReplication += r
+					}
+				case 4:
+					if (msg.Runes[0] >= '0' && msg.Runes[0] <= '9') || (r == "-" && m.dbTopicCreateRetentionByt == "") {
+						m.dbTopicCreateRetentionByt += r
+					}
+				case 5:
+					if (msg.Runes[0] >= '0' && msg.Runes[0] <= '9') || (r == "-" && m.dbTopicCreateRetentionHrs == "") {
+						m.dbTopicCreateRetentionHrs += r
+					}
+				}
+			}
+		}
+		return m, nil
+	}
+
         switch msg.String() {
         case "left":
 		// In NodePoolDetailView, navigate actions
@@ -8547,6 +10069,32 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In DetailView for Instance Backup, only 1 action (Delete)
 		if m.mode == DetailView && m.currentProduct == ProductInstanceBackup {
+			return m, nil
+		}
+		// In DetailView for ManagedDatabases/Analytics, ← switches tabs
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			if m.dbDetailTab > 0 {
+				m.dbDetailTab--
+				// Analytics: skip Backups tab (2)
+				if m.currentProduct == ProductManagedAnalytics && m.dbDetailTab == 2 {
+					m.dbDetailTab--
+				}
+				// Non-postgres: skip disabled Pools tab (4)
+				isPostgresNav := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "postgresql")
+				if !isPostgresNav && m.dbDetailTab == 4 {
+					m.dbDetailTab--
+				}
+				// Non-kafka: skip ACL (6) and Topics (7)
+				isKafkaNav := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka")
+				if !isKafkaNav && m.dbDetailTab >= 6 {
+					m.dbDetailTab = 5
+				}
+				m.actionConfirm = false
+				m.dbUserSelectedIdx = -1
+				m.dbUserDeleteConfirm = false
+				m.dbPoolCreateStep = -1
+				m.dbLogsScrollOffset = 0
+			}
 			return m, nil
 		}
 		// In DetailView for Floating IPs, navigate actions (0=Delete, 1=Detach)
@@ -8714,6 +10262,56 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.selectedAction < 2 {
 				m.selectedAction++
 				m.actionConfirm = false
+			}
+			return m, nil
+		}
+		// In DetailView for ManagedDatabases/Analytics, → switches tabs
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			isKafkaRight := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka")
+			// Already at the last available tab — don't re-fetch or do anything
+			if (!isKafkaRight && m.dbDetailTab == 5) || (isKafkaRight && m.dbDetailTab == 7) {
+				return m, nil
+			}
+			maxTab := 7
+			if m.dbDetailTab < maxTab {
+				m.dbDetailTab++
+				// Analytics: skip Backups tab (2)
+				if m.currentProduct == ProductManagedAnalytics && m.dbDetailTab == 2 {
+					m.dbDetailTab++
+				}
+				// Non-postgres: skip disabled Pools tab (4)
+				isPostgresRight := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "postgresql")
+				if !isPostgresRight && m.dbDetailTab == 4 {
+					m.dbDetailTab++
+				}
+				// Non-kafka: skip ACL (6) and Topics (7)
+				isKafkaNav := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "kafka")
+				if !isKafkaNav && m.dbDetailTab >= 6 {
+					m.dbDetailTab = 5 // stay at Logs
+				}
+				m.actionConfirm = false
+				m.dbUserSelectedIdx = -1
+				m.dbUserDeleteConfirm = false
+				m.dbPoolCreateStep = -1
+				m.dbLogsScrollOffset = 0
+				// Entering Logs tab: trigger fetch
+				if m.dbDetailTab == 5 {
+					m.dbLogsLoaded = false
+					m.dbDetailLogs = nil
+					return m, m.fetchDBLogs()
+				}
+				// Entering ACL tab: trigger fetch
+				if m.dbDetailTab == 6 {
+					m.dbACLLoaded = false
+					m.dbDetailACL = nil
+					return m, m.fetchDBACL()
+				}
+				// Entering Topics tab: trigger fetch
+				if m.dbDetailTab == 7 {
+					m.dbTopicsLoaded = false
+					m.dbDetailTopics = nil
+					return m, m.fetchDBTopics()
+				}
 			}
 			return m, nil
 		}
@@ -8928,6 +10526,21 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.mode == NodePoolsView {
 			m.mode = DetailView
 			return m, nil
+		}
+		// Dismiss DB user creation result panel before going back to list
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			if m.dbPoolCreateStep >= 0 {
+				m.dbPoolCreateStep = -1
+				return m, nil
+			}
+			if m.dbUserDeleteConfirm {
+				m.dbUserDeleteConfirm = false
+				return m, nil
+			}
+			if m.dbUserCreatedData != nil {
+				m.dbUserCreatedData = nil
+				return m, nil
+			}
 		}
 		// Go back to table view from detail view, or cancel action confirm
 		if m.mode == DetailView {
@@ -9640,6 +11253,67 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, nil
+		} else if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) {
+			switch m.dbDetailTab {
+			case 0: // Service tab — Delete action
+				if m.actionConfirm {
+					m.actionConfirm = false
+					return m, m.deleteManagedDBService()
+				}
+				m.actionConfirm = true
+			case 1: // Users tab — navigate actions
+				if m.dbUserCreatedData != nil {
+					// Dismiss the result panel
+					m.dbUserCreatedData = nil
+				} else if m.dbUserSelectedIdx >= 0 && m.dbUserSelectedIdx < len(m.dbDetailUsers) {
+					// A user row is selected — confirm then delete
+					u := m.dbDetailUsers[m.dbUserSelectedIdx]
+					userId := getStringValue(u, "id", "")
+					username := getStringValue(u, "username", getStringValue(u, "name", "—"))
+					if m.dbUserDeleteConfirm {
+						m.dbUserDeleteConfirm = false
+						m.dbDetailLoaded = false
+						return m, m.deleteDBUser(userId, username)
+					}
+					m.dbUserDeleteConfirm = true
+				} else {
+					// No row selected — open create form
+					m.dbUserCreateMode = true
+					m.dbUserCreateInput = ""
+				}
+			case 3: // Databases tab — create database
+				m.dbDBCreateMode = true
+				m.dbDBCreateInput = ""
+			case 4: // Pools tab — start pool creation wizard (PostgreSQL only)
+				isPostgresEnter := strings.EqualFold(getStringValue(m.detailData, "engine", ""), "postgresql")
+				if isPostgresEnter {
+					m.dbPoolCreateStep = 0
+					m.dbPoolCreateName = ""
+					m.dbPoolCreateDBIdx = 0
+					m.dbPoolCreateMode = 0
+					m.dbPoolCreateSize = "10"
+				}
+			case 5: // Logs tab — refresh
+				m.dbLogsLoaded = false
+				m.dbDetailLogs = nil
+				m.dbLogsScrollOffset = 0
+				m.dbLogsUnsupported = false
+				return m, m.fetchDBLogs()
+			case 6: // ACL tab — open create wizard
+				m.dbACLCreateStep = 0
+				m.dbACLCreateUser = ""
+				m.dbACLCreateTopic = ""
+				m.dbACLCreatePerm = 0
+			case 7: // Topics tab — open create wizard
+				m.dbTopicCreateStep = 0
+				m.dbTopicCreateName = ""
+				m.dbTopicCreateMinSync = "1"
+				m.dbTopicCreatePartitions = "3"
+				m.dbTopicCreateReplication = "2"
+				m.dbTopicCreateRetentionByt = "-1"
+				m.dbTopicCreateRetentionHrs = "-1"
+			}
+			return m, nil
 		} else if m.mode == DetailView && m.currentProduct == ProductInstances {
 			// Execute selected action on instance
 			if m.actionConfirm {
@@ -9813,7 +11487,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 				}
 				if len(regionNames) == 0 {
-					m.notification = "❌ No compatible region: OVH Gateway can only be added to subnets created without a gateway (mode 'OVH Gateway'). Recreate the network with this mode."
+					m.notification = "❌ No compatible region: the OVH Gateway can only be attached to subnets created without a gateway (mode 'OVH Gateway'). Recreate the network with this option."
 					m.notificationExpiry = time.Now().Add(10 * time.Second)
 					return m, tea.Tick(10*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 				}
@@ -10009,7 +11683,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					if m.currentProduct == ProductNetworkLB {
 						lbId := getStringValue(m.detailData, "id", "")
 						lbRegion := getStringValue(m.detailData, "region", "")
-						m.lbDetailSection = 0   // always start in Listeners section
+						m.lbDetailSection = 0    // always start in Listeners section
 						m.lbPoolListIdx = -1     // reset pool cursor when entering LB detail
 						m.lbListenerListIdx = -1 // reset listener cursor when entering LB detail
 						if lbId != "" && lbRegion != "" {
@@ -10017,6 +11691,36 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 								m.fetchLBPools(lbId, lbRegion),
 								m.fetchLBListeners(lbId, lbRegion),
 							)
+						}
+					}
+					if m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics {
+						engine := getStringValue(m.detailData, "engine", "")
+						serviceId := getStringValue(m.detailData, "id", "")
+						m.dbDetailUsers = nil
+						m.dbDetailBackups = nil
+						m.dbDetailDatabases = nil
+						m.dbDetailPools = nil
+						m.dbDetailTab = 0
+						m.dbUserCreateMode = false
+						m.dbUserCreateInput = ""
+						m.dbUserCreatedData = nil
+						m.dbUserSelectedIdx = -1
+						m.dbUserDeleteConfirm = false
+						m.dbDBCreateMode = false
+						m.dbDBCreateInput = ""
+						m.dbPoolCreateStep = -1
+						m.dbDetailLogs = nil
+						m.dbLogsLoaded = false
+						m.dbLogsUnsupported = false
+						m.dbLogsScrollOffset = 0
+						m.dbDetailACL = nil
+						m.dbACLLoaded = false
+						m.dbACLCreateStep = -1
+						m.dbDetailTopics = nil
+						m.dbTopicsLoaded = false
+						m.dbTopicCreateStep = -1
+						if engine != "" && serviceId != "" {
+							return m, m.fetchDBDetailSubresources(engine, serviceId)
 						}
 					}
 				}
@@ -10030,6 +11734,47 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		isComputeSubProduct := m.currentProduct == ProductInstances || m.currentProduct == ProductInstanceBackup || m.currentProduct == ProductWorkflow
 		isSubNavProduct := isStorageSubProduct || isNetworkSubProduct || isComputeSubProduct
 		navItems := getNavItems()
+
+		// DB Logs tab: ↑/↓ scroll
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) &&
+			m.dbDetailTab == 5 && m.dbLogsLoaded {
+			total := len(m.dbDetailLogs)
+			maxVisible := 20
+			maxOffset := total - maxVisible
+			if maxOffset < 0 {
+				maxOffset = 0
+			}
+			if key == "up" || key == "k" {
+				if m.dbLogsScrollOffset < maxOffset {
+					m.dbLogsScrollOffset++
+				}
+			} else if key == "down" || key == "j" {
+				if m.dbLogsScrollOffset > 0 {
+					m.dbLogsScrollOffset--
+				}
+			}
+			return m, nil
+		}
+
+		// DB Users tab: ↑/↓ navigate user rows
+		if m.mode == DetailView && (m.currentProduct == ProductManagedDatabases || m.currentProduct == ProductManagedAnalytics) &&
+			m.dbDetailTab == 1 && !m.dbUserCreateMode && m.dbUserCreatedData == nil {
+			if len(m.dbDetailUsers) > 0 {
+				if key == "down" || key == "j" {
+					if m.dbUserSelectedIdx < len(m.dbDetailUsers)-1 {
+						m.dbUserSelectedIdx++
+					}
+				} else if key == "up" || key == "k" {
+					if m.dbUserSelectedIdx > 0 {
+						m.dbUserSelectedIdx--
+					} else {
+						m.dbUserSelectedIdx = -1 // deselect when going above first row
+					}
+				}
+				m.dbUserDeleteConfirm = false
+			}
+			return m, nil
+		}
 
 		// Level 1 → Level 2: ↓ from main nav enters sub-nav for Storage / Networks / Compute
 		if (key == "down" || key == "j") && !m.inStorageSubNav && !m.inNetworkSubNav && !m.inComputeSubNav && !m.inTableFocus &&
@@ -10120,16 +11865,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					// In Listeners section
 					if m.lbListenerListIdx < len(listeners)-1 {
 						m.lbListenerListIdx++
-					} else {
-						// Reached end of listeners → jump to Pools section
+					} else if len(pools) > 0 {
+						// Reached end of listeners → jump to Pools section only if pools exist
 						m.lbDetailSection = 1
 						m.lbListenerListIdx = -1
-						if len(pools) > 0 {
-							m.lbPoolListIdx = 0
-						} else {
-							m.lbPoolListIdx = -1
-						}
+						m.lbPoolListIdx = 0
 					}
+					// If no pools, stay on last listener (don't transition to empty pools section)
 				} else {
 					// In Pools section
 					if m.lbPoolListIdx < len(pools)-1 {
@@ -10625,7 +12367,12 @@ func (m Model) isWizardTextInputStep() bool {
 		LBHMWizardStepDelay,
 		LBHMWizardStepMaxRetries,
 		LBHMWizardStepMaxRetriesDown,
-		LBHMWizardStepTimeout:
+		LBHMWizardStepTimeout,
+		DBWizardStepName,
+		DBWizardStepNodes,
+		DBWizardStepStorage,
+		AnalyticsWizardStepName,
+		AnalyticsWizardStepNodes:
 		return true
 	}
 	// Value step is text input only when not a bool-value type
@@ -10910,6 +12657,48 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleGwWizardNetworkKeys(key)
 	case GwWizardStepConfirm:
 		return m.handleGwWizardConfirmKeys(key)
+	// Managed Database wizard steps
+	case DBWizardStepName:
+		return m.handleDBWizardNameKeys(msg)
+	case DBWizardStepEngine:
+		return m.handleDBWizardEngineKeys(key)
+	case DBWizardStepVersion:
+		return m.handleDBWizardVersionKeys(key)
+	case DBWizardStepRegion:
+		return m.handleDBWizardRegionKeys(key)
+	case DBWizardStepPlan:
+		return m.handleDBWizardPlanKeys(key)
+	case DBWizardStepFlavor:
+		return m.handleDBWizardFlavorKeys(key)
+	case DBWizardStepNodes:
+		return m.handleDBWizardNodesKeys(msg)
+	case DBWizardStepStorage:
+		return m.handleDBWizardStorageKeys(msg)
+	case DBWizardStepNetwork:
+		return m.handleDBWizardNetworkKeys(key)
+	case DBWizardStepConfirm:
+		return m.handleDBWizardConfirmKeys(key)
+	// Managed Analytics wizard steps
+	case AnalyticsWizardStepName:
+		return m.handleAnalyticsWizardNameKeys(msg)
+	case AnalyticsWizardStepEngine:
+		return m.handleAnalyticsWizardEngineKeys(key)
+	case AnalyticsWizardStepVersion:
+		return m.handleAnalyticsWizardVersionKeys(key)
+	case AnalyticsWizardStepRegion:
+		return m.handleAnalyticsWizardRegionKeys(key)
+	case AnalyticsWizardStepPlan:
+		return m.handleAnalyticsWizardPlanKeys(key)
+	case AnalyticsWizardStepFlavor:
+		return m.handleAnalyticsWizardFlavorKeys(key)
+	case AnalyticsWizardStepNodes:
+		return m.handleAnalyticsWizardNodesKeys(msg)
+	case AnalyticsWizardStepStorage:
+		return m.handleAnalyticsWizardStorageKeys(msg)
+	case AnalyticsWizardStepNetwork:
+		return m.handleAnalyticsWizardNetworkKeys(key)
+	case AnalyticsWizardStepConfirm:
+		return m.handleAnalyticsWizardConfirmKeys(key)
 	// Load Balancer wizard steps
 	case LBWizardStepName:
 		return m.handleLBWizardNameKeys(msg)
@@ -12763,7 +14552,7 @@ func (m Model) handleVolumeWizardTypeKeys(key string, msg tea.KeyMsg) (tea.Model
 		m.wizard.volumeAvailabilityZone = ""
 		m.wizard.step = VolumeWizardStepAvailabilityZone
 		m.wizard.isLoading = true
-		m.wizard.loadingMessage = "Chargement des zones..."
+		m.wizard.loadingMessage = "Loading zones..."
 		return m, m.fetchVolumeAvailabilityZones(m.wizard.selectedRegion)
 	case "left":
 		m.wizard.step = VolumeWizardStepRegion
