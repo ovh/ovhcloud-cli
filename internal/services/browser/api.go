@@ -129,6 +129,18 @@ func (m Model) fetchDataForPath(path string) tea.Cmd {
 			msg.forProduct = product
 			return msg
 		}
+	case "/instances/backup":
+		return func() tea.Msg {
+			msg := m.fetchInstanceBackupsData()
+			msg.forProduct = product
+			return msg
+		}
+	case "/instances/workflow":
+		return func() tea.Msg {
+			msg := m.fetchWorkflowsData()
+			msg.forProduct = product
+			return msg
+		}
 	case "/storage/snapshot":
 		return func() tea.Msg {
 			msg := m.fetchVolumeSnapshotsData()
@@ -1278,16 +1290,16 @@ func (m Model) handleVolumeActionDone(msg volumeActionDoneMsg) (tea.Model, tea.C
 func (m Model) executeGatewayDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return gwDeletedMsg{err: fmt.Errorf("aucune gateway sélectionnée")}
+			return gwDeletedMsg{err: fmt.Errorf("no gateway selected")}
 		}
 		if m.cloudProject == "" {
-			return gwDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return gwDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		gwID := getString(m.detailData, "id")
 		gwName := getString(m.detailData, "name")
 		region := getString(m.detailData, "region")
 		if gwID == "" || region == "" {
-			return gwDeletedMsg{err: fmt.Errorf("ID ou région de la gateway introuvable")}
+			return gwDeletedMsg{err: fmt.Errorf("gateway ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(gwID))
@@ -1302,23 +1314,69 @@ func (m Model) executeGatewayDelete() tea.Cmd {
 func (m Model) executeLBDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return lbDeletedMsg{err: fmt.Errorf("aucun load balancer sélectionné")}
+			return lbDeletedMsg{err: fmt.Errorf("no load balancer selected")}
 		}
 		if m.cloudProject == "" {
-			return lbDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return lbDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		lbID := getString(m.detailData, "id")
 		lbName := getString(m.detailData, "name")
 		region := getString(m.detailData, "region")
 		if lbID == "" || region == "" {
-			return lbDeletedMsg{err: fmt.Errorf("ID ou région du load balancer introuvable")}
+			return lbDeletedMsg{err: fmt.Errorf("load balancer ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/loadbalancer/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(lbID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-			return lbDeletedMsg{lbName: lbName, err: fmt.Errorf("échec de la suppression: %w", err)}
+			return lbDeletedMsg{lbName: lbName, err: fmt.Errorf("deletion failed: %w", err)}
 		}
 		return lbDeletedMsg{lbName: lbName}
+	}
+}
+
+// executeInstanceBackupDelete deletes the currently selected instance snapshot/backup.
+func (m Model) executeInstanceBackupDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return instanceBackupDeletedMsg{err: fmt.Errorf("no backup selected")}
+		}
+		if m.cloudProject == "" {
+			return instanceBackupDeletedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		snapshotID := getString(m.detailData, "id")
+		snapshotName := getString(m.detailData, "name")
+		if snapshotID == "" {
+			return instanceBackupDeletedMsg{err: fmt.Errorf("ID du backup introuvable")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot/%s", m.cloudProject, url.PathEscape(snapshotID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return instanceBackupDeletedMsg{name: snapshotName, err: fmt.Errorf("deletion failed: %w", err)}
+		}
+		return instanceBackupDeletedMsg{name: snapshotName}
+	}
+}
+
+// executeWorkflowDelete deletes the currently selected backup workflow.
+func (m Model) executeWorkflowDelete() tea.Cmd {
+	return func() tea.Msg {
+		if m.detailData == nil {
+			return workflowDeletedMsg{err: fmt.Errorf("no workflow selected")}
+		}
+		if m.cloudProject == "" {
+			return workflowDeletedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		wfID := getString(m.detailData, "id")
+		wfName := getString(m.detailData, "name")
+		region := getString(m.detailData, "region")
+		if wfID == "" || region == "" {
+			return workflowDeletedMsg{err: fmt.Errorf("workflow ID or region not found")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(wfID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return workflowDeletedMsg{name: wfName, err: fmt.Errorf("deletion failed: %w", err)}
+		}
+		return workflowDeletedMsg{name: wfName}
 	}
 }
 
@@ -1326,18 +1384,18 @@ func (m Model) executeLBDelete() tea.Cmd {
 func (m Model) executePrivNetworkDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return privNetDeletedMsg{err: fmt.Errorf("aucun réseau sélectionné")}
+			return privNetDeletedMsg{err: fmt.Errorf("no network selected")}
 		}
 		networkName := getString(m.detailData, "name")
 		if m.cloudProject == "" {
-			return privNetDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return privNetDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
 		// The region-based API uses openstackId, not the vRack pn-XXXXX_N id.
 		// Each network has regions[].{region, openstackId} — delete from all regions.
 		regions, ok := m.detailData["regions"].([]interface{})
 		if !ok || len(regions) == 0 {
-			return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf("aucune région trouvée pour ce réseau")}
+			return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf("no region found for this network")}
 		}
 
 		var lastErr error
@@ -1360,7 +1418,7 @@ func (m Model) executePrivNetworkDelete() tea.Cmd {
 				errMsg := err.Error()
 				if strings.Contains(errMsg, "409") || strings.Contains(errMsg, "Conflict") || strings.Contains(errMsg, "ports still in use") || strings.Contains(errMsg, "ports") {
 					return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf(
-						"impossible de supprimer le réseau : des ressources y sont encore attachées (instances, gateway, routeur). Détachez-les d'abord puis réessayez",
+						"cannot delete network: resources are still attached (instances, gateway, router). Detach them first and try again",
 					)}
 				}
 				lastErr = err
@@ -1653,10 +1711,10 @@ func (m Model) fetchFIPInstances() tea.Cmd {
 func (m Model) createStandaloneFloatingIP() tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
-			return fipCreatedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return fipCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		if m.wizard.fipInstanceId == "" {
-			return fipCreatedMsg{err: fmt.Errorf("veuillez sélectionner une instance pour créer une Floating IP")}
+			return fipCreatedMsg{err: fmt.Errorf("please select an instance to create a Floating IP")}
 		}
 
 		// Find the private IPv4 of the selected instance — required by the API.
@@ -1682,7 +1740,7 @@ func (m Model) createStandaloneFloatingIP() tea.Cmd {
 			}
 		}
 		if privateIP == "" {
-			return fipCreatedMsg{err: fmt.Errorf("aucune adresse IP privée trouvée pour cette instance")}
+			return fipCreatedMsg{err: fmt.Errorf("no private IP address found for this instance")}
 		}
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/floatingIp",
@@ -1704,7 +1762,7 @@ func (m Model) createStandaloneFloatingIP() tea.Cmd {
 			err = httpLib.Client.Post(endpoint, bodyWithGW, &result)
 		}
 		if err != nil {
-			return fipCreatedMsg{err: fmt.Errorf("échec de la création: %w", err)}
+			return fipCreatedMsg{err: fmt.Errorf("creation failed: %w", err)}
 		}
 		return fipCreatedMsg{floatingIP: result}
 	}
@@ -1898,21 +1956,21 @@ func (m Model) executeSubnetDelete() tea.Cmd {
 func (m Model) executeFIPDelete() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return fipDeletedMsg{err: fmt.Errorf("aucune Floating IP sélectionnée")}
+			return fipDeletedMsg{err: fmt.Errorf("no Floating IP selected")}
 		}
 		if m.cloudProject == "" {
-			return fipDeletedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return fipDeletedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		fipID := getString(m.detailData, "id")
 		fipIP := getString(m.detailData, "ip")
 		region := getString(m.detailData, "region")
 		if fipID == "" || region == "" {
-			return fipDeletedMsg{err: fmt.Errorf("ID ou région de la Floating IP introuvable")}
+			return fipDeletedMsg{err: fmt.Errorf("Floating IP ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(fipID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "NotFound") {
-			return fipDeletedMsg{fipIP: fipIP, err: fmt.Errorf("échec de la suppression: %w", err)}
+			return fipDeletedMsg{fipIP: fipIP, err: fmt.Errorf("deletion failed: %w", err)}
 		}
 		return fipDeletedMsg{fipIP: fipIP}
 	}
@@ -1922,21 +1980,21 @@ func (m Model) executeFIPDelete() tea.Cmd {
 func (m Model) executeFIPDetach() tea.Cmd {
 	return func() tea.Msg {
 		if m.detailData == nil {
-			return fipDetachedMsg{err: fmt.Errorf("aucune Floating IP sélectionnée")}
+			return fipDetachedMsg{err: fmt.Errorf("no Floating IP selected")}
 		}
 		if m.cloudProject == "" {
-			return fipDetachedMsg{err: fmt.Errorf("aucun projet cloud sélectionné")}
+			return fipDetachedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		fipID := getString(m.detailData, "id")
 		fipIP := getString(m.detailData, "ip")
 		region := getString(m.detailData, "region")
 		if fipID == "" || region == "" {
-			return fipDetachedMsg{err: fmt.Errorf("ID ou région de la Floating IP introuvable")}
+			return fipDetachedMsg{err: fmt.Errorf("Floating IP ID or region not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip/%s/detach",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(fipID))
 		if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-			return fipDetachedMsg{fipIP: fipIP, err: fmt.Errorf("échec du détachement: %w", err)}
+			return fipDetachedMsg{fipIP: fipIP, err: fmt.Errorf("detachment failed: %w", err)}
 		}
 		return fipDetachedMsg{fipIP: fipIP}
 	}
@@ -2168,6 +2226,11 @@ func (m Model) handleInstancesLoaded(msg instancesLoadedMsg) (tea.Model, tea.Cmd
 
 // handleInstancesEnriched processes the enriched instances data (images and floating IPs)
 func (m Model) handleInstancesEnriched(msg instancesEnrichedMsg) (tea.Model, tea.Cmd) {
+	// Discard stale enrichment if the user has already switched away from Instances
+	if m.currentProduct != ProductInstances {
+		return m, nil
+	}
+
 	// Preserve cursor position before recreating table
 	currentCursor := m.table.Cursor()
 
@@ -2261,6 +2324,10 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 		} else {
 			m.table = createObjectStorageUsersTable(msg.s3Users, m.width, m.height)
 		}
+	case ProductInstanceBackup:
+		m.table = createInstanceBackupsTable(msg.data, m.width, m.height)
+	case ProductWorkflow:
+		m.table = createWorkflowsTable(msg.data, m.width, m.height)
 	case ProductStorageSnapshot:
 		m.table = createVolumeSnapshotsTable(msg.data, m.width, m.height)
 	case ProductStorageBackup:
@@ -2493,6 +2560,180 @@ func createInstancesTable(instances []map[string]interface{}, imageMap map[strin
 		Bold(false)
 	t.SetStyles(s)
 
+	return t
+}
+
+// createInstanceBackupsTable creates a table for instance backups (snapshots).
+// Columns: Name, Region, Model (flavorType), Size, Status, Created
+func createInstanceBackupsTable(data []map[string]interface{}, width, height int) table.Model {
+	sort.Slice(data, func(i, j int) bool {
+		return getString(data[i], "name") < getString(data[j], "name")
+	})
+
+	columns := []table.Column{
+		{Title: "Name", Width: 28},
+		{Title: "ID", Width: 28},
+		{Title: "Location", Width: 14},
+		{Title: "Size", Width: 14},
+		{Title: "Creation date", Width: 28},
+		{Title: "Status", Width: 20},
+	}
+
+	var rows []table.Row
+	for _, s := range data {
+		// Name
+		name := getString(s, "name")
+
+		// ID
+		id := getString(s, "id")
+
+		// Location: snapshots expose "regions" as []interface{} or "region" as string
+		location := getString(s, "region")
+		if location == "" {
+			if regions, ok := s["regions"].([]interface{}); ok && len(regions) > 0 {
+				var regionNames []string
+				for _, r := range regions {
+					if rs, ok := r.(string); ok {
+						regionNames = append(regionNames, rs)
+					}
+				}
+				location = strings.Join(regionNames, ", ")
+			}
+		}
+		if location == "" {
+			location = "-"
+		}
+
+		// Size: minDisk is the original disk size in GB
+		sizeStr := "-"
+		switch v := s["minDisk"].(type) {
+		case float64:
+			if v > 0 {
+				sizeStr = fmt.Sprintf("%.0f GB", v)
+			}
+		case int:
+			if v > 0 {
+				sizeStr = fmt.Sprintf("%d GB", v)
+			}
+		}
+
+		// Creation date: truncate ISO to YYYY-MM-DD HH:MM
+		created := getString(s, "creationDate")
+		if len(created) >= 16 {
+			created = created[:16]
+		}
+
+		// Status
+		status := getString(s, "status")
+
+		rows = append(rows, table.Row{name, id, location, sizeStr, created, status})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
+	return t
+}
+
+// createWorkflowsTable creates a table for backup workflows.
+// Columns: Name, ID, Backup, Location, Workflow (cron), Targeted Resource, Rotation, Last Execution, Last State
+func createWorkflowsTable(data []map[string]interface{}, width, height int) table.Model {
+	sort.Slice(data, func(i, j int) bool {
+		return getString(data[i], "name") < getString(data[j], "name")
+	})
+
+	columns := []table.Column{
+		{Title: "Name", Width: 22},
+		{Title: "ID", Width: 22},
+		{Title: "Backup", Width: 20},
+		{Title: "Location", Width: 12},
+		{Title: "Workflow", Width: 16},
+		{Title: "Targeted Resource", Width: 22},
+		{Title: "Scheduling", Width: 14},
+	}
+
+	var rows []table.Row
+	for _, w := range data {
+		name := getString(w, "name")
+		id := getString(w, "id")
+
+		// Backup name prefix
+		backup := getString(w, "backupName")
+		if backup == "" {
+			backup = "-"
+		}
+
+		// Location / region
+		location := getString(w, "region")
+		if location == "" {
+			location = "-"
+		}
+
+		// Workflow = type, always "Backup" for this endpoint
+		workflowStr := "Backup"
+
+		// Targeted resource = instanceId
+		instanceId := getString(w, "instanceId")
+		if instanceId == "" {
+			instanceId = "-"
+		}
+
+		// Scheduling = raw cron expression (e.g. "0 0 */7 * *")
+		Scheduling := getString(w, "cron")
+		if Scheduling == "" {
+			Scheduling = "-"
+		}
+
+		rows = append(rows, table.Row{name, id, backup, location, workflowStr, instanceId, Scheduling})
+	}
+
+	tableHeight := height - 15
+	if tableHeight < 5 {
+		tableHeight = 5
+	}
+	if tableHeight > 20 {
+		tableHeight = 20
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(tableHeight),
+	)
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
 	return t
 }
 
@@ -3109,6 +3350,51 @@ func getString(m map[string]interface{}, key string) string {
 		return fmt.Sprintf("%v", val)
 	}
 	return ""
+}
+
+// parseCronHuman converts a cron expression to a human-readable string.
+// e.g. "0 3 * * *" → "Daily at 03:00", "0 3 * * 1" → "Weekly Mon at 03:00"
+func parseCronHuman(cron string) string {
+	if cron == "" {
+		return "-"
+	}
+	parts := strings.Fields(cron)
+	if len(parts) != 5 {
+		return cron
+	}
+	minute, hour, dom, month, dow := parts[0], parts[1], parts[2], parts[3], parts[4]
+
+	timeStr := ""
+	if hour != "*" && minute != "*" {
+		h := hour
+		mi := minute
+		if len(h) == 1 {
+			h = "0" + h
+		}
+		if len(mi) == 1 {
+			mi = "0" + mi
+		}
+		timeStr = " at " + h + ":" + mi
+	}
+
+	days := map[string]string{
+		"0": "Sun", "1": "Mon", "2": "Tue", "3": "Wed",
+		"4": "Thu", "5": "Fri", "6": "Sat", "7": "Sun",
+	}
+
+	switch {
+	case dom != "*" && month == "*" && dow == "*":
+		return fmt.Sprintf("Monthly (day %s)%s", dom, timeStr)
+	case dow != "*" && dom == "*":
+		if day, ok := days[dow]; ok {
+			return fmt.Sprintf("Weekly %s%s", day, timeStr)
+		}
+		return fmt.Sprintf("Weekly%s", timeStr)
+	case dom == "*" && month == "*" && dow == "*":
+		return fmt.Sprintf("Daily%s", timeStr)
+	default:
+		return cron
+	}
 }
 
 // ============================================
@@ -4147,7 +4433,7 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 			return instanceActionMsg{err: fmt.Errorf("instance ID not found")}
 		}
 
-		actions := []string{"ssh", "reboot", "rescue", "stop_or_start", "vnc", "reinstall"}
+		actions := []string{"ssh", "reboot", "rescue", "stop_or_start", "vnc", "reinstall", "backup", "delete"}
 		if actionIndex < 0 || actionIndex >= len(actions) {
 			return instanceActionMsg{err: fmt.Errorf("invalid action index")}
 		}
@@ -4273,6 +4559,25 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/reinstall", m.cloudProject, instanceId)
 			body := map[string]string{"imageId": imageId}
 			err = httpLib.Client.Post(endpoint, body, nil)
+
+		case "backup":
+			// POST /cloud/project/{serviceName}/instance/{instanceId}/snapshot
+			instanceName := getString(m.detailData, "name")
+			snapshotName := fmt.Sprintf("%s-backup-%s", instanceName, time.Now().Format("2006-01-02-1504"))
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/snapshot", m.cloudProject, instanceId)
+			body := map[string]string{"snapshotName": snapshotName}
+			err = httpLib.Client.Post(endpoint, body, nil)
+			if err == nil {
+				return instanceActionMsg{action: "backup", instanceId: instanceId, backupName: snapshotName, err: nil}
+			}
+
+		case "delete":
+			// DELETE /cloud/project/{serviceName}/instance/{instanceId}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", m.cloudProject, instanceId)
+			err = httpLib.Client.Delete(endpoint, nil)
+			if err == nil {
+				return instanceActionMsg{action: "delete", instanceId: instanceId, err: nil}
+			}
 		}
 
 		return instanceActionMsg{
@@ -4294,6 +4599,8 @@ func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) 
 		"start":     "Start",
 		"vnc":       "Console",
 		"reinstall": "Reinstall",
+		"backup":    "Instance Backup",
+		"delete":    "Delete",
 	}
 
 	actionName := actionNames[msg.action]
@@ -4314,6 +4621,8 @@ func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) 
 	} else {
 		if msg.action == "ssh" {
 			m.notification = "✅ SSH session ended"
+		} else if msg.action == "backup" && msg.backupName != "" {
+			m.notification = fmt.Sprintf("✅ Instance Backup \"%s\" initiated successfully!", msg.backupName)
 		} else {
 			m.notification = fmt.Sprintf("✅ %s initiated successfully!", actionName)
 		}
@@ -4325,6 +4634,18 @@ func (m Model) handleInstanceAction(msg instanceActionMsg) (tea.Model, tea.Cmd) 
 		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
 			return clearNotificationMsg{}
 		})
+	}
+
+	// For delete: go back to list, don't restore detail view
+	if msg.action == "delete" {
+		m.detailData = nil
+		m.mode = LoadingView
+		return m, tea.Batch(
+			m.fetchDataForPath("/instances"),
+			tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+				return clearNotificationMsg{}
+			}),
+		)
 	}
 
 	// Stay on detail view after action: set refresh IDs so handleDataLoaded returns to detail
@@ -5296,6 +5617,67 @@ func (m Model) handleNodePoolDeleted(msg nodePoolDeletedMsg) (tea.Model, tea.Cmd
 	// Reload node pools
 	clusterId := getString(m.detailData, "id")
 	return m, m.fetchKubeNodePools(clusterId)
+}
+
+// fetchInstanceBackupsData fetches the list of instance snapshots (backups).
+func (m Model) fetchInstanceBackupsData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot", m.cloudProject)
+	var raw []interface{}
+	if err := httpLib.Client.Get(endpoint, &raw); err != nil {
+		return dataLoadedMsg{err: err}
+	}
+	var snapshots []map[string]interface{}
+	for _, item := range raw {
+		if obj, ok := item.(map[string]interface{}); ok {
+			snapshots = append(snapshots, obj)
+		}
+	}
+	return dataLoadedMsg{data: snapshots}
+}
+
+// fetchWorkflowsData fetches the list of backup workflows across all project regions,
+// then enriches each entry with lastExecution and lastExecutionStatus via individual GET.
+func (m Model) fetchWorkflowsData() dataLoadedMsg {
+	if m.cloudProject == "" {
+		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
+	}
+	var regionNames []string
+	regionsEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
+	if err := httpLib.Client.Get(regionsEndpoint, &regionNames); err != nil {
+		return dataLoadedMsg{err: fmt.Errorf("failed to fetch regions: %w", err)}
+	}
+	var workflows []map[string]interface{}
+	for _, region := range regionNames {
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup", m.cloudProject, url.PathEscape(region))
+		var raw []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &raw); err != nil {
+			continue
+		}
+		for _, obj := range raw {
+			if _, hasRegion := obj["region"]; !hasRegion {
+				obj["region"] = region
+			}
+			// Fetch individual workflow to get lastExecution + lastExecutionStatus
+			if wfID, ok := obj["id"].(string); ok && wfID != "" {
+				detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup/%s",
+					m.cloudProject, url.PathEscape(region), url.PathEscape(wfID))
+				var detail map[string]interface{}
+				if err := httpLib.Client.Get(detailEndpoint, &detail); err == nil {
+					if v, ok := detail["lastExecution"]; ok {
+						obj["lastExecution"] = v
+					}
+					if v, ok := detail["lastExecutionStatus"]; ok {
+						obj["lastExecutionStatus"] = v
+					}
+				}
+			}
+			workflows = append(workflows, obj)
+		}
+	}
+	return dataLoadedMsg{data: workflows}
 }
 
 // fetchVolumeSnapshotsData fetches the list of volume snapshots.
