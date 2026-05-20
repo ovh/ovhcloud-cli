@@ -74,6 +74,9 @@ var (
 	//go:embed api-schemas/storagenetapp.json
 	StoragenetappOpenapiSchema []byte
 
+	//go:embed api-schemas/support.json
+	SupportOpenapiSchema []byte
+
 	//go:embed api-schemas/telephony.json
 	TelephonyOpenapiSchema []byte
 
