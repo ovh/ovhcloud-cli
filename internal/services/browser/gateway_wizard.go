@@ -48,7 +48,7 @@ func (m Model) fetchGwSubnet(networkID string) tea.Cmd {
 		var subnets []map[string]interface{}
 		if err := httpLib.Client.Get(endpoint, &subnets); err != nil || len(subnets) == 0 {
 			// No subnet exists yet — network selected but not ready for gateway
-			return gwSubnetLoadedMsg{subnetID: "", err: fmt.Errorf("this network has no compatible subnet (noGateway=true). Create a subnet first using the 'OVH Gateway' option.")}
+			return gwSubnetLoadedMsg{subnetID: "", err: fmt.Errorf("this network has no compatible subnet (noGateway=true). First create a subnet using the 'OVH Gateway' option.")}
 		}
 		return gwSubnetLoadedMsg{subnetID: getStringValue(subnets[0], "id", "")}
 	}
@@ -119,8 +119,8 @@ func (m Model) createGatewayFromWizard() tea.Cmd {
 				strings.Contains(errMsg, "gateway IP") && strings.Contains(errMsg, "port") {
 				return gwCreatedMsg{err: fmt.Errorf(
 					"the subnet already has a gateway IP in use. " +
-					"OVH Gateway can only be created on a subnet configured without a static gateway (mode 'OVH Gateway'). " +
-					"Recreate the private network with this option")}
+						"OVH Gateway can only be created on a subnet with no static gateway (mode 'OVH Gateway'). " +
+						"Recreate the private network with this option")}
 			}
 			return gwCreatedMsg{err: fmt.Errorf("failed to create gateway: %w", err)}
 		}
@@ -284,7 +284,7 @@ func (m Model) renderGwWizardConfirmStep(width int) string {
 		}
 		return ""
 	}()) + "\n")
-	content.WriteString(labelStyle.Render("  Nom :") + valueStyle.Render(m.wizard.gwName) + "\n")
+	content.WriteString(labelStyle.Render("  Name:") + valueStyle.Render(m.wizard.gwName) + "\n")
 	if m.wizard.gwNetworkName != "" {
 		content.WriteString(labelStyle.Render("  Network:") + valueStyle.Render(m.wizard.gwNetworkName) + "\n")
 	}

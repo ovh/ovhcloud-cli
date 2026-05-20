@@ -1310,6 +1310,165 @@ func (m Model) executeGatewayDelete() tea.Cmd {
 	}
 }
 
+// fetchLBPools fetches the list of pools for a given load balancer.
+func (m Model) fetchLBPools(lbID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbPoolsLoadedMsg{lbID: lbID, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool?loadbalancerId=%s",
+			m.cloudProject, url.PathEscape(region), url.QueryEscape(lbID))
+		var pools []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &pools); err != nil {
+			return lbPoolsLoadedMsg{lbID: lbID, err: err}
+		}
+		return lbPoolsLoadedMsg{lbID: lbID, pools: pools}
+	}
+}
+
+// fetchLBListeners fetches the list of listeners for a given load balancer.
+func (m Model) fetchLBListeners(lbID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbListenersLoadedMsg{lbID: lbID, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener",
+			m.cloudProject, url.PathEscape(region))
+		var all []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &all); err != nil {
+			return lbListenersLoadedMsg{lbID: lbID, err: err}
+		}
+		// Filter client-side: handle both singular "loadbalancerId" and list "loadBalancerIds"
+		var listeners []map[string]interface{}
+		for _, l := range all {
+			// Case 1: singular string field "loadbalancerId"
+			if v, ok := l["loadbalancerId"].(string); ok && v == lbID {
+				listeners = append(listeners, l)
+				continue
+			}
+			// Case 2: list field "loadBalancerIds"
+			if ids, ok := l["loadBalancerIds"].([]interface{}); ok {
+				for _, id := range ids {
+					if fmt.Sprintf("%v", id) == lbID {
+						listeners = append(listeners, l)
+						break
+					}
+				}
+			}
+		}
+		// If no match found with either filter, return all (avoids empty list due to unknown field name)
+		if len(listeners) == 0 && len(all) > 0 {
+			listeners = all
+		}
+		return lbListenersLoadedMsg{lbID: lbID, listeners: listeners}
+	}
+}
+
+// executeDeleteLBPool deletes the selected LB pool.
+func (m Model) executeDeleteLBPool() tea.Cmd {
+	return func() tea.Msg {
+		if m.selectedLBPool == nil {
+			return lbPoolDeletedMsg{err: fmt.Errorf("no pool selected")}
+		}
+		if m.cloudProject == "" {
+			return lbPoolDeletedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		poolID := getStringValue(m.selectedLBPool, "id", "")
+		poolName := getStringValue(m.selectedLBPool, "name", "")
+		region := getStringValue(m.detailData, "region", "")
+		if poolID == "" || region == "" {
+			return lbPoolDeletedMsg{err: fmt.Errorf("pool ID or region not found")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbPoolDeletedMsg{poolName: poolName, err: fmt.Errorf("deletion failed: %w", err)}
+		}
+		return lbPoolDeletedMsg{poolName: poolName}
+	}
+}
+
+// updateLBPool updates the selected LB pool using wizard data.
+func (m Model) updateLBPool() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbPoolUpdatedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		if m.wizard.lbPoolEditPoolId == "" || m.wizard.lbPoolLBRegion == "" {
+			return lbPoolUpdatedMsg{err: fmt.Errorf("pool ID or region missing")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s",
+			m.cloudProject, url.PathEscape(m.wizard.lbPoolLBRegion), url.PathEscape(m.wizard.lbPoolEditPoolId))
+
+		body := map[string]interface{}{
+			"name":      m.wizard.lbPoolName,
+			"algorithm": m.wizard.lbPoolAlgo,
+		}
+		if m.wizard.lbPoolSession != "" && m.wizard.lbPoolSession != "disabled" {
+			body["sessionPersistence"] = map[string]interface{}{
+				"type": m.wizard.lbPoolSession,
+			}
+		}
+
+		var result map[string]interface{}
+		if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
+			return lbPoolUpdatedMsg{poolName: m.wizard.lbPoolName, err: fmt.Errorf("update failed: %w", err)}
+		}
+		return lbPoolUpdatedMsg{poolName: m.wizard.lbPoolName}
+	}
+}
+
+// executeDeleteLBListener deletes the selected LB listener.
+func (m Model) executeDeleteLBListener() tea.Cmd {
+	return func() tea.Msg {
+		if m.selectedLBListener == nil {
+			return lbListenerDeletedMsg{err: fmt.Errorf("no listener selected")}
+		}
+		if m.cloudProject == "" {
+			return lbListenerDeletedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		listenerID := getStringValue(m.selectedLBListener, "id", "")
+		listenerName := getStringValue(m.selectedLBListener, "name", "")
+		region := getStringValue(m.detailData, "region", "")
+		if listenerID == "" || region == "" {
+			return lbListenerDeletedMsg{err: fmt.Errorf("listener ID or region not found")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener/%s",
+			m.cloudProject, url.PathEscape(region), url.PathEscape(listenerID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbListenerDeletedMsg{listenerName: listenerName, err: fmt.Errorf("deletion failed: %w", err)}
+		}
+		return lbListenerDeletedMsg{listenerName: listenerName}
+	}
+}
+
+// updateLBListener updates the selected LB listener using wizard data.
+func (m Model) updateLBListener() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbListenerUpdatedMsg{err: fmt.Errorf("no cloud project selected")}
+		}
+		if m.wizard.lbListenerEditId == "" || m.wizard.lbListenerLBRegion == "" {
+			return lbListenerUpdatedMsg{err: fmt.Errorf("listener ID or region missing")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener/%s",
+			m.cloudProject, url.PathEscape(m.wizard.lbListenerLBRegion), url.PathEscape(m.wizard.lbListenerEditId))
+
+		body := map[string]interface{}{
+			"name": m.wizard.lbListenerName,
+		}
+		if m.wizard.lbListenerPoolId != "" {
+			body["defaultPoolId"] = m.wizard.lbListenerPoolId
+		}
+
+		var result map[string]interface{}
+		if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
+			return lbListenerUpdatedMsg{listenerName: m.wizard.lbListenerName, err: fmt.Errorf("update failed: %w", err)}
+		}
+		return lbListenerUpdatedMsg{listenerName: m.wizard.lbListenerName}
+	}
+}
+
 // executeLBDelete deletes the currently selected load balancer.
 func (m Model) executeLBDelete() tea.Cmd {
 	return func() tea.Msg {
@@ -1346,7 +1505,7 @@ func (m Model) executeInstanceBackupDelete() tea.Cmd {
 		snapshotID := getString(m.detailData, "id")
 		snapshotName := getString(m.detailData, "name")
 		if snapshotID == "" {
-			return instanceBackupDeletedMsg{err: fmt.Errorf("ID du backup introuvable")}
+			return instanceBackupDeletedMsg{err: fmt.Errorf("backup ID not found")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot/%s", m.cloudProject, url.PathEscape(snapshotID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
@@ -1418,7 +1577,7 @@ func (m Model) executePrivNetworkDelete() tea.Cmd {
 				errMsg := err.Error()
 				if strings.Contains(errMsg, "409") || strings.Contains(errMsg, "Conflict") || strings.Contains(errMsg, "ports still in use") || strings.Contains(errMsg, "ports") {
 					return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf(
-						"cannot delete network: resources are still attached (instances, gateway, router). Detach them first and try again",
+						"cannot delete network: resources are still attached (instances, gateway, router). Detach them first then retry",
 					)}
 				}
 				lastErr = err
@@ -2089,6 +2248,31 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 		if netID, ok := lb["vipNetworkId"].(string); ok && netID != "" {
 			if name, found := networkNameMap[netID]; found {
 				lb["_networkName"] = name
+			}
+		}
+	}
+
+	// Fetch floating IPs per octavia region and attach to matching LBs
+	allRegionFIPs, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/floatingip", regions, true)
+	lbFIPMap := make(map[string]string) // lbID -> floatingIP address
+	for _, fips := range allRegionFIPs {
+		for _, fip := range fips {
+			if entity, ok := fip["associatedEntity"].(map[string]interface{}); ok {
+				if getStringValue(entity, "type", "") == "loadbalancer" {
+					lbID := getStringValue(entity, "id", "")
+					if lbID != "" {
+						if ip, ok := fip["ip"].(string); ok && ip != "" {
+							lbFIPMap[lbID] = ip
+						}
+					}
+				}
+			}
+		}
+	}
+	for _, lb := range lbs {
+		if lbID, ok := lb["id"].(string); ok {
+			if ip, found := lbFIPMap[lbID]; found {
+				lb["floatingIp"] = map[string]interface{}{"ip": ip}
 			}
 		}
 	}
@@ -5830,3 +6014,182 @@ func createVolumeBackupsTable(data []map[string]interface{}, width, height int) 
 	return t
 }
 
+
+// fetchLBMembers fetches the list of members for a given pool.
+func (m Model) fetchLBMembers(poolID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbPoolMembersLoadedMsg{poolID: poolID, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member",
+m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
+		var members []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &members); err != nil {
+			return lbPoolMembersLoadedMsg{poolID: poolID, err: err}
+		}
+		return lbPoolMembersLoadedMsg{poolID: poolID, members: members}
+	}
+}
+
+// executeDeleteLBMember deletes a pool member.
+func (m Model) executeDeleteLBMember(poolID, memberID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbPoolMemberDeletedMsg{poolID: poolID, err: fmt.Errorf("no cloud project selected")}
+		}
+		if poolID == "" || memberID == "" || region == "" {
+			return lbPoolMemberDeletedMsg{poolID: poolID, err: fmt.Errorf("pool ID, member ID or region missing")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member/%s",
+m.cloudProject, url.PathEscape(region), url.PathEscape(poolID), url.PathEscape(memberID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbPoolMemberDeletedMsg{poolID: poolID, err: fmt.Errorf("deletion failed: %w", err)}
+		}
+		return lbPoolMemberDeletedMsg{poolID: poolID}
+	}
+}
+
+// saveLBMember creates or updates a pool member using wizard data.
+func (m Model) saveLBMember() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbPoolMemberSavedMsg{poolID: m.wizard.lbMemberPoolId, err: fmt.Errorf("no cloud project selected")}
+		}
+		poolID := m.wizard.lbMemberPoolId
+		region := m.wizard.lbMemberPoolRegion
+		if poolID == "" || region == "" {
+			return lbPoolMemberSavedMsg{poolID: poolID, err: fmt.Errorf("pool ID or region missing")}
+		}
+		if m.wizard.lbMemberEditId != "" {
+			// Edit: PUT — only name and weight are mutable; address and protocolPort are immutable
+			putBody := map[string]interface{}{
+				"name":   m.wizard.lbMemberName,
+				"weight": m.wizard.lbMemberWeight,
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member/%s",
+				m.cloudProject, url.PathEscape(region), url.PathEscape(poolID), url.PathEscape(m.wizard.lbMemberEditId))
+			var result map[string]interface{}
+			if err := httpLib.Client.Put(endpoint, putBody, &result); err != nil {
+				return lbPoolMemberSavedMsg{poolID: poolID, err: fmt.Errorf("update failed: %w", err)}
+			}
+		} else {
+			// Create: POST — body is {"members": [...]}
+			postBody := map[string]interface{}{
+				"members": []map[string]interface{}{
+					{
+						"name":         m.wizard.lbMemberName,
+						"address":      m.wizard.lbMemberIP,
+						"protocolPort": m.wizard.lbMemberPort,
+						"weight":       m.wizard.lbMemberWeight,
+					},
+				},
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member",
+				m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
+			var result []map[string]interface{}
+			if err := httpLib.Client.Post(endpoint, postBody, &result); err != nil {
+				return lbPoolMemberSavedMsg{poolID: poolID, err: fmt.Errorf("creation failed: %w", err)}
+			}
+		}
+		return lbPoolMemberSavedMsg{poolID: poolID}
+	}
+}
+
+// fetchLBHealthMonitor fetches the health monitor for a given pool (there is at most one).
+func (m Model) fetchLBHealthMonitor(poolID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbHMLoadedMsg{poolID: poolID, err: fmt.Errorf("no cloud project selected")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor?poolId=%s",
+m.cloudProject, url.PathEscape(region), url.QueryEscape(poolID))
+		var monitors []map[string]interface{}
+		if err := httpLib.Client.Get(endpoint, &monitors); err != nil {
+			return lbHMLoadedMsg{poolID: poolID, err: err}
+		}
+		if len(monitors) == 0 {
+			return lbHMLoadedMsg{poolID: poolID, hm: nil}
+		}
+		return lbHMLoadedMsg{poolID: poolID, hm: monitors[0]}
+	}
+}
+
+// saveHealthMonitor creates or updates the health monitor for a pool using wizard data.
+func (m Model) saveHealthMonitor() tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbHMSavedMsg{poolID: m.wizard.lbHMPoolId, err: fmt.Errorf("no cloud project selected")}
+		}
+		poolID := m.wizard.lbHMPoolId
+		region := m.wizard.lbHMPoolRegion
+		if poolID == "" || region == "" {
+			return lbHMSavedMsg{poolID: poolID, err: fmt.Errorf("pool ID or region missing")}
+		}
+		if m.wizard.lbHMEditId != "" {
+			// Update: PUT — monitorType and poolId are immutable
+			putBody := map[string]interface{}{
+				"name":           m.wizard.lbHMName,
+				"delay":          m.wizard.lbHMDelay,
+				"maxRetries":     m.wizard.lbHMMaxRetries,
+				"maxRetriesDown": m.wizard.lbHMMaxRetriesDown,
+				"timeout":        m.wizard.lbHMTimeout,
+			}
+			if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) {
+				putBody["httpConfiguration"] = map[string]interface{}{
+					"httpMethod":    m.wizard.lbHMHttpMethod,
+					"urlPath":       m.wizard.lbHMUrlPath,
+					"expectedCodes": m.wizard.lbHMExpectedCodes,
+				}
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor/%s",
+m.cloudProject, url.PathEscape(region), url.PathEscape(m.wizard.lbHMEditId))
+			var result map[string]interface{}
+			if err := httpLib.Client.Put(endpoint, putBody, &result); err != nil {
+				return lbHMSavedMsg{poolID: poolID, err: fmt.Errorf("update failed: %w", err)}
+			}
+		} else {
+			// Create: POST
+			postBody := map[string]interface{}{
+				"name":           m.wizard.lbHMName,
+				"monitorType":    m.wizard.lbHMType,
+				"poolId":         poolID,
+				"delay":          m.wizard.lbHMDelay,
+				"maxRetries":     m.wizard.lbHMMaxRetries,
+				"maxRetriesDown": m.wizard.lbHMMaxRetriesDown,
+				"timeout":        m.wizard.lbHMTimeout,
+			}
+			if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) {
+				postBody["httpConfiguration"] = map[string]interface{}{
+					"httpMethod":    m.wizard.lbHMHttpMethod,
+					"urlPath":       m.wizard.lbHMUrlPath,
+					"expectedCodes": m.wizard.lbHMExpectedCodes,
+				}
+			}
+			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor",
+m.cloudProject, url.PathEscape(region))
+			var result map[string]interface{}
+			if err := httpLib.Client.Post(endpoint, postBody, &result); err != nil {
+				return lbHMSavedMsg{poolID: poolID, err: fmt.Errorf("creation failed: %w", err)}
+			}
+		}
+		return lbHMSavedMsg{poolID: poolID}
+	}
+}
+
+// deleteHealthMonitor deletes the health monitor for a pool.
+func (m Model) deleteHealthMonitor(hmID, poolID, region string) tea.Cmd {
+	return func() tea.Msg {
+		if m.cloudProject == "" {
+			return lbHMDeletedMsg{poolID: poolID, err: fmt.Errorf("no cloud project selected")}
+		}
+		if hmID == "" || region == "" {
+			return lbHMDeletedMsg{poolID: poolID, err: fmt.Errorf("health monitor ID or region missing")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor/%s",
+m.cloudProject, url.PathEscape(region), url.PathEscape(hmID))
+		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+			return lbHMDeletedMsg{poolID: poolID, err: fmt.Errorf("deletion failed: %w", err)}
+		}
+		return lbHMDeletedMsg{poolID: poolID}
+	}
+}

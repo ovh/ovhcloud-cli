@@ -61,7 +61,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 				netID = getString(op, "id")
 			}
 			if netID == "" {
-				return privNetCreatedMsg{err: fmt.Errorf("network created but ID missing from response")}
+				return privNetCreatedMsg{err: fmt.Errorf("network created but ID missing in response")}
 			}
 			network = map[string]interface{}{"id": netID, "name": m.wizard.privNetName}
 
@@ -419,10 +419,10 @@ func (m Model) renderPrivNetWizardGatewayStep(width int) string {
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 
-	content.WriteString(titleStyle.Render("Gateway options:") + "\n\n")
+	content.WriteString(titleStyle.Render("Network gateway options:") + "\n\n")
 
 	// Option 0
-	label0 := "Advertise the first address of a given CIDR as the default gateway"
+	label0 := "Announce the first address of a given CIDR as the default gateway"
 	// Option 1
 	label1 := "Assign a Gateway and connect to the private network"
 
