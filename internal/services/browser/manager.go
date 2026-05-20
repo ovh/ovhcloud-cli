@@ -712,6 +712,7 @@ type Model struct {
 	// LB health monitors cache (poolId -> health monitor)
 	lbHealthMonitors      map[string]map[string]interface{}  // poolID → health monitor (one per pool)
 	lbHMConfirm           bool                              // Confirm mode for HM deletion
+	lbHMActionIdx         int                               // Selected action button in HM view (0=Create or Edit, 1=Delete)
 	// LB listeners cache (lbId -> listeners)
 	lbListeners       map[string][]map[string]interface{}
 	lbListenerListIdx int // Highlighted listener row in LB detail (-1 = none)
@@ -726,6 +727,7 @@ type Model struct {
 	lbL7PolicyDetailActionIdx int                                 // Selected action in policy detail (0=Edit, 1=Delete)
 	lbL7PolicyDetailConfirm   bool                                // Confirm mode in policy detail
 	lbL7RuleDetailIdx         int                                 // Currently displayed rule index in L7 Rules view
+	lbL7RuleActionIdx         int                                 // Selected action button in L7 Rules view (0=Create,1=Edit,2=Delete)
 	lbL7RuleConfirm           bool                                // Confirm mode for rule deletion
 	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
 	detailRefreshId   string
@@ -7456,30 +7458,39 @@ func (m Model) renderLBL7RulesView(width int) string {
 	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
 	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	// Actions bar
-	createBtn := lipgloss.NewStyle().
-		Background(lipgloss.Color("#00AA55")).Foreground(lipgloss.Color("#FFFFFF")).
-		Bold(true).Padding(0, 1).Render("+ Create  [Enter]")
-	editBtn := lipgloss.NewStyle().
-		Background(lipgloss.Color("#7B68EE")).Foreground(lipgloss.Color("#FFFFFF")).
-		Bold(true).Padding(0, 1).Render("✏ Edit  [e]")
-	var deleteBtnContent string
-	if m.lbL7RuleConfirm {
-		deleteBtnContent = lipgloss.NewStyle().
-			Background(lipgloss.Color("#FF4444")).Foreground(lipgloss.Color("#FFFFFF")).
-			Bold(true).Padding(0, 1).Render("⚠ Confirm delete? Press [d] again • Esc to cancel")
-	} else {
-		deleteBtnContent = lipgloss.NewStyle().
-			Background(lipgloss.Color("#CC3333")).Foreground(lipgloss.Color("#FFFFFF")).
-			Bold(true).Padding(0, 1).Render("🗑 Delete  [d]")
-	}
-	var actionsContent string
+	// Actions bar — navigate with ←/→, execute with Enter (same pattern as other detail views)
+	actions := []string{"+ Create", "✏ Edit", "🗑 Delete"}
+	nActions := 1
 	if len(rules) > 0 {
-		actionsContent = lipgloss.JoinHorizontal(lipgloss.Top, createBtn, "  ", editBtn, "  ", deleteBtnContent)
-	} else {
-		actionsContent = createBtn
+		nActions = 3
 	}
-	actionsBox := renderBox("Actions", actionsContent, width-4)
+	actionIdx := m.lbL7RuleActionIdx
+	if actionIdx >= nActions {
+		actionIdx = 0
+	}
+	var actionParts []string
+	for i := 0; i < nActions; i++ {
+		if i == actionIdx {
+			bg := lipgloss.Color("#00AA55")
+			if i == 2 {
+				bg = lipgloss.Color("#FF4444")
+			} else if i == 1 {
+				bg = lipgloss.Color("#7B68EE")
+			}
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Background(bg).Foreground(lipgloss.Color("#FFFFFF")).Bold(true).Padding(0, 1).Render(actions[i]))
+		} else {
+			actionParts = append(actionParts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+actions[i]+"]"))
+		}
+	}
+	actionsContent := strings.Join(actionParts, " ")
+	if m.lbL7RuleConfirm {
+		actionsContent += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFD700")).Bold(true).
+			Render("⚠️  Press Enter to confirm delete, Esc to cancel")
+	}
+	actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
 	content.WriteString(actionsBox + "\n\n")
 
 	// Summary line: rule count + pagination hint
@@ -8177,7 +8188,11 @@ func (m Model) renderFooter() string {
 			help = "←→: Select Action • Enter: Execute • Esc: Back to Listener • q: Quit"
 		}
 	case LBL7RulesView:
-		help = "Enter: Create Rule • Esc: Back to Policy • q: Quit"
+		if m.lbL7RuleConfirm {
+			help = "Enter: Confirm delete • Esc: Cancel"
+		} else {
+			help = "←→: Select action • ↑↓: Browse rules • Enter: Execute action • Esc: Back • q: Quit"
+		}
 	case LBPoolMembersView:
 		if m.lbMembersSection == 0 {
 			help = "←→: Select action • Enter: Confirm • ↓: Browse members • Esc: Back • q: Quit"
@@ -8186,9 +8201,9 @@ func (m Model) renderFooter() string {
 		}
 	case LBHealthMonitorView:
 		if m.lbHMConfirm {
-			help = "d: Confirm delete • Esc: Cancel"
+			help = "Enter: Confirm delete • Esc: Cancel"
 		} else {
-			help = "Enter: Create • e: Edit • d: Delete • Esc: Back to Members • q: Quit"
+			help = "←→: Select action • Enter: Execute • Esc: Back to Members • q: Quit"
 		}
 	case WizardView:
 		if m.wizard.cleanupPending {
@@ -8280,7 +8295,7 @@ func (m Model) renderFooter() string {
 		} else if m.wizard.step == LBHMWizardStepConfirm {
 			help = "←→: Select • Enter: Save • Esc: Cancel"
 		} else if m.mode == LBL7RulesView {
-			help = "←→: Navigate rules • Enter: Create Rule • Esc: Back"
+			help = "←→: Select action • ↑↓: Browse rules • Enter: Execute • Esc: Back"
 		} else {
 			help = "↑↓: Navigate • d: Debug • Enter: Select • ←: Back • Esc: Cancel"
 		}
@@ -8453,13 +8468,33 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In LBL7RulesView, paginate backwards through rules
+		// In LBL7RulesView, left/right navigate action buttons
 		if m.mode == LBL7RulesView {
 			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
-			if m.lbL7RuleDetailIdx > 0 {
-				m.lbL7RuleDetailIdx--
+			nActions := 1
+			if len(m.lbL7Rules[policyID]) > 0 {
+				nActions = 3
+			}
+			if m.lbL7RuleActionIdx > 0 {
+				m.lbL7RuleActionIdx--
+				m.lbL7RuleConfirm = false
 			} else {
-				m.lbL7RuleDetailIdx = len(m.lbL7Rules[policyID]) - 1
+				m.lbL7RuleActionIdx = nActions - 1
+				m.lbL7RuleConfirm = false
+			}
+			return m, nil
+		}
+		// In LBHealthMonitorView: left navigates action buttons
+		if m.mode == LBHealthMonitorView {
+			poolID := getStringValue(m.selectedLBPool, "id", "")
+			hm := m.lbHealthMonitors[poolID]
+			if hm != nil {
+				if m.lbHMActionIdx > 0 {
+					m.lbHMActionIdx--
+				} else {
+					m.lbHMActionIdx = 1
+				}
+				m.lbHMConfirm = false
 			}
 			return m, nil
 		}
@@ -8627,12 +8662,24 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In LBL7RulesView, paginate forward through rules
+		// In LBL7RulesView, left/right navigate action buttons (right)
 		if m.mode == LBL7RulesView {
 			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
-			count := len(m.lbL7Rules[policyID])
-			if count > 0 {
-				m.lbL7RuleDetailIdx = (m.lbL7RuleDetailIdx + 1) % count
+			nActions := 1
+			if len(m.lbL7Rules[policyID]) > 0 {
+				nActions = 3
+			}
+			m.lbL7RuleActionIdx = (m.lbL7RuleActionIdx + 1) % nActions
+			m.lbL7RuleConfirm = false
+			return m, nil
+		}
+		// In LBHealthMonitorView: right navigates action buttons
+		if m.mode == LBHealthMonitorView {
+			poolID := getStringValue(m.selectedLBPool, "id", "")
+			hm := m.lbHealthMonitors[poolID]
+			if hm != nil {
+				m.lbHMActionIdx = (m.lbHMActionIdx + 1) % 2
+				m.lbHMConfirm = false
 			}
 			return m, nil
 		}
@@ -8926,8 +8973,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "e":
-		// In LBL7RulesView: launch edit wizard for the currently displayed rule
-		if m.mode == LBL7RulesView && m.selectedLBL7Policy != nil {
+		// In LBL7RulesView: edit is handled via Enter on the Edit action button
+		if false && m.mode == LBL7RulesView && m.selectedLBL7Policy != nil {
 			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
 			policyName := getStringValue(m.selectedLBL7Policy, "name", "")
 			region := getStringValue(m.detailData, "region", "")
@@ -8991,8 +9038,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-		// In LBHealthMonitorView: launch edit wizard for the health monitor
-		if m.mode == LBHealthMonitorView && m.selectedLBPool != nil {
+		// In LBHealthMonitorView: edit is handled via Enter on the Edit action button
+		if false && m.mode == LBHealthMonitorView && m.selectedLBPool != nil {
 			poolID := getStringValue(m.selectedLBPool, "id", "")
 			region := getStringValue(m.detailData, "region", "")
 			hm := m.lbHealthMonitors[poolID]
@@ -9307,12 +9354,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, m.fetchLBHealthMonitor(poolID, region)
 			}
 			return m, nil
-			// LBHealthMonitorView: Enter → launch Create HM wizard (only if no HM yet)
-		} else if m.mode == LBHealthMonitorView {
+			// LBHealthMonitorView: Enter → execute selected action button
+		} else if m.mode == LBHealthMonitorView && m.selectedLBPool != nil {
 			poolID := getStringValue(m.selectedLBPool, "id", "")
 			region := getStringValue(m.detailData, "region", "")
 			hm := m.lbHealthMonitors[poolID]
 			if hm == nil {
+				// No HM yet — Create
 				m.mode = WizardView
 				m.wizard = WizardData{
 					step:                    LBHMWizardStepName,
@@ -9322,26 +9370,132 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					lbHMMaxRetriesInput:     "3",
 					lbHMMaxRetriesDownInput: "3",
 					lbHMTimeoutInput:        "5",
-					lbHMHttpMethodIdx:       2, // default to GET
+					lbHMHttpMethodIdx:       2,
 					lbHMHttpMethod:          "GET",
 					lbHMUrlPathInput:        "/",
 					lbHMUrlPath:             "/",
 					lbHMExpectedCodesInput:  "200",
 					lbHMExpectedCodes:       "200",
 				}
+			} else {
+				switch m.lbHMActionIdx {
+				case 0: // Edit
+					hmID := getStringValue(hm, "id", "")
+					hmName := getStringValue(hm, "name", "")
+					hmType := getStringValue(hm, "monitorType", "http")
+					hmTypeIdx := 0
+					for i, opt := range lbHMTypeOptions {
+						if opt.value == hmType { hmTypeIdx = i; break }
+					}
+					hmDelay := 5
+					if v, ok := hm["delay"]; ok { switch d := v.(type) { case float64: hmDelay = int(d); case int: hmDelay = d } }
+					hmTimeout := 5
+					if v, ok := hm["timeout"]; ok { switch d := v.(type) { case float64: hmTimeout = int(d); case int: hmTimeout = d } }
+					hmMaxRetries := 3
+					if v, ok := hm["maxRetries"]; ok { switch d := v.(type) { case float64: hmMaxRetries = int(d); case int: hmMaxRetries = d } }
+					hmMaxRetriesDown := 3
+					if v, ok := hm["maxRetriesDown"]; ok { switch d := v.(type) { case float64: hmMaxRetriesDown = int(d); case int: hmMaxRetriesDown = d } }
+					hmHttpMethod := "GET"
+					hmHttpMethodIdx := 2
+					hmUrlPath := "/"
+					hmExpectedCodes := "200"
+					if httpCfg, ok := hm["httpConfiguration"].(map[string]interface{}); ok {
+						if method, ok := httpCfg["httpMethod"].(string); ok && method != "" {
+							hmHttpMethod = method
+							for i, opt := range lbHMHttpMethodOptions { if opt == hmHttpMethod { hmHttpMethodIdx = i; break } }
+						}
+						if up, ok := httpCfg["urlPath"].(string); ok && up != "" { hmUrlPath = up }
+						if ec, ok := httpCfg["expectedCodes"].(string); ok && ec != "" { hmExpectedCodes = ec }
+					}
+					m.mode = WizardView
+					m.wizard = WizardData{
+						step: LBHMWizardStepName, lbHMPoolId: poolID, lbHMPoolRegion: region, lbHMEditId: hmID,
+						lbHMNameInput: hmName, lbHMName: hmName, lbHMTypeIdx: hmTypeIdx, lbHMType: hmType,
+						lbHMHttpMethodIdx: hmHttpMethodIdx, lbHMHttpMethod: hmHttpMethod,
+						lbHMUrlPathInput: hmUrlPath, lbHMUrlPath: hmUrlPath,
+						lbHMExpectedCodesInput: hmExpectedCodes, lbHMExpectedCodes: hmExpectedCodes,
+						lbHMDelayInput: fmt.Sprintf("%d", hmDelay), lbHMDelay: hmDelay,
+						lbHMTimeoutInput: fmt.Sprintf("%d", hmTimeout), lbHMTimeout: hmTimeout,
+						lbHMMaxRetriesInput: fmt.Sprintf("%d", hmMaxRetries), lbHMMaxRetries: hmMaxRetries,
+						lbHMMaxRetriesDownInput: fmt.Sprintf("%d", hmMaxRetriesDown), lbHMMaxRetriesDown: hmMaxRetriesDown,
+					}
+				case 1: // Delete
+					if m.lbHMConfirm {
+						m.lbHMConfirm = false
+						hmID := getStringValue(hm, "id", "")
+						return m, m.deleteHealthMonitor(hmID, poolID, region)
+					}
+					m.lbHMConfirm = true
+				}
 			}
 			return m, nil
-			// LBL7RulesView: Enter → launch Create Rule wizard
-		} else if m.mode == LBL7RulesView {
+			// LBL7RulesView: Enter → execute selected action button
+		} else if m.mode == LBL7RulesView && m.selectedLBL7Policy != nil {
 			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
 			policyName := getStringValue(m.selectedLBL7Policy, "name", "")
 			region := getStringValue(m.detailData, "region", "")
-			m.mode = WizardView
-			m.wizard = WizardData{
-				step:             LBL7RuleWizardStepType,
-				l7RulePolicyId:   policyID,
-				l7RulePolicyName: policyName,
-				l7RuleLBRegion:   region,
+			rules := m.lbL7Rules[policyID]
+			switch m.lbL7RuleActionIdx {
+			case 0: // Create
+				m.mode = WizardView
+				m.wizard = WizardData{
+					step:             LBL7RuleWizardStepType,
+					l7RulePolicyId:   policyID,
+					l7RulePolicyName: policyName,
+					l7RuleLBRegion:   region,
+				}
+			case 1: // Edit
+				idx := m.lbL7RuleDetailIdx
+				if idx < 0 { idx = 0 }
+				if len(rules) > 0 && idx < len(rules) {
+					r := rules[idx]
+					ruleID := getStringValue(r, "id", "")
+					ruleType := getStringValue(r, "ruleType", getStringValue(r, "type", ""))
+					compareType := getStringValue(r, "compareType", "")
+					ruleKey := getStringValue(r, "key", "")
+					ruleValue := getStringValue(r, "value", "")
+					ruleInvert := false
+					if inv, ok := r["invert"].(bool); ok { ruleInvert = inv }
+					typeIdx := 0
+					for i, opt := range lbL7RuleTypeOptions {
+						if opt.value == ruleType { typeIdx = i; break }
+					}
+					compareIdx := 0
+					validOpts := validCompareOptionsForType(ruleType)
+					for i, opt := range validOpts {
+						if opt.value == compareType { compareIdx = i; break }
+					}
+					prefillKey := ""
+					for _, t := range lbL7RuleTypeOptions {
+						if t.value == ruleType && t.needsKey { prefillKey = ruleKey; break }
+					}
+					m.mode = WizardView
+					m.wizard = WizardData{
+						step:             LBL7RuleWizardStepType,
+						l7RulePolicyId:   policyID,
+						l7RulePolicyName: policyName,
+						l7RuleLBRegion:   region,
+						l7RuleEditId:     ruleID,
+						l7RuleTypeIdx:    typeIdx,
+						l7RuleType:       ruleType,
+						l7RuleCompareIdx: compareIdx,
+						l7RuleCompare:    compareType,
+						l7RuleKey:        prefillKey,
+						l7RuleValue:      ruleValue,
+						l7RuleInvert:     ruleInvert,
+					}
+				}
+			case 2: // Delete
+				idx := m.lbL7RuleDetailIdx
+				if idx < 0 { idx = 0 }
+				if len(rules) > 0 && idx < len(rules) {
+					if m.lbL7RuleConfirm {
+						m.lbL7RuleConfirm = false
+						ruleID := getStringValue(rules[idx], "id", "")
+						return m, m.executeDeleteLBL7Rule(policyID, ruleID, region)
+					}
+					m.lbL7RuleConfirm = true
+				}
 			}
 			return m, nil
 		} else if m.mode == LBL7PolicyDetailView {
@@ -10129,8 +10283,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "d":
-		// In LBL7RulesView: delete the currently displayed rule (with confirmation)
-		if m.mode == LBL7RulesView && m.selectedLBL7Policy != nil {
+		// In LBL7RulesView: delete is handled via Enter on the Delete action button
+		if false && m.mode == LBL7RulesView && m.selectedLBL7Policy != nil {
 			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
 			rules := m.lbL7Rules[policyID]
 			if len(rules) > 0 {
@@ -10152,8 +10306,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// In LBHealthMonitorView: delete the health monitor (with confirmation)
-		if m.mode == LBHealthMonitorView && m.selectedLBPool != nil {
+		// In LBHealthMonitorView: delete is handled via Enter on the Delete action button
+		if false && m.mode == LBHealthMonitorView && m.selectedLBPool != nil {
 			poolID := getStringValue(m.selectedLBPool, "id", "")
 			region := getStringValue(m.detailData, "region", "")
 			hm := m.lbHealthMonitors[poolID]

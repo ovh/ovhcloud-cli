@@ -63,30 +63,40 @@ func (m Model) renderLBHealthMonitorView(width int) string {
 	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(22)
 	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
-	// Actions bar
-	var actionsContent string
-	if hm != nil {
-		editBtn := lipgloss.NewStyle().
-			Background(lipgloss.Color("#7B68EE")).Foreground(lipgloss.Color("#FFFFFF")).
-			Bold(true).Padding(0, 1).Render("✏ Edit  [e]")
-		var deleteBtnContent string
-		if m.lbHMConfirm {
-			deleteBtnContent = lipgloss.NewStyle().
-				Background(lipgloss.Color("#FF4444")).Foreground(lipgloss.Color("#FFFFFF")).
-				Bold(true).Padding(0, 1).Render("⚠ Confirm delete? Press [d] again • Esc to cancel")
-		} else {
-			deleteBtnContent = lipgloss.NewStyle().
-				Background(lipgloss.Color("#CC3333")).Foreground(lipgloss.Color("#FFFFFF")).
-				Bold(true).Padding(0, 1).Render("🗑 Delete  [d]")
-		}
-		actionsContent = lipgloss.JoinHorizontal(lipgloss.Top, editBtn, "  ", deleteBtnContent)
-	} else {
-		createBtn := lipgloss.NewStyle().
-			Background(lipgloss.Color("#00AA55")).Foreground(lipgloss.Color("#FFFFFF")).
-			Bold(true).Padding(0, 1).Render("+ Create  [Enter]")
-		actionsContent = createBtn
-	}
-	actionsBox := renderBox("Actions", actionsContent, width-4)
+// Actions bar — navigate with ←/→, execute with Enter
+        var actionsContent string
+        if hm != nil {
+                actions := []string{"✏ Edit", "🗑 Delete"}
+                actionIdx := m.lbHMActionIdx
+                if actionIdx >= len(actions) {
+                        actionIdx = 0
+                }
+                var actionParts []string
+                for i, act := range actions {
+                        if i == actionIdx {
+                                bg := lipgloss.Color("#7B68EE")
+                                if i == 1 {
+                                        bg = lipgloss.Color("#FF4444")
+                                }
+                                actionParts = append(actionParts, lipgloss.NewStyle().
+                                        Background(bg).Foreground(lipgloss.Color("#FFFFFF")).Bold(true).Padding(0, 1).Render(act))
+                        } else {
+                                actionParts = append(actionParts, lipgloss.NewStyle().
+                                        Foreground(lipgloss.Color("#888888")).Padding(0, 1).Render("["+act+"]"))
+                        }
+                }
+                actionsContent = strings.Join(actionParts, " ")
+                if m.lbHMConfirm {
+                        actionsContent += "\n\n" + lipgloss.NewStyle().
+                                Foreground(lipgloss.Color("#FFD700")).Bold(true).
+                                Render("⚠️  Press Enter to confirm delete, Esc to cancel")
+                }
+        } else {
+                // No HM yet — only Create
+                createSt := lipgloss.NewStyle().Background(lipgloss.Color("#00AA55")).Foreground(lipgloss.Color("#FFFFFF")).Bold(true).Padding(0, 1)
+                actionsContent = createSt.Render("+ Create")
+        }
+        actionsBox := renderBox("Actions (←/→ to navigate, Enter to execute)", actionsContent, width-4)
 	content.WriteString(actionsBox + "\n\n")
 
 	titleLine := fmt.Sprintf("Health Monitor — Pool: %s", poolName)
