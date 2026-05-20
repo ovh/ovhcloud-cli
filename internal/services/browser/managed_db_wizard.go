@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -248,6 +249,166 @@ func (m Model) createDBTopic(name string, minInsyncReplicas, partitions, replica
 			return dbTopicCreatedMsg{err: err}
 		}
 		return dbTopicCreatedMsg{}
+	}
+}
+
+// ── Metrics ──────────────────────────────────────────────────────────────────
+
+// dbMetricNamesMsg is sent after listing available metric names.
+type dbMetricNamesMsg struct {
+	names []string
+	err   error
+}
+
+// dbMetricDataMsg is sent after fetching one metric's time-series data.
+type dbMetricDataMsg struct {
+	name   string
+	series []dbMetricSeries
+	err    error
+}
+
+// dbMetricSeries holds one named time-series returned by the API (one per node/disk/etc.).
+type dbMetricSeries struct {
+	Name   string
+	Points []dbMetricPoint
+}
+
+type dbMetricPoint struct {
+	T time.Time
+	V float64
+}
+
+// fetchDBMetricNames lists available metric names for the current service.
+func (m Model) fetchDBMetricNames() tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbMetricNamesMsg{err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/metric",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		var names []string
+		if err := httpLib.Client.Get(endpoint, &names); err != nil {
+			return dbMetricNamesMsg{err: err}
+		}
+		sort.Strings(names)
+		return dbMetricNamesMsg{names: names}
+	}
+}
+
+// dbNodeNamesMsg carries the ordered list of node names for the current service.
+type dbNodeNamesMsg struct {
+        names []string
+        err   error
+}
+
+// fetchDBNodeNames fetches the node list and returns names sorted alphabetically.
+func (m Model) fetchDBNodeNames() tea.Cmd {
+        return func() tea.Msg {
+                engine := getStringValue(m.detailData, "engine", "")
+                serviceId := getStringValue(m.detailData, "id", "")
+                if engine == "" || serviceId == "" {
+                        return dbNodeNamesMsg{err: fmt.Errorf("missing engine or service ID")}
+                }
+                endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/node",
+                        m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+                var ids []string
+                if err := httpLib.Client.Get(endpoint, &ids); err != nil {
+                        return dbNodeNamesMsg{err: err}
+                }
+                type nodeDetail struct {
+                        Name string `json:"name"`
+                }
+                var names []string
+                for _, id := range ids {
+                        var nd nodeDetail
+                        detailEp := fmt.Sprintf("%s/%s", endpoint, url.PathEscape(id))
+                        if err := httpLib.Client.Get(detailEp, &nd); err == nil && nd.Name != "" {
+                                names = append(names, nd.Name)
+                        } else {
+                                names = append(names, id)
+                        }
+                }
+                sort.Strings(names)
+                return dbNodeNamesMsg{names: names}
+        }
+}
+
+// fetchDBMetric fetches metric data for the given metric name and period.
+func (m Model) fetchDBMetric(metricName, period string) tea.Cmd {
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbMetricDataMsg{name: metricName, err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/metric/%s?period=%s",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId),
+			url.PathEscape(metricName), url.QueryEscape(period))
+		// Capture raw JSON so we can inspect the actual field names for debugging
+		var rawResult json.RawMessage
+		if err := httpLib.Client.Get(endpoint, &rawResult); err != nil {
+			return dbMetricDataMsg{name: metricName, err: err}
+		}
+		var result struct {
+			Metrics []struct {
+				Name       string            `json:"name"`
+				Host       string            `json:"host"`
+				NodeID     string            `json:"nodeId"`
+				Labels     map[string]string `json:"labels"`
+				Tags       map[string]string `json:"tags"`
+				DataPoints []struct {
+					Timestamp float64  `json:"timestamp"`
+					Value     *float64 `json:"value"`
+				} `json:"dataPoints"`
+			} `json:"metrics"`
+		}
+		if err := json.Unmarshal(rawResult, &result); err != nil {
+			return dbMetricDataMsg{name: metricName, err: err}
+		}
+		var series []dbMetricSeries
+		for i, metric := range result.Metrics {
+			// Try all possible label fields the API might provide
+			sName := metric.Name
+			if sName == "" {
+				sName = metric.Host
+			}
+			if sName == "" {
+				sName = metric.NodeID
+			}
+			if sName == "" && len(metric.Labels) > 0 {
+				for k, v := range metric.Labels {
+					sName = k + "=" + v
+					break
+				}
+			}
+			if sName == "" && len(metric.Tags) > 0 {
+				for k, v := range metric.Tags {
+					sName = k + "=" + v
+					break
+				}
+			}
+			if sName == "" {
+				sName = fmt.Sprintf("node %d", i+1)
+			}
+			var pts []dbMetricPoint
+			for _, dp := range metric.DataPoints {
+				if dp.Value == nil || dp.Timestamp <= 0 {
+					continue // skip null/gap entries
+				}
+				pts = append(pts, dbMetricPoint{
+					T: time.Unix(int64(dp.Timestamp), 0),
+					V: *dp.Value,
+				})
+			}
+			if len(pts) == 0 {
+				continue
+			}
+			sort.Slice(pts, func(i, j int) bool { return pts[i].T.Before(pts[j].T) })
+			series = append(series, dbMetricSeries{Name: sName, Points: pts})
+		}
+		return dbMetricDataMsg{name: metricName, series: series}
 	}
 }
 
