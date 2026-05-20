@@ -297,8 +297,45 @@ func (m Model) fetchDBMetricNames() tea.Cmd {
 	}
 }
 
-// fetchDBMetric fetches time-series data for one metric name and period.
-// period is one of: lastHour, lastDay, lastWeek, lastMonth
+// dbNodeNamesMsg carries the ordered list of node names for the current service.
+type dbNodeNamesMsg struct {
+        names []string
+        err   error
+}
+
+// fetchDBNodeNames fetches the node list and returns names sorted alphabetically.
+func (m Model) fetchDBNodeNames() tea.Cmd {
+        return func() tea.Msg {
+                engine := getStringValue(m.detailData, "engine", "")
+                serviceId := getStringValue(m.detailData, "id", "")
+                if engine == "" || serviceId == "" {
+                        return dbNodeNamesMsg{err: fmt.Errorf("missing engine or service ID")}
+                }
+                endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/node",
+                        m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+                var ids []string
+                if err := httpLib.Client.Get(endpoint, &ids); err != nil {
+                        return dbNodeNamesMsg{err: err}
+                }
+                type nodeDetail struct {
+                        Name string `json:"name"`
+                }
+                var names []string
+                for _, id := range ids {
+                        var nd nodeDetail
+                        detailEp := fmt.Sprintf("%s/%s", endpoint, url.PathEscape(id))
+                        if err := httpLib.Client.Get(detailEp, &nd); err == nil && nd.Name != "" {
+                                names = append(names, nd.Name)
+                        } else {
+                                names = append(names, id)
+                        }
+                }
+                sort.Strings(names)
+                return dbNodeNamesMsg{names: names}
+        }
+}
+
+// fetchDBMetric fetches metric data for the given metric name and period.
 func (m Model) fetchDBMetric(metricName, period string) tea.Cmd {
 	return func() tea.Msg {
 		engine := getStringValue(m.detailData, "engine", "")
@@ -309,23 +346,51 @@ func (m Model) fetchDBMetric(metricName, period string) tea.Cmd {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/metric/%s?period=%s",
 			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId),
 			url.PathEscape(metricName), url.QueryEscape(period))
+		// Capture raw JSON so we can inspect the actual field names for debugging
+		var rawResult json.RawMessage
+		if err := httpLib.Client.Get(endpoint, &rawResult); err != nil {
+			return dbMetricDataMsg{name: metricName, err: err}
+		}
 		var result struct {
 			Metrics []struct {
-				Name       string `json:"name"`
+				Name       string            `json:"name"`
+				Host       string            `json:"host"`
+				NodeID     string            `json:"nodeId"`
+				Labels     map[string]string `json:"labels"`
+				Tags       map[string]string `json:"tags"`
 				DataPoints []struct {
 					Timestamp float64  `json:"timestamp"`
-					Value     *float64 `json:"value"` // pointer to detect null entries (gaps in monitoring data)
+					Value     *float64 `json:"value"`
 				} `json:"dataPoints"`
 			} `json:"metrics"`
 		}
-		if err := httpLib.Client.Get(endpoint, &result); err != nil {
+		if err := json.Unmarshal(rawResult, &result); err != nil {
 			return dbMetricDataMsg{name: metricName, err: err}
 		}
 		var series []dbMetricSeries
 		for i, metric := range result.Metrics {
+			// Try all possible label fields the API might provide
 			sName := metric.Name
 			if sName == "" {
-				sName = fmt.Sprintf("series %d", i+1)
+				sName = metric.Host
+			}
+			if sName == "" {
+				sName = metric.NodeID
+			}
+			if sName == "" && len(metric.Labels) > 0 {
+				for k, v := range metric.Labels {
+					sName = k + "=" + v
+					break
+				}
+			}
+			if sName == "" && len(metric.Tags) > 0 {
+				for k, v := range metric.Tags {
+					sName = k + "=" + v
+					break
+				}
+			}
+			if sName == "" {
+				sName = fmt.Sprintf("node %d", i+1)
 			}
 			var pts []dbMetricPoint
 			for _, dp := range metric.DataPoints {

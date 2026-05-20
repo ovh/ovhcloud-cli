@@ -837,6 +837,7 @@ type Model struct {
 	dbMetricNamesLoaded bool
 	dbMetricSelectedIdx int             // selected metric in the list
 	dbMetricPeriodIdx   int             // 0=lastHour 1=lastDay
+	dbNodeNames         []string         // ordered node names for legend labels
 	dbMetricSeries      []dbMetricSeries // current chart data (one per API series)
 	dbMetricLoaded      bool
 	dbMetricLoading     bool             // true while a fetch is in flight
@@ -2918,6 +2919,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.dbMetricName = name
 			m.dbMetricLoading = true
 			return m, m.fetchDBMetric(name, periods[m.dbMetricPeriodIdx])
+		}
+		return m, nil
+
+	case dbNodeNamesMsg:
+		if msg.err == nil {
+			m.dbNodeNames = msg.names
 		}
 		return m, nil
 
@@ -8251,14 +8258,18 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
                                 chartBuf.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render(chartTitle) + "\n")
                                 chartBuf.WriteString(chart.View())
 
-                                // Legend (only if more than one series)
-                                if len(m.dbMetricSeries) > 1 {
-                                        var legend strings.Builder
-                                        for si, s := range m.dbMetricSeries {
-                                                color := seriesColors[si%len(seriesColors)]
-                                                dot := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render("━")
-                                                legend.WriteString(dot + " " + dimSt.Render(s.Name) + "  ")
+                                // Legend — use real node names when available, always shown
+                                var legend strings.Builder
+                                for si, s := range m.dbMetricSeries {
+                                        color := seriesColors[si%len(seriesColors)]
+                                        label := s.Name
+                                        if si < len(m.dbNodeNames) && m.dbNodeNames[si] != "" {
+                                                label = m.dbNodeNames[si]
                                         }
+                                        dot := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render("━")
+                                        legend.WriteString(dot + " " + dimSt.Render(label) + "  ")
+                                }
+                                if legend.Len() > 0 {
                                         chartBuf.WriteString(legend.String() + "\n")
                                 }
                         }
@@ -10415,7 +10426,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.dbMetricSeries = nil
 					m.dbMetricLoaded = false
 					m.dbMetricSelectedIdx = 0
-					return m, m.fetchDBMetricNames()
+					m.dbNodeNames = nil
+					return m, tea.Batch(m.fetchDBMetricNames(), m.fetchDBNodeNames())
 				}
 			}
 			return m, nil
@@ -10648,7 +10660,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.dbMetricSeries = nil
 					m.dbMetricLoaded = false
 					m.dbMetricSelectedIdx = 0
-					return m, m.fetchDBMetricNames()
+					m.dbNodeNames = nil
+					return m, tea.Batch(m.fetchDBMetricNames(), m.fetchDBNodeNames())
 				}
 			}
 			return m, nil
