@@ -117,11 +117,7 @@ func runCompletionInstall(_ *cobra.Command, _ []string) error {
 	}
 	defer f.Close()
 
-	extra := ""
-	if shellName == "bash" {
-		extra = "\ncomplete -F __start_ovhcloud ./ovhcloud"
-	}
-	if _, err := fmt.Fprintf(f, "\n# ovhcloud CLI shell completion\n%s%s\n", completionLine, extra); err != nil {
+	if _, err := fmt.Fprintf(f, "\n# ovhcloud CLI shell completion\n%s\n", completionLine); err != nil {
 		return fmt.Errorf("failed to write to %s: %w", rcFile, err)
 	}
 
