@@ -151,6 +151,88 @@ func (ms *MockSuite) TestCloudKubeNodepoolGetCmd(assert, require *td.T) {
 `)
 }
 
+// TestCloudKubeNodePoolCreateMissingClusterID tests that creating a nodepool without a cluster_id argument results in an error.
+func (ms *MockSuite) TestCloudKubeNodePoolCreateMissingClusterID(assert, require *td.T) {
+	_, err := cmd.Execute(
+		"cloud", "managed-kubernetes", "nodepool", "create",
+		"--cloud-project", "fakeProjectID",
+	)
+
+	require.CmpError(err)
+}
+
+// TestCloudKubeNodePoolCreateMissingFlavor tests that creating a nodepool without a flavor argument results in an error.
+func (ms *MockSuite) TestCloudKubeNodePoolCreateMissingFlavor(assert, require *td.T) {
+	_, err := cmd.Execute(
+		"cloud", "managed-kubernetes", "nodepool", "create",
+		"--cloud-project", "fakeProjectID",
+		"fakeClusterID",
+		"--desired-nodes=3",
+	)
+
+	require.CmpError(err)
+}
+
+// TestCloudKubeNodePoolCreate tests that creating a nodepool results in a successful creation.
+func (ms *MockSuite) TestCloudKubeNodePoolCreate(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(
+		http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/fakeClusterID/nodepool",
+		tdhttpmock.JSONBody(td.SuperJSONOf(`{
+			"attachFloatingIps": {
+  				"enabled": true
+ 			},
+ 			"availabilityZones": [
+  				"eu-west-par-a"
+ 			],
+ 			"flavorName": "b3-8",
+			"desiredNodes": 3
+		}`)),
+		httpmock.NewStringResponder(200, `{
+			"id": "kube-99999",
+			"name": "test-hubble-kube"
+		}`).Once())
+
+	out, err := cmd.Execute(
+		"cloud", "managed-kubernetes", "nodepool", "create",
+		"--cloud-project", "fakeProjectID",
+		"fakeClusterID",
+		"--desired-nodes=3",
+		"--flavor-name=b3-8",
+		"--availability-zones=eu-west-par-a",
+		"--attach-floating-ips",
+	)
+
+	require.CmpNoError(err)
+	assert.Contains(out, "created successfully")
+}
+
+// TestCloudKubeNodePoolCreateEmpty tests that creating an empty nodepool results in a successful creation.
+func (ms *MockSuite) TestCloudKubeNodePoolCreateEmpty(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(
+		http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/fakeClusterID/nodepool",
+		tdhttpmock.JSONBody(td.SuperJSONOf(`{
+ 			"flavorName": "b3-8",
+			"desiredNodes": 0
+		}`)),
+		httpmock.NewStringResponder(200, `{
+			"id": "kube-99999",
+			"name": "test-hubble-kube"
+		}`).Once())
+
+	out, err := cmd.Execute(
+		"cloud", "managed-kubernetes", "nodepool", "create",
+		"--cloud-project", "fakeProjectID",
+		"fakeClusterID",
+		"--desired-nodes=0",
+		"--flavor-name=b3-8",
+	)
+
+	require.CmpNoError(err)
+	assert.Contains(out, "created successfully")
+}
+
 // Create a Nodepool with the attachFloatingIps flag.
 // The nodepool spec must be set to true.
 func (ms *MockSuite) TestCloudKubeNodepoolCreateCmdWithAttachFloatingIps(assert, require *td.T) {
@@ -188,9 +270,6 @@ func (ms *MockSuite) TestCloudKubeNodepoolCreateCmdWithoutAttachFloatingIps(asse
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
-				"attachFloatingIps": {
-					"enabled": false
-				},
 				"availabilityZones": [
 					"myzone2"
 				],
