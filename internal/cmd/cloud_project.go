@@ -101,6 +101,7 @@ func init() {
 		Run:   cloud.UnleashProject,
 	})
 
+	initCloudAICommand(cloudCmd)
 	initKubeCommand(cloudCmd)
 	initContainerRegistryCommand(cloudCmd)
 	initManagedDatabaseCommand(cloudCmd)
