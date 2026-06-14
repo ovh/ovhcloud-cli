@@ -26,7 +26,23 @@ func ShowConfig(_ *cobra.Command, _ []string) {
 	if profileName := config.GetActiveProfileName(flags.CliConfig, flags.Profile); profileName != "" && !config.IsDefaultProfile(profileName) {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "Active profile: %s\n", profileName)
 	}
-	display.RenderConfigTable(flags.CliConfig)
+	result := map[string]any{}
+	for _, section := range flags.CliConfig.Sections() {
+		if section.Name() == "DEFAULT" {
+			continue
+		}
+		sectionMap := map[string]any{}
+		for _, key := range section.Keys() {
+			sectionMap[key.Name()] = key.Value()
+		}
+		result[section.Name()] = sectionMap
+	}
+	if flags.OutputFormatConfig.IsJson() || flags.OutputFormatConfig.IsYaml() ||
+		flags.OutputFormatConfig.IsInteractive() || flags.OutputFormatConfig.CustomFormat() != "" {
+		display.OutputObject(result, "", "", &flags.OutputFormatConfig)
+	} else {
+		display.RenderConfigTable(flags.CliConfig)
+	}
 }
 
 func SetConfig(_ *cobra.Command, args []string) {
