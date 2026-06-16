@@ -9,19 +9,22 @@ ovhcloud cloud storage block volume create <region> [flags]
 ### Options
 
 ```
-      --availability-zone string   Availability zone of the volume
-      --backup-id string           Backup ID to create the volume from
-      --editor                     Use a text editor to define parameters
-      --from-file string           File containing parameters
-  -h, --help                       help for create
-      --image-id string            Image ID to create the volume from
-      --init-file string           Create a file with example parameters
-      --name string                Volume name
-      --replace                    Replace parameters file if it already exists
-      --size int                   Volume size (in GB)
-      --snapshot-id string         Snapshot ID to create the volume from
-      --type string                Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)
-      --wait                       Wait for volume creation to be done before exiting
+      --availability-zone string    Availability zone of the volume
+      --backup-id string            Backup ID to create the volume from
+      --editor                      Use a text editor to define parameters
+      --encrypted                   Create the volume encrypted (auto-derives a LUKS volume type)
+      --from-file string            File containing parameters
+  -h, --help                        help for create
+      --image-id string             Image ID to create the volume from
+      --init-file string            Create a file with example parameters
+      --kms-domain-id string        OKMS domain ID for a customer-managed key (requires --encrypted and --kms-service-key-id)
+      --kms-service-key-id string   OKMS service key ID for a customer-managed key (requires --encrypted and --kms-domain-id)
+      --name string                 Volume name
+      --replace                     Replace parameters file if it already exists
+      --size int                    Volume size (in GB)
+      --snapshot-id string          Snapshot ID to create the volume from
+      --type string                 Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)
+      --wait                        Wait for volume creation to be done before exiting
 ```
 
 ### Options inherited from parent commands
