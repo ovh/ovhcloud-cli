@@ -67,6 +67,13 @@ var (
 				ImageId    string `json:"imageId,omitempty"`
 				SnapshotId string `json:"snapshotId,omitempty"`
 			} `json:"createFrom,omitzero"`
+			Encryption struct {
+				Enabled bool `json:"enabled,omitempty"`
+				Kms     struct {
+					DomainID     string `json:"domainId,omitempty"`
+					ServiceKeyID string `json:"serviceKeyId,omitempty"`
+				} `json:"kms,omitzero"`
+			} `json:"encryption,omitzero"`
 		} `json:"targetSpec"`
 	}
 
