@@ -3991,6 +3991,37 @@ func (m Model) renderContentBox(width int) string {
 			titleText = m.snapshotDetailView.Title()
 		} else if m.mode == DetailView && m.currentProduct == ProductStorageBackup && m.backupDetailView != nil {
 			titleText = m.backupDetailView.Title()
+		} else if m.mode == LBPoolDetailView && m.selectedLBPool != nil {
+			lbName := getStringValue(m.detailData, "name", "?")
+			poolName := getStringValue(m.selectedLBPool, "name", "?")
+			titleText = fmt.Sprintf(" %s %s > %s > Pool: %s ", currentNav.Icon, currentNav.Label, lbName, poolName)
+		} else if m.mode == LBListenerDetailView && m.selectedLBListener != nil {
+			lbName := getStringValue(m.detailData, "name", "?")
+			listenerName := getStringValue(m.selectedLBListener, "name", "?")
+			titleText = fmt.Sprintf(" %s %s > %s > Listener: %s ", currentNav.Icon, currentNav.Label, lbName, listenerName)
+		} else if m.mode == LBL7PolicyDetailView && m.selectedLBL7Policy != nil {
+			lbName := getStringValue(m.detailData, "name", "?")
+			listenerName := getStringValue(m.selectedLBListener, "name", "?")
+			policyName := getStringValue(m.selectedLBL7Policy, "name", "?")
+			titleText = fmt.Sprintf(" %s %s > %s > %s > Policy: %s ", currentNav.Icon, currentNav.Label, lbName, listenerName, policyName)
+		} else if m.mode == LBL7RulesView && m.selectedLBL7Policy != nil {
+			lbName := getStringValue(m.detailData, "name", "?")
+			listenerName := getStringValue(m.selectedLBListener, "name", "?")
+			policyName := getStringValue(m.selectedLBL7Policy, "name", "?")
+			titleText = fmt.Sprintf(" %s %s > %s > %s > %s > L7 Rules ", currentNav.Icon, currentNav.Label, lbName, listenerName, policyName)
+		} else if m.mode == LBPoolMembersView && m.selectedLBPool != nil {
+			lbName := getStringValue(m.detailData, "name", "?")
+			poolName := getStringValue(m.selectedLBPool, "name", "?")
+			titleText = fmt.Sprintf(" %s %s > %s > %s > Members ", currentNav.Icon, currentNav.Label, lbName, poolName)
+		} else if m.mode == LBHealthMonitorView && m.selectedLBPool != nil {
+			lbName := getStringValue(m.detailData, "name", "?")
+			poolName := getStringValue(m.selectedLBPool, "name", "?")
+			titleText = fmt.Sprintf(" %s %s > %s > %s > Health Monitor ", currentNav.Icon, currentNav.Label, lbName, poolName)
+		} else if m.mode == NodePoolsView && m.currentItemName != "" {
+			titleText = fmt.Sprintf(" %s %s > %s > Node Pools ", currentNav.Icon, currentNav.Label, m.currentItemName)
+		} else if m.mode == NodePoolDetailView && m.selectedNodePool != nil {
+			poolName := getStringValue(m.selectedNodePool, "name", "?")
+			titleText = fmt.Sprintf(" %s %s > %s > Node Pool: %s ", currentNav.Icon, currentNav.Label, m.currentItemName, poolName)
 		} else if m.mode == DetailView && m.currentItemName != "" {
 			titleText = fmt.Sprintf(" %s %s > %s ", currentNav.Icon, currentNav.Label, m.currentItemName)
 		} else {
