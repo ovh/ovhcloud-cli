@@ -7,7 +7,6 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initManagedAnalyticsCommand(cloudCmd *cobra.Command) {
@@ -16,7 +15,6 @@ func initManagedAnalyticsCommand(cloudCmd *cobra.Command) {
 		Short: "Manage managed analytics services in the given cloud project",
 	}
 	managedAnalyticsCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	managedAnalyticsCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 	// Managed analytics commands
 	managedAnalyticsCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:     "list",

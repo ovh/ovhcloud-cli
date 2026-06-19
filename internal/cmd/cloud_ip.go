@@ -9,7 +9,6 @@ import (
 
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 // cloudIPType holds the value of the persistent --type flag for `cloud ip` commands.
@@ -39,7 +38,6 @@ func initCloudIPCommand(cloudCmd *cobra.Command) {
 		Short: "Manage public IPs (floating and failover) in the given cloud project",
 	}
 	ipCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	ipCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 	ipCmd.PersistentFlags().StringVar(&cloudIPType, "type", "", "Type of IP to manage (floating or failover)")
 
 	// region flag is only relevant for floating IPs (failover IPs are project-scoped)

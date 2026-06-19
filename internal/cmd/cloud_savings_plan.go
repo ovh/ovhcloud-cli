@@ -7,7 +7,6 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudSavingsPlanCommand(cloudCmd *cobra.Command) {
@@ -27,7 +26,6 @@ Available flavors include:
 - Memory optimized instances: r3-16, r3-32, r3-64, r3-128, r3-256, r3-512`,
 	}
 	savingsPlanCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	savingsPlanCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	// List subscribed savings plans
 	listCmd := &cobra.Command{

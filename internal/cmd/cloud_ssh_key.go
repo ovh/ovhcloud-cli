@@ -8,7 +8,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudSSHKeyCommand(cloudCmd *cobra.Command) {
@@ -17,7 +16,6 @@ func initCloudSSHKeyCommand(cloudCmd *cobra.Command) {
 		Short: "Manage SSH keys in the given cloud project",
 	}
 	sshKeyCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	sshKeyCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	sshKeyListCmd := &cobra.Command{
 		Use:     "list",

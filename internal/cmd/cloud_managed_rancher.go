@@ -8,7 +8,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudRancherCommand(cloudCmd *cobra.Command) {
@@ -18,7 +17,6 @@ func initCloudRancherCommand(cloudCmd *cobra.Command) {
 		Short:   "Manage Rancher services in the given cloud project",
 	}
 	rancherCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	rancherCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	rancherListCmd := &cobra.Command{
 		Use:     "list",

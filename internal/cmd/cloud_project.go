@@ -5,9 +5,9 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func init() {
@@ -21,7 +21,6 @@ func init() {
 		Short: "Retrieve information and manage your CloudProject services",
 	}
 	cloudprojectCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	cloudprojectCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	// Command to list CloudProject services
 	cloudprojectCmd.AddCommand(withFilterFlag(&cobra.Command{
@@ -123,5 +122,21 @@ func init() {
 	initCloudAlertingCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
+
+	// Register the cloud-project flag completion on every (sub)command exposing it,
+	// instead of repeating the registration in each command definition.
+	registerCloudProjectCompletion(cloudCmd)
+
 	rootCmd.AddCommand(cloudCmd)
+}
+
+// registerCloudProjectCompletion walks the command tree and registers the
+// completion function for the "cloud-project" flag on every command that exposes it.
+func registerCloudProjectCompletion(cmd *cobra.Command) {
+	if cmd.PersistentFlags().Lookup("cloud-project") != nil {
+		cmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
+	}
+	for _, child := range cmd.Commands() {
+		registerCloudProjectCompletion(child)
+	}
 }

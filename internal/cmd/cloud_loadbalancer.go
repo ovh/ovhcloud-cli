@@ -8,7 +8,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
@@ -17,7 +16,6 @@ func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
 		Short: "Manage loadbalancers in the given cloud project",
 	}
 	loadbalancerCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	loadbalancerCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	loadbalancerListCmd := &cobra.Command{
 		Use:     "list",

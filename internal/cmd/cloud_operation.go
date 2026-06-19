@@ -7,7 +7,6 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudOperationCommand(cloudCmd *cobra.Command) {
@@ -16,7 +15,6 @@ func initCloudOperationCommand(cloudCmd *cobra.Command) {
 		Short: "List and get operations in the given cloud project",
 	}
 	operationCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	operationCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	operationListCmd := &cobra.Command{
 		Use:     "list",

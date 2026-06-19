@@ -5,8 +5,6 @@
 package completion
 
 import (
-	"fmt"
-
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/spf13/cobra"
 )
@@ -21,18 +19,19 @@ func CloudProjects(_ *cobra.Command, _ []string, _ string) ([]string, cobra.Shel
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	var projectIDs []string
-	if err := httpLib.Client.Get("/v1/cloud/project", &projectIDs); err != nil {
+	projects, err := httpLib.FetchExpandedArray("/v1/cloud/project", "")
+	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	var suggestions []string
-	for _, id := range projectIDs {
-		var project struct {
-			Description string `json:"description"`
+	for _, project := range projects {
+		id, ok := project["project_id"].(string)
+		if !ok {
+			continue
 		}
-		if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s", id), &project); err == nil && project.Description != "" {
-			suggestions = append(suggestions, id+"\t"+project.Description)
+		if description, ok := project["description"].(string); ok && description != "" {
+			suggestions = append(suggestions, id+"\t"+description)
 		} else {
 			suggestions = append(suggestions, id)
 		}

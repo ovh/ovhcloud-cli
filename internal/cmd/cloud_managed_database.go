@@ -7,7 +7,6 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initManagedDatabaseCommand(cloudCmd *cobra.Command) {
@@ -16,7 +15,6 @@ func initManagedDatabaseCommand(cloudCmd *cobra.Command) {
 		Short: "Manage managed database services in the given cloud project",
 	}
 	managedDatabaseCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	managedDatabaseCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	// Managed database commands
 	managedDatabaseCmd.AddCommand(withFilterFlag(&cobra.Command{

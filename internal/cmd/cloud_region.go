@@ -7,7 +7,6 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudRegionCommand(cloudCmd *cobra.Command) {
@@ -16,7 +15,6 @@ func initCloudRegionCommand(cloudCmd *cobra.Command) {
 		Short: "Check regions in the given cloud project",
 	}
 	regionCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	regionCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	regionListCmd := &cobra.Command{
 		Use:     "list",

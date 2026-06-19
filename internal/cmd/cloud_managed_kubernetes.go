@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initKubeCommand(cloudCmd *cobra.Command) {
@@ -21,7 +20,6 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Short:   "Manage Kubernetes clusters in the given cloud project",
 	}
 	kubeCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	kubeCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	// Command to list Kuberetes clusters
 	kubeListCmd := &cobra.Command{

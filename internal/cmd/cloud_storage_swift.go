@@ -7,7 +7,6 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func initCloudStorageSwiftCommand(cloudCmd *cobra.Command) {
@@ -16,7 +15,6 @@ func initCloudStorageSwiftCommand(cloudCmd *cobra.Command) {
 		Short: "Manage SWIFT storage containers in the given cloud project",
 	}
 	storageSwiftCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	storageSwiftCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	storageSwiftListCmd := &cobra.Command{
 		Use:     "list",

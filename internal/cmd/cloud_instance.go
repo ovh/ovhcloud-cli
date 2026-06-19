@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
-	"github.com/ovh/ovhcloud-cli/internal/completion"
 )
 
 func getInstanceCreationCmd() *cobra.Command {
@@ -147,7 +146,6 @@ func initInstanceCommand(cloudCmd *cobra.Command) {
 		Short: "Manage instances in the given cloud project",
 	}
 	instanceCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	instanceCmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
 
 	instanceListCmd := &cobra.Command{
 		Use:     "list",
