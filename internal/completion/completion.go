@@ -111,6 +111,28 @@ func CloudResources(pathTemplate string) func(*cobra.Command, []string, string) 
 	}
 }
 
+// CloudResourceWithChild returns a completion function for a command taking two
+// positional arguments: a parent resource id then one of its sub-resource ids.
+// It completes the first argument from parentTemplate (one %s: project id) and the
+// second from childTemplate (two %s: project id and the parent id given as the
+// first argument). The project id is read from the --cloud-project flag.
+func CloudResourceWithChild(parentTemplate, childTemplate string) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return func(cmd *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
+		project, _ := cmd.Flags().GetString("cloud-project")
+		if project == "" {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		switch len(args) {
+		case 0:
+			return fetchIDSuggestions(fmt.Sprintf(parentTemplate, project))
+		case 1:
+			return fetchIDSuggestions(fmt.Sprintf(childTemplate, project, args[0]))
+		default:
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+	}
+}
+
 // CloudProjects returns completion suggestions for the --cloud-project flag.
 // Each suggestion is "projectID\tName" so shells can display the project name alongside.
 func CloudProjects(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {

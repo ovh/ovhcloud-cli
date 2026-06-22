@@ -162,7 +162,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	nodeCmd.AddCommand(&cobra.Command{
 		Use:               "get <cluster_id> <node_id>",
 		Short:             "Get the given Kubernetes node",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/node"),
 		Run:               cloud.GetKubeNode,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -170,7 +170,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	nodeCmd.AddCommand(&cobra.Command{
 		Use:               "delete <cluster_id> <node_id>",
 		Short:             "Delete the given Kubernetes node",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/node"),
 		Run:               cloud.DeleteKubeNode,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -193,7 +193,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	nodepoolCmd.AddCommand(&cobra.Command{
 		Use:               "get <cluster_id> <nodepool_id>",
 		Short:             "Get the given Kubernetes node pool",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/nodepool"),
 		Run:               cloud.GetKubeNodepool,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -203,7 +203,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	nodepoolCmd.AddCommand(&cobra.Command{
 		Use:               "delete <cluster_id> <nodepool_id>",
 		Short:             "Delete the given Kubernetes node pool",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/nodepool"),
 		Run:               cloud.DeleteKubeNodepool,
 		Args:              cobra.ExactArgs(2),
 	})

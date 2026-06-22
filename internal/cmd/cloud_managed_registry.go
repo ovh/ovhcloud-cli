@@ -94,7 +94,7 @@ func initContainerRegistryUsersCommand(registryCmd *cobra.Command) {
 	usersCmd.AddCommand(&cobra.Command{
 		Use:               "get <registry_id> <user_id>",
 		Short:             "Get a specific container registry user",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/containerRegistry", "/v1/cloud/project/%s/containerRegistry/%s/users"),
 		Run:               cloud.GetContainerRegistryUser,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -124,7 +124,7 @@ func initContainerRegistryUsersCommand(registryCmd *cobra.Command) {
 	usersCmd.AddCommand(&cobra.Command{
 		Use:               "delete <registry_id> <user_id>",
 		Short:             "Delete a specific container registry user",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/containerRegistry", "/v1/cloud/project/%s/containerRegistry/%s/users"),
 		Run:               cloud.DeleteContainerRegistryUser,
 		Args:              cobra.ExactArgs(2),
 	})
