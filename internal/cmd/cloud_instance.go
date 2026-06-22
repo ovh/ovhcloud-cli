@@ -442,10 +442,11 @@ There are three ways to define the installation parameters:
 	}))
 
 	groupCmd.AddCommand(&cobra.Command{
-		Use:   "get <group_id>",
-		Short: "Get a specific instance group",
-		Run:   cloud.GetInstanceGroup,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <group_id>",
+		Short:             "Get a specific instance group",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance/group"),
+		Run:               cloud.GetInstanceGroup,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	createGroupCmd := &cobra.Command{
@@ -458,10 +459,11 @@ There are three ways to define the installation parameters:
 	groupCmd.AddCommand(createGroupCmd)
 
 	groupCmd.AddCommand(&cobra.Command{
-		Use:   "delete <group_id>",
-		Short: "Delete a specific instance group",
-		Run:   cloud.DeleteInstanceGroup,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <group_id>",
+		Short:             "Delete a specific instance group",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance/group"),
+		Run:               cloud.DeleteInstanceGroup,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	// Autobackup subcommands

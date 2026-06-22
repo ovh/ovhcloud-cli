@@ -32,17 +32,19 @@ func init() {
 
 	// Command to get a single CloudProject
 	cloudprojectCmd.AddCommand(&cobra.Command{
-		Use:   "get <project_id>",
-		Short: "Retrieve information of a specific cloud project",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.GetCloudProject,
+		Use:               "get <project_id>",
+		Short:             "Retrieve information of a specific cloud project",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/cloud/project"),
+		Run:               cloud.GetCloudProject,
 	})
 
 	editCloudProjectCmd := &cobra.Command{
-		Use:   "edit <project_id>",
-		Short: "Edit the given cloud project",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.EditCloudProject,
+		Use:               "edit <project_id>",
+		Short:             "Edit the given cloud project",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/cloud/project"),
+		Run:               cloud.EditCloudProject,
 	}
 	editCloudProjectCmd.Flags().StringVar(&cloud.CloudProjectSpec.Description, "description", "", "Description of the project")
 	editCloudProjectCmd.Flags().BoolVar(&cloud.CloudProjectSpec.ManualQuota, "manual-quota", false, "Prevent automatic quota upgrade")

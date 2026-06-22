@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/supporttickets"
 	"github.com/spf13/cobra"
 )
@@ -27,28 +28,31 @@ func init() {
 
 	// Command to get a single support ticket
 	supportticketsCmd.AddCommand(&cobra.Command{
-		Use:   "get <ticket_id>",
-		Short: "Retrieve information of a specific support ticket",
-		Args:  cobra.ExactArgs(1),
-		Run:   supporttickets.GetSupportTickets,
+		Use:               "get <ticket_id>",
+		Short:             "Retrieve information of a specific support ticket",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/support/tickets"),
+		Run:               supporttickets.GetSupportTickets,
 	})
 
 	// Command to list messages for a support ticket
 	supportticketsMessagesCmd := &cobra.Command{
-		Use:     "messages <ticket_id>",
-		Aliases: []string{"msgs"},
-		Short:   "List messages for a support ticket",
-		Args:    cobra.ExactArgs(1),
-		Run:     supporttickets.ListSupportTicketMessages,
+		Use:               "messages <ticket_id>",
+		Aliases:           []string{"msgs"},
+		Short:             "List messages for a support ticket",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/support/tickets"),
+		Run:               supporttickets.ListSupportTicketMessages,
 	}
 	supportticketsCmd.AddCommand(withFilterFlag(supportticketsMessagesCmd))
 
 	// Command to reply to a support ticket
 	supportticketsReplyCmd := &cobra.Command{
-		Use:   "reply <ticket_id>",
-		Short: "Reply to a support ticket",
-		Args:  cobra.ExactArgs(1),
-		Run:   supporttickets.ReplySupportTicket,
+		Use:               "reply <ticket_id>",
+		Short:             "Reply to a support ticket",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/support/tickets"),
+		Run:               supporttickets.ReplySupportTicket,
 	}
 	supportticketsReplyCmd.Flags().StringVar(&supporttickets.ReplySpec.Body, "body", "", "Text body of the ticket reply")
 	_ = supportticketsReplyCmd.MarkFlagRequired("body")

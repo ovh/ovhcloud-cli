@@ -67,6 +67,18 @@ func fetchIDSuggestions(endpoint string) ([]string, cobra.ShellCompDirective) {
 	}
 }
 
+// StaticValues returns a completion function suggesting a fixed set of values.
+// It is meant for positional arguments (or flags) that accept a known enum.
+func StaticValues(values ...string) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
+		// Only complete the first positional argument.
+		if len(args) > 0 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		return values, cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
 // ServiceList returns a completion function suggesting the identifiers listed at
 // the given API endpoint (e.g. "/v1/vps"). It is meant for positional arguments
 // that expect a service/resource identifier.

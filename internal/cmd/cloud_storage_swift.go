@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -25,17 +26,19 @@ func initCloudStorageSwiftCommand(cloudCmd *cobra.Command) {
 	storageSwiftCmd.AddCommand(withFilterFlag(storageSwiftListCmd))
 
 	storageSwiftCmd.AddCommand(&cobra.Command{
-		Use:   "get <container_id>",
-		Short: "Get a specific SWIFT storage container",
-		Run:   cloud.GetStorageSwift,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <container_id>",
+		Short:             "Get a specific SWIFT storage container",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/storage"),
+		Run:               cloud.GetStorageSwift,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	editCmd := &cobra.Command{
-		Use:   "edit <container_id>",
-		Short: "Edit the given SWIFT storage container",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.EditStorageSwift,
+		Use:               "edit <container_id>",
+		Short:             "Edit the given SWIFT storage container",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/storage"),
+		Run:               cloud.EditStorageSwift,
 	}
 	editCmd.Flags().StringVar(&cloud.CloudSwiftContainerType, "type", "", "Type of the SWIFT storage container (private, public, static)")
 	addInteractiveEditorFlag(editCmd)

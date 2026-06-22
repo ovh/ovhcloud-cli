@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/config"
 	"github.com/ovh/ovhcloud-cli/internal/services/profile"
 	"github.com/spf13/cobra"
@@ -39,6 +40,7 @@ func init() {
 		Example:               "ovhcloud config set-endpoint EU",
 		Use:                   "set-endpoint <region>",
 		Short:                 "Configure CLI to use the given API endpoint (EU, CA, US), or a specific URL (e.g. https://eu.api.ovh.com/v1)",
+		ValidArgsFunction:     completion.StaticValues("EU", "CA", "US"),
 		Run:                   config.SetEndpoint,
 		Args:                  cobra.ExactArgs(1),
 		DisableFlagsInUseLine: true,
