@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -169,7 +170,18 @@ func EditVolume(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, updated, "✅ Volume %s updated successfully", args[0])
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, updated, "⚡️ Volume %s update started", args[0])
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(endpoint, 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for volume update: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Volume %s updated successfully", args[0])
 }
 
 func CreateVolume(_ *cobra.Command, args []string) {
@@ -214,7 +226,20 @@ func CreateVolume(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Volume %s created successfully", response["id"])
+	volumeID, _ := response["id"].(string)
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Volume %s creation started", volumeID)
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", volumeV2Endpoint(projectID), url.PathEscape(volumeID)), 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for volume creation: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Volume %s created successfully", volumeID)
 }
 
 func DeleteVolume(_ *cobra.Command, args []string) {
@@ -304,7 +329,20 @@ func CreateVolumeSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot for volume %s created successfully, id : %s", args[0], response["id"])
+	snapshotID, _ := response["id"].(string)
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Snapshot %s creation started for volume %s", snapshotID, args[0])
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(snapshotID)), 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for snapshot creation: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Snapshot %s created successfully for volume %s", snapshotID, args[0])
 }
 
 func ListVolumeSnapshots(cmd *cobra.Command, _ []string) {
@@ -406,7 +444,20 @@ func CreateVolumeBackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Volume backup for volume %s created successfully (id: %s)", args[0], response["id"])
+	backupID, _ := response["id"].(string)
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Backup %s creation started for volume %s", backupID, args[0])
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(backupID)), 30*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for backup creation: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Volume backup %s created successfully for volume %s", backupID, args[0])
 }
 
 // findVolumeBackupV1 locates a volume backup across all regions using the v1 API.
