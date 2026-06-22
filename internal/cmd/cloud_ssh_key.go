@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -26,10 +27,11 @@ func initCloudSSHKeyCommand(cloudCmd *cobra.Command) {
 	sshKeyCmd.AddCommand(withFilterFlag(sshKeyListCmd))
 
 	sshKeyCmd.AddCommand(&cobra.Command{
-		Use:   "get <ssh_key_id>",
-		Short: "Get information about a SSH key",
-		Run:   cloud.GetCloudSSHKey,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <ssh_key_id>",
+		Short:             "Get information about a SSH key",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/sshkey"),
+		Run:               cloud.GetCloudSSHKey,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	sshKeyCreateCmd := &cobra.Command{
@@ -46,10 +48,11 @@ func initCloudSSHKeyCommand(cloudCmd *cobra.Command) {
 	sshKeyCmd.AddCommand(sshKeyCreateCmd)
 
 	sshKeyCmd.AddCommand(&cobra.Command{
-		Use:   "delete <ssh_key_id>",
-		Short: "Delete a SSH key",
-		Run:   cloud.DeleteCloudSSHKey,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <ssh_key_id>",
+		Short:             "Delete a SSH key",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/sshkey"),
+		Run:               cloud.DeleteCloudSSHKey,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	cloudCmd.AddCommand(sshKeyCmd)

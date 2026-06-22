@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -27,10 +28,11 @@ func initCloudRancherCommand(cloudCmd *cobra.Command) {
 	rancherCmd.AddCommand(withFilterFlag(rancherListCmd))
 
 	rancherCmd.AddCommand(&cobra.Command{
-		Use:   "get <rancher_id>",
-		Short: "Get a specific Rancher service",
-		Run:   cloud.GetRancher,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <rancher_id>",
+		Short:             "Get a specific Rancher service",
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/rancher"),
+		Run:               cloud.GetRancher,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	rancherCmd.AddCommand(getRancherEditCmd())
@@ -38,17 +40,19 @@ func initCloudRancherCommand(cloudCmd *cobra.Command) {
 	rancherCmd.AddCommand(getRancherCreateCmd())
 
 	rancherCmd.AddCommand(&cobra.Command{
-		Use:   "reset-admin-credentials <rancher_id>",
-		Short: "Reset admin user credentials",
-		Run:   cloud.ResetRancherAdminCredentials,
-		Args:  cobra.ExactArgs(1),
+		Use:               "reset-admin-credentials <rancher_id>",
+		Short:             "Reset admin user credentials",
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/rancher"),
+		Run:               cloud.ResetRancherAdminCredentials,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	rancherCmd.AddCommand(&cobra.Command{
-		Use:   "delete <rancher_id>",
-		Short: "Delete a specific Rancher service",
-		Run:   cloud.DeleteRancher,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <rancher_id>",
+		Short:             "Delete a specific Rancher service",
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/rancher"),
+		Run:               cloud.DeleteRancher,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	cloudCmd.AddCommand(rancherCmd)
@@ -56,10 +60,11 @@ func initCloudRancherCommand(cloudCmd *cobra.Command) {
 
 func getRancherEditCmd() *cobra.Command {
 	editRancherCmd := &cobra.Command{
-		Use:   "edit <rancher_id>",
-		Short: "Edit the given Rancher service",
-		Run:   cloud.EditRancher,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <rancher_id>",
+		Short:             "Edit the given Rancher service",
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/rancher"),
+		Run:               cloud.EditRancher,
+		Args:              cobra.ExactArgs(1),
 	}
 
 	editRancherCmd.Flags().StringVar(&cloud.RancherSpec.TargetSpec.Name, "name", "", "Name of the managed Rancher service")

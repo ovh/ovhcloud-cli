@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/okms"
 	"github.com/spf13/cobra"
 )
@@ -26,10 +27,11 @@ func init() {
 
 	// Command to get a single Okms
 	okmsCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific OKMS",
-		Args:  cobra.ExactArgs(1),
-		Run:   okms.GetOkms,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific OKMS",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v2/okms/resource"),
+		Run:               okms.GetOkms,
 	})
 
 	rootCmd.AddCommand(okmsCmd)

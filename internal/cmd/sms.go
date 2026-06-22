@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/sms"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single Sms
 	smsCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific SMS account",
-		Args:  cobra.ExactArgs(1),
-		Run:   sms.GetSms,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific SMS account",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/sms"),
+		Run:               sms.GetSms,
 	})
 
 	// Command to update a single Sms
 	smsEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given SMS account",
-		Args:  cobra.ExactArgs(1),
-		Run:   sms.EditSms,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given SMS account",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/sms"),
+		Run:               sms.EditSms,
 	}
 	smsEditCmd.Flags().IntVar(&sms.SmsSpec.AutomaticRecreditAmount, "automatic-recredit-amount", 0, "Amount for automatic recredit (100, 200, 250, 500, 1000, 5000, 10000)")
 	smsEditCmd.Flags().StringVar(&sms.SmsSpec.CallBack, "callback", "", "URL called when state of a sent SMS changes")

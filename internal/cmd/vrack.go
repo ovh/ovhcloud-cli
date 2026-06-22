@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single Vrack
 	vrackCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific vRack",
-		Args:  cobra.ExactArgs(1),
-		Run:   vrack.GetVrack,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific vRack",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/vrack"),
+		Run:               vrack.GetVrack,
 	})
 
 	// Command to update a single Vrack
 	vrackEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given vRack",
-		Args:  cobra.ExactArgs(1),
-		Run:   vrack.EditVrack,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given vRack",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/vrack"),
+		Run:               vrack.EditVrack,
 	}
 	vrackEditCmd.Flags().StringVar(&vrack.VrackSpec.Name, "name", "", "Name of the vRack")
 	vrackEditCmd.Flags().StringVar(&vrack.VrackSpec.Description, "description", "", "Description of the vRack")

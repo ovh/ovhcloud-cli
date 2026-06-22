@@ -8,6 +8,7 @@ import (
 	"runtime"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
@@ -156,40 +157,45 @@ func initInstanceCommand(cloudCmd *cobra.Command) {
 	instanceCmd.AddCommand(withFilterFlag(instanceListCmd))
 
 	instanceCmd.AddCommand(&cobra.Command{
-		Use:   "get <instance_id>",
-		Short: "Get a specific instance",
-		Run:   cloud.GetInstance,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <instance_id>",
+		Short:             "Get a specific instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.GetInstance,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	instanceCmd.AddCommand(getInstanceCreationCmd())
 
 	instanceCmd.AddCommand(&cobra.Command{
-		Use:   "delete <instance_id>",
-		Short: "Delete the given instance",
-		Run:   cloud.DeleteInstance,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <instance_id>",
+		Short:             "Delete the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.DeleteInstance,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	instanceCmd.AddCommand(&cobra.Command{
-		Use:   "set-name <instance_id> <new_name>",
-		Short: "Set the name of the given instance",
-		Run:   cloud.SetInstanceName,
-		Args:  cobra.ExactArgs(2),
+		Use:               "set-name <instance_id> <new_name>",
+		Short:             "Set the name of the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.SetInstanceName,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	instanceCmd.AddCommand(&cobra.Command{
-		Use:   "start <instance_id>",
-		Short: "Start the given instance",
-		Run:   cloud.StartInstance,
-		Args:  cobra.ExactArgs(1),
+		Use:               "start <instance_id>",
+		Short:             "Start the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.StartInstance,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	instanceCmd.AddCommand(&cobra.Command{
-		Use:   "stop <instance_id>",
-		Short: "Stop the given instance",
-		Run:   cloud.StopInstance,
-		Args:  cobra.ExactArgs(1),
+		Use:               "stop <instance_id>",
+		Short:             "Stop the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.StopInstance,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	instanceCmd.AddCommand(&cobra.Command{
@@ -199,8 +205,9 @@ func initInstanceCommand(cloudCmd *cobra.Command) {
 The data of the local storage will be stored, the duration of the operation depends on the size of the local disk.
 The instance can be unshelved at any time. Meanwhile hourly instances will not be billed.
 The Snapshot Storage used to store the instance's data will be billed.`,
-		Run:  cloud.ShelveInstance,
-		Args: cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.ShelveInstance,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	instanceCmd.AddCommand(&cobra.Command{
@@ -209,22 +216,25 @@ The Snapshot Storage used to store the instance's data will be billed.`,
 		Long: `The resources dedicated to the Public Cloud instance are restored.
 The duration of the operation depends on the size of the local disk.
 Instance billing will get back to normal and the snapshot used to store the instance's data will be deleted.`,
-		Run:  cloud.UnshelveInstance,
-		Args: cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.UnshelveInstance,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	instanceCmd.AddCommand(&cobra.Command{
-		Use:   "resume <instance_id>",
-		Short: "Resume the given suspended instance",
-		Run:   cloud.ResumeInstance,
-		Args:  cobra.ExactArgs(1),
+		Use:               "resume <instance_id>",
+		Short:             "Resume the given suspended instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.ResumeInstance,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	rebootCmd := &cobra.Command{
-		Use:   "reboot <instance_id>",
-		Short: "Reboot the given instance",
-		Run:   cloud.RebootInstance,
-		Args:  cobra.ExactArgs(1),
+		Use:               "reboot <instance_id>",
+		Short:             "Reboot the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.RebootInstance,
+		Args:              cobra.ExactArgs(1),
 	}
 	rebootCmd.Flags().StringVarP(&cloud.InstanceRebootType, "type", "t", "soft", "Reboot type: hard or soft (default is soft)")
 	instanceCmd.AddCommand(rebootCmd)
@@ -275,8 +285,9 @@ There are three ways to define the installation parameters:
 
 	ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --editor --image <image_id>
 `,
-		Run:  cloud.ReinstallInstance,
-		Args: cobra.MaximumNArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.ReinstallInstance,
+		Args:              cobra.MaximumNArgs(1),
 	}
 	addParameterFileFlags(reinstallCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", nil)
 	addInteractiveEditorFlag(reinstallCmd)
@@ -289,10 +300,11 @@ There are three ways to define the installation parameters:
 	instanceCmd.AddCommand(reinstallCmd)
 
 	instanceCmd.AddCommand(&cobra.Command{
-		Use:   "activate-monthly-billing <instance_id>",
-		Short: "Activate monthly billing for the given instance",
-		Run:   cloud.ActivateMonthlyBilling,
-		Args:  cobra.ExactArgs(1),
+		Use:               "activate-monthly-billing <instance_id>",
+		Short:             "Activate monthly billing for the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.ActivateMonthlyBilling,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	interfacesCommand := &cobra.Command{
@@ -302,58 +314,65 @@ There are three ways to define the installation parameters:
 	instanceCmd.AddCommand(interfacesCommand)
 
 	interfacesCommand.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <instance_id>",
-		Aliases: []string{"ls"},
-		Short:   "List interfaces of the given instance",
-		Run:     cloud.ListInstanceInterfaces,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <instance_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List interfaces of the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.ListInstanceInterfaces,
+		Args:              cobra.ExactArgs(1),
 	}))
 
 	interfacesCommand.AddCommand(&cobra.Command{
-		Use:   "get <instance_id> <interface_id>",
-		Short: "Get a specific interface of the given instance",
-		Run:   cloud.GetInstanceInterface,
-		Args:  cobra.ExactArgs(2),
+		Use:               "get <instance_id> <interface_id>",
+		Short:             "Get a specific interface of the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.GetInstanceInterface,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	interfacesCommand.AddCommand(&cobra.Command{
-		Use:   "create <instance_id> <network_id> <ip (optional)>",
-		Short: "Create interface on the given instance and attach it to a network",
-		Run:   cloud.CreateInstanceInterface,
-		Args:  cobra.RangeArgs(2, 3),
+		Use:               "create <instance_id> <network_id> <ip (optional)>",
+		Short:             "Create interface on the given instance and attach it to a network",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.CreateInstanceInterface,
+		Args:              cobra.RangeArgs(2, 3),
 	})
 
 	interfacesCommand.AddCommand(&cobra.Command{
-		Use:   "delete <instance_id> <interface_id>",
-		Short: "Delete a specific interface of the given instance",
-		Run:   cloud.DeleteInstanceInterface,
-		Args:  cobra.ExactArgs(2),
+		Use:               "delete <instance_id> <interface_id>",
+		Short:             "Delete a specific interface of the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.DeleteInstanceInterface,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	enableRescueCmd := &cobra.Command{
-		Use:   "reboot-rescue <instance_id>",
-		Short: "Reboot the given instance in rescue mode",
-		Run:   cloud.EnableInstanceInRescueMode,
-		Args:  cobra.ExactArgs(1),
+		Use:               "reboot-rescue <instance_id>",
+		Short:             "Reboot the given instance in rescue mode",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.EnableInstanceInRescueMode,
+		Args:              cobra.ExactArgs(1),
 	}
 	enableRescueCmd.Flags().StringVar(&cloud.InstanceImageID, "image", "", "Image to boot from")
 	enableRescueCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for instance to be in rescue mode before exiting")
 	instanceCmd.AddCommand(enableRescueCmd)
 
 	disableRescueCmd := &cobra.Command{
-		Use:   "exit-rescue <instance_id>",
-		Short: "Exit the given instance from rescue mode",
-		Run:   cloud.DisableInstanceRescueMode,
-		Args:  cobra.ExactArgs(1),
+		Use:               "exit-rescue <instance_id>",
+		Short:             "Exit the given instance from rescue mode",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.DisableInstanceRescueMode,
+		Args:              cobra.ExactArgs(1),
 	}
 	disableRescueCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for instance to have exited rescue mode before exiting")
 	instanceCmd.AddCommand(disableRescueCmd)
 
 	setFlavorCmd := &cobra.Command{
-		Use:   "set-flavor <instance_id> <flavor_id>",
-		Short: "Migrate the given instance to the specified flavor",
-		Run:   cloud.SetInstanceFlavor,
-		Args:  cobra.RangeArgs(1, 2),
+		Use:               "set-flavor <instance_id> <flavor_id>",
+		Short:             "Migrate the given instance to the specified flavor",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.SetInstanceFlavor,
+		Args:              cobra.RangeArgs(1, 2),
 	}
 	setFlavorCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for instance to run with the desired flavor before exiting")
 	setFlavorCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
@@ -366,10 +385,11 @@ There are three ways to define the installation parameters:
 	instanceCmd.AddCommand(backupCmd)
 
 	backupCreateCmd := &cobra.Command{
-		Use:   "create <instance_id> <backup_name>",
-		Short: "Create a backup of the given instance",
-		Run:   cloud.CreateInstanceBackup,
-		Args:  cobra.ExactArgs(2),
+		Use:               "create <instance_id> <backup_name>",
+		Short:             "Create a backup of the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.CreateInstanceBackup,
+		Args:              cobra.ExactArgs(2),
 	}
 	backupCreateCmd.Flags().StringVar(&cloud.InstanceBackupSpec.DistantSnapshotName, "distant-backup-name", "", "Name of the backup in the distant region (for cross region backup)")
 	backupCreateCmd.Flags().StringVar(&cloud.InstanceBackupSpec.DistantRegionName, "distant-region-name", "", "Name of the distant region (for cross region backup)")
@@ -377,10 +397,11 @@ There are three ways to define the installation parameters:
 	backupCmd.AddCommand(backupCreateCmd)
 
 	backupCmd.AddCommand(&cobra.Command{
-		Use:   "abort <instance_id>",
-		Short: "Abort the backup creation of the given instance",
-		Run:   cloud.AbortInstanceBackup,
-		Args:  cobra.ExactArgs(1),
+		Use:               "abort <instance_id>",
+		Short:             "Abort the backup creation of the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.AbortInstanceBackup,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	backupCmd.AddCommand(withFilterFlag(&cobra.Command{
@@ -451,25 +472,28 @@ There are three ways to define the installation parameters:
 	instanceCmd.AddCommand(autobackupCmd)
 
 	autobackupCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <instance_id>",
-		Aliases: []string{"ls"},
-		Short:   "List automatic backup workflows for the given instance",
-		Run:     cloud.ListAutobackups,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <instance_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List automatic backup workflows for the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.ListAutobackups,
+		Args:              cobra.ExactArgs(1),
 	}))
 
 	autobackupCmd.AddCommand(&cobra.Command{
-		Use:   "get <instance_id> <backup_workflow_id>",
-		Short: "Get details of an automatic backup workflow",
-		Run:   cloud.GetAutobackup,
-		Args:  cobra.ExactArgs(2),
+		Use:               "get <instance_id> <backup_workflow_id>",
+		Short:             "Get details of an automatic backup workflow",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.GetAutobackup,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	createAutobackupCmd := &cobra.Command{
-		Use:   "create <instance_id>",
-		Short: "Create an automatic backup workflow for the given instance",
-		Run:   cloud.CreateAutobackup,
-		Args:  cobra.ExactArgs(1),
+		Use:               "create <instance_id>",
+		Short:             "Create an automatic backup workflow for the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.CreateAutobackup,
+		Args:              cobra.ExactArgs(1),
 	}
 	createAutobackupCmd.Flags().StringVar(&cloud.AutobackupCreateParams.Cron, "cron", "", "Unix Cron pattern (e.g. '0 0 * * *')")
 	createAutobackupCmd.Flags().IntVar(&cloud.AutobackupCreateParams.Rotation, "rotation", 0, "Number of backups to keep")
@@ -480,19 +504,21 @@ There are three ways to define the installation parameters:
 	autobackupCmd.AddCommand(createAutobackupCmd)
 
 	autobackupCmd.AddCommand(&cobra.Command{
-		Use:   "delete <instance_id> <backup_workflow_id>",
-		Short: "Delete an automatic backup workflow",
-		Run:   cloud.DeleteAutobackup,
-		Args:  cobra.ExactArgs(2),
+		Use:               "delete <instance_id> <backup_workflow_id>",
+		Short:             "Delete an automatic backup workflow",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.DeleteAutobackup,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	// Application access subcommand
 	instanceCmd.AddCommand(&cobra.Command{
-		Use:   "application-access <instance_id>",
-		Short: "Get application access credentials for the given instance",
-		Long:  `Get the credentials to access the application installed on the given instance (e.g. WordPress, GitLab, etc.)`,
-		Run:   cloud.GetInstanceApplicationAccess,
-		Args:  cobra.ExactArgs(1),
+		Use:               "application-access <instance_id>",
+		Short:             "Get application access credentials for the given instance",
+		Long:              `Get the credentials to access the application installed on the given instance (e.g. WordPress, GitLab, etc.)`,
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance"),
+		Run:               cloud.GetInstanceApplicationAccess,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	cloudCmd.AddCommand(instanceCmd)

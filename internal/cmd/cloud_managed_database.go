@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -25,20 +26,22 @@ func initManagedDatabaseCommand(cloudCmd *cobra.Command) {
 	}))
 
 	managedDatabaseCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_id>",
-		Short: "Get a specific managed database service",
-		Run:   cloud.GetManagedDatabase,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <service_id>",
+		Short:             "Get a specific managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.GetManagedDatabase,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	managedDatabaseCmd.AddCommand(managedDatabaseCreationCmd())
 	managedDatabaseCmd.AddCommand(managedDatabaseEditCmd())
 
 	managedDatabaseCmd.AddCommand(&cobra.Command{
-		Use:   "delete <service_id>",
-		Short: "Delete a specific managed database service",
-		Run:   cloud.DeleteManagedDatabase,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <service_id>",
+		Short:             "Delete a specific managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.DeleteManagedDatabase,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	initManagedDatabaseDatabaseCommand(managedDatabaseCmd)
@@ -57,27 +60,30 @@ func initManagedDatabaseDatabaseCommand(managedDatabaseCmd *cobra.Command) {
 	}
 
 	databaseCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <service_id>",
-		Aliases: []string{"ls"},
-		Short:   "List all databases in the given managed database service",
-		Run:     cloud.ListManagedDatabaseDatabases,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <service_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List all databases in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.ListManagedDatabaseDatabases,
+		Args:              cobra.ExactArgs(1),
 	}))
 
 	databaseCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_id> <database_id>",
-		Short: "Get a specific database in the given managed database service",
-		Run:   cloud.GetManagedDatabaseDatabase,
-		Args:  cobra.ExactArgs(2),
+		Use:               "get <service_id> <database_id>",
+		Short:             "Get a specific database in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.GetManagedDatabaseDatabase,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	databaseCmd.AddCommand(managedDatabaseDatabaseCreateCmd())
 
 	databaseCmd.AddCommand(&cobra.Command{
-		Use:   "delete <service_id> <database_id>",
-		Short: "Delete a specific database in the given managed database service",
-		Run:   cloud.DeleteManagedDatabaseDatabase,
-		Args:  cobra.ExactArgs(2),
+		Use:               "delete <service_id> <database_id>",
+		Short:             "Delete a specific database in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.DeleteManagedDatabaseDatabase,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	managedDatabaseCmd.AddCommand(databaseCmd)
@@ -90,35 +96,39 @@ func initManagedDatabaseUserCommand(managedDatabaseCmd *cobra.Command) {
 	}
 
 	userCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <service_id>",
-		Aliases: []string{"ls"},
-		Short:   "List all users in the given managed database service",
-		Run:     cloud.ListManagedDatabaseUsers,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <service_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List all users in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.ListManagedDatabaseUsers,
+		Args:              cobra.ExactArgs(1),
 	}))
 
 	userCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_id> <user_id>",
-		Short: "Get a specific user in the given managed database service",
-		Run:   cloud.GetManagedDatabaseUser,
-		Args:  cobra.ExactArgs(2),
+		Use:               "get <service_id> <user_id>",
+		Short:             "Get a specific user in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.GetManagedDatabaseUser,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	userCmd.AddCommand(managedDatabaseUserCreateCmd())
 	userCmd.AddCommand(managedDatabaseUserEditCmd())
 
 	userCmd.AddCommand(&cobra.Command{
-		Use:   "delete <service_id> <user_id>",
-		Short: "Delete a specific user in the given managed database service",
-		Run:   cloud.DeleteManagedDatabaseUser,
-		Args:  cobra.ExactArgs(2),
+		Use:               "delete <service_id> <user_id>",
+		Short:             "Delete a specific user in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.DeleteManagedDatabaseUser,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	userCmd.AddCommand(&cobra.Command{
-		Use:   "credentials-reset <service_id> <user_id>",
-		Short: "Reset the credentials of a specific user in the given managed database service",
-		Run:   cloud.ResetManagedDatabaseUserCredentials,
-		Args:  cobra.ExactArgs(2),
+		Use:               "credentials-reset <service_id> <user_id>",
+		Short:             "Reset the credentials of a specific user in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.ResetManagedDatabaseUserCredentials,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	managedDatabaseCmd.AddCommand(userCmd)
@@ -142,10 +152,11 @@ func initManagedDatabaseCertificateCommand(managedDatabaseCmd *cobra.Command) {
 	}
 
 	certificateCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_id>",
-		Short: "Get certificates in the given managed database service",
-		Run:   cloud.GetManagedDatabaseCertificates,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <service_id>",
+		Short:             "Get certificates in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.GetManagedDatabaseCertificates,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	managedDatabaseCmd.AddCommand(certificateCmd)
@@ -158,25 +169,28 @@ func initManagedDatabaseBackupCommand(managedDatabaseCmd *cobra.Command) {
 	}
 
 	backupCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <service_id>",
-		Aliases: []string{"ls"},
-		Short:   "List all backups in the given managed database service",
-		Run:     cloud.ListManagedDatabaseBackups,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <service_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List all backups in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.ListManagedDatabaseBackups,
+		Args:              cobra.ExactArgs(1),
 	}))
 
 	backupCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_id> <backup_id>",
-		Short: "Get a specific backup in the given managed database service",
-		Run:   cloud.GetManagedDatabaseBackup,
-		Args:  cobra.ExactArgs(2),
+		Use:               "get <service_id> <backup_id>",
+		Short:             "Get a specific backup in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.GetManagedDatabaseBackup,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	backupCmd.AddCommand(&cobra.Command{
-		Use:   "restore <service_id> <backup_id>",
-		Short: "Restore a specific backup in the given managed database service",
-		Run:   cloud.RestoreManagedDatabaseBackup,
-		Args:  cobra.ExactArgs(2),
+		Use:               "restore <service_id> <backup_id>",
+		Short:             "Restore a specific backup in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.RestoreManagedDatabaseBackup,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	managedDatabaseCmd.AddCommand(backupCmd)
@@ -267,8 +281,9 @@ There are two ways to define the edition parameters:
 
 	ovhcloud cloud managed-database edit <service_id> --editor --description "My database cluster"
 `,
-		Run:  cloud.EditManagedDatabase,
-		Args: cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.EditManagedDatabase,
+		Args:              cobra.ExactArgs(1),
 	}
 
 	// Database details
@@ -299,8 +314,9 @@ func managedDatabaseDatabaseCreateCmd() *cobra.Command {
 
 	ovhcloud cloud managed-database database create <service_id> --name mydb
 `,
-		Run:  cloud.CreateManagedDatabaseDatabase,
-		Args: cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.CreateManagedDatabaseDatabase,
+		Args:              cobra.ExactArgs(1),
 	}
 
 	databaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseDatabaseSpec.Name, "name", "", "Name of the database to create")
@@ -338,8 +354,9 @@ There are two ways to define the creation parameters:
 
 	ovhcloud cloud managed-database user create <service_id> --name myuser --editor --roles role1,role2
 `,
-		Run:  cloud.CreateManagedDatabaseUser,
-		Args: cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.CreateManagedDatabaseUser,
+		Args:              cobra.ExactArgs(1),
 	}
 
 	userCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseUserSpec.Name, "name", "", "Name of the user to create")
@@ -385,8 +402,9 @@ There are two ways to define the edition parameters:
 
 	ovhcloud cloud managed-database user edit <service_id> <user_id> --editor --roles role1,role2
 `,
-		Run:  cloud.EditManagedDatabaseUser,
-		Args: cobra.ExactArgs(2),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.EditManagedDatabaseUser,
+		Args:              cobra.ExactArgs(2),
 	}
 
 	// PostgreSQL and MongoDB specific flags
@@ -405,11 +423,12 @@ There are two ways to define the edition parameters:
 
 func managedDatabaseRoleListCmd() *cobra.Command {
 	roleListCmd := &cobra.Command{
-		Use:     "list <service_id>",
-		Aliases: []string{"ls"},
-		Short:   "List roles in the given managed database service",
-		Run:     cloud.ListManagedDatabaseRoles,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <service_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List roles in the given managed database service",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		Run:               cloud.ListManagedDatabaseRoles,
+		Args:              cobra.ExactArgs(1),
 	}
 
 	// MongoDB specific flags

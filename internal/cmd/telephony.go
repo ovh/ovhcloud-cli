@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/telephony"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single Telephony
 	telephonyCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific Telephony service",
-		Args:  cobra.ExactArgs(1),
-		Run:   telephony.GetTelephony,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific Telephony service",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/telephony"),
+		Run:               telephony.GetTelephony,
 	})
 
 	// Command to update a single Telephony
 	telephonyEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given Telephony service",
-		Args:  cobra.ExactArgs(1),
-		Run:   telephony.EditTelephony,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given Telephony service",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/telephony"),
+		Run:               telephony.EditTelephony,
 	}
 	telephonyEditCmd.Flags().StringVar(&telephony.TelephonySpec.Description, "description", "", "Description of service")
 	telephonyEditCmd.Flags().BoolVar(&telephony.TelephonySpec.HiddenExternalNumber, "hidden-external-number", false, "Hide called numbers in end-of-month call details CSV")
