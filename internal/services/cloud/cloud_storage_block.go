@@ -9,11 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"time"
 
-	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
-	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
@@ -21,7 +18,32 @@ import (
 )
 
 var (
-	volumeColumnsToDisplay = []string{"id", "name", "region", "type", "status"}
+	volumeColumnsToDisplay = []string{
+		"id",
+		"currentState.name name",
+		"currentState.size size",
+		"currentState.volumeType type",
+		"currentState.status status",
+		"currentState.location.region region",
+	}
+
+	snapshotColumnsToDisplay = []string{
+		"id",
+		"currentState.name name",
+		"currentState.size size",
+		"currentState.volumeId volumeId",
+		"currentState.location.region region",
+		"resourceStatus status",
+	}
+
+	backupColumnsToDisplay = []string{
+		"id",
+		"currentState.name name",
+		"currentState.size size",
+		"currentState.volumeId volumeId",
+		"currentState.location.region region",
+		"resourceStatus status",
+	}
 
 	//go:embed templates/cloud_volume.tmpl
 	volumeTemplate string
@@ -54,6 +76,29 @@ var (
 	}
 )
 
+// volumeV2Endpoint returns the project-scoped v2 block storage volume endpoint.
+func volumeV2Endpoint(projectID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/storage/block/volume", projectID)
+}
+
+// getVolumeLocation fetches the location (region/availability zone) of a volume,
+// required to create project-scoped snapshots and backups in the v2 API.
+func getVolumeLocation(projectID, volumeID string) (map[string]any, error) {
+	var volume struct {
+		CurrentState struct {
+			Location map[string]any `json:"location"`
+		} `json:"currentState"`
+	}
+	endpoint := fmt.Sprintf("%s/%s", volumeV2Endpoint(projectID), url.PathEscape(volumeID))
+	if err := httpLib.Client.Get(endpoint, &volume); err != nil {
+		return nil, err
+	}
+	if len(volume.CurrentState.Location) == 0 {
+		return nil, fmt.Errorf("could not determine location of volume %s", volumeID)
+	}
+	return volume.CurrentState.Location, nil
+}
+
 func ListCloudVolumes(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -61,7 +106,7 @@ func ListCloudVolumes(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequestNoExpand(fmt.Sprintf("/v1/cloud/project/%s/volume", projectID), volumeColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequestNoExpand(volumeV2Endpoint(projectID), volumeColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetVolume(_ *cobra.Command, args []string) {
@@ -71,74 +116,105 @@ func GetVolume(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/volume", projectID), args[0], volumeTemplate)
+	common.ManageObjectRequest(volumeV2Endpoint(projectID), args[0], volumeTemplate)
 }
 
-func EditVolume(cmd *cobra.Command, args []string) {
+func EditVolume(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	// Fetch the volume to get its region for the region-scoped endpoint
-	var volume map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
-		&volume,
-	); err != nil {
+	endpoint := fmt.Sprintf("%s/%s", volumeV2Endpoint(projectID), url.PathEscape(args[0]))
+
+	// The v2 update requires the current checksum (optimistic locking) and a full
+	// target spec, so fetch the volume first and use its values as defaults.
+	var volume struct {
+		Checksum     string `json:"checksum"`
+		CurrentState struct {
+			Name       string `json:"name"`
+			Size       int    `json:"size"`
+			VolumeType string `json:"volumeType"`
+		} `json:"currentState"`
+	}
+	if err := httpLib.Client.Get(endpoint, &volume); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume: %s", err)
 		return
 	}
 
-	region := volume["region"].(string)
-	if err := common.EditResource(
-		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/volume/{volumeId}",
-		fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume/%s", projectID, url.PathEscape(region), url.PathEscape(args[0])),
-		VolumeEditSpec,
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+	targetSpec := map[string]any{
+		"name":       volume.CurrentState.Name,
+		"size":       volume.CurrentState.Size,
+		"volumeType": volume.CurrentState.VolumeType,
+	}
+	if VolumeEditSpec.Name != "" {
+		targetSpec["name"] = VolumeEditSpec.Name
+	}
+	if VolumeEditSpec.Size != 0 {
+		targetSpec["size"] = VolumeEditSpec.Size
+	}
+	if VolumeEditSpec.Type != "" {
+		targetSpec["volumeType"] = VolumeEditSpec.Type
+	}
+
+	body := map[string]any{
+		"checksum":   volume.Checksum,
+		"targetSpec": targetSpec,
+	}
+
+	var updated map[string]any
+	if err := httpLib.Client.Put(endpoint, body, &updated); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to update volume: %s", err)
 		return
 	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, updated, "✅ Volume %s updated successfully", args[0])
 }
 
-func CreateVolume(cmd *cobra.Command, args []string) {
+func CreateVolume(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume", projectID, url.PathEscape(args[0]))
-	task, err := common.CreateResource(
-		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/volume",
-		endpoint,
-		VolumeCreateExample,
-		VolumeSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"name", "size", "type"},
-	)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+	// args[0] is the region; it goes into the target spec location in the v2 API.
+	location := map[string]any{"region": args[0]}
+	if VolumeSpec.AvailabilityZone != "" {
+		location["availabilityZone"] = VolumeSpec.AvailabilityZone
+	}
+
+	targetSpec := map[string]any{
+		"name":     VolumeSpec.Name,
+		"size":     VolumeSpec.Size,
+		"location": location,
+	}
+	if VolumeSpec.Type != "" {
+		targetSpec["volumeType"] = VolumeSpec.Type
+	}
+
+	createFrom := map[string]any{}
+	if VolumeSpec.BackupId != "" {
+		createFrom["backupId"] = VolumeSpec.BackupId
+	}
+	if VolumeSpec.ImageId != "" {
+		createFrom["imageId"] = VolumeSpec.ImageId
+	}
+	if VolumeSpec.SnapshotId != "" {
+		createFrom["snapshotId"] = VolumeSpec.SnapshotId
+	}
+	if len(createFrom) > 0 {
+		targetSpec["createFrom"] = createFrom
+	}
+
+	var response map[string]any
+	if err := httpLib.Client.Post(volumeV2Endpoint(projectID), map[string]any{"targetSpec": targetSpec}, &response); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create volume: %s", err)
 		return
 	}
 
-	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, task, `⚡️ Volume creation started successfully (operation ID: %s)
-You can check the status of the operation with: 'ovhcloud cloud operation get %[1]s'`, task["id"])
-		return
-	}
-
-	volumeID, err := waitForCloudOperation(projectID, task["id"].(string), "ablockstorage.CreateVolume", 10*time.Minute)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for volume creation: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s created successfully", volumeID)
+	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Volume %s created successfully", response["id"])
 }
 
 func DeleteVolume(_ *cobra.Command, args []string) {
@@ -148,7 +224,7 @@ func DeleteVolume(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("%s/%s", volumeV2Endpoint(projectID), url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete volume: %s", err)
 		return
@@ -157,6 +233,8 @@ func DeleteVolume(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s deleted successfully", args[0])
 }
 
+// AttachVolumeToInstance still uses the v1 API: the v2 block storage API does not
+// expose a dedicated attach endpoint yet.
 func AttachVolumeToInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -176,6 +254,8 @@ func AttachVolumeToInstance(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s attached to instance %s successfully", args[0], args[1])
 }
 
+// DetachVolumeFromInstance still uses the v1 API: the v2 block storage API does
+// not expose a dedicated detach endpoint yet.
 func DetachVolumeFromInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -202,12 +282,24 @@ func CreateVolumeSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	var (
-		endpoint = fmt.Sprintf("/v1/cloud/project/%s/volume/%s/snapshot", projectID, url.PathEscape(args[0]))
-		response map[string]any
-	)
+	location, err := getVolumeLocation(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume: %s", err)
+		return
+	}
 
-	if err := httpLib.Client.Post(endpoint, VolumeSnapShotSpec, &response); err != nil {
+	targetSpec := map[string]any{
+		"name":     VolumeSnapShotSpec.Name,
+		"volumeId": args[0],
+		"location": location,
+	}
+	if VolumeSnapShotSpec.Description != "" {
+		targetSpec["description"] = VolumeSnapShotSpec.Description
+	}
+
+	var response map[string]any
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/block/snapshot", projectID)
+	if err := httpLib.Client.Post(endpoint, map[string]any{"targetSpec": targetSpec}, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create snapshot: %s", err)
 		return
 	}
@@ -215,14 +307,12 @@ func CreateVolumeSnapshot(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot for volume %s created successfully, id : %s", args[0], response["id"])
 }
 
-func ListVolumeSnapshots(cmd *cobra.Command, args []string) {
+func ListVolumeSnapshots(cmd *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/snapshot", projectID)
 
 	volume, err := cmd.Flags().GetString("volume-id")
 	if err != nil {
@@ -230,10 +320,11 @@ func ListVolumeSnapshots(cmd *cobra.Command, args []string) {
 		return
 	}
 	if volume != "" {
-		flags.GenericFilters = append(flags.GenericFilters, fmt.Sprintf("volumeId==%q", volume))
+		flags.GenericFilters = append(flags.GenericFilters, fmt.Sprintf("currentState.volumeId==%q", volume))
 	}
 
-	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "region", "description", "status"}, flags.GenericFilters)
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/block/snapshot", projectID)
+	common.ManageListRequestNoExpand(endpoint, snapshotColumnsToDisplay, flags.GenericFilters)
 }
 
 func DeleteVolumeSnapshot(_ *cobra.Command, args []string) {
@@ -243,7 +334,7 @@ func DeleteVolumeSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/snapshot/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/block/snapshot/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete snapshot: %s", err)
 		return
@@ -252,90 +343,35 @@ func DeleteVolumeSnapshot(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot %s deleted successfully", args[0])
 }
 
-
-func findVolumeBackup(backupId string) (string, map[string]any, error) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		return "", nil, err
-	}
-
-	// Fetch regions with volume feature available
-	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "volume")
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to fetch regions with volume feature available: %s", err)
-	}
-
-	// Search for the given backup in all regions
-	// TODO: speed up with parallel search or by adding a required region argument
-	for _, region := range regions {
-		var (
-			volumeBackup map[string]any
-			endpoint     = fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup/%s",
-				projectID, url.PathEscape(region.(string)), url.PathEscape(backupId))
-		)
-		if err := httpLib.Client.Get(endpoint, &volumeBackup); err == nil {
-			return endpoint, volumeBackup, nil
-		}
-	}
-
-	return "", nil, errors.New("no volume backup found with given ID")
-}
-
-func ListVolumeBackups(_ *cobra.Command, args []string) {
+func ListVolumeBackups(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	// Fetch regions with volume feature available
-	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "volume")
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch regions with volume feature available: %s", err)
-		return
-	}
-
-	// Fetch volumes in all regions
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
-	volumeBackups, err := httpLib.FetchObjectsParallel[[]map[string]any](endpoint+"/%s/volumeBackup", regions, true)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume backups: %s", err)
-		return
-	}
-
-	// Flatten volumes in a single array
-	var allVolumeBackups []map[string]any
-	for _, regionVolumes := range volumeBackups {
-		allVolumeBackups = append(allVolumeBackups, regionVolumes...)
-	}
-
-	// Filter results
-	allVolumeBackups, err = filtersLib.FilterLines(allVolumeBackups, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(allVolumeBackups, []string{"id", "name", "region", "status"}, &flags.OutputFormatConfig)
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/block/backup", projectID)
+	common.ManageListRequestNoExpand(endpoint, backupColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetVolumeBackup(_ *cobra.Command, args []string) {
-	_, backup, err := findVolumeBackup(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	display.OutputObject(backup, args[0], "", &flags.OutputFormatConfig)
+	common.ManageObjectRequest(fmt.Sprintf("/v2/publicCloud/project/%s/storage/block/backup", projectID), args[0], "")
 }
 
 func DeleteVolumeBackup(_ *cobra.Command, args []string) {
-	endpoint, _, err := findVolumeBackup(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/block/backup/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete volume backup: %s", err)
 		return
@@ -344,33 +380,28 @@ func DeleteVolumeBackup(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume backup %s deleted successfully", args[0])
 }
 
-func CreateVolumeBackup(cmd *cobra.Command, args []string) {
+func CreateVolumeBackup(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	// Fetch volume to get its region
-	var volume map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
-		&volume,
-	); err != nil {
+	location, err := getVolumeLocation(projectID, args[0])
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume: %s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup", projectID, url.PathEscape(volume["region"].(string)))
+	targetSpec := map[string]any{
+		"name":     args[1],
+		"volumeId": args[0],
+		"location": location,
+	}
 
-	var (
-		response map[string]any
-		body     = map[string]string{
-			"volumeId": args[0],
-			"name":     args[1],
-		}
-	)
-	if err := httpLib.Client.Post(endpoint, body, &response); err != nil {
+	var response map[string]any
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/block/backup", projectID)
+	if err := httpLib.Client.Post(endpoint, map[string]any{"targetSpec": targetSpec}, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create volume backup: %s", err)
 		return
 	}
@@ -378,8 +409,38 @@ func CreateVolumeBackup(cmd *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Volume backup for volume %s created successfully (id: %s)", args[0], response["id"])
 }
 
+// findVolumeBackupV1 locates a volume backup across all regions using the v1 API.
+// It is still used by operations that have no v2 equivalent yet (restore and
+// create-volume-from-backup).
+func findVolumeBackupV1(backupId string) (string, error) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		return "", err
+	}
+
+	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "volume")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch regions with volume feature available: %s", err)
+	}
+
+	for _, region := range regions {
+		var (
+			volumeBackup map[string]any
+			endpoint     = fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup/%s",
+				projectID, url.PathEscape(region.(string)), url.PathEscape(backupId))
+		)
+		if err := httpLib.Client.Get(endpoint, &volumeBackup); err == nil {
+			return endpoint, nil
+		}
+	}
+
+	return "", errors.New("no volume backup found with given ID")
+}
+
+// RestoreVolumeBackup still uses the v1 API: the v2 block storage API does not
+// expose a restore endpoint yet.
 func RestoreVolumeBackup(_ *cobra.Command, args []string) {
-	endpoint, _, err := findVolumeBackup(args[0])
+	endpoint, err := findVolumeBackupV1(args[0])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -397,21 +458,19 @@ func RestoreVolumeBackup(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume backup %s is being restored to volume %s", args[0], args[1])
 }
 
-func CreateVolumeFromBackup(cmd *cobra.Command, args []string) {
-	endpoint, _, err := findVolumeBackup(args[0])
+// CreateVolumeFromBackup still uses the v1 API: the v2 block storage API does not
+// expose this operation yet.
+func CreateVolumeFromBackup(_ *cobra.Command, args []string) {
+	endpoint, err := findVolumeBackupV1(args[0])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	body := map[string]string{
-		"name": args[1],
-	}
-
 	var response map[string]any
 	if err := httpLib.Client.Post(
 		endpoint+"/volume",
-		body,
+		map[string]string{"name": args[1]},
 		&response,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create volume from backup: %s", err)
