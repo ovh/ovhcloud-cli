@@ -30,6 +30,7 @@ Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, O
 ### SEE ALSO
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
+* [ovhcloud cloud ai](ovhcloud_cloud_ai.md)	 - Manage AI Endpoints settings for your cloud project
 * [ovhcloud cloud alerting](ovhcloud_cloud_alerting.md)	 - Manage billing alert configurations in the given cloud project
 * [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
 * [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
