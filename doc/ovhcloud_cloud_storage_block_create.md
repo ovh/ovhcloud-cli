@@ -22,7 +22,7 @@ ovhcloud cloud storage block create <region> [flags]
       --replace                    Replace parameters file if it already exists
       --size int                   Volume size (in GB)
       --snapshot-id string         Snapshot ID to create the volume from
-      --type string                Volume type (classic, classic-luks, classic-multiattach, high-speed, high-speed-gen2, high-speed-gen2-luks, high-speed-luks)
+      --type string                Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)
       --wait                       Wait for volume creation to be done before exiting
 ```
 
