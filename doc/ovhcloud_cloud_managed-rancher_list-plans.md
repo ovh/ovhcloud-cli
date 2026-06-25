@@ -1,9 +1,9 @@
-## ovhcloud cloud reference managed-database list-node-flavors
+## ovhcloud cloud managed-rancher list-plans
 
-List available database node flavors in the given cloud project
+List available Rancher plans in the given cloud project
 
 ```
-ovhcloud cloud reference managed-database list-node-flavors [flags]
+ovhcloud cloud managed-rancher list-plans [flags]
 ```
 
 ### Options
@@ -16,7 +16,8 @@ ovhcloud cloud reference managed-database list-node-flavors [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-node-flavors
+  -h, --help                 help for list-plans
+  -r, --rancher-id string    Rancher service ID to filter available plans
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +42,5 @@ ovhcloud cloud reference managed-database list-node-flavors [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference managed-database](ovhcloud_cloud_reference_managed-database.md)	 - Fetch managed database reference data in the given cloud project
+* [ovhcloud cloud managed-rancher](ovhcloud_cloud_managed-rancher.md)	 - Manage Rancher services in the given cloud project
 

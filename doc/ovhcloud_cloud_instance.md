@@ -42,6 +42,8 @@ Manage instances in the given cloud project
 * [ovhcloud cloud instance group](ovhcloud_cloud_instance_group.md)	 - Manage instance groups
 * [ovhcloud cloud instance interface](ovhcloud_cloud_instance_interface.md)	 - Manage interfaces of the given instance
 * [ovhcloud cloud instance list](ovhcloud_cloud_instance_list.md)	 - List your instances
+* [ovhcloud cloud instance list-flavors](ovhcloud_cloud_instance_list-flavors.md)	 - List available flavors in the given cloud project
+* [ovhcloud cloud instance list-images](ovhcloud_cloud_instance_list-images.md)	 - List available images in the given cloud project
 * [ovhcloud cloud instance reboot](ovhcloud_cloud_instance_reboot.md)	 - Reboot the given instance
 * [ovhcloud cloud instance reboot-rescue](ovhcloud_cloud_instance_reboot-rescue.md)	 - Reboot the given instance in rescue mode
 * [ovhcloud cloud instance reinstall](ovhcloud_cloud_instance_reinstall.md)	 - Reinstall the given instance

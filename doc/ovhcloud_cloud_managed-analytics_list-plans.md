@@ -1,9 +1,9 @@
-## ovhcloud cloud reference managed-rancher list-versions
+## ovhcloud cloud managed-analytics list-plans
 
-List available Rancher versions in the given cloud project
+List available analytics plans in the given cloud project
 
 ```
-ovhcloud cloud reference managed-rancher list-versions [flags]
+ovhcloud cloud managed-analytics list-plans [flags]
 ```
 
 ### Options
@@ -16,8 +16,7 @@ ovhcloud cloud reference managed-rancher list-versions [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-versions
-  -r, --rancher-id string    Rancher service ID to filter available versions
+  -h, --help                 help for list-plans
 ```
 
 ### Options inherited from parent commands
@@ -42,5 +41,5 @@ ovhcloud cloud reference managed-rancher list-versions [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference managed-rancher](ovhcloud_cloud_reference_managed-rancher.md)	 - Fetch Rancher reference data in the given cloud project
+* [ovhcloud cloud managed-analytics](ovhcloud_cloud_managed-analytics.md)	 - Manage managed analytics services in the given cloud project
 

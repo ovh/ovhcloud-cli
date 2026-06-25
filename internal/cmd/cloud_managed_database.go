@@ -47,6 +47,28 @@ func initManagedDatabaseCommand(cloudCmd *cobra.Command) {
 	initManagedDatabaseCertificateCommand(managedDatabaseCmd)
 	initManagedDatabaseBackupCommand(managedDatabaseCmd)
 
+	// Reference data commands
+	managedDatabaseCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-plans",
+		Short: "List available database plans in the given cloud project",
+		Run:   cloud.ListManagedDatabasePlans,
+		Args:  cobra.NoArgs,
+	}))
+
+	managedDatabaseCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-node-flavors",
+		Short: "List available database node flavors in the given cloud project",
+		Run:   cloud.ListManagedDatabaseNodeFlavors,
+		Args:  cobra.NoArgs,
+	}))
+
+	managedDatabaseCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-engines",
+		Short: "List available database engines in the given cloud project",
+		Run:   cloud.ListManagedDatabaseEngines,
+		Args:  cobra.NoArgs,
+	}))
+
 	cloudCmd.AddCommand(managedDatabaseCmd)
 }
 

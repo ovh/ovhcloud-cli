@@ -1,9 +1,9 @@
-## ovhcloud cloud reference managed-registry list-plans
+## ovhcloud cloud managed-database list-plans
 
-List available container registry plans in the given cloud project
+List available database plans in the given cloud project
 
 ```
-ovhcloud cloud reference managed-registry list-plans [flags]
+ovhcloud cloud managed-database list-plans [flags]
 ```
 
 ### Options
@@ -41,5 +41,5 @@ ovhcloud cloud reference managed-registry list-plans [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference managed-registry](ovhcloud_cloud_reference_managed-registry.md)	 - Fetch container registry reference data in the given cloud project
+* [ovhcloud cloud managed-database](ovhcloud_cloud_managed-database.md)	 - Manage managed database services in the given cloud project
 

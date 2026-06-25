@@ -1,9 +1,9 @@
-## ovhcloud cloud reference managed-database list-engines
+## ovhcloud cloud instance list-images
 
-List available database engines in the given cloud project
+List available images in the given cloud project
 
 ```
-ovhcloud cloud reference managed-database list-engines [flags]
+ovhcloud cloud instance list-images [flags]
 ```
 
 ### Options
@@ -16,7 +16,9 @@ ovhcloud cloud reference managed-database list-engines [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-engines
+  -h, --help                 help for list-images
+  -t, --os-type string       OS type to filter images (baremetal-linux, bsd, linux, windows)
+  -r, --region string        Region to filter images (e.g., GRA9, BHS5)
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +43,5 @@ ovhcloud cloud reference managed-database list-engines [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference managed-database](ovhcloud_cloud_reference_managed-database.md)	 - Fetch managed database reference data in the given cloud project
+* [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
 

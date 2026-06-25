@@ -1,9 +1,9 @@
-## ovhcloud cloud reference managed-analytics list-engines
+## ovhcloud cloud instance list-flavors
 
-List available analytics engines in the given cloud project
+List available flavors in the given cloud project
 
 ```
-ovhcloud cloud reference managed-analytics list-engines [flags]
+ovhcloud cloud instance list-flavors [flags]
 ```
 
 ### Options
@@ -16,7 +16,8 @@ ovhcloud cloud reference managed-analytics list-engines [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-engines
+  -h, --help                 help for list-flavors
+  -r, --region string        Region to filter flavors (e.g., GRA9, BHS5)
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +42,5 @@ ovhcloud cloud reference managed-analytics list-engines [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference managed-analytics](ovhcloud_cloud_reference_managed-analytics.md)	 - Fetch managed analytics reference data in the given cloud project
+* [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
 

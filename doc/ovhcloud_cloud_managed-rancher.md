@@ -36,5 +36,7 @@ Manage Rancher services in the given cloud project
 * [ovhcloud cloud managed-rancher edit](ovhcloud_cloud_managed-rancher_edit.md)	 - Edit the given Rancher service
 * [ovhcloud cloud managed-rancher get](ovhcloud_cloud_managed-rancher_get.md)	 - Get a specific Rancher service
 * [ovhcloud cloud managed-rancher list](ovhcloud_cloud_managed-rancher_list.md)	 - List Rancher services
+* [ovhcloud cloud managed-rancher list-plans](ovhcloud_cloud_managed-rancher_list-plans.md)	 - List available Rancher plans in the given cloud project
+* [ovhcloud cloud managed-rancher list-versions](ovhcloud_cloud_managed-rancher_list-versions.md)	 - List available Rancher versions in the given cloud project
 * [ovhcloud cloud managed-rancher reset-admin-credentials](ovhcloud_cloud_managed-rancher_reset-admin-credentials.md)	 - Reset admin user credentials
 

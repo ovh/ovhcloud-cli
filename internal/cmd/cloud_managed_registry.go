@@ -69,6 +69,21 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 	initContainerRegistryOIDCCommand(registryCmd)
 	initContainerRegistryPlanCommand(registryCmd)
 
+	// Reference data commands
+	registryCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-plans",
+		Short: "List available container registry plans in the given cloud project",
+		Run:   cloud.ListContainerRegistryPlans,
+		Args:  cobra.NoArgs,
+	}))
+
+	registryCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-regions",
+		Short: "List available container registry regions in the given cloud project",
+		Run:   cloud.ListContainerRegistryRegions,
+		Args:  cobra.NoArgs,
+	}))
+
 	cloudCmd.AddCommand(registryCmd)
 }
 

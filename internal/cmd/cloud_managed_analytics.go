@@ -50,6 +50,28 @@ func initManagedAnalyticsCommand(cloudCmd *cobra.Command) {
 	initManagedAnalyticsTopicCommand(managedAnalyticsCmd)
 	initManagedAnalyticsTopicACLCommand(managedAnalyticsCmd)
 
+	// Reference data commands
+	managedAnalyticsCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-plans",
+		Short: "List available analytics plans in the given cloud project",
+		Run:   cloud.ListManagedAnalyticsPlans,
+		Args:  cobra.NoArgs,
+	}))
+
+	managedAnalyticsCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-node-flavors",
+		Short: "List available analytics node flavors in the given cloud project",
+		Run:   cloud.ListManagedAnalyticsNodeFlavors,
+		Args:  cobra.NoArgs,
+	}))
+
+	managedAnalyticsCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-engines",
+		Short: "List available analytics engines in the given cloud project",
+		Run:   cloud.ListManagedAnalyticsEngines,
+		Args:  cobra.NoArgs,
+	}))
+
 	cloudCmd.AddCommand(managedAnalyticsCmd)
 }
 

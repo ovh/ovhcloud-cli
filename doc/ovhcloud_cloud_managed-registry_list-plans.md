@@ -1,9 +1,9 @@
-## ovhcloud cloud reference managed-rancher list-plans
+## ovhcloud cloud managed-registry list-plans
 
-List available Rancher plans in the given cloud project
+List available container registry plans in the given cloud project
 
 ```
-ovhcloud cloud reference managed-rancher list-plans [flags]
+ovhcloud cloud managed-registry list-plans [flags]
 ```
 
 ### Options
@@ -17,7 +17,6 @@ ovhcloud cloud reference managed-rancher list-plans [flags]
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
   -h, --help                 help for list-plans
-  -r, --rancher-id string    Rancher service ID to filter available plans
 ```
 
 ### Options inherited from parent commands
@@ -42,5 +41,5 @@ ovhcloud cloud reference managed-rancher list-plans [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference managed-rancher](ovhcloud_cloud_reference_managed-rancher.md)	 - Fetch Rancher reference data in the given cloud project
+* [ovhcloud cloud managed-registry](ovhcloud_cloud_managed-registry.md)	 - Manage container registries in the given cloud project
 
