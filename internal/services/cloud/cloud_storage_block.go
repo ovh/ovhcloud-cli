@@ -508,25 +508,3 @@ func RestoreVolumeBackup(_ *cobra.Command, args []string) {
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume backup %s is being restored to volume %s", args[0], args[1])
 }
-
-// CreateVolumeFromBackup still uses the v1 API: the v2 block storage API does not
-// expose this operation yet.
-func CreateVolumeFromBackup(_ *cobra.Command, args []string) {
-	endpoint, err := findVolumeBackupV1(args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	var response map[string]any
-	if err := httpLib.Client.Post(
-		endpoint+"/volume",
-		map[string]string{"name": args[1]},
-		&response,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to create volume from backup: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Volume %s created successfully from backup %s", response["id"], args[0])
-}

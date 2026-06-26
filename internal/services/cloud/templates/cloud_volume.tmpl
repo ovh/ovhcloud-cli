@@ -1,8 +1,8 @@
 🚀 Volume {{.ServiceName}}
 =======
-
+{{if index .Result "currentState" "description"}}
 _{{index .Result "currentState" "description"}}_
-
+{{end}}
 ## General information
 
 **Status**:        {{index .Result "resourceStatus"}}
@@ -13,13 +13,13 @@ _{{index .Result "currentState" "description"}}_
 
 **Name**:               {{index .Result "currentState" "name"}}
 **Region**:             {{index .Result "currentState" "location" "region"}}
-**Availability zone**:  {{index .Result "currentState" "location" "availabilityZone"}}
-**Type**:               {{index .Result "currentState" "volumeType"}}
+{{if index .Result "currentState" "location" "availabilityZone"}}**Availability zone**:  {{index .Result "currentState" "location" "availabilityZone"}}
+{{end}}**Type**:               {{index .Result "currentState" "volumeType"}}
 **Status**:             {{index .Result "currentState" "status"}}
 **Size**:               {{index .Result "currentState" "size"}}GB
 **Bootable**:           {{index .Result "currentState" "bootable"}}
-**Attached instances**: {{index .Result "currentState" "attachedInstances"}}
-
+{{if index .Result "currentState" "attachedInstances"}}**Attached instances**: {{index .Result "currentState" "attachedInstances"}}
+{{end}}
 ## Target state
 
 **Name**: {{index .Result "targetSpec" "name"}}

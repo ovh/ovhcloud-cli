@@ -150,13 +150,6 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(2),
 	})
 
-	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "create-from-backup <backup_id> <volume_name>",
-		Short: "Create a volume from the given backup",
-		Run:   cloud.CreateVolumeFromBackup,
-		Args:  cobra.ExactArgs(2),
-	})
-
 	cloudCmd.AddCommand(storageBlockCmd)
 }
 

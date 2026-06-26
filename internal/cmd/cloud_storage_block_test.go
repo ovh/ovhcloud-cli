@@ -61,6 +61,9 @@ func (ms *MockSuite) TestCloudStorageBlockGetCmd(assert, require *td.T) {
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("vol-1"))
 	assert.Cmp(out, td.Contains("test-volume"))
+	// Optional fields absent from the response (description, availabilityZone,
+	// attachedInstances) must not leak Go's "<no value>" placeholder.
+	assert.Cmp(out, td.Not(td.Contains("<no value>")))
 }
 
 func (ms *MockSuite) TestCloudStorageBlockDeleteCmd(assert, require *td.T) {
