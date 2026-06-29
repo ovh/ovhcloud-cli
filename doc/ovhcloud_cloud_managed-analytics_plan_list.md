@@ -1,9 +1,9 @@
-## ovhcloud cloud reference loadbalancer list-flavors
+## ovhcloud cloud managed-analytics plan list
 
-List available loadbalancer flavors in the given cloud project
+List available analytics plans in the given cloud project
 
 ```
-ovhcloud cloud reference loadbalancer list-flavors <region (GRA9, BHS5, ...)> [flags]
+ovhcloud cloud managed-analytics plan list [flags]
 ```
 
 ### Options
@@ -16,7 +16,7 @@ ovhcloud cloud reference loadbalancer list-flavors <region (GRA9, BHS5, ...)> [f
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-flavors
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +41,5 @@ ovhcloud cloud reference loadbalancer list-flavors <region (GRA9, BHS5, ...)> [f
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference loadbalancer](ovhcloud_cloud_reference_loadbalancer.md)	 - Fetch loadbalancer reference data in the given cloud project
+* [ovhcloud cloud managed-analytics plan](ovhcloud_cloud_managed-analytics_plan.md)	 - List available analytics plans in the given cloud project
 

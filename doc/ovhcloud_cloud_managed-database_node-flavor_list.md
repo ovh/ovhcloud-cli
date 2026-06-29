@@ -1,9 +1,9 @@
-## ovhcloud cloud reference managed-database list-plans
+## ovhcloud cloud managed-database node-flavor list
 
-List available database plans in the given cloud project
+List available database node flavors in the given cloud project
 
 ```
-ovhcloud cloud reference managed-database list-plans [flags]
+ovhcloud cloud managed-database node-flavor list [flags]
 ```
 
 ### Options
@@ -16,7 +16,7 @@ ovhcloud cloud reference managed-database list-plans [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-plans
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +41,5 @@ ovhcloud cloud reference managed-database list-plans [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference managed-database](ovhcloud_cloud_reference_managed-database.md)	 - Fetch managed database reference data in the given cloud project
+* [ovhcloud cloud managed-database node-flavor](ovhcloud_cloud_managed-database_node-flavor.md)	 - List available database node flavors in the given cloud project
 

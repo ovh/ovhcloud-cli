@@ -1,9 +1,9 @@
-## ovhcloud cloud reference rancher list-plans
+## ovhcloud cloud managed-analytics node-flavor list
 
-List available Rancher plans in the given cloud project
+List available analytics node flavors in the given cloud project
 
 ```
-ovhcloud cloud reference rancher list-plans [flags]
+ovhcloud cloud managed-analytics node-flavor list [flags]
 ```
 
 ### Options
@@ -16,8 +16,7 @@ ovhcloud cloud reference rancher list-plans [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-plans
-  -r, --rancher-id string    Rancher service ID to filter available plans
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -42,5 +41,5 @@ ovhcloud cloud reference rancher list-plans [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference rancher](ovhcloud_cloud_reference_rancher.md)	 - Fetch Rancher reference data in the given cloud project
+* [ovhcloud cloud managed-analytics node-flavor](ovhcloud_cloud_managed-analytics_node-flavor.md)	 - List available analytics node flavors in the given cloud project
 

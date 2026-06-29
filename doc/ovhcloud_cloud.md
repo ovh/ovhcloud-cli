@@ -44,7 +44,6 @@ Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, O
 * [ovhcloud cloud operation](ovhcloud_cloud_operation.md)	 - List and get operations in the given cloud project
 * [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Retrieve information and manage your CloudProject services
 * [ovhcloud cloud quota](ovhcloud_cloud_quota.md)	 - Check quotas in the given cloud project
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
 * [ovhcloud cloud region](ovhcloud_cloud_region.md)	 - Check regions in the given cloud project
 * [ovhcloud cloud savings-plan](ovhcloud_cloud_savings-plan.md)	 - Manage savings plans for your cloud project
 * [ovhcloud cloud ssh-key](ovhcloud_cloud_ssh-key.md)	 - Manage SSH keys in the given cloud project

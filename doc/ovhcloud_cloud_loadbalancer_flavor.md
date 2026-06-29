@@ -1,24 +1,11 @@
-## ovhcloud cloud reference list-images
+## ovhcloud cloud loadbalancer flavor
 
-List available images in the given cloud project
-
-```
-ovhcloud cloud reference list-images [flags]
-```
+List available loadbalancer flavors in the given cloud project
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-images
-  -t, --os-type string       OS type to filter images (baremetal-linux, bsd, linux, windows)
-  -r, --region string        Region to filter images (e.g., GRA9, BHS5)
+  -h, --help   help for flavor
 ```
 
 ### Options inherited from parent commands
@@ -43,5 +30,7 @@ ovhcloud cloud reference list-images [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
+* [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud loadbalancer flavor get](ovhcloud_cloud_loadbalancer_flavor_get.md)	 - Get details of a specific loadbalancer flavor
+* [ovhcloud cloud loadbalancer flavor list](ovhcloud_cloud_loadbalancer_flavor_list.md)	 - List available loadbalancer flavors in the given cloud project
 

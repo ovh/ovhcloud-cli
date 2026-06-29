@@ -1,9 +1,9 @@
-## ovhcloud cloud reference container-registry list-regions
+## ovhcloud cloud managed-registry plan list
 
-List available container registry regions in the given cloud project
+List available container registry plans in the given cloud project
 
 ```
-ovhcloud cloud reference container-registry list-regions [flags]
+ovhcloud cloud managed-registry plan list [flags]
 ```
 
 ### Options
@@ -16,7 +16,7 @@ ovhcloud cloud reference container-registry list-regions [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-regions
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +41,5 @@ ovhcloud cloud reference container-registry list-regions [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference container-registry](ovhcloud_cloud_reference_container-registry.md)	 - Fetch container registry reference data in the given cloud project
+* [ovhcloud cloud managed-registry plan](ovhcloud_cloud_managed-registry_plan.md)	 - Manage container registry plans
 

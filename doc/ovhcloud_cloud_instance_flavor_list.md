@@ -1,9 +1,9 @@
-## ovhcloud cloud reference list-flavors
+## ovhcloud cloud instance flavor list
 
 List available flavors in the given cloud project
 
 ```
-ovhcloud cloud reference list-flavors [flags]
+ovhcloud cloud instance flavor list [flags]
 ```
 
 ### Options
@@ -16,7 +16,7 @@ ovhcloud cloud reference list-flavors [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-flavors
+  -h, --help                 help for list
   -r, --region string        Region to filter flavors (e.g., GRA9, BHS5)
 ```
 
@@ -42,5 +42,5 @@ ovhcloud cloud reference list-flavors [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
+* [ovhcloud cloud instance flavor](ovhcloud_cloud_instance_flavor.md)	 - List available flavors in the given cloud project
 

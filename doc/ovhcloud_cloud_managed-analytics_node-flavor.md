@@ -1,11 +1,11 @@
-## ovhcloud cloud reference rancher
+## ovhcloud cloud managed-analytics node-flavor
 
-Fetch Rancher reference data in the given cloud project
+List available analytics node flavors in the given cloud project
 
 ### Options
 
 ```
-  -h, --help   help for rancher
+  -h, --help   help for node-flavor
 ```
 
 ### Options inherited from parent commands
@@ -30,7 +30,6 @@ Fetch Rancher reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference rancher list-plans](ovhcloud_cloud_reference_rancher_list-plans.md)	 - List available Rancher plans in the given cloud project
-* [ovhcloud cloud reference rancher list-versions](ovhcloud_cloud_reference_rancher_list-versions.md)	 - List available Rancher versions in the given cloud project
+* [ovhcloud cloud managed-analytics](ovhcloud_cloud_managed-analytics.md)	 - Manage managed analytics services in the given cloud project
+* [ovhcloud cloud managed-analytics node-flavor list](ovhcloud_cloud_managed-analytics_node-flavor_list.md)	 - List available analytics node flavors in the given cloud project
 

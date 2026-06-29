@@ -1,15 +1,11 @@
-## ovhcloud cloud reference loadbalancer get-flavor
+## ovhcloud cloud managed-database node-flavor
 
-Get details of a specific loadbalancer flavor
-
-```
-ovhcloud cloud reference loadbalancer get-flavor <region> <flavor_id> [flags]
-```
+List available database node flavors in the given cloud project
 
 ### Options
 
 ```
-  -h, --help   help for get-flavor
+  -h, --help   help for node-flavor
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +30,6 @@ ovhcloud cloud reference loadbalancer get-flavor <region> <flavor_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference loadbalancer](ovhcloud_cloud_reference_loadbalancer.md)	 - Fetch loadbalancer reference data in the given cloud project
+* [ovhcloud cloud managed-database](ovhcloud_cloud_managed-database.md)	 - Manage managed database services in the given cloud project
+* [ovhcloud cloud managed-database node-flavor list](ovhcloud_cloud_managed-database_node-flavor_list.md)	 - List available database node flavors in the given cloud project
 

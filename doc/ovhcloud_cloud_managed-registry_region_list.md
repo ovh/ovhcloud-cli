@@ -1,9 +1,9 @@
-## ovhcloud cloud reference managed-analytics list-node-flavors
+## ovhcloud cloud managed-registry region list
 
-List available analytics node flavors in the given cloud project
+List available container registry regions in the given cloud project
 
 ```
-ovhcloud cloud reference managed-analytics list-node-flavors [flags]
+ovhcloud cloud managed-registry region list [flags]
 ```
 
 ### Options
@@ -16,7 +16,7 @@ ovhcloud cloud reference managed-analytics list-node-flavors [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-node-flavors
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +41,5 @@ ovhcloud cloud reference managed-analytics list-node-flavors [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference managed-analytics](ovhcloud_cloud_reference_managed-analytics.md)	 - Fetch managed analytics reference data in the given cloud project
+* [ovhcloud cloud managed-registry region](ovhcloud_cloud_managed-registry_region.md)	 - List available container registry regions in the given cloud project
 
