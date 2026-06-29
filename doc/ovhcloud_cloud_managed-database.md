@@ -37,11 +37,11 @@ Manage managed database services in the given cloud project
 * [ovhcloud cloud managed-database database](ovhcloud_cloud_managed-database_database.md)	 - Manage databases in a specific managed database service
 * [ovhcloud cloud managed-database delete](ovhcloud_cloud_managed-database_delete.md)	 - Delete a specific managed database service
 * [ovhcloud cloud managed-database edit](ovhcloud_cloud_managed-database_edit.md)	 - Edit a specific managed database service
+* [ovhcloud cloud managed-database engine](ovhcloud_cloud_managed-database_engine.md)	 - List available database engines in the given cloud project
 * [ovhcloud cloud managed-database get](ovhcloud_cloud_managed-database_get.md)	 - Get a specific managed database service
 * [ovhcloud cloud managed-database list](ovhcloud_cloud_managed-database_list.md)	 - List your managed database services
-* [ovhcloud cloud managed-database list-engines](ovhcloud_cloud_managed-database_list-engines.md)	 - List available database engines in the given cloud project
-* [ovhcloud cloud managed-database list-node-flavors](ovhcloud_cloud_managed-database_list-node-flavors.md)	 - List available database node flavors in the given cloud project
-* [ovhcloud cloud managed-database list-plans](ovhcloud_cloud_managed-database_list-plans.md)	 - List available database plans in the given cloud project
+* [ovhcloud cloud managed-database node-flavor](ovhcloud_cloud_managed-database_node-flavor.md)	 - List available database node flavors in the given cloud project
+* [ovhcloud cloud managed-database plan](ovhcloud_cloud_managed-database_plan.md)	 - List available database plans in the given cloud project
 * [ovhcloud cloud managed-database role](ovhcloud_cloud_managed-database_role.md)	 - Manage roles in a specific managed database service
 * [ovhcloud cloud managed-database user](ovhcloud_cloud_managed-database_user.md)	 - Manage users in a specific managed database service
 

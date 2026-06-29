@@ -1,9 +1,9 @@
-## ovhcloud cloud instance list-images
+## ovhcloud cloud managed-analytics plan list
 
-List available images in the given cloud project
+List available analytics plans in the given cloud project
 
 ```
-ovhcloud cloud instance list-images [flags]
+ovhcloud cloud managed-analytics plan list [flags]
 ```
 
 ### Options
@@ -16,9 +16,7 @@ ovhcloud cloud instance list-images [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-images
-  -t, --os-type string       OS type to filter images (baremetal-linux, bsd, linux, windows)
-  -r, --region string        Region to filter images (e.g., GRA9, BHS5)
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -43,5 +41,5 @@ ovhcloud cloud instance list-images [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
+* [ovhcloud cloud managed-analytics plan](ovhcloud_cloud_managed-analytics_plan.md)	 - List available analytics plans in the given cloud project
 

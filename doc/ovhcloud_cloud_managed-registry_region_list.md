@@ -1,9 +1,9 @@
-## ovhcloud cloud instance list-flavors
+## ovhcloud cloud managed-registry region list
 
-List available flavors in the given cloud project
+List available container registry regions in the given cloud project
 
 ```
-ovhcloud cloud instance list-flavors [flags]
+ovhcloud cloud managed-registry region list [flags]
 ```
 
 ### Options
@@ -16,8 +16,7 @@ ovhcloud cloud instance list-flavors [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-flavors
-  -r, --region string        Region to filter flavors (e.g., GRA9, BHS5)
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -42,5 +41,5 @@ ovhcloud cloud instance list-flavors [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
+* [ovhcloud cloud managed-registry region](ovhcloud_cloud_managed-registry_region.md)	 - List available container registry regions in the given cloud project
 

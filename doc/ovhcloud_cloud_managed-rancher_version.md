@@ -1,22 +1,11 @@
-## ovhcloud cloud managed-analytics list-plans
+## ovhcloud cloud managed-rancher version
 
-List available analytics plans in the given cloud project
-
-```
-ovhcloud cloud managed-analytics list-plans [flags]
-```
+List available Rancher versions in the given cloud project
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-plans
+  -h, --help   help for version
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +30,6 @@ ovhcloud cloud managed-analytics list-plans [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-analytics](ovhcloud_cloud_managed-analytics.md)	 - Manage managed analytics services in the given cloud project
+* [ovhcloud cloud managed-rancher](ovhcloud_cloud_managed-rancher.md)	 - Manage Rancher services in the given cloud project
+* [ovhcloud cloud managed-rancher version list](ovhcloud_cloud_managed-rancher_version_list.md)	 - List available Rancher versions in the given cloud project
 

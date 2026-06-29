@@ -1,6 +1,6 @@
-## ovhcloud cloud managed-registry plan
+## ovhcloud cloud managed-database plan
 
-Manage container registry plans
+List available database plans in the given cloud project
 
 ### Options
 
@@ -30,8 +30,6 @@ Manage container registry plans
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-registry](ovhcloud_cloud_managed-registry.md)	 - Manage container registries in the given cloud project
-* [ovhcloud cloud managed-registry plan list](ovhcloud_cloud_managed-registry_plan_list.md)	 - List available container registry plans in the given cloud project
-* [ovhcloud cloud managed-registry plan list-capabilities](ovhcloud_cloud_managed-registry_plan_list-capabilities.md)	 - List available plans for a specific container registry
-* [ovhcloud cloud managed-registry plan upgrade](ovhcloud_cloud_managed-registry_plan_upgrade.md)	 - Upgrade a container registry plan
+* [ovhcloud cloud managed-database](ovhcloud_cloud_managed-database.md)	 - Manage managed database services in the given cloud project
+* [ovhcloud cloud managed-database plan list](ovhcloud_cloud_managed-database_plan_list.md)	 - List available database plans in the given cloud project
 

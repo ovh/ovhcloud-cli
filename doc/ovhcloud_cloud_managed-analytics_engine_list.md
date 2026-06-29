@@ -1,11 +1,22 @@
-## ovhcloud cloud managed-registry plan
+## ovhcloud cloud managed-analytics engine list
 
-Manage container registry plans
+List available analytics engines in the given cloud project
+
+```
+ovhcloud cloud managed-analytics engine list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for plan
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +41,5 @@ Manage container registry plans
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-registry](ovhcloud_cloud_managed-registry.md)	 - Manage container registries in the given cloud project
-* [ovhcloud cloud managed-registry plan list](ovhcloud_cloud_managed-registry_plan_list.md)	 - List available container registry plans in the given cloud project
-* [ovhcloud cloud managed-registry plan list-capabilities](ovhcloud_cloud_managed-registry_plan_list-capabilities.md)	 - List available plans for a specific container registry
-* [ovhcloud cloud managed-registry plan upgrade](ovhcloud_cloud_managed-registry_plan_upgrade.md)	 - Upgrade a container registry plan
+* [ovhcloud cloud managed-analytics engine](ovhcloud_cloud_managed-analytics_engine.md)	 - List available analytics engines in the given cloud project
 

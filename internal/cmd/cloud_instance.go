@@ -495,10 +495,16 @@ There are three ways to define the installation parameters:
 		Args:  cobra.ExactArgs(1),
 	})
 
-	// Reference data commands (flavors and images available for instances)
+	// Flavor reference data commands (flavors available for instances)
+	flavorCmd := &cobra.Command{
+		Use:   "flavor",
+		Short: "List available flavors in the given cloud project",
+	}
+	instanceCmd.AddCommand(flavorCmd)
+
 	var flavorRegion string
 	flavorListCmd := withFilterFlag(&cobra.Command{
-		Use:   "list-flavors",
+		Use:   "list",
 		Short: "List available flavors in the given cloud project",
 		Run: func(_ *cobra.Command, _ []string) {
 			cloud.GetFlavors(flavorRegion)
@@ -506,11 +512,18 @@ There are three ways to define the installation parameters:
 		Args: cobra.NoArgs,
 	})
 	flavorListCmd.Flags().StringVarP(&flavorRegion, "region", "r", "", "Region to filter flavors (e.g., GRA9, BHS5)")
-	instanceCmd.AddCommand(flavorListCmd)
+	flavorCmd.AddCommand(flavorListCmd)
+
+	// Image reference data commands (images available for instances)
+	imageCmd := &cobra.Command{
+		Use:   "image",
+		Short: "List available images in the given cloud project",
+	}
+	instanceCmd.AddCommand(imageCmd)
 
 	var imageRegion, imageOsType string
 	imageListCmd := withFilterFlag(&cobra.Command{
-		Use:   "list-images",
+		Use:   "list",
 		Short: "List available images in the given cloud project",
 		Run: func(_ *cobra.Command, _ []string) {
 			cloud.GetImages(imageRegion, imageOsType)
@@ -519,7 +532,7 @@ There are three ways to define the installation parameters:
 	})
 	imageListCmd.Flags().StringVarP(&imageRegion, "region", "r", "", "Region to filter images (e.g., GRA9, BHS5)")
 	imageListCmd.Flags().StringVarP(&imageOsType, "os-type", "t", "", "OS type to filter images (baremetal-linux, bsd, linux, windows)")
-	instanceCmd.AddCommand(imageListCmd)
+	imageCmd.AddCommand(imageListCmd)
 
 	cloudCmd.AddCommand(instanceCmd)
 }

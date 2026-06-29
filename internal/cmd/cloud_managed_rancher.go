@@ -52,23 +52,33 @@ func initCloudRancherCommand(cloudCmd *cobra.Command) {
 	})
 
 	// Reference data commands
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "List available Rancher versions in the given cloud project",
+	}
+	rancherCmd.AddCommand(versionCmd)
 	rancherVersionsListCmd := withFilterFlag(&cobra.Command{
-		Use:   "list-versions",
+		Use:   "list",
 		Short: "List available Rancher versions in the given cloud project",
 		Run:   cloud.ListRancherAvailableVersions,
 		Args:  cobra.NoArgs,
 	})
 	rancherVersionsListCmd.Flags().StringP("rancher-id", "r", "", "Rancher service ID to filter available versions")
-	rancherCmd.AddCommand(rancherVersionsListCmd)
+	versionCmd.AddCommand(rancherVersionsListCmd)
 
+	planCmd := &cobra.Command{
+		Use:   "plan",
+		Short: "List available Rancher plans in the given cloud project",
+	}
+	rancherCmd.AddCommand(planCmd)
 	rancherPlansListCmd := withFilterFlag(&cobra.Command{
-		Use:   "list-plans",
+		Use:   "list",
 		Short: "List available Rancher plans in the given cloud project",
 		Run:   cloud.ListRancherAvailablePlans,
 		Args:  cobra.NoArgs,
 	})
 	rancherPlansListCmd.Flags().StringP("rancher-id", "r", "", "Rancher service ID to filter available plans")
-	rancherCmd.AddCommand(rancherPlansListCmd)
+	planCmd.AddCommand(rancherPlansListCmd)
 
 	cloudCmd.AddCommand(rancherCmd)
 }

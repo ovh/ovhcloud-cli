@@ -37,13 +37,13 @@ Manage managed analytics services in the given cloud project
 * [ovhcloud cloud managed-analytics database](ovhcloud_cloud_managed-analytics_database.md)	 - Manage databases in a specific managed analytics service
 * [ovhcloud cloud managed-analytics delete](ovhcloud_cloud_managed-analytics_delete.md)	 - Delete a specific managed analytics service
 * [ovhcloud cloud managed-analytics edit](ovhcloud_cloud_managed-analytics_edit.md)	 - Edit a specific managed analytics service
+* [ovhcloud cloud managed-analytics engine](ovhcloud_cloud_managed-analytics_engine.md)	 - List available analytics engines in the given cloud project
 * [ovhcloud cloud managed-analytics get](ovhcloud_cloud_managed-analytics_get.md)	 - Get a specific managed analytics service
 * [ovhcloud cloud managed-analytics list](ovhcloud_cloud_managed-analytics_list.md)	 - List your managed analytics services
-* [ovhcloud cloud managed-analytics list-engines](ovhcloud_cloud_managed-analytics_list-engines.md)	 - List available analytics engines in the given cloud project
-* [ovhcloud cloud managed-analytics list-node-flavors](ovhcloud_cloud_managed-analytics_list-node-flavors.md)	 - List available analytics node flavors in the given cloud project
-* [ovhcloud cloud managed-analytics list-plans](ovhcloud_cloud_managed-analytics_list-plans.md)	 - List available analytics plans in the given cloud project
+* [ovhcloud cloud managed-analytics node-flavor](ovhcloud_cloud_managed-analytics_node-flavor.md)	 - List available analytics node flavors in the given cloud project
 * [ovhcloud cloud managed-analytics pattern](ovhcloud_cloud_managed-analytics_pattern.md)	 - Manage patterns in a specific managed analytics service
 * [ovhcloud cloud managed-analytics permission](ovhcloud_cloud_managed-analytics_permission.md)	 - Manage permissions in a specific managed analytics service
+* [ovhcloud cloud managed-analytics plan](ovhcloud_cloud_managed-analytics_plan.md)	 - List available analytics plans in the given cloud project
 * [ovhcloud cloud managed-analytics role](ovhcloud_cloud_managed-analytics_role.md)	 - Manage roles in a specific managed analytics service
 * [ovhcloud cloud managed-analytics topic](ovhcloud_cloud_managed-analytics_topic.md)	 - Manage topics in a specific managed analytics service
 * [ovhcloud cloud managed-analytics topic-acl](ovhcloud_cloud_managed-analytics_topic-acl.md)	 - Manage topic ACLs in a specific managed analytics service

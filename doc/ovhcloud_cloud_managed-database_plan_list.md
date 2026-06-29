@@ -1,9 +1,9 @@
-## ovhcloud cloud managed-analytics list-node-flavors
+## ovhcloud cloud managed-database plan list
 
-List available analytics node flavors in the given cloud project
+List available database plans in the given cloud project
 
 ```
-ovhcloud cloud managed-analytics list-node-flavors [flags]
+ovhcloud cloud managed-database plan list [flags]
 ```
 
 ### Options
@@ -16,7 +16,7 @@ ovhcloud cloud managed-analytics list-node-flavors [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-node-flavors
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +41,5 @@ ovhcloud cloud managed-analytics list-node-flavors [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-analytics](ovhcloud_cloud_managed-analytics.md)	 - Manage managed analytics services in the given cloud project
+* [ovhcloud cloud managed-database plan](ovhcloud_cloud_managed-database_plan.md)	 - List available database plans in the given cloud project
 

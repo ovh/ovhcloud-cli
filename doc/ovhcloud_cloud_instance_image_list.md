@@ -1,9 +1,9 @@
-## ovhcloud cloud managed-registry list-plans
+## ovhcloud cloud instance image list
 
-List available container registry plans in the given cloud project
+List available images in the given cloud project
 
 ```
-ovhcloud cloud managed-registry list-plans [flags]
+ovhcloud cloud instance image list [flags]
 ```
 
 ### Options
@@ -16,7 +16,9 @@ ovhcloud cloud managed-registry list-plans [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-plans
+  -h, --help                 help for list
+  -t, --os-type string       OS type to filter images (baremetal-linux, bsd, linux, windows)
+  -r, --region string        Region to filter images (e.g., GRA9, BHS5)
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +43,5 @@ ovhcloud cloud managed-registry list-plans [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-registry](ovhcloud_cloud_managed-registry.md)	 - Manage container registries in the given cloud project
+* [ovhcloud cloud instance image](ovhcloud_cloud_instance_image.md)	 - List available images in the given cloud project
 

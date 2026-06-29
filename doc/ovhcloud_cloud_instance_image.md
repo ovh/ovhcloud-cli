@@ -1,23 +1,11 @@
-## ovhcloud cloud managed-rancher list-plans
+## ovhcloud cloud instance image
 
-List available Rancher plans in the given cloud project
-
-```
-ovhcloud cloud managed-rancher list-plans [flags]
-```
+List available images in the given cloud project
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-plans
-  -r, --rancher-id string    Rancher service ID to filter available plans
+  -h, --help   help for image
 ```
 
 ### Options inherited from parent commands
@@ -42,5 +30,6 @@ ovhcloud cloud managed-rancher list-plans [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-rancher](ovhcloud_cloud_managed-rancher.md)	 - Manage Rancher services in the given cloud project
+* [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
+* [ovhcloud cloud instance image list](ovhcloud_cloud_instance_image_list.md)	 - List available images in the given cloud project
 

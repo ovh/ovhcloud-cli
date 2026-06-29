@@ -1,11 +1,11 @@
-## ovhcloud cloud managed-registry plan
+## ovhcloud cloud managed-registry region
 
-Manage container registry plans
+List available container registry regions in the given cloud project
 
 ### Options
 
 ```
-  -h, --help   help for plan
+  -h, --help   help for region
 ```
 
 ### Options inherited from parent commands
@@ -31,7 +31,5 @@ Manage container registry plans
 ### SEE ALSO
 
 * [ovhcloud cloud managed-registry](ovhcloud_cloud_managed-registry.md)	 - Manage container registries in the given cloud project
-* [ovhcloud cloud managed-registry plan list](ovhcloud_cloud_managed-registry_plan_list.md)	 - List available container registry plans in the given cloud project
-* [ovhcloud cloud managed-registry plan list-capabilities](ovhcloud_cloud_managed-registry_plan_list-capabilities.md)	 - List available plans for a specific container registry
-* [ovhcloud cloud managed-registry plan upgrade](ovhcloud_cloud_managed-registry_plan_upgrade.md)	 - Upgrade a container registry plan
+* [ovhcloud cloud managed-registry region list](ovhcloud_cloud_managed-registry_region_list.md)	 - List available container registry regions in the given cloud project
 

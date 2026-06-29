@@ -38,9 +38,8 @@ Manage container registries in the given cloud project
 * [ovhcloud cloud managed-registry iam](ovhcloud_cloud_managed-registry_iam.md)	 - Manage container registry IAM
 * [ovhcloud cloud managed-registry ip-restrictions](ovhcloud_cloud_managed-registry_ip-restrictions.md)	 - Manage container registry IP restrictions
 * [ovhcloud cloud managed-registry list](ovhcloud_cloud_managed-registry_list.md)	 - List your container registries
-* [ovhcloud cloud managed-registry list-plans](ovhcloud_cloud_managed-registry_list-plans.md)	 - List available container registry plans in the given cloud project
-* [ovhcloud cloud managed-registry list-regions](ovhcloud_cloud_managed-registry_list-regions.md)	 - List available container registry regions in the given cloud project
 * [ovhcloud cloud managed-registry oidc](ovhcloud_cloud_managed-registry_oidc.md)	 - Manage container registry OIDC integration
 * [ovhcloud cloud managed-registry plan](ovhcloud_cloud_managed-registry_plan.md)	 - Manage container registry plans
+* [ovhcloud cloud managed-registry region](ovhcloud_cloud_managed-registry_region.md)	 - List available container registry regions in the given cloud project
 * [ovhcloud cloud managed-registry users](ovhcloud_cloud_managed-registry_users.md)	 - Manage container registry users
 
