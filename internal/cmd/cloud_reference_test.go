@@ -507,7 +507,7 @@ func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorsListCmdJSON(assert, re
 			}
 		]`).Once())
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "list-flavors", "GRA9", "-o", "json", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "flavor", "list", "GRA9", "-o", "json", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
@@ -532,7 +532,7 @@ func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorGetCmd(assert, require 
 			"region": "GRA9"
 		}`).Once())
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "get-flavor", "GRA9", "lb-flavor-id-1", "-o", "json", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "flavor", "get", "GRA9", "lb-flavor-id-1", "-o", "json", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{

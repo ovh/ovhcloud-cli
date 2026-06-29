@@ -84,16 +84,22 @@ func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
 	// Log sub-commands
 	initLogSubCommands(loadbalancerCmd)
 
-	// Reference data commands
-	loadbalancerCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list-flavors <region (GRA9, BHS5, ...)>",
+	// Flavor reference data commands
+	flavorCmd := &cobra.Command{
+		Use:   "flavor",
+		Short: "List available loadbalancer flavors in the given cloud project",
+	}
+	loadbalancerCmd.AddCommand(flavorCmd)
+
+	flavorCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list <region (GRA9, BHS5, ...)>",
 		Short: "List available loadbalancer flavors in the given cloud project",
 		Run:   cloud.ListLoadbalancerFlavors,
 		Args:  cobra.ExactArgs(1),
 	}))
 
-	loadbalancerCmd.AddCommand(&cobra.Command{
-		Use:   "get-flavor <region> <flavor_id>",
+	flavorCmd.AddCommand(&cobra.Command{
+		Use:   "get <region> <flavor_id>",
 		Short: "Get details of a specific loadbalancer flavor",
 		Run:   cloud.GetLoadbalancerFlavor,
 		Args:  cobra.ExactArgs(2),

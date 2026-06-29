@@ -1,22 +1,11 @@
-## ovhcloud cloud loadbalancer list-flavors
+## ovhcloud cloud loadbalancer flavor
 
 List available loadbalancer flavors in the given cloud project
-
-```
-ovhcloud cloud loadbalancer list-flavors <region (GRA9, BHS5, ...)> [flags]
-```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-flavors
+  -h, --help   help for flavor
 ```
 
 ### Options inherited from parent commands
@@ -42,4 +31,6 @@ ovhcloud cloud loadbalancer list-flavors <region (GRA9, BHS5, ...)> [flags]
 ### SEE ALSO
 
 * [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
+* [ovhcloud cloud loadbalancer flavor get](ovhcloud_cloud_loadbalancer_flavor_get.md)	 - Get details of a specific loadbalancer flavor
+* [ovhcloud cloud loadbalancer flavor list](ovhcloud_cloud_loadbalancer_flavor_list.md)	 - List available loadbalancer flavors in the given cloud project
 
