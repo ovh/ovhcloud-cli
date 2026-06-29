@@ -1,11 +1,11 @@
-## ovhcloud cloud reference managed-database
+## ovhcloud cloud managed-rancher version
 
-Fetch managed database reference data in the given cloud project
+List available Rancher versions in the given cloud project
 
 ### Options
 
 ```
-  -h, --help   help for managed-database
+  -h, --help   help for version
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +30,6 @@ Fetch managed database reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference managed-database list-engines](ovhcloud_cloud_reference_managed-database_list-engines.md)	 - List available database engines in the given cloud project
-* [ovhcloud cloud reference managed-database list-node-flavors](ovhcloud_cloud_reference_managed-database_list-node-flavors.md)	 - List available database node flavors in the given cloud project
-* [ovhcloud cloud reference managed-database list-plans](ovhcloud_cloud_reference_managed-database_list-plans.md)	 - List available database plans in the given cloud project
+* [ovhcloud cloud managed-rancher](ovhcloud_cloud_managed-rancher.md)	 - Manage Rancher services in the given cloud project
+* [ovhcloud cloud managed-rancher version list](ovhcloud_cloud_managed-rancher_version_list.md)	 - List available Rancher versions in the given cloud project
 

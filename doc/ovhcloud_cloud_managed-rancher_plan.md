@@ -1,23 +1,11 @@
-## ovhcloud cloud reference rancher list-versions
+## ovhcloud cloud managed-rancher plan
 
-List available Rancher versions in the given cloud project
-
-```
-ovhcloud cloud reference rancher list-versions [flags]
-```
+List available Rancher plans in the given cloud project
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-versions
-  -r, --rancher-id string    Rancher service ID to filter available versions
+  -h, --help   help for plan
 ```
 
 ### Options inherited from parent commands
@@ -42,5 +30,6 @@ ovhcloud cloud reference rancher list-versions [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference rancher](ovhcloud_cloud_reference_rancher.md)	 - Fetch Rancher reference data in the given cloud project
+* [ovhcloud cloud managed-rancher](ovhcloud_cloud_managed-rancher.md)	 - Manage Rancher services in the given cloud project
+* [ovhcloud cloud managed-rancher plan list](ovhcloud_cloud_managed-rancher_plan_list.md)	 - List available Rancher plans in the given cloud project
 

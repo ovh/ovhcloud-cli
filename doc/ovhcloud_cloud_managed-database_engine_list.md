@@ -1,9 +1,9 @@
-## ovhcloud cloud reference container-registry list-plans
+## ovhcloud cloud managed-database engine list
 
-List available container registry plans in the given cloud project
+List available database engines in the given cloud project
 
 ```
-ovhcloud cloud reference container-registry list-plans [flags]
+ovhcloud cloud managed-database engine list [flags]
 ```
 
 ### Options
@@ -16,7 +16,7 @@ ovhcloud cloud reference container-registry list-plans [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-plans
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +41,5 @@ ovhcloud cloud reference container-registry list-plans [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference container-registry](ovhcloud_cloud_reference_container-registry.md)	 - Fetch container registry reference data in the given cloud project
+* [ovhcloud cloud managed-database engine](ovhcloud_cloud_managed-database_engine.md)	 - List available database engines in the given cloud project
 

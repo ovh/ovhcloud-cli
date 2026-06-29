@@ -36,6 +36,7 @@ Manage loadbalancers in the given cloud project
 * [ovhcloud cloud loadbalancer create-floating-ip](ovhcloud_cloud_loadbalancer_create-floating-ip.md)	 - Create a floating IP and attach it to a loadbalancer
 * [ovhcloud cloud loadbalancer delete](ovhcloud_cloud_loadbalancer_delete.md)	 - Delete a specific loadbalancer
 * [ovhcloud cloud loadbalancer edit](ovhcloud_cloud_loadbalancer_edit.md)	 - Edit the given loadbalancer
+* [ovhcloud cloud loadbalancer flavor](ovhcloud_cloud_loadbalancer_flavor.md)	 - List available loadbalancer flavors in the given cloud project
 * [ovhcloud cloud loadbalancer get](ovhcloud_cloud_loadbalancer_get.md)	 - Get a specific loadbalancer
 * [ovhcloud cloud loadbalancer health-monitor](ovhcloud_cloud_loadbalancer_health-monitor.md)	 - Manage health monitors of loadbalancers
 * [ovhcloud cloud loadbalancer l7policy](ovhcloud_cloud_loadbalancer_l7policy.md)	 - Manage L7 policies of loadbalancers

@@ -40,5 +40,6 @@ Manage container registries in the given cloud project
 * [ovhcloud cloud managed-registry list](ovhcloud_cloud_managed-registry_list.md)	 - List your container registries
 * [ovhcloud cloud managed-registry oidc](ovhcloud_cloud_managed-registry_oidc.md)	 - Manage container registry OIDC integration
 * [ovhcloud cloud managed-registry plan](ovhcloud_cloud_managed-registry_plan.md)	 - Manage container registry plans
+* [ovhcloud cloud managed-registry region](ovhcloud_cloud_managed-registry_region.md)	 - List available container registry regions in the given cloud project
 * [ovhcloud cloud managed-registry users](ovhcloud_cloud_managed-registry_users.md)	 - Manage container registry users
 

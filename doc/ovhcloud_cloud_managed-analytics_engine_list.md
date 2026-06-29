@@ -1,11 +1,22 @@
-## ovhcloud cloud reference managed-registry
+## ovhcloud cloud managed-analytics engine list
 
-Fetch container registry reference data in the given cloud project
+List available analytics engines in the given cloud project
+
+```
+ovhcloud cloud managed-analytics engine list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for managed-registry
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,7 +41,5 @@ Fetch container registry reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference managed-registry list-plans](ovhcloud_cloud_reference_managed-registry_list-plans.md)	 - List available container registry plans in the given cloud project
-* [ovhcloud cloud reference managed-registry list-regions](ovhcloud_cloud_reference_managed-registry_list-regions.md)	 - List available container registry regions in the given cloud project
+* [ovhcloud cloud managed-analytics engine](ovhcloud_cloud_managed-analytics_engine.md)	 - List available analytics engines in the given cloud project
 

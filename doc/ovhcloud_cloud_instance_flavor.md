@@ -1,11 +1,11 @@
-## ovhcloud cloud reference managed-analytics
+## ovhcloud cloud instance flavor
 
-Fetch managed analytics reference data in the given cloud project
+List available flavors in the given cloud project
 
 ### Options
 
 ```
-  -h, --help   help for managed-analytics
+  -h, --help   help for flavor
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +30,6 @@ Fetch managed analytics reference data in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
-* [ovhcloud cloud reference managed-analytics list-engines](ovhcloud_cloud_reference_managed-analytics_list-engines.md)	 - List available analytics engines in the given cloud project
-* [ovhcloud cloud reference managed-analytics list-node-flavors](ovhcloud_cloud_reference_managed-analytics_list-node-flavors.md)	 - List available analytics node flavors in the given cloud project
-* [ovhcloud cloud reference managed-analytics list-plans](ovhcloud_cloud_reference_managed-analytics_list-plans.md)	 - List available analytics plans in the given cloud project
+* [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
+* [ovhcloud cloud instance flavor list](ovhcloud_cloud_instance_flavor_list.md)	 - List available flavors in the given cloud project
 

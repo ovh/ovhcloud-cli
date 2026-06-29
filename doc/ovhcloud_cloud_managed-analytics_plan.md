@@ -1,22 +1,11 @@
-## ovhcloud cloud reference managed-database list-node-flavors
+## ovhcloud cloud managed-analytics plan
 
-List available database node flavors in the given cloud project
-
-```
-ovhcloud cloud reference managed-database list-node-flavors [flags]
-```
+List available analytics plans in the given cloud project
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-node-flavors
+  -h, --help   help for plan
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +30,6 @@ ovhcloud cloud reference managed-database list-node-flavors [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud reference managed-database](ovhcloud_cloud_reference_managed-database.md)	 - Fetch managed database reference data in the given cloud project
+* [ovhcloud cloud managed-analytics](ovhcloud_cloud_managed-analytics.md)	 - Manage managed analytics services in the given cloud project
+* [ovhcloud cloud managed-analytics plan list](ovhcloud_cloud_managed-analytics_plan_list.md)	 - List available analytics plans in the given cloud project
 
