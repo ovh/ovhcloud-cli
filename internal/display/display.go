@@ -181,22 +181,6 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 }
 
 func RenderConfigTable(cfg *ini.File, outputformat *OutputFormat) {
-	var (
-		rows    [][]string
-		columns = []string{"section", "key", "value"}
-	)
-
-	for _, section := range cfg.Sections() {
-		if section.Name() == "DEFAULT" {
-			continue
-		}
-
-		rows = append(rows, []string{section.Name()})
-		for _, key := range section.Keys() {
-			value := ansi.Truncate(key.Value(), maxCellWidth, "…")
-			rows = append(rows, []string{"", key.Name(), value})
-		}
-	}
 	// if a custom output format is passed, it is used instead of rendering the Config Table
 	if outputformat.IsJson() || outputformat.IsYaml() || outputformat.IsInteractive() || outputformat.CustomFormat() != "" {
 		result := map[string]any{}
@@ -212,6 +196,23 @@ func RenderConfigTable(cfg *ini.File, outputformat *OutputFormat) {
 		}
 		OutputObject(result, "", "", outputformat)
 		return
+	}
+	// otherwise, render the config as a table
+	var (
+		rows    [][]string
+		columns = []string{"section", "key", "value"}
+	)
+
+	for _, section := range cfg.Sections() {
+		if section.Name() == "DEFAULT" {
+			continue
+		}
+
+		rows = append(rows, []string{section.Name()})
+		for _, key := range section.Keys() {
+			value := ansi.Truncate(key.Value(), maxCellWidth, "…")
+			rows = append(rows, []string{"", key.Name(), value})
+		}
 	}
 
 	var (
