@@ -67,6 +67,9 @@ To make completions permanent, run:
 
 func runCompletionInstall(_ *cobra.Command, _ []string) error {
 	shell := os.Getenv("SHELL")
+	if shell == "" {
+		return fmt.Errorf("SHELL environment variable is not set — please run 'ovhcloud completion bash|zsh|fish|powershell' manually")
+	}
 	shellName := filepath.Base(shell)
 
 	var rcFile string

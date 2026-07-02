@@ -6,6 +6,7 @@ package completion
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -41,7 +42,9 @@ func fetchSuggestions(endpoint, labelField, cacheKey string) ([]string, cobra.Sh
 			return
 		}
 
-		var suggestions []string
+		// Start from a non-nil slice so a valid empty result is still cached
+		// (nil is reserved for the error path above, which must not be cached).
+		suggestions := make([]string, 0, len(ids))
 		for _, raw := range ids {
 			switch v := raw.(type) {
 			case string:
@@ -116,7 +119,7 @@ func CloudResources(pathTemplate string) func(*cobra.Command, []string, string) 
 		if project == "" {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		return fetchSuggestions(fmt.Sprintf(pathTemplate, project), "", "")
+		return fetchSuggestions(fmt.Sprintf(pathTemplate, url.PathEscape(project)), "", "")
 	}
 }
 
@@ -133,9 +136,9 @@ func CloudResourceWithChild(parentTemplate, childTemplate string) func(*cobra.Co
 		}
 		switch len(args) {
 		case 0:
-			return fetchSuggestions(fmt.Sprintf(parentTemplate, project), "", "")
+			return fetchSuggestions(fmt.Sprintf(parentTemplate, url.PathEscape(project)), "", "")
 		case 1:
-			return fetchSuggestions(fmt.Sprintf(childTemplate, project, args[0]), "", "")
+			return fetchSuggestions(fmt.Sprintf(childTemplate, url.PathEscape(project), url.PathEscape(args[0])), "", "")
 		default:
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}

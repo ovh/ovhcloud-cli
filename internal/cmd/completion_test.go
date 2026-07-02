@@ -150,3 +150,16 @@ func TestCompletionInstall_UnsupportedShell(t *testing.T) {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
+
+func TestCompletionInstall_EmptyShell(t *testing.T) {
+	setupHome(t)
+	t.Setenv("SHELL", "")
+
+	err := runCompletionInstall(nil, nil)
+	if err == nil {
+		t.Fatal("expected an error when SHELL is unset, got nil")
+	}
+	if !strings.Contains(err.Error(), "SHELL environment variable is not set") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
