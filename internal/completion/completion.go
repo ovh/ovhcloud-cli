@@ -136,6 +136,14 @@ func CloudResourceWithChild(parentTemplate, childTemplate string) func(*cobra.Co
 // CloudProjects returns completion suggestions for the --cloud-project flag.
 // Each suggestion is "projectID\tName" so shells can display the project name alongside.
 func CloudProjects(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	const cacheKey = "cloud-projects"
+
+	// Completion runs on every <tab>: serve from the on-disk cache when it is
+	// still fresh to avoid an API call each time.
+	if cached, ok := readCachedSuggestions(cacheKey); ok {
+		return cached, cobra.ShellCompDirectiveNoFileComp
+	}
+
 	if httpLib.Client == nil {
 		httpLib.InitClient()
 	}
@@ -153,7 +161,7 @@ func CloudProjects(_ *cobra.Command, _ []string, _ string) ([]string, cobra.Shel
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	var suggestions []string
+	suggestions := make([]string, 0, len(projects))
 	for _, project := range projects {
 		if project.Name != "" {
 			suggestions = append(suggestions, project.ID+"\t"+project.Name)
@@ -161,5 +169,7 @@ func CloudProjects(_ *cobra.Command, _ []string, _ string) ([]string, cobra.Shel
 			suggestions = append(suggestions, project.ID)
 		}
 	}
+
+	writeCachedSuggestions(cacheKey, suggestions)
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
