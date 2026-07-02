@@ -71,7 +71,10 @@ func runCompletionInstall(_ *cobra.Command, _ []string) error {
 
 	var rcFile string
 	var completionLine string
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to determine user home directory: %w", err)
+	}
 
 	switch shellName {
 	case "bash":
