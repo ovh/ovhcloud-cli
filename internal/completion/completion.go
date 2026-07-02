@@ -151,22 +151,24 @@ func CloudProjects(_ *cobra.Command, _ []string, _ string) ([]string, cobra.Shel
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	// The v2 endpoint returns the full project objects (including the name) in a
-	// single call, so there is no need to fetch each project individually.
-	var projects []struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
-	if err := httpLib.Client.Get("/v2/publicCloud/project", &projects); err != nil {
+	// FetchExpandedArray fetches the project IDs then expands each project in
+	// parallel, so we get the full objects (including their description) without
+	// a manual N+1 loop.
+	projects, err := httpLib.FetchExpandedArray("/v1/cloud/project", "")
+	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	suggestions := make([]string, 0, len(projects))
 	for _, project := range projects {
-		if project.Name != "" {
-			suggestions = append(suggestions, project.ID+"\t"+project.Name)
+		id, ok := project["project_id"].(string)
+		if !ok {
+			continue
+		}
+		if description, ok := project["description"].(string); ok && description != "" {
+			suggestions = append(suggestions, id+"\t"+description)
 		} else {
-			suggestions = append(suggestions, project.ID)
+			suggestions = append(suggestions, id)
 		}
 	}
 
