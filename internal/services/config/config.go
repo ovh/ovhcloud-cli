@@ -26,7 +26,7 @@ func ShowConfig(_ *cobra.Command, _ []string) {
 	if profileName := config.GetActiveProfileName(flags.CliConfig, flags.Profile); profileName != "" && !config.IsDefaultProfile(profileName) {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "Active profile: %s\n", profileName)
 	}
-	display.RenderConfigTable(flags.CliConfig)
+	display.RenderConfigTable(flags.CliConfig, &flags.OutputFormatConfig)
 }
 
 func SetConfig(_ *cobra.Command, args []string) {

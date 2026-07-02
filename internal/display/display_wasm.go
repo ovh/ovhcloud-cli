@@ -112,7 +112,24 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 	}
 }
 
-func RenderConfigTable(cfg *ini.File) {
+func RenderConfigTable(cfg *ini.File, outputformat *OutputFormat) {
+	// if a custom output format is passed, it is used instead of rendering the Config Table
+	if outputformat.IsJson() || outputformat.IsYaml() || outputformat.IsInteractive() || outputformat.CustomFormat() != "" {
+		result := map[string]any{}
+		for _, section := range cfg.Sections() {
+			if section.Name() == "DEFAULT" {
+				continue
+			}
+			sectionMap := map[string]any{}
+			for _, key := range section.Keys() {
+				sectionMap[key.Name()] = key.Value()
+			}
+			result[section.Name()] = sectionMap
+		}
+		OutputObject(result, "", "", outputformat)
+		return
+	}
+	// otherwise, render the table
 	// TODO: untested
 	output := map[string]any{}
 	if err := cfg.MapTo(&output); err != nil {
