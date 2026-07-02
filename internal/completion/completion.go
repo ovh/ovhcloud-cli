@@ -19,15 +19,13 @@ import (
 // this delay we give up and return no suggestion rather than blocking.
 const completionTimeout = 3 * time.Second
 
-// fetchIDSuggestions lists the identifiers exposed at the given API endpoint and
-// returns them as completion suggestions. v1 list endpoints return an array of
-// identifiers (strings or numbers), while some endpoints return an array of
-// objects: in that case the "id" field is used as the suggested value.
-//
-// The request is bounded by completionTimeout so a slow endpoint never freezes
-// the shell: on timeout, no suggestion is returned (the in-flight request is
-// abandoned, which is harmless as the completion process exits right after).
-func fetchIDSuggestions(endpoint string) ([]string, cobra.ShellCompDirective) {
+func fetchSuggestions(endpoint, labelField, cacheKey string) ([]string, cobra.ShellCompDirective) {
+	if cacheKey != "" {
+		if cached, ok := readCachedSuggestions(cacheKey); ok {
+			return cached, cobra.ShellCompDirectiveNoFileComp
+		}
+	}
+
 	if httpLib.Client == nil {
 		httpLib.InitClient()
 	}
@@ -51,9 +49,17 @@ func fetchIDSuggestions(endpoint string) ([]string, cobra.ShellCompDirective) {
 			case float64:
 				suggestions = append(suggestions, strconv.FormatFloat(v, 'f', -1, 64))
 			case map[string]any:
-				if id, ok := v["id"].(string); ok && id != "" {
-					suggestions = append(suggestions, id)
+				id, ok := v["id"].(string)
+				if !ok || id == "" {
+					continue
 				}
+				if labelField != "" {
+					if label, ok := v[labelField].(string); ok && label != "" {
+						suggestions = append(suggestions, id+"\t"+label)
+						continue
+					}
+				}
+				suggestions = append(suggestions, id)
 			}
 		}
 		result <- suggestions
@@ -61,6 +67,9 @@ func fetchIDSuggestions(endpoint string) ([]string, cobra.ShellCompDirective) {
 
 	select {
 	case suggestions := <-result:
+		if cacheKey != "" && suggestions != nil {
+			writeCachedSuggestions(cacheKey, suggestions)
+		}
 		return suggestions, cobra.ShellCompDirectiveNoFileComp
 	case <-time.After(completionTimeout):
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -88,7 +97,7 @@ func ServiceList(endpoint string) func(*cobra.Command, []string, string) ([]stri
 		if len(args) > 0 {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		return fetchIDSuggestions(endpoint)
+		return fetchSuggestions(endpoint, "", "")
 	}
 }
 
@@ -107,7 +116,7 @@ func CloudResources(pathTemplate string) func(*cobra.Command, []string, string) 
 		if project == "" {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		return fetchIDSuggestions(fmt.Sprintf(pathTemplate, project))
+		return fetchSuggestions(fmt.Sprintf(pathTemplate, project), "", "")
 	}
 }
 
@@ -124,54 +133,15 @@ func CloudResourceWithChild(parentTemplate, childTemplate string) func(*cobra.Co
 		}
 		switch len(args) {
 		case 0:
-			return fetchIDSuggestions(fmt.Sprintf(parentTemplate, project))
+			return fetchSuggestions(fmt.Sprintf(parentTemplate, project), "", "")
 		case 1:
-			return fetchIDSuggestions(fmt.Sprintf(childTemplate, project, args[0]))
+			return fetchSuggestions(fmt.Sprintf(childTemplate, project, args[0]), "", "")
 		default:
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 	}
 }
 
-// CloudProjects returns completion suggestions for the --cloud-project flag.
-// Each suggestion is "projectID\tName" so shells can display the project name alongside.
 func CloudProjects(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	const cacheKey = "cloud-projects"
-
-	// Completion runs on every <tab>: serve from the on-disk cache when it is
-	// still fresh to avoid an API call each time.
-	if cached, ok := readCachedSuggestions(cacheKey); ok {
-		return cached, cobra.ShellCompDirectiveNoFileComp
-	}
-
-	if httpLib.Client == nil {
-		httpLib.InitClient()
-	}
-	if httpLib.Client == nil {
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	}
-
-	// FetchExpandedArray fetches the project IDs then expands each project in
-	// parallel, so we get the full objects (including their description) without
-	// a manual N+1 loop.
-	projects, err := httpLib.FetchExpandedArray("/v1/cloud/project", "")
-	if err != nil {
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	}
-
-	suggestions := make([]string, 0, len(projects))
-	for _, project := range projects {
-		id, ok := project["project_id"].(string)
-		if !ok {
-			continue
-		}
-		if description, ok := project["description"].(string); ok && description != "" {
-			suggestions = append(suggestions, id+"\t"+description)
-		} else {
-			suggestions = append(suggestions, id)
-		}
-	}
-
-	writeCachedSuggestions(cacheKey, suggestions)
-	return suggestions, cobra.ShellCompDirectiveNoFileComp
+	return fetchSuggestions("/v2/publicCloud/project", "name", "cloud-projects")
 }
