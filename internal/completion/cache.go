@@ -32,8 +32,6 @@ func completionCacheDir() string {
 	return filepath.Join(base, "ovhcloud", "completion")
 }
 
-// readCachedSuggestions returns the cached suggestions for the given key when a
-// cache file exists and is younger than completionCacheTTL.
 func readCachedSuggestions(key string) ([]string, bool) {
 	dir := completionCacheDir()
 	if dir == "" {
@@ -42,7 +40,12 @@ func readCachedSuggestions(key string) ([]string, bool) {
 
 	path := filepath.Join(dir, key)
 	info, err := os.Stat(path)
-	if err != nil || time.Since(info.ModTime()) > completionCacheTTL {
+	if err != nil {
+		return nil, false
+	}
+	if time.Since(info.ModTime()) > completionCacheTTL {
+		// Expired: drop the stale file and report a cache miss.
+		_ = os.Remove(path)
 		return nil, false
 	}
 
@@ -69,6 +72,7 @@ func writeCachedSuggestions(key string, suggestions []string) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return
 	}
+	purgeExpiredCache(dir)
 
 	tmp, err := os.CreateTemp(dir, key+".tmp-*")
 	if err != nil {
@@ -85,4 +89,28 @@ func writeCachedSuggestions(key string, suggestions []string) {
 	}
 
 	_ = os.Rename(tmp.Name(), filepath.Join(dir, key))
+}
+
+// purgeExpiredCache removes every cache entry in dir whose age exceeds
+// completionCacheTTL. It is best-effort: any error is silently ignored.
+func purgeExpiredCache(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		if time.Since(info.ModTime()) > completionCacheTTL {
+			_ = os.Remove(filepath.Join(dir, entry.Name()))
+		}
+	}
 }

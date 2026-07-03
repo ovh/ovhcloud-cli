@@ -49,6 +49,35 @@ func TestCache_ExpiredByTTL(t *testing.T) {
 	if _, ok := readCachedSuggestions("cloud-projects"); ok {
 		t.Error("expected a cache miss for an expired cache file")
 	}
+
+	// Reading an expired entry must also delete it from disk.
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Errorf("expected expired cache file to be removed, stat err = %v", err)
+	}
+}
+
+func TestCache_PurgeExpiredOnWrite(t *testing.T) {
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+
+	// Seed an old entry and age it beyond the TTL.
+	writeCachedSuggestions("stale", []string{"old"})
+	stalePath := filepath.Join(completionCacheDir(), "stale")
+	old := time.Now().Add(-completionCacheTTL - time.Minute)
+	if err := os.Chtimes(stalePath, old, old); err != nil {
+		t.Fatalf("failed to age cache file: %v", err)
+	}
+
+	// Any subsequent write triggers a purge of expired entries.
+	writeCachedSuggestions("fresh", []string{"new"})
+
+	if _, err := os.Stat(stalePath); !os.IsNotExist(err) {
+		t.Errorf("expected stale cache file to be purged, stat err = %v", err)
+	}
+
+	// The freshly written entry must still be there.
+	if _, ok := readCachedSuggestions("fresh"); !ok {
+		t.Error("expected the fresh cache entry to survive the purge")
+	}
 }
 
 func TestCache_EmptyResultIsCached(t *testing.T) {
