@@ -7,12 +7,32 @@ package completion
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 
+	"github.com/ovh/ovhcloud-cli/internal/config"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/spf13/cobra"
 )
+
+func resolveCloudProject(cmd *cobra.Command) string {
+	if p, _ := cmd.Flags().GetString("cloud-project"); p != "" {
+		return p
+	}
+	config.ActiveProfileOverride = flags.Profile
+	if p := os.Getenv("OVH_CLOUD_PROJECT_SERVICE"); p != "" {
+		return p
+	}
+	if p := os.Getenv("OS_TENANT_ID"); p != "" {
+		return p
+	}
+	if p, err := config.GetConfigValue(flags.CliConfig, "", "default_cloud_project"); err == nil {
+		return p
+	}
+	return ""
+}
 
 // completionTimeout bounds how long a completion may wait for the API. Some list
 // endpoints are slow (e.g. instances are aggregated across all regions), and a
@@ -28,7 +48,12 @@ func fetchSuggestions(endpoint, labelField, cacheKey string) ([]string, cobra.Sh
 	}
 
 	if httpLib.Client == nil {
-		httpLib.InitClient()
+		// Initialize the client the same way commands do (the completion path
+		// skips PersistentPreRun): honour the config file and the active profile,
+		// otherwise profile-based auth would be ignored and the API call would
+		// hit the wrong account / no credentials.
+		config.ActiveProfileOverride = flags.Profile
+		httpLib.InitClientWithProfile(flags.CliConfig, flags.Profile)
 	}
 	if httpLib.Client == nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -103,7 +128,7 @@ func CloudResources(pathTemplate string) func(*cobra.Command, []string, string) 
 		if len(args) > 0 {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		project, _ := cmd.Flags().GetString("cloud-project")
+		project := resolveCloudProject(cmd)
 		if project == "" {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
@@ -118,7 +143,7 @@ func CloudResources(pathTemplate string) func(*cobra.Command, []string, string) 
 // first argument). The project id is read from the --cloud-project flag.
 func CloudResourceWithChild(parentTemplate, childTemplate string) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
-		project, _ := cmd.Flags().GetString("cloud-project")
+		project := resolveCloudProject(cmd)
 		if project == "" {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
