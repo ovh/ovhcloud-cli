@@ -81,6 +81,7 @@ Available commands:
   account                          Manage your account
   alldom                           Retrieve information and manage your AllDom services
   baremetal                        Retrieve information and manage your Bare Metal services
+  browser                          Launch a TUI for the OVHcloud Manager - Public Cloud universe only [EXPERIMENTAL]
   cdn-dedicated                    Retrieve information and manage your dedicated CDN services
   cloud                            Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
   completion                       Generate the autocompletion script for the specified shell
