@@ -22,27 +22,27 @@ var (
 	volumeColumnsToDisplay = []string{
 		"id",
 		"currentState.name name",
-		"currentState.size size",
-		"currentState.volumeType type",
-		"currentState.status status",
 		"currentState.location.region region",
+		"currentState.volumeType type",
+		"currentState.size size",
+		"currentState.status status",
 	}
 
 	snapshotColumnsToDisplay = []string{
 		"id",
 		"currentState.name name",
+		"currentState.location.region region",
 		"currentState.size size",
 		"currentState.volumeId volumeId",
-		"currentState.location.region region",
 		"resourceStatus status",
 	}
 
 	backupColumnsToDisplay = []string{
 		"id",
 		"currentState.name name",
+		"currentState.location.region region",
 		"currentState.size size",
 		"currentState.volumeId volumeId",
-		"currentState.location.region region",
 		"resourceStatus status",
 	}
 

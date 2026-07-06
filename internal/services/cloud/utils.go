@@ -161,8 +161,9 @@ func waitForCloudOperation(projectID, operationID, action string, retryDuration 
 
 // waitForCloudResourceReady polls a v2 asynchronous resource at the given full
 // endpoint (e.g. ".../storage/block/volume/{id}") until its "resourceStatus"
-// reaches "READY". It fails if the resource reports an "ERROR" status or a failed
-// task, and times out after retryDuration. The last fetched resource is returned.
+// reaches "READY". It fails if the resource reports an "ERROR" status and times
+// out after retryDuration. Tasks reported in error are logged but not treated as
+// fatal, as they can be transient. The last fetched resource is returned.
 func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) (map[string]any, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
 	defer cancel()
@@ -184,7 +185,8 @@ func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) (ma
 			return nil, errors.New("resource ended in error state (resourceStatus=ERROR)")
 		}
 
-		// Surface a failed task as soon as one is reported.
+		// Log tasks reported in error but keep waiting: such errors can be
+		// temporary and get resolved by the backend.
 		if tasks, ok := resource["currentTasks"].([]any); ok {
 			for _, t := range tasks {
 				task, ok := t.(map[string]any)
@@ -192,7 +194,7 @@ func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) (ma
 					continue
 				}
 				if taskStatus, _ := task["status"].(string); taskStatus == "ERROR" {
-					return nil, fmt.Errorf("resource task %v ended in error", task["type"])
+					log.Printf("resource task %v is in error state, still waiting…", task["type"])
 				}
 			}
 		}
