@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "https://eu.api.ovh.com/1.0"
+      "url": "https://eu.api.ovh.com/v1"
     }
   ],
   "components": {
@@ -76,15 +76,19 @@
       },
       "dnssec.KeyAlgorithmEnum": {
         "type": "integer",
-        "description": "DNSSEC Algorithm\n5: RSASHA1\n7: RSASHA1-NSEC3-SHA1\n8: RSASHA256\n10: RSASHA512\n13: ECDSAP256SHA256\n14: ECDSAP384SHA384\n15: ED25519",
+        "description": "DNSSEC Algorithm\n3: DSA\n5: RSASHA1\n6: DSA-NSEC3-SHA1\n7: RSASHA1-NSEC3-SHA1\n8: RSASHA256\n10: RSASHA512\n12: ECC-GOST\n13: ECDSAP256SHA256\n14: ECDSAP384SHA384\n15: ED25519\n16: ED448",
         "enum": [
+          3,
           5,
+          6,
           7,
           8,
           10,
+          12,
           13,
           14,
-          15
+          15,
+          16
         ]
       },
       "dnssec.KeyFlagEnum": {
@@ -1200,10 +1204,12 @@
           "DnssecResigning",
           "DnssecRollKsk",
           "DnssecRollZsk",
+          "ZoneCheck",
           "ZoneCreate",
           "ZoneCut",
           "ZoneDelete",
           "ZoneImport",
+          "ZoneRefresh",
           "ZoneRestore"
         ]
       },
@@ -2265,6 +2271,15 @@
         "type": "object",
         "description": "The registry configurations applied to a domain name",
         "properties": {
+          "extension_type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.extensions.registryConfigurations.ExtensionTypeEnum"
+              }
+            ],
+            "description": "The type of an extension (cctld or gtld)",
+            "readOnly": true
+          },
           "isPremiumSupported": {
             "type": "boolean",
             "description": "Whether premium domains are supported by the registry and handled by OVHcloud",
@@ -2280,6 +2295,14 @@
             "readOnly": true
           }
         }
+      },
+      "domain.extensions.registryConfigurations.ExtensionTypeEnum": {
+        "type": "string",
+        "description": "The type of an extension (country-code TLD or generic TLD)",
+        "enum": [
+          "cctld",
+          "gtld"
+        ]
       },
       "domain.extensions.registryConfigurations.LabelDomainRegistryConfiguration": {
         "type": "object",
@@ -2692,6 +2715,320 @@
           "nameServers"
         ]
       },
+      "domain.order.ContactOwner": {
+        "type": "object",
+        "description": "Owner contact reference for a domain order: an OVH contact resource, not a NIC handle.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Numeric identifier of the OVH contact resource (e.g. obtained from /me/contact). Distinct from a NIC handle such as xxxxx-ovh.",
+            "nullable": true
+          }
+        }
+      },
+      "domain.order.Contacts": {
+        "type": "object",
+        "description": "Admin, tech and owner contacts for a domain order. admin and tech are OVH NIC handles (e.g. xxxxx-ovh); owner is an OVH contact resource referenced by its numeric id (see /me/contact), not a NIC handle. Billing is forced to the customer code by the server and is not exposed.",
+        "properties": {
+          "admin": {
+            "type": "string",
+            "description": "Administrative contact, given as an OVH NIC handle (e.g. xxxxx-ovh). Defaults to the calling customer's NIC if omitted.",
+            "nullable": true
+          },
+          "owner": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.ContactOwner"
+              }
+            ],
+            "description": "Owner contact of the domain. Unlike admin/tech which are NIC handles, the owner is an OVH contact resource referenced by its numeric id.",
+            "nullable": true
+          },
+          "tech": {
+            "type": "string",
+            "description": "Technical contact, given as an OVH NIC handle (e.g. xxxxx-ovh). Defaults to the admin contact if omitted.",
+            "nullable": true
+          }
+        }
+      },
+      "domain.order.Contract": {
+        "type": "object",
+        "description": "A contract (terms) the customer subscribes to when placing a domain order",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the contract (e.g. registration terms, general conditions of service)",
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to the contract terms document (PDF)",
+            "readOnly": true
+          }
+        }
+      },
+      "domain.order.OrderRequest": {
+        "type": "object",
+        "description": "Payload to order a new domain name",
+        "properties": {
+          "contacts": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.Contacts"
+              }
+            ],
+            "description": "Admin, tech and owner contacts",
+            "nullable": true
+          },
+          "dns": {
+            "type": "array",
+            "description": "List of DNS servers (hostnames) to set on the domain. Optional: if omitted, OVHcloud's recommended DNS servers for the domain are used.",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "domain": {
+            "type": "string",
+            "description": "Fully-qualified domain name to order, including the extension (e.g. example.com)"
+          },
+          "duration": {
+            "type": "string",
+            "description": "Order duration in ISO-8601 format, whole years only (e.g. P1Y). Allowed values depend on the extension's registry configuration; an unsupported duration is rejected. Defaults to P1Y if omitted.",
+            "nullable": true,
+            "format": "duration"
+          },
+          "priceAcknowledge": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.PriceAcknowledge"
+              }
+            ],
+            "description": "Price the customer acknowledged before placing the order. Required for aftermarket or premium domains, optional otherwise. Its value/currency must equal the retail price quoted for this domain (e.g. via a dryRun order); a mismatch rejects the order.",
+            "nullable": true
+          },
+          "promoCodes": {
+            "type": "array",
+            "description": "Promotion codes to apply. Optional.",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "waiveRetractationPeriod": {
+            "type": "boolean",
+            "description": "Acknowledgment that the customer waives the legal retractation period. Must be set to true to place the order.",
+            "nullable": true
+          },
+          "zone": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.ZoneOptions"
+              }
+            ],
+            "description": "DNS zone options",
+            "nullable": true
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "domain.order.OrderResponse": {
+        "type": "object",
+        "description": "Response returned after placing a domain order",
+        "properties": {
+          "contacts": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.Contacts"
+              }
+            ],
+            "description": "Contacts attached to the order",
+            "nullable": true,
+            "readOnly": true
+          },
+          "contracts": {
+            "type": "array",
+            "description": "Legal contracts (terms, as PDFs) the customer subscribes to with this order",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/domain.order.Contract"
+            },
+            "readOnly": true
+          },
+          "dns": {
+            "type": "array",
+            "description": "DNS servers set on the domain",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "description": "Ordered domain name",
+            "readOnly": true
+          },
+          "duration": {
+            "type": "string",
+            "description": "Order duration in ISO-8601 format, whole years only (e.g. P1Y)",
+            "format": "duration",
+            "readOnly": true
+          },
+          "orderId": {
+            "type": "integer",
+            "description": "Identifier of the created order, used with url to finalize and pay it",
+            "nullable": true,
+            "readOnly": true
+          },
+          "pricing": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.Pricing"
+              }
+            ],
+            "description": "Pricing breakdown of the order",
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "description": "Payment/finalization URL where the customer completes and pays the order",
+            "nullable": true,
+            "readOnly": true
+          },
+          "zone": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.ZoneOptions"
+              }
+            ],
+            "description": "DNS zone options applied to the order",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "domain.order.Price": {
+        "type": "object",
+        "description": "Price with its currency and textual representation as returned by domain/order",
+        "properties": {
+          "currencyCode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.CurrencyCodeEnum"
+              }
+            ],
+            "description": "Currency code",
+            "readOnly": true
+          },
+          "text": {
+            "type": "string",
+            "description": "Human-readable price with currency, e.g. \"6.08 EUR\"",
+            "readOnly": true
+          },
+          "value": {
+            "type": "number",
+            "description": "The effective price as a number, e.g. 6.08",
+            "readOnly": true
+          }
+        }
+      },
+      "domain.order.PriceAcknowledge": {
+        "type": "object",
+        "description": "Minimal price payload sent by the client to acknowledge the price seen, before placing the actual order",
+        "properties": {
+          "currencyCode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.CurrencyCodeEnum"
+              }
+            ],
+            "description": "Currency code of the acknowledged price"
+          },
+          "value": {
+            "type": "number",
+            "description": "The effective price acknowledged by the client"
+          }
+        },
+        "required": [
+          "currencyCode",
+          "value"
+        ]
+      },
+      "domain.order.Pricing": {
+        "type": "object",
+        "description": "Pricing breakdown with and without tax",
+        "properties": {
+          "basePriceWithoutTax": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.Price"
+              }
+            ],
+            "description": "Price excluding tax before any promotion",
+            "readOnly": true
+          },
+          "discount": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.Price"
+              }
+            ],
+            "description": "Total reduction applied by promotions, as a positive amount (0 if none)",
+            "readOnly": true
+          },
+          "finalPriceWithTax": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.Price"
+              }
+            ],
+            "description": "Final price including tax, after any reduction",
+            "readOnly": true
+          },
+          "finalPriceWithoutTax": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.Price"
+              }
+            ],
+            "description": "Final price excluding tax, after any reduction",
+            "readOnly": true
+          },
+          "tax": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/domain.order.Price"
+              }
+            ],
+            "description": "Tax amount on the final price",
+            "readOnly": true
+          }
+        }
+      },
+      "domain.order.ZoneOptions": {
+        "type": "object",
+        "description": "DNS zone options for a domain order",
+        "properties": {
+          "anycast": {
+            "type": "boolean",
+            "description": "Enable Anycast on the DNS zone. Applied only when a new zone is created (create=true and no existing zone); ignored otherwise.",
+            "nullable": true
+          },
+          "create": {
+            "type": "boolean",
+            "description": "Whether to create the DNS zone along with the domain. Defaults to true if omitted.",
+            "nullable": true
+          },
+          "dnssec": {
+            "type": "boolean",
+            "description": "Enable DNSSEC on the DNS zone. Applied only when a new zone is created (create=true and no existing zone); ignored otherwise.",
+            "nullable": true
+          }
+        }
+      },
       "domain.outgoingTransfer.Approve": {
         "type": "object",
         "description": "Definition of Outgoing Transfer applying to a domain name",
@@ -2926,14 +3263,17 @@
           "DKIM",
           "DMARC",
           "DNAME",
+          "HTTPS",
           "LOC",
           "MX",
           "NAPTR",
           "NS",
           "PTR",
+          "RP",
           "SPF",
           "SRV",
           "SSHFP",
+          "SVCB",
           "TLSA",
           "TXT"
         ]
@@ -3483,6 +3823,16 @@
             "format": "uuid",
             "readOnly": true
           },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata.StateEnum"
+              }
+            ],
+            "description": "Resource state",
+            "nullable": true,
+            "readOnly": true
+          },
           "tags": {
             "type": "object",
             "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
@@ -3498,6 +3848,16 @@
             "readOnly": true
           }
         }
+      },
+      "iam.ResourceMetadata.StateEnum": {
+        "type": "string",
+        "description": "Resource state",
+        "enum": [
+          "EXPIRED",
+          "IN_CREATION",
+          "OK",
+          "SUSPENDED"
+        ]
       },
       "iam.resource.TagFilter": {
         "type": "object",
@@ -3581,9 +3941,9 @@
       },
       "macAddress": {
         "type": "string",
-        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "description": "MAC address (e.g., 00:00:5e:00:53:01)",
         "format": "mac-address",
-        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+        "example": "00:00:5e:00:53:01"
       },
       "nichandle.CountryEnum": {
         "type": "string",
@@ -3971,6 +4331,11 @@
             "nullable": true,
             "readOnly": true
           },
+          "displayName": {
+            "type": "string",
+            "description": "Display name shown instead of the organisation name.",
+            "nullable": true
+          },
           "email": {
             "type": "string",
             "description": "Email address",
@@ -4159,6 +4524,27 @@
         "enum": [
           "complete",
           "incomplete"
+        ]
+      },
+      "order.CurrencyCodeEnum": {
+        "type": "string",
+        "description": "Currency code",
+        "enum": [
+          "AUD",
+          "CAD",
+          "CZK",
+          "EUR",
+          "GBP",
+          "INR",
+          "LTL",
+          "MAD",
+          "N/A",
+          "PLN",
+          "SGD",
+          "TND",
+          "USD",
+          "XOF",
+          "points"
         ]
       },
       "phoneNumber": {
@@ -4357,6 +4743,14 @@
             "type": "string",
             "description": "Commentary about your termination request"
           },
+          "commentaryFutureUse": {
+            "type": "string",
+            "description": "Commentary about your future use"
+          },
+          "commentaryReason": {
+            "type": "string",
+            "description": "Commentary about your reason for termination request"
+          },
           "futureUse": {
             "allOf": [
               {
@@ -4473,6 +4867,25 @@
             "nullable": true,
             "items": {
               "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.eu.ovhcloud.com/oauth2/authorize",
+            "tokenUrl": "https://auth.eu.ovhcloud.com/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
             }
           }
         }
@@ -5420,6 +5833,60 @@
         "x-iam-actions": [
           {
             "name": "account:apiovh:domain/extension/registryConfiguration/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/domain/order/create": {
+      "post": {
+        "summary": "Order a new domain name",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dryRun",
+            "description": "If true, simulate the order and return the pricing without actually placing it. Default to false.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/domain.order.OrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/domain.order.OrderResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:domain/order/create",
             "required": true
           }
         ]
