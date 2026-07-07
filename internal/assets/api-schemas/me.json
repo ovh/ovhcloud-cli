@@ -1632,12 +1632,23 @@
           "name"
         ]
       },
+      "auth.GroupUser": {
+        "type": "object",
+        "description": "An IAM Group User",
+        "properties": {
+          "user": {
+            "type": "string",
+            "description": "Username to add to the group"
+          }
+        }
+      },
       "auth.HTTPMethodEnum": {
         "type": "string",
         "description": "All HTTP methods available",
         "enum": [
           "DELETE",
           "GET",
+          "PATCH",
           "POST",
           "PUT"
         ]
@@ -1921,6 +1932,32 @@
           "UNPRIVILEGED"
         ]
       },
+      "auth.ServiceProviderInfo": {
+        "type": "object",
+        "description": "An IAM Federation Provider",
+        "properties": {
+          "assertionConsumerServiceUrl": {
+            "type": "string",
+            "description": "URL of the SAMLv2 Assertion Consumer Service for OVHcloud",
+            "readOnly": true
+          },
+          "entityId": {
+            "type": "string",
+            "description": "Entity ID of OVHcloud as a service provider ",
+            "readOnly": true
+          },
+          "metadata": {
+            "type": "string",
+            "description": "XML metadata of OVHcloud as a service provider",
+            "readOnly": true
+          },
+          "metadataUrl": {
+            "type": "string",
+            "description": "URL of the SAMLv2 metadata for OVHcloud",
+            "readOnly": true
+          }
+        }
+      },
       "auth.User": {
         "type": "object",
         "description": "An IAM User",
@@ -1942,7 +1979,15 @@
           },
           "group": {
             "type": "string",
-            "description": "User's group"
+            "description": "User's main group"
+          },
+          "groups": {
+            "type": "array",
+            "description": "User's groups",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
           },
           "lastUpdate": {
             "type": "string",
@@ -2095,6 +2140,20 @@
             "format": "date-time",
             "readOnly": true
           },
+          "eInvoicingId": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "eInvoicingStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/billing.EInvoicingStatusEnum"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
           "orderId": {
             "type": "integer",
             "readOnly": true
@@ -2213,6 +2272,137 @@
           "purchase-web"
         ]
       },
+      "billing.CorrectiveInvoice": {
+        "type": "object",
+        "description": "Details about a CorrectiveInvoice",
+        "properties": {
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/billing.CategoryEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "correctedInvoiceId": {
+            "type": "string",
+            "readOnly": true
+          },
+          "correctiveInvoiceId": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "eInvoicingId": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "eInvoicingStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/billing.EInvoicingStatusEnum"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "orderId": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "password": {
+            "type": "string",
+            "readOnly": true
+          },
+          "pdfUrl": {
+            "type": "string",
+            "readOnly": true
+          },
+          "priceWithTax": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "readOnly": true
+          },
+          "priceWithoutTax": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "readOnly": true
+          },
+          "tax": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "billing.CorrectiveInvoiceDetail": {
+        "type": "object",
+        "description": "Information about a Bill entry",
+        "properties": {
+          "correctiveInvoiceDetailId": {
+            "type": "string",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "periodEnd": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "periodStart": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "quantity": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "totalPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "readOnly": true
+          },
+          "unitPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.LongPrice"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
       "billing.CreditBalance": {
         "type": "object",
         "description": "Credit balance applied on an Order",
@@ -2318,6 +2508,150 @@
             "readOnly": true
           }
         }
+      },
+      "billing.DownPaymentInvoice": {
+        "type": "object",
+        "description": "Details about a DownPaymentInvoice",
+        "properties": {
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/billing.CategoryEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "downPaymentInvoiceId": {
+            "type": "string",
+            "readOnly": true
+          },
+          "eInvoicingId": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "eInvoicingStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/billing.EInvoicingStatusEnum"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "orderId": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "readOnly": true
+          },
+          "pdfUrl": {
+            "type": "string",
+            "readOnly": true
+          },
+          "priceWithTax": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "readOnly": true
+          },
+          "priceWithoutTax": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "readOnly": true
+          },
+          "tax": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "billing.DownPaymentInvoiceDetail": {
+        "type": "object",
+        "description": "Information about a DownPaymentInvoice entry",
+        "properties": {
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "domain": {
+            "type": "string",
+            "readOnly": true
+          },
+          "downPaymentInvoiceDetailId": {
+            "type": "string",
+            "readOnly": true
+          },
+          "periodEnd": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "periodStart": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "readOnly": true
+          },
+          "quantity": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "totalPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "readOnly": true
+          },
+          "unitPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.LongPrice"
+              }
+            ],
+            "readOnly": true
+          }
+        }
+      },
+      "billing.EInvoicingStatusEnum": {
+        "type": "string",
+        "description": "List of available eInvoicing Status types",
+        "enum": [
+          "accepted",
+          "error",
+          "ignored",
+          "invalid",
+          "new",
+          "ok",
+          "processing",
+          "readyToSubmit",
+          "rejected",
+          "submitted"
+        ]
       },
       "billing.FidelityAccount": {
         "type": "object",
@@ -2620,6 +2954,14 @@
             "format": "date-time",
             "readOnly": true
           },
+          "metadatas": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
           "orderId": {
             "type": "integer",
             "readOnly": true
@@ -2727,6 +3069,14 @@
             "type": "integer",
             "nullable": true
           },
+          "availableAfterCredit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
+            "readOnly": true
+          },
           "balance": {
             "allOf": [
               {
@@ -2755,6 +3105,14 @@
           },
           "ovhAccountId": {
             "type": "string",
+            "readOnly": true
+          },
+          "retrievableAmount": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/order.Price"
+              }
+            ],
             "readOnly": true
           }
         }
@@ -3816,18 +4174,6 @@
           }
         }
       },
-      "complexType.UnitAndValue_long": {
-        "type": "object",
-        "description": "A numeric value tagged with its unit",
-        "properties": {
-          "unit": {
-            "type": "string"
-          },
-          "value": {
-            "type": "integer"
-          }
-        }
-      },
       "consumption.ConsumptionExportFormatsEnum": {
         "type": "string",
         "description": "Export file format",
@@ -4116,7 +4462,7 @@
           "resource": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionResource"
+                "$ref": "#/components/schemas/dbaas.logs.SubscriptionResource"
               }
             ],
             "description": "Subscribed resource, where the logs come from",
@@ -4165,22 +4511,6 @@
           "streamId"
         ]
       },
-      "dbaas.logs.LogSubscriptionResource": {
-        "type": "object",
-        "description": "Log subscription resource",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Name of subscribed resource",
-            "readOnly": true
-          },
-          "type": {
-            "type": "string",
-            "description": "Type of subscribed resource",
-            "readOnly": true
-          }
-        }
-      },
       "dbaas.logs.LogSubscriptionResponse": {
         "type": "object",
         "description": "Asynchronous operation after subscribing or unsubscribing to a resource logs",
@@ -4210,6 +4540,22 @@
         "required": [
           "kind"
         ]
+      },
+      "dbaas.logs.SubscriptionResource": {
+        "type": "object",
+        "description": "Log subscription resource",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of subscribed resource",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of subscribed resource",
+            "readOnly": true
+          }
+        }
       },
       "dbaas.logs.TemporaryLogsLink": {
         "type": "object",
@@ -4574,990 +4920,6 @@
           "TODO"
         ]
       },
-      "dedicated.TemplateOsHardwareRaidEnum": {
-        "type": "string",
-        "description": "Hardware RAID enum",
-        "enum": [
-          "raid0",
-          "raid1",
-          "raid10",
-          "raid5",
-          "raid50",
-          "raid6",
-          "raid60"
-        ]
-      },
-      "dedicated.TemplateOsInfoLicense": {
-        "type": "object",
-        "description": "A structure describing some interesting facts about an OS template licensing",
-        "properties": {
-          "os": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsInfoLicenseItem"
-              }
-            ],
-            "description": "OS template license OS details",
-            "nullable": true
-          },
-          "usage": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsInfoLicenseItem"
-              }
-            ],
-            "description": "OS template license usage details",
-            "nullable": true
-          }
-        }
-      },
-      "dedicated.TemplateOsInfoLicenseItem": {
-        "type": "object",
-        "description": "A structure describing some interesting facts about an OS template license item",
-        "properties": {
-          "name": {
-            "type": "array",
-            "description": "OS template license item names",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/dedicated.TemplateOsInfoLicenseItemEnum"
-            }
-          },
-          "url": {
-            "type": "string",
-            "description": "OS template license item url",
-            "nullable": true
-          }
-        }
-      },
-      "dedicated.TemplateOsInfoLicenseItemEnum": {
-        "type": "string",
-        "description": "Standard license name according to SPDX",
-        "enum": [
-          "0BSD",
-          "AAL",
-          "ADSL",
-          "AFL-1.1",
-          "AFL-1.2",
-          "AFL-2.0",
-          "AFL-2.1",
-          "AFL-3.0",
-          "AGPL-1.0-only",
-          "AGPL-1.0-or-later",
-          "AGPL-3.0-only",
-          "AGPL-3.0-or-later",
-          "AMDPLPA",
-          "AML",
-          "AMPAS",
-          "ANTLR-PD",
-          "ANTLR-PD-fallback",
-          "APAFML",
-          "APL-1.0",
-          "APSL-1.0",
-          "APSL-1.1",
-          "APSL-1.2",
-          "APSL-2.0",
-          "Abstyles",
-          "Adobe-2006",
-          "Adobe-Glyph",
-          "Afmparse",
-          "Aladdin",
-          "Apache-1.0",
-          "Apache-1.1",
-          "Apache-2.0",
-          "Artistic-1.0",
-          "Artistic-1.0-Perl",
-          "Artistic-1.0-cl8",
-          "Artistic-2.0",
-          "BSD-1-Clause",
-          "BSD-2-Clause",
-          "BSD-2-Clause-Patent",
-          "BSD-2-Clause-Views",
-          "BSD-3-Clause",
-          "BSD-3-Clause-Attribution",
-          "BSD-3-Clause-Clear",
-          "BSD-3-Clause-LBNL",
-          "BSD-3-Clause-Modification",
-          "BSD-3-Clause-No-Nuclear-License",
-          "BSD-3-Clause-No-Nuclear-License-2014",
-          "BSD-3-Clause-No-Nuclear-Warranty",
-          "BSD-3-Clause-Open-MPI",
-          "BSD-4-Clause",
-          "BSD-4-Clause-Shortened",
-          "BSD-4-Clause-UC",
-          "BSD-Protection",
-          "BSD-Source-Code",
-          "BSL-1.0",
-          "BUSL-1.1",
-          "Bahyph",
-          "Barr",
-          "Beerware",
-          "BitTorrent-1.0",
-          "BitTorrent-1.1",
-          "BlueOak-1.0.0",
-          "Borceux",
-          "C-UDA-1.0",
-          "CAL-1.0",
-          "CAL-1.0-Combined-Work-Exception",
-          "CATOSL-1.1",
-          "CC-BY-1.0",
-          "CC-BY-2.0",
-          "CC-BY-2.5",
-          "CC-BY-3.0",
-          "CC-BY-4.0",
-          "CC-BY-NC-1.0",
-          "CC-BY-NC-2.0",
-          "CC-BY-NC-2.5",
-          "CC-BY-NC-3.0",
-          "CC-BY-NC-4.0",
-          "CC-BY-NC-ND-1.0",
-          "CC-BY-NC-ND-2.0",
-          "CC-BY-NC-ND-2.5",
-          "CC-BY-NC-ND-3.0",
-          "CC-BY-NC-ND-4.0",
-          "CC-BY-NC-SA-1.0",
-          "CC-BY-NC-SA-2.0",
-          "CC-BY-NC-SA-2.5",
-          "CC-BY-NC-SA-3.0",
-          "CC-BY-NC-SA-4.0",
-          "CC-BY-ND-1.0",
-          "CC-BY-ND-2.0",
-          "CC-BY-ND-2.5",
-          "CC-BY-ND-3.0",
-          "CC-BY-ND-4.0",
-          "CC-BY-SA-1.0",
-          "CC-BY-SA-2.0",
-          "CC-BY-SA-2.5",
-          "CC-BY-SA-3.0",
-          "CC-BY-SA-4.0",
-          "CC-PDDC",
-          "CC0-1.0",
-          "CDDL-1.0",
-          "CDDL-1.1",
-          "CDLA-Permissive-1.0",
-          "CDLA-Sharing-1.0",
-          "CECILL-1.0",
-          "CECILL-1.1",
-          "CECILL-2.0",
-          "CECILL-2.1",
-          "CECILL-B",
-          "CECILL-C",
-          "CERN-OHL-1.1",
-          "CERN-OHL-1.2",
-          "CERN-OHL-P-2.0",
-          "CERN-OHL-S-2.0",
-          "CERN-OHL-W-2.0",
-          "CNRI-Jython",
-          "CNRI-Python",
-          "CNRI-Python-GPL-Compatible",
-          "CPAL-1.0",
-          "CPL-1.0",
-          "CPOL-1.02",
-          "CUA-OPL-1.0",
-          "Caldera",
-          "ClArtistic",
-          "Condor-1.1",
-          "Crossword",
-          "CrystalStacker",
-          "Cube",
-          "D-FSL-1.0",
-          "DFSG",
-          "DOC",
-          "DRL-1.0",
-          "DSDP",
-          "Dotseqn",
-          "ECL-1.0",
-          "ECL-2.0",
-          "EFL-1.0",
-          "EFL-2.0",
-          "EPICS",
-          "EPL-1.0",
-          "EPL-2.0",
-          "EUDatagrid",
-          "EUPL-1.0",
-          "EUPL-1.1",
-          "EUPL-1.2",
-          "Entessa",
-          "ErlPL-1.1",
-          "Eurosym",
-          "FSFAP",
-          "FSFUL",
-          "FSFULLR",
-          "FTL",
-          "Fair",
-          "Frameworx-1.0",
-          "FreeBSD-DOC",
-          "FreeImage",
-          "GD",
-          "GFDL-1.1-invariants-only",
-          "GFDL-1.1-invariants-or-later",
-          "GFDL-1.1-no-invariants-only",
-          "GFDL-1.1-no-invariants-or-later",
-          "GFDL-1.1-only",
-          "GFDL-1.1-or-later",
-          "GFDL-1.2-invariants-only",
-          "GFDL-1.2-invariants-or-later",
-          "GFDL-1.2-no-invariants-only",
-          "GFDL-1.2-no-invariants-or-later",
-          "GFDL-1.2-only",
-          "GFDL-1.2-or-later",
-          "GFDL-1.3-invariants-only",
-          "GFDL-1.3-invariants-or-later",
-          "GFDL-1.3-no-invariants-only",
-          "GFDL-1.3-no-invariants-or-later",
-          "GFDL-1.3-only",
-          "GFDL-1.3-or-later",
-          "GL2PS",
-          "GLWTPL",
-          "GPL-1.0-only",
-          "GPL-1.0-or-later",
-          "GPL-2.0-only",
-          "GPL-2.0-or-later",
-          "GPL-3.0-only",
-          "GPL-3.0-or-later",
-          "Giftware",
-          "Glide",
-          "Glulxe",
-          "HPND",
-          "HPND-sell-variant",
-          "HTMLTIDY",
-          "HaskellReport",
-          "Hippocratic-2.1",
-          "IBM-pibs",
-          "ICU",
-          "IJG",
-          "IPA",
-          "IPL-1.0",
-          "ISC",
-          "ImageMagick",
-          "Imlib2",
-          "Info-ZIP",
-          "Intel",
-          "Intel-ACPI",
-          "Interbase-1.0",
-          "JPNIC",
-          "JSON",
-          "JasPer-2.0",
-          "LAL-1.2",
-          "LAL-1.3",
-          "LGPL-2.0-only",
-          "LGPL-2.0-or-later",
-          "LGPL-2.1-only",
-          "LGPL-2.1-or-later",
-          "LGPL-3.0-only",
-          "LGPL-3.0-or-later",
-          "LGPLLR",
-          "LPL-1.0",
-          "LPL-1.02",
-          "LPPL-1.0",
-          "LPPL-1.1",
-          "LPPL-1.2",
-          "LPPL-1.3a",
-          "LPPL-1.3c",
-          "Latex2e",
-          "Leptonica",
-          "LiLiQ-P-1.1",
-          "LiLiQ-R-1.1",
-          "LiLiQ-Rplus-1.1",
-          "Libpng",
-          "Linux-OpenIB",
-          "MIT",
-          "MIT-0",
-          "MIT-CMU",
-          "MIT-Modern-Variant",
-          "MIT-advertising",
-          "MIT-enna",
-          "MIT-feh",
-          "MIT-open-group",
-          "MITNFA",
-          "MPL-1.0",
-          "MPL-1.1",
-          "MPL-2.0",
-          "MPL-2.0-no-copyleft-exception",
-          "MS-PL",
-          "MS-RL",
-          "MTLL",
-          "MakeIndex",
-          "MirOS",
-          "Motosoto",
-          "MulanPSL-1.0",
-          "MulanPSL-2.0",
-          "Multics",
-          "Mup",
-          "NAIST-2003",
-          "NASA-1.3",
-          "NBPL-1.0",
-          "NCGL-UK-2.0",
-          "NCSA",
-          "NGPL",
-          "NIST-PD",
-          "NIST-PD-fallback",
-          "NLOD-1.0",
-          "NLPL",
-          "NOSL",
-          "NPL-1.0",
-          "NPL-1.1",
-          "NPOSL-3.0",
-          "NRL",
-          "NTP",
-          "NTP-0",
-          "Naumen",
-          "Net-SNMP",
-          "NetCDF",
-          "Newsletr",
-          "Nokia",
-          "Noweb",
-          "O-UDA-1.0",
-          "OCCT-PL",
-          "OCLC-2.0",
-          "ODC-By-1.0",
-          "ODbL-1.0",
-          "OFL-1.0",
-          "OFL-1.0-RFN",
-          "OFL-1.0-no-RFN",
-          "OFL-1.1",
-          "OFL-1.1-RFN",
-          "OFL-1.1-no-RFN",
-          "OGC-1.0",
-          "OGDL-Taiwan-1.0",
-          "OGL-Canada-2.0",
-          "OGL-UK-1.0",
-          "OGL-UK-2.0",
-          "OGL-UK-3.0",
-          "OGTSL",
-          "OLDAP-1.1",
-          "OLDAP-1.2",
-          "OLDAP-1.3",
-          "OLDAP-1.4",
-          "OLDAP-2.0",
-          "OLDAP-2.0.1",
-          "OLDAP-2.1",
-          "OLDAP-2.2",
-          "OLDAP-2.2.1",
-          "OLDAP-2.2.2",
-          "OLDAP-2.3",
-          "OLDAP-2.4",
-          "OLDAP-2.5",
-          "OLDAP-2.6",
-          "OLDAP-2.7",
-          "OLDAP-2.8",
-          "OML",
-          "OPL-1.0",
-          "OSET-PL-2.1",
-          "OSL-1.0",
-          "OSL-1.1",
-          "OSL-2.0",
-          "OSL-2.1",
-          "OSL-3.0",
-          "OpenSSL",
-          "PDDL-1.0",
-          "PHP-3.0",
-          "PHP-3.01",
-          "PSF-2.0",
-          "Parity-6.0.0",
-          "Parity-7.0.0",
-          "Plexus",
-          "PolyForm-Noncommercial-1.0.0",
-          "PolyForm-Small-Business-1.0.0",
-          "PostgreSQL",
-          "Python-2.0",
-          "QPL-1.0",
-          "Qhull",
-          "RHeCos-1.1",
-          "RPL-1.1",
-          "RPL-1.5",
-          "RPSL-1.0",
-          "RSA-MD",
-          "RSCPL",
-          "Rdisc",
-          "Ruby",
-          "SAX-PD",
-          "SCEA",
-          "SGI-B-1.0",
-          "SGI-B-1.1",
-          "SGI-B-2.0",
-          "SHL-0.5",
-          "SHL-0.51",
-          "SISSL",
-          "SISSL-1.2",
-          "SMLNJ",
-          "SMPPL",
-          "SNIA",
-          "SPL-1.0",
-          "SSH-OpenSSH",
-          "SSH-short",
-          "SSPL-1.0",
-          "SWL",
-          "Saxpath",
-          "Sendmail",
-          "Sendmail-8.23",
-          "SimPL-2.0",
-          "Sleepycat",
-          "Spencer-86",
-          "Spencer-94",
-          "Spencer-99",
-          "SugarCRM-1.1.3",
-          "TAPR-OHL-1.0",
-          "TCL",
-          "TCP-wrappers",
-          "TMate",
-          "TORQUE-1.1",
-          "TOSL",
-          "TU-Berlin-1.0",
-          "TU-Berlin-2.0",
-          "UCL-1.0",
-          "UPL-1.0",
-          "Unicode-DFS-2015",
-          "Unicode-DFS-2016",
-          "Unicode-TOU",
-          "Unlicense",
-          "VOSTROM",
-          "VSL-1.0",
-          "Vim",
-          "W3C",
-          "W3C-19980720",
-          "W3C-20150513",
-          "WTFPL",
-          "Watcom-1.0",
-          "Wsuipa",
-          "X11",
-          "XFree86-1.1",
-          "XSkat",
-          "Xerox",
-          "Xnet",
-          "ZPL-1.1",
-          "ZPL-2.0",
-          "ZPL-2.1",
-          "Zed",
-          "Zend-2.0",
-          "Zimbra-1.3",
-          "Zimbra-1.4",
-          "Zlib",
-          "blessing",
-          "bzip2-1.0.5",
-          "bzip2-1.0.6",
-          "copyleft-next-0.3.0",
-          "copyleft-next-0.3.1",
-          "curl",
-          "diffmark",
-          "dvipdfm",
-          "eGenix",
-          "etalab-2.0",
-          "freeware",
-          "gSOAP-1.3b",
-          "gnuplot",
-          "iMatix",
-          "libpng-2.0",
-          "libselinux-1.0",
-          "libtiff",
-          "mpich2",
-          "proprietary",
-          "psfrag",
-          "psutils",
-          "unknown",
-          "xinetd",
-          "xpp",
-          "zlib-acknowledgement"
-        ]
-      },
-      "dedicated.TemplateOsInfoProject": {
-        "type": "object",
-        "description": "A structure describing some interesting facts about an OS template project",
-        "properties": {
-          "os": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsInfoProjectItem"
-              }
-            ],
-            "description": "OS template project OS details",
-            "nullable": true
-          },
-          "usage": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsInfoProjectItem"
-              }
-            ],
-            "description": "OS template project usage details",
-            "nullable": true
-          }
-        }
-      },
-      "dedicated.TemplateOsInfoProjectItem": {
-        "type": "object",
-        "description": "A structure describing some interesting facts about an OS template project item",
-        "properties": {
-          "governance": {
-            "type": "array",
-            "description": "OS template project item governance",
-            "nullable": true,
-            "items": {
-              "type": "string"
-            }
-          },
-          "name": {
-            "type": "string",
-            "description": "OS template project item name",
-            "nullable": true
-          },
-          "releaseNotes": {
-            "type": "string",
-            "description": "OS template project item release notes",
-            "nullable": true
-          },
-          "url": {
-            "type": "string",
-            "description": "OS template project item url",
-            "nullable": true
-          },
-          "version": {
-            "type": "string",
-            "description": "OS template project item version",
-            "nullable": true
-          }
-        }
-      },
-      "dedicated.TemplateOsInput": {
-        "type": "object",
-        "description": "A structure describing input questions for the specific OS template",
-        "properties": {
-          "default": {
-            "type": "string",
-            "description": "Default value",
-            "nullable": true
-          },
-          "description": {
-            "type": "string",
-            "description": "Input question description",
-            "nullable": true
-          },
-          "enum": {
-            "type": "array",
-            "description": "When type is enum: name of the possible enum values",
-            "items": {
-              "type": "string"
-            }
-          },
-          "mandatory": {
-            "type": "boolean",
-            "description": "Whether answering to that question is mandatory in order to trigger an install with that specific OS or not"
-          },
-          "name": {
-            "type": "string",
-            "description": "Input question name"
-          },
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsInputTypeEnum"
-              }
-            ],
-            "description": "Input type"
-          }
-        }
-      },
-      "dedicated.TemplateOsInputTypeEnum": {
-        "type": "string",
-        "description": "Template OS Input type enum",
-        "enum": [
-          "boolean",
-          "date",
-          "email",
-          "enum",
-          "hexstring",
-          "hostname",
-          "ip",
-          "keyValue",
-          "number",
-          "sshPubKey",
-          "string",
-          "text",
-          "time",
-          "url",
-          "uuid"
-        ]
-      },
-      "dedicated.TemplateOsProperties": {
-        "type": "object",
-        "description": "A structure describing properties customizables about this dedicated installation template",
-        "properties": {
-          "customHostname": {
-            "type": "string",
-            "description": "Set up the server using the provided hostname instead of the default hostname",
-            "nullable": true
-          },
-          "postInstallationScriptLink": {
-            "type": "string",
-            "description": "Indicate the URL where your postinstall customisation script is located",
-            "nullable": true
-          },
-          "postInstallationScriptReturn": {
-            "type": "string",
-            "description": "indicate the string returned by your postinstall customisation script on successful execution. Advice: your script should return a unique validation string in case of succes. A good example is \"loh1Xee7eo OK OK OK UGh8Ang1Gu",
-            "nullable": true
-          }
-        }
-      },
-      "dedicated.TemplateOsSubfamilyEnum": {
-        "type": "string",
-        "description": "Os subfamily definition",
-        "enum": [
-          "alma",
-          "aos",
-          "arch",
-          "byoi",
-          "byolinux",
-          "centos",
-          "cloudlinux",
-          "coreos",
-          "debian",
-          "dgx",
-          "esxi",
-          "fedora",
-          "freebsd",
-          "gentoo",
-          "hyperv",
-          "omnios",
-          "openio",
-          "openmediavault",
-          "opensuse",
-          "ovh",
-          "pcs",
-          "power",
-          "proxmox",
-          "rhel",
-          "rocky",
-          "slackware",
-          "sles-sap",
-          "smartos",
-          "solusvm",
-          "ubuntu",
-          "windows-server-core",
-          "windows-server-desktop-exp",
-          "xcp",
-          "xen"
-        ]
-      },
-      "dedicated.TemplateOsTypeEnum": {
-        "type": "string",
-        "description": "Os type",
-        "enum": [
-          "bsd",
-          "custom",
-          "ibm",
-          "linux",
-          "solaris",
-          "unix",
-          "windows"
-        ]
-      },
-      "dedicated.TemplateOsUsageEnum": {
-        "type": "string",
-        "description": "Os usage definition",
-        "enum": [
-          "backup",
-          "basic",
-          "customer",
-          "database",
-          "erp",
-          "hosting",
-          "management",
-          "other",
-          "readyToUse",
-          "virtualisation",
-          "virtualization"
-        ]
-      },
-      "dedicated.TemplatePartitionTypeEnum": {
-        "type": "string",
-        "description": "partition type",
-        "enum": [
-          "logical",
-          "lv",
-          "primary"
-        ]
-      },
-      "dedicated.installationTemplate.Templates": {
-        "type": "object",
-        "description": "Available installation templates",
-        "properties": {
-          "bitFormat": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.server.BitFormatEnum"
-              }
-            ],
-            "description": "this template bit format",
-            "readOnly": true
-          },
-          "category": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsUsageEnum"
-              }
-            ],
-            "description": "category of this template (informative only)",
-            "readOnly": true
-          },
-          "customization": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsProperties"
-              }
-            ],
-            "description": "Customizable template properties ",
-            "nullable": true,
-            "readOnly": true
-          },
-          "description": {
-            "type": "string",
-            "description": "information about this template",
-            "readOnly": true
-          },
-          "distribution": {
-            "type": "string",
-            "description": "the distribution this template is based on",
-            "readOnly": true
-          },
-          "endOfInstall": {
-            "type": "string",
-            "description": "after this date, install of this template will not be possible at OVH",
-            "format": "date",
-            "readOnly": true
-          },
-          "family": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsTypeEnum"
-              }
-            ],
-            "description": "this template family type",
-            "readOnly": true
-          },
-          "filesystems": {
-            "type": "array",
-            "description": "list of all filesystems available for this template",
-            "items": {
-              "$ref": "#/components/schemas/dedicated.server.FileSystemEnum"
-            },
-            "readOnly": true
-          },
-          "inputs": {
-            "type": "array",
-            "description": "Inputs",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/dedicated.TemplateOsInput"
-            },
-            "readOnly": true
-          },
-          "license": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsInfoLicense"
-              }
-            ],
-            "description": "This distribution licensing details",
-            "nullable": true,
-            "readOnly": true
-          },
-          "lvmReady": {
-            "type": "boolean",
-            "description": "This distribution supports Logical Volumes (Linux LVM)",
-            "nullable": true,
-            "readOnly": true
-          },
-          "noPartitioning": {
-            "type": "boolean",
-            "description": "Partitioning customization is not available for this OS template",
-            "readOnly": true
-          },
-          "project": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsInfoProject"
-              }
-            ],
-            "description": "This distribution project details",
-            "nullable": true,
-            "readOnly": true
-          },
-          "rootMountpoint": {
-            "type": "string",
-            "description": "The mandatory mount point of the root filesystem on this OS",
-            "nullable": true,
-            "readOnly": true
-          },
-          "softRaidOnlyMirroring": {
-            "type": "boolean",
-            "description": "Partitioning customization is available but limited to mirroring for this OS template",
-            "readOnly": true
-          },
-          "subfamily": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsSubfamilyEnum"
-              }
-            ],
-            "description": "this template subfamily type",
-            "readOnly": true
-          },
-          "templateName": {
-            "type": "string",
-            "description": "This template name",
-            "readOnly": true
-          }
-        }
-      },
-      "dedicated.installationTemplate.hardwareRaid": {
-        "type": "object",
-        "description": "Hardware RAID defined in this partitioning scheme",
-        "properties": {
-          "disks": {
-            "type": "array",
-            "description": "Disk list",
-            "items": {
-              "type": "string"
-            },
-            "readOnly": true
-          },
-          "mode": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplateOsHardwareRaidEnum"
-              }
-            ],
-            "description": "RAID mode",
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Hardware RAID name",
-            "readOnly": true
-          },
-          "step": {
-            "type": "integer",
-            "description": "Specifies the creation order of the hardware RAID",
-            "readOnly": true
-          }
-        }
-      },
-      "dedicated.installationTemplate.templatePartitioningSchemes": {
-        "type": "object",
-        "description": "Partitioning schemes available on this template",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "This partitioning scheme name",
-            "readOnly": true
-          },
-          "priority": {
-            "type": "integer",
-            "description": "on a reinstall, if a partitioning scheme is not specified, the one with the higher priority will be used by default, among all the compatible partitioning schemes (given the underlying hardware specifications)",
-            "readOnly": true
-          }
-        }
-      },
-      "dedicated.installationTemplate.templatePartitions": {
-        "type": "object",
-        "description": " Partitions defined in this partitioning scheme",
-        "properties": {
-          "filesystem": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.server.FileSystemEnum"
-              }
-            ],
-            "description": "Partition filesytem",
-            "readOnly": true
-          },
-          "mountpoint": {
-            "type": "string",
-            "description": "Partition mount point",
-            "readOnly": true
-          },
-          "order": {
-            "type": "integer",
-            "description": "specifies the creation order of the partition on the disk",
-            "readOnly": true
-          },
-          "raid": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.server.PartitionRaidEnum"
-              }
-            ],
-            "description": "Partition raid",
-            "nullable": true,
-            "readOnly": true
-          },
-          "size": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/complexType.UnitAndValue_long"
-              }
-            ],
-            "description": "Partition size (unit: MB GB TB, MB by default), 0 => rest of the space",
-            "readOnly": true
-          },
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dedicated.TemplatePartitionTypeEnum"
-              }
-            ],
-            "description": "Partition type",
-            "readOnly": true
-          },
-          "volumeName": {
-            "type": "string",
-            "description": "Logical volume name (required if type is lv) or optional zpool name if filesystem is ZFS",
-            "nullable": true,
-            "readOnly": true
-          }
-        }
-      },
-      "dedicated.server.BitFormatEnum": {
-        "type": "integer",
-        "description": "Available os bit format",
-        "enum": [
-          32,
-          64
-        ]
-      },
-      "dedicated.server.FileSystemEnum": {
-        "type": "string",
-        "description": "FileSystems",
-        "enum": [
-          "btrfs",
-          "ext3",
-          "ext4",
-          "fat16",
-          "none",
-          "ntfs",
-          "reiserfs",
-          "swap",
-          "ufs",
-          "vmfs5",
-          "vmfs6",
-          "vmfsl",
-          "xfs",
-          "zfs"
-        ]
-      },
-      "dedicated.server.PartitionRaidEnum": {
-        "type": "string",
-        "description": "partition raid type",
-        "enum": [
-          "0",
-          "1",
-          "10",
-          "5",
-          "6",
-          "7"
-        ]
-      },
       "domain.DocumentFormatsEnum": {
         "type": "string",
         "description": "Document file format",
@@ -5759,10 +5121,12 @@
           "DnssecResigning",
           "DnssecRollKsk",
           "DnssecRollZsk",
+          "ZoneCheck",
           "ZoneCreate",
           "ZoneCut",
           "ZoneDelete",
           "ZoneImport",
+          "ZoneRefresh",
           "ZoneRestore"
         ]
       },
@@ -5819,6 +5183,7 @@
           "GRA",
           "HIL",
           "LIM",
+          "MIL",
           "PAR",
           "RBX",
           "SBG",
@@ -5868,9 +5233,9 @@
       },
       "macAddress": {
         "type": "string",
-        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "description": "MAC address (e.g., 00:00:5e:00:53:01)",
         "format": "mac-address",
-        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+        "example": "00:00:5e:00:53:01"
       },
       "me.Migration": {
         "type": "object",
@@ -10209,6 +9574,11 @@
             "nullable": true,
             "readOnly": true
           },
+          "displayName": {
+            "type": "string",
+            "description": "Display name shown instead of the organisation name.",
+            "nullable": true
+          },
           "email": {
             "type": "string",
             "description": "Email address",
@@ -12431,6 +11801,25 @@
           "resellerModemBasicConfig": {
             "type": "boolean",
             "description": "Let the modem with vendor configuration. It prevent to apply the config managed by ovh manager"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.eu.ovhcloud.com/oauth2/authorize",
+            "tokenUrl": "https://auth.eu.ovhcloud.com/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
           }
         }
       }
@@ -14755,8 +14144,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -14801,8 +14190,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -14850,8 +14239,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -14893,8 +14282,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -14944,8 +14333,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -14988,8 +14377,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -15033,8 +14422,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -18115,6 +17504,526 @@
         ]
       }
     },
+    "/me/correctiveInvoice": {
+      "get": {
+        "summary": "List of all the correctiveInvoice the logged account has",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "description": "Filter the value of category property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/billing.CategoryEnum"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date.from",
+            "description": "Filter the value of date property (>=)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date.to",
+            "description": "Filter the value of date property (<=)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "orderId",
+            "description": "Filter the value of orderId property (=)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/correctiveInvoice/get",
+            "description": "Get corrective invoices for your account",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "BillingCorrectiveInvoice"
+      }
+    },
+    "/me/correctiveInvoice/{correctiveInvoiceId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correctiveInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/billing.CorrectiveInvoice"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/correctiveInvoice/get",
+            "description": "Get corrective invoices for your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/correctiveInvoice/{correctiveInvoiceId}/debt": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correctiveInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/debt.Debt"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/correctiveInvoice/debt/get",
+            "description": "Get debt information for a corrective invoice of your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/correctiveInvoice/{correctiveInvoiceId}/debt/operation": {
+      "get": {
+        "summary": "All operations related to these debts",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correctiveInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depositOrderId",
+            "description": "Filter the value of depositOrderId property (=)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/correctiveInvoice/debt/operation/get",
+            "description": "Get debt operations for a specific corrective invoice of your account",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "DebtOperation"
+      }
+    },
+    "/me/correctiveInvoice/{correctiveInvoiceId}/debt/operation/{operationId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correctiveInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operationId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/debt.Operation"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/correctiveInvoice/debt/operation/get",
+            "description": "Get a specific debt operation of a corrective invoice for your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/correctiveInvoice/{correctiveInvoiceId}/debt/operation/{operationId}/associatedObject": {
+      "get": {
+        "summary": "Return main data about the object related to this debt operation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correctiveInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operationId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/debt.entry.AssociatedObject"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/correctiveInvoice/debt/operation/associatedObject/get",
+            "description": "Get associated objects of a debt operation for a corrective invoice of your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/correctiveInvoice/{correctiveInvoiceId}/debt/pay": {
+      "post": {
+        "summary": "Create an order in order to pay this order's debt",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correctiveInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/billing.Order"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/correctiveInvoice/debt/pay",
+            "description": "Pay the debt of a corrective invoice for your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/correctiveInvoice/{correctiveInvoiceId}/details": {
+      "get": {
+        "summary": "Give access to all entries of the CorrectiveInvoice",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correctiveInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/correctiveInvoice/details/get",
+            "description": "Get details of a corrective invoice for your account",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "BillingCorrectiveInvoiceDetail"
+      }
+    },
+    "/me/correctiveInvoice/{correctiveInvoiceId}/details/{correctiveInvoiceDetailId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correctiveInvoiceDetailId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "correctiveInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/billing.CorrectiveInvoiceDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/correctiveInvoice/details/get",
+            "description": "Get details of a corrective invoice for your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/correctiveInvoice/{correctiveInvoiceId}/payment": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correctiveInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/billing.Payment"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/correctiveInvoice/payment/get",
+            "description": "Get payment information for a corrective invoice of your account",
+            "required": true
+          }
+        ]
+      }
+    },
     "/me/credit/balance": {
       "get": {
         "summary": "Retrieve all credit balances",
@@ -19794,6 +19703,526 @@
         ]
       }
     },
+    "/me/downPaymentInvoice": {
+      "get": {
+        "summary": "List of all the downPaymentInvoice the logged account has",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "description": "Filter the value of category property (=)",
+            "schema": {
+              "$ref": "#/components/schemas/billing.CategoryEnum"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date.from",
+            "description": "Filter the value of date property (>=)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date.to",
+            "description": "Filter the value of date property (<=)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "orderId",
+            "description": "Filter the value of orderId property (=)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/downPaymentInvoice/get",
+            "description": "Get downPayment invoices for your account",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "BillingDownPaymentInvoice"
+      }
+    },
+    "/me/downPaymentInvoice/{downPaymentInvoiceId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "downPaymentInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/billing.DownPaymentInvoice"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/downPaymentInvoice/get",
+            "description": "Get downPayment invoices for your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/downPaymentInvoice/{downPaymentInvoiceId}/debt": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "downPaymentInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/debt.Debt"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/downPaymentInvoice/debt/get",
+            "description": "Get debt information for a downPayment invoice of your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/downPaymentInvoice/{downPaymentInvoiceId}/debt/operation": {
+      "get": {
+        "summary": "All operations related to these debts",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "depositOrderId",
+            "description": "Filter the value of depositOrderId property (=)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "downPaymentInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/downPaymentInvoice/debt/operation/get",
+            "description": "Get debt operations for a specific downPayment invoice of your account",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "DebtOperation"
+      }
+    },
+    "/me/downPaymentInvoice/{downPaymentInvoiceId}/debt/operation/{operationId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "downPaymentInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operationId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/debt.Operation"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/downPaymentInvoice/debt/operation/get",
+            "description": "Get a specific debt operation of a downPayment invoice for your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/downPaymentInvoice/{downPaymentInvoiceId}/debt/operation/{operationId}/associatedObject": {
+      "get": {
+        "summary": "Return main data about the object related to this debt operation",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "downPaymentInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operationId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/debt.entry.AssociatedObject"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/downPaymentInvoice/debt/operation/associatedObject/get",
+            "description": "Get associated objects of a debt operation for a downPayment invoice of your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/downPaymentInvoice/{downPaymentInvoiceId}/debt/pay": {
+      "post": {
+        "summary": "Create an order in order to pay this order's debt",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "downPaymentInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/billing.Order"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/downPaymentInvoice/debt/pay",
+            "description": "Pay the debt of a downPayment invoice for your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/downPaymentInvoice/{downPaymentInvoiceId}/details": {
+      "get": {
+        "summary": "Give access to all entries of the DownPaymentInvoice",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "downPaymentInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/downPaymentInvoice/details/get",
+            "description": "Get details of a downPayment invoice for your account",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "BillingDownPaymentInvoiceDetail"
+      }
+    },
+    "/me/downPaymentInvoice/{downPaymentInvoiceId}/details/{downPaymentInvoiceDetailId}": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "downPaymentInvoiceDetailId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "downPaymentInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/billing.DownPaymentInvoiceDetail"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/downPaymentInvoice/details/get",
+            "description": "Get details of a downPayment invoice for your account",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/downPaymentInvoice/{downPaymentInvoiceId}/payment": {
+      "get": {
+        "summary": "Get this object properties",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "downPaymentInvoiceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/billing.Payment"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/downPaymentInvoice/payment/get",
+            "description": "Get payment information for a downPayment invoice of your account",
+            "required": true
+          }
+        ]
+      }
+    },
     "/me/fax/customDomains": {
       "get": {
         "summary": "Get the fax custom domains linked to the customer account",
@@ -20468,6 +20897,147 @@
         ]
       }
     },
+    "/me/identity/group/{group}/user": {
+      "get": {
+        "summary": "List the users of this group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group",
+            "description": "Group",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/identity/group/user/get",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Add a user to the group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group",
+            "description": "Group",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/auth.GroupUser"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/identity/group/user/add",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/me/identity/group/{group}/user/{user}": {
+      "delete": {
+        "summary": "Remove a user from the group",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group",
+            "description": "Group",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user",
+            "description": "User",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "account:apiovh:me/identity/group/user/remove",
+            "required": true
+          }
+        ]
+      }
+    },
     "/me/identity/provider": {
       "delete": {
         "summary": "Remove the identity provider",
@@ -20600,6 +21170,34 @@
           {
             "name": "account:apiovh:me/identity/provider/edit",
             "required": true
+          }
+        ]
+      }
+    },
+    "/me/identity/provider/samlServiceProviderInfo": {
+      "get": {
+        "summary": "Get information related to OVHcloud as a SAMLv2 service provider",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/auth.ServiceProviderInfo"
+                }
+              }
+            }
+          }
+        },
+        "x-badges": [
+          {
+            "color": "orange",
+            "label": "Internal use only"
           }
         ]
       }
@@ -21271,659 +21869,6 @@
         ]
       }
     },
-    "/me/installationTemplate": {
-      "get": {
-        "summary": "Your customized operating system installation templates",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/get",
-            "required": true
-          }
-        ],
-        "x-expanded-response": "DedicatedInstallationTemplateTemplates"
-      }
-    },
-    "/me/installationTemplate/{templateName}": {
-      "delete": {
-        "summary": "Remove this template",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation"
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/delete",
-            "required": true
-          }
-        ]
-      },
-      "get": {
-        "summary": "Get this object properties",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/dedicated.installationTemplate.Templates"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/get",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/me/installationTemplate/{templateName}/partitionScheme": {
-      "get": {
-        "summary": "Partitioning schemes available on this template",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/partitionScheme/get",
-            "required": true
-          }
-        ],
-        "x-expanded-response": "DedicatedInstallationTemplateTemplatePartitioningSchemes"
-      }
-    },
-    "/me/installationTemplate/{templateName}/partitionScheme/{schemeName}": {
-      "delete": {
-        "summary": "Remove this scheme of partition",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "schemeName",
-            "description": "This partitioning scheme name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation"
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/partitionScheme/delete",
-            "required": true
-          }
-        ]
-      },
-      "get": {
-        "summary": "Get this object properties",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "schemeName",
-            "description": "This partitioning scheme name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/dedicated.installationTemplate.templatePartitioningSchemes"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/partitionScheme/get",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/me/installationTemplate/{templateName}/partitionScheme/{schemeName}/hardwareRaid": {
-      "get": {
-        "summary": "Hardware RAIDs defined in this partitioning scheme",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "schemeName",
-            "description": "This partitioning scheme name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/partitionScheme/hardwareRaid/get",
-            "required": true
-          }
-        ],
-        "x-expanded-response": "DedicatedInstallationTemplateHardwareRaid"
-      }
-    },
-    "/me/installationTemplate/{templateName}/partitionScheme/{schemeName}/hardwareRaid/{name}": {
-      "delete": {
-        "summary": "Remove this RAID",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "name",
-            "description": "Hardware RAID name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "schemeName",
-            "description": "This partitioning scheme name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation"
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/partitionScheme/hardwareRaid/delete",
-            "required": true
-          }
-        ]
-      },
-      "get": {
-        "summary": "Get this object properties",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "name",
-            "description": "Hardware RAID name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "schemeName",
-            "description": "This partitioning scheme name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/dedicated.installationTemplate.hardwareRaid"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/partitionScheme/hardwareRaid/get",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/me/installationTemplate/{templateName}/partitionScheme/{schemeName}/partition": {
-      "get": {
-        "summary": "Partitions defined in this partitioning scheme",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "schemeName",
-            "description": "This partitioning scheme name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/partitionScheme/partition/get",
-            "required": true
-          }
-        ],
-        "x-expanded-response": "DedicatedInstallationTemplateTemplatePartitions"
-      }
-    },
-    "/me/installationTemplate/{templateName}/partitionScheme/{schemeName}/partition/{mountpoint}": {
-      "delete": {
-        "summary": "Remove this partition",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "mountpoint",
-            "description": "Partition mount point",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "schemeName",
-            "description": "This partitioning scheme name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation"
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/partitionScheme/partition/delete",
-            "required": true
-          }
-        ]
-      },
-      "get": {
-        "summary": "Get this object properties",
-        "deprecated": true,
-        "x-deprecation-date": "2025-04-28T00:00:00Z",
-        "x-deletion-date": "2025-10-07T00:00:00Z",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "mountpoint",
-            "description": "Partition mount point",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "schemeName",
-            "description": "This partitioning scheme name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "templateName",
-            "description": "This template name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/dedicated.installationTemplate.templatePartitions"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "red",
-            "label": "Deprecated, will be removed"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "account:apiovh:me/installationTemplate/partitionScheme/partition/get",
-            "required": true
-          }
-        ]
-      }
-    },
     "/me/ipOrganisation": {
       "get": {
         "summary": "List of organisations",
@@ -22189,7 +22134,7 @@
         "x-badges": [
           {
             "color": "blue",
-            "label": "Beta version"
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -22225,8 +22170,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -22271,8 +22216,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -22320,8 +22265,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -22363,8 +22308,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -22414,8 +22359,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -22458,8 +22403,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
@@ -22503,8 +22448,8 @@
         },
         "x-badges": [
           {
-            "color": "blue",
-            "label": "Beta version"
+            "color": "green",
+            "label": "Stable production version"
           }
         ],
         "x-iam-actions": [
