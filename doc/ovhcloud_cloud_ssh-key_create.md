@@ -15,7 +15,6 @@ ovhcloud cloud ssh-key create [flags]
       --init-file string    Create a file with example parameters
       --name string         Name for the SSH key to create
       --public-key string   Public key for the SSH key to create
-      --region string       Region for the SSH key to create (optional)
       --replace             Replace parameters file if it already exists
 ```
 
