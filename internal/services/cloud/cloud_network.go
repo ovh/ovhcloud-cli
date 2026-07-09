@@ -27,7 +27,7 @@ import (
 var (
 	cloudprojectPrivateNetworkColumnsToDisplay = []string{"id", "name", "region", "visibility", "vlanId"}
 	cloudprojectPublicNetworkColumnsToDisplay  = []string{"id", "name", "region"}
-	cloudprojectGatewayColumnsToDisplay        = []string{"id", "name", "region", "model", "status"}
+	cloudprojectGatewayColumnsToDisplay        = []string{"id", "currentState.name name", "currentState.location.region region", "resourceStatus"}
 
 	//go:embed templates/cloud_network_private.tmpl
 	cloudNetworkPrivateTemplate string
@@ -37,6 +37,9 @@ var (
 
 	//go:embed templates/cloud_network_gateway.tmpl
 	cloudGatewayTemplate string
+
+	//go:embed templates/cloud_network_gateway_v2.tmpl
+	cloudGatewayV2Template string
 
 	//go:embed templates/cloud_network_private_subnet.tmpl
 	cloudNetworkPrivateSubnetTemplate string
@@ -53,30 +56,9 @@ var (
 	//go:embed parameter-samples/gateway-create.json
 	GatewayCreationExample string
 
-	// CloudGatewaySpec contains the parameters for updating a cloud gateway
+	// CloudGatewaySpec contains the parameters for creating or updating a v2 cloud gateway
 	CloudGatewaySpec struct {
-		Model             string `json:"model,omitempty"`
-		Name              string `json:"name,omitempty"`
-		ExistingNetworkID string `json:"-"`
-		ExistingSubnetID  string `json:"-"`
-		Network           struct {
-			Name   string `json:"name,omitempty"`
-			VlanId int    `json:"vlanId,omitempty"`
-			Subnet struct {
-				Name                        string                         `json:"name,omitempty"`
-				Cidr                        string                         `json:"cidr,omitempty"`
-				EnableDhcp                  bool                           `json:"enableDhcp,omitempty"`
-				GatewayIp                   string                         `json:"gatewayIp,omitempty"`
-				DnsNameServers              []string                       `json:"dnsNameServers,omitempty"`
-				UseDefaultPublicDNSResolver bool                           `json:"useDefaultPublicDNSResolver,omitempty"`
-				IPVersion                   int                            `json:"ipVersion,omitempty"`
-				AllocationPools             []PrivateNetworkAllocationPool `json:"allocationPools,omitempty"`
-				HostRoutes                  []PrivateNetworkHostRoute      `json:"hostRoutes,omitempty"`
-
-				CliAllocationPools []string `json:"-"`
-				CliHostRoutes      []string `json:"-"`
-			} `json:"subnet,omitzero"`
-		} `json:"network,omitzero"`
+		TargetSpec CloudGatewayTargetSpec `json:"targetSpec"`
 	}
 
 	CloudNetworkSpec struct {
@@ -114,6 +96,32 @@ type (
 	PrivateNetworkHostRoute struct {
 		Destination string `json:"destination,omitempty"`
 		NextHop     string `json:"nextHop,omitempty"`
+	}
+
+	// CloudGatewayTargetSpec is the desired specification of a v2 gateway.
+	CloudGatewayTargetSpec struct {
+		Name            string                 `json:"name,omitempty"`
+		Description     string                 `json:"description,omitempty"`
+		Location        gatewayLocation        `json:"location,omitzero"`
+		ExternalGateway gatewayExternalGateway `json:"externalGateway,omitzero"`
+		Subnets         []gatewaySubnetRef     `json:"subnets,omitempty"`
+
+		// CliSubnets holds subnet IDs passed on the command line; converted into Subnets.
+		CliSubnets []string `json:"-"`
+	}
+
+	gatewayLocation struct {
+		Region           string `json:"region,omitempty"`
+		AvailabilityZone string `json:"availabilityZone,omitempty"`
+	}
+
+	gatewayExternalGateway struct {
+		Enabled bool   `json:"enabled"`
+		Model   string `json:"model,omitempty"`
+	}
+
+	gatewaySubnetRef struct {
+		Id string `json:"id,omitempty"`
 	}
 )
 
@@ -448,37 +456,15 @@ func ListGateways(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	// Fetch regions with network feature available
-	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "network")
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch regions with network feature available: %s", err)
-		return
-	}
-
-	// Fetch gateways in all regions
-	url := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
-	gateways, err := httpLib.FetchObjectsParallel[[]map[string]any](url+"/%s/gateway", regions, true)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch gateways: %s", err)
-		return
-	}
-
-	// Flatten gateways in a single array
-	var allGateways []map[string]any
-	for _, regionGateways := range gateways {
-		allGateways = append(allGateways, regionGateways...)
-	}
-
-	// Filter results
-	allGateways, err = filtersLib.FilterLines(allGateways, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(allGateways, cloudprojectGatewayColumnsToDisplay, &flags.OutputFormatConfig)
+	common.ManageListRequestNoExpand(
+		fmt.Sprintf("/v2/publicCloud/project/%s/gateway", projectID),
+		cloudprojectGatewayColumnsToDisplay,
+		flags.GenericFilters,
+	)
 }
 
+// findGateway searches for a v1 gateway across all regions. It is kept to serve
+// the commands that have no Cloud API v2 equivalent yet (expose, interfaces).
 func findGateway(gatewayId string) (string, map[string]any, error) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -508,127 +494,99 @@ func findGateway(gatewayId string) (string, map[string]any, error) {
 }
 
 func GetGateway(_ *cobra.Command, args []string) {
-	_, foundGateway, err := findGateway(args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	display.OutputObject(foundGateway, args[0], cloudGatewayTemplate, &flags.OutputFormatConfig)
-}
-
-func EditGateway(cmd *cobra.Command, args []string) {
-	foundURL, _, err := findGateway(args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	if err := common.EditResource(
-		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/gateway/{id}",
-		foundURL,
-		CloudGatewaySpec,
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-}
-
-func CreateGateway(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	// Transform CLI flags into the CloudGatewaySpec structure
-	for _, allocationPool := range CloudGatewaySpec.Network.Subnet.CliAllocationPools {
-		parts := strings.Split(allocationPool, ":")
-		if len(parts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "invalid allocation pool format, expected start:end, got %s", allocationPool)
-			return
-		}
-		CloudGatewaySpec.Network.Subnet.AllocationPools = append(CloudGatewaySpec.Network.Subnet.AllocationPools, PrivateNetworkAllocationPool{
-			Start: parts[0],
-			End:   parts[1],
-		})
-	}
-	for _, hostRoute := range CloudGatewaySpec.Network.Subnet.CliHostRoutes {
-		parts := strings.Split(hostRoute, ":")
-		if len(parts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "invalid host route format, expected destination:nextHop, got %s", hostRoute)
-			return
-		}
-		CloudGatewaySpec.Network.Subnet.HostRoutes = append(CloudGatewaySpec.Network.Subnet.HostRoutes, PrivateNetworkHostRoute{
-			Destination: parts[0],
-			NextHop:     parts[1],
-		})
-	}
-
-	var (
-		endpoint, path string
-		region         = args[0]
+	common.ManageObjectRequest(
+		fmt.Sprintf("/v2/publicCloud/project/%s/gateway", projectID),
+		args[0],
+		cloudGatewayV2Template,
 	)
-	if CloudGatewaySpec.ExistingNetworkID != "" {
-		path = "/cloud/project/{serviceName}/region/{regionName}/network/{networkId}/subnet/{subnetId}/gateway"
-		endpoint = fmt.Sprintf(
-			"/v1/cloud/project/%s/region/%s/network/%s/subnet/%s/gateway",
-			projectID, url.PathEscape(region), url.PathEscape(CloudGatewaySpec.ExistingNetworkID),
-			url.PathEscape(CloudGatewaySpec.ExistingSubnetID))
-	} else {
-		path = "/cloud/project/{serviceName}/region/{regionName}/gateway"
-		endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway", projectID, url.PathEscape(region))
-	}
-
-	if CloudGatewaySpec.Network.Subnet.IPVersion == 0 && CloudGatewaySpec.Network.Subnet.Cidr != "" {
-		CloudGatewaySpec.Network.Subnet.IPVersion = ipVersionFromCIDR(CloudGatewaySpec.Network.Subnet.Cidr)
-	}
-
-	// Create resource
-	task, err := common.CreateResource(
-		cmd,
-		path,
-		endpoint,
-		GatewayCreationExample,
-		CloudGatewaySpec,
-		assets.CloudOpenapiSchema,
-		[]string{"name", "model"})
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to create gateway: %s", err)
-		return
-	}
-
-	// Wait for task to complete if --wait flag is set
-	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, task, `⚡️ Gateway creation started successfully (operation ID: %s)
-You can check the status of the operation with: 'ovhcloud cloud operation get %s'`, task["id"], task["id"])
-		return
-	}
-
-	gatewayID, err := waitForCloudOperation(projectID, task["id"].(string), "gateway#create", 30*time.Minute)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for gateway creation: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Gateway %s created successfully", gatewayID)
 }
 
-func DeleteGateway(_ *cobra.Command, args []string) {
-	foundURL, _, err := findGateway(args[0])
+func EditGateway(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if err := httpLib.Client.Delete(foundURL, nil); err != nil {
+	// Convert subnet IDs given on the command line into the expected structure
+	for _, subnetID := range CloudGatewaySpec.TargetSpec.CliSubnets {
+		CloudGatewaySpec.TargetSpec.Subnets = append(CloudGatewaySpec.TargetSpec.Subnets, gatewaySubnetRef{Id: subnetID})
+	}
+
+	if err := common.EditResource(
+		cmd,
+		"/publicCloud/project/{projectId}/gateway/{gatewayId}",
+		fmt.Sprintf("/v2/publicCloud/project/%s/gateway/%s", projectID, url.PathEscape(args[0])),
+		CloudGatewaySpec,
+		assets.CloudV2OpenapiSchema,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+}
+
+func CreateGateway(cmd *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Convert subnet IDs given on the command line into the expected structure
+	for _, subnetID := range CloudGatewaySpec.TargetSpec.CliSubnets {
+		CloudGatewaySpec.TargetSpec.Subnets = append(CloudGatewaySpec.TargetSpec.Subnets, gatewaySubnetRef{Id: subnetID})
+	}
+
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/gateway", projectID)
+	gateway, err := common.CreateResource(
+		cmd,
+		"/publicCloud/project/{projectId}/gateway",
+		endpoint,
+		GatewayCreationExample,
+		CloudGatewaySpec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec"})
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create gateway: %s", err)
+		return
+	}
+
+	gatewayID, _ := gateway["id"].(string)
+
+	// Wait for the resource to be ready if --wait flag is set
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, gateway, "⚡️ Gateway creation started successfully (id: %s)", gatewayID)
+		return
+	}
+
+	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(gatewayID)), 30*time.Minute); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for gateway creation: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, gateway, "✅ Gateway %s created successfully", gatewayID)
+}
+
+func DeleteGateway(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/gateway/%s", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete gateway: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Gateway %s deleted successfully", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Gateway %s is being deleted…", args[0])
 }
 
 func ExposeGateway(_ *cobra.Command, args []string) {

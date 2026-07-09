@@ -1,0 +1,44 @@
+🛡️ Security Group {{.ServiceName}}
+=======
+
+_{{index .Result "currentState" "name"}}_
+
+## General information
+
+**Status**:        {{index .Result "resourceStatus"}}
+**Creation date**: {{index .Result "createdAt"}}
+**Update date**:   {{index .Result "updatedAt"}}
+
+## Current state
+
+{{if index .Result "currentState"}}**Name**:        {{index .Result "currentState" "name"}}
+**Description**: {{index .Result "currentState" "description"}}
+**Region**:      {{index .Result "currentState" "location" "region"}}
+
+{{if index .Result "currentState" "rules"}}
+### Rules
+
+| Direction | Ethernet | Protocol | Port min | Port max | Remote IP prefix |
+| --- | --- | --- | --- | --- | --- |
+{{range index .Result "currentState" "rules"}}| {{.direction}} | {{.ethernetType}} | {{.protocol}} | {{.portRangeMin}} | {{.portRangeMax}} | {{.remoteIpPrefix}} |
+{{end}}
+{{end}}
+{{end}}
+
+## Target state
+
+{{if index .Result "targetSpec"}}**Name**:        {{index .Result "targetSpec" "name"}}
+**Description**: {{index .Result "targetSpec" "description"}}
+**Region**:      {{index .Result "targetSpec" "location" "region"}}
+
+{{if index .Result "targetSpec" "rules"}}
+### Rules
+
+| Direction | Ethernet | Protocol | Port min | Port max | Remote IP prefix |
+| --- | --- | --- | --- | --- | --- |
+{{range index .Result "targetSpec" "rules"}}| {{.direction}} | {{.ethernetType}} | {{.protocol}} | {{.portRangeMin}} | {{.portRangeMax}} | {{.remoteIpPrefix}} |
+{{end}}
+{{end}}
+{{end}}
+
+💡 Use option -o json or -o yaml to get the raw output with all information

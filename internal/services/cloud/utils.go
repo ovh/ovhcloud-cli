@@ -158,3 +158,54 @@ func waitForCloudOperation(projectID, operationID, action string, retryDuration 
 		}
 	}
 }
+
+// waitForCloudResourceReady polls a Cloud API v2 managed resource (exposing a
+// "resourceStatus" field following common.ResourceStatusEnum) until it reaches
+// the READY state. Tasks reported in ERROR in "currentTasks" are logged but do
+// not stop the polling: only a resource whose "resourceStatus" is ERROR is
+// considered fatal. It returns an error if the resource ends in error or if the
+// given duration elapses before the resource becomes ready.
+func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
+	defer cancel()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		var resource struct {
+			ResourceStatus string `json:"resourceStatus"`
+			CurrentTasks   []struct {
+				Id     string `json:"id"`
+				Type   string `json:"type"`
+				Status string `json:"status"`
+			} `json:"currentTasks"`
+		}
+		if err := httpLib.Client.Get(endpoint, &resource); err != nil {
+			return fmt.Errorf("error fetching resource: %w", err)
+		}
+
+		switch resource.ResourceStatus {
+		case "READY":
+			return nil
+		case "ERROR":
+			return errors.New("resource ended in error state")
+		}
+
+		// Report tasks currently in error but keep waiting: they may still be
+		// retried on the API side or require user input.
+		for _, task := range resource.CurrentTasks {
+			if task.Status == "ERROR" {
+				log.Printf("⚠️  Task %s (%s) is in error state", task.Id, task.Type)
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return errors.New("timeout waiting for resource to be ready")
+		case <-ticker.C:
+			log.Printf("Still waiting for resource to be ready (status=%s)…", resource.ResourceStatus)
+			continue
+		}
+	}
+}
