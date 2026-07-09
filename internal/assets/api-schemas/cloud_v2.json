@@ -1157,6 +1157,825 @@
         "description": "Time (e.g., 15:04:05)",
         "format": "time",
         "example": "15:04:05"
+      },
+      "publicCloud.keyManager.SecretConsumerInput": {
+        "type": "object",
+        "description": "Payload to register or unregister a consumer for a Key Manager secret",
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "description": "UUID of the resource consuming the secret",
+            "format": "uuid"
+          },
+          "resourceType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ConsumerResourceTypeEnum"
+              }
+            ],
+            "description": "Type of the resource consuming the secret"
+          },
+          "service": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ConsumerServiceEnum"
+              }
+            ],
+            "description": "OpenStack service type of the consumer"
+          }
+        },
+        "required": [
+          "resourceId",
+          "resourceType",
+          "service"
+        ]
+      },
+      "publicCloud.keyManager.ModeEnum": {
+        "type": "string",
+        "description": "Block cipher mode associated with a Key Manager secret",
+        "enum": [
+          "CBC",
+          "CTR"
+        ]
+      },
+      "publicCloud.keyManager.SecretCurrentState": {
+        "type": "object",
+        "description": "Current state of a Key Manager secret from OpenStack",
+        "properties": {
+          "algorithm": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.AlgorithmEnum"
+              }
+            ],
+            "description": "Algorithm associated with the secret",
+            "nullable": true,
+            "readOnly": true
+          },
+          "bitLength": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.BitLengthEnum"
+              }
+            ],
+            "description": "Bit length of the secret",
+            "nullable": true,
+            "readOnly": true
+          },
+          "creatorId": {
+            "type": "string",
+            "description": "Identifier of the user who created the secret",
+            "nullable": true,
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "description": "Expiration date and time of the secret",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Current location of the secret",
+            "readOnly": true
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Key-value metadata pairs for the secret",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ModeEnum"
+              }
+            ],
+            "description": "Mode of the algorithm",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of the secret",
+            "nullable": true,
+            "readOnly": true
+          },
+          "payloadContentType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.PayloadContentTypeEnum"
+              }
+            ],
+            "description": "Content type of the secret payload",
+            "nullable": true,
+            "readOnly": true
+          },
+          "secretType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.SecretTypeEnum"
+              }
+            ],
+            "description": "Type of the secret",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.SecretStatusEnum"
+              }
+            ],
+            "description": "OpenStack status of the secret",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.keyManager.AlgorithmEnum": {
+        "type": "string",
+        "description": "Algorithm associated with a Key Manager secret",
+        "enum": [
+          "AES",
+          "DH",
+          "DSA",
+          "EC",
+          "RSA"
+        ]
+      },
+      "publicCloud.keyManager.SecretUpdate": {
+        "type": "object",
+        "description": "Payload to update a Public Cloud Key Manager secret",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash controlling concurrent modifications"
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.SecretUpdateTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the secret"
+          }
+        },
+        "required": [
+          "checksum",
+          "targetSpec"
+        ]
+      },
+      "publicCloud.keyManager.ContainerCreation": {
+        "type": "object",
+        "description": "Payload to create a Public Cloud key manager container",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the container"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.keyManager.ContainerCurrentState": {
+        "type": "object",
+        "description": "Current state of a key manager container as observed from the infrastructure",
+        "properties": {
+          "creatorId": {
+            "type": "string",
+            "description": "Identifier of the user who created the container",
+            "nullable": true,
+            "readOnly": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Current location",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Current container name",
+            "readOnly": true
+          },
+          "secretRefs": {
+            "type": "array",
+            "description": "Current secret references in the container",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.keyManager.ContainerSecretRef"
+            },
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerStatusEnum"
+              }
+            ],
+            "description": "OpenStack container status",
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerTypeEnum"
+              }
+            ],
+            "description": "Current container type",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.keyManager.ConsumerServiceEnum": {
+        "type": "string",
+        "description": "Type of service consuming a Key Manager secret",
+        "enum": [
+          "COMPUTE",
+          "IMAGE",
+          "LOADBALANCER",
+          "NETWORK"
+        ]
+      },
+      "publicCloud.keyManager.SecretStatusEnum": {
+        "type": "string",
+        "description": "Status of a Key Manager secret in OpenStack",
+        "enum": [
+          "ACTIVE",
+          "ERROR"
+        ]
+      },
+      "publicCloud.keyManager.Secret": {
+        "type": "object",
+        "description": "A Public Cloud Key Manager secret",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the secret",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.SecretCurrentState"
+              }
+            ],
+            "description": "Current state of the secret",
+            "nullable": true,
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Ongoing asynchronous tasks related to the secret",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the secret",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Secret readiness in the system",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.SecretTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the secret",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the secret",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.keyManager.ConsumerResourceTypeEnum": {
+        "type": "string",
+        "description": "Type of resource consuming a Key Manager secret",
+        "enum": [
+          "IMAGE",
+          "INSTANCE",
+          "LOADBALANCER"
+        ]
+      },
+      "publicCloud.keyManager.ContainerSecretRefSecret": {
+        "type": "object",
+        "description": "Reference to a secret by ID",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the referenced secret",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "publicCloud.keyManager.ContainerUpdateTargetSpec": {
+        "type": "object",
+        "description": "Target specification for updating a Key Manager container (only secretRefs are mutable)",
+        "properties": {
+          "secretRefs": {
+            "type": "array",
+            "description": "Desired list of secret references. Replaces all existing references.",
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.keyManager.ContainerSecretRef"
+            }
+          }
+        },
+        "required": [
+          "secretRefs"
+        ]
+      },
+      "publicCloud.keyManager.ContainerStatusEnum": {
+        "type": "string",
+        "description": "Status of a Key Manager container in OpenStack",
+        "enum": [
+          "ACTIVE",
+          "ERROR"
+        ]
+      },
+      "publicCloud.keyManager.SecretPayload": {
+        "type": "object",
+        "description": "Payload content of a Key Manager secret",
+        "properties": {
+          "payload": {
+            "type": "string",
+            "description": "Secret payload data",
+            "format": "password",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.keyManager.SecretConsumer": {
+        "type": "object",
+        "description": "A consumer registered for a Key Manager secret",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Computed consumer identifier",
+            "readOnly": true
+          },
+          "resourceId": {
+            "type": "string",
+            "description": "UUID of the resource consuming the secret",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ConsumerResourceTypeEnum"
+              }
+            ],
+            "description": "Type of the resource consuming the secret",
+            "readOnly": true
+          },
+          "service": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ConsumerServiceEnum"
+              }
+            ],
+            "description": "OpenStack service type of the consumer",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.keyManager.SecretTypeEnum": {
+        "type": "string",
+        "description": "Type of a Key Manager secret",
+        "enum": [
+          "CERTIFICATE",
+          "OPAQUE",
+          "PASSPHRASE",
+          "PRIVATE",
+          "PUBLIC",
+          "SYMMETRIC"
+        ]
+      },
+      "publicCloud.keyManager.ContainerTargetSpec": {
+        "type": "object",
+        "description": "Target specification for a key manager container",
+        "properties": {
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Target location"
+          },
+          "name": {
+            "type": "string",
+            "description": "Desired container name"
+          },
+          "secretRefs": {
+            "type": "array",
+            "description": "Secret references to include in the container",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.keyManager.ContainerSecretRef"
+            }
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerTypeEnum"
+              }
+            ],
+            "description": "Type of the container"
+          }
+        },
+        "required": [
+          "location",
+          "name",
+          "type"
+        ]
+      },
+      "publicCloud.keyManager.ContainerTypeEnum": {
+        "type": "string",
+        "description": "Possible types for a key manager container",
+        "enum": [
+          "CERTIFICATE",
+          "GENERIC",
+          "RSA"
+        ]
+      },
+      "publicCloud.keyManager.ContainerConsumer": {
+        "type": "object",
+        "description": "A consumer registered for a Key Manager container",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Computed consumer identifier",
+            "readOnly": true
+          },
+          "resourceId": {
+            "type": "string",
+            "description": "UUID of the resource consuming the container",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ConsumerResourceTypeEnum"
+              }
+            ],
+            "description": "Type of the resource consuming the container",
+            "readOnly": true
+          },
+          "service": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ConsumerServiceEnum"
+              }
+            ],
+            "description": "OpenStack service type of the consumer",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.keyManager.ContainerUpdate": {
+        "type": "object",
+        "description": "Payload to update a Public Cloud key manager container",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash controlling concurrent modifications"
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerUpdateTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the container"
+          }
+        },
+        "required": [
+          "checksum",
+          "targetSpec"
+        ]
+      },
+      "publicCloud.keyManager.SecretTargetSpec": {
+        "type": "object",
+        "description": "Desired specification for a Key Manager secret",
+        "properties": {
+          "algorithm": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.AlgorithmEnum"
+              }
+            ],
+            "description": "Algorithm associated with the secret",
+            "nullable": true
+          },
+          "bitLength": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.BitLengthEnum"
+              }
+            ],
+            "description": "Bit length of the secret",
+            "nullable": true
+          },
+          "expiration": {
+            "type": "string",
+            "description": "Expiration date and time of the secret",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Target location for the secret"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Key-value metadata pairs for the secret",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ModeEnum"
+              }
+            ],
+            "description": "Mode of the algorithm",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of the secret",
+            "nullable": true
+          },
+          "payload": {
+            "type": "string",
+            "description": "Secret payload data (base64-encoded). Write-only, never returned in responses. Requires payloadContentType.",
+            "nullable": true,
+            "format": "password"
+          },
+          "payloadContentType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.PayloadContentTypeEnum"
+              }
+            ],
+            "description": "Content type of the secret payload",
+            "nullable": true
+          },
+          "secretType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.SecretTypeEnum"
+              }
+            ],
+            "description": "Type of the secret"
+          }
+        },
+        "required": [
+          "location",
+          "secretType"
+        ]
+      },
+      "publicCloud.keyManager.PayloadContentTypeEnum": {
+        "type": "string",
+        "description": "Content type of a Key Manager secret payload",
+        "enum": [
+          "APPLICATION_OCTET_STREAM",
+          "APPLICATION_PKCS8",
+          "APPLICATION_PKIX_CERT",
+          "TEXT_PLAIN"
+        ]
+      },
+      "publicCloud.common.Location": {
+        "type": "object",
+        "description": "Resource location",
+        "properties": {
+          "availabilityZone": {
+            "type": "string",
+            "description": "Availability zone within the region",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "description": "Region code"
+          }
+        },
+        "required": [
+          "region"
+        ]
+      },
+      "publicCloud.keyManager.SecretCreation": {
+        "type": "object",
+        "description": "Payload to create a Key Manager secret",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.SecretTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the secret to create"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.keyManager.Container": {
+        "type": "object",
+        "description": "A Public Cloud key manager container",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the container",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerCurrentState"
+              }
+            ],
+            "description": "Current observed state of the container from the infrastructure",
+            "nullable": true,
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Ongoing asynchronous tasks related to the container",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the container",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Container readiness in the system",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the container",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the container",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.keyManager.SecretUpdateTargetSpec": {
+        "type": "object",
+        "description": "Target specification for updating a Key Manager secret (only metadata is mutable)",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "Metadata key-value pairs for the secret. Replaces all existing metadata.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "metadata"
+        ]
+      },
+      "publicCloud.keyManager.BitLengthEnum": {
+        "type": "integer",
+        "description": "Bit length of a Key Manager secret",
+        "enum": [
+          128,
+          256,
+          512,
+          1024,
+          2048,
+          4096
+        ]
+      },
+      "publicCloud.keyManager.ContainerSecretRef": {
+        "type": "object",
+        "description": "A secret reference within a key manager container",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Role name of the secret reference (e.g. private_key, certificate, public_key)"
+          },
+          "secret": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerSecretRefSecret"
+              }
+            ],
+            "description": "Reference to the secret"
+          }
+        },
+        "required": [
+          "name",
+          "secret"
+        ]
+      },
+      "publicCloud.keyManager.ContainerConsumerInput": {
+        "type": "object",
+        "description": "Payload to register or unregister a consumer for a Key Manager container",
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "description": "UUID of the resource consuming the container",
+            "format": "uuid"
+          },
+          "resourceType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ConsumerResourceTypeEnum"
+              }
+            ],
+            "description": "Type of the resource consuming the container"
+          },
+          "service": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ConsumerServiceEnum"
+              }
+            ],
+            "description": "OpenStack service type of the consumer"
+          }
+        },
+        "required": [
+          "resourceId",
+          "resourceType",
+          "service"
+        ]
       }
     },
     "securitySchemes": {
@@ -3189,6 +4008,2069 @@
           {
             "color": "red",
             "label": "Deprecated, will be removed"
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/keyManager/container": {
+      "get": {
+        "summary": "List Public Cloud key manager containers",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.keyManager.Container"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/container/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudKeyManagerContainer"
+      },
+      "post": {
+        "summary": "Create a new Public Cloud key manager container",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.Container"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::ServiceNotAvailableInRegion": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceNotAvailableInRegion",
+                      "message": "This service is not available in the selected region"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/container/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/keyManager/container/{containerId}": {
+      "delete": {
+        "summary": "Delete a Public Cloud key manager container",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.Container"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ContainerDoesNotExist",
+                      "message": "Container not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ResourceAlreadyBeingDeleted": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceAlreadyBeingDeleted",
+                      "message": "Resource is already being deleted"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/container/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a Public Cloud key manager container",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.Container"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ContainerDoesNotExist",
+                      "message": "Container not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/container/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update a Public Cloud key manager container",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.Container"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ContainerDoesNotExist",
+                      "message": "Container not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ChecksumMismatch": {
+                    "value": {
+                      "class": "Client::Conflict::ChecksumMismatch",
+                      "message": "Checksum mismatch — a concurrent update was detected. Refresh the resource and retry"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/container/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/keyManager/container/{containerId}/consumer": {
+      "get": {
+        "summary": "List consumers of a Key Manager container",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.keyManager.ContainerConsumer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/container/consumer/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudKeyManagerContainerConsumer"
+      },
+      "post": {
+        "summary": "Register a consumer for a Key Manager container",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.keyManager.ContainerConsumerInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.ContainerConsumer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ContainerDoesNotExist",
+                      "message": "Container not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/container/consumer/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/keyManager/container/{containerId}/consumer/{consumerId}": {
+      "delete": {
+        "summary": "Delete a consumer from a Key Manager container",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "consumerId",
+            "description": "Consumer ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.ContainerConsumer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ConsumerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ConsumerDoesNotExist",
+                      "message": "Consumer not found"
+                    }
+                  },
+                  "Client::NotFound::ContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ContainerDoesNotExist",
+                      "message": "Container not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/container/consumer/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a consumer of a Key Manager container",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "consumerId",
+            "description": "Consumer ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.ContainerConsumer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ConsumerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ConsumerDoesNotExist",
+                      "message": "Consumer not found"
+                    }
+                  },
+                  "Client::NotFound::ContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ContainerDoesNotExist",
+                      "message": "Container not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/container/consumer/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/publicCloud/project/{projectId}/keyManager/secret": {
+      "get": {
+        "summary": "List Public Cloud Key Manager secrets",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.keyManager.Secret"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/secret/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudKeyManagerSecret"
+      },
+      "post": {
+        "summary": "Create a new Public Cloud Key Manager secret",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.keyManager.SecretCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.Secret"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  },
+                  "Client::BadRequest::ServiceNotAvailableInRegion": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceNotAvailableInRegion",
+                      "message": "This service is not available in the selected region"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/secret/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/keyManager/secret/{secretId}": {
+      "delete": {
+        "summary": "Delete a Public Cloud Key Manager secret",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "secretId",
+            "description": "Secret ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.Secret"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SecretDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SecretDoesNotExist",
+                      "message": "Secret not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ResourceAlreadyBeingDeleted": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceAlreadyBeingDeleted",
+                      "message": "Resource is already being deleted"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/secret/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a Public Cloud Key Manager secret",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "secretId",
+            "description": "Secret ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.Secret"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SecretDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SecretDoesNotExist",
+                      "message": "Secret not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/secret/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update a Public Cloud Key Manager secret",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "secretId",
+            "description": "Secret ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.keyManager.SecretUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.Secret"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SecretDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SecretDoesNotExist",
+                      "message": "Secret not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ChecksumMismatch": {
+                    "value": {
+                      "class": "Client::Conflict::ChecksumMismatch",
+                      "message": "Checksum mismatch — a concurrent update was detected. Refresh the resource and retry"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/secret/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/keyManager/secret/{secretId}/consumer": {
+      "get": {
+        "summary": "List consumers of a Key Manager secret",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "secretId",
+            "description": "Secret ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.keyManager.SecretConsumer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/secret/consumer/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudKeyManagerSecretConsumer"
+      },
+      "post": {
+        "summary": "Register a consumer for a Key Manager secret",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "secretId",
+            "description": "Secret ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.keyManager.SecretConsumerInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.SecretConsumer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SecretDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SecretDoesNotExist",
+                      "message": "Secret not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/secret/consumer/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/keyManager/secret/{secretId}/consumer/{consumerId}": {
+      "delete": {
+        "summary": "Delete a consumer from a Key Manager secret",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "consumerId",
+            "description": "Consumer ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "secretId",
+            "description": "Secret ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.SecretConsumer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ConsumerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ConsumerDoesNotExist",
+                      "message": "Consumer not found"
+                    }
+                  },
+                  "Client::NotFound::SecretDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SecretDoesNotExist",
+                      "message": "Secret not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/secret/consumer/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a consumer of a Key Manager secret",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "consumerId",
+            "description": "Consumer ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "secretId",
+            "description": "Secret ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.SecretConsumer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ConsumerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ConsumerDoesNotExist",
+                      "message": "Consumer not found"
+                    }
+                  },
+                  "Client::NotFound::SecretDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SecretDoesNotExist",
+                      "message": "Secret not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/secret/consumer/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/publicCloud/project/{projectId}/keyManager/secret/{secretId}/payload": {
+      "post": {
+        "summary": "Fetch the payload of a Key Manager secret",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "secretId",
+            "description": "Secret ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.keyManager.SecretPayload"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SecretDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SecretDoesNotExist",
+                      "message": "Secret not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Key Manager"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:keyManager/secret/payload/get",
+            "required": true
           }
         ]
       }

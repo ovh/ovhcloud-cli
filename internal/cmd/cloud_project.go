@@ -116,6 +116,7 @@ func init() {
 	initCloudUserCommand(cloudCmd)
 	initCloudStorageCommand(cloudCmd)
 	initCloudRancherCommand(cloudCmd)
+	initCloudKeyManagerCommand(cloudCmd)
 	initCloudSavingsPlanCommand(cloudCmd)
 	initCloudIPCommand(cloudCmd)
 	initCloudAlertingCommand(cloudCmd)
