@@ -1,19 +1,25 @@
 🚀 Private network {{.ServiceName}}
 =======
 
-_{{index .Result "name"}}_
+_{{index .Result "currentState" "name"}}_
 
 ## General information
 
-**Status**:     {{index .Result "status"}}
-**Visibility**: {{index .Result "visibility"}}
-**vlan ID**:    {{index .Result "vlanId"}}
+**Status**:        {{index .Result "resourceStatus"}}
+**Creation date**: {{index .Result "createdAt"}}
+**Update date**:   {{index .Result "updatedAt"}}
+
+## Current state
+
+**Name**:    {{index .Result "currentState" "name"}}
+**Region**:  {{index .Result "currentState" "location" "region"}}
+**VLAN ID**: {{index .Result "currentState" "vlanId"}}
 
 {{if index .Result "subnets"}}## Subnets
 
-| ID | Name | CIDR | Gateway IP | DHCP | IP Version |
+| ID | Name | CIDR | Gateway IP | DHCP | Status |
 | --- | --- | --- | --- | --- | --- |
-{{range index .Result "subnets"}}| {{.id}} | {{.name}} | {{.cidr}} | {{.gatewayIp}} | {{.dhcpEnabled}} | {{.ipVersion}} |
+{{range index .Result "subnets"}}| {{.id}} | {{index .currentState "name"}} | {{index .currentState "cidr"}} | {{index .currentState "gatewayIp"}} | {{index .currentState "dhcpEnabled"}} | {{.resourceStatus}} |
 {{end}}
 {{end}}
 
