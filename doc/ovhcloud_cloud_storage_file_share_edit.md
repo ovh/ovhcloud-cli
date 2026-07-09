@@ -1,6 +1,6 @@
 ## ovhcloud cloud storage file share edit
 
-Edit the given share
+Edit the given file storage share
 
 ```
 ovhcloud cloud storage file share edit <share_id> [flags]
@@ -9,11 +9,12 @@ ovhcloud cloud storage file share edit <share_id> [flags]
 ### Options
 
 ```
-      --description string   Share description
+      --description string   Description of the file storage share
       --editor               Use a text editor to define parameters
+      --from-file string     File containing parameters
   -h, --help                 help for edit
-      --name string          Share name
-      --new-size int         New share size in GB
+      --name string          Name of the file storage share
+      --size int             New size of the file storage share in GB
 ```
 
 ### Options inherited from parent commands
@@ -34,7 +35,6 @@ ovhcloud cloud storage file share edit <share_id> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Region (skip region discovery if set)
 ```
 
 ### SEE ALSO

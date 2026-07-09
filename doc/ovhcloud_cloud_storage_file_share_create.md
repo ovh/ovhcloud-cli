@@ -1,27 +1,28 @@
 ## ovhcloud cloud storage file share create
 
-Create a new share
+Create a new file storage share
 
 ```
-ovhcloud cloud storage file share create <region> [flags]
+ovhcloud cloud storage file share create [flags]
 ```
 
 ### Options
 
 ```
-      --availability-zone string   Availability zone (required in 3AZ regions)
-      --description string         Share description
+      --availability-zone string   Availability zone within the region
+      --description string         Description of the file storage share
       --editor                     Use a text editor to define parameters
       --from-file string           File containing parameters
   -h, --help                       help for create
       --init-file string           Create a file with example parameters
-      --name string                Share name
-      --network-id string          Network ID
+      --name string                Name of the file storage share
+      --protocol string            File sharing protocol (NFS)
+      --region string              Region where the share is created
       --replace                    Replace parameters file if it already exists
-      --size int                   Share size in GB
-      --snapshot-id string         Snapshot ID to create the share from
-      --subnet-id string           Subnet ID
-      --type string                Share type
+      --share-network-id string    ID of the share network to attach the share to
+      --share-type string          File storage type / performance tier (STANDARD_1AZ)
+      --size int                   Size of the file storage share in GB
+      --wait                       Wait for the share to be ready before exiting
 ```
 
 ### Options inherited from parent commands
@@ -42,7 +43,6 @@ ovhcloud cloud storage file share create <region> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Region (skip region discovery if set)
 ```
 
 ### SEE ALSO

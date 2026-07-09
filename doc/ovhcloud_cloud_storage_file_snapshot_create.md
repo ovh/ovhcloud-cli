@@ -1,11 +1,19 @@
-## ovhcloud cloud storage file share
+## ovhcloud cloud storage file snapshot create
 
-Manage file storage shares
+Create a new file storage snapshot
+
+```
+ovhcloud cloud storage file snapshot create [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for share
+      --description string   Description of the snapshot
+  -h, --help                 help for create
+      --name string          Name of the snapshot
+      --share-id string      ID of the file storage share to snapshot
+      --wait                 Wait for the snapshot to be ready before exiting
 ```
 
 ### Options inherited from parent commands
@@ -30,10 +38,5 @@ Manage file storage shares
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file](ovhcloud_cloud_storage_file.md)	 - Manage file storage in the given cloud project
-* [ovhcloud cloud storage file share create](ovhcloud_cloud_storage_file_share_create.md)	 - Create a new file storage share
-* [ovhcloud cloud storage file share delete](ovhcloud_cloud_storage_file_share_delete.md)	 - Delete the given file storage share
-* [ovhcloud cloud storage file share edit](ovhcloud_cloud_storage_file_share_edit.md)	 - Edit the given file storage share
-* [ovhcloud cloud storage file share get](ovhcloud_cloud_storage_file_share_get.md)	 - Get a specific file storage share
-* [ovhcloud cloud storage file share list](ovhcloud_cloud_storage_file_share_list.md)	 - List file storage shares
+* [ovhcloud cloud storage file snapshot](ovhcloud_cloud_storage_file_snapshot.md)	 - Manage file storage snapshots
 

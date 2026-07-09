@@ -8,10 +8,10 @@ import (
 	_ "embed"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
-	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
@@ -19,83 +19,123 @@ import (
 )
 
 var (
-	shareColumnsToDisplay         = []string{"id", "name", "region", "protocol", "size", "status"}
-	shareSnapshotColumnsToDisplay = []string{"id", "name", "shareId", "size", "status"}
-	shareACLColumnsToDisplay      = []string{"id", "accessLevel", "accessTo", "accessType", "status"}
+	fileStorageShareColumnsToDisplay = []string{
+		"id",
+		"currentState.name name",
+		"currentState.location.region region",
+		"currentState.protocol protocol",
+		"currentState.size size",
+		"resourceStatus",
+	}
+	fileStorageSnapshotColumnsToDisplay = []string{
+		"id",
+		"currentState.name name",
+		"currentState.share.id shareId",
+		"currentState.size size",
+		"resourceStatus",
+	}
+	fileStorageNetworkColumnsToDisplay = []string{
+		"id",
+		"currentState.name name",
+		"currentState.location.region region",
+		"currentState.network.id networkId",
+		"resourceStatus",
+	}
 
 	//go:embed templates/cloud_storage_file_share.tmpl
-	shareTemplate string
+	fileStorageShareTemplate string
 
-	//go:embed templates/cloud_storage_file_share_snapshot.tmpl
-	shareSnapshotTemplate string
+	//go:embed templates/cloud_storage_file_snapshot.tmpl
+	fileStorageSnapshotTemplate string
+
+	//go:embed templates/cloud_storage_file_network.tmpl
+	fileStorageNetworkTemplate string
 
 	//go:embed parameter-samples/storage-file-share-create.json
-	ShareCreateExample string
+	FileStorageShareCreateExample string
+
+	//go:embed parameter-samples/storage-file-snapshot-create.json
+	FileStorageSnapshotCreateExample string
+
+	//go:embed parameter-samples/storage-file-network-create.json
+	FileStorageNetworkCreateExample string
+
+	// Nested objects are built from these scalar flags before the request is sent.
+	ShareLocationRegion           string
+	ShareLocationAvailabilityZone string
+	ShareNetworkID                string
+
+	SnapshotShareID string
+
+	NetworkLocationRegion           string
+	NetworkLocationAvailabilityZone string
+	NetworkNetworkID                string
+	NetworkSubnetID                 string
 
 	ShareSpec struct {
-		AvailabilityZone string `json:"availabilityZone,omitempty"`
-		Description      string `json:"description,omitempty"`
-		Name             string `json:"name,omitempty"`
-		NetworkId        string `json:"networkId,omitempty"`
-		Size             int    `json:"size,omitempty"`
-		SnapshotId       string `json:"snapshotId,omitempty"`
-		SubnetId         string `json:"subnetId,omitempty"`
-		Type             string `json:"type,omitempty"`
+		TargetSpec struct {
+			Name         string                  `json:"name,omitempty"`
+			Description  string                  `json:"description,omitempty"`
+			Protocol     string                  `json:"protocol,omitempty"`
+			ShareType    string                  `json:"shareType,omitempty"`
+			Size         int                     `json:"size,omitempty"`
+			Location     *FileStorageLocation    `json:"location,omitempty"`
+			ShareNetwork *FileStorageRef         `json:"shareNetwork,omitempty"`
+			AccessRules  []FileStorageAccessRule `json:"accessRules,omitempty"`
+		} `json:"targetSpec"`
 	}
 
 	ShareEditSpec struct {
-		Description string `json:"description,omitempty"`
-		Name        string `json:"name,omitempty"`
-		NewSize     int    `json:"newSize,omitempty"`
+		TargetSpec struct {
+			Name        string `json:"name,omitempty"`
+			Description string `json:"description,omitempty"`
+			Size        int    `json:"size,omitempty"`
+		} `json:"targetSpec"`
 	}
 
-	ShareSnapshotSpec struct {
-		Description string `json:"description,omitempty"`
-		Name        string `json:"name,omitempty"`
+	SnapshotSpec struct {
+		TargetSpec struct {
+			Name        string          `json:"name,omitempty"`
+			Description string          `json:"description,omitempty"`
+			Share       *FileStorageRef `json:"share,omitempty"`
+		} `json:"targetSpec"`
 	}
 
-	ShareACLSpec struct {
+	SnapshotEditSpec struct {
+		TargetSpec struct {
+			Name        string `json:"name,omitempty"`
+			Description string `json:"description,omitempty"`
+		} `json:"targetSpec"`
+	}
+
+	NetworkSpec struct {
+		TargetSpec struct {
+			Name        string               `json:"name,omitempty"`
+			Description string               `json:"description,omitempty"`
+			Location    *FileStorageLocation `json:"location,omitempty"`
+			Network     *FileStorageRef      `json:"network,omitempty"`
+			Subnet      *FileStorageRef      `json:"subnet,omitempty"`
+		} `json:"targetSpec"`
+	}
+)
+
+type (
+	FileStorageLocation struct {
+		Region           string `json:"region,omitempty"`
+		AvailabilityZone string `json:"availabilityZone,omitempty"`
+	}
+
+	FileStorageRef struct {
+		ID string `json:"id,omitempty"`
+	}
+
+	FileStorageAccessRule struct {
 		AccessLevel string `json:"accessLevel,omitempty"`
 		AccessTo    string `json:"accessTo,omitempty"`
 	}
-
-	ShareRegion string
 )
 
-// getShareRegions returns a single-element slice if --region is set,
-// otherwise discovers all regions with the share feature available.
-func getShareRegions(projectID string) ([]any, error) {
-	if ShareRegion != "" {
-		return []any{ShareRegion}, nil
-	}
-	return getCloudRegionsWithFeatureAvailable(projectID, "share")
-}
-
-// findShare searches for a share across all regions and returns its endpoint and data.
-func findShare(shareID string) (string, map[string]any, error) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		return "", nil, err
-	}
-
-	regions, err := getShareRegions(projectID)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to fetch regions with share feature available: %w", err)
-	}
-
-	for _, region := range regions {
-		var (
-			share    map[string]any
-			endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/share/%s",
-				projectID, url.PathEscape(region.(string)), url.PathEscape(shareID))
-		)
-		if err := httpLib.Client.Get(endpoint, &share); err == nil {
-			return endpoint, share, nil
-		}
-	}
-
-	return "", nil, fmt.Errorf("no share found with ID %s", shareID)
-}
+// File storage shares
 
 func ListShares(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
@@ -104,70 +144,78 @@ func ListShares(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	regions, err := getShareRegions(projectID)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch regions with share feature available: %s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
-	shares, err := httpLib.FetchObjectsParallel[[]map[string]any](endpoint+"/%s/share", regions, true)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch shares: %s", err)
-		return
-	}
-
-	var allShares []map[string]any
-	for _, regionShares := range shares {
-		allShares = append(allShares, regionShares...)
-	}
-
-	allShares, err = filtersLib.FilterLines(allShares, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(allShares, shareColumnsToDisplay, &flags.OutputFormatConfig)
+	common.ManageListRequestNoExpand(
+		fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/share", projectID),
+		fileStorageShareColumnsToDisplay,
+		flags.GenericFilters,
+	)
 }
 
 func GetShare(_ *cobra.Command, args []string) {
-	_, share, err := findShare(args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	display.OutputObject(share, args[0], shareTemplate, &flags.OutputFormatConfig)
-}
-
-func CreateShare(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share", projectID, url.PathEscape(args[0]))
-	task, err := common.CreateResource(
-		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/share",
-		endpoint,
-		ShareCreateExample,
-		ShareSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"type"},
+	common.ManageObjectRequest(
+		fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/share", projectID),
+		args[0],
+		fileStorageShareTemplate,
 	)
+}
+
+func CreateShare(cmd *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, task, "✅ Share creation started successfully (operation ID: %s)", task["id"])
+	ShareSpec.TargetSpec.Location = nil
+	if ShareLocationRegion != "" || ShareLocationAvailabilityZone != "" {
+		ShareSpec.TargetSpec.Location = &FileStorageLocation{
+			Region:           ShareLocationRegion,
+			AvailabilityZone: ShareLocationAvailabilityZone,
+		}
+	}
+	ShareSpec.TargetSpec.ShareNetwork = nil
+	if ShareNetworkID != "" {
+		ShareSpec.TargetSpec.ShareNetwork = &FileStorageRef{ID: ShareNetworkID}
+	}
+
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/share", projectID)
+	share, err := common.CreateResource(
+		cmd,
+		"/publicCloud/project/{projectId}/storage/file/share",
+		endpoint,
+		FileStorageShareCreateExample,
+		ShareSpec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec"},
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create file storage share: %s", err)
+		return
+	}
+
+	shareID, _ := share["id"].(string)
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, share, "⚡️ File storage share creation started successfully (id: %s)", shareID)
+		return
+	}
+
+	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(shareID)), 30*time.Minute); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for file storage share to be ready: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, share, "✅ File storage share %s created successfully", shareID)
 }
 
 func EditShare(cmd *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -175,10 +223,10 @@ func EditShare(cmd *cobra.Command, args []string) {
 
 	if err := common.EditResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/share/{shareId}",
-		endpoint,
+		"/publicCloud/project/{projectId}/storage/file/share/{fileStorageId}",
+		fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/share/%s", projectID, url.PathEscape(args[0])),
 		ShareEditSpec,
-		assets.CloudOpenapiSchema,
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -186,160 +234,223 @@ func EditShare(cmd *cobra.Command, args []string) {
 }
 
 func DeleteShare(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var task map[string]any
-	if err := httpLib.Client.Delete(endpoint, &task); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete share: %s", err)
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/share/%s", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete file storage share: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, task, "✅ Share %s deletion started successfully (operation ID: %s)", args[0], task["id"])
-
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ File storage share %s is being deleted…", args[0])
 }
 
-// ACL commands
+// File storage snapshots
 
-func ListShareACLs(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+func ListFileStorageSnapshots(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var acls []map[string]any
-	if err := httpLib.Client.Get(endpoint+"/acl", &acls); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share ACLs: %s", err)
-		return
-	}
-
-	acls, err = filtersLib.FilterLines(acls, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(acls, shareACLColumnsToDisplay, &flags.OutputFormatConfig)
+	common.ManageListRequestNoExpand(
+		fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/snapshot", projectID),
+		fileStorageSnapshotColumnsToDisplay,
+		flags.GenericFilters,
+	)
 }
 
-func GetShareACL(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+func GetFileStorageSnapshot(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var acl map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("%s/acl/%s", endpoint, url.PathEscape(args[1])), &acl); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share ACL: %s", err)
-		return
-	}
-
-	display.OutputObject(acl, args[1], "", &flags.OutputFormatConfig)
+	common.ManageObjectRequest(
+		fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/snapshot", projectID),
+		args[0],
+		fileStorageSnapshotTemplate,
+	)
 }
 
-func CreateShareACL(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+func CreateFileStorageSnapshot(cmd *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var response map[string]any
-	if err := httpLib.Client.Post(endpoint+"/acl", ShareACLSpec, &response); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to create share ACL: %s", err)
+	SnapshotSpec.TargetSpec.Share = nil
+	if SnapshotShareID != "" {
+		SnapshotSpec.TargetSpec.Share = &FileStorageRef{ID: SnapshotShareID}
+	}
+
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/snapshot", projectID)
+	snapshot, err := common.CreateResource(
+		cmd,
+		"/publicCloud/project/{projectId}/storage/file/snapshot",
+		endpoint,
+		FileStorageSnapshotCreateExample,
+		SnapshotSpec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec"},
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create file storage snapshot: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ ACL created successfully for share %s (id: %s)", args[0], response["id"])
+	snapshotID, _ := snapshot["id"].(string)
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, snapshot, "⚡️ File storage snapshot creation started successfully (id: %s)", snapshotID)
+		return
+	}
+
+	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(snapshotID)), 30*time.Minute); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for file storage snapshot to be ready: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, snapshot, "✅ File storage snapshot %s created successfully", snapshotID)
 }
 
-func DeleteShareACL(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+func EditFileStorageSnapshot(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if err := httpLib.Client.Delete(fmt.Sprintf("%s/acl/%s", endpoint, url.PathEscape(args[1])), nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete share ACL: %s", err)
+	if err := common.EditResource(
+		cmd,
+		"/publicCloud/project/{projectId}/storage/file/snapshot/{snapshotId}",
+		fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/snapshot/%s", projectID, url.PathEscape(args[0])),
+		SnapshotEditSpec,
+		assets.CloudV2OpenapiSchema,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ ACL %s deleted successfully from share %s", args[1], args[0])
 }
 
-// Snapshot commands
-
-func ListShareSnapshots(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+func DeleteFileStorageSnapshot(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var snapshots []map[string]any
-	if err := httpLib.Client.Get(endpoint+"/snapshot", &snapshots); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share snapshots: %s", err)
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/snapshot/%s", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete file storage snapshot: %s", err)
 		return
 	}
 
-	snapshots, err = filtersLib.FilterLines(snapshots, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(snapshots, shareSnapshotColumnsToDisplay, &flags.OutputFormatConfig)
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ File storage snapshot %s is being deleted…", args[0])
 }
 
-func GetShareSnapshot(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+// File storage share networks
+
+func ListFileStorageNetworks(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var snapshot map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("%s/snapshot/%s", endpoint, url.PathEscape(args[1])), &snapshot); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share snapshot: %s", err)
-		return
-	}
-
-	display.OutputObject(snapshot, args[1], shareSnapshotTemplate, &flags.OutputFormatConfig)
+	common.ManageListRequestNoExpand(
+		fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/network", projectID),
+		fileStorageNetworkColumnsToDisplay,
+		flags.GenericFilters,
+	)
 }
 
-func CreateShareSnapshot(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+func GetFileStorageNetwork(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var response map[string]any
-	if err := httpLib.Client.Post(endpoint+"/snapshot", ShareSnapshotSpec, &response); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to create share snapshot: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot created successfully for share %s (id: %s)", args[0], response["id"])
+	common.ManageObjectRequest(
+		fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/network", projectID),
+		args[0],
+		fileStorageNetworkTemplate,
+	)
 }
 
-func DeleteShareSnapshot(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+func CreateFileStorageNetwork(cmd *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if err := httpLib.Client.Delete(fmt.Sprintf("%s/snapshot/%s", endpoint, url.PathEscape(args[1])), nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete share snapshot: %s", err)
+	NetworkSpec.TargetSpec.Location = nil
+	if NetworkLocationRegion != "" || NetworkLocationAvailabilityZone != "" {
+		NetworkSpec.TargetSpec.Location = &FileStorageLocation{
+			Region:           NetworkLocationRegion,
+			AvailabilityZone: NetworkLocationAvailabilityZone,
+		}
+	}
+	NetworkSpec.TargetSpec.Network = nil
+	if NetworkNetworkID != "" {
+		NetworkSpec.TargetSpec.Network = &FileStorageRef{ID: NetworkNetworkID}
+	}
+	NetworkSpec.TargetSpec.Subnet = nil
+	if NetworkSubnetID != "" {
+		NetworkSpec.TargetSpec.Subnet = &FileStorageRef{ID: NetworkSubnetID}
+	}
+
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/network", projectID)
+	network, err := common.CreateResource(
+		cmd,
+		"/publicCloud/project/{projectId}/storage/file/network",
+		endpoint,
+		FileStorageNetworkCreateExample,
+		NetworkSpec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec"},
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create file storage share network: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot %s deleted successfully from share %s", args[1], args[0])
+	networkID, _ := network["id"].(string)
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, network, "⚡️ File storage share network creation started successfully (id: %s)", networkID)
+		return
+	}
+
+	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(networkID)), 30*time.Minute); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for file storage share network to be ready: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, network, "✅ File storage share network %s created successfully", networkID)
+}
+
+func DeleteFileStorageNetwork(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/network/%s", projectID, url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete file storage share network: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ File storage share network %s is being deleted…", args[0])
 }

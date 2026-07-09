@@ -1,11 +1,22 @@
-## ovhcloud cloud storage file share
+## ovhcloud cloud storage file network list
 
-Manage file storage shares
+List file storage share networks
+
+```
+ovhcloud cloud storage file network list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for share
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,10 +41,5 @@ Manage file storage shares
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file](ovhcloud_cloud_storage_file.md)	 - Manage file storage in the given cloud project
-* [ovhcloud cloud storage file share create](ovhcloud_cloud_storage_file_share_create.md)	 - Create a new file storage share
-* [ovhcloud cloud storage file share delete](ovhcloud_cloud_storage_file_share_delete.md)	 - Delete the given file storage share
-* [ovhcloud cloud storage file share edit](ovhcloud_cloud_storage_file_share_edit.md)	 - Edit the given file storage share
-* [ovhcloud cloud storage file share get](ovhcloud_cloud_storage_file_share_get.md)	 - Get a specific file storage share
-* [ovhcloud cloud storage file share list](ovhcloud_cloud_storage_file_share_list.md)	 - List file storage shares
+* [ovhcloud cloud storage file network](ovhcloud_cloud_storage_file_network.md)	 - Manage file storage share networks
 

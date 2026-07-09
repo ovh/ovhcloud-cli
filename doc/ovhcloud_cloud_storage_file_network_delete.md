@@ -1,11 +1,15 @@
-## ovhcloud cloud storage file share
+## ovhcloud cloud storage file network delete
 
-Manage file storage shares
+Delete the given file storage share network
+
+```
+ovhcloud cloud storage file network delete <network_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for share
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -30,10 +34,5 @@ Manage file storage shares
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file](ovhcloud_cloud_storage_file.md)	 - Manage file storage in the given cloud project
-* [ovhcloud cloud storage file share create](ovhcloud_cloud_storage_file_share_create.md)	 - Create a new file storage share
-* [ovhcloud cloud storage file share delete](ovhcloud_cloud_storage_file_share_delete.md)	 - Delete the given file storage share
-* [ovhcloud cloud storage file share edit](ovhcloud_cloud_storage_file_share_edit.md)	 - Edit the given file storage share
-* [ovhcloud cloud storage file share get](ovhcloud_cloud_storage_file_share_get.md)	 - Get a specific file storage share
-* [ovhcloud cloud storage file share list](ovhcloud_cloud_storage_file_share_list.md)	 - List file storage shares
+* [ovhcloud cloud storage file network](ovhcloud_cloud_storage_file_network.md)	 - Manage file storage share networks
 

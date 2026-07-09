@@ -1,6 +1,6 @@
 ## ovhcloud cloud storage file share get
 
-Get a specific share
+Get a specific file storage share
 
 ```
 ovhcloud cloud storage file share get <share_id> [flags]
@@ -30,7 +30,6 @@ ovhcloud cloud storage file share get <share_id> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Region (skip region discovery if set)
 ```
 
 ### SEE ALSO

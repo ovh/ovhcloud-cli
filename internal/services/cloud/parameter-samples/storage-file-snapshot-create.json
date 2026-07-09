@@ -1,0 +1,9 @@
+{
+  "targetSpec": {
+    "name": "my-share-snapshot",
+    "description": "Daily backup snapshot",
+    "share": {
+      "id": "00000000-0000-0000-0000-000000000000"
+    }
+  }
+}

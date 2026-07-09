@@ -1157,6 +1157,915 @@
         "description": "Time (e.g., 15:04:05)",
         "format": "time",
         "example": "15:04:05"
+      },
+      "publicCloud.storage.file.FileStorageExportLocation": {
+        "type": "object",
+        "description": "An NFS export path for a file storage",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "NFS export path for mounting",
+            "readOnly": true
+          },
+          "preferred": {
+            "type": "boolean",
+            "description": "Whether this is the preferred export location",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageUpdate": {
+        "type": "object",
+        "description": "Payload to update a Public Cloud file storage",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash controlling concurrent modifications; represents the current target specification value"
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageUpdateTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the file storage"
+          }
+        },
+        "required": [
+          "checksum",
+          "targetSpec"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageNetworkSubnetRef": {
+        "type": "object",
+        "description": "Reference to the Neutron subnet backing a share network",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of the Neutron subnet",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageNetworkNetworkRef": {
+        "type": "object",
+        "description": "Reference to the Neutron network backing a share network",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of the Neutron network",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageCapability": {
+        "type": "object",
+        "description": "An action availability flag for a file storage, derived from its current status",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the action is currently available on the file storage",
+            "readOnly": true
+          },
+          "name": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageCapabilityEnum"
+              }
+            ],
+            "description": "The action the flag refers to",
+            "readOnly": true
+          },
+          "reason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageCapabilityReasonEnum"
+              }
+            ],
+            "description": "Why the action is unavailable; set only when enabled is false",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageShareNetworkRef": {
+        "type": "object",
+        "description": "Reference to a pre-existing file storage share network",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of the share network to attach the file storage to",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageSnapshotCreation": {
+        "type": "object",
+        "description": "Payload to create a Public Cloud file storage snapshot",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshotTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the snapshot"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageTypeEnum": {
+        "type": "string",
+        "description": "Supported file storage types (performance tiers)",
+        "enum": [
+          "STANDARD_1AZ"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageCapabilityEnum": {
+        "type": "string",
+        "description": "Action availability flags computed from the file storage status",
+        "enum": [
+          "ACL_MANAGEMENT",
+          "DELETE",
+          "EDIT",
+          "REVERT_FROM_SNAPSHOT",
+          "SNAPSHOT_MANAGEMENT",
+          "UPDATE_SIZE"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageSnapshotTargetSpec": {
+        "type": "object",
+        "description": "Target specification for a file storage snapshot",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the snapshot",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Desired snapshot name",
+            "nullable": true
+          },
+          "share": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshotShareRef"
+              }
+            ],
+            "description": "Reference to the parent file storage share to snapshot"
+          }
+        },
+        "required": [
+          "share"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageSnapshotShareRef": {
+        "type": "object",
+        "description": "Reference to the parent file storage share of the snapshot",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of the parent file storage share",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageSnapshotUpdateTargetSpec": {
+        "type": "object",
+        "description": "Target specification for updating a file storage snapshot (only name and description are mutable)",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the snapshot",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Desired snapshot name",
+            "nullable": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageAccessRuleInput": {
+        "type": "object",
+        "description": "Input for an access rule controlling which IP addresses can access a file storage",
+        "properties": {
+          "accessLevel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageAccessLevelEnum"
+              }
+            ],
+            "description": "Access level granted (read-write or read-only)"
+          },
+          "accessTo": {
+            "type": "string",
+            "description": "IP address or CIDR allowed to access the file storage"
+          }
+        },
+        "required": [
+          "accessLevel",
+          "accessTo"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageNetworkNetwork": {
+        "type": "object",
+        "description": "The Neutron network backing a share network",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of the Neutron network",
+            "format": "uuid",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageAccessRuleStateEnum": {
+        "type": "string",
+        "description": "Possible states for a file storage access rule",
+        "enum": [
+          "ACTIVE",
+          "APPLYING",
+          "DENYING",
+          "ERROR"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageSnapshot": {
+        "type": "object",
+        "description": "A snapshot of a Public Cloud file storage (NFS share)",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the snapshot",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshotCurrentState"
+              }
+            ],
+            "description": "Current observed state of the snapshot from the infrastructure",
+            "nullable": true,
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Ongoing asynchronous tasks related to the snapshot",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the snapshot",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Snapshot readiness in the system",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshotTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the snapshot",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the snapshot",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageCurrentState": {
+        "type": "object",
+        "description": "Current state of a file storage as observed from the infrastructure",
+        "properties": {
+          "accessRules": {
+            "type": "array",
+            "description": "Current access rules on the file storage",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageAccessRule"
+            },
+            "readOnly": true
+          },
+          "capabilities": {
+            "type": "array",
+            "description": "Action availability flags derived from the file storage status",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageCapability"
+            },
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "File storage description",
+            "nullable": true,
+            "readOnly": true
+          },
+          "exportLocations": {
+            "type": "array",
+            "description": "NFS export paths for mounting the file storage",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageExportLocation"
+            },
+            "readOnly": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Current resource location",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Current file storage name",
+            "readOnly": true
+          },
+          "protocol": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageProtocolEnum"
+              }
+            ],
+            "description": "File sharing protocol",
+            "readOnly": true
+          },
+          "shareNetwork": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageShareNetworkRef"
+              }
+            ],
+            "description": "Reference to the share network the file storage is attached to",
+            "readOnly": true
+          },
+          "shareType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageTypeEnum"
+              }
+            ],
+            "description": "File storage type (performance tier)",
+            "readOnly": true
+          },
+          "size": {
+            "type": "integer",
+            "description": "Current size of the file storage in GB",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageCapabilityReasonEnum": {
+        "type": "string",
+        "description": "Reason a file storage action is currently disabled",
+        "enum": [
+          "HAS_DEPENDENT_SNAPSHOTS",
+          "INVALID_STATUS"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageProtocolEnum": {
+        "type": "string",
+        "description": "Supported file sharing protocols",
+        "enum": [
+          "NFS"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageSnapshotCurrentState": {
+        "type": "object",
+        "description": "Current state of a file storage snapshot as observed from the infrastructure",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Snapshot description",
+            "nullable": true,
+            "readOnly": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Current resource location",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Current snapshot name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "share": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshotShareRef"
+              }
+            ],
+            "description": "Reference to the parent file storage share of the snapshot",
+            "readOnly": true
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of the snapshot in GB",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageNetworkTargetSpec": {
+        "type": "object",
+        "description": "Target specification for a file storage share network",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the share network",
+            "nullable": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Desired resource location"
+          },
+          "name": {
+            "type": "string",
+            "description": "Desired share network name"
+          },
+          "network": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkNetworkRef"
+              }
+            ],
+            "description": "Reference to the Neutron network to back the share network"
+          },
+          "subnet": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkSubnetRef"
+              }
+            ],
+            "description": "Reference to the Neutron subnet to back the share network"
+          }
+        },
+        "required": [
+          "location",
+          "name",
+          "network",
+          "subnet"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageNetworkCurrentState": {
+        "type": "object",
+        "description": "Current state of a file storage share network as observed from the infrastructure",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Share network description",
+            "nullable": true,
+            "readOnly": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Current resource location",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Current share network name",
+            "readOnly": true
+          },
+          "network": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkNetwork"
+              }
+            ],
+            "description": "The Neutron network backing the share network",
+            "readOnly": true
+          },
+          "subnet": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkSubnet"
+              }
+            ],
+            "description": "The Neutron subnet backing the share network",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageAccessRule": {
+        "type": "object",
+        "description": "An access rule controlling which IP addresses can access a file storage",
+        "properties": {
+          "accessLevel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageAccessLevelEnum"
+              }
+            ],
+            "description": "Access level granted (read-write or read-only)",
+            "readOnly": true
+          },
+          "accessTo": {
+            "type": "string",
+            "description": "IP address or CIDR allowed to access the file storage",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the access rule",
+            "nullable": true,
+            "format": "date-time",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the access rule",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageAccessRuleStateEnum"
+              }
+            ],
+            "description": "Current state of the access rule",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageCreation": {
+        "type": "object",
+        "description": "Payload to create a Public Cloud file storage",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the file storage"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageSnapshotUpdate": {
+        "type": "object",
+        "description": "Payload to update a Public Cloud file storage snapshot",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash controlling concurrent modifications; represents the current target specification value"
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshotUpdateTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the snapshot"
+          }
+        },
+        "required": [
+          "checksum",
+          "targetSpec"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageNetwork": {
+        "type": "object",
+        "description": "A Public Cloud file storage share network",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the share network",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkCurrentState"
+              }
+            ],
+            "description": "Current observed state of the share network from the infrastructure",
+            "nullable": true,
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Ongoing asynchronous tasks related to the share network",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the share network",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Share network readiness in the system",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the share network",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the share network",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageNetworkCreation": {
+        "type": "object",
+        "description": "Payload to create a Public Cloud file storage share network",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the share network"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageTargetSpec": {
+        "type": "object",
+        "description": "Target specification for a file storage",
+        "properties": {
+          "accessRules": {
+            "type": "array",
+            "description": "Access rules controlling which IPs can access the file storage",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageAccessRuleInput"
+            }
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the file storage",
+            "nullable": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Desired resource location"
+          },
+          "name": {
+            "type": "string",
+            "description": "Desired file storage name"
+          },
+          "protocol": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageProtocolEnum"
+              }
+            ],
+            "description": "File sharing protocol"
+          },
+          "shareNetwork": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageShareNetworkRef"
+              }
+            ],
+            "description": "Reference to a pre-existing share network to attach the file storage to"
+          },
+          "shareType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageTypeEnum"
+              }
+            ],
+            "description": "File storage type (performance tier)"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of the file storage in GB"
+          }
+        },
+        "required": [
+          "location",
+          "name",
+          "protocol",
+          "shareNetwork",
+          "shareType",
+          "size"
+        ]
+      },
+      "publicCloud.storage.file.FileStorage": {
+        "type": "object",
+        "description": "A Public Cloud file storage (NFS share)",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the file storage",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageCurrentState"
+              }
+            ],
+            "description": "Current observed state of the file storage from the infrastructure",
+            "nullable": true,
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Ongoing asynchronous tasks related to the file storage",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the file storage",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "File storage readiness in the system",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the file storage",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the file storage",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.common.Location": {
+        "type": "object",
+        "description": "Resource location",
+        "properties": {
+          "availabilityZone": {
+            "type": "string",
+            "description": "Availability zone within the region",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "description": "Region code"
+          }
+        },
+        "required": [
+          "region"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageNetworkSubnet": {
+        "type": "object",
+        "description": "The Neutron subnet backing a share network",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of the Neutron subnet",
+            "format": "uuid",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageUpdateTargetSpec": {
+        "type": "object",
+        "description": "Target specification for updating a file storage (immutable fields like protocol, shareType, networkId, subnetId are excluded)",
+        "properties": {
+          "accessRules": {
+            "type": "array",
+            "description": "Access rules controlling which IPs can access the file storage (replaces all existing rules)",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageAccessRuleInput"
+            }
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the file storage",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Desired file storage name"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of the file storage in GB. The size can only be increased (extend); shrinking a file storage is not supported"
+          }
+        },
+        "required": [
+          "name",
+          "size"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageAccessLevelEnum": {
+        "type": "string",
+        "description": "Access levels for file storage access rules",
+        "enum": [
+          "READ_ONLY",
+          "READ_WRITE"
+        ]
       }
     },
     "securitySchemes": {
@@ -3189,6 +4098,1708 @@
           {
             "color": "red",
             "label": "Deprecated, will be removed"
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/file/network": {
+      "get": {
+        "summary": "List Public Cloud file storage share networks",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetwork"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/file/network/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudStorageFileFileStorageNetwork"
+      },
+      "post": {
+        "summary": "Create a new Public Cloud file storage share network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkCreation"
+              },
+              "examples": {
+                "Create share network": {
+                  "value": {
+                    "targetSpec": {
+                      "description": "Share network for production",
+                      "location": {
+                        "region": "GRA1"
+                      },
+                      "name": "my-share-network",
+                      "network": {
+                        "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                      },
+                      "subnet": {
+                        "id": "c3d4e5f6-a7b8-9012-cdef-234567890abc"
+                      }
+                    }
+                  },
+                  "summary": "Create a share network backed by a private network and subnet"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetwork"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  },
+                  "Client::BadRequest::ServiceNotAvailableInRegion": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceNotAvailableInRegion",
+                      "message": "This service is not available in the selected region"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/file/network/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/file/network/{networkId}": {
+      "delete": {
+        "summary": "Delete a Public Cloud file storage share network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetwork"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ResourceAlreadyBeingDeleted": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceAlreadyBeingDeleted",
+                      "message": "Resource is already being deleted"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/file/network/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a Public Cloud file storage share network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetwork"
+                },
+                "examples": {
+                  "Example": {
+                    "value": {
+                      "checksum": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8",
+                      "createdAt": "2026-02-10T16:00:00Z",
+                      "currentState": {
+                        "description": "Share network for production",
+                        "location": {
+                          "availabilityZone": "eu-west-gra-a",
+                          "region": "GRA1"
+                        },
+                        "name": "my-share-network",
+                        "network": {
+                          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                        },
+                        "subnet": {
+                          "id": "c3d4e5f6-a7b8-9012-cdef-234567890abc"
+                        }
+                      },
+                      "currentTasks": null,
+                      "id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
+                      "resourceStatus": "READY",
+                      "targetSpec": {
+                        "description": "Share network for production",
+                        "location": {
+                          "region": "GRA1"
+                        },
+                        "name": "my-share-network",
+                        "network": {
+                          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                        },
+                        "subnet": {
+                          "id": "c3d4e5f6-a7b8-9012-cdef-234567890abc"
+                        }
+                      },
+                      "updatedAt": "2026-02-10T16:05:00Z"
+                    },
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/file/network/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/file/share": {
+      "get": {
+        "summary": "List Public Cloud file storages",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.storage.file.FileStorage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:share/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudStorageFileFileStorage"
+      },
+      "post": {
+        "summary": "Create a new Public Cloud file storage",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageCreation"
+              },
+              "examples": {
+                "Create file storage": {
+                  "value": {
+                    "targetSpec": {
+                      "accessRules": [
+                        {
+                          "accessLevel": "READ_WRITE",
+                          "accessTo": "10.0.0.42"
+                        }
+                      ],
+                      "description": "Production data share",
+                      "location": {
+                        "region": "GRA1"
+                      },
+                      "name": "my-share",
+                      "protocol": "NFS",
+                      "shareNetwork": {
+                        "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                      },
+                      "shareType": "STANDARD_1AZ",
+                      "size": 100
+                    }
+                  },
+                  "summary": "Create an NFS file storage with access rules"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  },
+                  "Client::BadRequest::ServiceNotAvailableInRegion": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceNotAvailableInRegion",
+                      "message": "This service is not available in the selected region"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:share/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/file/share/{fileStorageId}": {
+      "delete": {
+        "summary": "Delete a Public Cloud file storage",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fileStorageId",
+            "description": "File storage ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ShareDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ShareDoesNotExist",
+                      "message": "File share not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ResourceAlreadyBeingDeleted": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceAlreadyBeingDeleted",
+                      "message": "Resource is already being deleted"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:share/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a Public Cloud file storage",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fileStorageId",
+            "description": "File storage ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorage"
+                },
+                "examples": {
+                  "Example": {
+                    "value": {
+                      "checksum": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+                      "createdAt": "2026-02-10T14:30:00Z",
+                      "currentState": {
+                        "accessRules": [
+                          {
+                            "accessLevel": "READ_WRITE",
+                            "accessTo": "10.0.0.42",
+                            "createdAt": "2026-02-10T14:32:00Z",
+                            "id": "e5f6a7b8-c901-2345-def6-789012abcdef",
+                            "state": "ACTIVE"
+                          }
+                        ],
+                        "description": "Production data share",
+                        "exportLocations": [
+                          {
+                            "path": "10.0.0.1:/shares/share-abc123",
+                            "preferred": true
+                          }
+                        ],
+                        "location": {
+                          "region": "GRA1"
+                        },
+                        "name": "my-share",
+                        "protocol": "NFS",
+                        "shareNetwork": {
+                          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                        },
+                        "shareType": "STANDARD_1AZ",
+                        "size": 100
+                      },
+                      "currentTasks": null,
+                      "id": "d4e5f6a7-b890-1234-cdef-567890abcdef",
+                      "resourceStatus": "READY",
+                      "targetSpec": {
+                        "accessRules": [
+                          {
+                            "accessLevel": "READ_WRITE",
+                            "accessTo": "10.0.0.42"
+                          }
+                        ],
+                        "description": "Production data share",
+                        "location": {
+                          "region": "GRA1"
+                        },
+                        "name": "my-share",
+                        "protocol": "NFS",
+                        "shareNetwork": {
+                          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                        },
+                        "shareType": "STANDARD_1AZ",
+                        "size": 100
+                      },
+                      "updatedAt": "2026-02-10T14:35:00Z"
+                    },
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ShareDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ShareDoesNotExist",
+                      "message": "File share not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:share/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update an existing Public Cloud file storage",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fileStorageId",
+            "description": "File storage ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageUpdate"
+              },
+              "examples": {
+                "Update file storage": {
+                  "value": {
+                    "checksum": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+                    "targetSpec": {
+                      "accessRules": [
+                        {
+                          "accessLevel": "READ_WRITE",
+                          "accessTo": "10.0.0.42"
+                        },
+                        {
+                          "accessLevel": "READ_ONLY",
+                          "accessTo": "10.0.0.43"
+                        }
+                      ],
+                      "name": "my-share-renamed",
+                      "size": 200
+                    }
+                  },
+                  "summary": "Update name, extend size, or modify access rules"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ShareDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ShareDoesNotExist",
+                      "message": "File share not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ChecksumMismatch": {
+                    "value": {
+                      "class": "Client::Conflict::ChecksumMismatch",
+                      "message": "Checksum mismatch — a concurrent update was detected. Refresh the resource and retry"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:share/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/file/snapshot": {
+      "get": {
+        "summary": "List Public Cloud file storage snapshots",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshot"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/file/snapshot/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudStorageFileFileStorageSnapshot"
+      },
+      "post": {
+        "summary": "Create a new Public Cloud file storage snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshotCreation"
+              },
+              "examples": {
+                "Create snapshot": {
+                  "value": {
+                    "targetSpec": {
+                      "description": "Daily backup snapshot",
+                      "name": "my-share-snapshot",
+                      "share": {
+                        "id": "d4e5f6a7-b890-1234-cdef-567890abcdef"
+                      }
+                    }
+                  },
+                  "summary": "Create a snapshot of a file storage"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshot"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::ServiceNotAvailableInRegion": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceNotAvailableInRegion",
+                      "message": "This service is not available in the selected region"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ShareDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ShareDoesNotExist",
+                      "message": "File share not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/file/snapshot/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/file/snapshot/{snapshotId}": {
+      "delete": {
+        "summary": "Delete a Public Cloud file storage snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "description": "Snapshot ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshot"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ShareDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ShareDoesNotExist",
+                      "message": "File share not found"
+                    }
+                  },
+                  "Client::NotFound::SnapshotDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SnapshotDoesNotExist",
+                      "message": "Snapshot not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ResourceAlreadyBeingDeleted": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceAlreadyBeingDeleted",
+                      "message": "Resource is already being deleted"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/file/snapshot/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a Public Cloud file storage snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "description": "Snapshot ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshot"
+                },
+                "examples": {
+                  "Example": {
+                    "value": {
+                      "checksum": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7",
+                      "createdAt": "2026-02-10T15:00:00Z",
+                      "currentState": {
+                        "description": "Daily backup snapshot",
+                        "location": {
+                          "region": "GRA1"
+                        },
+                        "name": "my-share-snapshot",
+                        "share": {
+                          "id": "d4e5f6a7-b890-1234-cdef-567890abcdef"
+                        },
+                        "size": 1
+                      },
+                      "currentTasks": null,
+                      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                      "resourceStatus": "READY",
+                      "targetSpec": {
+                        "description": "Daily backup snapshot",
+                        "name": "my-share-snapshot",
+                        "share": {
+                          "id": "d4e5f6a7-b890-1234-cdef-567890abcdef"
+                        }
+                      },
+                      "updatedAt": "2026-02-10T15:05:00Z"
+                    },
+                    "summary": "Example"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ShareDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ShareDoesNotExist",
+                      "message": "File share not found"
+                    }
+                  },
+                  "Client::NotFound::SnapshotDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SnapshotDoesNotExist",
+                      "message": "Snapshot not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/file/snapshot/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update an existing Public Cloud file storage snapshot",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "description": "Snapshot ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshotUpdate"
+              },
+              "examples": {
+                "Update snapshot": {
+                  "value": {
+                    "checksum": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7",
+                    "targetSpec": {
+                      "description": "Updated backup snapshot",
+                      "name": "my-share-snapshot-renamed"
+                    }
+                  },
+                  "summary": "Update snapshot name and description"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageSnapshot"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::ShareDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::ShareDoesNotExist",
+                      "message": "File share not found"
+                    }
+                  },
+                  "Client::NotFound::SnapshotDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SnapshotDoesNotExist",
+                      "message": "Snapshot not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ChecksumMismatch": {
+                    "value": {
+                      "class": "Client::Conflict::ChecksumMismatch",
+                      "message": "Checksum mismatch — a concurrent update was detected. Refresh the resource and retry"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "File"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/file/snapshot/edit",
+            "required": true
           }
         ]
       }
