@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -12,16 +13,27 @@ import (
 func initCloudQuotaCommand(cloudCmd *cobra.Command) {
 	quotaCmd := &cobra.Command{
 		Use:   "quota",
-		Short: "Check quotas in the given cloud project",
+		Short: "Manage quotas in the given cloud project",
 	}
 	quotaCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
 	quotaCmd.AddCommand(&cobra.Command{
-		Use:   "get <region>",
-		Short: "Get quotas for a specific region",
+		Use:   "get",
+		Short: "Get the project quota",
 		Run:   cloud.GetCloudQuota,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.NoArgs,
 	})
+
+	quotaEditCmd := &cobra.Command{
+		Use:   "edit",
+		Short: "Update the project quota (target quota profile per region)",
+		Run:   cloud.EditCloudQuota,
+		Args:  cobra.NoArgs,
+	}
+	addParameterFileFlags(quotaEditCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/quota", "put", cloud.CloudQuotaEditExample, nil)
+	addInteractiveEditorFlag(quotaEditCmd)
+	markFlagsMutuallyExclusive(quotaEditCmd, "from-file", "editor")
+	quotaCmd.AddCommand(quotaEditCmd)
 
 	cloudCmd.AddCommand(quotaCmd)
 }

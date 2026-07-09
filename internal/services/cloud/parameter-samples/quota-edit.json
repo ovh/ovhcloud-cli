@@ -1,0 +1,14 @@
+{
+  "checksum": "",
+  "targetSpec": {
+    "preventAutomaticQuotaUpgrade": false,
+    "regions": [
+      {
+        "location": {
+          "region": "GRA11"
+        },
+        "profile": "default"
+      }
+    ]
+  }
+}
