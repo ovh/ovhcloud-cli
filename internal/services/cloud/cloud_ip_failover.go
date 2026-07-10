@@ -56,47 +56,6 @@ func ListCloudIPFailovers(_ *cobra.Command, _ []string) {
 	display.RenderTable(body, cloudprojectIPFailoverColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
-// ListAllCloudIPs lists both floating and failover IPs in a single table,
-// adding a "type" column to distinguish them.
-func ListAllCloudIPs(_ *cobra.Command, _ []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	var all []map[string]any
-
-	floatingIPs, err := fetchFloatingIPs(projectID)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-	for _, fip := range floatingIPs {
-		fip["type"] = "floating"
-		all = append(all, fip)
-	}
-
-	failoverIPs, err := fetchCloudIPFailovers(projectID)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-	for _, fip := range failoverIPs {
-		fip["type"] = "failover"
-		all = append(all, fip)
-	}
-
-	all, err = filtersLib.FilterLines(all, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	columns := []string{"id", "type", "ip", "status", "region", "routedTo", "associatedEntity"}
-	display.RenderTable(all, columns, &flags.OutputFormatConfig)
-}
-
 func GetCloudIPFailover(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {

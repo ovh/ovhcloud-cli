@@ -1,0 +1,8 @@
+{
+  "targetSpec": {
+    "description": "My floating IP",
+    "location": {
+      "region": "GRA11"
+    }
+  }
+}

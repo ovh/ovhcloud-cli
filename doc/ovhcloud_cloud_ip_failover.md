@@ -1,22 +1,11 @@
-## ovhcloud cloud ip list
+## ovhcloud cloud ip failover
 
-List all public IPs (floating, additional and ext-net) of the project
-
-```
-ovhcloud cloud ip list [flags]
-```
+Manage failover public IPs in the given cloud project
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help   help for failover
 ```
 
 ### Options inherited from parent commands
@@ -42,4 +31,7 @@ ovhcloud cloud ip list [flags]
 ### SEE ALSO
 
 * [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional, ext-net and failover) in the given cloud project
+* [ovhcloud cloud ip failover attach](ovhcloud_cloud_ip_failover_attach.md)	 - Attach a failover IP to an instance
+* [ovhcloud cloud ip failover get](ovhcloud_cloud_ip_failover_get.md)	 - Get a specific failover IP
+* [ovhcloud cloud ip failover list](ovhcloud_cloud_ip_failover_list.md)	 - List failover IPs
 

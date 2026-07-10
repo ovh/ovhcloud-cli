@@ -1,9 +1,9 @@
-## ovhcloud cloud ip list
+## ovhcloud cloud ip additional list
 
-List all public IPs (floating, additional and ext-net) of the project
+List additional IPs
 
 ```
-ovhcloud cloud ip list [flags]
+ovhcloud cloud ip additional list [flags]
 ```
 
 ### Options
@@ -41,5 +41,5 @@ ovhcloud cloud ip list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional, ext-net and failover) in the given cloud project
+* [ovhcloud cloud ip additional](ovhcloud_cloud_ip_additional.md)	 - Manage additional public IPs in the given cloud project
 
