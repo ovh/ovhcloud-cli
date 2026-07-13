@@ -34,6 +34,38 @@ func InitClientWithProfile(cfg *ini.File, profileOverride string) {
 
 	// Init API client
 	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
+
+// Client wraps the OAuth2 client with token persistence
+func (RefreshableClient)(ctx context.Context, token *oauth2.Token) *http.Client {
+    // TokenSource automatically refreshes expired tokens
+    tokenSource := oauthConfig.TokenSource(ctx, token)
+    savingSource := &SavingTokenSource{
+        source: tokenSource,
+        store:  tokenStore,
+    }
+
+    return oauth2.NewClient(ctx, savingSource)
+}
+
+// SavingTokenSource saves the token whenever it gets refreshed
+type SavingTokenSource struct {
+    source oauth2.TokenSource
+    store  *TokenStore
+}
+
+func (s *SavingTokenSource) Token() (*oauth2.Token, error) {
+    token, err := s.source.Token()
+    if err != nil {
+        return nil, err
+    }
+
+    // Save the potentially refreshed token
+    if err := s.store.Save(token); err != nil {
+        log.Printf("Warning: failed to save token: %v", err)
+    }
+
+    return token, nil
+}
 		// In WASM mode, we use an unauthenticated client
 		Client = &ovh.Client{
 			Client: &http.Client{},
