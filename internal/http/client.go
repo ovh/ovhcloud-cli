@@ -20,6 +20,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 	"gopkg.in/ini.v1"
+	"golang.org/x/oauth2"
+    "golang.org/x/oauth2/github
 )
 
 // OVH API client
