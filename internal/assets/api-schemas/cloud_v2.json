@@ -1294,52 +1294,6 @@
           }
         ],
         "x-expanded-response": "PublicCloudProjectProjectAsyncWithIAM"
-      },
-      "post": {
-        "summary": "Create a new cloud project",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/publicCloud.project.ProjectCreation"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/publicCloud.project.ProjectAsync"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "orange",
-            "label": "Internal use only"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:create",
-            "required": true
-          },
-          {
-            "name": "billingAccount:apiovh:subscription/publicCloudProject/create",
-            "required": true
-          }
-        ]
       }
     },
     "/publicCloud/project/{projectId}": {
@@ -1382,59 +1336,6 @@
         "x-iam-actions": [
           {
             "name": "publicCloudProject:apiovh:get",
-            "required": true
-          }
-        ]
-      },
-      "put": {
-        "summary": "Update an existing cloud project",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "projectId",
-            "description": "Project ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/publicCloud.project.ProjectCreation"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/publicCloud.project.ProjectAsync"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "orange",
-            "label": "Internal use only"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:edit",
             "required": true
           }
         ]
