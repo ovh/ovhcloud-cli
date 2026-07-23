@@ -3,7 +3,7 @@
 Delete a SSH key
 
 ```
-ovhcloud cloud ssh-key delete <ssh_key_id> [flags]
+ovhcloud cloud ssh-key delete <ssh_key_name> [flags]
 ```
 
 ### Options
