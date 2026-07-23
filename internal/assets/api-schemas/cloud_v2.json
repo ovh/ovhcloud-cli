@@ -1158,196 +1158,81 @@
         "format": "time",
         "example": "15:04:05"
       },
-      "publicCloud.network.NetworkTargetSpec": {
+      "publicCloud.sshKey.SSHKeyCreation": {
         "type": "object",
-        "description": "Desired specification for a network",
+        "description": "Payload to create a Public Cloud SSH key",
         "properties": {
-          "description": {
-            "type": "string",
-            "description": "Network description",
-            "nullable": true
-          },
-          "location": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.common.Location"
-              }
-            ],
-            "description": "Target location"
-          },
           "name": {
             "type": "string",
-            "description": "Network name"
+            "description": "Unique name for the SSH key"
           },
-          "vlanId": {
-            "type": "integer",
-            "description": "VLAN segmentation id. Not supported on localzone regions.",
-            "nullable": true
+          "publicKey": {
+            "type": "string",
+            "description": "SSH public key content"
           }
         },
         "required": [
-          "location",
-          "name"
+          "name",
+          "publicKey"
         ]
       },
-      "publicCloud.network.NetworkCurrentState": {
+      "publicCloud.sshKey.SSHKey": {
         "type": "object",
-        "description": "Current state of a network from OpenStack",
+        "description": "A Public Cloud SSH key (stored in database, synced to OpenStack on instance creation)",
         "properties": {
-          "description": {
+          "createdAt": {
             "type": "string",
-            "description": "Network description",
-            "readOnly": true
-          },
-          "location": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.common.Location"
-              }
-            ],
-            "description": "Location details",
+            "description": "Creation date of the SSH key",
+            "format": "date-time",
             "readOnly": true
           },
           "name": {
             "type": "string",
-            "description": "Network name",
+            "description": "Unique name of the SSH key",
             "readOnly": true
           },
-          "vlanId": {
-            "type": "integer",
-            "description": "VLAN segmentation id.",
-            "nullable": true,
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.network.Network": {
-        "type": "object",
-        "description": "A Public Cloud network",
-        "properties": {
-          "checksum": {
+          "publicKey": {
             "type": "string",
-            "description": "Computed hash representing the current target specification value",
-            "readOnly": true
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Creation date of the network",
-            "format": "date-time",
-            "readOnly": true
-          },
-          "currentState": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.network.NetworkCurrentState"
-              }
-            ],
-            "description": "Current state of the network",
-            "nullable": true,
-            "readOnly": true
-          },
-          "currentTasks": {
-            "type": "array",
-            "description": "Ongoing asynchronous tasks related to the network",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/common.CurrentTask"
-            },
-            "readOnly": true
-          },
-          "id": {
-            "type": "string",
-            "description": "Unique identifier of the network",
-            "format": "uuid",
-            "readOnly": true
-          },
-          "resourceStatus": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/common.ResourceStatusEnum"
-              }
-            ],
-            "description": "Network readiness in the system",
-            "readOnly": true
-          },
-          "targetSpec": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.network.NetworkTargetSpec"
-              }
-            ],
-            "description": "Last target specification of the network",
+            "description": "SSH public key content",
             "readOnly": true
           },
           "updatedAt": {
             "type": "string",
-            "description": "Last update date of the network",
+            "description": "Last update date of the SSH key",
             "format": "date-time",
             "readOnly": true
           }
         }
       },
-      "publicCloud.network.SubnetAllocationPool": {
+      "publicCloud.common.Location": {
         "type": "object",
-        "description": "IP address pool for dynamic allocation within a subnet",
+        "description": "Resource location",
         "properties": {
-          "end": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ip"
-              }
-            ],
-            "description": "End IP address of the pool"
+          "availabilityZone": {
+            "type": "string",
+            "description": "Availability zone within the region",
+            "nullable": true
           },
-          "start": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ip"
-              }
-            ],
-            "description": "Start IP address of the pool"
+          "region": {
+            "type": "string",
+            "description": "Region code"
           }
         },
         "required": [
-          "end",
-          "start"
+          "region"
         ]
       },
-      "publicCloud.network.SubnetHostRoute": {
+      "publicCloud.network.SubnetCreation": {
         "type": "object",
-        "description": "Static host route for devices in a subnet",
-        "properties": {
-          "destination": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ipBlock"
-              }
-            ],
-            "description": "Destination CIDR",
-            "readOnly": true
-          },
-          "nextHop": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ip"
-              }
-            ],
-            "description": "Next hop IP address",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.network.NetworkCreation": {
-        "type": "object",
-        "description": "Payload to create a Public Cloud network",
+        "description": "Payload to create a Public Cloud subnet",
         "properties": {
           "targetSpec": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.network.NetworkTargetSpec"
+                "$ref": "#/components/schemas/publicCloud.network.SubnetTargetSpec"
               }
             ],
-            "description": "Desired target specification for the network to create"
+            "description": "Desired target specification for the subnet to create"
           }
         },
         "required": [
@@ -1420,9 +1305,75 @@
           "name"
         ]
       },
-      "publicCloud.network.SubnetUpdate": {
+      "publicCloud.network.Network": {
         "type": "object",
-        "description": "Payload to update a Public Cloud subnet",
+        "description": "A Public Cloud network",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the network",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.NetworkCurrentState"
+              }
+            ],
+            "description": "Current state of the network",
+            "nullable": true,
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Ongoing asynchronous tasks related to the network",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the network",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Network readiness in the system",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.NetworkTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the network",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the network",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.network.NetworkUpdate": {
+        "type": "object",
+        "description": "Payload to update a Public Cloud network",
         "properties": {
           "checksum": {
             "type": "string",
@@ -1431,31 +1382,14 @@
           "targetSpec": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.network.SubnetPutTargetSpec"
+                "$ref": "#/components/schemas/publicCloud.network.NetworkPutTargetSpec"
               }
             ],
-            "description": "Desired target specification for the subnet"
+            "description": "Desired target specification for the network"
           }
         },
         "required": [
           "checksum",
-          "targetSpec"
-        ]
-      },
-      "publicCloud.network.SubnetCreation": {
-        "type": "object",
-        "description": "Payload to create a Public Cloud subnet",
-        "properties": {
-          "targetSpec": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.network.SubnetTargetSpec"
-              }
-            ],
-            "description": "Desired target specification for the subnet to create"
-          }
-        },
-        "required": [
           "targetSpec"
         ]
       },
@@ -1535,54 +1469,6 @@
           }
         }
       },
-      "publicCloud.network.SubnetPutTargetSpec": {
-        "type": "object",
-        "description": "Desired specification for updating a subnet (excludes immutable fields)",
-        "properties": {
-          "allocationPools": {
-            "type": "array",
-            "description": "IP address allocation pools",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/publicCloud.network.SubnetAllocationPool"
-            }
-          },
-          "description": {
-            "type": "string",
-            "description": "Subnet description",
-            "nullable": true
-          },
-          "dhcpEnabled": {
-            "type": "boolean",
-            "description": "Whether DHCP is enabled",
-            "nullable": true
-          },
-          "dnsNameservers": {
-            "type": "array",
-            "description": "DNS nameservers for the subnet",
-            "nullable": true,
-            "items": {
-              "type": "string"
-            }
-          },
-          "gatewayIp": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ip"
-              }
-            ],
-            "description": "Default gateway IP address",
-            "nullable": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Subnet name"
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
       "publicCloud.network.Subnet": {
         "type": "object",
         "description": "A Public Cloud subnet",
@@ -1649,22 +1535,84 @@
           }
         }
       },
-      "publicCloud.common.Location": {
+      "publicCloud.network.NetworkTargetSpec": {
         "type": "object",
-        "description": "Resource location",
+        "description": "Desired specification for a network",
         "properties": {
-          "availabilityZone": {
+          "description": {
             "type": "string",
-            "description": "Availability zone within the region",
+            "description": "Network description",
             "nullable": true
           },
-          "region": {
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Target location"
+          },
+          "name": {
             "type": "string",
-            "description": "Region code"
+            "description": "Network name"
+          },
+          "vlanId": {
+            "type": "integer",
+            "description": "VLAN segmentation id. Not supported on localzone regions.",
+            "nullable": true
           }
         },
         "required": [
-          "region"
+          "location",
+          "name"
+        ]
+      },
+      "publicCloud.network.SubnetUpdate": {
+        "type": "object",
+        "description": "Payload to update a Public Cloud subnet",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash controlling concurrent modifications"
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.SubnetPutTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the subnet"
+          }
+        },
+        "required": [
+          "checksum",
+          "targetSpec"
+        ]
+      },
+      "publicCloud.network.SubnetAllocationPool": {
+        "type": "object",
+        "description": "IP address pool for dynamic allocation within a subnet",
+        "properties": {
+          "end": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "End IP address of the pool"
+          },
+          "start": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Start IP address of the pool"
+          }
+        },
+        "required": [
+          "end",
+          "start"
         ]
       },
       "publicCloud.network.NetworkPutTargetSpec": {
@@ -1680,25 +1628,123 @@
           "name"
         ]
       },
-      "publicCloud.network.NetworkUpdate": {
+      "publicCloud.network.SubnetPutTargetSpec": {
         "type": "object",
-        "description": "Payload to update a Public Cloud network",
+        "description": "Desired specification for updating a subnet (excludes immutable fields)",
         "properties": {
-          "checksum": {
-            "type": "string",
-            "description": "Computed hash controlling concurrent modifications"
+          "allocationPools": {
+            "type": "array",
+            "description": "IP address allocation pools",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.network.SubnetAllocationPool"
+            }
           },
-          "targetSpec": {
+          "description": {
+            "type": "string",
+            "description": "Subnet description",
+            "nullable": true
+          },
+          "dhcpEnabled": {
+            "type": "boolean",
+            "description": "Whether DHCP is enabled",
+            "nullable": true
+          },
+          "dnsNameservers": {
+            "type": "array",
+            "description": "DNS nameservers for the subnet",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "gatewayIp": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.network.NetworkPutTargetSpec"
+                "$ref": "#/components/schemas/ip"
               }
             ],
-            "description": "Desired target specification for the network"
+            "description": "Default gateway IP address",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Subnet name"
           }
         },
         "required": [
-          "checksum",
+          "name"
+        ]
+      },
+      "publicCloud.network.NetworkCurrentState": {
+        "type": "object",
+        "description": "Current state of a network from OpenStack",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Network description",
+            "readOnly": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Location details",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Network name",
+            "readOnly": true
+          },
+          "vlanId": {
+            "type": "integer",
+            "description": "VLAN segmentation id.",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.network.SubnetHostRoute": {
+        "type": "object",
+        "description": "Static host route for devices in a subnet",
+        "properties": {
+          "destination": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "Destination CIDR",
+            "readOnly": true
+          },
+          "nextHop": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Next hop IP address",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.network.NetworkCreation": {
+        "type": "object",
+        "description": "Payload to create a Public Cloud network",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.NetworkTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the network to create"
+          }
+        },
+        "required": [
           "targetSpec"
         ]
       }
@@ -1792,52 +1838,6 @@
           }
         ],
         "x-expanded-response": "PublicCloudProjectProjectAsyncWithIAM"
-      },
-      "post": {
-        "summary": "Create a new cloud project",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/publicCloud.project.ProjectCreation"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/publicCloud.project.ProjectAsync"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "orange",
-            "label": "Internal use only"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:create",
-            "required": true
-          },
-          {
-            "name": "billingAccount:apiovh:subscription/publicCloudProject/create",
-            "required": true
-          }
-        ]
       }
     },
     "/publicCloud/project/{projectId}": {
@@ -1880,59 +1880,6 @@
         "x-iam-actions": [
           {
             "name": "publicCloudProject:apiovh:get",
-            "required": true
-          }
-        ]
-      },
-      "put": {
-        "summary": "Update an existing cloud project",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "projectId",
-            "description": "Project ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/publicCloud.project.ProjectCreation"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/publicCloud.project.ProjectAsync"
-                }
-              }
-            }
-          }
-        },
-        "x-badges": [
-          {
-            "color": "orange",
-            "label": "Internal use only"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:edit",
             "required": true
           }
         ]
@@ -3735,6 +3682,331 @@
             "label": "Deprecated, will be removed"
           }
         ]
+      }
+    },
+    "/publicCloud/project/{projectId}/sshKey": {
+      "get": {
+        "summary": "List SSH keys",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Compute"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:sshKey/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "name",
+        "x-expanded-response": "PublicCloudSshKeySSHKey"
+      },
+      "post": {
+        "summary": "Create an SSH key",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.sshKey.SSHKeyCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::NameAlreadyInUse": {
+                    "value": {
+                      "class": "Client::Conflict::NameAlreadyInUse",
+                      "message": "This name is already in use"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Compute"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:sshKey/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/sshKey/{name}": {
+      "delete": {
+        "summary": "Delete an SSH key",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SSHKeyDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SSHKeyDoesNotExist",
+                      "message": "SSH key not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Compute"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:sshKey/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get an SSH key",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SSHKeyDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SSHKeyDoesNotExist",
+                      "message": "SSH key not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Compute"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:sshKey/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "name"
       }
     },
     "/publicCloud/project/{projectId}/network": {
