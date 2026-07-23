@@ -5,6 +5,7 @@
 {{- with .Result.currentState}}
 **Automatic quota upgrade disabled**: {{.preventAutomaticQuotaUpgrade}}
 {{- range .regions}}
+{{- if .profile}}
 
 ## Region {{.location.region}}
 
@@ -50,6 +51,7 @@
 | Shares | {{.shares.used}} / {{.shares.limit}} |
 | Total size | {{.sizeTotal.used}} / {{.sizeTotal.limit}} |
 | Snapshots | {{.snapshots.used}} / {{.snapshots.limit}} |
+{{- end}}
 {{- end}}
 {{- end}}
 {{- end}}
