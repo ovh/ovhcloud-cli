@@ -12,50 +12,39 @@ import (
 
 // TestCloudProjectListCmd tests the "cloud project list" command
 func (ms *MockSuite) TestCloudProjectListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project",
-		httpmock.NewStringResponder(200, `["project-1", "project-2"]`).Once())
-
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/project-1",
-		httpmock.NewStringResponder(200, `{
-			"project_id": "project-1",
-			"projectName": "Test Project 1",
-			"status": "ok",
-			"description": "First test project"
-		}`).Once())
-
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/project-2",
-		httpmock.NewStringResponder(200, `{
-			"project_id": "project-2",
-			"projectName": "Test Project 2",
-			"status": "ok",
-			"description": "Second test project"
-		}`).Once())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project",
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "project-1",
+				"resourceStatus": "READY",
+				"currentState": {"name": "Test Project 1", "mode": "standard"}
+			},
+			{
+				"id": "project-2",
+				"resourceStatus": "READY",
+				"currentState": {"name": "Test Project 2", "mode": "discovery"}
+			}
+		]`).Once())
 
 	out, err := cmd.Execute("cloud", "project", "list")
 
 	require.CmpNoError(err)
-	assert.String(out, `
-┌────────────┬────────────────┬────────┬─────────────────────┐
-│ project_id │  projectName   │ status │     description     │
-├────────────┼────────────────┼────────┼─────────────────────┤
-│ project-1  │ Test Project 1 │ ok     │ First test project  │
-│ project-2  │ Test Project 2 │ ok     │ Second test project │
-└────────────┴────────────────┴────────┴─────────────────────┘
-💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+	assert.Cmp(out, td.Contains("project-1"))
+	assert.Cmp(out, td.Contains("Test Project 1"))
+	assert.Cmp(out, td.Contains("project-2"))
+	assert.Cmp(out, td.Contains("discovery"))
 }
 
 // TestCloudProjectListCmdAlias tests the "cloud project ls" command alias
 func (ms *MockSuite) TestCloudProjectListCmdAlias(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project",
-		httpmock.NewStringResponder(200, `["project-1"]`).Once())
-
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/project-1",
-		httpmock.NewStringResponder(200, `{
-			"project_id": "project-1",
-			"projectName": "Test Project",
-			"status": "ok",
-			"description": "Test project"
-		}`).Once())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project",
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "project-1",
+				"resourceStatus": "READY",
+				"currentState": {"name": "Test Project", "mode": "standard"}
+			}
+		]`).Once())
 
 	out, err := cmd.Execute("cloud", "project", "ls")
 
@@ -65,16 +54,15 @@ func (ms *MockSuite) TestCloudProjectListCmdAlias(assert, require *td.T) {
 
 // TestCloudProjectGetCmd tests the "cloud project get" command
 func (ms *MockSuite) TestCloudProjectGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/project-123",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/project-123",
 		httpmock.NewStringResponder(200, `{
-			"project_id": "project-123",
-			"projectName": "My Cloud Project",
-			"status": "ok",
-			"description": "Production cloud project",
-			"access": "full",
-			"unleash": false,
-			"manualQuota": false,
-			"creationDate": "2023-01-15T10:30:00Z",
+			"id": "project-123",
+			"resourceStatus": "READY",
+			"createdAt": "2023-01-15T10:30:00Z",
+			"currentState": {
+				"name": "My Cloud Project",
+				"mode": "standard"
+			},
 			"iam": {
 				"urn": "urn:v1:eu:resource:cloudProject:project-123"
 			}
@@ -85,7 +73,7 @@ func (ms *MockSuite) TestCloudProjectGetCmd(assert, require *td.T) {
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("project-123"))
 	assert.Cmp(out, td.Contains("My Cloud Project"))
-	assert.Cmp(out, td.Contains("Production cloud project"))
+	assert.Cmp(out, td.Contains("standard"))
 }
 
 // TestCloudProjectEditCmd tests the "cloud project edit" command

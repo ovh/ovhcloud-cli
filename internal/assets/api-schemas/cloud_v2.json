@@ -2066,6 +2066,52 @@
           "READ_ONLY",
           "READ_WRITE"
         ]
+      },
+      "publicCloud.sshKey.SSHKeyCreation": {
+        "type": "object",
+        "description": "Payload to create a Public Cloud SSH key",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique name for the SSH key"
+          },
+          "publicKey": {
+            "type": "string",
+            "description": "SSH public key content"
+          }
+        },
+        "required": [
+          "name",
+          "publicKey"
+        ]
+      },
+      "publicCloud.sshKey.SSHKey": {
+        "type": "object",
+        "description": "A Public Cloud SSH key (stored in database, synced to OpenStack on instance creation)",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the SSH key",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Unique name of the SSH key",
+            "readOnly": true
+          },
+          "publicKey": {
+            "type": "string",
+            "description": "SSH public key content",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the SSH key",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -5142,7 +5188,7 @@
                   "Client::Conflict::ChecksumMismatch": {
                     "value": {
                       "class": "Client::Conflict::ChecksumMismatch",
-                      "message": "Checksum mismatch — a concurrent update was detected. Refresh the resource and retry"
+                      "message": "Checksum mismatch \u2014 a concurrent update was detected. Refresh the resource and retry"
                     }
                   },
                   "Client::Conflict::ResourceInInvalidState": {
@@ -5772,7 +5818,7 @@
                   "Client::Conflict::ChecksumMismatch": {
                     "value": {
                       "class": "Client::Conflict::ChecksumMismatch",
-                      "message": "Checksum mismatch — a concurrent update was detected. Refresh the resource and retry"
+                      "message": "Checksum mismatch \u2014 a concurrent update was detected. Refresh the resource and retry"
                     }
                   },
                   "Client::Conflict::ResourceInInvalidState": {
@@ -5802,6 +5848,331 @@
             "required": true
           }
         ]
+      }
+    },
+    "/publicCloud/project/{projectId}/sshKey": {
+      "get": {
+        "summary": "List SSH keys",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Compute"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:sshKey/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "name",
+        "x-expanded-response": "PublicCloudSshKeySSHKey"
+      },
+      "post": {
+        "summary": "Create an SSH key",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.sshKey.SSHKeyCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::NameAlreadyInUse": {
+                    "value": {
+                      "class": "Client::Conflict::NameAlreadyInUse",
+                      "message": "This name is already in use"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Compute"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:sshKey/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/sshKey/{name}": {
+      "delete": {
+        "summary": "Delete an SSH key",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SSHKeyDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SSHKeyDoesNotExist",
+                      "message": "SSH key not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Compute"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:sshKey/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get an SSH key",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SSHKeyDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SSHKeyDoesNotExist",
+                      "message": "SSH key not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Compute"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:sshKey/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "name"
       }
     }
   },
