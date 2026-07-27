@@ -23,6 +23,14 @@ _{{index .Result "currentState" "name"}}_
 {{range index .Result "currentState" "rules"}}| {{.direction}} | {{.ethernetType}} | {{.protocol}} | {{.portRangeMin}} | {{.portRangeMax}} | {{.remoteIpPrefix}} |
 {{end}}
 {{end}}
+{{if index .Result "currentState" "defaultRules"}}
+### Default rules
+
+| Direction | Ethernet | Protocol | Port min | Port max | Remote IP prefix |
+| --- | --- | --- | --- | --- | --- |
+{{range index .Result "currentState" "defaultRules"}}| {{.direction}} | {{.ethernetType}} | {{.protocol}} | {{.portRangeMin}} | {{.portRangeMax}} | {{.remoteIpPrefix}} |
+{{end}}
+{{end}}
 {{end}}
 
 ## Target state
