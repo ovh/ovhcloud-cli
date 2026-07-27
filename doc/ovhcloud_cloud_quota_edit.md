@@ -1,15 +1,19 @@
-## ovhcloud cloud quota get
+## ovhcloud cloud quota edit
 
-Get the project quota
+Update the project quota (target quota profile per region)
 
 ```
-ovhcloud cloud quota get [flags]
+ovhcloud cloud quota edit [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --editor             Use a text editor to define parameters
+      --from-file string   File containing parameters
+  -h, --help               help for edit
+      --init-file string   Create a file with example parameters
+      --replace            Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands
