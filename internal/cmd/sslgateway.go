@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/sslgateway"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single SslGateway
 	sslgatewayCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific SSL Gateway",
-		Args:  cobra.ExactArgs(1),
-		Run:   sslgateway.GetSslGateway,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific SSL Gateway",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/sslGateway"),
+		Run:               sslgateway.GetSslGateway,
 	})
 
 	// Command to update a single SslGateway
 	sslgatewayEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given SSL Gateway",
-		Args:  cobra.ExactArgs(1),
-		Run:   sslgateway.EditSslGateway,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given SSL Gateway",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/sslGateway"),
+		Run:               sslgateway.EditSslGateway,
 	}
 	sslgatewayEditCmd.Flags().StringSliceVar(&sslgateway.SSLGatewaySpec.AllowedSource, "allowed-source", nil, "Restrict SSL Gateway access to these ip block")
 	sslgatewayEditCmd.Flags().StringVar(&sslgateway.SSLGatewaySpec.DisplayName, "display-name", "", "Display name of the SSL Gateway")

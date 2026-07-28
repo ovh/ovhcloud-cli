@@ -1,12 +1,15 @@
-## ovhcloud cloud quota
+## ovhcloud completion install
 
-Manage quotas in the given cloud project
+Install shell completion permanently in your shell rc file
+
+```
+ovhcloud completion install [flags]
+```
 
 ### Options
 
 ```
-      --cloud-project string   Cloud project ID
-  -h, --help                   help for quota
+  -h, --help   help for install
 ```
 
 ### Options inherited from parent commands
@@ -30,7 +33,5 @@ Manage quotas in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
-* [ovhcloud cloud quota edit](ovhcloud_cloud_quota_edit.md)	 - Update the project quota (target quota profile per region)
-* [ovhcloud cloud quota get](ovhcloud_cloud_quota_get.md)	 - Get the project quota
+* [ovhcloud completion](ovhcloud_completion.md)	 - Generate shell completion scripts
 

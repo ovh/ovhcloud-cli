@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/account"
 	"github.com/spf13/cobra"
 )
@@ -63,10 +64,11 @@ func init() {
 	}))
 
 	oauth2ClientCmd.AddCommand(&cobra.Command{
-		Use:   "get <client_id>",
-		Short: "Get details of an OAuth2 client",
-		Args:  cobra.ExactArgs(1),
-		Run:   account.GetOauth2Client,
+		Use:               "get <client_id>",
+		Short:             "Get details of an OAuth2 client",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/me/api/oauth2/client"),
+		Run:               account.GetOauth2Client,
 	})
 
 	oauth2CreateCmd := &cobra.Command{
@@ -85,17 +87,19 @@ func init() {
 	oauth2ClientCmd.AddCommand(oauth2CreateCmd)
 
 	oauth2ClientCmd.AddCommand(&cobra.Command{
-		Use:   "delete <client_id>",
-		Short: "Delete the given OAuth2 client",
-		Args:  cobra.ExactArgs(1),
-		Run:   account.DeleteOauth2Client,
+		Use:               "delete <client_id>",
+		Short:             "Delete the given OAuth2 client",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/me/api/oauth2/client"),
+		Run:               account.DeleteOauth2Client,
 	})
 
 	oauth2ClientEditCmd := &cobra.Command{
-		Use:   "edit <client_id>",
-		Short: "Edit an OAuth2 client",
-		Args:  cobra.ExactArgs(1),
-		Run:   account.EditOauth2Client,
+		Use:               "edit <client_id>",
+		Short:             "Edit an OAuth2 client",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/me/api/oauth2/client"),
+		Run:               account.EditOauth2Client,
 	}
 	oauth2ClientEditCmd.Flags().StringArrayVar(&account.Oauth2ClientSpec.CallbackUrls, "callback-urls", nil, "Callback URLs for the OAuth2 client")
 	oauth2ClientEditCmd.Flags().StringVar(&account.Oauth2ClientSpec.Description, "description", "", "Description of the OAuth2 client")

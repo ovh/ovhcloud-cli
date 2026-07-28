@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/veeamcloudconnect"
 	"github.com/spf13/cobra"
 )
@@ -26,10 +27,11 @@ func init() {
 
 	// Command to get a single VeeamCloudConnect
 	veeamcloudconnectCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific VeeamCloudConnect",
-		Args:  cobra.ExactArgs(1),
-		Run:   veeamcloudconnect.GetVeeamCloudConnect,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific VeeamCloudConnect",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/veeamCloudConnect"),
+		Run:               veeamcloudconnect.GetVeeamCloudConnect,
 	})
 
 	rootCmd.AddCommand(veeamcloudconnectCmd)

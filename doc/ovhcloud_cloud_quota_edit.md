@@ -1,15 +1,19 @@
-## ovhcloud cloud ssh-key get
+## ovhcloud cloud quota edit
 
-Get information about a SSH key
+Update the project quota (target quota profile per region)
 
 ```
-ovhcloud cloud ssh-key get <ssh_key_name> [flags]
+ovhcloud cloud quota edit [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --editor             Use a text editor to define parameters
+      --from-file string   File containing parameters
+  -h, --help               help for edit
+      --init-file string   Create a file with example parameters
+      --replace            Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +38,5 @@ ovhcloud cloud ssh-key get <ssh_key_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud ssh-key](ovhcloud_cloud_ssh-key.md)	 - Manage SSH keys in the given cloud project
+* [ovhcloud cloud quota](ovhcloud_cloud_quota.md)	 - Manage quotas in the given cloud project
 

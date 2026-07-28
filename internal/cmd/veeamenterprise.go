@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/veeamenterprise"
 	"github.com/spf13/cobra"
 )
@@ -26,10 +27,11 @@ func init() {
 
 	// Command to get a single VeeamEnterprise
 	veeamenterpriseCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific VeeamEnterprise",
-		Args:  cobra.ExactArgs(1),
-		Run:   veeamenterprise.GetVeeamEnterprise,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific VeeamEnterprise",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/veeam/veeamEnterprise"),
+		Run:               veeamenterprise.GetVeeamEnterprise,
 	})
 
 	rootCmd.AddCommand(veeamenterpriseCmd)

@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/vmwareclouddirectororganization"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single VmwareCloudDirector Organization
 	vmwareclouddirectororganizationCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific VmwareCloudDirector Organization",
-		Args:  cobra.ExactArgs(1),
-		Run:   vmwareclouddirectororganization.GetVmwareCloudDirectorOrganization,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific VmwareCloudDirector Organization",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v2/vmwareCloudDirector/organization"),
+		Run:               vmwareclouddirectororganization.GetVmwareCloudDirectorOrganization,
 	})
 
 	// Command to update a single VmwareCloudDirector Organization
 	vmwareclouddirectororganizationEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given VmwareCloudDirector Organization",
-		Args:  cobra.ExactArgs(1),
-		Run:   vmwareclouddirectororganization.EditVmwareCloudDirectorOrganization,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given VmwareCloudDirector Organization",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v2/vmwareCloudDirector/organization"),
+		Run:               vmwareclouddirectororganization.EditVmwareCloudDirectorOrganization,
 	}
 	vmwareclouddirectororganizationEditCmd.Flags().StringVar(&vmwareclouddirectororganization.VmwareCloudDirectorOrganizationSpec.TargetSpec.Description, "description", "", "Description of the organization")
 	vmwareclouddirectororganizationEditCmd.Flags().StringVar(&vmwareclouddirectororganization.VmwareCloudDirectorOrganizationSpec.TargetSpec.FullName, "full-name", "", "Full name of the organization")

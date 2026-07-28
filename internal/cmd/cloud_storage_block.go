@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
@@ -27,17 +28,19 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	storageBlockCmd.AddCommand(withFilterFlag(volumeListCmd))
 
 	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "get <volume_id>",
-		Short: "Get a specific volume",
-		Run:   cloud.GetVolume,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <volume_id>",
+		Short:             "Get a specific volume",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.GetVolume,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	volumeEditCmd := &cobra.Command{
-		Use:   "edit <volume_id>",
-		Short: "Edit the given volume",
-		Run:   cloud.EditVolume,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <volume_id>",
+		Short:             "Edit the given volume",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.EditVolume,
+		Args:              cobra.ExactArgs(1),
 	}
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Description, "description", "", "Volume description")
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Name, "name", "", "Volume name")
@@ -50,25 +53,28 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	storageBlockCmd.AddCommand(getVolumeCreateCmd())
 
 	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "delete <volume_id>",
-		Short: "Delete the given volume",
-		Run:   cloud.DeleteVolume,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <volume_id>",
+		Short:             "Delete the given volume",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.DeleteVolume,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	// Volume action commands
 	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "attach <volume_id> <instance_id>",
-		Short: "Attach the given volume to the given instance",
-		Run:   cloud.AttachVolumeToInstance,
-		Args:  cobra.ExactArgs(2),
+		Use:               "attach <volume_id> <instance_id>",
+		Short:             "Attach the given volume to the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.AttachVolumeToInstance,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "detach <volume_id> <instance_id>",
-		Short: "Detach the given volume from the given instance",
-		Run:   cloud.DetachVolumeFromInstance,
-		Args:  cobra.ExactArgs(2),
+		Use:               "detach <volume_id> <instance_id>",
+		Short:             "Detach the given volume from the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.DetachVolumeFromInstance,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	// Volume snapshot commands
@@ -79,10 +85,11 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	storageBlockCmd.AddCommand(volumeSnapshotCmd)
 
 	volumeSnapshotCreateCmd := &cobra.Command{
-		Use:   "create <volume_id>",
-		Short: "Create a snapshot of the given volume",
-		Run:   cloud.CreateVolumeSnapshot,
-		Args:  cobra.ExactArgs(1),
+		Use:               "create <volume_id>",
+		Short:             "Create a snapshot of the given volume",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.CreateVolumeSnapshot,
+		Args:              cobra.ExactArgs(1),
 	}
 	volumeSnapshotCreateCmd.Flags().StringVar(&cloud.VolumeSnapShotSpec.Description, "description", "", "Snapshot description")
 	volumeSnapshotCreateCmd.Flags().StringVar(&cloud.VolumeSnapShotSpec.Name, "name", "", "Snapshot name")
@@ -128,10 +135,11 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	})
 
 	volumeBackupCreateCmd := &cobra.Command{
-		Use:   "create <volume_id> <backup_name>",
-		Short: "Create a backup of the given volume",
-		Run:   cloud.CreateVolumeBackup,
-		Args:  cobra.ExactArgs(2),
+		Use:               "create <volume_id> <backup_name>",
+		Short:             "Create a backup of the given volume",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.CreateVolumeBackup,
+		Args:              cobra.ExactArgs(2),
 	}
 	volumeBackupCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the backup to be READY before exiting")
 	volumeBackupCmd.AddCommand(volumeBackupCreateCmd)

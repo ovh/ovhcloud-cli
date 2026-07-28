@@ -1,12 +1,35 @@
-## ovhcloud cloud quota
+## ovhcloud completion
 
-Manage quotas in the given cloud project
+Generate shell completion scripts
+
+### Synopsis
+
+Generate shell completion scripts for ovhcloud CLI.
+
+To load completions in your current shell session:
+
+  bash:
+    source <(ovhcloud completion bash)
+
+  zsh:
+    source <(ovhcloud completion zsh)
+
+  fish:
+    ovhcloud completion fish | source
+
+To make completions permanent, run:
+
+  ovhcloud completion install
+
+
+```
+ovhcloud completion [bash|zsh|fish|powershell] [flags]
+```
 
 ### Options
 
 ```
-      --cloud-project string   Cloud project ID
-  -h, --help                   help for quota
+  -h, --help   help for completion
 ```
 
 ### Options inherited from parent commands
@@ -30,7 +53,6 @@ Manage quotas in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
-* [ovhcloud cloud quota edit](ovhcloud_cloud_quota_edit.md)	 - Update the project quota (target quota profile per region)
-* [ovhcloud cloud quota get](ovhcloud_cloud_quota_get.md)	 - Get the project quota
+* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
+* [ovhcloud completion install](ovhcloud_completion_install.md)	 - Install shell completion permanently in your shell rc file
 

@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/emailmxplan"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single EmailMXPlan
 	emailmxplanCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific Email MXPlan",
-		Args:  cobra.ExactArgs(1),
-		Run:   emailmxplan.GetEmailMXPlan,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific Email MXPlan",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/mxplan"),
+		Run:               emailmxplan.GetEmailMXPlan,
 	})
 
 	// Command to update a single EmailMXPlan
 	emailmxplanEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given Email MXPlan",
-		Args:  cobra.ExactArgs(1),
-		Run:   emailmxplan.EditEmailMXPlan,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given Email MXPlan",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/mxplan"),
+		Run:               emailmxplan.EditEmailMXPlan,
 	}
 	emailmxplanEditCmd.Flags().BoolVar(&emailmxplan.EmailMXPlanSpec.ComplexityEnabled, "complexity-enabled", false, "Enable policy for strong and secure passwords")
 	emailmxplanEditCmd.Flags().StringVar(&emailmxplan.EmailMXPlanSpec.DisplayName, "display-name", "", "Service displayName")
