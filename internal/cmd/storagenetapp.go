@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/storagenetapp"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single StorageNetApp
 	storagenetappCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific StorageNetApp",
-		Args:  cobra.ExactArgs(1),
-		Run:   storagenetapp.GetStorageNetApp,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific StorageNetApp",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/storage/netapp"),
+		Run:               storagenetapp.GetStorageNetApp,
 	})
 
 	// Command to update a single StorageNetApp
 	storagenetappEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given StorageNetApp",
-		Args:  cobra.ExactArgs(1),
-		Run:   storagenetapp.EditStorageNetApp,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given StorageNetApp",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/storage/netapp"),
+		Run:               storagenetapp.EditStorageNetApp,
 	}
 	storagenetappEditCmd.Flags().StringVar(&storagenetapp.StorageNetAppSpec.Name, "name", "", "Name of the Storage NetApp")
 	addInteractiveEditorFlag(storagenetappEditCmd)

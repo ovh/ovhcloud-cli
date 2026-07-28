@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/iam"
 	"github.com/spf13/cobra"
 )
@@ -31,10 +32,11 @@ func init() {
 	iamPolicyCmd.AddCommand(iamPolicyListCmd)
 
 	iamPolicyCmd.AddCommand(&cobra.Command{
-		Use:   "get <policy_id>",
-		Short: "Get a specific IAM policy",
-		Run:   iam.GetIAMPolicy,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <policy_id>",
+		Short:             "Get a specific IAM policy",
+		ValidArgsFunction: completion.ServiceList("/v2/iam/policy"),
+		Run:               iam.GetIAMPolicy,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	iamPolicyCreateCmd := getGenericCreateCmd(
@@ -55,10 +57,11 @@ func init() {
 	iamPolicyCmd.AddCommand(iamPolicyCreateCmd)
 
 	iamPolicyEditCmd := &cobra.Command{
-		Use:   "edit <policy_id>",
-		Short: "Edit specific IAM policy",
-		Run:   iam.EditIAMPolicy,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <policy_id>",
+		Short:             "Edit specific IAM policy",
+		ValidArgsFunction: completion.ServiceList("/v2/iam/policy"),
+		Run:               iam.EditIAMPolicy,
+		Args:              cobra.ExactArgs(1),
 	}
 	iamPolicyEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Name, "name", "", "Name of the policy")
 	iamPolicyEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Description, "description", "", "Description of the policy")
@@ -73,10 +76,11 @@ func init() {
 	iamPolicyCmd.AddCommand(iamPolicyEditCmd)
 
 	iamPolicyCmd.AddCommand(&cobra.Command{
-		Use:   "delete <policy_id>",
-		Short: "Delete a specific IAM policy",
-		Run:   iam.DeleteIAMPolicy,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <policy_id>",
+		Short:             "Delete a specific IAM policy",
+		ValidArgsFunction: completion.ServiceList("/v2/iam/policy"),
+		Run:               iam.DeleteIAMPolicy,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	iamPermissionsGroupCmd := &cobra.Command{
@@ -93,17 +97,19 @@ func init() {
 	}))
 
 	iamPermissionsGroupCmd.AddCommand(&cobra.Command{
-		Use:   "get <permissions_group_id>",
-		Short: "Get a specific IAM permissions group",
-		Run:   iam.GetIAMPermissionsGroup,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <permissions_group_id>",
+		Short:             "Get a specific IAM permissions group",
+		ValidArgsFunction: completion.ServiceList("/v2/iam/permissionsGroup"),
+		Run:               iam.GetIAMPermissionsGroup,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	iamPermissionsGroupEditCmd := &cobra.Command{
-		Use:   "edit <permissions_group_id>",
-		Short: "Edit a specific IAM permissions group",
-		Run:   iam.EditIAMPermissionsGroup,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <permissions_group_id>",
+		Short:             "Edit a specific IAM permissions group",
+		ValidArgsFunction: completion.ServiceList("/v2/iam/permissionsGroup"),
+		Run:               iam.EditIAMPermissionsGroup,
+		Args:              cobra.ExactArgs(1),
 	}
 	iamPermissionsGroupEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Name, "name", "", "Name of the policy")
 	iamPermissionsGroupEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Description, "description", "", "Description of the policy")
@@ -157,17 +163,19 @@ func init() {
 	}))
 
 	iamResourceGroupCmd.AddCommand(&cobra.Command{
-		Use:   "get <resource_group_id>",
-		Short: "Get a specific IAM resource group",
-		Run:   iam.GetIAMResourceGroup,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <resource_group_id>",
+		Short:             "Get a specific IAM resource group",
+		ValidArgsFunction: completion.ServiceList("/v2/iam/resourceGroup"),
+		Run:               iam.GetIAMResourceGroup,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	iamResourceGroupEditCmd := &cobra.Command{
-		Use:   "edit <resource_group_id>",
-		Short: "Edit a specific IAM resource group",
-		Run:   iam.EditIAMResourceGroup,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <resource_group_id>",
+		Short:             "Edit a specific IAM resource group",
+		ValidArgsFunction: completion.ServiceList("/v2/iam/resourceGroup"),
+		Run:               iam.EditIAMResourceGroup,
+		Args:              cobra.ExactArgs(1),
 	}
 	iamResourceGroupEditCmd.Flags().StringVar(&iam.IAMPolicySpec.Name, "name", "", "Name of the resource group")
 	iamResourceGroupEditCmd.Flags().StringSliceVar(&iam.IAMPolicySpec.ResourcesURNs, "resource", nil, "List of resource URNs to include in the group")
@@ -189,20 +197,22 @@ func init() {
 	}))
 
 	iamUserCmd.AddCommand(&cobra.Command{
-		Use:   "get <user_login>",
-		Short: "Get a specific IAM user",
-		Run:   iam.GetUser,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <user_login>",
+		Short:             "Get a specific IAM user",
+		ValidArgsFunction: completion.ServiceList("/v1/me/identity/user"),
+		Run:               iam.GetUser,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	iamUserCmd.AddCommand(getUserCreateCmd())
 	iamUserCmd.AddCommand(getUserEditCmd())
 
 	iamUserCmd.AddCommand(&cobra.Command{
-		Use:   "delete <user_login>",
-		Short: "Delete a specific IAM user",
-		Run:   iam.DeleteUser,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <user_login>",
+		Short:             "Delete a specific IAM user",
+		ValidArgsFunction: completion.ServiceList("/v1/me/identity/user"),
+		Run:               iam.DeleteUser,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	tokenCmd := &cobra.Command{
@@ -212,18 +222,20 @@ func init() {
 	iamUserCmd.AddCommand(tokenCmd)
 
 	tokenCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <user_login>",
-		Aliases: []string{"ls"},
-		Short:   "List tokens of a specific IAM user",
-		Run:     iam.ListUserTokens,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <user_login>",
+		Aliases:           []string{"ls"},
+		Short:             "List tokens of a specific IAM user",
+		ValidArgsFunction: completion.ServiceList("/v1/me/identity/user"),
+		Run:               iam.ListUserTokens,
+		Args:              cobra.ExactArgs(1),
 	}))
 
 	tokenCmd.AddCommand(&cobra.Command{
-		Use:   "get <user_login> <token_name>",
-		Short: "Get a specific token of an IAM user",
-		Run:   iam.GetUserToken,
-		Args:  cobra.ExactArgs(2),
+		Use:               "get <user_login> <token_name>",
+		Short:             "Get a specific token of an IAM user",
+		ValidArgsFunction: completion.ServiceList("/v1/me/identity/user"),
+		Run:               iam.GetUserToken,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	tokenCreateCmd := getGenericCreateCmd(
@@ -238,10 +250,11 @@ func init() {
 	tokenCmd.AddCommand(tokenCreateCmd)
 
 	tokenCmd.AddCommand(&cobra.Command{
-		Use:   "delete <user_login> <token_name>",
-		Short: "Delete a specific token of an IAM user",
-		Run:   iam.DeleteUserToken,
-		Args:  cobra.ExactArgs(2),
+		Use:               "delete <user_login> <token_name>",
+		Short:             "Delete a specific token of an IAM user",
+		ValidArgsFunction: completion.ServiceList("/v1/me/identity/user"),
+		Run:               iam.DeleteUserToken,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	rootCmd.AddCommand(iamCmd)
@@ -348,8 +361,9 @@ There are three ways to define the editing parameters:
 
 	ovhcloud iam user edit <user_login> --editor --description "New description"
 `,
-		Run:  iam.EditUser,
-		Args: cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/me/identity/user"),
+		Run:               iam.EditUser,
+		Args:              cobra.ExactArgs(1),
 	}
 
 	userEditCmd.Flags().StringVar(&iam.UserSpec.Email, "email", "", "Email of the user")

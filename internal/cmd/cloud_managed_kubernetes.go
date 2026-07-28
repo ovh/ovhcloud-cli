@@ -9,6 +9,7 @@ import (
 	"runtime"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
@@ -48,10 +49,11 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 
 	// Command to get a Kubernetes cluster
 	kubeCmd.AddCommand(&cobra.Command{
-		Use:   "get <cluster_id>",
-		Short: "Get the given Kubernetes cluster",
-		Run:   cloud.GetKube,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <cluster_id>",
+		Short:             "Get the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.GetKube,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	// Command to create a Kubernetes cluster
@@ -59,10 +61,11 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 
 	// Command to edit a Kubernetes cluster
 	kubeEditCmd := &cobra.Command{
-		Use:   "edit <cluster_id>",
-		Short: "Edit the given Kubernetes cluster",
-		Run:   cloud.EditKube,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <cluster_id>",
+		Short:             "Edit the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.EditKube,
+		Args:              cobra.ExactArgs(1),
 	}
 	kubeEditCmd.Flags().StringVar(&cloud.KubeSpec.Name, "name", "", "Name of the Kubernetes cluster")
 	kubeEditCmd.Flags().StringVar(&cloud.KubeSpec.UpdatePolicy, "update-policy", "", "Update policy for the cluster (ALWAYS_UPDATE, MINIMAL_DOWNTIME, NEVER_UPDATE)")
@@ -71,10 +74,11 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 
 	// Command to delete a Kubernetes cluster
 	kubeCmd.AddCommand(&cobra.Command{
-		Use:   "delete <cluster_id>",
-		Short: "Delete the given Kubernetes cluster",
-		Run:   cloud.DeleteKube,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <cluster_id>",
+		Short:             "Delete the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.DeleteKube,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	// Command to manage Kubernetes cluster customizations
@@ -85,17 +89,19 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(customizationCmd)
 
 	customizationCmd.AddCommand(&cobra.Command{
-		Use:   "get <cluster_id>",
-		Short: "Get the customization of the given Kubernetes cluster",
-		Run:   cloud.GetKubeCustomization,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <cluster_id>",
+		Short:             "Get the customization of the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.GetKubeCustomization,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	customizationEditCmd := &cobra.Command{
-		Use:   "edit <cluster_id>",
-		Short: "Edit the customization of the given Kubernetes cluster",
-		Run:   cloud.EditKubeCustomization,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <cluster_id>",
+		Short:             "Edit the customization of the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.EditKubeCustomization,
+		Args:              cobra.ExactArgs(1),
 	}
 
 	setKubeCommonFlags(customizationEditCmd)
@@ -110,18 +116,20 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(ipRestrictionsCmd)
 
 	ipRestrictionsCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <cluster_id>",
-		Aliases: []string{"ls"},
-		Short:   "List IP restrictions for the given Kubernetes cluster",
-		Run:     cloud.ListKubeIPRestrictions,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <cluster_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List IP restrictions for the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.ListKubeIPRestrictions,
+		Args:              cobra.ExactArgs(1),
 	}))
 
 	ipRestrictionsEditCmd := &cobra.Command{
-		Use:   "edit <cluster_id>",
-		Short: "Edit IP restrictions for the given Kubernetes cluster",
-		Run:   cloud.EditKubeIPRestrictions,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <cluster_id>",
+		Short:             "Edit IP restrictions for the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.EditKubeIPRestrictions,
+		Args:              cobra.ExactArgs(1),
 	}
 	ipRestrictionsEditCmd.Flags().StringSliceVar(&cloud.KubeIPRestrictions, "ips", nil, "List of IPs to restrict access to the Kubernetes cluster")
 	addInteractiveEditorFlag(ipRestrictionsEditCmd)
@@ -135,17 +143,19 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(kubeConfigCmd)
 
 	kubeConfigCmd.AddCommand(&cobra.Command{
-		Use:   "generate <cluster_id>",
-		Short: "Generate the kubeconfig for the given Kubernetes cluster",
-		Run:   cloud.GenerateKubeConfig,
-		Args:  cobra.ExactArgs(1),
+		Use:               "generate <cluster_id>",
+		Short:             "Generate the kubeconfig for the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.GenerateKubeConfig,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	kubeConfigCmd.AddCommand(&cobra.Command{
-		Use:   "reset <cluster_id>",
-		Short: "Reset the kubeconfig for the given Kubernetes cluster. Certificates will be regenerated and nodes will be reinstalled",
-		Run:   cloud.ResetKubeConfig,
-		Args:  cobra.ExactArgs(1),
+		Use:               "reset <cluster_id>",
+		Short:             "Reset the kubeconfig for the given Kubernetes cluster. Certificates will be regenerated and nodes will be reinstalled",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.ResetKubeConfig,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	nodeCmd := &cobra.Command{
@@ -155,25 +165,28 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(nodeCmd)
 
 	nodeCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <cluster_id>",
-		Aliases: []string{"ls"},
-		Short:   "List nodes in the given Kubernetes cluster",
-		Run:     cloud.ListKubeNodes,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <cluster_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List nodes in the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.ListKubeNodes,
+		Args:              cobra.ExactArgs(1),
 	}))
 
 	nodeCmd.AddCommand(&cobra.Command{
-		Use:   "get <cluster_id> <node_id>",
-		Short: "Get the given Kubernetes node",
-		Run:   cloud.GetKubeNode,
-		Args:  cobra.ExactArgs(2),
+		Use:               "get <cluster_id> <node_id>",
+		Short:             "Get the given Kubernetes node",
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/node"),
+		Run:               cloud.GetKubeNode,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	nodeCmd.AddCommand(&cobra.Command{
-		Use:   "delete <cluster_id> <node_id>",
-		Short: "Delete the given Kubernetes node",
-		Run:   cloud.DeleteKubeNode,
-		Args:  cobra.ExactArgs(2),
+		Use:               "delete <cluster_id> <node_id>",
+		Short:             "Delete the given Kubernetes node",
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/node"),
+		Run:               cloud.DeleteKubeNode,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	nodepoolCmd := &cobra.Command{
@@ -183,27 +196,30 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(nodepoolCmd)
 
 	nodepoolCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <cluster_id>",
-		Aliases: []string{"ls"},
-		Short:   "List node pools in the given Kubernetes cluster",
-		Run:     cloud.ListKubeNodepools,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <cluster_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List node pools in the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.ListKubeNodepools,
+		Args:              cobra.ExactArgs(1),
 	}))
 
 	nodepoolCmd.AddCommand(&cobra.Command{
-		Use:   "get <cluster_id> <nodepool_id>",
-		Short: "Get the given Kubernetes node pool",
-		Run:   cloud.GetKubeNodepool,
-		Args:  cobra.ExactArgs(2),
+		Use:               "get <cluster_id> <nodepool_id>",
+		Short:             "Get the given Kubernetes node pool",
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/nodepool"),
+		Run:               cloud.GetKubeNodepool,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	nodepoolCmd.AddCommand(getNodepoolEditCmd())
 
 	nodepoolCmd.AddCommand(&cobra.Command{
-		Use:   "delete <cluster_id> <nodepool_id>",
-		Short: "Delete the given Kubernetes node pool",
-		Run:   cloud.DeleteKubeNodepool,
-		Args:  cobra.ExactArgs(2),
+		Use:               "delete <cluster_id> <nodepool_id>",
+		Short:             "Delete the given Kubernetes node pool",
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/nodepool"),
+		Run:               cloud.DeleteKubeNodepool,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	nodepoolCmd.AddCommand(getKubeNodePoolCreateCmd())
@@ -215,17 +231,19 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(oidcCmd)
 
 	oidcCmd.AddCommand(&cobra.Command{
-		Use:   "get <cluster_id>",
-		Short: "Get the OIDC configuration for the given Kubernetes cluster",
-		Run:   cloud.GetKubeOIDCIntegration,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <cluster_id>",
+		Short:             "Get the OIDC configuration for the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.GetKubeOIDCIntegration,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	editCmd := &cobra.Command{
-		Use:   "edit <cluster_id>",
-		Short: "Edit the OIDC configuration for the given Kubernetes cluster",
-		Run:   cloud.EditKubeOIDCIntegration,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <cluster_id>",
+		Short:             "Edit the OIDC configuration for the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.EditKubeOIDCIntegration,
+		Args:              cobra.ExactArgs(1),
 	}
 	editCmd.Flags().StringVar(&cloud.KubeOIDCConfig.CaContent, "ca-content", "", "CA certificate content for the OIDC provider")
 	editCmd.Flags().StringVar(&cloud.KubeOIDCConfig.ClientId, "client-id", "", "OIDC client ID")
@@ -241,10 +259,11 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	oidcCmd.AddCommand(getKubeOIDCCreateCmd())
 
 	oidcCmd.AddCommand(&cobra.Command{
-		Use:   "delete <cluster_id>",
-		Short: "Delete the OIDC integration for the given Kubernetes cluster",
-		Run:   cloud.DeleteKubeOIDCIntegration,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <cluster_id>",
+		Short:             "Delete the OIDC integration for the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.DeleteKubeOIDCIntegration,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	privateNetworkConfigCmd := &cobra.Command{
@@ -254,17 +273,19 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(privateNetworkConfigCmd)
 
 	privateNetworkConfigCmd.AddCommand(&cobra.Command{
-		Use:   "get <cluster_id>",
-		Short: "Get the private network configuration for the given Kubernetes cluster",
-		Run:   cloud.GetKubePrivateNetworkConfiguration,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <cluster_id>",
+		Short:             "Get the private network configuration for the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.GetKubePrivateNetworkConfiguration,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	privateNetworkConfigEditCmd := &cobra.Command{
-		Use:   "edit <cluster_id>",
-		Short: "Edit the private network configuration for the given Kubernetes cluster",
-		Run:   cloud.EditKubePrivateNetworkConfiguration,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <cluster_id>",
+		Short:             "Edit the private network configuration for the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.EditKubePrivateNetworkConfiguration,
+		Args:              cobra.ExactArgs(1),
 	}
 	privateNetworkConfigEditCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkConfiguration.DefaultVrackGateway, "default-vrack-gateway", "", "If defined, all egress traffic will be routed towards this IP address, which should belong to the private network")
 	privateNetworkConfigEditCmd.Flags().BoolVar(&cloud.KubeSpec.PrivateNetworkConfiguration.PrivateNetworkRoutingAsDefault, "routing-as-default", false, "Set private network routing as default")
@@ -274,29 +295,32 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeCmd.AddCommand(getKubeResetCmd())
 
 	kubeRestartCmd := &cobra.Command{
-		Use:   "restart <cluster_id>",
-		Short: "Restart control plane apiserver to invalidate cache without downtime",
-		Run:   cloud.RestartKubeCluster,
-		Args:  cobra.ExactArgs(1),
+		Use:               "restart <cluster_id>",
+		Short:             "Restart control plane apiserver to invalidate cache without downtime",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.RestartKubeCluster,
+		Args:              cobra.ExactArgs(1),
 	}
 	kubeRestartCmd.Flags().BoolVar(&cloud.KubeForceAction, "force", false, "Force restart the Kubernetes cluster (will create a slight downtime)")
 	kubeCmd.AddCommand(kubeRestartCmd)
 
 	kubeUpdateCmd := &cobra.Command{
-		Use:   "update <cluster_id>",
-		Short: "Update the given Kubernetes cluster",
-		Run:   cloud.UpdateKubeCluster,
-		Args:  cobra.ExactArgs(1),
+		Use:               "update <cluster_id>",
+		Short:             "Update the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.UpdateKubeCluster,
+		Args:              cobra.ExactArgs(1),
 	}
 	kubeUpdateCmd.Flags().StringVar(&cloud.KubeUpdateStrategy, "strategy", "", "Update strategy to apply on your service (LATEST_PATCH, NEXT_MINOR)")
 	kubeUpdateCmd.Flags().BoolVar(&cloud.KubeForceAction, "force", false, "Force redeploying the control plane / reinstalling the nodes regardless of their current version")
 	kubeCmd.AddCommand(kubeUpdateCmd)
 
 	kubeCmd.AddCommand(&cobra.Command{
-		Use:   "set-load-balancers-subnet <cluster_id> <subnet_id>",
-		Short: "Update the load balancers subnet ID for the given Kubernetes cluster",
-		Run:   cloud.UpdateKubeLoadBalancersSubnet,
-		Args:  cobra.ExactArgs(2),
+		Use:               "set-load-balancers-subnet <cluster_id> <subnet_id>",
+		Short:             "Update the load balancers subnet ID for the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.UpdateKubeLoadBalancersSubnet,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	cloudCmd.AddCommand(kubeCmd)
@@ -418,8 +442,9 @@ There are three ways to define the reset parameters:
 
 	ovhcloud cloud managed-kubernetes reset <cluster_id> --editor --version 1.31
 `,
-		Run:  cloud.ResetKubeCluster,
-		Args: cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.ResetKubeCluster,
+		Args:              cobra.ExactArgs(1),
 	}
 
 	// All flags for Kubernetes cluster reset
@@ -496,10 +521,11 @@ func setKubeCommonFlags(cmd *cobra.Command) {
 
 func getNodepoolEditCmd() *cobra.Command {
 	nodepoolEditCmd := &cobra.Command{
-		Use:   "edit <cluster_id> <nodepool_id>",
-		Short: "Edit the given Kubernetes node pool",
-		Run:   cloud.EditKubeNodepool,
-		Args:  cobra.ExactArgs(2),
+		Use:               "edit <cluster_id> <nodepool_id>",
+		Short:             "Edit the given Kubernetes node pool",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.EditKubeNodepool,
+		Args:              cobra.ExactArgs(2),
 	}
 
 	nodepoolEditCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Autoscale, "autoscale", false, "Enable autoscaling for the node pool")
@@ -574,8 +600,9 @@ There are three ways to define the creation parameters:
 
 	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --editor --flavor-selector
 `,
-		Run:  cloud.CreateKubeNodepool,
-		Args: cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.CreateKubeNodepool,
+		Args:              cobra.ExactArgs(1),
 	}
 
 	// All flags for node pool creation
@@ -657,8 +684,9 @@ There are three ways to define the parameters:
 
 	ovhcloud cloud managed-kubernetes oidc create <cluster_id> --editor --client-id <client_id>
 `,
-		Run:  cloud.CreateKubeOIDCIntegration,
-		Args: cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		Run:               cloud.CreateKubeOIDCIntegration,
+		Args:              cobra.ExactArgs(1),
 	}
 
 	// All flags for OIDC integration creation

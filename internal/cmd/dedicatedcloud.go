@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/dedicatedcloud"
 	"github.com/spf13/cobra"
 )
@@ -26,10 +27,11 @@ func init() {
 
 	// Command to get a single DedicatedCloud
 	dedicatedcloudCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific DedicatedCloud",
-		Args:  cobra.ExactArgs(1),
-		Run:   dedicatedcloud.GetDedicatedCloud,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific DedicatedCloud",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicatedCloud"),
+		Run:               dedicatedcloud.GetDedicatedCloud,
 	})
 
 	rootCmd.AddCommand(dedicatedcloudCmd)
