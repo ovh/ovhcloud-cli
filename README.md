@@ -22,6 +22,7 @@
 - [Usage](#usage)
     - [Authenticating the CLI](#authenticating-the-cli)
     - [Examples](#examples)
+- [Interactive browser (TUI)](#interactive-browser-tui)
 - [Available products](#available-products)
 - [Generate Shell Completion](#generate-shell-completion)
 - [Contributing](#contributing)
@@ -81,6 +82,7 @@ Available commands:
   account                          Manage your account
   alldom                           Retrieve information and manage your AllDom services
   baremetal                        Retrieve information and manage your Bare Metal services
+  browser                          Launch a TUI for the OVHcloud Manager - Public Cloud universe only [EXPERIMENTAL]
   cdn-dedicated                    Retrieve information and manage your dedicated CDN services
   cloud                            Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
   completion                       Generate the autocompletion script for the specified shell
@@ -186,6 +188,38 @@ OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID>
 | Reinstall a baremetal interactively      | `ovhcloud baremetal reinstall <id> --editor`    |
 | List instances and filter on GRA9 region | `ovhcloud cloud instance list --filter 'region=="GRA9"'` |
 | Get only the ID of a given MKS node pool | `NP_ID=$(ovhcloud cloud managed-kubernetes nodepool list xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --filter 'name=="my-np-autoscale"' -o 'id' \| xargs)` |
+
+# Interactive browser (TUI)
+
+> ⚠️ **Experimental feature** — this navigation is experimental and may contain bugs. Please report any issue at https://github.com/ovh/ovhcloud-cli/issues.
+
+Prefer a visual, keyboard-driven interface over typing commands? Launch the built-in
+Terminal User Interface that mirrors the [OVHcloud Manager](https://manager.eu.ovhcloud.com/#/public-cloud/) — Public Cloud universe only:
+
+```sh
+ovhcloud browser
+```
+
+It makes direct API calls to display your real data, and lets you navigate your Public
+Cloud services (instances, Kubernetes, managed databases, analytics, storage, networks...)
+without leaving your terminal.
+
+Navigate using:
+
+- `↑`/`↓`: move through menus and tables
+- `←`/`→`: switch tabs
+- `Enter`: select an item or view details
+- `Esc`: go back
+- `d`: toggle the debug panel (show API requests and request IDs)
+- `q`: quit
+
+Guided flows let you create resources step by step:
+
+![Browser — guided instance creation](docs/images/instance_browser.png)
+
+...and rich views expose live data such as managed database metrics:
+
+![Browser — managed database metrics](docs/images/metrics_borwser.png)
 
 # Available products
 

@@ -38,8 +38,10 @@ Manage instances in the given cloud project
 * [ovhcloud cloud instance create](ovhcloud_cloud_instance_create.md)	 - Create a new instance
 * [ovhcloud cloud instance delete](ovhcloud_cloud_instance_delete.md)	 - Delete the given instance
 * [ovhcloud cloud instance exit-rescue](ovhcloud_cloud_instance_exit-rescue.md)	 - Exit the given instance from rescue mode
+* [ovhcloud cloud instance flavor](ovhcloud_cloud_instance_flavor.md)	 - List available flavors in the given cloud project
 * [ovhcloud cloud instance get](ovhcloud_cloud_instance_get.md)	 - Get a specific instance
 * [ovhcloud cloud instance group](ovhcloud_cloud_instance_group.md)	 - Manage instance groups
+* [ovhcloud cloud instance image](ovhcloud_cloud_instance_image.md)	 - List available images in the given cloud project
 * [ovhcloud cloud instance interface](ovhcloud_cloud_instance_interface.md)	 - Manage interfaces of the given instance
 * [ovhcloud cloud instance list](ovhcloud_cloud_instance_list.md)	 - List your instances
 * [ovhcloud cloud instance reboot](ovhcloud_cloud_instance_reboot.md)	 - Reboot the given instance

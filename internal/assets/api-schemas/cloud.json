@@ -1139,7 +1139,8 @@
                 "$ref": "#/components/schemas/cloud.kube.KubeProxyModeEnum"
               }
             ],
-            "description": "Selected mode for kube-proxy"
+            "description": "Selected mode for kube-proxy",
+            "nullable": true
           },
           "loadBalancersSubnetId": {
             "type": "string",
@@ -1371,6 +1372,11 @@
         "type": "object",
         "description": "Cilium customization",
         "properties": {
+          "clusterId": {
+            "type": "integer",
+            "description": "Cilium's clusterID: must be between 1 and 255 if set (mandatory when using clusterMesh feature)",
+            "nullable": true
+          },
           "clusterMesh": {
             "allOf": [
               {
@@ -1962,7 +1968,8 @@
                 "$ref": "#/components/schemas/cloud.kube.KubeProxyModeEnum"
               }
             ],
-            "description": "Selected mode for kube-proxy"
+            "description": "Selected mode for kube-proxy",
+            "nullable": true
           },
           "loadBalancersSubnetId": {
             "type": "string",
@@ -8435,6 +8442,7 @@
               }
             ],
             "description": "Selected mode for kube-proxy",
+            "nullable": true,
             "readOnly": true
           },
           "loadBalancersSubnetId": {
@@ -9232,7 +9240,8 @@
           "1.31",
           "1.32",
           "1.33",
-          "1.34"
+          "1.34",
+          "1.35"
         ]
       },
       "cloud.loadbalancing.AssociateFloatingIp": {

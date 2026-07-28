@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"fmt"
 	"runtime"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
@@ -12,6 +13,21 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
+)
+
+var (
+	// Cluster related vars
+	ciliumClusterID    uint8
+	hubbleEnabled      bool
+	hubbleRelayEnabled bool
+	hubbleUIEnabled    bool
+	clusterMeshEnabled bool
+
+	// Nodepool related vars
+	desiredNodes             int
+	maxNodes                 int
+	minNodes                 int
+	attachFloatingIpsEnabled bool
 )
 
 func initKubeCommand(cloudCmd *cobra.Command) {
@@ -31,6 +47,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	}
 	kubeCmd.AddCommand(withFilterFlag(kubeListCmd))
 
+	// Command to get a Kubernetes cluster
 	kubeCmd.AddCommand(&cobra.Command{
 		Use:               "get <cluster_id>",
 		Short:             "Get the given Kubernetes cluster",
@@ -39,8 +56,10 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Args:              cobra.ExactArgs(1),
 	})
 
+	// Command to create a Kubernetes cluster
 	kubeCmd.AddCommand(getKubeCreateCmd())
 
+	// Command to edit a Kubernetes cluster
 	kubeEditCmd := &cobra.Command{
 		Use:               "edit <cluster_id>",
 		Short:             "Edit the given Kubernetes cluster",
@@ -53,6 +72,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define edit parameters")
 	kubeCmd.AddCommand(kubeEditCmd)
 
+	// Command to delete a Kubernetes cluster
 	kubeCmd.AddCommand(&cobra.Command{
 		Use:               "delete <cluster_id>",
 		Short:             "Delete the given Kubernetes cluster",
@@ -61,6 +81,7 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Args:              cobra.ExactArgs(1),
 	})
 
+	// Command to manage Kubernetes cluster customizations
 	customizationCmd := &cobra.Command{
 		Use:   "customization",
 		Short: "Manage Kubernetes cluster customizations",
@@ -82,16 +103,9 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 		Run:               cloud.EditKubeCustomization,
 		Args:              cobra.ExactArgs(1),
 	}
-	customizationEditCmd.Flags().StringSliceVar(&cloud.KubeSpec.Customization.APIServer.AdmissionPlugins.Enabled, "api-server.admission-plugins.enabled", nil, "Admission plugins to enable on API server (AlwaysPullImages, NodeRestriction)")
-	customizationEditCmd.Flags().StringSliceVar(&cloud.KubeSpec.Customization.APIServer.AdmissionPlugins.Disabled, "api-server.admission-plugins.disabled", nil, "Admission plugins to disable on API server (AlwaysPullImages, NodeRestriction)")
-	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPTables.MinSyncPeriod, "kube-proxy.iptables.min-sync-period", "", "Minimum period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
-	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPTables.SyncPeriod, "kube-proxy.iptables.sync-period", "", "Period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
-	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.MinSyncPeriod, "kube-proxy.ipvs.min-sync-period", "", "Minimum period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
-	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.Scheduler, "kube-proxy.ipvs.scheduler", "", "Scheduler for kube-proxy ipvs (dh, lc, nq, rr, sed, sh)")
-	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.SyncPeriod, "kube-proxy.ipvs.sync-period", "", "Period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
-	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPFinTimeout, "kube-proxy.ipvs.tcp-fin-timeout", "", "Timeout value used for IPVS TCP sessions after receiving a FIN in RFC3339 duration format (e.g. 'PT60S')")
-	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPTimeout, "kube-proxy.ipvs.tcp-timeout", "", "Timeout value used for idle IPVS TCP sessions in RFC3339 duration format (e.g. 'PT60S')")
-	customizationEditCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.UDPTimeout, "kube-proxy.ipvs.udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
+
+	setKubeCommonFlags(customizationEditCmd)
+
 	addInteractiveEditorFlag(customizationEditCmd)
 	customizationCmd.AddCommand(customizationEditCmd)
 
@@ -371,21 +385,11 @@ There are three ways to define the creation parameters:
 	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkConfiguration.DefaultVrackGateway, "private-network.default-vrack-gateway", "", "If defined, all egress traffic will be routed towards this IP address, which should belong to the private network")
 	kubeCreateCmd.Flags().BoolVar(&cloud.KubeSpec.PrivateNetworkConfiguration.PrivateNetworkRoutingAsDefault, "private-network.routing-as-default", false, "Set private network routing as default")
 
-	// Customization: API Server Admission Plugins
-	kubeCreateCmd.Flags().StringSliceVar(&cloud.KubeSpec.Customization.APIServer.AdmissionPlugins.Enabled, "customization.api-server.admission-plugins.enabled", nil, "Admission plugins to enable on API server (AlwaysPullImages, NodeRestriction)")
-	kubeCreateCmd.Flags().StringSliceVar(&cloud.KubeSpec.Customization.APIServer.AdmissionPlugins.Disabled, "customization.api-server.admission-plugins.disabled", nil, "Admission plugins to disable on API server (AlwaysPullImages, NodeRestriction)")
+	// CIDR configuration
+	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.IPAllocationPolicy.PodsIPv4CIDR, "ip-allocation-policy-pods-ipv4-cidr", "", "IPv4 CIDR for pods")
+	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.IPAllocationPolicy.ServicesIPv4CIDR, "ip-allocation-policy-services-ipv4-cidr", "", "IPv4 CIDR for services")
 
-	// Customization: KubeProxy IPTables
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPTables.MinSyncPeriod, "customization.kube-proxy.iptables.min-sync-period", "", "Minimum period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPTables.SyncPeriod, "customization.kube-proxy.iptables.sync-period", "", "Period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
-
-	// Customization: KubeProxy IPVS
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.MinSyncPeriod, "customization.kube-proxy.ipvs.min-sync-period", "", "Minimum period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.Scheduler, "customization.kube-proxy.ipvs.scheduler", "", "Scheduler for kube-proxy ipvs (dh, lc, nq, rr, sed, sh)")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.SyncPeriod, "customization.kube-proxy.ipvs.sync-period", "", "Period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPFinTimeout, "customization.kube-proxy.ipvs.tcp-fin-timeout", "", "Timeout value used for IPVS TCP sessions after receiving a FIN in RFC3339 duration format (e.g. 'PT60S')")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPTimeout, "customization.kube-proxy.ipvs.tcp-timeout", "", "Timeout value used for idle IPVS TCP sessions in RFC3339 duration format (e.g. 'PT60S')")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.UDPTimeout, "customization.kube-proxy.ipvs.udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
+	setKubeCommonFlags(kubeCreateCmd)
 
 	// Common flags for other means to define parameters
 	addParameterFileFlags(kubeCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube", "post", cloud.CloudKubeCreationExample, nil)
@@ -457,21 +461,11 @@ There are three ways to define the reset parameters:
 	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkConfiguration.DefaultVrackGateway, "private-network.default-vrack-gateway", "", "If defined, all egress traffic will be routed towards this IP address, which should belong to the private network")
 	kubeResetCmd.Flags().BoolVar(&cloud.KubeSpec.PrivateNetworkConfiguration.PrivateNetworkRoutingAsDefault, "private-network.routing-as-default", false, "Set private network routing as default")
 
-	// Customization: API Server Admission Plugins
-	kubeResetCmd.Flags().StringSliceVar(&cloud.KubeSpec.Customization.APIServer.AdmissionPlugins.Enabled, "customization.api-server.admission-plugins.enabled", nil, "Admission plugins to enable on API server (AlwaysPullImages, NodeRestriction)")
-	kubeResetCmd.Flags().StringSliceVar(&cloud.KubeSpec.Customization.APIServer.AdmissionPlugins.Disabled, "customization.api-server.admission-plugins.disabled", nil, "Admission plugins to disable on API server (AlwaysPullImages, NodeRestriction)")
+	// CIDR configuration
+	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.IPAllocationPolicy.PodsIPv4CIDR, "ip-allocation-policy-pods-ipv4-cidr", "", "IPv4 CIDR for pods")
+	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.IPAllocationPolicy.ServicesIPv4CIDR, "ip-allocation-policy-services-ipv4-cidr", "", "IPv4 CIDR for services")
 
-	// Customization: KubeProxy IPTables
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPTables.MinSyncPeriod, "customization.kube-proxy.iptables.min-sync-period", "", "Minimum period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPTables.SyncPeriod, "customization.kube-proxy.iptables.sync-period", "", "Period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
-
-	// Customization: KubeProxy IPVS
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.MinSyncPeriod, "customization.kube-proxy.ipvs.min-sync-period", "", "Minimum period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.Scheduler, "customization.kube-proxy.ipvs.scheduler", "", "Scheduler for kube-proxy ipvs (dh, lc, nq, rr, sed, sh)")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.SyncPeriod, "customization.kube-proxy.ipvs.sync-period", "", "Period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPFinTimeout, "customization.kube-proxy.ipvs.tcp-fin-timeout", "", "Timeout value used for IPVS TCP sessions after receiving a FIN in RFC3339 duration format (e.g. 'PT60S')")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPTimeout, "customization.kube-proxy.ipvs.tcp-timeout", "", "Timeout value used for idle IPVS TCP sessions in RFC3339 duration format (e.g. 'PT60S')")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.UDPTimeout, "customization.kube-proxy.ipvs.udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
+	setKubeCommonFlags(kubeResetCmd)
 
 	// Common flags for other means to define parameters
 	addParameterFileFlags(kubeResetCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/reset", "post", cloud.CloudKubeResetExample, nil)
@@ -479,6 +473,50 @@ There are three ways to define the reset parameters:
 	markFlagsMutuallyExclusive(kubeResetCmd, "from-file", "editor")
 
 	return kubeResetCmd
+}
+
+func setKubeCommonFlags(cmd *cobra.Command) {
+	// API Server Admission Plugins
+	cmd.Flags().StringSliceVar(&cloud.KubeSpec.Customization.APIServer.AdmissionPlugins.Enabled, "api-server.admission-plugins.enabled", nil, "Admission plugins to enable on API server (AlwaysPullImages, NodeRestriction)")
+	cmd.Flags().StringSliceVar(&cloud.KubeSpec.Customization.APIServer.AdmissionPlugins.Disabled, "api-server.admission-plugins.disabled", nil, "Admission plugins to disable on API server (AlwaysPullImages, NodeRestriction)")
+
+	// KubeProxy IPTables
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPTables.MinSyncPeriod, "kube-proxy.iptables.min-sync-period", "", "Minimum period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPTables.SyncPeriod, "kube-proxy.iptables.sync-period", "", "Period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
+
+	// KubeProxy IPVS
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.MinSyncPeriod, "kube-proxy.ipvs.min-sync-period", "", "Minimum period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.Scheduler, "kube-proxy.ipvs.scheduler", "", "Scheduler for kube-proxy ipvs (dh, lc, nq, rr, sed, sh)")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.SyncPeriod, "kube-proxy.ipvs.sync-period", "", "Period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPFinTimeout, "kube-proxy.ipvs.tcp-fin-timeout", "", "Timeout value used for IPVS TCP sessions after receiving a FIN in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPTimeout, "kube-proxy.ipvs.tcp-timeout", "", "Timeout value used for idle IPVS TCP sessions in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.UDPTimeout, "kube-proxy.ipvs.udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
+
+	// Cilium configuration
+	cmd.Flags().Uint8Var(&ciliumClusterID, "cilium-cluster-id", 0, "Cilium cluster ID")
+	cmd.Flags().BoolVar(&hubbleEnabled, "cilium-hubble-enabled", false, "Enable Hubble observability")
+	cmd.Flags().BoolVar(&hubbleRelayEnabled, "cilium-hubble-relay-enabled", false, "Enable Hubble Relay")
+	cmd.Flags().BoolVar(&hubbleUIEnabled, "cilium-hubble-ui-enabled", false, "Enable Hubble UI")
+	cmd.Flags().BoolVar(&clusterMeshEnabled, "cilium-cluster-mesh-enabled", false, "Enable Cilium ClusterMesh")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.ClusterMesh.APIServer.ServiceType, "cilium-cluster-mesh-apiserver-service-type", "", "ClusterMesh API server service type (LoadBalancer, NodePort)")
+	cmd.Flags().Uint16Var(&cloud.KubeSpec.Customization.Cilium.ClusterMesh.APIServer.NodePort, "cilium-cluster-mesh-apiserver-node-port", 0, "ClusterMesh API server node port")
+
+	// Hubble UI frontend resources
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.FrontendResources.Limits.Cpu, "cilium-hubble-ui-frontend-limits-cpu", "", "Hubble UI frontend CPU limit (e.g. '500m')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.FrontendResources.Limits.Memory, "cilium-hubble-ui-frontend-limits-memory", "", "Hubble UI frontend memory limit (e.g. '256Mi')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.FrontendResources.Requests.Cpu, "cilium-hubble-ui-frontend-requests-cpu", "", "Hubble UI frontend CPU request (e.g. '100m')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.FrontendResources.Requests.Memory, "cilium-hubble-ui-frontend-requests-memory", "", "Hubble UI frontend memory request (e.g. '128Mi')")
+
+	// Hubble UI backend resources
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.BackendResources.Limits.Cpu, "cilium-hubble-ui-backend-limits-cpu", "", "Hubble UI backend CPU limit (e.g. '500m')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.BackendResources.Limits.Memory, "cilium-hubble-ui-backend-limits-memory", "", "Hubble UI backend memory limit (e.g. '256Mi')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.BackendResources.Requests.Cpu, "cilium-hubble-ui-backend-requests-cpu", "", "Hubble UI backend CPU request (e.g. '100m')")
+	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.BackendResources.Requests.Memory, "cilium-hubble-ui-backend-requests-memory", "", "Hubble UI backend memory request (e.g. '128Mi')")
+
+	// Handle optional pointer-backed flags: only assign if explicitly set, otherwise nil-out
+	cmd.PreRunE = kubePreRunE
+
+	return
 }
 
 func getNodepoolEditCmd() *cobra.Command {
@@ -489,23 +527,24 @@ func getNodepoolEditCmd() *cobra.Command {
 		Run:               cloud.EditKubeNodepool,
 		Args:              cobra.ExactArgs(2),
 	}
+
 	nodepoolEditCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Autoscale, "autoscale", false, "Enable autoscaling for the node pool")
 	nodepoolEditCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUnneededTimeSeconds, "scale-down-unneeded-time-seconds", 0, "How long a node should be unneeded before it is eligible for scale down (seconds)")
 	nodepoolEditCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUnreadyTimeSeconds, "scale-down-unready-time-seconds", 0, "How long an unready node should be unneeded before it is eligible for scale down (seconds)")
 	nodepoolEditCmd.Flags().Float64Var(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUtilizationThreshold, "scale-down-utilization-threshold", 0, "Sum of CPU or memory of all pods running on the node divided by node's corresponding allocatable resource, below which a node can be considered for scale down")
-	nodepoolEditCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.DesiredNodes, "desired-nodes", 0, "Desired number of nodes")
-	nodepoolEditCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.MaxNodes, "max-nodes", 0, "Higher limit you accept for the desiredNodes value (100 by default)")
-	nodepoolEditCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.MinNodes, "min-nodes", 0, "Lower limit you accept for the desiredNodes value (0 by default)")
+	nodepoolEditCmd.Flags().IntVar(&desiredNodes, "desired-nodes", 0, "Desired number of nodes")
+	nodepoolEditCmd.Flags().IntVar(&maxNodes, "max-nodes", 0, "Higher limit you accept for the desiredNodes value (100 by default)")
+	nodepoolEditCmd.Flags().IntVar(&minNodes, "min-nodes", 0, "Lower limit you accept for the desiredNodes value (0 by default)")
 	nodepoolEditCmd.Flags().StringSliceVar(&cloud.KubeNodepoolSpec.NodesToRemove, "nodes-to-remove", nil, "List of node IDs to remove from the node pool")
 	nodepoolEditCmd.Flags().StringToStringVar(&cloud.KubeNodepoolSpec.Template.Metadata.Annotations, "template-annotations", nil, "Annotations to apply to each node")
 	nodepoolEditCmd.Flags().StringSliceVar(&cloud.KubeNodepoolSpec.Template.Metadata.Finalizers, "template-finalizers", nil, "Finalizers to apply to each node")
 	nodepoolEditCmd.Flags().StringToStringVar(&cloud.KubeNodepoolSpec.Template.Metadata.Labels, "template-labels", nil, "Labels to apply to each node")
 	nodepoolEditCmd.Flags().StringSliceVar(&cloud.KubeNodepoolSpec.Template.Spec.CommandLineTaints, "template-taints", nil, "Taints to apply to each node in key=value:effect format")
 	nodepoolEditCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Template.Spec.Unschedulable, "template-unschedulable", false, "Set the nodes as unschedulable")
-
-	var attachFloatingIpsEnabled bool
 	nodepoolEditCmd.Flags().BoolVar(&attachFloatingIpsEnabled, "attach-floating-ips", false, "Enable FloatingIP creation, if true, a floating IP will be created and attached to each node")
-	cloud.KubeNodepoolSpec.AttachFloatingIps.Enabled = &attachFloatingIpsEnabled
+
+	// Handle optional pointer-backed flags: only assign if explicitly set, otherwise nil-out
+	nodepoolEditCmd.PreRunE = kubeNodePoolPreRunE
 
 	addInteractiveEditorFlag(nodepoolEditCmd)
 
@@ -574,12 +613,12 @@ There are three ways to define the creation parameters:
 	nodepoolCreateCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUnreadyTimeSeconds, "scale-down-unready-time-seconds", 0, "How long an unready node should be unneeded before it is eligible for scale down (seconds)")
 	nodepoolCreateCmd.Flags().Float64Var(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUtilizationThreshold, "scale-down-utilization-threshold", 0, "Sum of CPU or memory of all pods running on the node divided by node's corresponding allocatable resource, below which a node can be considered for scale down")
 	nodepoolCreateCmd.Flags().StringArrayVar(&cloud.KubeNodepoolSpec.AvailabilityZones, "availability-zones", nil, "Availability zones for the node pool")
-	nodepoolCreateCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.DesiredNodes, "desired-nodes", 0, "Desired number of nodes")
+	nodepoolCreateCmd.Flags().IntVar(&desiredNodes, "desired-nodes", 0, "Desired number of nodes")
+	nodepoolCreateCmd.Flags().IntVar(&maxNodes, "max-nodes", 0, "Higher limit you accept for the desiredNodes value (100 by default)")
+	nodepoolCreateCmd.Flags().IntVar(&minNodes, "min-nodes", 0, "Lower limit you accept for the desiredNodes value (0 by default)")
 	nodepoolCreateCmd.Flags().StringVar(&cloud.KubeNodepoolSpec.FlavorName, "flavor-name", "", "Flavor name for the nodes (b2-7, b2-15, etc.)")
-	nodepoolCreateCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.MaxNodes, "max-nodes", 0, "Higher limit you accept for the desiredNodes value (100 by default)")
-	nodepoolCreateCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.MinNodes, "min-nodes", 0, "Lower limit you accept for the desiredNodes value (0 by default)")
 	nodepoolCreateCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.MonthlyBilled, "monthly-billed", false, "Enable monthly billing for the node pool")
-	nodepoolCreateCmd.Flags().BoolVar(cloud.KubeNodepoolSpec.AttachFloatingIps.Enabled, "attach-floating-ips", false, "Enable FloatingIP creation, if true, a floating IP will be created and attached to each node")
+	nodepoolCreateCmd.Flags().BoolVar(&attachFloatingIpsEnabled, "attach-floating-ips", false, "Enable FloatingIP creation, if true, a floating IP will be created and attached to each node")
 
 	// Template.Metadata
 	nodepoolCreateCmd.Flags().StringToStringVar(&cloud.KubeNodepoolSpec.Template.Metadata.Annotations, "template-annotations", nil, "Annotations to apply to each node")
@@ -589,6 +628,9 @@ There are three ways to define the creation parameters:
 	// Template.Spec
 	nodepoolCreateCmd.Flags().StringSliceVar(&cloud.KubeNodepoolSpec.Template.Spec.CommandLineTaints, "template-taints", nil, "Taints to apply to each node in key=value:effect format")
 	nodepoolCreateCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Template.Spec.Unschedulable, "template-unschedulable", false, "Set the nodes as unschedulable")
+
+	// Handle optional pointer-backed flags: only assign if explicitly set, otherwise nil-out
+	nodepoolCreateCmd.PreRunE = kubeNodePoolPreRunE
 
 	// Common flags for other means to define parameters
 	addParameterFileFlags(nodepoolCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/nodepool", "post", cloud.CloudKubeNodePoolCreationExample, cloud.GetKubeFlavorInteractiveSelector)
@@ -664,4 +706,73 @@ There are three ways to define the parameters:
 	markFlagsMutuallyExclusive(createCmd, "from-file", "editor")
 
 	return createCmd
+}
+
+// kubePreRunE handles optional flags for kube create/customization/reset commands.
+// If options are not specificaly passed, set them to nil.
+func kubePreRunE(cmd *cobra.Command, _ []string) error {
+	if cmd.Flags().Changed("cilium-cluster-id") {
+		cloud.KubeSpec.Customization.Cilium.ClusterID = &ciliumClusterID
+	} else {
+		cloud.KubeSpec.Customization.Cilium.ClusterID = nil
+	}
+
+	if cmd.Flags().Changed("cilium-cluster-mesh-enabled") {
+		cloud.KubeSpec.Customization.Cilium.ClusterMesh.Enabled = &clusterMeshEnabled
+	} else {
+		cloud.KubeSpec.Customization.Cilium.ClusterMesh.Enabled = nil
+	}
+
+	if cmd.Flags().Changed("cilium-hubble-enabled") {
+		cloud.KubeSpec.Customization.Cilium.Hubble.Enabled = &hubbleEnabled
+	} else {
+		cloud.KubeSpec.Customization.Cilium.Hubble.Enabled = nil
+	}
+
+	if cmd.Flags().Changed("cilium-hubble-relay-enabled") {
+		cloud.KubeSpec.Customization.Cilium.Hubble.Relay.Enabled = &hubbleRelayEnabled
+	} else {
+		cloud.KubeSpec.Customization.Cilium.Hubble.Relay.Enabled = nil
+	}
+
+	if cmd.Flags().Changed("cilium-hubble-ui-enabled") {
+		cloud.KubeSpec.Customization.Cilium.Hubble.UI.Enabled = &hubbleUIEnabled
+	} else {
+		cloud.KubeSpec.Customization.Cilium.Hubble.UI.Enabled = nil
+	}
+
+	return nil
+}
+
+// kubeNodePoolPreRunE handles optional flags for nodepool create/edit commands.
+// If options are not specificaly passed, set them to nil.
+func kubeNodePoolPreRunE(cmd *cobra.Command, _ []string) error {
+	if cmd.Flags().Changed("desired-nodes") {
+		cloud.KubeNodepoolSpec.DesiredNodes = &desiredNodes
+		fmt.Println(*cloud.KubeNodepoolSpec.DesiredNodes)
+	} else {
+		fmt.Println("not changed")
+		cloud.KubeNodepoolSpec.DesiredNodes = nil
+	}
+
+	if cmd.Flags().Changed("min-nodes") {
+		cloud.KubeNodepoolSpec.MinNodes = &minNodes
+	} else {
+		cloud.KubeNodepoolSpec.MinNodes = nil
+	}
+
+	if cmd.Flags().Changed("max-nodes") {
+		cloud.KubeNodepoolSpec.MaxNodes = &maxNodes
+	} else {
+		cloud.KubeNodepoolSpec.MaxNodes = nil
+	}
+
+	if cmd.Flags().Changed("attach-floating-ips") {
+		cloud.KubeNodepoolSpec.AttachFloatingIps.Enabled = &attachFloatingIpsEnabled
+	} else {
+
+		cloud.KubeNodepoolSpec.AttachFloatingIps.Enabled = nil
+	}
+
+	return nil
 }

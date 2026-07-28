@@ -75,6 +75,7 @@ var (
 					UDPTimeout    string `json:"udpTimeout,omitempty"`
 				} `json:"ipvs,omitzero"`
 			} `json:"kubeProxy,omitzero"`
+			Cilium Cilium `json:"cilium,omitzero"`
 		} `json:"customization,omitzero"`
 		KubeProxyMode               string `json:"kubeProxyMode,omitempty"`
 		LoadBalancersSubnetId       string `json:"loadBalancersSubnetId,omitempty"`
@@ -84,12 +85,13 @@ var (
 			DefaultVrackGateway            string `json:"defaultVrackGateway,omitempty"`
 			PrivateNetworkRoutingAsDefault bool   `json:"privateNetworkRoutingAsDefault,omitempty"`
 		} `json:"privateNetworkConfiguration,omitzero"`
-		PrivateNetworkId  string `json:"privateNetworkId,omitempty"`
-		Region            string `json:"region,omitempty"`
-		UpdatePolicy      string `json:"updatePolicy,omitempty"`
-		Version           string `json:"version,omitempty"`
-		WorkerNodesPolicy string `json:"workerNodesPolicy,omitempty"`
-		Plan              string `json:"plan,omitempty"`
+		PrivateNetworkId   string             `json:"privateNetworkId,omitempty"`
+		Region             string             `json:"region,omitempty"`
+		UpdatePolicy       string             `json:"updatePolicy,omitempty"`
+		Version            string             `json:"version,omitempty"`
+		WorkerNodesPolicy  string             `json:"workerNodesPolicy,omitempty"`
+		Plan               string             `json:"plan,omitempty"`
+		IPAllocationPolicy IPAllocationPolicy `json:"ipAllocationPolicy,omitzero"`
 	}
 
 	// KubeNodepoolSpec defines the structure for a Kubernetes node pool specification
@@ -121,6 +123,53 @@ var (
 	KubeIPRestrictions []string
 )
 
+type IPAllocationPolicy struct {
+	PodsIPv4CIDR     string `json:"podsIpv4Cidr,omitempty"`
+	ServicesIPv4CIDR string `json:"servicesIpv4Cidr,omitempty"`
+}
+
+type Cilium struct {
+	ClusterID   *uint8      `json:"clusterId,omitempty"`
+	Hubble      Hubble      `json:"hubble,omitzero"`
+	ClusterMesh ClusterMesh `json:"clusterMesh,omitzero"`
+}
+
+type ClusterMesh struct {
+	Enabled   *bool                `json:"enabled,omitempty"`
+	APIServer ClusterMeshAPIServer `json:"apiServer,omitzero"`
+}
+
+type ClusterMeshAPIServer struct {
+	ServiceType string `json:"serviceType,omitempty"`
+	NodePort    uint16 `json:"nodePort,omitempty"`
+}
+
+type Hubble struct {
+	Enabled *bool       `json:"enabled,omitempty"`
+	Relay   HubbleRelay `json:"relay,omitzero"`
+	UI      HubbleUI    `json:"ui,omitzero"`
+}
+
+type HubbleRelay struct {
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+type HubbleUI struct {
+	Enabled           *bool                `json:"enabled,omitempty"`
+	FrontendResources ResourceRequirements `json:"frontendResources,omitzero"`
+	BackendResources  ResourceRequirements `json:"backendResources,omitzero"`
+}
+
+type ResourceRequirements struct {
+	Requests ResourceList `json:"requests,omitzero"`
+	Limits   ResourceList `json:"limits,omitzero"`
+}
+
+type ResourceList struct {
+	Cpu    string `json:"cpu,omitempty"`
+	Memory string `json:"memory,omitempty"`
+}
+
 type kubeNodepoolSpec struct {
 	AntiAffinity bool `json:"antiAffinity,omitempty"`
 	Autoscale    bool `json:"autoscale,omitempty"`
@@ -133,10 +182,10 @@ type kubeNodepoolSpec struct {
 	AttachFloatingIps struct {
 		Enabled *bool `json:"enabled,omitempty"`
 	} `json:"attachFloatingIps,omitzero"`
-	DesiredNodes  int    `json:"desiredNodes,omitempty"`
+	DesiredNodes  *int   `json:"desiredNodes,omitempty"`
 	FlavorName    string `json:"flavorName,omitempty"`
-	MaxNodes      int    `json:"maxNodes,omitempty"`
-	MinNodes      int    `json:"minNodes,omitempty"`
+	MaxNodes      *int   `json:"maxNodes,omitempty"`
+	MinNodes      *int   `json:"minNodes,omitempty"`
 	MonthlyBilled bool   `json:"monthlyBilled,omitempty"`
 	Name          string `json:"name,omitempty"`
 	Template      struct {

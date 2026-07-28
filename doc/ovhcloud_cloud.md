@@ -30,6 +30,7 @@ Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, O
 ### SEE ALSO
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
+* [ovhcloud cloud ai](ovhcloud_cloud_ai.md)	 - Manage AI Endpoints settings for your cloud project
 * [ovhcloud cloud alerting](ovhcloud_cloud_alerting.md)	 - Manage billing alert configurations in the given cloud project
 * [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
 * [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
@@ -42,8 +43,7 @@ Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, O
 * [ovhcloud cloud network](ovhcloud_cloud_network.md)	 - Manage networks in the given cloud project
 * [ovhcloud cloud operation](ovhcloud_cloud_operation.md)	 - List and get operations in the given cloud project
 * [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Retrieve information and manage your CloudProject services
-* [ovhcloud cloud quota](ovhcloud_cloud_quota.md)	 - Check quotas in the given cloud project
-* [ovhcloud cloud reference](ovhcloud_cloud_reference.md)	 - Fetch reference data in the given cloud project
+* [ovhcloud cloud quota](ovhcloud_cloud_quota.md)	 - Manage quotas in the given cloud project
 * [ovhcloud cloud region](ovhcloud_cloud_region.md)	 - Check regions in the given cloud project
 * [ovhcloud cloud savings-plan](ovhcloud_cloud_savings-plan.md)	 - Manage savings plans for your cloud project
 * [ovhcloud cloud ssh-key](ovhcloud_cloud_ssh-key.md)	 - Manage SSH keys in the given cloud project

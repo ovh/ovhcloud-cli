@@ -180,7 +180,24 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 	outputf("%s%s", t, "\n💡 Use option -o json or -o yaml to get the raw output with all information")
 }
 
-func RenderConfigTable(cfg *ini.File) {
+func RenderConfigTable(cfg *ini.File, outputformat *OutputFormat) {
+	// if a custom output format is passed, it is used instead of rendering the Config Table
+	if outputformat.IsJson() || outputformat.IsYaml() || outputformat.IsInteractive() || outputformat.CustomFormat() != "" {
+		result := map[string]any{}
+		for _, section := range cfg.Sections() {
+			if section.Name() == "DEFAULT" {
+				continue
+			}
+			sectionMap := map[string]any{}
+			for _, key := range section.Keys() {
+				sectionMap[key.Name()] = key.Value()
+			}
+			result[section.Name()] = sectionMap
+		}
+		OutputObject(result, "", "", outputformat)
+		return
+	}
+	// otherwise, render the config as a table
 	var (
 		rows    [][]string
 		columns = []string{"section", "key", "value"}

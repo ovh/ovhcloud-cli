@@ -36,4 +36,27 @@ _Cluster ID: {{.ServiceName}}_
 **Timeout for IPVS UDP packets**:            {{index .Result "kubeProxy" "ipvs" "udpTimeout"}}
 {{end}}
 
+### Cilium
+
+{{if index .Result "Cilium"}}
+
+**Hubble enabled**: {{index .Result "cilium" "hubbleEnabled"}}
+
+**Hubble Relay enabled**: {{index .Result "cilium" "hubbleRelayEnabled"}}
+
+**Hubble UI enabled**: {{index .Result "cilium" "hubbleUIEnabled"}}
+**Hubble UI frontend CPU limit**: {{index .Result "cilium" "hubbleUIFrontendResourcesLimitsCPU"}}
+**Hubble UI frontend memory limit**: {{index .Result "cilium" "hubbleUIFrontendResourcesLimitsMemory"}}
+**Hubble UI frontend CPU request**: {{index .Result "cilium" "hubbleUIFrontendResourcesRequestsCPU"}}
+**Hubble UI frontend memory request**: {{index .Result "cilium" "hubbleUIFrontendResourcesRequestsMemory"}}
+
+**Cluster ID**: {{index .Result "cilium" "clusterID"}}
+**ClusterMesh enabled**: {{index .Result "cilium" "clusterMeshEnabled"}}
+**ClusterMesh API server node port**: {{index .Result "cilium" "clusterMeshAPIServerNodePort"}}
+{{else}}
+Cilium is not enabled on this cluster.
+{{- end}}
+
+
+
 💡 Use option -o json or -o yaml to get the raw output with all information

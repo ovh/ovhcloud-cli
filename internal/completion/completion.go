@@ -79,7 +79,14 @@ func fetchSuggestions(endpoint, labelField, cacheKey string) ([]string, cobra.Sh
 			case map[string]any:
 				id, ok := v["id"].(string)
 				if !ok || id == "" {
-					continue
+					// Some Cloud API v2 resources are keyed by "name" and have
+					// no "id" field (e.g. sshKey). Fall back to the name so they
+					// can still be completed.
+					if name, ok := v["name"].(string); ok && name != "" {
+						id = name
+					} else {
+						continue
+					}
 				}
 				if labelField != "" {
 					if label, ok := v[labelField].(string); ok && label != "" {
