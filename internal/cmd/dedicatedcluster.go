@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/dedicatedcluster"
 	"github.com/spf13/cobra"
 )
@@ -26,10 +27,11 @@ func init() {
 
 	// Command to get a single DedicatedCluster
 	dedicatedclusterCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific DedicatedCluster",
-		Args:  cobra.ExactArgs(1),
-		Run:   dedicatedcluster.GetDedicatedCluster,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific DedicatedCluster",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/cluster"),
+		Run:               dedicatedcluster.GetDedicatedCluster,
 	})
 
 	rootCmd.AddCommand(dedicatedclusterCmd)

@@ -7,6 +7,7 @@ package cmd
 import (
 	_ "embed"
 
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/xdsl"
 	"github.com/spf13/cobra"
 )
@@ -28,18 +29,20 @@ func init() {
 
 	// Command to get a single Xdsl
 	xdslCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific XDSL",
-		Args:  cobra.ExactArgs(1),
-		Run:   xdsl.GetXdsl,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific XDSL",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/xdsl"),
+		Run:               xdsl.GetXdsl,
 	})
 
 	// Command to update a single Xdsl
 	xdslEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given XDSL",
-		Args:  cobra.ExactArgs(1),
-		Run:   xdsl.EditXdsl,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given XDSL",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/xdsl"),
+		Run:               xdsl.EditXdsl,
 	}
 	xdslEditCmd.Flags().StringVar(&xdsl.XdslSpec.Description, "description", "", "Description of the XDSL")
 	xdslEditCmd.Flags().IntVar(&xdsl.XdslSpec.LnsRateLimit, "lns-rate-limit", 0, "Rate limit on the LNS in kbps. Must be a multiple of 64 - Min value 64 / Max value 100032")

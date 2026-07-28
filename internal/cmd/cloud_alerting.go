@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -28,10 +29,11 @@ func initCloudAlertingCommand(cloudCmd *cobra.Command) {
 
 	// Get specific alerting configuration
 	alertingCmd.AddCommand(&cobra.Command{
-		Use:   "get <alert_id>",
-		Short: "Get a specific billing alert configuration",
-		Run:   cloud.GetCloudAlertingConfig,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <alert_id>",
+		Short:             "Get a specific billing alert configuration",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/alerting"),
+		Run:               cloud.GetCloudAlertingConfig,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	// Create alerting configuration
@@ -52,10 +54,11 @@ func initCloudAlertingCommand(cloudCmd *cobra.Command) {
 
 	// Edit alerting configuration
 	alertingEditCmd := &cobra.Command{
-		Use:   "edit <alert_id>",
-		Short: "Edit a billing alert configuration",
-		Run:   cloud.EditCloudAlertingConfig,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <alert_id>",
+		Short:             "Edit a billing alert configuration",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/alerting"),
+		Run:               cloud.EditCloudAlertingConfig,
+		Args:              cobra.ExactArgs(1),
 	}
 	alertingEditCmd.Flags().Int64Var(&cloud.AlertingConfigEditSpec.Delay, "delay", 0, "Delay between alerts in seconds (minimum 3600)")
 	alertingEditCmd.Flags().StringSliceVar(&cloud.AlertingConfigEditSpec.Emails, "emails", nil, "Email addresses to receive alerts (comma-separated)")
@@ -68,10 +71,11 @@ func initCloudAlertingCommand(cloudCmd *cobra.Command) {
 
 	// Delete alerting configuration
 	alertingCmd.AddCommand(&cobra.Command{
-		Use:   "delete <alert_id>",
-		Short: "Delete a billing alert configuration",
-		Run:   cloud.DeleteCloudAlertingConfig,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <alert_id>",
+		Short:             "Delete a billing alert configuration",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/alerting"),
+		Run:               cloud.DeleteCloudAlertingConfig,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	// Subcommand for triggered alerts
@@ -83,20 +87,22 @@ func initCloudAlertingCommand(cloudCmd *cobra.Command) {
 
 	// List triggered alerts
 	triggeredAlertListCmd := &cobra.Command{
-		Use:     "list <alert_id>",
-		Aliases: []string{"ls"},
-		Short:   "List triggered alerts for a specific alert configuration",
-		Run:     cloud.ListCloudAlertingTriggeredAlerts,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <alert_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List triggered alerts for a specific alert configuration",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/alerting"),
+		Run:               cloud.ListCloudAlertingTriggeredAlerts,
+		Args:              cobra.ExactArgs(1),
 	}
 	triggeredAlertCmd.AddCommand(withFilterFlag(triggeredAlertListCmd))
 
 	// Get specific triggered alert
 	triggeredAlertCmd.AddCommand(&cobra.Command{
-		Use:   "get <alert_id> <triggered_alert_id>",
-		Short: "Get a specific triggered alert",
-		Run:   cloud.GetCloudAlertingTriggeredAlert,
-		Args:  cobra.ExactArgs(2),
+		Use:               "get <alert_id> <triggered_alert_id>",
+		Short:             "Get a specific triggered alert",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/alerting"),
+		Run:               cloud.GetCloudAlertingTriggeredAlert,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	cloudCmd.AddCommand(alertingCmd)

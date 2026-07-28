@@ -7,6 +7,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -76,6 +77,7 @@ func initCloudIPCommand(cloudCmd *cobra.Command) {
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			return validateCloudIPType(cloudIPTypeFloating, cloudIPTypeFailover)
 		},
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/ip"),
 		Run: func(cmd *cobra.Command, args []string) {
 			switch cloudIPType {
 			case cloudIPTypeFloating:
@@ -94,7 +96,8 @@ func initCloudIPCommand(cloudCmd *cobra.Command) {
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			return validateCloudIPType(cloudIPTypeFloating)
 		},
-		Run: cloud.DeleteFloatingIP,
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/ip"),
+		Run:               cloud.DeleteFloatingIP,
 	})
 
 	// attach (failover only)
@@ -105,7 +108,8 @@ func initCloudIPCommand(cloudCmd *cobra.Command) {
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			return validateCloudIPType(cloudIPTypeFailover)
 		},
-		Run: cloud.AttachCloudIPFailover,
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/ip"),
+		Run:               cloud.AttachCloudIPFailover,
 	})
 
 	cloudCmd.AddCommand(ipCmd)
