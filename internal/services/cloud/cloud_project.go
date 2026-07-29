@@ -99,10 +99,9 @@ func getCloudRegionsWithFeatureAvailable(projectID string, features ...string) (
 	// Filter regions having given feature available
 	var regionIDs []any
 	for _, region := range regions {
-		if region["status"] != "UP" {
-			continue
-		}
-
+		// Skip checking for region's own status
+		// in case region reports DOWN but the
+		// requested service reports UP
 		services := region["services"].([]any)
 		for _, service := range services {
 			service := service.(map[string]any)
