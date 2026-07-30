@@ -1,7 +1,14 @@
+{{- $iam := index .Result "iam" }}
+{{- $routing := "" }}
+{{- if index .Result "network" }}{{ $routing = index (index .Result "network") "routing" }}{{ end }}
+{{- $ipv6 := "" }}
+{{- if $routing }}{{ $ipv6 = index $routing "ipv6" }}{{ end }}
+{{- $renew := "" }}
+{{- if index .Result "serviceInfo" }}{{ $renew = index (index .Result "serviceInfo") "renew" }}{{ end }}
 🚀 Dedicated server {{.ServiceName}}
 =======
 
-_{{index .Result "iam" "displayName"}}_
+{{if $iam}}_{{index $iam "displayName"}}_{{end}}
 
 ## Location
 
@@ -17,7 +24,7 @@ _{{index .Result "iam" "displayName"}}_
 | State | {{index .Result "state"}} |
 | Operating system | {{index .Result "os"}} |
 | IPv4 | {{index .Result "ip"}} |
-{{if index .Result "network" "routing" "ipv6"}}| IPv6 | {{index .Result "network" "routing" "ipv6" "ip"}} |{{end}}
+{{if $ipv6}}| IPv6 | {{index $ipv6 "ip"}} |{{end}}
 | Reverse | {{index .Result "reverse"}} |
 | Power state | {{index .Result "powerState"}} |
 
@@ -34,17 +41,19 @@ _{{index .Result "iam" "displayName"}}_
 ## Billing information
 
 Expiration:        {{index .Result "serviceInfo" "expiration"}}
-Automatic renewal: {{index .Result "serviceInfo" "renew" "automatic"}}
+Automatic renewal: {{if $renew}}{{index $renew "automatic"}}{{end}}
 {{if index .Result "serviceInfo" "engagedUpTo"}}Engaged up to:     {{index .Result "serviceInfo" "engagedUpTo"}}{{end}}
 
+{{if $iam}}
 ## IAM information
 
-**URN**: {{index .Result "iam" "urn"}}
-{{if index .Result "iam" "tags"}}
+**URN**: {{index $iam "urn"}}
+{{if index $iam "tags"}}
 **Tags**:
 | Key | Value |
 | --- | --- |
-{{ range $key, $value := (index .Result "iam" "tags") }}| {{$key}} | {{$value}} |
+{{ range $key, $value := (index $iam "tags") }}| {{$key}} | {{$value}} |
+{{end}}
 {{end}}
 {{end}}
 
