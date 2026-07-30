@@ -1,11 +1,21 @@
-## ovhcloud config
+## ovhcloud config set-header
 
-Manage your CLI configuration
+Set a custom HTTP header to send on every API request
+
+```
+ovhcloud config set-header <name> <value>
+```
+
+### Examples
+
+```
+ovhcloud config set-header X-Routing-Key abc123
+```
 
 ### Options
 
 ```
-  -h, --help   help for config
+  -h, --help   help for set-header
 ```
 
 ### Options inherited from parent commands
@@ -29,11 +39,5 @@ Manage your CLI configuration
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud config profile](ovhcloud_config_profile.md)	 - Manage CLI profiles for multiple accounts
-* [ovhcloud config set](ovhcloud_config_set.md)	 - Set a value in the CLI configuration
-* [ovhcloud config set-endpoint](ovhcloud_config_set-endpoint.md)	 - Configure CLI to use the given API endpoint (EU, CA, US), or a specific URL (e.g. https://eu.api.ovh.com/v1)
-* [ovhcloud config set-header](ovhcloud_config_set-header.md)	 - Set a custom HTTP header to send on every API request
-* [ovhcloud config show](ovhcloud_config_show.md)	 - Show CLI configuration
-* [ovhcloud config unset-header](ovhcloud_config_unset-header.md)	 - Remove a previously configured custom HTTP header
+* [ovhcloud config](ovhcloud_config.md)	 - Manage your CLI configuration
 

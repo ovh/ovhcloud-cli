@@ -84,3 +84,53 @@ func SetEndpoint(_ *cobra.Command, args []string) {
 		return
 	}
 }
+
+// SetHeader configures a custom HTTP header to be sent on every API request,
+// for the active profile, or for the currently configured endpoint in legacy mode.
+func SetHeader(_ *cobra.Command, args []string) {
+	name, value := args[0], args[1]
+	keyName := config.HeaderKeyPrefix + name
+
+	// In profile mode, write to the active profile section (unless it's the default profile)
+	if profileName := config.GetActiveProfileName(flags.CliConfig, flags.Profile); profileName != "" && !config.IsDefaultProfile(profileName) {
+		if err := config.SetProfileConfigValue(flags.CliConfig, flags.CliConfigPath, profileName, keyName, value); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to set header %q: %s", name, err)
+		}
+		return
+	}
+
+	endpoint, err := config.GetConfigValue(flags.CliConfig, "default", "endpoint")
+	if err != nil || endpoint == "" {
+		display.OutputError(&flags.OutputFormatConfig, `no API endpoint configured, please run "ovhcloud login" first`)
+		return
+	}
+
+	if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, endpoint, keyName, value); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to set header %q: %s", name, err)
+		return
+	}
+}
+
+// UnsetHeader removes a previously configured custom HTTP header.
+func UnsetHeader(_ *cobra.Command, args []string) {
+	name := args[0]
+	keyName := config.HeaderKeyPrefix + name
+
+	if profileName := config.GetActiveProfileName(flags.CliConfig, flags.Profile); profileName != "" && !config.IsDefaultProfile(profileName) {
+		if err := config.DeleteProfileConfigValue(flags.CliConfig, flags.CliConfigPath, profileName, keyName); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to unset header %q: %s", name, err)
+		}
+		return
+	}
+
+	endpoint, err := config.GetConfigValue(flags.CliConfig, "default", "endpoint")
+	if err != nil || endpoint == "" {
+		display.OutputError(&flags.OutputFormatConfig, `no API endpoint configured, please run "ovhcloud login" first`)
+		return
+	}
+
+	if err := config.DeleteConfigValue(flags.CliConfig, flags.CliConfigPath, endpoint, keyName); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to unset header %q: %s", name, err)
+		return
+	}
+}

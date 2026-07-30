@@ -28,11 +28,18 @@ func Login(_ *cobra.Command, _ []string) {
 	customEndpoint := selectedRegion == "Custom endpoint"
 
 	credentials := display.RunLoginInput(customEndpoint)
+	rawHeaders := credentials["headers"]
+	delete(credentials, "headers")
+
 	for k, v := range credentials {
 		if v == "" {
 			display.OutputWarning(&flags.OutputFormatConfig, "no value provided for %q", k)
 			return
 		}
+	}
+
+	for name, value := range parseHeadersInput(rawHeaders) {
+		credentials[config.HeaderKeyPrefix+name] = value
 	}
 
 	// If no configuration file could be loaded, choose the location to write a new one
@@ -123,4 +130,36 @@ func legacyEndpointArg(selectedRegion, endpoint string, customEndpoint bool) str
 		return endpoint
 	}
 	return strings.ToUpper(selectedRegion)
+}
+
+// parseHeadersInput parses a raw "Name: value, Name2: value2" string (as
+// typed in the custom-endpoint login prompt) into a map of header name to
+// value. Blank input, or pairs missing a "name: value"/"name=value"
+// separator, are skipped.
+func parseHeadersInput(raw string) map[string]string {
+	headers := map[string]string{}
+
+	for _, pair := range strings.Split(raw, ",") {
+		pair = strings.TrimSpace(pair)
+		if pair == "" {
+			continue
+		}
+
+		name, value, ok := strings.Cut(pair, ":")
+		if !ok {
+			name, value, ok = strings.Cut(pair, "=")
+		}
+		if !ok {
+			continue
+		}
+
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+
+		headers[name] = strings.TrimSpace(value)
+	}
+
+	return headers
 }

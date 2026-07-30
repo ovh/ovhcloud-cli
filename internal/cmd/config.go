@@ -44,6 +44,24 @@ func init() {
 		DisableFlagsInUseLine: true,
 	})
 
+	configCmd.AddCommand(&cobra.Command{
+		Example:               "ovhcloud config set-header X-Routing-Key abc123",
+		Use:                   "set-header <name> <value>",
+		Short:                 "Set a custom HTTP header to send on every API request",
+		Run:                   config.SetHeader,
+		Args:                  cobra.ExactArgs(2),
+		DisableFlagsInUseLine: true,
+	})
+
+	configCmd.AddCommand(&cobra.Command{
+		Example:               "ovhcloud config unset-header X-Routing-Key",
+		Use:                   "unset-header <name>",
+		Short:                 "Remove a previously configured custom HTTP header",
+		Run:                   config.UnsetHeader,
+		Args:                  cobra.ExactArgs(1),
+		DisableFlagsInUseLine: true,
+	})
+
 	// Profile management subcommands
 	profileCmd := &cobra.Command{
 		Use:   "profile",

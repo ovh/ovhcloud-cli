@@ -31,6 +31,7 @@ func InitClient() {
 
 func InitClientWithProfile(cfg *ini.File, profileOverride string) {
 	var err error
+	var headers map[string]string
 
 	// Init API client
 	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
@@ -48,10 +49,16 @@ func InitClientWithProfile(cfg *ini.File, profileOverride string) {
 			endpoint, appKey, appSecret, consumerKey, err = config.GetProfileCredentials(cfg, profileName)
 			if err == nil {
 				Client, err = ovh.NewClient(endpoint, appKey, appSecret, consumerKey)
+				headers = config.GetProfileCustomHeaders(cfg, profileName)
 			}
 		} else {
 			// Legacy mode: let go-ovh read from env/config files
 			Client, err = ovh.NewDefaultClient()
+			if err == nil && cfg != nil {
+				if endpoint, _ := config.GetConfigValue(cfg, "default", "endpoint"); endpoint != "" {
+					headers = config.GetCustomHeaders(cfg, endpoint)
+				}
+			}
 		}
 		if Client != nil {
 			Client.UserAgent = "ovh-cli/" + version.Version
@@ -60,9 +67,11 @@ func InitClientWithProfile(cfg *ini.File, profileOverride string) {
 	if err != nil {
 		log.Printf(`OVHcloud API client not initialized, please run "ovhcloud login" to authenticate (%s)`, err)
 	} else if Client != nil {
-		// Chain transports: schemasVersion (adds X-Schemas-Version for /v2/ paths)
-		// → debug logging (logs request/response) → default transport (sends over the wire).
-		Client.Client.Transport = newSchemasVersionTransport(NewTransport("OVH", http.DefaultTransport))
+		// Chain transports: customHeaders (injects user-configured headers) → schemasVersion
+		// (adds X-Schemas-Version for /v2/ paths) → debug logging (logs request/response)
+		// → default transport (sends over the wire).
+		Client.Client.Transport = newCustomHeadersTransport(
+			newSchemasVersionTransport(NewTransport("OVH", http.DefaultTransport)), headers)
 	}
 }
 

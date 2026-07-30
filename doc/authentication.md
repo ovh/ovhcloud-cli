@@ -96,6 +96,30 @@ Depending on the API you want to use, you may set the `endpoint` to:
 * `ovh-us` for OVHcloud US API
 * `ovh-ca` for OVHcloud Canada API
 
+### Custom HTTP headers
+
+When using a custom endpoint (an arbitrary URL instead of one of the built-in regions), that endpoint may
+require extra HTTP headers to be sent on every API request (e.g. an internal routing header). You can
+declare them either interactively during `ovhcloud login` (when picking "Custom endpoint", an optional
+"Custom headers" field accepts a comma-separated `Name: value` list), or afterwards with:
+
+```sh
+ovhcloud config set-header X-Routing-Key abc123
+ovhcloud config unset-header X-Routing-Key
+```
+
+These commands apply to the currently active endpoint (or active profile, if you're using
+[profiles](./profiles.md)). Headers are stored in the configuration file next to the endpoint's
+credentials, as `header.<Name>` keys:
+
+```ini
+[https://api.eu.ovhcloud.com/1.0]
+application_key=my_app_key
+application_secret=my_application_secret
+consumer_key=my_consumer_key
+header.X-Routing-Key=abc123
+```
+
 ### Region/company limitations
 
 ~> **WARNING**: some products are not available for `soyoustart` and `kimsufi`, or for some endpoints. If you try to use a product that is not available, you will encounter the following error: `Client::NotFound: "Got an invalid (or empty) URL"`.

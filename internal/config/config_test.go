@@ -295,6 +295,87 @@ endpoint=ovh-eu
 	td.CmpNot(t, profiles, td.Contains(DefaultProfileName))
 }
 
+func TestGetCustomHeaders(t *testing.T) {
+	cfg := newTestConfig(`
+[https://api.eu.ovhcloud.com/1.0]
+application_key      = ak123
+header.X-Routing-Key  = internal-build-eu
+header.X-Debug-Bypass = true
+`)
+
+	headers := GetCustomHeaders(cfg, "https://api.eu.ovhcloud.com/1.0")
+	td.Cmp(t, headers, map[string]string{
+		"X-Routing-Key":  "internal-build-eu",
+		"X-Debug-Bypass": "true",
+	})
+}
+
+func TestGetCustomHeaders_NoHeaders(t *testing.T) {
+	cfg := newTestConfig(`
+[ovh-eu]
+application_key = ak123
+`)
+
+	td.Cmp(t, GetCustomHeaders(cfg, "ovh-eu"), map[string]string{})
+}
+
+func TestGetCustomHeaders_NilOrEmpty(t *testing.T) {
+	td.Cmp(t, GetCustomHeaders(nil, "ovh-eu"), map[string]string{})
+	td.Cmp(t, GetCustomHeaders(newTestConfig(""), ""), map[string]string{})
+	td.Cmp(t, GetCustomHeaders(newTestConfig(""), "does-not-exist"), map[string]string{})
+}
+
+func TestGetProfileCustomHeaders(t *testing.T) {
+	cfg := newTestConfig(`
+[profile:work]
+endpoint             = https://api.eu.ovhcloud.com/1.0
+application_key      = ak123
+header.X-Routing-Key = internal-build-eu
+`)
+
+	td.Cmp(t, GetProfileCustomHeaders(cfg, "work"), map[string]string{"X-Routing-Key": "internal-build-eu"})
+}
+
+func TestGetProfileCustomHeaders_NotFound(t *testing.T) {
+	cfg := newTestConfig(`
+[default]
+endpoint = ovh-eu
+`)
+
+	td.Cmp(t, GetProfileCustomHeaders(cfg, "nonexistent"), map[string]string{})
+	td.Cmp(t, GetProfileCustomHeaders(nil, "nonexistent"), map[string]string{})
+}
+
+func TestDeleteConfigValue(t *testing.T) {
+	cfg := newTestConfig(`
+[ovh-eu]
+application_key      = ak123
+header.X-Routing-Key = internal-build-eu
+`)
+	tmpFile := filepath.Join(t.TempDir(), "test.conf")
+
+	td.Require(t).CmpNoError(DeleteConfigValue(cfg, tmpFile, "ovh-eu", "header.X-Routing-Key"))
+	td.Cmp(t, GetCustomHeaders(cfg, "ovh-eu"), map[string]string{})
+
+	// Unrelated key untouched
+	val, err := GetConfigValue(cfg, "ovh-eu", "application_key")
+	td.Require(t).CmpNoError(err)
+	td.Cmp(t, val, "ak123")
+}
+
+func TestDeleteProfileConfigValue(t *testing.T) {
+	cfg := newTestConfig(`
+[profile:work]
+application_key      = ak123
+header.X-Routing-Key = internal-build-eu
+`)
+	tmpFile := filepath.Join(t.TempDir(), "test.conf")
+
+	td.Require(t).CmpNoError(DeleteProfileConfigValue(cfg, tmpFile, "work", "header.X-Routing-Key"))
+	td.Cmp(t, GetProfileCustomHeaders(cfg, "work"), map[string]string{})
+	td.Cmp(t, GetProfileConfigValue(cfg, "work", "application_key"), "ak123")
+}
+
 func TestGetConfigValue_ActiveProfileOverride(t *testing.T) {
 	// When ActiveProfileOverride is set (simulating --profile flag),
 	// GetConfigValue should read from the overridden profile

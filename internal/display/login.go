@@ -52,6 +52,14 @@ func RunLoginInput(customEndpoint bool) map[string]string {
 	consumerKeyInput.Prompt = ""
 	inputs = append(inputs, consumerKeyInput)
 
+	if customEndpoint {
+		headersInput := textinput.New()
+		headersInput.Placeholder = "X-Header: value, X-Other: value2 (optional)"
+		headersInput.Width = 60
+		headersInput.Prompt = ""
+		inputs = append(inputs, headersInput)
+	}
+
 	mod := inputModel{
 		withCustomEndpoint: customEndpoint,
 		inputs:             inputs,
@@ -71,6 +79,7 @@ func RunLoginInput(customEndpoint bool) map[string]string {
 			"application_key":    mod.inputs[1].Value(),
 			"application_secret": mod.inputs[2].Value(),
 			"consumer_key":       mod.inputs[3].Value(),
+			"headers":            mod.inputs[4].Value(),
 		}
 	}
 
@@ -155,6 +164,9 @@ func (m inputModel) View() string {
  %s
 
  %s
+ %s
+
+ %s
 `,
 			inputStyle.Width(30).Render("API endpoint"),
 			m.inputs[0].View(),
@@ -164,6 +176,8 @@ func (m inputModel) View() string {
 			m.inputs[2].View(),
 			inputStyle.Width(30).Render("Consumer key"),
 			m.inputs[3].View(),
+			inputStyle.Width(30).Render("Custom headers"),
+			m.inputs[4].View(),
 			continueStyle.Render("Press enter to validate ->"),
 		) + "\n"
 	}

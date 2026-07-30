@@ -178,6 +178,9 @@ OVH_CONSUMER_KEY=xxx
 OVH_CLOUD_PROJECT_SERVICE=<public cloud project ID> 
 ```
 
+* Using a custom endpoint that requires extra HTTP headers (e.g. an internal routing header), see the
+  [authentication page](./doc/authentication.md#custom-http-headers) for `ovhcloud config set-header`.
+
 ## Examples
 
 | Task                                     | Command                                         |
