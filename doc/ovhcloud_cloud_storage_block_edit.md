@@ -14,6 +14,7 @@ ovhcloud cloud storage block edit <volume_id> [flags]
       --name string   Volume name
       --size int      Volume size (in GB, can only be increased)
       --type string   Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)
+      --wait          Wait for the volume to be READY before exiting
 ```
 
 ### Options inherited from parent commands

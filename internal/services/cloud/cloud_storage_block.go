@@ -149,6 +149,20 @@ func EditVolume(cmd *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
+
+	if !flags.WaitForTask {
+		return
+	}
+
+	// The volume ID is known from args[0], so we can poll the same endpoint
+	// until the update has been applied and the volume is READY again.
+	ready, err := waitForCloudResourceReady(endpoint, 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for volume update: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Volume %s updated successfully", args[0])
 }
 
 func CreateVolume(cmd *cobra.Command, args []string) {

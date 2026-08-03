@@ -45,6 +45,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.TargetSpec.Name, "name", "", "Volume name")
 	volumeEditCmd.Flags().IntVar(&cloud.VolumeEditSpec.TargetSpec.Size, "size", 0, "Volume size (in GB, can only be increased)")
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.TargetSpec.VolumeType, "type", "", "Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)")
+	volumeEditCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the volume to be READY before exiting")
 	addInteractiveEditorFlag(volumeEditCmd)
 	storageBlockCmd.AddCommand(volumeEditCmd)
 
