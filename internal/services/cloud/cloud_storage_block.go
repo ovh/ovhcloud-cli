@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
@@ -53,22 +54,28 @@ var (
 	VolumeCreateExample string
 
 	VolumeSpec struct {
-		AvailabilityZone string `json:"availabilityZone,omitempty"`
-		BackupId         string `json:"backupId,omitempty"`
-		Description      string `json:"description,omitempty"`
-		ImageId          string `json:"imageId,omitempty"`
-		InstanceId       string `json:"instanceId,omitempty"`
-		Name             string `json:"name,omitempty"`
-		Size             int    `json:"size,omitempty"`
-		SnapshotId       string `json:"snapshotId,omitempty"`
-		Type             string `json:"type,omitempty"`
+		TargetSpec struct {
+			Name       string `json:"name,omitempty"`
+			Size       int    `json:"size,omitempty"`
+			VolumeType string `json:"volumeType,omitempty"`
+			Location   struct {
+				Region           string `json:"region,omitempty"`
+				AvailabilityZone string `json:"availabilityZone,omitempty"`
+			} `json:"location,omitzero"`
+			CreateFrom struct {
+				BackupId   string `json:"backupId,omitempty"`
+				ImageId    string `json:"imageId,omitempty"`
+				SnapshotId string `json:"snapshotId,omitempty"`
+			} `json:"createFrom,omitzero"`
+		} `json:"targetSpec"`
 	}
 
 	VolumeEditSpec struct {
-		Description string `json:"description,omitempty"`
-		Name        string `json:"name,omitempty"`
-		Size        int    `json:"size,omitempty"`
-		Type        string `json:"type,omitempty"`
+		TargetSpec struct {
+			Name       string `json:"name,omitempty"`
+			Size       int    `json:"size,omitempty"`
+			VolumeType string `json:"volumeType,omitempty"`
+		} `json:"targetSpec,omitzero"`
 	}
 
 	VolumeSnapShotSpec struct {
@@ -120,108 +127,51 @@ func GetVolume(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest(volumeV2Endpoint(projectID), args[0], volumeTemplate)
 }
 
-func EditVolume(_ *cobra.Command, args []string) {
+func EditVolume(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
+	// EditResource fetches the current volume, merges the given parameters and
+	// keeps only the fields writable per the v2 PUT schema. The checksum
+	// (optimistic locking) is read from the fetched volume and preserved
+	// automatically, so it does not need to be handled here.
 	endpoint := fmt.Sprintf("%s/%s", volumeV2Endpoint(projectID), url.PathEscape(args[0]))
-
-	// The v2 update requires the current checksum (optimistic locking) and a full
-	// target spec, so fetch the volume first and use its values as defaults.
-	var volume struct {
-		Checksum     string `json:"checksum"`
-		CurrentState struct {
-			Name       string `json:"name"`
-			Size       int    `json:"size"`
-			VolumeType string `json:"volumeType"`
-		} `json:"currentState"`
-	}
-	if err := httpLib.Client.Get(endpoint, &volume); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume: %s", err)
+	if err := common.EditResource(
+		cmd,
+		"/publicCloud/project/{projectId}/storage/block/volume/{id}",
+		endpoint,
+		VolumeEditSpec,
+		assets.CloudV2OpenapiSchema,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-
-	targetSpec := map[string]any{
-		"name":       volume.CurrentState.Name,
-		"size":       volume.CurrentState.Size,
-		"volumeType": volume.CurrentState.VolumeType,
-	}
-	if VolumeEditSpec.Name != "" {
-		targetSpec["name"] = VolumeEditSpec.Name
-	}
-	if VolumeEditSpec.Size != 0 {
-		targetSpec["size"] = VolumeEditSpec.Size
-	}
-	if VolumeEditSpec.Type != "" {
-		targetSpec["volumeType"] = VolumeEditSpec.Type
-	}
-
-	body := map[string]any{
-		"checksum":   volume.Checksum,
-		"targetSpec": targetSpec,
-	}
-
-	var updated map[string]any
-	if err := httpLib.Client.Put(endpoint, body, &updated); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to update volume: %s", err)
-		return
-	}
-
-	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, updated, "⚡️ Volume %s update started", args[0])
-		return
-	}
-
-	ready, err := waitForCloudResourceReady(endpoint, 10*time.Minute)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for volume update: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Volume %s updated successfully", args[0])
 }
 
-func CreateVolume(_ *cobra.Command, args []string) {
+func CreateVolume(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	// args[0] is the region; it goes into the target spec location in the v2 API.
-	location := map[string]any{"region": args[0]}
-	if VolumeSpec.AvailabilityZone != "" {
-		location["availabilityZone"] = VolumeSpec.AvailabilityZone
-	}
+	// args[0] is the region; the v2 API expects it in targetSpec.location.
+	VolumeSpec.TargetSpec.Location.Region = args[0]
 
-	targetSpec := map[string]any{
-		"name":     VolumeSpec.Name,
-		"size":     VolumeSpec.Size,
-		"location": location,
-	}
-	if VolumeSpec.Type != "" {
-		targetSpec["volumeType"] = VolumeSpec.Type
-	}
-
-	createFrom := map[string]any{}
-	if VolumeSpec.BackupId != "" {
-		createFrom["backupId"] = VolumeSpec.BackupId
-	}
-	if VolumeSpec.ImageId != "" {
-		createFrom["imageId"] = VolumeSpec.ImageId
-	}
-	if VolumeSpec.SnapshotId != "" {
-		createFrom["snapshotId"] = VolumeSpec.SnapshotId
-	}
-	if len(createFrom) > 0 {
-		targetSpec["createFrom"] = createFrom
-	}
-
-	var response map[string]any
-	if err := httpLib.Client.Post(volumeV2Endpoint(projectID), map[string]any{"targetSpec": targetSpec}, &response); err != nil {
+	endpoint := volumeV2Endpoint(projectID)
+	response, err := common.CreateResource(
+		cmd,
+		"/publicCloud/project/{projectId}/storage/block/volume",
+		endpoint,
+		VolumeCreateExample,
+		VolumeSpec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec"},
+	)
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create volume: %s", err)
 		return
 	}
