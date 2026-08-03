@@ -9,13 +9,11 @@ ovhcloud cloud storage block edit <volume_id> [flags]
 ### Options
 
 ```
-      --description string   Volume description
-      --editor               Use a text editor to define parameters
-  -h, --help                 help for edit
-      --name string          Volume name
-      --size int             Volume size (in GB, can only be increased)
-      --type string          Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)
-      --wait                 Wait for the volume to be READY before exiting
+      --editor        Use a text editor to define parameters
+  -h, --help          help for edit
+      --name string   Volume name
+      --size int      Volume size (in GB, can only be increased)
+      --type string   Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)
 ```
 
 ### Options inherited from parent commands

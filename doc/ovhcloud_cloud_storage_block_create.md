@@ -10,14 +10,12 @@ ovhcloud cloud storage block create <region> [flags]
 
 ```
       --availability-zone string   Availability zone of the volume
-      --backup-id string           Backup ID
-      --description string         Volume description
+      --backup-id string           Backup ID to create the volume from
       --editor                     Use a text editor to define parameters
       --from-file string           File containing parameters
   -h, --help                       help for create
       --image-id string            Image ID to create the volume from
       --init-file string           Create a file with example parameters
-      --instance-id string         Instance ID to attach the volume to
       --name string                Volume name
       --replace                    Replace parameters file if it already exists
       --size int                   Volume size (in GB)
