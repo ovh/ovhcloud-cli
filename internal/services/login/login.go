@@ -19,6 +19,20 @@ import (
 // LoginProfileFlag is set by the --profile flag on the login command.
 var LoginProfileFlag string
 
+// gettingStartedMessage returns a short onboarding banner listing the first
+// commands a freshly-authenticated user is likely to need.
+func gettingStartedMessage() string {
+	return strings.Join([]string{
+		"",
+		"👉 A few commands to get started:",
+		"",
+		"  • List your public cloud projects:  ovhcloud cloud project list",
+		"  • Set a default cloud project:      ovhcloud config set default_cloud_project <id>",
+		"  • Browse a service:                 ovhcloud <service> --help",
+		"  • List all available commands:      ovhcloud --help",
+	}, "\n")
+}
+
 func Login(_ *cobra.Command, _ []string) {
 	selectedRegion := display.RunLoginPicker("Which OVHcloud API do you want to login to ?", []string{"EU", "CA", "US", "Custom endpoint"})
 
@@ -99,7 +113,7 @@ func Login(_ *cobra.Command, _ []string) {
 			}
 		}
 
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "Credentials saved to profile %q", LoginProfileFlag)
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Credentials saved to profile %q\n%s", LoginProfileFlag, gettingStartedMessage())
 		return
 	}
 
@@ -116,5 +130,6 @@ func Login(_ *cobra.Command, _ []string) {
 			return
 		}
 	}
-}
 
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Credentials saved successfully\n%s", gettingStartedMessage())
+}
