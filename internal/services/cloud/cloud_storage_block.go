@@ -139,18 +139,24 @@ func EditVolume(cmd *cobra.Command, args []string) {
 	// (optimistic locking) is read from the fetched volume and preserved
 	// automatically, so it does not need to be handled here.
 	endpoint := fmt.Sprintf("%s/%s", volumeV2Endpoint(projectID), url.PathEscape(args[0]))
-	if err := common.EditResource(
+	updated, edited, err := common.EditResourceAndReturn(
 		cmd,
 		"/publicCloud/project/{projectId}/storage/block/volume/{id}",
 		endpoint,
 		VolumeEditSpec,
 		assets.CloudV2OpenapiSchema,
-	); err != nil {
+	)
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+	if !edited {
+		// Nothing to edit: the helper already printed an informational message.
 		return
 	}
 
 	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, updated, "⚡️ Volume %s update started", args[0])
 		return
 	}
 

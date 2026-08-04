@@ -135,7 +135,10 @@ func (ms *MockSuite) TestCloudStorageBlockEditCmd(assert, require *td.T) {
 				}
 			}`),
 		),
-		httpmock.NewStringResponder(200, ``))
+		httpmock.NewStringResponder(200, `{
+			"id": "vol-1",
+			"resourceStatus": "UPDATING"
+		}`))
 
 	out, err := cmd.Execute("cloud", "storage", "block", "edit", "vol-1",
 		"--cloud-project", "fakeProjectID",
@@ -143,7 +146,7 @@ func (ms *MockSuite) TestCloudStorageBlockEditCmd(assert, require *td.T) {
 		"--size", "100")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("updated successfully"))
+	assert.Cmp(out, td.Contains("⚡️ Volume vol-1 update started"))
 }
 
 func (ms *MockSuite) TestCloudStorageBlockDeleteCmd(assert, require *td.T) {
