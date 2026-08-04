@@ -22,34 +22,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/openapi"
 	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
-
-// nonContentEditFlags lists the flags that do not describe a change to apply:
-// resource/project selectors, global flags, and --wait. They must not, on their
-// own, trigger an update. Content-providing flags like --editor and --from-file
-// are deliberately absent so that they DO count as content.
-var nonContentEditFlags = map[string]bool{
-	"cloud-project": true,
-	"wait":          true,
-	"output":        true,
-	"debug":         true,
-	"ignore-errors": true,
-	"profile":       true,
-	"help":          true,
-}
-
-// editHasContentFlags reports whether the user provided at least one flag that
-// actually carries edit content, ignoring selector/global flags and --wait.
-func editHasContentFlags(cmd *cobra.Command) bool {
-	found := false
-	cmd.Flags().Visit(func(f *pflag.Flag) {
-		if !nonContentEditFlags[f.Name] {
-			found = true
-		}
-	})
-	return found
-}
 
 var (
 	//go:embed templates/service_info.tmpl
@@ -215,25 +188,20 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 	return createdResource, nil
 }
 
-// prepareEditBody resolves the request body for an edit (PUT) operation from the
-// CLI parameters, an optional --from-file and an optional --editor. It performs
-// no API call and prints no success message. The returned boolean is false when
-// there is nothing to edit (an informational message has then already been
-// printed).
-func prepareEditBody(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte) (any, bool, error) {
-	if !editHasContentFlags(cmd) {
+func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte) error {
+	if cmd.Flags().NFlag() == 0 {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
-		return nil, false, nil
+		return nil
 	}
 
 	// Create object from parameters given on command line
 	jsonCliParameters, err := json.Marshal(cliParams)
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to prepare arguments from command line: %w", err)
+		return fmt.Errorf("failed to prepare arguments from command line: %w", err)
 	}
 	var cliParameters map[string]any
 	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
-		return nil, false, fmt.Errorf("failed to parse arguments from command line: %w", err)
+		return fmt.Errorf("failed to parse arguments from command line: %w", err)
 	}
 
 	// Handle data from file if --from-file flag is used
@@ -242,18 +210,18 @@ func prepareEditBody(cmd *cobra.Command, path, url string, cliParams any, openap
 
 		fd, err := os.Open(flags.ParametersFile)
 		if err != nil {
-			return nil, false, fmt.Errorf("failed to open given file: %w", err)
+			return fmt.Errorf("failed to open given file: %w", err)
 		}
 		defer fd.Close()
 
 		var fileParameters map[string]any
 		if err := json.NewDecoder(fd).Decode(&fileParameters); err != nil {
-			return nil, false, fmt.Errorf("failed to parse given file: %w", err)
+			return fmt.Errorf("failed to parse given file: %w", err)
 		}
 
 		// Merge CLI parameters with file parameters (CLI takes precedence)
 		if err := utils.MergeMaps(fileParameters, cliParameters); err != nil {
-			return nil, false, fmt.Errorf("failed to merge CLI parameters with file parameters: %w", err)
+			return fmt.Errorf("failed to merge CLI parameters with file parameters: %w", err)
 		}
 
 		cliParameters = fileParameters
@@ -262,12 +230,12 @@ func prepareEditBody(cmd *cobra.Command, path, url string, cliParams any, openap
 	// Fetch resource
 	var object map[string]any
 	if err := httpLib.Client.Get(url, &object); err != nil {
-		return nil, false, fmt.Errorf("error fetching resource %s: %w", url, err)
+		return fmt.Errorf("error fetching resource %s: %w", url, err)
 	}
 
 	// Merge CLI parameters with the fetched object
 	if err := utils.MergeMaps(object, cliParameters); err != nil {
-		return nil, false, fmt.Errorf("failed to merge CLI parameters into example: %w", err)
+		return fmt.Errorf("failed to merge CLI parameters into example: %w", err)
 	}
 
 	// Filter editable fields from OpenAPI spec
@@ -278,64 +246,38 @@ func prepareEditBody(cmd *cobra.Command, path, url string, cliParams any, openap
 		object,
 	)
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to extract writable properties: %w", err)
+		return fmt.Errorf("failed to extract writable properties: %w", err)
 	}
 
-	// If editor not needed, use the filtered body directly
+	// If editor not needed, update the resource directly
 	if !flags.ParametersViaEditor {
-		return editableBody, true, nil
+		if err := httpLib.Client.Put(url, editableBody, nil); err != nil {
+			return fmt.Errorf("failed to update resource: %w", err)
+		}
+
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Resource updated successfully")
+
+		return nil
 	}
 
 	// Format editable body
 	editableOutput, err := json.MarshalIndent(editableBody, "", "  ")
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to marshal writable body: %w", err)
+		return fmt.Errorf("failed to marshal writable body: %w", err)
 	}
 
 	// Edit value
 	updatedBody, err := editor.EditValueWithEditor(editableOutput)
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to edit properties: %w", err)
+		return fmt.Errorf("failed to edit properties: %w", err)
 	}
 
-	return json.RawMessage(updatedBody), true, nil
-}
-
-func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte) error {
-	body, ok, err := prepareEditBody(cmd, path, url, cliParams, openapiSpec)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return nil
-	}
-
-	if err := httpLib.Client.Put(url, body, nil); err != nil {
+	// Update API call
+	if err := httpLib.Client.Put(url, json.RawMessage(updatedBody), nil); err != nil {
 		return fmt.Errorf("failed to update resource: %w", err)
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Resource updated successfully")
 
 	return nil
-}
-
-// EditResourceAndReturn behaves like EditResource but returns the resource as
-// sent back by the API and prints no message, letting the caller craft its own
-// output (for example to wait for an asynchronous resource to become ready).
-// The returned boolean is false when there was nothing to edit.
-func EditResourceAndReturn(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte) (map[string]any, bool, error) {
-	body, ok, err := prepareEditBody(cmd, path, url, cliParams, openapiSpec)
-	if err != nil {
-		return nil, false, err
-	}
-	if !ok {
-		return nil, false, nil
-	}
-
-	var updated map[string]any
-	if err := httpLib.Client.Put(url, body, &updated); err != nil {
-		return nil, false, fmt.Errorf("failed to update resource: %w", err)
-	}
-
-	return updated, true, nil
 }
