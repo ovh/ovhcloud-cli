@@ -1,6 +1,6 @@
 ## ovhcloud cdn-dedicated
 
-Retrieve information and manage your dedicated CDN services
+Manage Dedicated CDN (domains, cache)
 
 ### Options
 

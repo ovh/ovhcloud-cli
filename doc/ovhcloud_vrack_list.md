@@ -40,5 +40,5 @@ ovhcloud vrack list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud vrack](ovhcloud_vrack.md)	 - Retrieve information and manage your vRack services
+* [ovhcloud vrack](ovhcloud_vrack.md)	 - Manage vRack private networks
 

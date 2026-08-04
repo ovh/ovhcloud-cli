@@ -13,7 +13,7 @@ import (
 func init() {
 	veeamenterpriseCmd := &cobra.Command{
 		Use:   "veeamenterprise",
-		Short: "Retrieve information and manage your VeeamEnterprise services",
+		Short: "Manage Veeam Enterprise backups",
 	}
 
 	// Command to list VeeamEnterprise services

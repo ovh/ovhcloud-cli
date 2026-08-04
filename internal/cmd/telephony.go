@@ -13,7 +13,7 @@ import (
 func init() {
 	telephonyCmd := &cobra.Command{
 		Use:   "telephony",
-		Short: "Retrieve information and manage your Telephony services",
+		Short: "Manage Telephony (lines, billing accounts, numbers)",
 	}
 
 	// Command to list Telephony services

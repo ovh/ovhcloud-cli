@@ -1,6 +1,6 @@
 ## ovhcloud overthebox
 
-Retrieve information and manage your OverTheBox services
+Manage OverTheBox aggregated connectivity
 
 ### Options
 

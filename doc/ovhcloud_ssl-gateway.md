@@ -1,6 +1,6 @@
 ## ovhcloud ssl-gateway
 
-Retrieve information and manage your SSL Gateway services
+Manage SSL Gateway (managed HTTPS reverse proxy)
 
 ### Options
 

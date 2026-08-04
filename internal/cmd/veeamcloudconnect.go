@@ -13,7 +13,7 @@ import (
 func init() {
 	veeamcloudconnectCmd := &cobra.Command{
 		Use:   "veeamcloudconnect",
-		Short: "Retrieve information and manage your VeeamCloudConnect services",
+		Short: "Manage Veeam Cloud Connect backups",
 	}
 
 	// Command to list VeeamCloudConnect services

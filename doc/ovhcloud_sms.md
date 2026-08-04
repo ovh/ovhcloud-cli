@@ -1,6 +1,6 @@
 ## ovhcloud sms
 
-Retrieve information and manage your SMS services
+Send and manage SMS (messages, senders, users)
 
 ### Options
 

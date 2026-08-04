@@ -29,7 +29,7 @@ Manage disks of the given VPS
 
 ### SEE ALSO
 
-* [ovhcloud vps](ovhcloud_vps.md)	 - Retrieve information and manage your VPS services
+* [ovhcloud vps](ovhcloud_vps.md)	 - Manage Virtual Private Servers (reboot, reinstall, snapshots)
 * [ovhcloud vps disk edit](ovhcloud_vps_disk_edit.md)	 - Edit a specific disk of the given VPS
 * [ovhcloud vps disk get](ovhcloud_vps_disk_get.md)	 - Get information about a specific disk of the given VPS
 * [ovhcloud vps disk list](ovhcloud_vps_disk_list.md)	 - List disks of the given VPS

@@ -29,7 +29,7 @@ Manage email options
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting email-option get](ovhcloud_webhosting_email-option_get.md)	 - Get an email option
 * [ovhcloud webhosting email-option list](ovhcloud_webhosting_email-option_list.md)	 - List email options
 * [ovhcloud webhosting email-option service-info](ovhcloud_webhosting_email-option_service-info.md)	 - Get email option service info

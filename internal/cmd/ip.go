@@ -14,7 +14,7 @@ import (
 func init() {
 	ipCmd := &cobra.Command{
 		Use:   "ip",
-		Short: "Retrieve information and manage your IP services",
+		Short: "Manage IP addresses (failover, reverse DNS, firewall, mitigation)",
 	}
 
 	// Command to list Ip services

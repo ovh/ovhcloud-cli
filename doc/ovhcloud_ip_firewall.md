@@ -29,7 +29,7 @@ Manage firewall (Edge Firewall) on the given IP
 
 ### SEE ALSO
 
-* [ovhcloud ip](ovhcloud_ip.md)	 - Retrieve information and manage your IP services
+* [ovhcloud ip](ovhcloud_ip.md)	 - Manage IP addresses (failover, reverse DNS, firewall, mitigation)
 * [ovhcloud ip firewall add](ovhcloud_ip_firewall_add.md)	 - Add an IP to the firewall
 * [ovhcloud ip firewall delete](ovhcloud_ip_firewall_delete.md)	 - Remove IP and all rules from firewall
 * [ovhcloud ip firewall disable](ovhcloud_ip_firewall_disable.md)	 - Disable the firewall on the given IP

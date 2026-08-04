@@ -13,7 +13,7 @@ import (
 func init() {
 	cdndedicatedCmd := &cobra.Command{
 		Use:   "cdn-dedicated",
-		Short: "Retrieve information and manage your dedicated CDN services",
+		Short: "Manage Dedicated CDN (domains, cache)",
 	}
 
 	// Command to list CdnDedicated services

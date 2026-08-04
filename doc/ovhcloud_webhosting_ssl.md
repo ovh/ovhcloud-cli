@@ -29,7 +29,7 @@ Manage SSL
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting ssl create](ovhcloud_webhosting_ssl_create.md)	 - Create the free default SSL for an attached domain
 * [ovhcloud webhosting ssl delete](ovhcloud_webhosting_ssl_delete.md)	 - Delete SSL for an attached domain
 * [ovhcloud webhosting ssl domains](ovhcloud_webhosting_ssl_domains.md)	 - List SSL domains

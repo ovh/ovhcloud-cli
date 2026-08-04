@@ -37,5 +37,5 @@ ovhcloud cloud project change-contact [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Retrieve information and manage your CloudProject services
+* [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Manage your Public Cloud projects
 

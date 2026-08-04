@@ -33,5 +33,5 @@ ovhcloud baremetal get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
+* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Manage Bare Metal dedicated servers (reboot, reinstall, IPMI, network)
 

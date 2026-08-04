@@ -1,6 +1,6 @@
 ## ovhcloud vps
 
-Retrieve information and manage your VPS services
+Manage Virtual Private Servers (reboot, reinstall, snapshots)
 
 ### Options
 

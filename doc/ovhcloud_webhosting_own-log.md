@@ -29,7 +29,7 @@ Manage own logs
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting own-log get](ovhcloud_webhosting_own-log_get.md)	 - Get an own log entry
 * [ovhcloud webhosting own-log list](ovhcloud_webhosting_own-log_list.md)	 - List own logs
 * [ovhcloud webhosting own-log user](ovhcloud_webhosting_own-log_user.md)	 - Manage own log users

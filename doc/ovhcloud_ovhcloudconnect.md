@@ -1,6 +1,6 @@
 ## ovhcloud ovhcloudconnect
 
-Retrieve information and manage your OVHcloud Connect services
+Manage OVHcloud Connect private links
 
 ### Options
 

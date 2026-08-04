@@ -1,6 +1,6 @@
 ## ovhcloud veeamcloudconnect
 
-Retrieve information and manage your VeeamCloudConnect services
+Manage Veeam Cloud Connect backups
 
 ### Options
 

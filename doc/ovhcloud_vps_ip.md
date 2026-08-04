@@ -29,7 +29,7 @@ Manage IPs of the given VPS
 
 ### SEE ALSO
 
-* [ovhcloud vps](ovhcloud_vps.md)	 - Retrieve information and manage your VPS services
+* [ovhcloud vps](ovhcloud_vps.md)	 - Manage Virtual Private Servers (reboot, reinstall, snapshots)
 * [ovhcloud vps ip list](ovhcloud_vps_ip_list.md)	 - List IPs of the given VPS
 * [ovhcloud vps ip release](ovhcloud_vps_ip_release.md)	 - Release the given IP of the VPS
 * [ovhcloud vps ip set-reverse](ovhcloud_vps_ip_set-reverse.md)	 - Set reverse DNS for the given IP of the VPS

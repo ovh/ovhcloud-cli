@@ -40,5 +40,5 @@ ovhcloud iploadbalancing list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud iploadbalancing](ovhcloud_iploadbalancing.md)	 - Retrieve information and manage your IP LoadBalancing services
+* [ovhcloud iploadbalancing](ovhcloud_iploadbalancing.md)	 - Manage IP Load Balancing (farms, backends, routes)
 

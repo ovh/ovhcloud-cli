@@ -35,5 +35,5 @@ ovhcloud ip edit <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud ip](ovhcloud_ip.md)	 - Retrieve information and manage your IP services
+* [ovhcloud ip](ovhcloud_ip.md)	 - Manage IP addresses (failover, reverse DNS, firewall, mitigation)
 

@@ -33,5 +33,5 @@ ovhcloud email-pro get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud email-pro](ovhcloud_email-pro.md)	 - Retrieve information and manage your EmailPro services
+* [ovhcloud email-pro](ovhcloud_email-pro.md)	 - Manage Email Pro (accounts, aliases, domains)
 

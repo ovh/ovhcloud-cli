@@ -13,7 +13,7 @@ import (
 func init() {
 	vmwareclouddirectorbackupCmd := &cobra.Command{
 		Use:   "vmwareclouddirector-backup",
-		Short: "Retrieve information and manage your VMware Cloud Director Backup services",
+		Short: "Manage VMware Cloud Director backups",
 	}
 
 	// Command to list VmwareCloudDirectorBackup services

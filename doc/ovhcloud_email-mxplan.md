@@ -1,6 +1,6 @@
 ## ovhcloud email-mxplan
 
-Retrieve information and manage your Email MXPlan services
+Manage Email MX Plan (accounts, aliases, redirections)
 
 ### Options
 

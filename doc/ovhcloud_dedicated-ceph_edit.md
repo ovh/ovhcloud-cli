@@ -36,5 +36,5 @@ ovhcloud dedicated-ceph edit <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud dedicated-ceph](ovhcloud_dedicated-ceph.md)	 - Retrieve information and manage your Dedicated Ceph services
+* [ovhcloud dedicated-ceph](ovhcloud_dedicated-ceph.md)	 - Manage Dedicated Ceph clusters
 

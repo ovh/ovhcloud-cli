@@ -14,7 +14,7 @@ import (
 func init() {
 	supportticketsCmd := &cobra.Command{
 		Use:   "support-tickets",
-		Short: "Retrieve information and manage your support tickets",
+		Short: "Create and follow OVHcloud support tickets",
 	}
 
 	// Command to list tickets

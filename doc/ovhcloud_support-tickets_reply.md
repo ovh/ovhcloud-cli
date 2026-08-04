@@ -34,5 +34,5 @@ ovhcloud support-tickets reply <ticket_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud support-tickets](ovhcloud_support-tickets.md)	 - Retrieve information and manage your support tickets
+* [ovhcloud support-tickets](ovhcloud_support-tickets.md)	 - Create and follow OVHcloud support tickets
 

@@ -13,7 +13,7 @@ import (
 func init() {
 	dedicatedcephCmd := &cobra.Command{
 		Use:   "dedicated-ceph",
-		Short: "Retrieve information and manage your Dedicated Ceph services",
+		Short: "Manage Dedicated Ceph clusters",
 	}
 
 	// Command to list DedicatedCeph services

@@ -40,5 +40,5 @@ ovhcloud email-domain list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud email-domain](ovhcloud_email-domain.md)	 - Retrieve information and manage your Email Domain services
+* [ovhcloud email-domain](ovhcloud_email-domain.md)	 - Manage Email Domain (accounts, redirections, mailing lists)
 

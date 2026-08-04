@@ -13,7 +13,7 @@ import (
 func init() {
 	sslgatewayCmd := &cobra.Command{
 		Use:   "ssl-gateway",
-		Short: "Retrieve information and manage your SSL Gateway services",
+		Short: "Manage SSL Gateway (managed HTTPS reverse proxy)",
 	}
 
 	// Command to list SslGateway services

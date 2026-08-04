@@ -13,7 +13,7 @@ import (
 func init() {
 	packxdslCmd := &cobra.Command{
 		Use:   "pack-xdsl",
-		Short: "Retrieve information and manage your PackXDSL services",
+		Short: "Manage xDSL packs",
 	}
 
 	// Command to list PackXDSL services

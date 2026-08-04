@@ -40,5 +40,5 @@ ovhcloud hosting-private-database list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud hosting-private-database](ovhcloud_hosting-private-database.md)	 - Retrieve information and manage your HostingPrivateDatabase services
+* [ovhcloud hosting-private-database](ovhcloud_hosting-private-database.md)	 - Manage Web Hosting private SQL databases
 

@@ -13,7 +13,7 @@ import (
 func init() {
 	dedicatedcloudCmd := &cobra.Command{
 		Use:   "dedicated-cloud",
-		Short: "Retrieve information and manage your DedicatedCloud services",
+		Short: "Manage Hosted Private Cloud powered by VMware",
 	}
 
 	// Command to list DedicatedCloud services

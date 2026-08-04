@@ -33,5 +33,5 @@ ovhcloud overthebox get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud overthebox](ovhcloud_overthebox.md)	 - Retrieve information and manage your OverTheBox services
+* [ovhcloud overthebox](ovhcloud_overthebox.md)	 - Manage OverTheBox aggregated connectivity
 

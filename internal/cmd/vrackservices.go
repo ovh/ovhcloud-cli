@@ -13,7 +13,7 @@ import (
 func init() {
 	vrackservicesCmd := &cobra.Command{
 		Use:   "vrackservices",
-		Short: "Retrieve information and manage your vRackServices services",
+		Short: "Manage vRackServices resources",
 	}
 
 	// Command to list VrackServices services

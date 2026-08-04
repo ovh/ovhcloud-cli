@@ -30,7 +30,7 @@ Manage project termination lifecycle
 
 ### SEE ALSO
 
-* [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Retrieve information and manage your CloudProject services
+* [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Manage your Public Cloud projects
 * [ovhcloud cloud project termination cancel](ovhcloud_cloud_project_termination_cancel.md)	 - Cancel a project scheduled for termination
 * [ovhcloud cloud project termination confirm](ovhcloud_cloud_project_termination_confirm.md)	 - Confirm project termination with token
 * [ovhcloud cloud project termination init](ovhcloud_cloud_project_termination_init.md)	 - Initiate project termination

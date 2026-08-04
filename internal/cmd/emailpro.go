@@ -13,7 +13,7 @@ import (
 func init() {
 	emailproCmd := &cobra.Command{
 		Use:   "email-pro",
-		Short: "Retrieve information and manage your EmailPro services",
+		Short: "Manage Email Pro (accounts, aliases, domains)",
 	}
 
 	// Command to list EmailPro services

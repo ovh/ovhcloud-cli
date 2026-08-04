@@ -13,7 +13,7 @@ import (
 func init() {
 	okmsCmd := &cobra.Command{
 		Use:   "okms",
-		Short: "Retrieve information and manage your OKMS (Key Management Services)",
+		Short: "Manage Key Management Service (KMS) resources",
 	}
 
 	// Command to list Okms services

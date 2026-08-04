@@ -13,7 +13,7 @@ import (
 func init() {
 	nutanixCmd := &cobra.Command{
 		Use:   "nutanix",
-		Short: "Retrieve information and manage your Nutanix services",
+		Short: "Manage Nutanix on dedicated servers",
 	}
 
 	// Command to list Nutanix services

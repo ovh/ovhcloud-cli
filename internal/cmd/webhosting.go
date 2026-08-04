@@ -18,7 +18,7 @@ import (
 func init() {
 	webhostingCmd := &cobra.Command{
 		Use:   "webhosting",
-		Short: "Retrieve information and manage your WebHosting services",
+		Short: "Manage Web Hosting (databases, cron, SSL, env vars, logs)",
 	}
 
 	// Command to list WebHosting services

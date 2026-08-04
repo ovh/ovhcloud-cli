@@ -40,5 +40,5 @@ ovhcloud veeamcloudconnect list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud veeamcloudconnect](ovhcloud_veeamcloudconnect.md)	 - Retrieve information and manage your VeeamCloudConnect services
+* [ovhcloud veeamcloudconnect](ovhcloud_veeamcloudconnect.md)	 - Manage Veeam Cloud Connect backups
 

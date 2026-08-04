@@ -33,5 +33,5 @@ ovhcloud telephony get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud telephony](ovhcloud_telephony.md)	 - Retrieve information and manage your Telephony services
+* [ovhcloud telephony](ovhcloud_telephony.md)	 - Manage Telephony (lines, billing accounts, numbers)
 

@@ -29,7 +29,7 @@ Manage attached domains
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting domain add](ovhcloud_webhosting_domain_add.md)	 - Attach a domain
 * [ovhcloud webhosting domain available-offer](ovhcloud_webhosting_domain_available-offer.md)	 - List hosting offers available for a domain
 * [ovhcloud webhosting domain delete](ovhcloud_webhosting_domain_delete.md)	 - Delete an attached domain

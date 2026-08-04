@@ -29,6 +29,6 @@ Manage images of the given VPS
 
 ### SEE ALSO
 
-* [ovhcloud vps](ovhcloud_vps.md)	 - Retrieve information and manage your VPS services
+* [ovhcloud vps](ovhcloud_vps.md)	 - Manage Virtual Private Servers (reboot, reinstall, snapshots)
 * [ovhcloud vps image list](ovhcloud_vps_image_list.md)	 - List images of the given VPS
 

@@ -1,6 +1,6 @@
 ## ovhcloud okms
 
-Retrieve information and manage your OKMS (Key Management Services)
+Manage Key Management Service (KMS) resources
 
 ### Options
 

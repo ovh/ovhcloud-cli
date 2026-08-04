@@ -1,6 +1,6 @@
 ## ovhcloud dedicated-ceph
 
-Retrieve information and manage your Dedicated Ceph services
+Manage Dedicated Ceph clusters
 
 ### Options
 

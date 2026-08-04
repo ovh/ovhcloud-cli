@@ -33,5 +33,5 @@ ovhcloud vrackservices get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud vrackservices](ovhcloud_vrackservices.md)	 - Retrieve information and manage your vRackServices services
+* [ovhcloud vrackservices](ovhcloud_vrackservices.md)	 - Manage vRackServices resources
 

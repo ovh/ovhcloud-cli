@@ -29,7 +29,7 @@ Manage .ovhconfig settings
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting ovh-config capabilities](ovhcloud_webhosting_ovh-config_capabilities.md)	 - List available versions and containers
 * [ovhcloud webhosting ovh-config change](ovhcloud_webhosting_ovh-config_change.md)	 - Change a .ovhconfig entry
 * [ovhcloud webhosting ovh-config get](ovhcloud_webhosting_ovh-config_get.md)	 - Get a .ovhconfig entry

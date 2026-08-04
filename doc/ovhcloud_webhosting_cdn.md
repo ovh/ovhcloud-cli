@@ -29,7 +29,7 @@ Manage CDN
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting cdn available-options](ovhcloud_webhosting_cdn_available-options.md)	 - List available CDN options
 * [ovhcloud webhosting cdn domain](ovhcloud_webhosting_cdn_domain.md)	 - Manage CDN domains
 * [ovhcloud webhosting cdn get](ovhcloud_webhosting_cdn_get.md)	 - Get CDN info

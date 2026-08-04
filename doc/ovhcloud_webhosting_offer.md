@@ -29,7 +29,7 @@ Inspect hosting offers
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting offer capabilities](ovhcloud_webhosting_offer_capabilities.md)	 - Get offer capabilities
 * [ovhcloud webhosting offer vcs-supported](ovhcloud_webhosting_offer_vcs-supported.md)	 - List supported VCS platforms
 

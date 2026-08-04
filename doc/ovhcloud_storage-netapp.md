@@ -1,6 +1,6 @@
 ## ovhcloud storage-netapp
 
-Retrieve information and manage your Storage NetApp services
+Manage Storage NetApp (ONTAP shares)
 
 ### Options
 

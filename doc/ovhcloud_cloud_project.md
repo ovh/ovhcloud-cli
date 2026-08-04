@@ -1,6 +1,6 @@
 ## ovhcloud cloud project
 
-Retrieve information and manage your CloudProject services
+Manage your Public Cloud projects
 
 ### Options
 

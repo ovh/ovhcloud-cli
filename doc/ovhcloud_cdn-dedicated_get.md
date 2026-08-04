@@ -33,5 +33,5 @@ ovhcloud cdn-dedicated get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cdn-dedicated](ovhcloud_cdn-dedicated.md)	 - Retrieve information and manage your dedicated CDN services
+* [ovhcloud cdn-dedicated](ovhcloud_cdn-dedicated.md)	 - Manage Dedicated CDN (domains, cache)
 

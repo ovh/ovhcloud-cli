@@ -40,5 +40,5 @@ ovhcloud domain-zone record list <zone_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Retrieve information and manage your DNS records within a zone
+* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Manage DNS records within a zone
 

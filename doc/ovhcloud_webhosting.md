@@ -1,6 +1,6 @@
 ## ovhcloud webhosting
 
-Retrieve information and manage your WebHosting services
+Manage Web Hosting (databases, cron, SSL, env vars, logs)
 
 ### Options
 

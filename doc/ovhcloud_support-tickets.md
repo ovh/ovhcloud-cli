@@ -1,6 +1,6 @@
 ## ovhcloud support-tickets
 
-Retrieve information and manage your support tickets
+Create and follow OVHcloud support tickets
 
 ### Options
 

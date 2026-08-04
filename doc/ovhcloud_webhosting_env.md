@@ -29,7 +29,7 @@ Manage environment variables
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting env create](ovhcloud_webhosting_env_create.md)	 - Create an env var
 * [ovhcloud webhosting env delete](ovhcloud_webhosting_env_delete.md)	 - Delete an env var
 * [ovhcloud webhosting env get](ovhcloud_webhosting_env_get.md)	 - Get an env var

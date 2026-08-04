@@ -1,6 +1,6 @@
 ## ovhcloud email-pro
 
-Retrieve information and manage your EmailPro services
+Manage Email Pro (accounts, aliases, domains)
 
 ### Options
 

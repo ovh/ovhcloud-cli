@@ -1,6 +1,6 @@
 ## ovhcloud dedicated-nasha
 
-Retrieve information and manage your Dedicated NasHA services
+Manage Dedicated NAS-HA (partitions, snapshots, access)
 
 ### Options
 

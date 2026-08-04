@@ -1,6 +1,6 @@
 ## ovhcloud pack-xdsl
 
-Retrieve information and manage your PackXDSL services
+Manage xDSL packs
 
 ### Options
 

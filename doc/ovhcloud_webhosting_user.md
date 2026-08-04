@@ -33,7 +33,7 @@ Create and manage the FTP/SSH users allowed to access your web hosting space.
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting user change-password](ovhcloud_webhosting_user_change-password.md)	 - Change FTP/SSH user password
 * [ovhcloud webhosting user create](ovhcloud_webhosting_user_create.md)	 - Create a FTP/SSH user
 * [ovhcloud webhosting user delete](ovhcloud_webhosting_user_delete.md)	 - Delete a FTP/SSH user

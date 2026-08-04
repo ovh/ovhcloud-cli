@@ -40,5 +40,5 @@ ovhcloud xdsl list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud xdsl](ovhcloud_xdsl.md)	 - Retrieve information and manage your XDSL services
+* [ovhcloud xdsl](ovhcloud_xdsl.md)	 - Manage xDSL access (lines, modems, diagnostics)
 

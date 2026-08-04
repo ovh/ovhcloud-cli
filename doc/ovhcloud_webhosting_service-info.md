@@ -29,7 +29,7 @@ Manage webhosting service info
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting service-info get](ovhcloud_webhosting_service-info_get.md)	 - Get service information
 * [ovhcloud webhosting service-info update](ovhcloud_webhosting_service-info_update.md)	 - Update service information
 

@@ -13,7 +13,7 @@ import (
 func init() {
 	emailmxplanCmd := &cobra.Command{
 		Use:   "email-mxplan",
-		Short: "Retrieve information and manage your Email MXPlan services",
+		Short: "Manage Email MX Plan (accounts, aliases, redirections)",
 	}
 
 	// Command to list EmailMXPlan services

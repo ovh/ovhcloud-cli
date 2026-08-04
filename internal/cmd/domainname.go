@@ -13,7 +13,7 @@ import (
 func init() {
 	domainnameCmd := &cobra.Command{
 		Use:   "domain-name",
-		Short: "Retrieve information and manage your domain names",
+		Short: "Manage domain names (name servers, contacts, DNSSEC, glue records)",
 	}
 
 	// Command to list DomainName services

@@ -40,5 +40,5 @@ ovhcloud telephony list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud telephony](ovhcloud_telephony.md)	 - Retrieve information and manage your Telephony services
+* [ovhcloud telephony](ovhcloud_telephony.md)	 - Manage Telephony (lines, billing accounts, numbers)
 

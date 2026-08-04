@@ -13,7 +13,7 @@ import (
 func init() {
 	sslCmd := &cobra.Command{
 		Use:   "ssl",
-		Short: "Retrieve information and manage your SSL services",
+		Short: "Manage SSL certificates",
 	}
 
 	// Command to list Ssl services

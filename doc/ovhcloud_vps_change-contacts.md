@@ -36,5 +36,5 @@ ovhcloud vps change-contacts <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud vps](ovhcloud_vps.md)	 - Retrieve information and manage your VPS services
+* [ovhcloud vps](ovhcloud_vps.md)	 - Manage Virtual Private Servers (reboot, reinstall, snapshots)
 

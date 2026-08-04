@@ -29,7 +29,7 @@ Manage runtimes
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting runtime available-types](ovhcloud_webhosting_runtime_available-types.md)	 - List available runtime backend types
 * [ovhcloud webhosting runtime create](ovhcloud_webhosting_runtime_create.md)	 - Create a runtime
 * [ovhcloud webhosting runtime delete](ovhcloud_webhosting_runtime_delete.md)	 - Delete a runtime

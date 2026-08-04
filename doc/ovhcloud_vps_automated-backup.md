@@ -29,7 +29,7 @@ Manage VPS automated backups
 
 ### SEE ALSO
 
-* [ovhcloud vps](ovhcloud_vps.md)	 - Retrieve information and manage your VPS services
+* [ovhcloud vps](ovhcloud_vps.md)	 - Manage Virtual Private Servers (reboot, reinstall, snapshots)
 * [ovhcloud vps automated-backup get-config](ovhcloud_vps_automated-backup_get-config.md)	 - Retrieve automated backup configuration of the given VPS
 * [ovhcloud vps automated-backup list](ovhcloud_vps_automated-backup_list.md)	 - List all automated backups of the given VPS
 * [ovhcloud vps automated-backup list-restore-points](ovhcloud_vps_automated-backup_list-restore-points.md)	 - List all restore points of the given VPS

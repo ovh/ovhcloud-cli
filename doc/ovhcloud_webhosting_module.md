@@ -29,7 +29,7 @@ Manage one-click modules
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting module catalog](ovhcloud_webhosting_module_catalog.md)	 - Browse available one-click modules
 * [ovhcloud webhosting module delete](ovhcloud_webhosting_module_delete.md)	 - Delete a module
 * [ovhcloud webhosting module get](ovhcloud_webhosting_module_get.md)	 - Get a module

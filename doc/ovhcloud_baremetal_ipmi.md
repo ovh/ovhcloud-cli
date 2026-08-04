@@ -29,7 +29,7 @@ Manage IPMI on your baremetal
 
 ### SEE ALSO
 
-* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
+* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Manage Bare Metal dedicated servers (reboot, reinstall, IPMI, network)
 * [ovhcloud baremetal ipmi get-access](ovhcloud_baremetal_ipmi_get-access.md)	 - Request an acces on KVM IPMI interface
 * [ovhcloud baremetal ipmi reset-sessions](ovhcloud_baremetal_ipmi_reset-sessions.md)	 - Reset IPMI sessions on a baremetal server
 

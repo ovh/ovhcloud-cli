@@ -1,6 +1,6 @@
 ## ovhcloud email-domain
 
-Retrieve information and manage your Email Domain services
+Manage Email Domain (accounts, redirections, mailing lists)
 
 ### Options
 

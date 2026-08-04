@@ -19,7 +19,7 @@ import (
 func init() {
 	vpsCmd := &cobra.Command{
 		Use:   "vps",
-		Short: "Retrieve information and manage your VPS services",
+		Short: "Manage Virtual Private Servers (reboot, reinstall, snapshots)",
 	}
 
 	// Command to list VPS services

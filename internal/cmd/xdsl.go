@@ -15,7 +15,7 @@ import (
 func init() {
 	xdslCmd := &cobra.Command{
 		Use:   "xdsl",
-		Short: "Retrieve information and manage your XDSL services",
+		Short: "Manage xDSL access (lines, modems, diagnostics)",
 	}
 
 	// Command to list Xdsl services

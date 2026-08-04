@@ -29,7 +29,7 @@ Manage websites deployments
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting website create](ovhcloud_webhosting_website_create.md)	 - Create a website
 * [ovhcloud webhosting website creation-capabilities](ovhcloud_webhosting_website_creation-capabilities.md)	 - Show website creation capabilities
 * [ovhcloud webhosting website delete](ovhcloud_webhosting_website_delete.md)	 - Delete a website

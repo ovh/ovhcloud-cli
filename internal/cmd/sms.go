@@ -13,7 +13,7 @@ import (
 func init() {
 	smsCmd := &cobra.Command{
 		Use:   "sms",
-		Short: "Retrieve information and manage your SMS services",
+		Short: "Send and manage SMS (messages, senders, users)",
 	}
 
 	// Command to list Sms services

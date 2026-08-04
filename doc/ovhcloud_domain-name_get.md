@@ -33,5 +33,5 @@ ovhcloud domain-name get <domain_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud domain-name](ovhcloud_domain-name.md)	 - Retrieve information and manage your domain names
+* [ovhcloud domain-name](ovhcloud_domain-name.md)	 - Manage domain names (name servers, contacts, DNSSEC, glue records)
 

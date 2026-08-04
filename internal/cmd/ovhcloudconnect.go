@@ -13,7 +13,7 @@ import (
 func init() {
 	ovhcloudconnectCmd := &cobra.Command{
 		Use:   "ovhcloudconnect",
-		Short: "Retrieve information and manage your OVHcloud Connect services",
+		Short: "Manage OVHcloud Connect private links",
 	}
 
 	// Command to list OvhCloudConnect services

@@ -1,6 +1,6 @@
 ## ovhcloud ssl
 
-Retrieve information and manage your SSL services
+Manage SSL certificates
 
 ### Options
 

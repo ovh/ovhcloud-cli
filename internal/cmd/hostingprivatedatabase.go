@@ -13,7 +13,7 @@ import (
 func init() {
 	hostingprivatedatabaseCmd := &cobra.Command{
 		Use:   "hosting-private-database",
-		Short: "Retrieve information and manage your HostingPrivateDatabase services",
+		Short: "Manage Web Hosting private SQL databases",
 	}
 
 	// Command to list HostingPrivateDatabase services

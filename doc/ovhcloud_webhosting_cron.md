@@ -29,7 +29,7 @@ Manage cron tasks
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting cron available-languages](ovhcloud_webhosting_cron_available-languages.md)	 - List available cron languages
 * [ovhcloud webhosting cron create](ovhcloud_webhosting_cron_create.md)	 - Create a cron task
 * [ovhcloud webhosting cron delete](ovhcloud_webhosting_cron_delete.md)	 - Delete a cron task

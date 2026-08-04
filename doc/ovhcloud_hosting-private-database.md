@@ -1,6 +1,6 @@
 ## ovhcloud hosting-private-database
 
-Retrieve information and manage your HostingPrivateDatabase services
+Manage Web Hosting private SQL databases
 
 ### Options
 

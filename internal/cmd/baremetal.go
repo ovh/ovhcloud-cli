@@ -15,7 +15,7 @@ import (
 func init() {
 	baremetalCmd := &cobra.Command{
 		Use:   "baremetal",
-		Short: "Retrieve information and manage your Bare Metal services",
+		Short: "Manage Bare Metal dedicated servers (reboot, reinstall, IPMI, network)",
 	}
 
 	// Command to list Baremetal services

@@ -13,14 +13,14 @@ import (
 func init() {
 	locationCmd := &cobra.Command{
 		Use:   "location",
-		Short: "Retrieve information and manage your Location services",
+		Short: "Browse OVHcloud locations (datacenters and regions)",
 	}
 
 	// Command to list Location services
 	locationListCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List your Location services",
+		Short:   "List OVHcloud locations",
 		Run:     location.ListLocation,
 	}
 	locationCmd.AddCommand(withFilterFlag(locationListCmd))
@@ -28,7 +28,7 @@ func init() {
 	// Command to get a single Location
 	locationCmd.AddCommand(&cobra.Command{
 		Use:               "get <location_name>",
-		Short:             "Retrieve information of a specific Location",
+		Short:             "Get details of a specific OVHcloud location",
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.ServiceList("/v2/location"),
 		Run:               location.GetLocation,

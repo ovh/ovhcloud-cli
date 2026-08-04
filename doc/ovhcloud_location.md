@@ -1,6 +1,6 @@
 ## ovhcloud location
 
-Retrieve information and manage your Location services
+Browse OVHcloud locations (datacenters and regions)
 
 ### Options
 
@@ -30,6 +30,6 @@ Retrieve information and manage your Location services
 ### SEE ALSO
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud location get](ovhcloud_location_get.md)	 - Retrieve information of a specific Location
-* [ovhcloud location list](ovhcloud_location_list.md)	 - List your Location services
+* [ovhcloud location get](ovhcloud_location_get.md)	 - Get details of a specific OVHcloud location
+* [ovhcloud location list](ovhcloud_location_list.md)	 - List OVHcloud locations
 

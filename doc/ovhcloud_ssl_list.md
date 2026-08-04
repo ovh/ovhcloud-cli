@@ -40,5 +40,5 @@ ovhcloud ssl list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud ssl](ovhcloud_ssl.md)	 - Retrieve information and manage your SSL services
+* [ovhcloud ssl](ovhcloud_ssl.md)	 - Manage SSL certificates
 

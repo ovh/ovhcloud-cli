@@ -13,7 +13,7 @@ import (
 func init() {
 	storagenetappCmd := &cobra.Command{
 		Use:   "storage-netapp",
-		Short: "Retrieve information and manage your Storage NetApp services",
+		Short: "Manage Storage NetApp (ONTAP shares)",
 	}
 
 	// Command to list StorageNetApp services

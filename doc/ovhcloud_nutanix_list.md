@@ -40,5 +40,5 @@ ovhcloud nutanix list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud nutanix](ovhcloud_nutanix.md)	 - Retrieve information and manage your Nutanix services
+* [ovhcloud nutanix](ovhcloud_nutanix.md)	 - Manage Nutanix on dedicated servers
 

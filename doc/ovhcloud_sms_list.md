@@ -40,5 +40,5 @@ ovhcloud sms list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud sms](ovhcloud_sms.md)	 - Retrieve information and manage your SMS services
+* [ovhcloud sms](ovhcloud_sms.md)	 - Send and manage SMS (messages, senders, users)
 

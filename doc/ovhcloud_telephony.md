@@ -1,6 +1,6 @@
 ## ovhcloud telephony
 
-Retrieve information and manage your Telephony services
+Manage Telephony (lines, billing accounts, numbers)
 
 ### Options
 

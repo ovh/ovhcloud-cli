@@ -40,5 +40,5 @@ ovhcloud dedicated-cloud list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud dedicated-cloud](ovhcloud_dedicated-cloud.md)	 - Retrieve information and manage your DedicatedCloud services
+* [ovhcloud dedicated-cloud](ovhcloud_dedicated-cloud.md)	 - Manage Hosted Private Cloud powered by VMware
 

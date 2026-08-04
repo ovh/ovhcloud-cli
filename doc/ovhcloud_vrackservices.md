@@ -1,6 +1,6 @@
 ## ovhcloud vrackservices
 
-Retrieve information and manage your vRackServices services
+Manage vRackServices resources
 
 ### Options
 

@@ -1,6 +1,6 @@
 ## ovhcloud ldp
 
-Retrieve information and manage your LDP (Logs Data Platform) services
+Manage Logs Data Platform (streams, dashboards, inputs)
 
 ### Options
 

@@ -33,5 +33,5 @@ ovhcloud email-mxplan get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud email-mxplan](ovhcloud_email-mxplan.md)	 - Retrieve information and manage your Email MXPlan services
+* [ovhcloud email-mxplan](ovhcloud_email-mxplan.md)	 - Manage Email MX Plan (accounts, aliases, redirections)
 

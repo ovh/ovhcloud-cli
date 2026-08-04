@@ -29,7 +29,7 @@ Manage Local SEO features
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting local-seo account](ovhcloud_webhosting_local-seo_account.md)	 - Manage Local SEO accounts
 * [ovhcloud webhosting local-seo directories](ovhcloud_webhosting_local-seo_directories.md)	 - List directories available for a country and offer
 * [ovhcloud webhosting local-seo email-availability](ovhcloud_webhosting_local-seo_email-availability.md)	 - Check if an email can be used for Local SEO

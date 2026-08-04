@@ -29,7 +29,7 @@ Manage tasks
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting tasks get](ovhcloud_webhosting_tasks_get.md)	 - Get a task
 * [ovhcloud webhosting tasks list](ovhcloud_webhosting_tasks_list.md)	 - List tasks
 

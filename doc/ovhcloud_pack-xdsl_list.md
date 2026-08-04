@@ -40,5 +40,5 @@ ovhcloud pack-xdsl list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud pack-xdsl](ovhcloud_pack-xdsl.md)	 - Retrieve information and manage your PackXDSL services
+* [ovhcloud pack-xdsl](ovhcloud_pack-xdsl.md)	 - Manage xDSL packs
 

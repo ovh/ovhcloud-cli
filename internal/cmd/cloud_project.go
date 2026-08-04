@@ -18,7 +18,7 @@ func init() {
 
 	cloudprojectCmd := &cobra.Command{
 		Use:   "project",
-		Short: "Retrieve information and manage your CloudProject services",
+		Short: "Manage your Public Cloud projects",
 	}
 	cloudprojectCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 

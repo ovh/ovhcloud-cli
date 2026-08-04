@@ -14,7 +14,7 @@ import (
 func init() {
 	domainzoneCmd := &cobra.Command{
 		Use:   "domain-zone",
-		Short: "Retrieve information and manage your domain zones",
+		Short: "Manage DNS zones",
 	}
 
 	// Command to list DomainZone services
@@ -45,7 +45,7 @@ func init() {
 
 	domainZoneRecordCmd := &cobra.Command{
 		Use:   "record",
-		Short: "Retrieve information and manage your DNS records within a zone",
+		Short: "Manage DNS records within a zone",
 	}
 	domainzoneCmd.AddCommand(domainZoneRecordCmd)
 

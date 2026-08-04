@@ -1,6 +1,6 @@
 ## ovhcloud domain-zone record
 
-Retrieve information and manage your DNS records within a zone
+Manage DNS records within a zone
 
 ### Options
 
@@ -29,7 +29,7 @@ Retrieve information and manage your DNS records within a zone
 
 ### SEE ALSO
 
-* [ovhcloud domain-zone](ovhcloud_domain-zone.md)	 - Retrieve information and manage your domain zones
+* [ovhcloud domain-zone](ovhcloud_domain-zone.md)	 - Manage DNS zones
 * [ovhcloud domain-zone record create](ovhcloud_domain-zone_record_create.md)	 - Create a single DNS record in your zone
 * [ovhcloud domain-zone record delete](ovhcloud_domain-zone_record_delete.md)	 - Delete a single DNS record from your zone
 * [ovhcloud domain-zone record get](ovhcloud_domain-zone_record_get.md)	 - Get a single DNS record from your zone

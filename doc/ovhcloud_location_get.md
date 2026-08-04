@@ -1,6 +1,6 @@
 ## ovhcloud location get
 
-Retrieve information of a specific Location
+Get details of a specific OVHcloud location
 
 ```
 ovhcloud location get <location_name> [flags]
@@ -33,5 +33,5 @@ ovhcloud location get <location_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud location](ovhcloud_location.md)	 - Retrieve information and manage your Location services
+* [ovhcloud location](ovhcloud_location.md)	 - Browse OVHcloud locations (datacenters and regions)
 

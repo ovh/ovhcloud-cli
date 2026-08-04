@@ -1,6 +1,6 @@
 ## ovhcloud location list
 
-List your Location services
+List OVHcloud locations
 
 ```
 ovhcloud location list [flags]
@@ -40,5 +40,5 @@ ovhcloud location list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud location](ovhcloud_location.md)	 - Retrieve information and manage your Location services
+* [ovhcloud location](ovhcloud_location.md)	 - Browse OVHcloud locations (datacenters and regions)
 

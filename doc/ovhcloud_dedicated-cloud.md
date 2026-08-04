@@ -1,6 +1,6 @@
 ## ovhcloud dedicated-cloud
 
-Retrieve information and manage your DedicatedCloud services
+Manage Hosted Private Cloud powered by VMware
 
 ### Options
 

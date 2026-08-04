@@ -33,5 +33,5 @@ ovhcloud domain-zone get <zone_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud domain-zone](ovhcloud_domain-zone.md)	 - Retrieve information and manage your domain zones
+* [ovhcloud domain-zone](ovhcloud_domain-zone.md)	 - Manage DNS zones
 

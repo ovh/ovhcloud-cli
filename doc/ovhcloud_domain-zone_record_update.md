@@ -40,5 +40,5 @@ ovhcloud domain-zone record update <zone_name> <record_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Retrieve information and manage your DNS records within a zone
+* [ovhcloud domain-zone record](ovhcloud_domain-zone_record.md)	 - Manage DNS records within a zone
 

@@ -29,7 +29,7 @@ Manage Virtual Network Interfaces of the given baremetal
 
 ### SEE ALSO
 
-* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
+* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Manage Bare Metal dedicated servers (reboot, reinstall, IPMI, network)
 * [ovhcloud baremetal vni list](ovhcloud_baremetal_vni_list.md)	 - List Virtual Network Interfaces of the given baremetal
 * [ovhcloud baremetal vni ola-create-aggregation](ovhcloud_baremetal_vni_ola-create-aggregation.md)	 - Group interfaces into an aggregation
 * [ovhcloud baremetal vni ola-reset](ovhcloud_baremetal_vni_ola-reset.md)	 - Reset interfaces to default configuration

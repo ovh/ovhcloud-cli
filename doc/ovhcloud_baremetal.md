@@ -1,6 +1,6 @@
 ## ovhcloud baremetal
 
-Retrieve information and manage your Bare Metal services
+Manage Bare Metal dedicated servers (reboot, reinstall, IPMI, network)
 
 ### Options
 

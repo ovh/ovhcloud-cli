@@ -14,7 +14,7 @@ import (
 func init() {
 	emaildomainCmd := &cobra.Command{
 		Use:   "email-domain",
-		Short: "Retrieve information and manage your Email Domain services",
+		Short: "Manage Email Domain (accounts, redirections, mailing lists)",
 	}
 
 	// Command to list EmailDomain services

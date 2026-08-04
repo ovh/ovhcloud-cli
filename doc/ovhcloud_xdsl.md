@@ -1,6 +1,6 @@
 ## ovhcloud xdsl
 
-Retrieve information and manage your XDSL services
+Manage xDSL access (lines, modems, diagnostics)
 
 ### Options
 

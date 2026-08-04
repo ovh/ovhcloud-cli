@@ -13,7 +13,7 @@ import (
 func init() {
 	dedicatednashaCmd := &cobra.Command{
 		Use:   "dedicated-nasha",
-		Short: "Retrieve information and manage your Dedicated NasHA services",
+		Short: "Manage Dedicated NAS-HA (partitions, snapshots, access)",
 	}
 
 	// Command to list DedicatedNasHA services

@@ -29,7 +29,7 @@ Manage automated emails
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting email bounces](ovhcloud_webhosting_email_bounces.md)	 - List recent email bounces
 * [ovhcloud webhosting email info](ovhcloud_webhosting_email_info.md)	 - Get email sending settings
 * [ovhcloud webhosting email request-action](ovhcloud_webhosting_email_request-action.md)	 - Request an email action

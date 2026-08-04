@@ -13,7 +13,7 @@ import (
 func init() {
 	overtheboxCmd := &cobra.Command{
 		Use:   "overthebox",
-		Short: "Retrieve information and manage your OverTheBox services",
+		Short: "Manage OverTheBox aggregated connectivity",
 	}
 
 	// Command to list OverTheBox services

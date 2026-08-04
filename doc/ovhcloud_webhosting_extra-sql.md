@@ -29,7 +29,7 @@ Manage extra SQL options
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting extra-sql databases](ovhcloud_webhosting_extra-sql_databases.md)	 - List databases linked to an extra SQL option
 * [ovhcloud webhosting extra-sql get](ovhcloud_webhosting_extra-sql_get.md)	 - Get an extra SQL option
 * [ovhcloud webhosting extra-sql list](ovhcloud_webhosting_extra-sql_list.md)	 - List extra SQL options

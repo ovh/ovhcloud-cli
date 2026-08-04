@@ -1,6 +1,6 @@
 ## ovhcloud vrack
 
-Retrieve information and manage your vRack services
+Manage vRack private networks
 
 ### Options
 

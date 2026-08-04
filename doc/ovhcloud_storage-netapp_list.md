@@ -40,5 +40,5 @@ ovhcloud storage-netapp list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud storage-netapp](ovhcloud_storage-netapp.md)	 - Retrieve information and manage your Storage NetApp services
+* [ovhcloud storage-netapp](ovhcloud_storage-netapp.md)	 - Manage Storage NetApp (ONTAP shares)
 

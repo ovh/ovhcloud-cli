@@ -34,5 +34,5 @@ ovhcloud cloud project get <project_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Retrieve information and manage your CloudProject services
+* [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Manage your Public Cloud projects
 

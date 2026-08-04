@@ -29,7 +29,7 @@ Manage VPS snapshots
 
 ### SEE ALSO
 
-* [ovhcloud vps](ovhcloud_vps.md)	 - Retrieve information and manage your VPS services
+* [ovhcloud vps](ovhcloud_vps.md)	 - Manage Virtual Private Servers (reboot, reinstall, snapshots)
 * [ovhcloud vps snapshot abort](ovhcloud_vps_snapshot_abort.md)	 - Abort the creation of a VPS snapshot
 * [ovhcloud vps snapshot create](ovhcloud_vps_snapshot_create.md)	 - Create a snapshot of the given VPS
 * [ovhcloud vps snapshot delete](ovhcloud_vps_snapshot_delete.md)	 - Delete the given VPS snapshot

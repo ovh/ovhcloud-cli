@@ -33,5 +33,5 @@ ovhcloud dedicated-nasha get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud dedicated-nasha](ovhcloud_dedicated-nasha.md)	 - Retrieve information and manage your Dedicated NasHA services
+* [ovhcloud dedicated-nasha](ovhcloud_dedicated-nasha.md)	 - Manage Dedicated NAS-HA (partitions, snapshots, access)
 

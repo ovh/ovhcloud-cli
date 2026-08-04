@@ -1,6 +1,6 @@
 ## ovhcloud veeamenterprise
 
-Retrieve information and manage your VeeamEnterprise services
+Manage Veeam Enterprise backups
 
 ### Options
 

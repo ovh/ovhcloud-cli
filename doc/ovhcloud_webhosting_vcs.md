@@ -29,6 +29,6 @@ Manage VCS integrations
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting vcs webhooks](ovhcloud_webhosting_vcs_webhooks.md)	 - Get VCS webhook URLs
 

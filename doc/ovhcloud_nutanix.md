@@ -1,6 +1,6 @@
 ## ovhcloud nutanix
 
-Retrieve information and manage your Nutanix services
+Manage Nutanix on dedicated servers
 
 ### Options
 

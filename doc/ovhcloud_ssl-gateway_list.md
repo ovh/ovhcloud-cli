@@ -40,5 +40,5 @@ ovhcloud ssl-gateway list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud ssl-gateway](ovhcloud_ssl-gateway.md)	 - Retrieve information and manage your SSL Gateway services
+* [ovhcloud ssl-gateway](ovhcloud_ssl-gateway.md)	 - Manage SSL Gateway (managed HTTPS reverse proxy)
 

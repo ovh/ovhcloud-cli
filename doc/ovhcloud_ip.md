@@ -1,6 +1,6 @@
 ## ovhcloud ip
 
-Retrieve information and manage your IP services
+Manage IP addresses (failover, reverse DNS, firewall, mitigation)
 
 ### Options
 

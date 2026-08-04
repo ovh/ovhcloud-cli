@@ -33,5 +33,5 @@ ovhcloud veeamenterprise get <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud veeamenterprise](ovhcloud_veeamenterprise.md)	 - Retrieve information and manage your VeeamEnterprise services
+* [ovhcloud veeamenterprise](ovhcloud_veeamenterprise.md)	 - Manage Veeam Enterprise backups
 

@@ -29,7 +29,7 @@ Manage email redirections for your domain
 
 ### SEE ALSO
 
-* [ovhcloud email-domain](ovhcloud_email-domain.md)	 - Retrieve information and manage your Email Domain services
+* [ovhcloud email-domain](ovhcloud_email-domain.md)	 - Manage Email Domain (accounts, redirections, mailing lists)
 * [ovhcloud email-domain redirection create](ovhcloud_email-domain_redirection_create.md)	 - Create a new email redirection
 * [ovhcloud email-domain redirection delete](ovhcloud_email-domain_redirection_delete.md)	 - Delete an email redirection
 * [ovhcloud email-domain redirection get](ovhcloud_email-domain_redirection_get.md)	 - Get details of a specific email redirection

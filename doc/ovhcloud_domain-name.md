@@ -1,6 +1,6 @@
 ## ovhcloud domain-name
 
-Retrieve information and manage your domain names
+Manage domain names (name servers, contacts, DNSSEC, glue records)
 
 ### Options
 

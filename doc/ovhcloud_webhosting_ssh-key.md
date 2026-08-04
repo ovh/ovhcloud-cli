@@ -29,7 +29,7 @@ Manage SSH keys
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting ssh-key create](ovhcloud_webhosting_ssh-key_create.md)	 - Generate a new SSH key pair
 * [ovhcloud webhosting ssh-key get](ovhcloud_webhosting_ssh-key_get.md)	 - Get the SSH public key
 

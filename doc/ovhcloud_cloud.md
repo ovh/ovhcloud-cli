@@ -42,7 +42,7 @@ Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, O
 * [ovhcloud cloud managed-registry](ovhcloud_cloud_managed-registry.md)	 - Manage container registries in the given cloud project
 * [ovhcloud cloud network](ovhcloud_cloud_network.md)	 - Manage networks in the given cloud project
 * [ovhcloud cloud operation](ovhcloud_cloud_operation.md)	 - List and get operations in the given cloud project
-* [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Retrieve information and manage your CloudProject services
+* [ovhcloud cloud project](ovhcloud_cloud_project.md)	 - Manage your Public Cloud projects
 * [ovhcloud cloud quota](ovhcloud_cloud_quota.md)	 - Manage quotas in the given cloud project
 * [ovhcloud cloud region](ovhcloud_cloud_region.md)	 - Check regions in the given cloud project
 * [ovhcloud cloud savings-plan](ovhcloud_cloud_savings-plan.md)	 - Manage savings plans for your cloud project

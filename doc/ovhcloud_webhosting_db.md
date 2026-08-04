@@ -29,7 +29,7 @@ Manage databases
 
 ### SEE ALSO
 
-* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
+* [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Manage Web Hosting (databases, cron, SSL, env vars, logs)
 * [ovhcloud webhosting db available-type](ovhcloud_webhosting_db_available-type.md)	 - List database types available for creation
 * [ovhcloud webhosting db available-version](ovhcloud_webhosting_db_available-version.md)	 - List available versions for a database type
 * [ovhcloud webhosting db capabilities](ovhcloud_webhosting_db_capabilities.md)	 - Get database capabilities
