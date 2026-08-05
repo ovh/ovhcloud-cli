@@ -48,6 +48,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Name, "name", "", "Volume name")
 	volumeEditCmd.Flags().IntVar(&cloud.VolumeEditSpec.Size, "size", 0, "Volume size (in GB, can only be increased)")
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Type, "type", "", "Volume type (classic, classic-luks, classic-multiattach, high-speed, high-speed-gen2, high-speed-gen2-luks, high-speed-luks)")
+	registerFlagValueCompletion(volumeEditCmd, "type", "classic", "classic-luks", "classic-multiattach", "high-speed", "high-speed-gen2", "high-speed-gen2-luks", "high-speed-luks")
 	addInteractiveEditorFlag(volumeEditCmd)
 	storageBlockCmd.AddCommand(volumeEditCmd)
 
@@ -184,6 +185,7 @@ func getVolumeCreateCmd() *cobra.Command {
 	volumeCreateCmd.Flags().IntVar(&cloud.VolumeSpec.Size, "size", 0, "Volume size (in GB)")
 	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.SnapshotId, "snapshot-id", "", "Snapshot ID to create the volume from")
 	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.Type, "type", "", "Volume type (classic, classic-luks, classic-multiattach, high-speed, high-speed-gen2, high-speed-gen2-luks, high-speed-luks)")
+	registerFlagValueCompletion(volumeCreateCmd, "type", "classic", "classic-luks", "classic-multiattach", "high-speed", "high-speed-gen2", "high-speed-gen2-luks", "high-speed-luks")
 
 	addParameterFileFlags(volumeCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/volume", "post", cloud.VolumeCreateExample, nil)
 	addInteractiveEditorFlag(volumeCreateCmd)

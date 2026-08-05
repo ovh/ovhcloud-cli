@@ -112,6 +112,15 @@ func addInteractiveEditorFlag(cmd *cobra.Command) {
 	applyInputFlagsTemplate(cmd)
 }
 
+// registerFlagValueCompletion makes the given flag's values Tab-completable with
+// a fixed set of choices (enums). This surfaces the accepted values directly in
+// the shell (Tab, and gray autosuggestions with fish/zsh-autosuggestions/ble.sh)
+// so users don't have to know them by heart.
+func registerFlagValueCompletion(cmd *cobra.Command, flagName string, values ...string) {
+	//nolint:errcheck // only errors if the flag does not exist, which is a programming error caught in tests/build
+	cmd.RegisterFlagCompletionFunc(flagName, cobra.FixedCompletions(values, cobra.ShellCompDirectiveNoFileComp))
+}
+
 // markFlagsMutuallyExclusive is a safe wrapper around cmd.MarkFlagsMutuallyExclusive
 // that silently skips flags not registered on the command. This avoids panics when
 // flags are conditionally excluded (e.g. in WASM builds). If fewer than 2 flags

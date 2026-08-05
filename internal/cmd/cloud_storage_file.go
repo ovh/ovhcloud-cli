@@ -162,6 +162,7 @@ func getShareCreateCmd() *cobra.Command {
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.SnapshotId, "snapshot-id", "", "Snapshot ID to create the share from")
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.SubnetId, "subnet-id", "", "Subnet ID")
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Type, "type", "", "Share type")
+	registerFlagValueCompletion(shareCreateCmd, "type", "standard-1az")
 
 	addParameterFileFlags(shareCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/share", "post", cloud.ShareCreateExample, nil)
 	addInteractiveEditorFlag(shareCreateCmd)

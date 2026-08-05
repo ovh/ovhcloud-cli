@@ -318,6 +318,8 @@ func getPoolCreationCmd() *cobra.Command {
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolCreateSpec.LoadbalancerId, "loadbalancer-id", "", "Loadbalancer ID")
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolCreateSpec.Name, "name", "", "Name of the pool")
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolCreateSpec.Protocol, "protocol", "", "Protocol (http, https, tcp, udp, sctp, prometheus)")
+	registerFlagValueCompletion(cmd, "algorithm", "roundRobin", "leastConnections", "sourceIp")
+	registerFlagValueCompletion(cmd, "protocol", "http", "https", "tcp", "udp", "sctp", "prometheus")
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool", "post", cloud.LoadbalancerPoolCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
@@ -592,6 +594,8 @@ func getL7RuleCreationCmd() *cobra.Command {
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleCreateSpec.CompareType, "compare-type", "", "Comparison type (contains, endsWith, equalTo, regex, startsWith)")
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleCreateSpec.Key, "key", "", "Key to use for comparison")
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleCreateSpec.RuleType, "rule-type", "", "Rule type (cookie, fileType, header, hostName, path, sslConnHasCert, sslDNField, sslVerifyResult)")
+	registerFlagValueCompletion(cmd, "compare-type", "contains", "endsWith", "equalTo", "regex", "startsWith")
+	registerFlagValueCompletion(cmd, "rule-type", "cookie", "fileType", "header", "hostName", "path", "sslConnHasCert", "sslDNField", "sslVerifyResult")
 	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleCreateSpec.Value, "value", "", "Value to compare")
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy/{l7PolicyId}/l7Rule", "post", cloud.LoadbalancerL7RuleCreationExample, nil)
