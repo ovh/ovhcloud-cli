@@ -27,8 +27,10 @@ func initCloudQuotaCommand(cloudCmd *cobra.Command) {
 	quotaEditCmd := &cobra.Command{
 		Use:   "edit",
 		Short: "Update the project quota (target quota profile per region)",
-		Run:   cloud.EditCloudQuota,
-		Args:  cobra.NoArgs,
+		Example: `  # Edit the project quota interactively (choose the target profile per region)
+  ovhcloud cloud quota edit --cloud-project <project_id> --editor`,
+		Run:  cloud.EditCloudQuota,
+		Args: cobra.NoArgs,
 	}
 	addParameterFileFlags(quotaEditCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/quota", "put", cloud.CloudQuotaEditExample, nil)
 	addInteractiveEditorFlag(quotaEditCmd)

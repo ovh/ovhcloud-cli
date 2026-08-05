@@ -71,7 +71,19 @@ func GetVolume(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/volume", projectID), args[0], volumeTemplate)
+	listEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume", projectID)
+
+	// If no volume ID was given, guide the user with an interactive picker
+	// instead of failing.
+	volumeID := ""
+	if len(args) > 0 {
+		volumeID = args[0]
+	} else if volumeID, err = selectCloudResource(listEndpoint, "Select a volume"); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageObjectRequest(listEndpoint, volumeID, volumeTemplate)
 }
 
 func EditVolume(cmd *cobra.Command, args []string) {
@@ -251,7 +263,6 @@ func DeleteVolumeSnapshot(_ *cobra.Command, args []string) {
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot %s deleted successfully", args[0])
 }
-
 
 func findVolumeBackup(backupId string) (string, map[string]any, error) {
 	projectID, err := getConfiguredCloudProject()

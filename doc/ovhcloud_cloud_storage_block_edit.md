@@ -6,6 +6,13 @@ Edit the given volume
 ovhcloud cloud storage block edit <volume_id> [flags]
 ```
 
+### Examples
+
+```
+  # Rename a volume and grow it to 40 GB
+  ovhcloud cloud storage block edit <volume_id> --cloud-project <project_id> --name backups --size 40
+```
+
 ### Options
 
 ```

@@ -6,6 +6,13 @@ Create a new SSH key
 ovhcloud cloud ssh-key create [flags]
 ```
 
+### Examples
+
+```
+  # Register an SSH public key in the project
+  ovhcloud cloud ssh-key create --cloud-project <project_id> --name my-key --public-key "ssh-ed25519 AAAA..."
+```
+
 ### Options
 
 ```

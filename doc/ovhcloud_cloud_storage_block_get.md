@@ -1,9 +1,9 @@
 ## ovhcloud cloud storage block get
 
-Get a specific volume
+Get a specific volume (prompts for one if omitted)
 
 ```
-ovhcloud cloud storage block get <volume_id> [flags]
+ovhcloud cloud storage block get [volume_id] [flags]
 ```
 
 ### Options

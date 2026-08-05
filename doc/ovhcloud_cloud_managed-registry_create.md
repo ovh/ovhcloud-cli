@@ -6,6 +6,13 @@ Create a new container registry
 ovhcloud cloud managed-registry create [flags]
 ```
 
+### Examples
+
+```
+  # Create a container registry in GRA
+  ovhcloud cloud managed-registry create --cloud-project <project_id> --name my-registry --region GRA --plan-id <plan_id>
+```
+
 ### Options
 
 ```

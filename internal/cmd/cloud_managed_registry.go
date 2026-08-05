@@ -49,7 +49,9 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 	createCmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new container registry",
-		Run:   cloud.CreateContainerRegistry,
+		Example: `  # Create a container registry in GRA
+  ovhcloud cloud managed-registry create --cloud-project <project_id> --name my-registry --region GRA --plan-id <plan_id>`,
+		Run: cloud.CreateContainerRegistry,
 	}
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistrySpec.Name, "name", "", "Name of the container registry")
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistrySpec.PlanID, "plan-id", "", "Plan ID for the container registry. Available plans can be listed with 'ovhcloud cloud reference managed-registry list-plans'")

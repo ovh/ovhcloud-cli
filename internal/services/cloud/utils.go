@@ -10,11 +10,60 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"time"
 
+	"github.com/charmbracelet/x/term"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/utils"
 )
+
+// selectCloudResource guides a user who did not provide a required resource ID
+// on the command line: instead of failing, it lists the resources available at
+// listEndpoint and lets the user pick one interactively. It returns the chosen
+// resource ID (falling back to the resource name for resources that have no
+// "id" field, e.g. some v2 resources). It requires an interactive terminal;
+// otherwise it returns an error asking for the ID explicitly, so scripted usage
+// is never left hanging on a prompt.
+func selectCloudResource(listEndpoint, question string) (string, error) {
+	if utils.IsInputFromPipe() || !term.IsTerminal(os.Stdin.Fd()) {
+		return "", errors.New("missing resource ID: provide it as an argument (interactive selection requires a terminal)")
+	}
+
+	var resources []map[string]any
+	if err := httpLib.Client.Get(listEndpoint, &resources); err != nil {
+		return "", fmt.Errorf("failed to list available resources: %w", err)
+	}
+	if len(resources) == 0 {
+		return "", errors.New("no resource available to choose from")
+	}
+
+	choices := make(map[string]string, len(resources))
+	for _, r := range resources {
+		id, _ := r["id"].(string)
+		if id == "" {
+			id, _ = r["name"].(string)
+		}
+		if id == "" {
+			continue
+		}
+		label := id
+		if name, _ := r["name"].(string); name != "" && name != id {
+			label = fmt.Sprintf("%s (%s)", name, id)
+		}
+		choices[label] = id
+	}
+
+	_, selected, err := display.RunGenericChoicePicker(question, choices, 0)
+	if err != nil {
+		return "", err
+	}
+	if selected == "" {
+		return "", errors.New("no resource selected")
+	}
+	return selected, nil
+}
 
 type CloudProjectOperation struct {
 	Id            string                     `json:"id"`

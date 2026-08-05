@@ -6,6 +6,13 @@ Update the project quota (target quota profile per region)
 ovhcloud cloud quota edit [flags]
 ```
 
+### Examples
+
+```
+  # Edit the project quota interactively (choose the target profile per region)
+  ovhcloud cloud quota edit --cloud-project <project_id> --editor
+```
+
 ### Options
 
 ```

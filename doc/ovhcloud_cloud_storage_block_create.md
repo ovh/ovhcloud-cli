@@ -6,6 +6,13 @@ Create a new volume
 ovhcloud cloud storage block create <region> [flags]
 ```
 
+### Examples
+
+```
+  # Create a 20 GB high-speed volume in GRA11 and wait until it is ready
+  ovhcloud cloud storage block create GRA11 --cloud-project <project_id> --name data --size 20 --type high-speed --wait
+```
+
 ### Options
 
 ```

@@ -37,7 +37,9 @@ func initCloudSSHKeyCommand(cloudCmd *cobra.Command) {
 	sshKeyCreateCmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new SSH key",
-		Run:   cloud.CreateCloudSSHKey,
+		Example: `  # Register an SSH public key in the project
+  ovhcloud cloud ssh-key create --cloud-project <project_id> --name my-key --public-key "ssh-ed25519 AAAA..."`,
+		Run: cloud.CreateCloudSSHKey,
 	}
 	sshKeyCreateCmd.Flags().StringVar(&cloud.SSHKeyCreationParameters.Name, "name", "", "Name for the SSH key to create")
 	sshKeyCreateCmd.Flags().StringVar(&cloud.SSHKeyCreationParameters.PublicKey, "public-key", "", "Public key for the SSH key to create")

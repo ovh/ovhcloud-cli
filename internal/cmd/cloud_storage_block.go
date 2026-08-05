@@ -28,16 +28,18 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	storageBlockCmd.AddCommand(withFilterFlag(volumeListCmd))
 
 	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:               "get <volume_id>",
-		Short:             "Get a specific volume",
+		Use:               "get [volume_id]",
+		Short:             "Get a specific volume (prompts for one if omitted)",
 		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
 		Run:               cloud.GetVolume,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MaximumNArgs(1),
 	})
 
 	volumeEditCmd := &cobra.Command{
-		Use:               "edit <volume_id>",
-		Short:             "Edit the given volume",
+		Use:   "edit <volume_id>",
+		Short: "Edit the given volume",
+		Example: `  # Rename a volume and grow it to 40 GB
+  ovhcloud cloud storage block edit <volume_id> --cloud-project <project_id> --name backups --size 40`,
 		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
 		Run:               cloud.EditVolume,
 		Args:              cobra.ExactArgs(1),
@@ -168,8 +170,10 @@ func getVolumeCreateCmd() *cobra.Command {
 	volumeCreateCmd := &cobra.Command{
 		Use:   "create <region>",
 		Short: "Create a new volume",
-		Run:   cloud.CreateVolume,
-		Args:  cobra.ExactArgs(1),
+		Example: `  # Create a 20 GB high-speed volume in GRA11 and wait until it is ready
+  ovhcloud cloud storage block create GRA11 --cloud-project <project_id> --name data --size 20 --type high-speed --wait`,
+		Run:  cloud.CreateVolume,
+		Args: cobra.ExactArgs(1),
 	}
 	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.AvailabilityZone, "availability-zone", "", "Availability zone of the volume")
 	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.BackupId, "backup-id", "", "Backup ID")
