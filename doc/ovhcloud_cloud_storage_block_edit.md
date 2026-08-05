@@ -1,9 +1,9 @@
 ## ovhcloud cloud storage block edit
 
-Edit the given volume
+Edit a volume (prompts for one if omitted)
 
 ```
-ovhcloud cloud storage block edit <volume_id> [flags]
+ovhcloud cloud storage block edit [volume_id] [flags]
 ```
 
 ### Examples

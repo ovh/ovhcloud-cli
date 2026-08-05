@@ -54,6 +54,15 @@ var (
 	}
 )
 
+// resolveVolumeID returns the volume ID given on the command line, or prompts
+// the user to pick one interactively when it was omitted.
+func resolveVolumeID(projectID string, args []string) (string, error) {
+	if len(args) > 0 {
+		return args[0], nil
+	}
+	return selectCloudResource(fmt.Sprintf("/v1/cloud/project/%s/volume", projectID), "Select a volume")
+}
+
 func ListCloudVolumes(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -71,19 +80,13 @@ func GetVolume(_ *cobra.Command, args []string) {
 		return
 	}
 
-	listEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume", projectID)
-
-	// If no volume ID was given, guide the user with an interactive picker
-	// instead of failing.
-	volumeID := ""
-	if len(args) > 0 {
-		volumeID = args[0]
-	} else if volumeID, err = selectCloudResource(listEndpoint, "Select a volume"); err != nil {
+	volumeID, err := resolveVolumeID(projectID, args)
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	common.ManageObjectRequest(listEndpoint, volumeID, volumeTemplate)
+	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/volume", projectID), volumeID, volumeTemplate)
 }
 
 func EditVolume(cmd *cobra.Command, args []string) {
@@ -93,10 +96,16 @@ func EditVolume(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	volumeID, err := resolveVolumeID(projectID, args)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
 	// Fetch the volume to get its region for the region-scoped endpoint
 	var volume map[string]any
 	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(volumeID)),
 		&volume,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch volume: %s", err)
@@ -107,7 +116,7 @@ func EditVolume(cmd *cobra.Command, args []string) {
 	if err := common.EditResource(
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/volume/{volumeId}",
-		fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume/%s", projectID, url.PathEscape(region), url.PathEscape(args[0])),
+		fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume/%s", projectID, url.PathEscape(region), url.PathEscape(volumeID)),
 		VolumeEditSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
@@ -160,13 +169,19 @@ func DeleteVolume(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(args[0]))
+	volumeID, err := resolveVolumeID(projectID, args)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(volumeID))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete volume: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s deleted successfully", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s deleted successfully", volumeID)
 }
 
 func AttachVolumeToInstance(_ *cobra.Command, args []string) {

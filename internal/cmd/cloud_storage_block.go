@@ -36,13 +36,13 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	})
 
 	volumeEditCmd := &cobra.Command{
-		Use:   "edit <volume_id>",
-		Short: "Edit the given volume",
+		Use:   "edit [volume_id]",
+		Short: "Edit a volume (prompts for one if omitted)",
 		Example: `  # Rename a volume and grow it to 40 GB
   ovhcloud cloud storage block edit <volume_id> --cloud-project <project_id> --name backups --size 40`,
 		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
 		Run:               cloud.EditVolume,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MaximumNArgs(1),
 	}
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Description, "description", "", "Volume description")
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Name, "name", "", "Volume name")
@@ -54,11 +54,11 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	storageBlockCmd.AddCommand(getVolumeCreateCmd())
 
 	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:               "delete <volume_id>",
-		Short:             "Delete the given volume",
+		Use:               "delete [volume_id]",
+		Short:             "Delete a volume (prompts for one if omitted)",
 		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
 		Run:               cloud.DeleteVolume,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MaximumNArgs(1),
 	})
 
 	// Volume action commands
