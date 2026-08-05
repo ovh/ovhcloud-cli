@@ -545,7 +545,7 @@ func AssociateFloatingIpToLoadbalancer(cmd *cobra.Command, args []string) {
 		LoadbalancerAssociateFloatingIpExample,
 		CloudLoadbalancerAssociateFloatingIpSpec,
 		assets.CloudOpenapiSchema,
-		nil,
+		[]string{"floatingIpId", "ip"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to associate floating IP: %s", err)
@@ -740,7 +740,7 @@ func CreateCloudLoadbalancerPool(cmd *cobra.Command, args []string) {
 		LoadbalancerPoolCreationExample,
 		CloudLoadbalancerPoolCreateSpec,
 		assets.CloudOpenapiSchema,
-		nil,
+		[]string{"algorithm", "protocol"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create pool: %s", err)
@@ -1227,7 +1227,7 @@ func CreateCloudLoadbalancerL7Rule(cmd *cobra.Command, args []string) {
 		LoadbalancerL7RuleCreationExample,
 		CloudLoadbalancerL7RuleCreateSpec,
 		assets.CloudOpenapiSchema,
-		nil,
+		[]string{"compareType", "ruleType", "value"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create L7 rule: %s", err)

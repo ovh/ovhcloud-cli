@@ -55,7 +55,7 @@ var (
 	//go:embed templates/cloud_instance_group.tmpl
 	cloudInstanceGroupTemplate string
 
-	instanceGroupColumnsToDisplay = []string{"id", "name", "type", "region", "instance_ids"}
+	instanceGroupColumnsToDisplay = []string{"id", "name", "region", "type", "instance_ids"}
 
 	InstanceGroupType string
 
