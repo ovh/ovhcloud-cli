@@ -56,10 +56,20 @@ func (ms *MockSuite) TestCloudStorageBlockDeleteCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/volume/vol-1",
 		httpmock.NewStringResponder(200, ``))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "delete", "vol-1", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "delete", "vol-1", "--cloud-project", "fakeProjectID", "--yes")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("deleted successfully"))
+}
+
+func (ms *MockSuite) TestCloudStorageBlockDeleteAbortsWithoutConfirmation(assert, require *td.T) {
+	// Without --yes and with no interactive terminal, the deletion must abort
+	// without issuing any API call (no DELETE responder is registered, so a call
+	// would fail the test).
+	out, err := cmd.Execute("cloud", "storage", "block", "delete", "vol-1", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("Aborted"))
 }
 
 func (ms *MockSuite) TestCloudStorageBlockSnapshotListCmd(assert, require *td.T) {

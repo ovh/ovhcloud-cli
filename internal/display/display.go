@@ -7,6 +7,7 @@
 package display
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -414,4 +415,23 @@ func OutputWarning(outputFormat *OutputFormat, message string, params ...any) {
 		Message: resultString,
 		Warning: true,
 	}, outputFormat)
+}
+
+// Confirm asks the user to confirm a potentially destructive action and returns
+// whether it was approved. It returns true immediately when assumeYes is set
+// (the --yes flag). In a non-interactive context (no terminal) without
+// assumeYes, it returns false without prompting, so scripts never hang and a
+// destructive action always requires an explicit --yes.
+func Confirm(prompt string, assumeYes bool) bool {
+	if assumeYes {
+		return true
+	}
+	if !term.IsTerminal(os.Stdin.Fd()) {
+		return false
+	}
+
+	fmt.Fprintf(os.Stderr, "%s [y/N]: ", prompt)
+	answer, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+	answer = strings.ToLower(strings.TrimSpace(answer))
+	return answer == "y" || answer == "yes"
 }

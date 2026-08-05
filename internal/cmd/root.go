@@ -113,6 +113,7 @@ func initRootCmd() {
 
 	rootCmd.PersistentFlags().BoolVarP(&flags.Debug, "debug", "d", false, "Activate debug mode (will log all HTTP requests details)")
 	rootCmd.PersistentFlags().BoolVarP(&flags.IgnoreErrors, "ignore-errors", "e", false, "Ignore errors in API calls when it is not fatal to the execution")
+	rootCmd.PersistentFlags().BoolVarP(&flags.AssumeYes, "yes", "y", false, "Skip confirmation prompts (assume yes); required to delete non-interactively")
 	rootCmd.PersistentFlags().StringVar(&flags.Profile, "profile", "", "Use a specific profile from the configuration file")
 	rootCmd.PersistentFlags().StringVarP(&flags.OutputFormatConfig.Output, "output", "o", "", `Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
 Examples:

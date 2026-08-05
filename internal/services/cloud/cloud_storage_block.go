@@ -175,6 +175,11 @@ func DeleteVolume(_ *cobra.Command, args []string) {
 		return
 	}
 
+	if !display.Confirm(fmt.Sprintf("Delete volume %s?", volumeID), flags.AssumeYes) {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "Aborted: volume %s was not deleted", volumeID)
+		return
+	}
+
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", projectID, url.PathEscape(volumeID))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete volume: %s", err)

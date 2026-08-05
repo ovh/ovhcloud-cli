@@ -202,6 +202,11 @@ func EditShare(cmd *cobra.Command, args []string) {
 }
 
 func DeleteShare(_ *cobra.Command, args []string) {
+	if !display.Confirm(fmt.Sprintf("Delete share %s?", args[0]), flags.AssumeYes) {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "Aborted: share %s was not deleted", args[0])
+		return
+	}
+
 	endpoint, _, err := findShare(args[0])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

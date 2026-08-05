@@ -27,6 +27,10 @@ var (
 	// wait for task completion before exiting
 	WaitForTask bool
 
+	// Flag used to skip interactive confirmation prompts (e.g. before a
+	// destructive action like a deletion). Enables non-interactive/scripted use.
+	AssumeYes bool
+
 	// INI configuration file and its path
 	CliConfig     *ini.File
 	CliConfigPath string
