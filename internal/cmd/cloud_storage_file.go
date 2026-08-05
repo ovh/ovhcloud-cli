@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -54,12 +55,14 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 	addInteractiveEditorFlag(shareEditCmd)
 	shareCmd.AddCommand(shareEditCmd)
 
-	shareCmd.AddCommand(&cobra.Command{
+	shareDeleteCmd := &cobra.Command{
 		Use:   "delete <share_id>",
 		Short: "Delete the given share",
 		Run:   cloud.DeleteShare,
 		Args:  cobra.ExactArgs(1),
-	})
+	}
+	shareDeleteCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the share deletion to be done before exiting")
+	shareCmd.AddCommand(shareDeleteCmd)
 
 	// ACL subcommands
 	aclCmd := &cobra.Command{
@@ -163,6 +166,7 @@ func getShareCreateCmd() *cobra.Command {
 	addParameterFileFlags(shareCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/share", "post", cloud.ShareCreateExample, nil)
 	addInteractiveEditorFlag(shareCreateCmd)
 	markFlagsMutuallyExclusive(shareCreateCmd, "from-file", "editor")
+	shareCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the share to be created before exiting")
 
 	return shareCreateCmd
 }

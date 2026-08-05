@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
@@ -163,7 +164,22 @@ func CreateShare(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, task, "✅ Share creation started successfully (operation ID: %s)", task["id"])
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, task, "✅ Share creation started successfully (operation ID: %s)", task["id"])
+		return
+	}
+
+	shareID, err := waitForCloudOperation(projectID, task["id"].(string), "", 20*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for share creation: %s", err)
+		return
+	}
+
+	if shareID != "" {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Share %s created successfully", shareID)
+	} else {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Share created successfully")
+	}
 }
 
 func EditShare(cmd *cobra.Command, args []string) {
@@ -198,8 +214,23 @@ func DeleteShare(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, task, "✅ Share %s deletion started successfully (operation ID: %s)", args[0], task["id"])
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, task, "✅ Share %s deletion started successfully (operation ID: %s)", args[0], task["id"])
+		return
+	}
 
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	if _, err := waitForCloudOperation(projectID, task["id"].(string), "", 20*time.Minute); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for share deletion: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Share %s deleted successfully", args[0])
 }
 
 // ACL commands

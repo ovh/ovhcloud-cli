@@ -10,6 +10,7 @@ ovhcloud cloud storage file share delete <share_id> [flags]
 
 ```
   -h, --help   help for delete
+      --wait   Wait for the share deletion to be done before exiting
 ```
 
 ### Options inherited from parent commands

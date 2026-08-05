@@ -22,6 +22,7 @@ ovhcloud cloud storage file share create <region> [flags]
       --snapshot-id string         Snapshot ID to create the share from
       --subnet-id string           Subnet ID
       --type string                Share type
+      --wait                       Wait for the share to be created before exiting
 ```
 
 ### Options inherited from parent commands
