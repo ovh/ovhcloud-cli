@@ -1,7 +1,6 @@
 # Copilot / AI agent instructions
 
 Guidance for AI coding tools working in this repository (GitHub Copilot, Claude, …).
-`CLAUDE.md` at the repo root is a symlink to this file, so every tool reads the same source.
 Keep it accurate: if you change a convention or helper, update this file.
 
 ## What this is

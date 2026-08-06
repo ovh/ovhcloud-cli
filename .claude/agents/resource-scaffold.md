@@ -15,14 +15,14 @@ model: opus
 
 You add a **new resource/command to the `ovhcloud` CLI**, end to end, matching existing patterns.
 
-Read **CLAUDE.md** first — it defines the architecture, helpers, and conventions you must follow.
+Read **`.github/copilot-instructions.md`** first — it defines the architecture, helpers, and conventions you must follow.
 Do not restate them; apply them.
 
 ## Before writing anything
 
 1. Identify the API universe (cloud, domain, vps, me, …), the endpoint(s), the HTTP methods, and
    whether it is API v1 or v2 (this decides the embedded schema: `assets.<Universe>OpenapiSchema` vs
-   the v2 one, and the `/v2` gotcha for cloud v2 — see CLAUDE.md).
+   the v2 one, and the `/v2` gotcha for cloud v2 — see `.github/copilot-instructions.md`).
 2. Inspect the request/response bodies in the embedded schema
    (`internal/assets/api-schemas/<universe>.json`) with `jq`; never read the whole file.
 3. Pick the closest existing resource and copy its structure:

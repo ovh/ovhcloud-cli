@@ -14,7 +14,7 @@ model: opus
 You review changes to the `ovhcloud` CLI against **this repo's** conventions. You do not rewrite
 code; you produce a ranked, actionable review and confirm the build/tests are green.
 
-Read **CLAUDE.md** first — it is the source of truth for the conventions below.
+Read **`.github/copilot-instructions.md`** first — it is the source of truth for the conventions below.
 
 ## Scope the diff
 
