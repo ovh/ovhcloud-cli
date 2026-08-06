@@ -32,6 +32,7 @@ ovhcloud cloud ip attach <ip_id> <instance_id> [flags]
       --profile string         Use a specific profile from the configuration file
       --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
       --type string            Type of IP to manage (floating or failover)
+  -y, --yes                    Skip confirmation prompts (assume yes); required to delete non-interactively
 ```
 
 ### SEE ALSO

@@ -85,6 +85,7 @@ ovhcloud cloud network private vrack subnet create <network_id> [flags]
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
       --region string          Filter by region or specify the region of the network
+  -y, --yes                    Skip confirmation prompts (assume yes); required to delete non-interactively
 ```
 
 ### SEE ALSO

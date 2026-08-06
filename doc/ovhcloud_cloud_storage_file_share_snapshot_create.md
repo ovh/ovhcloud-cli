@@ -33,6 +33,7 @@ ovhcloud cloud storage file share snapshot create <share_id> [flags]
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
       --region string          Region (skip region discovery if set)
+  -y, --yes                    Skip confirmation prompts (assume yes); required to delete non-interactively
 ```
 
 ### SEE ALSO

@@ -34,6 +34,7 @@ ovhcloud cloud storage object lifecycle edit <container_name> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
+  -y, --yes                    Skip confirmation prompts (assume yes); required to delete non-interactively
 ```
 
 ### SEE ALSO
