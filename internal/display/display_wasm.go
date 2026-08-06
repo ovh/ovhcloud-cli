@@ -212,3 +212,9 @@ func OutputError(outputFormat *OutputFormat, message string, params ...any) {
 func OutputWarning(outputFormat *OutputFormat, message string, params ...any) {
 	exitError(message, params...)
 }
+
+// Confirm has no interactive prompt in the WASM build (no terminal), so it only
+// honours the assumeYes flag.
+func Confirm(_ string, assumeYes bool) bool {
+	return assumeYes
+}
