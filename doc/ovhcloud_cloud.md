@@ -32,6 +32,7 @@ Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, O
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
 * [ovhcloud cloud ai](ovhcloud_cloud_ai.md)	 - Manage AI Endpoints settings for your cloud project
 * [ovhcloud cloud alerting](ovhcloud_cloud_alerting.md)	 - Manage billing alert configurations in the given cloud project
+* [ovhcloud cloud export-terraform](ovhcloud_cloud_export-terraform.md)	 - Export the project's resources as Terraform import blocks
 * [ovhcloud cloud instance](ovhcloud_cloud_instance.md)	 - Manage instances in the given cloud project
 * [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
 * [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project

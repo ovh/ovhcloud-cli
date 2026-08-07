@@ -122,6 +122,7 @@ func init() {
 	initCloudSavingsPlanCommand(cloudCmd)
 	initCloudIPCommand(cloudCmd)
 	initCloudAlertingCommand(cloudCmd)
+	initCloudExportTerraformCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
 
