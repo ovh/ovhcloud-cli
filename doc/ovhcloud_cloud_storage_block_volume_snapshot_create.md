@@ -12,6 +12,7 @@ ovhcloud cloud storage block volume snapshot create <volume_id> [flags]
       --description string   Snapshot description
   -h, --help                 help for create
       --name string          Snapshot name
+      --wait                 Wait for the snapshot to be READY before exiting
 ```
 
 ### Options inherited from parent commands
