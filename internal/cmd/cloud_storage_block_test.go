@@ -25,7 +25,7 @@ func (ms *MockSuite) TestCloudStorageBlockListCmd(assert, require *td.T) {
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "list", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("vol-1"))
@@ -44,7 +44,7 @@ func (ms *MockSuite) TestCloudStorageBlockGetCmd(assert, require *td.T) {
 			"size": 50
 		}`))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "get", "vol-1", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "get", "vol-1", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("vol-1"))
@@ -56,7 +56,7 @@ func (ms *MockSuite) TestCloudStorageBlockDeleteCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/volume/vol-1",
 		httpmock.NewStringResponder(200, ``))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "delete", "vol-1", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "delete", "vol-1", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("deleted successfully"))
@@ -75,7 +75,7 @@ func (ms *MockSuite) TestCloudStorageBlockSnapshotListCmd(assert, require *td.T)
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "snapshot", "list", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "snapshot", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("snap-1"))
@@ -106,7 +106,7 @@ func (ms *MockSuite) TestCloudStorageBlockBackupListCmd(assert, require *td.T) {
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "backup", "list", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "backup", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("backup-1"))

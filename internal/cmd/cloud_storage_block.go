@@ -15,9 +15,15 @@ import (
 func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	storageBlockCmd := &cobra.Command{
 		Use:   "block",
-		Short: "Manage block storage volumes in the given cloud project",
+		Short: "Manage block storage in the given cloud project",
 	}
 	storageBlockCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+
+	volumeCmd := &cobra.Command{
+		Use:   "volume",
+		Short: "Manage block storage volumes in the given cloud project",
+	}
+	storageBlockCmd.AddCommand(volumeCmd)
 
 	volumeListCmd := &cobra.Command{
 		Use:     "list",
@@ -25,9 +31,9 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Short:   "List volumes",
 		Run:     cloud.ListCloudVolumes,
 	}
-	storageBlockCmd.AddCommand(withFilterFlag(volumeListCmd))
+	volumeCmd.AddCommand(withFilterFlag(volumeListCmd))
 
-	storageBlockCmd.AddCommand(&cobra.Command{
+	volumeCmd.AddCommand(&cobra.Command{
 		Use:               "get <volume_id>",
 		Short:             "Get a specific volume",
 		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
@@ -47,11 +53,11 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	volumeEditCmd.Flags().IntVar(&cloud.VolumeEditSpec.Size, "size", 0, "Volume size (in GB, can only be increased)")
 	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Type, "type", "", "Volume type (classic, classic-luks, classic-multiattach, high-speed, high-speed-gen2, high-speed-gen2-luks, high-speed-luks)")
 	addInteractiveEditorFlag(volumeEditCmd)
-	storageBlockCmd.AddCommand(volumeEditCmd)
+	volumeCmd.AddCommand(volumeEditCmd)
 
-	storageBlockCmd.AddCommand(getVolumeCreateCmd())
+	volumeCmd.AddCommand(getVolumeCreateCmd())
 
-	storageBlockCmd.AddCommand(&cobra.Command{
+	volumeCmd.AddCommand(&cobra.Command{
 		Use:               "delete <volume_id>",
 		Short:             "Delete the given volume",
 		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
@@ -60,7 +66,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	})
 
 	// Volume action commands
-	storageBlockCmd.AddCommand(&cobra.Command{
+	volumeCmd.AddCommand(&cobra.Command{
 		Use:               "attach <volume_id> <instance_id>",
 		Short:             "Attach the given volume to the given instance",
 		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
@@ -68,7 +74,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Args:              cobra.ExactArgs(2),
 	})
 
-	storageBlockCmd.AddCommand(&cobra.Command{
+	volumeCmd.AddCommand(&cobra.Command{
 		Use:               "detach <volume_id> <instance_id>",
 		Short:             "Detach the given volume from the given instance",
 		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
@@ -81,7 +87,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Use:   "snapshot",
 		Short: "Manage snapshots of the given volume",
 	}
-	storageBlockCmd.AddCommand(volumeSnapshotCmd)
+	volumeCmd.AddCommand(volumeSnapshotCmd)
 
 	volumeSnapshotCreateCmd := &cobra.Command{
 		Use:               "create <volume_id>",
@@ -116,7 +122,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Use:   "backup",
 		Short: "Manage volume backups in the given cloud project",
 	}
-	storageBlockCmd.AddCommand(volumeBackupCmd)
+	volumeCmd.AddCommand(volumeBackupCmd)
 
 	volumeBackupCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:     "list",
@@ -154,7 +160,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(2),
 	})
 
-	storageBlockCmd.AddCommand(&cobra.Command{
+	volumeCmd.AddCommand(&cobra.Command{
 		Use:   "create-from-backup <backup_id> <volume_name>",
 		Short: "Create a volume from the given backup",
 		Run:   cloud.CreateVolumeFromBackup,

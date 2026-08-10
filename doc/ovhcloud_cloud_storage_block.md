@@ -1,6 +1,6 @@
 ## ovhcloud cloud storage block
 
-Manage block storage volumes in the given cloud project
+Manage block storage in the given cloud project
 
 ### Options
 
@@ -31,14 +31,5 @@ Manage block storage volumes in the given cloud project
 ### SEE ALSO
 
 * [ovhcloud cloud storage](ovhcloud_cloud_storage.md)	 - Manage storage services in the given cloud project
-* [ovhcloud cloud storage block attach](ovhcloud_cloud_storage_block_attach.md)	 - Attach the given volume to the given instance
-* [ovhcloud cloud storage block backup](ovhcloud_cloud_storage_block_backup.md)	 - Manage volume backups in the given cloud project
-* [ovhcloud cloud storage block create](ovhcloud_cloud_storage_block_create.md)	 - Create a new volume
-* [ovhcloud cloud storage block create-from-backup](ovhcloud_cloud_storage_block_create-from-backup.md)	 - Create a volume from the given backup
-* [ovhcloud cloud storage block delete](ovhcloud_cloud_storage_block_delete.md)	 - Delete the given volume
-* [ovhcloud cloud storage block detach](ovhcloud_cloud_storage_block_detach.md)	 - Detach the given volume from the given instance
-* [ovhcloud cloud storage block edit](ovhcloud_cloud_storage_block_edit.md)	 - Edit the given volume
-* [ovhcloud cloud storage block get](ovhcloud_cloud_storage_block_get.md)	 - Get a specific volume
-* [ovhcloud cloud storage block list](ovhcloud_cloud_storage_block_list.md)	 - List volumes
-* [ovhcloud cloud storage block snapshot](ovhcloud_cloud_storage_block_snapshot.md)	 - Manage snapshots of the given volume
+* [ovhcloud cloud storage block volume](ovhcloud_cloud_storage_block_volume.md)	 - Manage block storage volumes in the given cloud project
 
