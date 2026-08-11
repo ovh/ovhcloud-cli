@@ -206,7 +206,7 @@ func CreateShare(cmd *cobra.Command, _ []string) {
 		return
 	}
 
-	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(shareID)), 30*time.Minute); err != nil {
+	if _, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(shareID)), 30*time.Minute); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for file storage share to be ready: %s", err)
 		return
 	}
@@ -313,7 +313,7 @@ func CreateFileStorageSnapshot(cmd *cobra.Command, _ []string) {
 		return
 	}
 
-	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(snapshotID)), 30*time.Minute); err != nil {
+	if _, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(snapshotID)), 30*time.Minute); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for file storage snapshot to be ready: %s", err)
 		return
 	}
@@ -431,7 +431,7 @@ func CreateFileStorageNetwork(cmd *cobra.Command, _ []string) {
 		return
 	}
 
-	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(networkID)), 30*time.Minute); err != nil {
+	if _, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(networkID)), 30*time.Minute); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for file storage share network to be ready: %s", err)
 		return
 	}

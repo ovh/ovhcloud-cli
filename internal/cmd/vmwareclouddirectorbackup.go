@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/vmwareclouddirectorbackup"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single VmwareCloudDirectorBackup
 	vmwareclouddirectorbackupCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific VmwareCloudDirector Backup",
-		Args:  cobra.ExactArgs(1),
-		Run:   vmwareclouddirectorbackup.GetVmwareCloudDirectorBackup,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific VmwareCloudDirector Backup",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v2/vmwareCloudDirector/backup"),
+		Run:               vmwareclouddirectorbackup.GetVmwareCloudDirectorBackup,
 	})
 
 	// Command to update a single VmwareCloudDirectorBackup
 	vmwareclouddirectorbackupEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given VmwareCloudDirector Backup",
-		Args:  cobra.ExactArgs(1),
-		Run:   vmwareclouddirectorbackup.EditVmwareCloudDirectorBackup,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given VmwareCloudDirector Backup",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v2/vmwareCloudDirector/backup"),
+		Run:               vmwareclouddirectorbackup.EditVmwareCloudDirectorBackup,
 	}
 	vmwareclouddirectorbackupEditCmd.Flags().StringSliceVar(
 		&vmwareclouddirectorbackup.VmwareCloudDirectorBackupSpec.TargetSpec.CliOffers,

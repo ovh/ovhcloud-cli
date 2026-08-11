@@ -7,6 +7,7 @@ package cmd
 import (
 	_ "embed"
 
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/iploadbalancing"
 	"github.com/spf13/cobra"
 )
@@ -28,18 +29,20 @@ func init() {
 
 	// Command to get a single IpLoadbalancing
 	iploadbalancingCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific IpLoadbalancing",
-		Args:  cobra.ExactArgs(1),
-		Run:   iploadbalancing.GetIpLoadbalancing,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific IpLoadbalancing",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ipLoadbalancing"),
+		Run:               iploadbalancing.GetIpLoadbalancing,
 	})
 
 	// Command to update a single IpLoadbalancing
 	iploadbalancingEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given IpLoadbalancing",
-		Args:  cobra.ExactArgs(1),
-		Run:   iploadbalancing.EditIpLoadbalancing,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given IpLoadbalancing",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ipLoadbalancing"),
+		Run:               iploadbalancing.EditIpLoadbalancing,
 	}
 	iploadbalancingEditCmd.Flags().StringVar(&iploadbalancing.IPLoadbalancingSpec.DisplayName, "display-name", "", "Display name of the load balancer")
 	iploadbalancingEditCmd.Flags().StringVar(&iploadbalancing.IPLoadbalancingSpec.SSLConfiguration, "ssl-configuration", "", "SSL configuration of the load balancer (intermediate, modern)")

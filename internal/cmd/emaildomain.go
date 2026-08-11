@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/emaildomain"
 	"github.com/spf13/cobra"
 )
@@ -27,10 +28,11 @@ func init() {
 
 	// Command to get a single EmailDomain
 	emaildomainCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific Email Domain",
-		Args:  cobra.ExactArgs(1),
-		Run:   emaildomain.GetEmailDomain,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific Email Domain",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.GetEmailDomain,
 	})
 
 	// Redirection subcommand
@@ -42,28 +44,31 @@ func init() {
 
 	// List redirections
 	emaildomainRedirectionListCmd := &cobra.Command{
-		Use:     "list <service_name>",
-		Aliases: []string{"ls"},
-		Short:   "List all email redirections for a domain",
-		Args:    cobra.ExactArgs(1),
-		Run:     emaildomain.ListRedirections,
+		Use:               "list <service_name>",
+		Aliases:           []string{"ls"},
+		Short:             "List all email redirections for a domain",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.ListRedirections,
 	}
 	emaildomainRedirectionCmd.AddCommand(withFilterFlag(emaildomainRedirectionListCmd))
 
 	// Get a specific redirection
 	emaildomainRedirectionCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name> <redirection_id>",
-		Short: "Get details of a specific email redirection",
-		Args:  cobra.ExactArgs(2),
-		Run:   emaildomain.GetRedirection,
+		Use:               "get <service_name> <redirection_id>",
+		Short:             "Get details of a specific email redirection",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.GetRedirection,
 	})
 
 	// Create redirection
 	createRedirectionCmd := &cobra.Command{
-		Use:   "create <service_name>",
-		Short: "Create a new email redirection",
-		Args:  cobra.ExactArgs(1),
-		Run:   emaildomain.CreateRedirection,
+		Use:               "create <service_name>",
+		Short:             "Create a new email redirection",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.CreateRedirection,
 	}
 	createRedirectionCmd.Flags().StringVar(&emaildomain.RedirectionSpec.From, "from", "", "Source email address (e.g., alias@domain.com)")
 	createRedirectionCmd.Flags().StringVar(&emaildomain.RedirectionSpec.To, "to", "", "Destination email address")
@@ -77,10 +82,11 @@ func init() {
 
 	// Delete redirection
 	emaildomainRedirectionCmd.AddCommand(&cobra.Command{
-		Use:   "delete <service_name> <redirection_id>",
-		Short: "Delete an email redirection",
-		Args:  cobra.ExactArgs(2),
-		Run:   emaildomain.DeleteRedirection,
+		Use:               "delete <service_name> <redirection_id>",
+		Short:             "Delete an email redirection",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.DeleteRedirection,
 	})
 
 	rootCmd.AddCommand(emaildomainCmd)

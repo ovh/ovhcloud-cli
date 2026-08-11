@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
 	"github.com/spf13/cobra"
@@ -28,18 +29,20 @@ func init() {
 
 	// Command to get a single Baremetal
 	baremetalCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific baremetal",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.GetBaremetal,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.GetBaremetal,
 	})
 
 	// Command to edit a single Baremetal
 	editBaremetalCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Update the given baremetal",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.EditBaremetal,
+		Use:               "edit <service_name>",
+		Short:             "Update the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.EditBaremetal,
 	}
 	editBaremetalCmd.Flags().IntVar(&baremetal.EditBaremetalParams.BootId, "boot-id", 0, "Boot ID")
 	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.BootScript, "boot-script", "", "Boot script")
@@ -55,28 +58,31 @@ func init() {
 
 	// Command to list baremetal tasks
 	baremetalListTasksCmd := &cobra.Command{
-		Use:   "list-tasks <service_name>",
-		Short: "Retrieve tasks of the given baremetal",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.ListBaremetalTasks,
+		Use:               "list-tasks <service_name>",
+		Short:             "Retrieve tasks of the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ListBaremetalTasks,
 	}
 	baremetalCmd.AddCommand(withFilterFlag(baremetalListTasksCmd))
 
 	// Command to reboot a baremetal
 	baremetalRebootCmd := &cobra.Command{
-		Use:   "reboot <service_name>",
-		Short: "Reboot the given baremetal",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.RebootBaremetal,
+		Use:               "reboot <service_name>",
+		Short:             "Reboot the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.RebootBaremetal,
 	}
 	baremetalCmd.AddCommand(baremetalRebootCmd)
 
 	// Command to reboot a baremetal in rescue mode
 	baremetalRebootRescueCmd := &cobra.Command{
-		Use:   "reboot-rescue <service_name>",
-		Short: "Reboot the given baremetal in rescue mode",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.RebootRescueBaremetal,
+		Use:               "reboot-rescue <service_name>",
+		Short:             "Reboot the given baremetal in rescue mode",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.RebootRescueBaremetal,
 	}
 	baremetalRebootRescueCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reboot to be done before exiting")
 	baremetalCmd.AddCommand(baremetalRebootRescueCmd)
@@ -127,9 +133,10 @@ to see all the available parameters and real life examples.
 
 Please note that all parameters are not compatible with all OSes.
 `,
-		Args:       cobra.MaximumNArgs(1),
-		ArgAliases: []string{"service_name"},
-		Run:        baremetal.ReinstallBaremetal,
+		Args:              cobra.MaximumNArgs(1),
+		ArgAliases:        []string{"service_name"},
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ReinstallBaremetal,
 	}
 
 	addParameterFileFlags(reinstallBaremetalCmd, false, assets.BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetal.BaremetalInstallationExample, nil)
@@ -158,24 +165,27 @@ Please note that all parameters are not compatible with all OSes.
 	}
 	baremetalCmd.AddCommand(baremetalBootCmd)
 	baremetalBootCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <service_name>",
-		Aliases: []string{"ls"},
-		Short:   "List boot options for the given baremetal",
-		Args:    cobra.ExactArgs(1),
-		Run:     baremetal.ListBaremetalBoots,
+		Use:               "list <service_name>",
+		Aliases:           []string{"ls"},
+		Short:             "List boot options for the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ListBaremetalBoots,
 	}))
 	baremetalBootCmd.AddCommand(&cobra.Command{
-		Use:   "set <service_name> <boot_id>",
-		Short: "Configure a boot ID on the given baremetal",
-		Args:  cobra.ExactArgs(2),
-		Run:   baremetal.SetBaremetalBootId,
+		Use:               "set <service_name> <boot_id>",
+		Short:             "Configure a boot ID on the given baremetal",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.SetBaremetalBootId,
 	})
 
 	baremetalBootSetScriptCmd := &cobra.Command{
-		Use:   "set-script <service_name>",
-		Short: "Configure a boot script on the given baremetal",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.SetBaremetalBootScript,
+		Use:               "set-script <service_name>",
+		Short:             "Configure a boot script on the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.SetBaremetalBootScript,
 	}
 	baremetalBootSetScriptCmd.Flags().StringVar(&baremetal.EditBaremetalParams.BootScript, "script", "", "Boot script to set on the baremetal")
 	addInteractiveEditorFlag(baremetalBootSetScriptCmd)
@@ -185,32 +195,36 @@ Please note that all parameters are not compatible with all OSes.
 	baremetalBootCmd.AddCommand(baremetalBootSetScriptCmd)
 
 	baremetalListInterventionsCmd := &cobra.Command{
-		Use:   "list-interventions <service_name>",
-		Short: "List past and planned interventions for the given baremetal",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.ListBaremetalInterventions,
+		Use:               "list-interventions <service_name>",
+		Short:             "List past and planned interventions for the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ListBaremetalInterventions,
 	}
 	baremetalCmd.AddCommand(withFilterFlag(baremetalListInterventionsCmd))
 
 	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list-ips <service_name>",
-		Short: "List all IPs that are routed to the given baremetal",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.GetBaremetalRelatedIPs,
+		Use:               "list-ips <service_name>",
+		Short:             "List all IPs that are routed to the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.GetBaremetalRelatedIPs,
 	}))
 
 	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list-secrets <service_name>",
-		Short: "Retrieve secrets to connect to the server",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.GetBaremetalAuthenticationSecrets,
+		Use:               "list-secrets <service_name>",
+		Short:             "Retrieve secrets to connect to the server",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.GetBaremetalAuthenticationSecrets,
 	}))
 
 	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list-compatible-os <service_name>",
-		Short: "Retrieve OSes that can be installed on this baremetal",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.GetBaremetalCompatibleOses,
+		Use:               "list-compatible-os <service_name>",
+		Short:             "Retrieve OSes that can be installed on this baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.GetBaremetalCompatibleOses,
 	}))
 
 	// Commands to manage virtual network interfaces
@@ -220,17 +234,19 @@ Please note that all parameters are not compatible with all OSes.
 	}
 	baremetalCmd.AddCommand(baremetalVNICmd)
 	baremetalVNICmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <service_name>",
-		Aliases: []string{"ls"},
-		Short:   "List Virtual Network Interfaces of the given baremetal",
-		Args:    cobra.ExactArgs(1),
-		Run:     baremetal.ListBaremetalVNIs,
+		Use:               "list <service_name>",
+		Aliases:           []string{"ls"},
+		Short:             "List Virtual Network Interfaces of the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ListBaremetalVNIs,
 	}))
 	baremetalVNICreateOLAAggregationCmd := &cobra.Command{
-		Use:   "ola-create-aggregation <service_name> --name <name> --interface <uuid> --interface <uuid>",
-		Short: "Group interfaces into an aggregation",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.CreateBaremetalOLAAggregation,
+		Use:               "ola-create-aggregation <service_name> --name <name> --interface <uuid> --interface <uuid>",
+		Short:             "Group interfaces into an aggregation",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.CreateBaremetalOLAAggregation,
 	}
 	baremetalVNICreateOLAAggregationCmd.Flags().StringArrayVar(&baremetal.BaremetalOLAInterfaces, "interface", nil, "Interfaces to group")
 	baremetalVNICreateOLAAggregationCmd.MarkFlagRequired("interface")
@@ -239,10 +255,11 @@ Please note that all parameters are not compatible with all OSes.
 	baremetalVNICmd.AddCommand(baremetalVNICreateOLAAggregationCmd)
 
 	baremetalVNIResetOLAAggregationCmd := &cobra.Command{
-		Use:   "ola-reset <service_name> --interface <uuid> --interface <uuid>",
-		Short: "Reset interfaces to default configuration",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.ResetBaremetalOLAAggregation,
+		Use:               "ola-reset <service_name> --interface <uuid> --interface <uuid>",
+		Short:             "Reset interfaces to default configuration",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ResetBaremetalOLAAggregation,
 	}
 	baremetalVNIResetOLAAggregationCmd.Flags().StringArrayVar(&baremetal.BaremetalOLAInterfaces, "interface", nil, "Interfaces to group")
 	baremetalVNIResetOLAAggregationCmd.MarkFlagRequired("interface")
@@ -255,10 +272,11 @@ Please note that all parameters are not compatible with all OSes.
 	baremetalCmd.AddCommand(baremetalIPMICmd)
 
 	baremetalIPMIGetAccessCmd := &cobra.Command{
-		Use:   "get-access <service_name> --type serialOverLanURL --ttl 5",
-		Short: "Request an acces on KVM IPMI interface",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.BaremetalGetIPMIAccess,
+		Use:               "get-access <service_name> --type serialOverLanURL --ttl 5",
+		Short:             "Request an acces on KVM IPMI interface",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.BaremetalGetIPMIAccess,
 	}
 	baremetalIPMIGetAccessCmd.Flags().IntVar(&baremetal.BaremetalIpmiTTL, "ttl", 1, "Time to live in minutes for cache (1, 3, 5, 10, 15)")
 	baremetalIPMIGetAccessCmd.MarkFlagRequired("ttl")
@@ -269,10 +287,11 @@ Please note that all parameters are not compatible with all OSes.
 	baremetalIPMICmd.AddCommand(baremetalIPMIGetAccessCmd)
 
 	baremetalIPMICmd.AddCommand(&cobra.Command{
-		Use:   "reset-sessions <service_name>",
-		Short: "Reset IPMI sessions on a baremetal server",
-		Args:  cobra.ExactArgs(1),
-		Run:   baremetal.BaremetalResetIPMISessions,
+		Use:               "reset-sessions <service_name>",
+		Short:             "Reset IPMI sessions on a baremetal server",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.BaremetalResetIPMISessions,
 	})
 
 	rootCmd.AddCommand(baremetalCmd)

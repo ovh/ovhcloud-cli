@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/nutanix"
 	"github.com/spf13/cobra"
 )
@@ -26,10 +27,11 @@ func init() {
 
 	// Command to get a single Nutanix
 	nutanixCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific Nutanix",
-		Args:  cobra.ExactArgs(1),
-		Run:   nutanix.GetNutanix,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific Nutanix",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/nutanix"),
+		Run:               nutanix.GetNutanix,
 	})
 
 	rootCmd.AddCommand(nutanixCmd)

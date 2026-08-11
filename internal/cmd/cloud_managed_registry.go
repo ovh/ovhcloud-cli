@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -27,17 +28,19 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 	registryCmd.AddCommand(withFilterFlag(listCmd))
 
 	registryCmd.AddCommand(&cobra.Command{
-		Use:   "get <registry_id>",
-		Short: "Get a specific container registry",
-		Run:   cloud.GetContainerRegistry,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <registry_id>",
+		Short:             "Get a specific container registry",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.GetContainerRegistry,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	editCmd := &cobra.Command{
-		Use:   "edit <registry_id>",
-		Short: "Edit the given container registry",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.EditContainerRegistry,
+		Use:               "edit <registry_id>",
+		Short:             "Edit the given container registry",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.EditContainerRegistry,
 	}
 	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryName, "name", "", "New name for the container registry")
 	addInteractiveEditorFlag(editCmd)
@@ -57,10 +60,11 @@ func initContainerRegistryCommand(cloudCmd *cobra.Command) {
 	registryCmd.AddCommand(createCmd)
 
 	registryCmd.AddCommand(&cobra.Command{
-		Use:   "delete <registry_id>",
-		Short: "Delete a specific container registry",
-		Run:   cloud.DeleteContainerRegistry,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <registry_id>",
+		Short:             "Delete a specific container registry",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.DeleteContainerRegistry,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	initContainerRegistryUsersCommand(registryCmd)
@@ -92,25 +96,28 @@ func initContainerRegistryUsersCommand(registryCmd *cobra.Command) {
 	}
 
 	listCmd := &cobra.Command{
-		Use:     "list <registry_id>",
-		Aliases: []string{"ls"},
-		Short:   "List your container registry users",
-		Run:     cloud.ListContainerRegistryUsers,
+		Use:               "list <registry_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List your container registry users",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.ListContainerRegistryUsers,
 	}
 	usersCmd.AddCommand(withFilterFlag(listCmd))
 
 	usersCmd.AddCommand(&cobra.Command{
-		Use:   "get <registry_id> <user_id>",
-		Short: "Get a specific container registry user",
-		Run:   cloud.GetContainerRegistryUser,
-		Args:  cobra.ExactArgs(2),
+		Use:               "get <registry_id> <user_id>",
+		Short:             "Get a specific container registry user",
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/containerRegistry", "/v1/cloud/project/%s/containerRegistry/%s/users"),
+		Run:               cloud.GetContainerRegistryUser,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	createCmd := &cobra.Command{
-		Use:   "create <registry_id>",
-		Short: "Create a new container registry user",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.CreateContainerRegistryUser,
+		Use:               "create <registry_id>",
+		Short:             "Create a new container registry user",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.CreateContainerRegistryUser,
 	}
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryUserSpec.Email, "email", "", "User email")
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryUserSpec.Login, "login", "", "User login")
@@ -120,17 +127,19 @@ func initContainerRegistryUsersCommand(registryCmd *cobra.Command) {
 	usersCmd.AddCommand(createCmd)
 
 	usersCmd.AddCommand(&cobra.Command{
-		Use:   "set-as-admin <registry_id> <user_id>",
-		Short: "Set a specific container registry user as admin",
-		Run:   cloud.SetContainerRegistryUserAsAdmin,
-		Args:  cobra.ExactArgs(2),
+		Use:               "set-as-admin <registry_id> <user_id>",
+		Short:             "Set a specific container registry user as admin",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.SetContainerRegistryUserAsAdmin,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	usersCmd.AddCommand(&cobra.Command{
-		Use:   "delete <registry_id> <user_id>",
-		Short: "Delete a specific container registry user",
-		Run:   cloud.DeleteContainerRegistryUser,
-		Args:  cobra.ExactArgs(2),
+		Use:               "delete <registry_id> <user_id>",
+		Short:             "Delete a specific container registry user",
+		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/containerRegistry", "/v1/cloud/project/%s/containerRegistry/%s/users"),
+		Run:               cloud.DeleteContainerRegistryUser,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	registryCmd.AddCommand(usersCmd)
@@ -143,10 +152,11 @@ func initContainerRegistryIAMCommand(registryCmd *cobra.Command) {
 	}
 
 	enableCmd := &cobra.Command{
-		Use:   "enable <registry_id>",
-		Short: "Enable IAM for the given container registry",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.EnableContainerRegistryIAM,
+		Use:               "enable <registry_id>",
+		Short:             "Enable IAM for the given container registry",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.EnableContainerRegistryIAM,
 	}
 	enableCmd.Flags().BoolVar(&cloud.CloudContainerRegistryIamSpec.DeleteUsers, "delete-users", false, "Delete existing container registry users when enabling IAM")
 	addParameterFileFlags(enableCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/containerRegistry/{registryId}/iam", "post", cloud.CloudContainerRegistryIamEnableSample, nil)
@@ -155,10 +165,11 @@ func initContainerRegistryIAMCommand(registryCmd *cobra.Command) {
 	iamCmd.AddCommand(enableCmd)
 
 	iamCmd.AddCommand(&cobra.Command{
-		Use:   "disable <registry_id>",
-		Short: "Disable IAM for the given container registry",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.DisableContainerRegistryIAM,
+		Use:               "disable <registry_id>",
+		Short:             "Disable IAM for the given container registry",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.DisableContainerRegistryIAM,
 	})
 
 	registryCmd.AddCommand(iamCmd)
@@ -184,19 +195,21 @@ func initContainerRegistryIPRestrictionsManagementCommand(ipRestrictionsCmd *cob
 	}
 
 	listCmd := &cobra.Command{
-		Use:     "list <registry_id>",
-		Aliases: []string{"ls"},
-		Short:   "List management IP restrictions for a container registry",
-		Run:     cloud.ListContainerRegistryIPRestrictionsManagement,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <registry_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List management IP restrictions for a container registry",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.ListContainerRegistryIPRestrictionsManagement,
+		Args:              cobra.ExactArgs(1),
 	}
 	managementCmd.AddCommand(withFilterFlag(listCmd))
 
 	addCmd := &cobra.Command{
-		Use:   "add <registry_id>",
-		Short: "Add a management IP restriction to a container registry",
-		Run:   cloud.AddContainerRegistryIPRestrictionsManagement,
-		Args:  cobra.ExactArgs(1),
+		Use:               "add <registry_id>",
+		Short:             "Add a management IP restriction to a container registry",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.AddContainerRegistryIPRestrictionsManagement,
+		Args:              cobra.ExactArgs(1),
 	}
 	addCmd.Flags().StringVar(&cloud.ContainerRegistryIPRestrictionsAddSpec.IPBlock, "ip-block", "", "IP block in CIDR notation (e.g., 192.0.2.0/24)")
 	addCmd.MarkFlagRequired("ip-block") //nolint:errcheck
@@ -204,10 +217,11 @@ func initContainerRegistryIPRestrictionsManagementCommand(ipRestrictionsCmd *cob
 	managementCmd.AddCommand(addCmd)
 
 	deleteCmd := &cobra.Command{
-		Use:   "delete <registry_id>",
-		Short: "Delete a management IP restriction from a container registry",
-		Run:   cloud.DeleteContainerRegistryIPRestrictionsManagement,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <registry_id>",
+		Short:             "Delete a management IP restriction from a container registry",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.DeleteContainerRegistryIPRestrictionsManagement,
+		Args:              cobra.ExactArgs(1),
 	}
 	deleteCmd.Flags().StringVar(&cloud.ContainerRegistryIPRestrictionsDeleteSpec.IPBlock, "ip-block", "", "IP block in CIDR notation to delete (e.g., 192.0.2.0/24)")
 	deleteCmd.MarkFlagRequired("ip-block") //nolint:errcheck
@@ -224,19 +238,21 @@ func initContainerRegistryIPRestrictionsRegistryCommand(ipRestrictionsCmd *cobra
 	}
 
 	listCmd := &cobra.Command{
-		Use:     "list <registry_id>",
-		Aliases: []string{"ls"},
-		Short:   "List registry IP restrictions for a container registry",
-		Run:     cloud.ListContainerRegistryIPRestrictionsRegistry,
-		Args:    cobra.ExactArgs(1),
+		Use:               "list <registry_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List registry IP restrictions for a container registry",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.ListContainerRegistryIPRestrictionsRegistry,
+		Args:              cobra.ExactArgs(1),
 	}
 	registryRestrictionsCmd.AddCommand(withFilterFlag(listCmd))
 
 	addCmd := &cobra.Command{
-		Use:   "add <registry_id>",
-		Short: "Add a registry IP restriction to a container registry",
-		Run:   cloud.AddContainerRegistryIPRestrictionsRegistry,
-		Args:  cobra.ExactArgs(1),
+		Use:               "add <registry_id>",
+		Short:             "Add a registry IP restriction to a container registry",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.AddContainerRegistryIPRestrictionsRegistry,
+		Args:              cobra.ExactArgs(1),
 	}
 	addCmd.Flags().StringVar(&cloud.ContainerRegistryIPRestrictionsAddSpec.IPBlock, "ip-block", "", "IP block in CIDR notation (e.g., 192.0.2.0/24)")
 	addCmd.MarkFlagRequired("ip-block") //nolint:errcheck
@@ -244,10 +260,11 @@ func initContainerRegistryIPRestrictionsRegistryCommand(ipRestrictionsCmd *cobra
 	registryRestrictionsCmd.AddCommand(addCmd)
 
 	deleteCmd := &cobra.Command{
-		Use:   "delete <registry_id>",
-		Short: "Delete a registry IP restriction from a container registry",
-		Run:   cloud.DeleteContainerRegistryIPRestrictionsRegistry,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <registry_id>",
+		Short:             "Delete a registry IP restriction from a container registry",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.DeleteContainerRegistryIPRestrictionsRegistry,
+		Args:              cobra.ExactArgs(1),
 	}
 	deleteCmd.Flags().StringVar(&cloud.ContainerRegistryIPRestrictionsDeleteSpec.IPBlock, "ip-block", "", "IP block in CIDR notation to delete (e.g., 192.0.2.0/24)")
 	deleteCmd.MarkFlagRequired("ip-block") //nolint:errcheck
@@ -263,18 +280,20 @@ func initContainerRegistryOIDCCommand(registryCmd *cobra.Command) {
 	}
 
 	getCmd := &cobra.Command{
-		Use:   "get <registry_id>",
-		Short: "Get OIDC configuration for a container registry",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.GetContainerRegistryOIDC,
+		Use:               "get <registry_id>",
+		Short:             "Get OIDC configuration for a container registry",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.GetContainerRegistryOIDC,
 	}
 	oidcCmd.AddCommand(getCmd)
 
 	createCmd := &cobra.Command{
-		Use:   "create <registry_id>",
-		Short: "Create a new OIDC configuration for a container registry",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.CreateContainerRegistryOIDC,
+		Use:               "create <registry_id>",
+		Short:             "Create a new OIDC configuration for a container registry",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.CreateContainerRegistryOIDC,
 	}
 	createCmd.Flags().BoolVar(&cloud.CloudContainerRegistryOidcCreateSpec.DeleteUsers, "delete-users", false, "Delete existing local users when enabling OIDC")
 	createCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcCreateSpec.Provider.Name, "name", "", "OIDC provider name")
@@ -294,10 +313,11 @@ func initContainerRegistryOIDCCommand(registryCmd *cobra.Command) {
 	oidcCmd.AddCommand(createCmd)
 
 	editCmd := &cobra.Command{
-		Use:   "edit <registry_id>",
-		Short: "Edit the OIDC configuration for a container registry",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.EditContainerRegistryOIDC,
+		Use:               "edit <registry_id>",
+		Short:             "Edit the OIDC configuration for a container registry",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.EditContainerRegistryOIDC,
 	}
 	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.AdminGroup, "admin-group", "", "Group granted admin role")
 	editCmd.Flags().StringVar(&cloud.CloudContainerRegistryOidcEditSpec.ClientID, "client-id", "", "OIDC client ID")
@@ -314,10 +334,11 @@ func initContainerRegistryOIDCCommand(registryCmd *cobra.Command) {
 	oidcCmd.AddCommand(editCmd)
 
 	deleteCmd := &cobra.Command{
-		Use:   "delete <registry_id>",
-		Short: "Delete the OIDC configuration for a container registry",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.DeleteContainerRegistryOIDC,
+		Use:               "delete <registry_id>",
+		Short:             "Delete the OIDC configuration for a container registry",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.DeleteContainerRegistryOIDC,
 	}
 	oidcCmd.AddCommand(deleteCmd)
 
@@ -338,18 +359,20 @@ func initContainerRegistryPlanCommand(registryCmd *cobra.Command) {
 	}))
 
 	listCapabilitiesCmd := &cobra.Command{
-		Use:   "list-capabilities <registry_id>",
-		Short: "List available plans for a specific container registry",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.ListContainerRegistryPlanCapabilities,
+		Use:               "list-capabilities <registry_id>",
+		Short:             "List available plans for a specific container registry",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.ListContainerRegistryPlanCapabilities,
 	}
 	planCmd.AddCommand(withFilterFlag(listCapabilitiesCmd))
 
 	upgradeCmd := &cobra.Command{
-		Use:   "upgrade <registry_id>",
-		Short: "Upgrade a container registry plan",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.UpgradeContainerRegistryPlan,
+		Use:               "upgrade <registry_id>",
+		Short:             "Upgrade a container registry plan",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/containerRegistry"),
+		Run:               cloud.UpgradeContainerRegistryPlan,
 	}
 	upgradeCmd.Flags().StringVar(&cloud.CloudContainerRegistryPlanUpgradeSpec.PlanID, "plan-id", "", "Target plan ID for the registry")
 	upgradeCmd.MarkFlagRequired("plan-id") //nolint:errcheck
