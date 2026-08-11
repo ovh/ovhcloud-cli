@@ -1,9 +1,9 @@
 ## ovhcloud cloud storage block delete
 
-Delete a volume (prompts for one if omitted)
+Delete the given volume
 
 ```
-ovhcloud cloud storage block delete [volume_id] [flags]
+ovhcloud cloud storage block delete <volume_id> [flags]
 ```
 
 ### Options
