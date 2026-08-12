@@ -178,7 +178,9 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		return nil, fmt.Errorf("parameters cannot be marshalled: %w", err)
 	}
 
-	log.Println("Final parameters: \n" + string(out))
+	if flags.Debug {
+		log.Println("Final parameters: \n" + string(out))
+	}
 
 	var createdResource map[string]any
 	if err := httpLib.Client.Post(endpoint, parameters, &createdResource); err != nil {

@@ -210,7 +210,9 @@ func CreateUserS3Policy(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	log.Println("Final parameters: \n" + string(out))
+	if flags.Debug {
+		log.Println("Final parameters: \n" + string(out))
+	}
 
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%s/policy", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, parameters, nil); err != nil {
