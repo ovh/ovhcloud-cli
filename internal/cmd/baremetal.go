@@ -211,13 +211,41 @@ Please note that all parameters are not compatible with all OSes.
 		Run:               baremetal.GetBaremetalRelatedIPs,
 	}))
 
-	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:               "list-secrets <service_name>",
-		Short:             "Retrieve secrets to connect to the server",
+	// Commands to manage server credentials. The former "list-secrets" name
+	// suggested a read: the call actually asks the API for a new access
+	// secret, so the command now lives under an explicit verb.
+	baremetalCredentialsCmd := &cobra.Command{
+		Use:   "credentials",
+		Short: "Manage access credentials of the given baremetal",
+	}
+	baremetalCmd.AddCommand(baremetalCredentialsCmd)
+
+	baremetalCredentialsGetCmd := &cobra.Command{
+		Use:   "get <service_name>",
+		Short: "Request access credentials for the given baremetal",
+		Long: `Request access credentials for the given dedicated server.
+
+This command is a write operation: it asks the API to generate a new access
+secret. Values are masked unless --reveal is given, in every output format.
+`,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.GetBaremetalAuthenticationSecrets,
-	}))
+	}
+	baremetalCredentialsGetCmd.Flags().BoolVar(&baremetal.BaremetalRevealSecrets, "reveal", false, "Print secret values instead of masking them")
+	baremetalCredentialsCmd.AddCommand(withFilterFlag(baremetalCredentialsGetCmd))
+
+	// Deprecated alias kept so that existing scripts keep working.
+	baremetalListSecretsCmd := &cobra.Command{
+		Use:               "list-secrets <service_name>",
+		Short:             "Retrieve secrets to connect to the server",
+		Deprecated:        "use \"ovhcloud baremetal credentials get\" instead.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.GetBaremetalAuthenticationSecrets,
+	}
+	baremetalListSecretsCmd.Flags().BoolVar(&baremetal.BaremetalRevealSecrets, "reveal", false, "Print secret values instead of masking them")
+	baremetalCmd.AddCommand(withFilterFlag(baremetalListSecretsCmd))
 
 	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:               "list-compatible-os <service_name>",

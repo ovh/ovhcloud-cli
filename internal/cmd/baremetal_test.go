@@ -116,3 +116,53 @@ func (ms *MockSuite) TestBaremetalReinstallSucceedsOnDoneTask(assert, require *t
 
 	require.CmpNoError(err)
 }
+
+func mockCredentialsResponders() {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/authenticationSecret",
+		httpmock.NewStringResponder(200, `[{"type":"password","user":"root","password":"secret-id-1","expiration":"2026-08-18T03:41:00+02:00"}]`),
+	)
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/secret/retrieve",
+		httpmock.NewStringResponder(200, `{"secret":"Tk9uY2VQYXNzMTIz"}`),
+	)
+}
+
+// A secret must not be printed unless it was explicitly asked for.
+func (ms *MockSuite) TestBaremetalCredentialsGetMasksByDefault(assert, require *td.T) {
+	mockCredentialsResponders()
+
+	out, err := cmd.Execute("baremetal", "credentials", "get", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("Tk9uY2VQYXNzMTIz")), "the secret value must not be printed")
+	assert.Cmp(out, td.Contains("••••"))
+}
+
+// Masking applies to machine-readable formats too: a secret written into a
+// JSON file in a pipeline leaks as much as one scrolled in a terminal.
+func (ms *MockSuite) TestBaremetalCredentialsGetMasksJSONOutput(assert, require *td.T) {
+	mockCredentialsResponders()
+
+	out, err := cmd.Execute("baremetal", "credentials", "get", "fakeBaremetal", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("Tk9uY2VQYXNzMTIz")))
+}
+
+func (ms *MockSuite) TestBaremetalCredentialsGetRevealsOnDemand(assert, require *td.T) {
+	mockCredentialsResponders()
+
+	out, err := cmd.Execute("baremetal", "credentials", "get", "fakeBaremetal", "--reveal")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("Tk9uY2VQYXNzMTIz"))
+}
+
+// The former name keeps working, so existing scripts do not break.
+func (ms *MockSuite) TestBaremetalListSecretsAliasStillWorks(assert, require *td.T) {
+	mockCredentialsResponders()
+
+	out, err := cmd.Execute("baremetal", "list-secrets", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("••••"))
+}
