@@ -6,10 +6,13 @@ package login
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
+	"github.com/ovh/go-ovh/ovh"
 	"github.com/ovh/ovhcloud-cli/internal/config"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -30,7 +33,7 @@ func Logout(_ *cobra.Command, _ []string) {
 		display.OutputError(&flags.OutputFormatConfig, "no configuration file found, nothing to log out from")
 		return
 	}
-	
+
 	var section string
 	if profileName := config.GetActiveProfileName(cfg, flags.Profile); profileName != "" && !config.IsDefaultProfile(profileName) {
 		section = config.ProfileSectionName(profileName)
@@ -52,10 +55,13 @@ func Logout(_ *cobra.Command, _ []string) {
 	// credentials may already be invalid, in which case we still want to clean
 	// up the local configuration.
 	if httpLib.Client != nil {
-		if err := httpLib.Client.Post("/auth/logout", nil, nil); err != nil {
-			display.OutputWarning(&flags.OutputFormatConfig, "could not revoke credentials via the API (they may already be invalid): %s", err)
-		} else {
+		switch err := httpLib.Client.Post("/auth/logout", nil, nil); {
+		case err == nil:
 			display.OutputInfo(&flags.OutputFormatConfig, nil, "🔒 API credentials revoked")
+		case isInvalidCredentialError(err):
+			display.OutputWarning(&flags.OutputFormatConfig, "credentials were already invalid or revoked, skipping remote revocation")
+		default:
+			display.OutputWarning(&flags.OutputFormatConfig, "could not revoke credentials via the API: %s", err)
 		}
 	} else {
 		display.OutputWarning(&flags.OutputFormatConfig, "API client not initialized, skipping remote revocation")
@@ -70,13 +76,26 @@ func Logout(_ *cobra.Command, _ []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Logged out successfully (credentials removed from %s)", path)
 }
 
-// confirmLogout asks the user to confirm the logout. It returns true only if
-// the user explicitly answers yes.
+// confirmLogout asks the user to confirm the logout. The default (an empty
+// answer, i.e. just pressing Enter) is "no": it returns true only if the user
+// explicitly answers "y"/"yes". The prompt can be skipped entirely with the
+// -y/--yes flag.
 func confirmLogout(section string) bool {
-	fmt.Fprintf(os.Stderr, "⚠️  This will revoke the current API credentials and remove them from section %q of your configuration.\nContinue? [y/N]: ", section)
+	fmt.Fprintf(os.Stderr,
+		"⚠️  This will revoke the current API credentials and remove them from section %q of your configuration.\n"+
+			"Continue? [y/N] (press Enter to cancel; use -y/--yes to skip this prompt): ",
+		section)
 
 	answer, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 	answer = strings.TrimSpace(strings.ToLower(answer))
 
 	return answer == "y" || answer == "yes"
+}
+
+// isInvalidCredentialError reports whether err is an OVHcloud API error caused
+// by credentials that are already invalid or revoked (HTTP 401/403).
+func isInvalidCredentialError(err error) bool {
+	var apiErr *ovh.APIError
+	return errors.As(err, &apiErr) &&
+		(apiErr.Code == http.StatusUnauthorized || apiErr.Code == http.StatusForbidden)
 }
