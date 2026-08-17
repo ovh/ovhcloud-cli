@@ -116,3 +116,67 @@ func (ms *MockSuite) TestBaremetalReinstallSucceedsOnDoneTask(assert, require *t
 
 	require.CmpNoError(err)
 }
+
+func (ms *MockSuite) TestBaremetalBootSetDiskCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/boot?bootType=harddisk",
+		httpmock.NewStringResponder(200, `[1]`),
+	)
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal",
+		httpmock.NewStringResponder(200, `null`),
+	)
+
+	out, err := cmd.Execute("baremetal", "boot", "set-disk", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "set to boot on its hard disk")
+}
+
+func (ms *MockSuite) TestBaremetalBootSetDiskCmdNoEntry(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/boot?bootType=harddisk",
+		httpmock.NewStringResponder(200, `[]`),
+	)
+
+	_, err := cmd.Execute("baremetal", "boot", "set-disk", "fakeBaremetal")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("no hard disk boot entry found"))
+}
+
+// A server left with the rescue boot entry comes back in rescue at its next
+// reboot: the sheet must say so.
+func (ms *MockSuite) TestBaremetalGetCmdWarnsAboutRescueBoot(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal",
+		httpmock.NewStringResponder(200, `{
+			"name": "fakeBaremetal",
+			"bootId": 1122,
+			"os": "debian12_64",
+			"state": "ok",
+			"powerState": "poweron",
+			"ip": "1.2.3.4",
+			"reverse": "fake.example.net",
+			"region": "eu-west",
+			"availabilityZone": "eu-west-gra-a",
+			"datacenter": "gra3",
+			"rack": "G123A01",
+			"iam": {"displayName": "fake", "urn": "urn:v1:eu:resource:dedicatedServer:fakeBaremetal"}
+		}`),
+	)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/task",
+		httpmock.NewStringResponder(200, `[]`),
+	)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/specifications/network",
+		httpmock.NewStringResponder(200, `{"routing": {"ipv6": null}}`),
+	)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/serviceInfos",
+		httpmock.NewStringResponder(200, `{"expiration": "2026-11-04", "renew": {"automatic": true}}`),
+	)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/boot/1122",
+		httpmock.NewStringResponder(200, `{"bootId": 1122, "bootType": "rescue", "description": "rescue64-pro", "kernel": "rescue"}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "get", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("rescue"))
+	assert.Cmp(out, td.Contains("boot set-disk"))
+}
