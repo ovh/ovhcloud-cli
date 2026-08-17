@@ -89,7 +89,13 @@ func FetchObjectsParallel[T any](path string, ids []any, ignoreErrors bool) ([]T
 			var object T
 			if err := Client.Get(url, &object); err != nil {
 				if ignoreErrors {
-					log.Printf("error fetching %s: %s", url, err)
+					// The caller opted to ignore per-item errors (e.g. a feature
+					// that is not available in some regions, such as floating IPs
+					// on local zones). These errors are expected, so only surface
+					// them in debug mode to avoid polluting normal output (#173).
+					if flags.Debug {
+						log.Printf("error fetching %s: %s", url, err)
+					}
 					return nil
 				}
 				return fmt.Errorf("failed to fetch object %q: %w", fmt.Sprint(id), err)
