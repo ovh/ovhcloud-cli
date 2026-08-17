@@ -180,6 +180,16 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 
 	log.Println("Final parameters: \n" + string(out))
 
+	// --dry-run stops here: the caller sees exactly what would have been sent,
+	// and nothing reaches the API.
+	if flags.DryRun {
+		display.OutputInfo(&flags.OutputFormatConfig, map[string]any{
+			"endpoint":   endpoint,
+			"parameters": parameters,
+		}, "🔍 Dry run: nothing was sent. The request above would have been posted to %s", endpoint)
+		return nil, nil
+	}
+
 	var createdResource map[string]any
 	if err := httpLib.Client.Post(endpoint, parameters, &createdResource); err != nil {
 		return nil, fmt.Errorf("error creating resource: %w", err)

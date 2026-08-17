@@ -132,6 +132,11 @@ You can visit https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&bran
 to see all the available parameters and real life examples.
 
 Please note that all parameters are not compatible with all OSes.
+
+Reinstalling wipes every disk of the server, so the command asks for a
+confirmation: type the server name when prompted. Unattended runs (pipelines,
+piped input) must pass --yes, and --dry-run prints the parameters that would
+be sent without sending them.
 `,
 		Args:              cobra.MaximumNArgs(1),
 		ArgAliases:        []string{"service_name"},
@@ -155,6 +160,9 @@ Please note that all parameters are not compatible with all OSes.
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.SshKey, "ssh-key", "", "SSH public key")
 	reinstallBaremetalCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
+	reinstallBaremetalCmd.Flags().BoolVarP(&flags.AssumeYes, "yes", "y", false, "Skip the confirmation prompt (required for unattended runs)")
+	reinstallBaremetalCmd.Flags().BoolVar(&flags.DryRun, "dry-run", false, "Print the installation parameters without sending anything")
+	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "yes", "dry-run")
 	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "from-file", "editor")
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
 

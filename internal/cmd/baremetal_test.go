@@ -115,4 +115,43 @@ func (ms *MockSuite) TestBaremetalReinstallSucceedsOnDoneTask(assert, require *t
 	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait")
 
 	require.CmpNoError(err)
+
+// Reinstalling wipes the disks: an unattended run must not do it silently.
+func (ms *MockSuite) TestBaremetalReinstallRefusesWithoutConfirmation(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall",
+		httpmock.NewStringResponder(200, `{"taskId": 123}`),
+	)
+
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("cancelled"))
+	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall"], 0,
+		"no reinstall call must reach the API")
+}
+
+func (ms *MockSuite) TestBaremetalReinstallProceedsWithYes(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall",
+		httpmock.NewStringResponder(200, `{"taskId": 123}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--yes")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("Reinstallation is started"))
+	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall"], 1)
+}
+
+// --dry-run shows what would be sent and sends nothing.
+func (ms *MockSuite) TestBaremetalReinstallDryRun(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall",
+		httpmock.NewStringResponder(200, `{"taskId": 123}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("Dry run"))
+	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall"], 0,
+		"no reinstall call must reach the API")
 }
