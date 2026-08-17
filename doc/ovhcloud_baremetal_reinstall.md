@@ -46,6 +46,11 @@ to see all the available parameters and real life examples.
 
 Please note that all parameters are not compatible with all OSes.
 
+Reinstalling wipes every disk of the server, so the command asks for a
+confirmation: type the server name when prompted. Unattended runs (pipelines,
+piped input) must pass --yes, and --dry-run prints the parameters that would
+be sent without sending them.
+
 
 ```
 ovhcloud baremetal reinstall <service_name> [flags]
@@ -55,6 +60,7 @@ ovhcloud baremetal reinstall <service_name> [flags]
 
 ```
       --config-drive-user-data string               Config Drive UserData
+      --dry-run                                     Print the installation parameters without sending anything
       --editor                                      Use a text editor to define parameters
       --efi-bootloader-path string                  Path of the EFI bootloader from the OS installed on the server
       --from-file string                            File containing parameters
@@ -73,6 +79,7 @@ ovhcloud baremetal reinstall <service_name> [flags]
       --replace                                     Replace parameters file if it already exists
       --ssh-key string                              SSH public key
       --wait                                        Wait for reinstall to be done before exiting
+  -y, --yes                                         Skip the confirmation prompt (required for unattended runs)
 ```
 
 ### Options inherited from parent commands
