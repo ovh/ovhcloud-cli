@@ -1,9 +1,17 @@
-## ovhcloud baremetal list-secrets
+## ovhcloud baremetal credentials get
 
-Retrieve secrets to connect to the server
+Request access credentials for the given baremetal
+
+### Synopsis
+
+Request access credentials for the given dedicated server.
+
+This command is a write operation: it asks the API to generate a new access
+secret. Values are masked unless --reveal is given, in every output format.
+
 
 ```
-ovhcloud baremetal list-secrets <service_name> [flags]
+ovhcloud baremetal credentials get <service_name> [flags]
 ```
 
 ### Options
@@ -16,7 +24,8 @@ ovhcloud baremetal list-secrets <service_name> [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-secrets
+  -h, --help                 help for get
+      --reveal               Print secret values instead of masking them
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +49,5 @@ ovhcloud baremetal list-secrets <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
+* [ovhcloud baremetal credentials](ovhcloud_baremetal_credentials.md)	 - Manage access credentials of the given baremetal
 
