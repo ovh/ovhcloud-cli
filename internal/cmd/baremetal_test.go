@@ -7,6 +7,7 @@ package cmd_test
 import (
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
+	"github.com/maxatome/tdhttpmock"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
 )
 
@@ -115,4 +116,21 @@ func (ms *MockSuite) TestBaremetalReinstallSucceedsOnDoneTask(assert, require *t
 	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait")
 
 	require.CmpNoError(err)
+}
+
+// End to end: --monitoring=false must reach the API as monitoring:false,
+// instead of being dropped and silently restored from the fetched resource.
+func (ms *MockSuite) TestBaremetalEditDisablesMonitoring(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal",
+		httpmock.NewStringResponder(200, `{"name":"fakeBaremetal","monitoring":true,"rootDevice":"/dev/sda"}`),
+	)
+	httpmock.RegisterMatcherResponder("PUT", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal",
+		tdhttpmock.JSONBody(td.JSONPointer("/monitoring", false)),
+		httpmock.NewStringResponder(200, `null`),
+	)
+
+	out, err := cmd.Execute("baremetal", "edit", "fakeBaremetal", "--monitoring=false")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("updated successfully"))
 }
