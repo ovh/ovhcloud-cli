@@ -1,17 +1,18 @@
-## ovhcloud baremetal credentials get
+## ovhcloud baremetal credentials create
 
-Request access credentials for the given baremetal
+Generate new access credentials for the given baremetal
 
 ### Synopsis
 
-Request access credentials for the given dedicated server.
+Generate new access credentials for the given dedicated server.
 
-This command is a write operation: it asks the API to generate a new access
-secret. Values are masked unless --reveal is given, in every output format.
+This command performs a write: it calls POST /authenticationSecret, whose IAM
+action is authenticationSecret/create, and returns the credentials it just
+generated. Values are masked unless --reveal is given, in every output format.
 
 
 ```
-ovhcloud baremetal credentials get <service_name> [flags]
+ovhcloud baremetal credentials create <service_name> [flags]
 ```
 
 ### Options
@@ -24,7 +25,7 @@ ovhcloud baremetal credentials get <service_name> [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for get
+  -h, --help                 help for create
       --reveal               Print secret values instead of masking them
 ```
 

@@ -209,6 +209,13 @@ func OutputError(outputFormat *OutputFormat, message string, params ...any) {
 	exitError(message, params...)
 }
 
+// OutputNotice writes an operational note: something the command is doing,
+// not something it produced. The browser build has no separate diagnostic
+// stream, so the note joins the result the way the other messages do.
+func OutputNotice(message string, params ...any) {
+	outputf(message, params...)
+}
+
 func OutputWarning(outputFormat *OutputFormat, message string, params ...any) {
 	exitError(message, params...)
 }

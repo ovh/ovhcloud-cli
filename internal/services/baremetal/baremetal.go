@@ -196,10 +196,10 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	log.Println("⚡️ Reboot done, fetching new authentication secrets…")
+	display.OutputNotice("⚡️ Reboot done, fetching new authentication secrets…")
 
-	// Fetch new secrets
-	GetBaremetalAuthenticationSecrets(cmd, args)
+	// Fetch new secrets, honouring the --reveal choice of this command.
+	fetchAuthenticationSecrets(args[0], BaremetalRevealSecrets)
 }
 
 // taskPollInterval and taskPollAttempts bound how long --wait follows a task.
@@ -574,10 +574,10 @@ func finishReinstall(cmd *cobra.Command, serviceName string, task map[string]any
 		return
 	}
 
-	log.Printf("⚡️ OS reinstall done on server %s, fetching new authentication secrets…", serviceName)
+	display.OutputNotice("⚡️ OS reinstall done on server %s, fetching new authentication secrets…", serviceName)
 
-	// Fetch new secrets
-	GetBaremetalAuthenticationSecrets(cmd, []string{serviceName})
+	// Fetch new secrets, honouring the --reveal choice of this command.
+	fetchAuthenticationSecrets(serviceName, BaremetalRevealSecrets)
 }
 
 func GetBaremetalRelatedIPs(_ *cobra.Command, args []string) {
@@ -608,12 +608,21 @@ func GetBaremetalRelatedIPs(_ *cobra.Command, args []string) {
 // user explicitly asks for it.
 var maskedSecretFields = []string{"secret", "password", "value"}
 
+// GetBaremetalAuthenticationSecrets is the command handler. The masking
+// policy is read once here and passed on explicitly: the same helper is also
+// reached at the end of `reinstall --wait` and `reboot-rescue --wait`, and a
+// policy read from a package variable inside the helper would silently apply
+// a flag those commands do not expose.
 func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/v1/dedicated/server/%s/authenticationSecret", url.PathEscape(args[0]))
+	fetchAuthenticationSecrets(args[0], BaremetalRevealSecrets)
+}
+
+func fetchAuthenticationSecrets(serviceName string, reveal bool) {
+	path := fmt.Sprintf("/v1/dedicated/server/%s/authenticationSecret", url.PathEscape(serviceName))
 
 	// This command is a write operation: it asks the API for a new access
 	// secret. Say so, because the name used to suggest a plain listing.
-	log.Printf("⚠️  Requesting a new access secret for %s (this is a write operation)", args[0])
+	display.OutputNotice("⚠️  Requesting a new access secret for %s (this is a write operation)", serviceName)
 
 	var allSecrets []map[string]any
 	if err := httpLib.Client.Post(path, nil, &allSecrets); err != nil {
@@ -637,7 +646,7 @@ func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
 	// Mask the values unless explicitly asked for, in every output format:
 	// a secret written to a JSON file in a pipeline leaks just as much as one
 	// scrolled in a terminal.
-	if !BaremetalRevealSecrets {
+	if !reveal {
 		for _, secret := range allSecrets {
 			for _, field := range maskedSecretFields {
 				if value, ok := secret[field]; ok && value != nil && value != "" {
@@ -645,7 +654,7 @@ func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
 				}
 			}
 		}
-		log.Print("🔒 Secret values are masked. Use --reveal to print them.")
+		display.OutputNotice("🔒 Secret values are masked. Use --reveal to print them.")
 	}
 
 	allSecrets, err := filtersLib.FilterLines(allSecrets, flags.GenericFilters)

@@ -30,5 +30,5 @@ Manage access credentials of the given baremetal
 ### SEE ALSO
 
 * [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
-* [ovhcloud baremetal credentials get](ovhcloud_baremetal_credentials_get.md)	 - Request access credentials for the given baremetal
+* [ovhcloud baremetal credentials create](ovhcloud_baremetal_credentials_create.md)	 - Generate new access credentials for the given baremetal
 
