@@ -24,7 +24,7 @@ ovhcloud baremetal catalog [flags]
       --available-only          Hide what cannot be delivered today
       --commitment string       Which price to show: default (monthly), 12 or 24 (months paid upfront) (default "default")
       --country string          Subsidiary whose price list to read (default: the one this account belongs to)
-      --datacenter strings      Only these datacenters (repeatable)
+      --datacenter strings      Only these datacenters, named short (gra) or long (eu-west-gra-a) (repeatable)
       --filter stringArray      Filter results by any property using https://github.com/PaesslerAG/gval syntax
                                 Examples:
                                   --filter 'state=="running"'
@@ -37,7 +37,6 @@ ovhcloud baremetal catalog [flags]
       --memory string           Only this memory reference
       --plan-code string        Only this plan code (the identifier used to order)
       --refresh                 Download the price list again instead of reusing the one cached today
-      --region strings          Only these regions, reported per region instead of per datacenter (repeatable)
       --server string           Only this base hardware, for example 24ska01
       --storage string          Only this storage reference
       --system-storage string   Only this system storage reference
