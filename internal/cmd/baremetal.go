@@ -76,6 +76,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.RebootBaremetal,
 	}
+	addConfirmationFlags(baremetalRebootCmd, "Print the call that would be made without making it")
 	baremetalCmd.AddCommand(baremetalRebootCmd)
 
 	// Command to reboot a baremetal in rescue mode
@@ -87,6 +88,7 @@ func init() {
 		Run:               baremetal.RebootRescueBaremetal,
 	}
 	baremetalRebootRescueCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reboot to be done before exiting")
+	addConfirmationFlags(baremetalRebootRescueCmd, "Print the call that would be made without making it")
 	baremetalCmd.AddCommand(baremetalRebootRescueCmd)
 
 	// Command to reinstall a baremetal
@@ -175,9 +177,7 @@ be sent without sending them.
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.SshKey, "ssh-key", "", "SSH public key")
 	reinstallBaremetalCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
-	reinstallBaremetalCmd.Flags().BoolVarP(&flags.AssumeYes, "yes", "y", false, "Skip the confirmation prompt (required for unattended runs)")
-	reinstallBaremetalCmd.Flags().BoolVar(&flags.DryRun, "dry-run", false, "Print the installation parameters without sending anything")
-	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "yes", "dry-run")
+	addConfirmationFlags(reinstallBaremetalCmd, "Print the installation parameters without sending anything")
 	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "from-file", "editor")
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
 		reinstallBaremetalCmd.Flags().BoolVar(&baremetal.ReinstallWizard, "wizard", false, "Launch an interactive wizard to select installation parameters")
@@ -300,6 +300,7 @@ be sent without sending them.
 	}
 	baremetalVNIResetOLAAggregationCmd.Flags().StringArrayVar(&baremetal.BaremetalOLAInterfaces, "interface", nil, "Interfaces to group")
 	baremetalVNIResetOLAAggregationCmd.MarkFlagRequired("interface")
+	addConfirmationFlags(baremetalVNIResetOLAAggregationCmd, "Print the call that would be made without making it")
 	baremetalVNICmd.AddCommand(baremetalVNIResetOLAAggregationCmd)
 
 	baremetalIPMICmd := &cobra.Command{
