@@ -7,6 +7,7 @@ package utils
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -39,8 +40,18 @@ func IsInputFromPipe() bool {
 //
 // The prompt is written to stderr so that a redirected stdout keeps holding
 // data only.
+// Both indirections exist so that the confirmation path itself can be
+// exercised by a test: it is the guard standing between a typo and an erased
+// disk, and a guard nobody executes is a guard nobody has checked.
+var (
+	confirmInput       io.Reader = os.Stdin
+	confirmInteractive           = func() bool {
+		return !IsInputFromPipe() && term.IsTerminal(os.Stdin.Fd())
+	}
+)
+
 func ConfirmByName(expected, warning string) bool {
-	if IsInputFromPipe() || !term.IsTerminal(os.Stdin.Fd()) {
+	if !confirmInteractive() {
 		fmt.Fprintf(os.Stderr,
 			"🛑 %s\n   Refusing to continue without a confirmation. Re-run with --yes to confirm, or --dry-run to preview.\n",
 			warning)
@@ -49,7 +60,7 @@ func ConfirmByName(expected, warning string) bool {
 
 	fmt.Fprintf(os.Stderr, "⚠️  %s\n   Type %q to confirm › ", warning, expected)
 
-	reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(confirmInput)
 	answer, err := reader.ReadString('\n')
 	if err != nil {
 		return false

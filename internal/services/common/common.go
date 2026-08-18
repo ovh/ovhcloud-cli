@@ -183,10 +183,18 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 	// --dry-run stops here: the caller sees exactly what would have been sent,
 	// and nothing reaches the API.
 	if flags.DryRun {
+		// The payload goes in the message, not only in the details: the
+		// default output prints the message alone, so a --dry-run whose body
+		// lived in the details printed a promise and no request.
+		payload, err := json.MarshalIndent(parameters, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to render the parameters: %w", err)
+		}
+
 		display.OutputInfo(&flags.OutputFormatConfig, map[string]any{
 			"endpoint":   endpoint,
 			"parameters": parameters,
-		}, "🔍 Dry run: nothing was sent. The request above would have been posted to %s", endpoint)
+		}, "🔍 Dry run: nothing was sent. This would have been posted to %s:\n%s", endpoint, payload)
 		return nil, nil
 	}
 

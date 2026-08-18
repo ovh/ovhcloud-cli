@@ -24,7 +24,10 @@ There are three ways to define the installation parameters:
 
   Note that you can also pipe the content of the file to reinstall, like the following:
 
-	cat ./install.json | ovhcloud baremetal reinstall ns1234.ip-11.22.33.net
+	cat ./install.json | ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --yes
+
+  Piped input is not a terminal, so there is nobody to answer the confirmation:
+  such a run refuses to start unless --yes is given.
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
