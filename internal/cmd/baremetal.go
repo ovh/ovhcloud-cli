@@ -67,6 +67,41 @@ func init() {
 	}
 	baremetalCmd.AddCommand(withFilterFlag(baremetalListTasksCmd))
 
+	// Catalogue: what can be ordered, where, how fast and at what price.
+	baremetalCatalogCmd := &cobra.Command{
+		Use:   "catalog",
+		Short: "List orderable servers, their availability and their price",
+		Long: `List orderable servers, where they can be delivered, how long delivery takes
+and what they cost.
+
+Delivery is a delay, not a yes or no: "24h" means a server ordered now is
+expected within a day, while "2mo" is a two-month wait. Rows are sorted with the
+soonest first.
+
+Scale, High Grade and SAP servers appear with their availability but no price:
+they are not sold from the public price list, and show as "on quotation".`,
+		Args: cobra.NoArgs,
+		Run:  baremetal.GetBaremetalCatalog,
+	}
+	baremetalCatalogCmd.Flags().StringVar(&baremetal.CatalogPlanCode, "plan-code", "", "Only this plan code (the identifier used to order)")
+	baremetalCatalogCmd.Flags().StringVar(&baremetal.CatalogServer, "server", "", "Only this base hardware, for example 24ska01")
+	baremetalCatalogCmd.Flags().StringVar(&baremetal.CatalogMemory, "memory", "", "Only this memory reference")
+	baremetalCatalogCmd.Flags().StringVar(&baremetal.CatalogStorage, "storage", "", "Only this storage reference")
+	baremetalCatalogCmd.Flags().StringVar(&baremetal.CatalogSystemStorage, "system-storage", "", "Only this system storage reference")
+	baremetalCatalogCmd.Flags().StringVar(&baremetal.CatalogGPU, "gpu", "", "Only this GPU reference")
+	baremetalCatalogCmd.Flags().StringSliceVar(&baremetal.CatalogDatacenters, "datacenter", nil, "Only these datacenters (repeatable)")
+	baremetalCatalogCmd.Flags().StringSliceVar(&baremetal.CatalogRegions, "region", nil, "Only these regions, reported per region instead of per datacenter (repeatable)")
+	baremetalCatalogCmd.Flags().StringVar(&baremetal.CatalogCommitment, "commitment", "default", "Which price to show: default (monthly), 12 or 24 (months paid upfront)")
+	baremetalCatalogCmd.Flags().StringVar(&baremetal.CatalogCountry, "country", "", "Subsidiary whose price list to read (default: the one this account belongs to)")
+	baremetalCatalogCmd.Flags().BoolVar(&baremetal.CatalogAvailableOnly, "available-only", false, "Hide what cannot be delivered today")
+	baremetalCatalogCmd.Flags().BoolVar(&baremetal.CatalogRefresh, "refresh", false, "Download the price list again instead of reusing the one cached today")
+	markFlagsMutuallyExclusive(baremetalCatalogCmd, "datacenter", "region")
+	baremetalCatalogCmd.RegisterFlagCompletionFunc("datacenter", baremetal.CompleteCatalogDatacenter)
+	baremetalCatalogCmd.RegisterFlagCompletionFunc("region", baremetal.CompleteCatalogRegion)
+	baremetalCatalogCmd.RegisterFlagCompletionFunc("country", baremetal.CompleteCatalogCountry)
+	baremetalCatalogCmd.RegisterFlagCompletionFunc("commitment", baremetal.CompleteCatalogCommitment)
+	baremetalCmd.AddCommand(withFilterFlag(baremetalCatalogCmd))
+
 	// Service information and life cycle
 	baremetalServiceInfoCmd := &cobra.Command{
 		Use:   "service-info",

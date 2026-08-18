@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/ovh/ovhcloud-cli/internal/utils"
@@ -195,4 +196,115 @@ func GetRequestFieldEnum(spec []byte, path, method, field string) ([]string, err
 	}
 
 	return values, nil
+}
+
+// GetParameterEnum returns the values a query parameter accepts, in the order
+// the specification lists them.
+//
+// It is the sibling of GetRequestFieldEnum, for the other half of the API
+// surface: a read endpoint takes its arguments in the query string, and those
+// enumerations are just as long and just as prone to drifting. There are
+// fourteen regions and sixteen subsidiaries on the dedicated server scope
+// today, and the specification already ships inside the binary.
+func GetParameterEnum(spec []byte, path, method, name string) ([]string, error) {
+	operation, pathItem, err := getOperationFromSpec(spec, path, method)
+	if err != nil {
+		return nil, err
+	}
+
+	// A parameter may be declared on the operation or shared by every method of
+	// the path. Looking at the operation first means a local declaration wins,
+	// which is what the specification says happens.
+	parameter := operation.Parameters.GetByInAndName("query", name)
+	if parameter == nil {
+		parameter = pathItem.Parameters.GetByInAndName("query", name)
+	}
+	if parameter == nil {
+		return nil, fmt.Errorf("query parameter %q not found on %s %s", name, method, path)
+	}
+	if parameter.Schema == nil || parameter.Schema.Value == nil {
+		return nil, fmt.Errorf("query parameter %q on %s %s has no schema", name, method, path)
+	}
+
+	schema := parameter.Schema.Value
+	// A repeatable parameter enumerates its values on the item, not on the array.
+	if schema.Type.Is("array") && schema.Items != nil && schema.Items.Value != nil {
+		schema = schema.Items.Value
+	}
+
+	values := make([]string, 0, len(schema.Enum))
+	for _, value := range schema.Enum {
+		text, ok := value.(string)
+		if !ok {
+			return nil, fmt.Errorf("query parameter %q enumerates a %T, expected a string", name, value)
+		}
+		values = append(values, text)
+	}
+
+	return values, nil
+}
+
+// GetComponentEnum returns the values of a named enumeration declared in the
+// components of a specification.
+//
+// Some parameters do not carry their own enumeration: the dedicated server
+// availabilities take their datacenters as one comma-separated string, while
+// the forty-eight names they accept are declared once, under
+// dedicated.AvailabilityDatacenterEnum, and used by the response. Naming the
+// component is still better than transcribing forty-eight values into Go, and
+// a component that gets renamed fails loudly here rather than quietly offering
+// nothing.
+func GetComponentEnum(spec []byte, component string) ([]string, error) {
+	loader := openapi3.NewLoader()
+	doc, err := loader.LoadFromData(spec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load spec: %w", err)
+	}
+
+	if doc.Components == nil {
+		return nil, fmt.Errorf("specification declares no components")
+	}
+
+	schemaRef, found := doc.Components.Schemas[component]
+	if !found || schemaRef.Value == nil {
+		return nil, fmt.Errorf("component %q not found in spec", component)
+	}
+
+	values := make([]string, 0, len(schemaRef.Value.Enum))
+	for _, value := range schemaRef.Value.Enum {
+		text, ok := value.(string)
+		if !ok {
+			return nil, fmt.Errorf("component %q enumerates a %T, expected a string", component, value)
+		}
+		values = append(values, text)
+	}
+
+	if len(values) == 0 {
+		return nil, fmt.Errorf("component %q enumerates nothing", component)
+	}
+
+	return values, nil
+}
+
+func getOperationFromSpec(spec []byte, path, method string) (*openapi3.Operation, *openapi3.PathItem, error) {
+	loader := openapi3.NewLoader()
+	doc, err := loader.LoadFromData(spec)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load spec: %w", err)
+	}
+	if err = doc.Validate(context.Background()); err != nil {
+		return nil, nil, fmt.Errorf("failed to validate spec: %w", err)
+	}
+
+	pathItem := doc.Paths.Find(path)
+	if pathItem == nil {
+		return nil, nil, fmt.Errorf("path %q not found in spec", path)
+	}
+
+	operation := pathItem.GetOperation(strings.ToUpper(method))
+	if operation == nil {
+		return nil, nil, fmt.Errorf("operation %s %s not found", method, path)
+	}
+
+	return operation, pathItem, nil
 }
