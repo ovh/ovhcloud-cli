@@ -171,6 +171,32 @@ var ActiveProfileOverride string
 
 const profileSectionPrefix = "profile:"
 
+// CredentialKeys are the INI keys holding OVHcloud API credentials.
+var CredentialKeys = []string{"application_key", "application_secret", "consumer_key"}
+
+func ProfileSectionName(profileName string) string {
+	return profileSectionPrefix + profileName
+}
+
+// DeleteCredentials removes the API credential keys (application_key,
+// application_secret, consumer_key) 
+func DeleteCredentials(cfg *ini.File, path, sectionName string) error {
+	if path == "" {
+		path = ConfigPaths[0]
+	}
+
+	section, err := cfg.GetSection(sectionName)
+	if err != nil {
+		return fmt.Errorf("section %q not found in configuration: %w", sectionName, err)
+	}
+
+	for _, key := range CredentialKeys {
+		section.DeleteKey(key)
+	}
+
+	return cfg.SaveTo(path)
+}
+
 // DefaultProfileName is the reserved name for the legacy/default configuration.
 // It does not map to a [profile:default] section — instead it represents the
 // standard go-ovh configuration from [default] + [ovh-<endpoint>] sections.
