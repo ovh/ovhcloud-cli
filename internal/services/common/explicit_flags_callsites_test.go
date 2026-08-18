@@ -19,9 +19,10 @@ import (
 // Call sites that legitimately hand over something other than a pointer to a
 // package-level parameters struct. Each one is safe for a different reason.
 var editResourceValueArgAllowed = map[string]string{
-	"nil":      "vrackServices exposes no editable parameter",
-	"payload":  "container registry OIDC already builds its body from cmd.Flags().Changed",
-	"userSpec": "managed database and analytics rebuild a struct per engine, no flag points into it",
+	"nil":          "vrackServices exposes no editable parameter",
+	"payload":      "container registry OIDC already builds its body from cmd.Flags().Changed",
+	"renewPayload": "service-info already builds its body from cmd.Flags().Changed",
+	"userSpec":     "managed database and analytics rebuild a struct per engine, no flag points into it",
 }
 
 // addExplicitlySetFlags matches flags to struct fields by address, because a
