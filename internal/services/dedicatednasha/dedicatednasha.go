@@ -41,7 +41,7 @@ func EditDedicatedNasHA(cmd *cobra.Command, args []string) {
 		cmd,
 		"/dedicated/nasha/{serviceName}",
 		fmt.Sprintf("/v1/dedicated/nasha/%s", url.PathEscape(args[0])),
-		DedicatedNasHASpec,
+		&DedicatedNasHASpec,
 		assets.DedicatednashaOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

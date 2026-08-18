@@ -93,7 +93,7 @@ func EditRancher(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/rancher/{rancherId}",
 		fmt.Sprintf("/v2/publicCloud/project/%s/rancher/%s", projectID, url.PathEscape(args[0])),
-		RancherSpec,
+		&RancherSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

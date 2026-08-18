@@ -177,7 +177,7 @@ func EditShare(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/share/{shareId}",
 		endpoint,
-		ShareEditSpec,
+		&ShareEditSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

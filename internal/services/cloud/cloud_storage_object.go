@@ -244,7 +244,7 @@ func EditStorageS3(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}",
 		foundURL,
-		StorageS3Spec,
+		&StorageS3Spec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -468,7 +468,7 @@ func EditStorageS3Object(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}",
 		foundURL+"/object/"+url.PathEscape(args[1]),
-		StorageS3ObjectSpec,
+		&StorageS3ObjectSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -558,7 +558,7 @@ func EditStorageS3ObjectVersion(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/object/{key}/version/{versionId}",
 		foundURL+"/object/"+url.PathEscape(args[1])+"/version/"+url.PathEscape(args[2]),
-		StorageS3ObjectSpec,
+		&StorageS3ObjectSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -762,7 +762,7 @@ func EditStorageS3Lifecycle(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}/lifecycle",
 		foundURL+"/lifecycle",
-		StorageS3LifecycleSpec,
+		&StorageS3LifecycleSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

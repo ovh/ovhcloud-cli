@@ -41,7 +41,7 @@ func EditVrack(cmd *cobra.Command, args []string) {
 		cmd,
 		"/vrack/{serviceName}",
 		fmt.Sprintf("/v1/vrack/%s", url.PathEscape(args[0])),
-		VrackSpec,
+		&VrackSpec,
 		assets.VrackOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

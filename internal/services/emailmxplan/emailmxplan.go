@@ -58,7 +58,7 @@ func EditEmailMXPlan(cmd *cobra.Command, args []string) {
 		cmd,
 		"/email/mxplan/{service}",
 		fmt.Sprintf("/v1/email/mxplan/%s", url.PathEscape(args[0])),
-		EmailMXPlanSpec,
+		&EmailMXPlanSpec,
 		assets.EmailmxplanOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

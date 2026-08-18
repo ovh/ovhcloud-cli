@@ -71,7 +71,7 @@ func EditVmwareCloudDirectorBackup(cmd *cobra.Command, args []string) {
 		cmd,
 		"/vmwareCloudDirector/backup/{backupId}",
 		fmt.Sprintf("/v2/vmwareCloudDirector/backup/%s", url.PathEscape(args[0])),
-		VmwareCloudDirectorBackupSpec,
+		&VmwareCloudDirectorBackupSpec,
 		assets.VmwareclouddirectorbackupOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
