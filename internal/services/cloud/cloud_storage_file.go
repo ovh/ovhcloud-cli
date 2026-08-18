@@ -261,7 +261,7 @@ func EditShare(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/storage/file/share/{fileStorageId}",
 		endpoint,
-		ShareEditSpec,
+		&ShareEditSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -450,7 +450,7 @@ func EditShareSnapshot(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/storage/file/snapshot/{snapshotId}",
 		endpoint,
-		ShareSnapshotEditSpec,
+		&ShareSnapshotEditSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

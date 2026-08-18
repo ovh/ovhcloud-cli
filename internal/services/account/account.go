@@ -91,7 +91,7 @@ func EditOauth2Client(cmd *cobra.Command, args []string) {
 		cmd,
 		"/me/api/oauth2/client/{clientId}",
 		fmt.Sprintf("/v1/me/api/oauth2/client/%s", url.PathEscape(args[0])),
-		Oauth2ClientSpec,
+		&Oauth2ClientSpec,
 		assets.MeOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

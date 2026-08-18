@@ -40,7 +40,7 @@ func EditStorageNetApp(cmd *cobra.Command, args []string) {
 		cmd,
 		"/storage/netapp/{serviceName}",
 		fmt.Sprintf("/v1/storage/netapp/%s", url.PathEscape(args[0])),
-		StorageNetAppSpec,
+		&StorageNetAppSpec,
 		assets.SmsOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
