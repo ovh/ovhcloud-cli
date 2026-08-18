@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -138,10 +139,18 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 				continue
 			}
 
+			// Numbers coming from an API response arrive as json.Number,
+			// which the default branch prints verbatim. A float64 reaches
+			// this switch only when a value is built on the client side, and
+			// %.0f rounded it to the unit. FormatFloat with precision -1
+			// prints the shortest representation that round-trips, and leaves
+			// whole numbers integral.
 			var cellValue string
-			switch val.(type) {
-			case float32, float64:
-				cellValue = fmt.Sprintf("%.0f", val)
+			switch v := val.(type) {
+			case float32:
+				cellValue = strconv.FormatFloat(float64(v), 'f', -1, 32)
+			case float64:
+				cellValue = strconv.FormatFloat(v, 'f', -1, 64)
 			default:
 				cellValue = fmt.Sprintf("%v", val)
 			}
