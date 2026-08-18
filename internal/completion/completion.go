@@ -120,7 +120,7 @@ func ServiceList(endpoint string) func(*cobra.Command, []string, string) ([]stri
 		if len(args) > 0 {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		return fetchSuggestions(endpoint, "", "")
+		return fetchSuggestions(endpoint, "", cacheKeyFor(endpoint))
 	}
 }
 
@@ -139,7 +139,8 @@ func CloudResources(pathTemplate string) func(*cobra.Command, []string, string) 
 		if project == "" {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		return fetchSuggestions(fmt.Sprintf(pathTemplate, url.PathEscape(project)), "", "")
+		endpoint := fmt.Sprintf(pathTemplate, url.PathEscape(project))
+		return fetchSuggestions(endpoint, "", cacheKeyFor(endpoint))
 	}
 }
 
@@ -156,9 +157,11 @@ func CloudResourceWithChild(parentTemplate, childTemplate string) func(*cobra.Co
 		}
 		switch len(args) {
 		case 0:
-			return fetchSuggestions(fmt.Sprintf(parentTemplate, url.PathEscape(project)), "", "")
+			endpoint := fmt.Sprintf(parentTemplate, url.PathEscape(project))
+			return fetchSuggestions(endpoint, "", cacheKeyFor(endpoint))
 		case 1:
-			return fetchSuggestions(fmt.Sprintf(childTemplate, url.PathEscape(project), url.PathEscape(args[0])), "", "")
+			endpoint := fmt.Sprintf(childTemplate, url.PathEscape(project), url.PathEscape(args[0]))
+			return fetchSuggestions(endpoint, "", cacheKeyFor(endpoint))
 		default:
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
@@ -166,5 +169,5 @@ func CloudResourceWithChild(parentTemplate, childTemplate string) func(*cobra.Co
 }
 
 func CloudProjects(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return fetchSuggestions("/v2/publicCloud/project", "name", "cloud-projects")
+	return fetchSuggestions("/v2/publicCloud/project", "name", cacheKeyFor("/v2/publicCloud/project"))
 }
