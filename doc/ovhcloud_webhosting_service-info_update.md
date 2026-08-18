@@ -12,11 +12,11 @@ ovhcloud webhosting service-info update <service_name> [flags]
       --editor                       Use a text editor to define parameters
       --from-file string             File containing parameters
   -h, --help                         help for update
-      --renew-automatic              Enable automatic renewal
-      --renew-delete-at-expiration   Delete service at expiration
-      --renew-forced                 Force renewal
-      --renew-manual-payment         Enable manual payment for renewal
-      --renew-period int             Renewal period in months
+      --renew-automatic              Renew the service automatically
+      --renew-delete-at-expiration   Delete the service when it expires
+      --renew-forced                 Force the renewal
+      --renew-manual-payment         Pay the renewal manually
+      --renew-period int             Renewal period, in months
 ```
 
 ### Options inherited from parent commands
