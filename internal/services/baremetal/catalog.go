@@ -57,7 +57,7 @@ const (
 	baremetalCatalogProduct = "eco"
 
 	// Bumped whenever catalogPrices changes shape.
-	catalogCacheVersion = 1
+	catalogCacheVersion = 2
 )
 
 // commitmentModes maps what an operator asks for to what the catalogue calls it.
@@ -93,9 +93,19 @@ type price struct {
 	// Recurring is the amount billed at every renewal, and Interval how many
 	// months that covers. A twelve-month commitment renews once a year, so
 	// comparing it to a monthly price means dividing.
-	Recurring  float64 `json:"recurring"`
-	Interval   int     `json:"interval"`
-	DueAtOrder float64 `json:"dueAtOrder"`
+	Recurring float64 `json:"recurring"`
+	Interval  int     `json:"interval"`
+
+	// Setup is the installation charge. It is a real charge, billed on top of
+	// the first period rather than instead of it — see dueAtOrder below.
+	Setup float64 `json:"setup"`
+
+	// Promotion names the offer that lowered Setup or Recurring, empty when
+	// none applies. A price that holds until the end of the month is not the
+	// same fact as a price that holds, and an operator comparing providers
+	// deserves to be told which one they are reading.
+	Promotion string  `json:"promotion,omitempty"`
+	ListPrice float64 `json:"listPrice,omitempty"`
 }
 
 type catalogPrices struct {
@@ -284,6 +294,17 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 				Interval     int      `json:"interval"`
 				IntervalUnit string   `json:"intervalUnit"`
 				Capacities   []string `json:"capacities"`
+				Promotions   []struct {
+					Name string `json:"name"`
+					// Total is what the charge becomes once the promotion is
+					// applied, in ucents like every other amount here. It is
+					// read rather than recomputed from `discount`, because a
+					// percentage rounded twice does not land on the cent the
+					// checkout will charge.
+					Total struct {
+						Value float64 `json:"value"`
+					} `json:"total"`
+				} `json:"promotions"`
 			} `json:"pricings"`
 		} `json:"plans"`
 	}
@@ -298,11 +319,23 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 	for _, plan := range raw.Plans {
 		byMode := map[string]price{}
 		for _, pricing := range plan.Pricings {
+			// The catalogue states prices in ucents: 8999000000 is 89.99. A
+			// promotion replaces the charge outright rather than annotating it,
+			// so the amount to keep is the promoted one — the checkout bills
+			// that, and reporting the crossed-out price would overstate every
+			// offer currently on sale.
+			listed := pricing.Price / 1e8
+			amount := listed
+			promotion := ""
+			if len(pricing.Promotions) > 0 {
+				amount = pricing.Promotions[0].Total.Value / 1e8
+				promotion = pricing.Promotions[0].Name
+			}
+
 			entry := byMode[pricing.Mode]
 			switch {
 			case containsString(pricing.Capacities, "renew"):
-				// The catalogue states prices in ucents: 8999000000 is 89.99.
-				entry.Recurring = pricing.Price / 1e8
+				entry.Recurring = amount
 				// Every interval on this catalogue is counted in months today.
 				// Dividing a period priced in days by its number as if they
 				// were months would understate the offer without a word, so an
@@ -313,7 +346,16 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 					entry.Interval = 1
 				}
 			case containsString(pricing.Capacities, "installation"):
-				entry.DueAtOrder = pricing.Price / 1e8
+				entry.Setup = amount
+			default:
+				// A capacity this command does not price. Counting it into the
+				// list price would make the crossed-out figure disagree with
+				// the checkout's own.
+				continue
+			}
+			entry.ListPrice += listed
+			if promotion != "" {
+				entry.Promotion = promotion
 			}
 			byMode[pricing.Mode] = entry
 		}
@@ -417,25 +459,41 @@ func applyPrice(row map[string]any, prices catalogPrices, planCode, mode string)
 		months = 1
 	}
 
-	// What the operator actually pays on the day they order.
+	// What the operator actually pays on the day they order: the installation
+	// charge PLUS the first period. Both, not either.
 	//
-	// The catalogue prices one charge as `installation` and one as `renew`. On
-	// the monthly offer they are equal — the installation charge IS the first
-	// month, which is why this column is not headed "setup fee": there is no
-	// setup fee, and adding it to the monthly price would report twice the
-	// truth. On a commitment the installation charge is zero, because the
-	// upfront payment is the first renewal: reporting that zero as the amount
-	// due would say a twelve-month commitment costs nothing to start.
-	dueAtOrder := entry.DueAtOrder
-	if dueAtOrder == 0 && entry.Recurring > 0 {
-		dueAtOrder = entry.Recurring
-	}
+	// An earlier version of this reported the installation charge alone,
+	// reasoning that since it equals the monthly price on every one of the 99
+	// plans, it must BE the first month. Two numbers being equal is not a
+	// reason, and the order API disagrees: a cart holding one 24adv01-v3 at
+	// 89.99 a month quotes 179.98, itemised as one INSTALLATION line and one
+	// DURATION line. The rule below was then checked against seven live quotes
+	// — promoted and not, monthly and committed — and matched each to the cent.
+	// Understating the price by half is the failure this command exists to
+	// prevent, so it is worth the seven carts.
+	//
+	// On a commitment the installation charge is zero and the upfront payment
+	// is the first renewal, so the same sum still holds.
+	dueAtOrder := entry.Setup + entry.Recurring
 
 	row["monthly"] = formatAmount(entry.Recurring/float64(months), prices.Currency)
 	row["monthlyValue"] = entry.Recurring / float64(months)
 	row["dueAtOrder"] = formatAmount(dueAtOrder, prices.Currency)
+	row["dueAtOrderValue"] = dueAtOrder
+	row["setup"] = formatAmount(entry.Setup, prices.Currency)
 	row["recurring"] = formatAmount(entry.Recurring, prices.Currency)
 	row["recurringMonths"] = months
+
+	// A promotion is a fact with an expiry date, and the table shows the
+	// promoted figure. Saying so — and saying what it was crossed out from —
+	// is the difference between a price an operator can quote to their own
+	// management and a price they have to go and check.
+	if entry.Promotion != "" {
+		row["promotion"] = entry.Promotion
+		row["listPrice"] = formatAmount(entry.ListPrice, prices.Currency)
+		row["dueAtOrder"] = fmt.Sprintf("%s (promo, was %s)",
+			row["dueAtOrder"], formatAmount(entry.ListPrice, prices.Currency))
+	}
 }
 
 func formatAmount(amount float64, currency string) string {

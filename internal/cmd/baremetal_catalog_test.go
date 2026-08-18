@@ -14,7 +14,12 @@ import (
 // trimmed to what a test needs. Inventing them would have tested the fixture.
 const (
 	realAvailabilities = `[{"fqn": "24adv01-v3.ram-128g-on-die-ecc-3600.hybridsoftraid-2x960nvme-pcie-gen4-2x1920nvme-pcie-gen4", "memory": "ram-128g-on-die-ecc-3600", "planCode": "24adv01-v3", "server": "24adv01", "storage": "hybridsoftraid-2x960nvme-pcie-gen4-2x1920nvme-pcie-gen4", "datacenters": [{"availability": "unavailable", "datacenter": "bhs"}, {"availability": "unavailable", "datacenter": "fra"}, {"availability": "1H-high", "datacenter": "gra"}, {"availability": "unavailable", "datacenter": "lon"}]}, {"fqn": "23scaleamd01-v3.ram-256g", "planCode": "23scaleamd01-v3", "server": "23scaleamd01", "memory": "ram-256g-ecc", "storage": "softraid-2x960nvme", "datacenters": [{"availability": "240H", "datacenter": "gra"}]}]`
-	realCatalog        = `{"locale": {"currencyCode": "EUR", "subsidiary": "FR", "taxRate": 20}, "plans": [{"planCode": "24adv01-v3", "pricings": [{"phase": 0, "capacities": ["installation"], "commitment": 0, "description": "rental (only applicable for 1 time)", "interval": 0, "intervalUnit": "none", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": 1}, "price": 8999000000, "formattedPrice": "89.99 \u20ac", "tax": 1799800000, "mode": "default", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": null}, {"phase": 1, "capacities": ["renew"], "commitment": 0, "description": "rental for 1 month", "interval": 1, "intervalUnit": "month", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": null}, "price": 8999000000, "formattedPrice": "89.99 \u20ac", "tax": 1799800000, "mode": "default", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": null}, {"phase": 0, "capacities": ["installation"], "commitment": 0, "description": "rental (only applicable for 1 time)", "interval": 0, "intervalUnit": "none", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": 1}, "price": 0, "formattedPrice": "0.00 \u20ac", "tax": 0, "mode": "upfront12", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": null}, {"phase": 1, "capacities": ["renew"], "commitment": 12, "description": "rental for 12 months", "interval": 12, "intervalUnit": "month", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": null}, "price": 102589000000, "formattedPrice": "1025.89 \u20ac", "tax": 20517800000, "mode": "upfront12", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": {"defaultEndAction": "REACTIVATE_ENGAGEMENT", "duration": "P12M", "type": "upfront"}}, {"phase": 0, "capacities": ["installation"], "commitment": 0, "description": "rental (only applicable for 1 time)", "interval": 0, "intervalUnit": "none", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": 1}, "price": 0, "formattedPrice": "0.00 \u20ac", "tax": 0, "mode": "upfront24", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": null}, {"phase": 1, "capacities": ["renew"], "commitment": 24, "description": "rental for 24 months", "interval": 24, "intervalUnit": "month", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": null}, "price": 205177000000, "formattedPrice": "2051.77 \u20ac", "tax": 41035400000, "mode": "upfront24", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": {"defaultEndAction": "REACTIVATE_ENGAGEMENT", "duration": "P24M", "type": "upfront"}}]}]}`
+	// RISE-1 on 18 August 2026, carrying a live promotion that waives its setup
+	// charge. Trimmed to the fields the command reads; the amounts and the
+	// promotion name are the API's own.
+	promotedAvailabilities = `[{"fqn": "24rise01-v1.ram-32g-ecc-3200.softraid-2x512nvme", "memory": "ram-32g-ecc-3200", "planCode": "24rise01-v1", "server": "24rise01", "storage": "softraid-2x512nvme", "datacenters": [{"availability": "72H", "datacenter": "gra"}]}]`
+	promotedCatalog        = `{"locale": {"currencyCode": "EUR"}, "plans": [{"planCode": "24rise01-v1", "pricings": [{"mode": "default", "price": 5699000000, "interval": 0, "intervalUnit": "none", "capacities": ["installation"], "promotions": [{"name": "FLASHSALE_WW_RISE_1_3_AND_GAME_T1", "total": {"value": 0}}]}, {"mode": "default", "price": 5699000000, "interval": 1, "intervalUnit": "month", "capacities": ["renew"], "promotions": []}]}]}`
+	realCatalog            = `{"locale": {"currencyCode": "EUR", "subsidiary": "FR", "taxRate": 20}, "plans": [{"planCode": "24adv01-v3", "pricings": [{"phase": 0, "capacities": ["installation"], "commitment": 0, "description": "rental (only applicable for 1 time)", "interval": 0, "intervalUnit": "none", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": 1}, "price": 8999000000, "formattedPrice": "89.99 \u20ac", "tax": 1799800000, "mode": "default", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": null}, {"phase": 1, "capacities": ["renew"], "commitment": 0, "description": "rental for 1 month", "interval": 1, "intervalUnit": "month", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": null}, "price": 8999000000, "formattedPrice": "89.99 \u20ac", "tax": 1799800000, "mode": "default", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": null}, {"phase": 0, "capacities": ["installation"], "commitment": 0, "description": "rental (only applicable for 1 time)", "interval": 0, "intervalUnit": "none", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": 1}, "price": 0, "formattedPrice": "0.00 \u20ac", "tax": 0, "mode": "upfront12", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": null}, {"phase": 1, "capacities": ["renew"], "commitment": 12, "description": "rental for 12 months", "interval": 12, "intervalUnit": "month", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": null}, "price": 102589000000, "formattedPrice": "1025.89 \u20ac", "tax": 20517800000, "mode": "upfront12", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": {"defaultEndAction": "REACTIVATE_ENGAGEMENT", "duration": "P12M", "type": "upfront"}}, {"phase": 0, "capacities": ["installation"], "commitment": 0, "description": "rental (only applicable for 1 time)", "interval": 0, "intervalUnit": "none", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": 1}, "price": 0, "formattedPrice": "0.00 \u20ac", "tax": 0, "mode": "upfront24", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": null}, {"phase": 1, "capacities": ["renew"], "commitment": 24, "description": "rental for 24 months", "interval": 24, "intervalUnit": "month", "quantity": {"min": 1, "max": 10}, "repeat": {"min": 1, "max": null}, "price": 205177000000, "formattedPrice": "2051.77 \u20ac", "tax": 41035400000, "mode": "upfront24", "strategy": "tiered", "mustBeCompleted": false, "type": "rental", "promotions": [], "engagementConfiguration": {"defaultEndAction": "REACTIVATE_ENGAGEMENT", "duration": "P24M", "type": "upfront"}}]}]}`
 )
 
 // registerCatalog wires the API answers and, in the same breath, gives this test
@@ -37,6 +42,36 @@ func registerCatalog(t *td.T) {
 		httpmock.NewStringResponder(200, realAvailabilities))
 }
 
+// registerPromotedCatalog wires the same two endpoints to the RISE-1 answers.
+func registerPromotedCatalog(t *td.T) {
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/me",
+		httpmock.NewStringResponder(200, `{"ovhSubsidiary": "FR"}`))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/eco?ovhSubsidiary=FR",
+		httpmock.NewStringResponder(200, promotedCatalog))
+	httpmock.RegisterResponder("GET", `=~^https://eu\.api\.ovh\.com/v1/dedicated/server/datacenter/availabilities`,
+		httpmock.NewStringResponder(200, promotedAvailabilities))
+}
+
+// A promotion replaces the charge rather than annotating it, so the promoted
+// figure is what the checkout bills — 56.99 for RISE-1, whose 56.99 setup
+// charge is waived, against a 113.98 list price. Reporting the crossed-out
+// price would overstate every offer currently on sale; reporting the promoted
+// one without saying so would let an operator quote a price that expires on
+// 31 August. Both halves are asserted here.
+func (ms *MockSuite) TestBaremetalCatalogAppliesAndNamesAPromotion(assert, require *td.T) {
+	registerPromotedCatalog(assert)
+
+	out, err := cmd.Execute("baremetal", "catalog", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains(`"dueAtOrderValue": 56.99`), "the waived setup charge is not billed")
+	assert.Cmp(out, td.Not(td.Contains(`"dueAtOrderValue": 113.98`)), "and the list price is not what is due")
+	assert.Cmp(out, td.Contains("FLASHSALE_WW_RISE_1_3_AND_GAME_T1"), "the promotion is named")
+	assert.Cmp(out, td.Contains("113.98 EUR"), "and what it was crossed out from is shown")
+}
+
 // The numbers below are the ones the API really returns for 24adv01-v3, so this
 // test fails if the ucent conversion, the join or the commitment arithmetic
 // drifts — not merely if the code changes.
@@ -48,7 +83,12 @@ func (ms *MockSuite) TestBaremetalCatalogJoinsPriceToAvailability(assert, requir
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains(`"planCode": "24adv01-v3"`))
 	assert.Cmp(out, td.Contains(`"monthly": "89.99 EUR"`), "8999000000 ucents is 89.99")
-	assert.Cmp(out, td.Contains(`"dueAtOrder": "89.99 EUR"`), "the monthly mode charges the first month at order")
+	// 179.98, not 89.99. The order API quotes this exact cart at 179.98,
+	// itemised as one INSTALLATION line and one DURATION line, and the number
+	// below is that quote rather than an arithmetic of my own. Half the price
+	// is the one error this column must never make.
+	assert.Cmp(out, td.Contains(`"dueAtOrder": "179.98 EUR"`), "installation and first month are both charged")
+	assert.Cmp(out, td.Not(td.Contains(`"dueAtOrder": "89.99 EUR"`)), "the setup charge is not the first month")
 }
 
 // A plan with no public price must say so. An empty cell reads as a bug, and a
@@ -76,7 +116,7 @@ func (ms *MockSuite) TestBaremetalCatalogDividesAnUpfrontCommitment(assert, requ
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains(`"monthly": "85.49 EUR"`), "1025.89 over twelve months")
-	assert.Cmp(out, td.Contains(`"dueAtOrder": "1025.89 EUR"`), "the whole period is paid at order")
+	assert.Cmp(out, td.Contains(`"dueAtOrder": "1025.89 EUR"`), "the whole period is paid at order, and its setup charge is zero")
 	assert.Cmp(out, td.Not(td.Contains(`"monthly": "1025.89 EUR"`)), "never the period total in a monthly column")
 	assert.Cmp(out, td.Not(td.Contains(`"dueAtOrder": "0.00 EUR"`)), "and never nothing")
 }
