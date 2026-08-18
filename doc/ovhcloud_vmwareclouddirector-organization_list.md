@@ -36,6 +36,9 @@ ovhcloud vmwareclouddirector-organization list [flags]
                            --output 'name+","+type' (to extract and concatenate fields in a string)
                            --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string   Use a specific profile from the configuration file
+      --raw              Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
+                         Example:
+                           --output 'id' --raw   (prints the id without surrounding quotes)
 ```
 
 ### SEE ALSO

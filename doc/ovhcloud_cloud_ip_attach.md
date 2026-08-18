@@ -30,6 +30,9 @@ ovhcloud cloud ip attach <ip_id> <instance_id> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
+      --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
+                               Example:
+                                 --output 'id' --raw   (prints the id without surrounding quotes)
       --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
       --type string            Type of IP to manage (floating or failover)
 ```
