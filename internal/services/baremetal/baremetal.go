@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
@@ -196,28 +197,88 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 	GetBaremetalAuthenticationSecrets(cmd, args)
 }
 
+const (
+	// taskPollInterval and taskPollAttempts bound how long --wait follows a
+	// task. Past that the task is not cancelled: only the waiting stops, which
+	// is what the message has to say.
+	taskPollInterval = 30 * time.Second
+	taskPollAttempts = 100
+)
+
+// describeTask names a task the way its owner would look it up: its
+// identifier, and the operation it performs when the API says which.
+//
+// The identifier is formatted with %v and not %d: the API client decodes with
+// UseNumber, so it arrives as a json.Number and %d rendered it as
+// "%!d(json.Number=156839472)" — in the one message written to explain a
+// failure.
+func describeTask(taskID any, task map[string]any) string {
+	if function, ok := task["function"].(string); ok && function != "" {
+		return fmt.Sprintf("%v (%s)", taskID, function)
+	}
+
+	return fmt.Sprintf("%v", taskID)
+}
+
+// taskFailureReason returns what the API said about a failure, or "" when it
+// said nothing. Both fields are free text filled in by the platform.
+func taskFailureReason(task map[string]any) string {
+	for _, field := range []string{"comment", "note"} {
+		if reason, ok := task[field].(string); ok && strings.TrimSpace(reason) != "" {
+			return strings.TrimSpace(reason)
+		}
+	}
+
+	return ""
+}
+
 func waitForDedicatedServerTask(serviceName string, taskID any) error {
 	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/task/%s", url.PathEscape(serviceName), taskID)
+	followUp := fmt.Sprintf("follow it with: ovhcloud baremetal list-tasks %s", serviceName)
 
-	for retry := 0; retry < 100; retry++ {
+	var lastStatus any
+
+	for retry := 0; retry < taskPollAttempts; retry++ {
 		var task map[string]any
 
 		if err := httpLib.Client.Get(endpoint, &task); err != nil {
 			return fmt.Errorf("failed to fetch task: %w", err)
 		}
 
+		lastStatus = task["status"]
+
 		switch task["status"] {
 		case "done":
 			return nil
+
 		case "todo", "init", "doing":
-			log.Printf("Still waiting for task to complete (status=%s)…", task["status"])
-			time.Sleep(30 * time.Second)
+			log.Printf("Still waiting for task %s to complete (status=%v)…",
+				describeTask(taskID, task), task["status"])
+			time.Sleep(taskPollInterval)
+
+		// These are the terminal failures of the API enum. Calling them an
+		// invalid state told the operator the CLI had not understood, when
+		// what had happened is that their operation failed.
+		case "cancelled", "customerError", "ovhError":
+			if reason := taskFailureReason(task); reason != "" {
+				return fmt.Errorf("task %s ended with status %v: %s",
+					describeTask(taskID, task), task["status"], reason)
+			}
+
+			return fmt.Errorf("task %s ended with status %v, and the API gave no reason; %s",
+				describeTask(taskID, task), task["status"], followUp)
+
+		// A status this CLI does not know about is not a failure of the task:
+		// the enum can grow. Say what was received rather than guess.
 		default:
-			return fmt.Errorf("invalid state for task %d: %s", taskID, task["status"])
+			return fmt.Errorf("task %s reported the unexpected status %v; %s",
+				describeTask(taskID, task), task["status"], followUp)
 		}
 	}
 
-	return fmt.Errorf("timeout waiting for task %d to be completed", taskID)
+	// The task is still running: only the waiting stopped.
+	return fmt.Errorf("stopped waiting for task %v after %s; it is still running (status=%v), %s",
+		taskID, time.Duration(taskPollAttempts)*taskPollInterval, lastStatus, followUp)
 }
 
 func BaremetalGetIPMIAccess(_ *cobra.Command, args []string) {

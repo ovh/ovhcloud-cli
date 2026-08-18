@@ -55,3 +55,64 @@ func (ms *MockSuite) TestBaremetalListCompatibleOSCmd(assert, require *td.T) {
 └────────┴────────────────────────┘
 💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
+
+// registerReinstallTask wires a reinstall whose task ends in the given state.
+func registerReinstallTask(task string) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall",
+		httpmock.NewStringResponder(200, `{"taskId": 156839472}`),
+	)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/task/156839472",
+		httpmock.NewStringResponder(200, task),
+	)
+}
+
+// A failed task must say what failed and why. "invalid state" told the
+// operator the CLI had not understood, when their reinstallation had failed.
+func (ms *MockSuite) TestBaremetalReinstallReportsTheFailureReason(assert, require *td.T) {
+	registerReinstallTask(`{"taskId": 156839472, "function": "reinstallServer",
+		"status": "customerError", "comment": "partitioning scheme incompatible with this hardware"}`)
+
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("customerError"), "the real status is named")
+	assert.Cmp(err.Error(), td.Contains("partitioning scheme incompatible"), "and the reason the API gave")
+	assert.Cmp(err.Error(), td.Contains("reinstallServer"), "along with the operation that failed")
+	assert.Cmp(err.Error(), td.Not(td.Contains("invalid state")))
+}
+
+// The task identifier is decoded as a json.Number, and %d used to render it as
+// %!d(json.Number=…) — in the one message written to explain a failure.
+func (ms *MockSuite) TestBaremetalReinstallPrintsAReadableTaskID(assert, require *td.T) {
+	registerReinstallTask(`{"taskId": 156839472, "function": "reinstallServer", "status": "ovhError"}`)
+
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("156839472"))
+	assert.Cmp(err.Error(), td.Not(td.Contains("%!d")), "the identifier must be readable")
+	assert.Cmp(err.Error(), td.Contains("list-tasks fakeBaremetal"), "and the message says how to follow up")
+}
+
+// A status this CLI does not know is not a failure of the task: the API enum
+// can grow, and guessing would report a success or a failure that never was.
+func (ms *MockSuite) TestBaremetalReinstallReportsAnUnknownStatus(assert, require *td.T) {
+	registerReinstallTask(`{"taskId": 156839472, "function": "reinstallServer", "status": "quarantined"}`)
+
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("unexpected status quarantined"))
+}
+
+// A task that completes normally must still report success.
+func (ms *MockSuite) TestBaremetalReinstallSucceedsOnDoneTask(assert, require *td.T) {
+	registerReinstallTask(`{"taskId": 156839472, "function": "reinstallServer", "status": "done"}`)
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/authenticationSecret",
+		httpmock.NewStringResponder(200, `[]`),
+	)
+
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait")
+
+	require.CmpNoError(err)
+}
