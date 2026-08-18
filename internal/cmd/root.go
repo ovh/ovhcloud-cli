@@ -47,6 +47,7 @@ var (
 
 	wasmHiddenCommands = []string{
 		"login",
+		"logout",
 		"config",
 		"upgrade",
 	}

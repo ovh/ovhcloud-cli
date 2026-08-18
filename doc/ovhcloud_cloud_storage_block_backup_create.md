@@ -10,6 +10,7 @@ ovhcloud cloud storage block backup create <volume_id> <backup_name> [flags]
 
 ```
   -h, --help   help for create
+      --wait   Wait for the backup to be READY before exiting
 ```
 
 ### Options inherited from parent commands
