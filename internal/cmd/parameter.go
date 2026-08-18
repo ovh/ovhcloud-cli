@@ -285,3 +285,16 @@ There are three ways to define the creation parameters:
 
 	return createCmd
 }
+
+// addConfirmationFlags gives a command the pair every guarded action needs:
+// --yes to state the intent up front, --dry-run to see the call without making
+// it. They are mutually exclusive because asking to skip a confirmation for
+// something that will not happen means one of the two was a mistake.
+//
+// preview describes what --dry-run will show, since it differs between a
+// command that has a request body to print and one that only has a path.
+func addConfirmationFlags(cmd *cobra.Command, preview string) {
+	cmd.Flags().BoolVarP(&flags.AssumeYes, "yes", "y", false, "Skip the confirmation prompt (required for unattended runs)")
+	cmd.Flags().BoolVar(&flags.DryRun, "dry-run", false, preview)
+	markFlagsMutuallyExclusive(cmd, "yes", "dry-run")
+}
