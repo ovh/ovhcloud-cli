@@ -40,23 +40,24 @@ func resolveCloudProject(cmd *cobra.Command) string {
 // this delay we give up and return no suggestion rather than blocking.
 const completionTimeout = 3 * time.Second
 
-func fetchSuggestions(endpoint, labelField, cacheKey string) ([]string, cobra.ShellCompDirective) {
-	if cacheKey != "" {
-		if cached, ok := readCachedSuggestions(cacheKey); ok {
-			return cached, cobra.ShellCompDirectiveNoFileComp
-		}
-	}
-
+func fetchSuggestions(endpoint, labelField string) ([]string, cobra.ShellCompDirective) {
+	// The client is built first, before the cache is even looked up.
+	// Completion skips PersistentPreRun, so on a <tab> the client is still nil,
+	// and the cache key is scoped to the account the client resolved to: derive
+	// it any earlier and every account on the machine shares one entry.
+	// Building the client reads the configuration only, no request is sent.
 	if httpLib.Client == nil {
-		// Initialize the client the same way commands do (the completion path
-		// skips PersistentPreRun): honour the config file and the active profile,
-		// otherwise profile-based auth would be ignored and the API call would
-		// hit the wrong account / no credentials.
 		config.ActiveProfileOverride = flags.Profile
 		httpLib.InitClientWithProfile(flags.CliConfig, flags.Profile)
 	}
 	if httpLib.Client == nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	// Derived here and nowhere else: a caller cannot get the order wrong.
+	cacheKey := cacheKeyFor(endpoint)
+	if cached, ok := readCachedSuggestions(cacheKey); ok {
+		return cached, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	result := make(chan []string, 1)
@@ -102,7 +103,7 @@ func fetchSuggestions(endpoint, labelField, cacheKey string) ([]string, cobra.Sh
 
 	select {
 	case suggestions := <-result:
-		if cacheKey != "" && suggestions != nil {
+		if suggestions != nil {
 			writeCachedSuggestions(cacheKey, suggestions)
 		}
 		return suggestions, cobra.ShellCompDirectiveNoFileComp
@@ -120,7 +121,7 @@ func ServiceList(endpoint string) func(*cobra.Command, []string, string) ([]stri
 		if len(args) > 0 {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		return fetchSuggestions(endpoint, "", cacheKeyFor(endpoint))
+		return fetchSuggestions(endpoint, "")
 	}
 }
 
@@ -140,7 +141,7 @@ func CloudResources(pathTemplate string) func(*cobra.Command, []string, string) 
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 		endpoint := fmt.Sprintf(pathTemplate, url.PathEscape(project))
-		return fetchSuggestions(endpoint, "", cacheKeyFor(endpoint))
+		return fetchSuggestions(endpoint, "")
 	}
 }
 
@@ -158,10 +159,10 @@ func CloudResourceWithChild(parentTemplate, childTemplate string) func(*cobra.Co
 		switch len(args) {
 		case 0:
 			endpoint := fmt.Sprintf(parentTemplate, url.PathEscape(project))
-			return fetchSuggestions(endpoint, "", cacheKeyFor(endpoint))
+			return fetchSuggestions(endpoint, "")
 		case 1:
 			endpoint := fmt.Sprintf(childTemplate, url.PathEscape(project), url.PathEscape(args[0]))
-			return fetchSuggestions(endpoint, "", cacheKeyFor(endpoint))
+			return fetchSuggestions(endpoint, "")
 		default:
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
@@ -169,5 +170,5 @@ func CloudResourceWithChild(parentTemplate, childTemplate string) func(*cobra.Co
 }
 
 func CloudProjects(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return fetchSuggestions("/v2/publicCloud/project", "name", cacheKeyFor("/v2/publicCloud/project"))
+	return fetchSuggestions("/v2/publicCloud/project", "name")
 }
