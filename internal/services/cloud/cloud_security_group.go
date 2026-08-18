@@ -131,7 +131,7 @@ func EditSecurityGroup(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/securityGroup/{securityGroupId}",
 		fmt.Sprintf("/v2/publicCloud/project/%s/securityGroup/%s", projectID, url.PathEscape(args[0])),
-		SecurityGroupSpec,
+		&SecurityGroupSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
