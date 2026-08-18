@@ -5,6 +5,8 @@
 package cmd_test
 
 import (
+	"strings"
+
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
@@ -179,4 +181,69 @@ func (ms *MockSuite) TestBaremetalGetCmdWarnsAboutRescueBoot(assert, require *td
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("rescue"))
 	assert.Cmp(out, td.Contains("boot set-disk"))
+}
+
+// registerBootListResponders wires the calls made by `baremetal boot list`:
+// the list of boot identifiers, one object per entry, and the options of each.
+func registerBootListResponders() {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/boot",
+		httpmock.NewStringResponder(200, `[1, 1122]`),
+	)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/boot/1",
+		httpmock.NewStringResponder(200, `{"bootId": 1, "bootType": "harddisk", "description": "Boot on hard disk", "kernel": ""}`),
+	)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/boot/1122",
+		httpmock.NewStringResponder(200, `{"bootId": 1122, "bootType": "rescue", "description": "rescue64-pro", "kernel": "rescue"}`),
+	)
+	for _, id := range []string{"1", "1122"} {
+		httpmock.RegisterResponder("GET",
+			"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/boot/"+id+"/option",
+			httpmock.NewStringResponder(200, `[]`),
+		)
+	}
+}
+
+// The marker is the whole point of the column: without it, a server left in
+// rescue mode looks exactly like one booting on its disk.
+func (ms *MockSuite) TestBaremetalBootListCmdMarksTheActiveEntry(assert, require *td.T) {
+	registerBootListResponders()
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal",
+		httpmock.NewStringResponder(200, `{"name": "fakeBaremetal", "bootId": 1122}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "boot", "list", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	// The identifier comes first, as in every other service list.
+	assert.Cmp(out, td.Contains("bootId"))
+	// Only the rescue entry, which the server is set to boot on, is marked.
+	rescue := lineContaining(out, "rescue64-pro")
+	disk := lineContaining(out, "Boot on hard disk")
+	assert.Cmp(rescue, td.Contains("→"), "the active entry carries the marker")
+	assert.Cmp(disk, td.Not(td.Contains("→")), "the other entries do not")
+}
+
+// Reading the current boot is best effort: if the server cannot be fetched,
+// the listing must still answer, without claiming an entry is active.
+func (ms *MockSuite) TestBaremetalBootListCmdSurvivesServerLookupFailure(assert, require *td.T) {
+	registerBootListResponders()
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal",
+		httpmock.NewStringResponder(403, `{"message": "This call has not been granted"}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "boot", "list", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("rescue64-pro"), "the listing still answers")
+	assert.Cmp(out, td.Not(td.Contains("→")), "no entry is claimed active")
+}
+
+// lineContaining returns the first line of out holding needle, or "".
+func lineContaining(out, needle string) string {
+	for _, line := range strings.Split(out, "\n") {
+		if strings.Contains(line, needle) {
+			return line
+		}
+	}
+	return ""
 }

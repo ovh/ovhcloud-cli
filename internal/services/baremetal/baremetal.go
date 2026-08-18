@@ -458,7 +458,7 @@ func ListBaremetalBoots(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.RenderTable(boots, []string{"active", "bootId", "bootType", "description", "kernel"}, &flags.OutputFormatConfig)
+	display.RenderTable(boots, []string{"bootId", "active", "bootType", "description", "kernel"}, &flags.OutputFormatConfig)
 }
 
 // SetBaremetalBootDisk restores the hard disk boot entry. Without it, leaving
