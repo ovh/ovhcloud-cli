@@ -5,6 +5,8 @@
 package common
 
 import (
+	"fmt"
+
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/utils"
@@ -18,12 +20,16 @@ import (
 type Severity int
 
 const (
+	// Destructive loses data, or the resource itself. There is no retry.
+	//
+	// It is deliberately the zero value: a caller that forgets to state a
+	// severity gets the strictest guard rather than the weakest one, and finds
+	// out immediately instead of on the day it mattered.
+	Destructive Severity = iota
+
 	// Disruptive interrupts a running service. Nothing is lost, but somebody
 	// notices.
-	Disruptive Severity = iota
-
-	// Destructive loses data, or the resource itself. There is no retry.
-	Destructive
+	Disruptive
 )
 
 // ConfirmAction gates an action behind a confirmation and reports whether the
@@ -42,27 +48,43 @@ func ConfirmAction(severity Severity, resource, warning string) bool {
 	}
 
 	switch severity {
-	case Destructive:
-		return utils.ConfirmByName(resource, warning)
-	default:
+	case Disruptive:
 		return utils.ConfirmYesNo(warning)
+	default:
+		return utils.ConfirmByName(resource, warning)
 	}
 }
 
-// ReportDryRun prints the call a command would have made, and reports true so
+// Call is one request a command would send.
+type Call struct {
+	Method   string
+	Endpoint string
+}
+
+// ReportDryRun prints every call a command would have made, and reports true so
 // the caller can stop on the same line it tested the flag.
 //
-// The endpoint is shown in full because these commands have no other preview:
-// the whole point of --dry-run here is to let somebody read the path before it
-// is acted on.
-func ReportDryRun(method, endpoint string) bool {
+// It takes the whole sequence rather than one call because several of these
+// commands are not one request. `reboot-rescue` reads the rescue boot, writes
+// it to the server and only then reboots — and the write is the part that
+// outlives the reboot. A preview that showed the reboot alone would hide
+// exactly the change an operator needs to see before agreeing to it.
+//
+// Endpoints are shown in full: these commands have no other preview, and the
+// point is to let somebody read the paths before they are acted on.
+func ReportDryRun(calls ...Call) bool {
 	if !flags.DryRun {
 		return false
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig,
-		map[string]any{"method": method, "endpoint": endpoint},
-		"🔍 Dry run: nothing was sent. This would have been called:\n  %s %s", method, endpoint)
+	details := make([]map[string]any, 0, len(calls))
+	message := "🔍 Dry run: nothing was sent. This would have been called:"
+	for _, c := range calls {
+		details = append(details, map[string]any{"method": c.Method, "endpoint": c.Endpoint})
+		message += fmt.Sprintf("\n  %s %s", c.Method, c.Endpoint)
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, map[string]any{"calls": details}, "%s", message)
 
 	return true
 }
