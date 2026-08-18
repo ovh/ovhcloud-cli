@@ -50,7 +50,9 @@ func TestOutputError_GoesToStderrOnly(t *testing.T) {
 	ExitFunc = func(int) {}
 	defer func() { ExitFunc = origExit }()
 
-	for _, format := range []string{"", "json", "yaml"} {
+	// "interactive" is in the list on purpose: its viewer takes over stdout,
+	// so a diagnostic must be rendered plainly instead of being handed to it.
+	for _, format := range []string{"", "json", "yaml", "interactive"} {
 		out, errOut := captureStreams(t, func() {
 			OutputError(&OutputFormat{Output: format}, "something went wrong")
 		})
@@ -69,4 +71,21 @@ func TestOutputInfo_GoesToStdout(t *testing.T) {
 
 	td.Cmp(t, out, td.Contains("task started"))
 	td.Cmp(t, errOut, "")
+}
+
+// A warning follows the same rule as an error, in every format.
+func TestOutputWarning_GoesToStderrOnly(t *testing.T) {
+	origExit := ExitFunc
+	ExitFunc = func(int) {}
+	defer func() { ExitFunc = origExit }()
+
+	for _, format := range []string{"", "json", "yaml", "interactive"} {
+		out, errOut := captureStreams(t, func() {
+			OutputWarning(&OutputFormat{Output: format}, "careful")
+		})
+
+		td.Cmp(t, out, "", "stdout stays empty with output format %q", format)
+		td.Cmp(t, errOut, td.Contains("careful"),
+			"stderr carries the warning with output format %q", format)
+	}
 }

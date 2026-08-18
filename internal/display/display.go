@@ -409,7 +409,14 @@ func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
 		}
 
 	case outputFormat.IsInteractive():
-		displayInteractive(msg)
+		// A diagnostic is not data to browse. The interactive viewer starts a
+		// full-screen program on stdout, which would put the message back on
+		// the stream this function exists to keep clean.
+		if msg.Error || msg.Warning {
+			writeTo(dst, "%s", msg.Message)
+		} else {
+			displayInteractive(msg)
+		}
 
 	default:
 		writeTo(dst, "%s", msg.Message)
