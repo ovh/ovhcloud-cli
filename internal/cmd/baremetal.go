@@ -68,6 +68,66 @@ func init() {
 	}
 	baremetalCmd.AddCommand(withFilterFlag(baremetalListTasksCmd))
 
+	// Service information and life cycle
+	baremetalServiceInfoCmd := &cobra.Command{
+		Use:   "service-info",
+		Short: "Manage service information of the given baremetal",
+	}
+	baremetalCmd.AddCommand(baremetalServiceInfoCmd)
+
+	baremetalServiceInfoCmd.AddCommand(&cobra.Command{
+		Use:               "get <service_name>",
+		Short:             "Get service information of the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.GetBaremetalServiceInfo,
+	})
+
+	baremetalServiceInfoEditCmd := &cobra.Command{
+		Use:               "edit <service_name>",
+		Short:             "Edit service information of the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.EditBaremetalServiceInfo,
+	}
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
+	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
+
+	baremetalTerminateCmd := &cobra.Command{
+		Use:   "terminate <service_name>",
+		Short: "Ask for the termination of the given baremetal",
+		Long: `Ask for the termination of the given baremetal.
+
+Nothing stops when this returns: OVHcloud emails a termination token to the
+administrative contact of the service, and the server keeps running until that
+token is confirmed with "baremetal confirm-termination".`,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.TerminateBaremetal,
+	}
+	addConfirmationFlags(baremetalTerminateCmd, "Print the call that would be made without making it")
+	baremetalCmd.AddCommand(baremetalTerminateCmd)
+
+	baremetalConfirmTerminationCmd := &cobra.Command{
+		Use:   "confirm-termination <service_name> <token>",
+		Short: "Confirm the termination of the given baremetal",
+		Long: `Confirm the termination of the given baremetal, using the token emailed to
+the administrative contact by "baremetal terminate".
+
+This ends the contract: the server is returned to OVHcloud at expiry.`,
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ConfirmBaremetalTermination,
+	}
+	baremetalConfirmTerminationCmd.Flags().StringVar(&baremetal.TerminationReason, "reason", "", "Why the service is being terminated (press <tab> for the accepted values)")
+	baremetalConfirmTerminationCmd.Flags().StringVar(&baremetal.TerminationFutureUse, "future-use", "", "What comes next after this termination (press <tab> for the accepted values)")
+	baremetalConfirmTerminationCmd.Flags().StringVar(&baremetal.TerminationComment, "commentary", "", "Free-text comment attached to the termination request")
+	baremetalConfirmTerminationCmd.RegisterFlagCompletionFunc("reason", baremetal.CompleteTerminationReason)
+	baremetalConfirmTerminationCmd.RegisterFlagCompletionFunc("future-use", baremetal.CompleteTerminationFutureUse)
+	addConfirmationFlags(baremetalConfirmTerminationCmd, "Print the call that would be made without making it")
+	baremetalCmd.AddCommand(baremetalConfirmTerminationCmd)
+
 	// Command to reboot a baremetal
 	baremetalRebootCmd := &cobra.Command{
 		Use:               "reboot <service_name>",
