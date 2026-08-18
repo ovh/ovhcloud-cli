@@ -59,7 +59,7 @@ func EditCloudQuota(cmd *cobra.Command, _ []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/quota",
 		fmt.Sprintf("/v2/publicCloud/project/%s/quota", projectID),
-		QuotaEditSpec,
+		&QuotaEditSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

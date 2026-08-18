@@ -71,7 +71,7 @@ func EditIpLoadbalancing(cmd *cobra.Command, args []string) {
 		cmd,
 		"/ipLoadbalancing/{serviceName}",
 		fmt.Sprintf("/v1/ipLoadbalancing/%s", url.PathEscape(args[0])),
-		IPLoadbalancingSpec,
+		&IPLoadbalancingSpec,
 		assets.IploadbalancingOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

@@ -150,7 +150,7 @@ func EditVolume(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/storage/block/volume/{id}",
 		endpoint,
-		VolumeEditSpec,
+		&VolumeEditSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

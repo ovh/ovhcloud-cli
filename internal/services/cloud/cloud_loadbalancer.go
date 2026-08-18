@@ -405,7 +405,7 @@ func EditCloudLoadbalancer(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}",
 		fmt.Sprintf("/v2/publicCloud/project/%s/loadbalancer/%s", projectID, url.PathEscape(args[0])),
-		CloudLoadbalancerUpdateSpec,
+		&CloudLoadbalancerUpdateSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -614,7 +614,7 @@ func EditCloudLoadbalancerListener(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener/{listenerId}",
 		fmt.Sprintf("%s/%s", loadbalancerListenerPath(projectID, args[0]), url.PathEscape(args[1])),
-		CloudLoadbalancerListenerUpdateSpec,
+		&CloudLoadbalancerListenerUpdateSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -745,7 +745,7 @@ func EditCloudLoadbalancerPool(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/pool/{poolId}",
 		fmt.Sprintf("%s/%s", loadbalancerPoolPath(projectID, args[0]), url.PathEscape(args[1])),
-		CloudLoadbalancerPoolUpdateSpec,
+		&CloudLoadbalancerPoolUpdateSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -889,7 +889,7 @@ func EditCloudLoadbalancerPoolMember(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool/{poolId}/member/{memberId}",
 		fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member/%s",
 			projectID, url.PathEscape(region), url.PathEscape(args[0]), url.PathEscape(args[1])),
-		CloudLoadbalancerPoolMemberUpdateSpec,
+		&CloudLoadbalancerPoolMemberUpdateSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -991,7 +991,7 @@ func EditCloudLoadbalancerL7Policy(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy/{l7PolicyId}",
 		fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s",
 			projectID, url.PathEscape(region), url.PathEscape(args[0])),
-		CloudLoadbalancerL7PolicyUpdateSpec,
+		&CloudLoadbalancerL7PolicyUpdateSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -1122,7 +1122,7 @@ func EditCloudLoadbalancerL7Rule(cmd *cobra.Command, args []string) {
 		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy/{l7PolicyId}/l7Rule/{l7RuleId}",
 		fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s/l7Rule/%s",
 			projectID, url.PathEscape(region), url.PathEscape(args[0]), url.PathEscape(args[1])),
-		CloudLoadbalancerL7RuleUpdateSpec,
+		&CloudLoadbalancerL7RuleUpdateSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

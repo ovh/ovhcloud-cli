@@ -43,7 +43,7 @@ func EditVmwareCloudDirectorOrganization(cmd *cobra.Command, args []string) {
 		cmd,
 		"/vmwareCloudDirector/organization/{organizationId}",
 		fmt.Sprintf("/v2/vmwareCloudDirector/organization/%s", url.PathEscape(args[0])),
-		VmwareCloudDirectorOrganizationSpec,
+		&VmwareCloudDirectorOrganizationSpec,
 		assets.VmwareclouddirectororganizationOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
