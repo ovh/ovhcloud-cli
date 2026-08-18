@@ -71,6 +71,7 @@ ovhcloud baremetal reinstall <service_name> [flags]
       --post-installation-script string             Post-installation script
       --post-installation-script-extension string   Post-installation script extension (cmd, ps1)
       --replace                                     Replace parameters file if it already exists
+      --reveal                                      Print the secret values fetched after --wait instead of masking them
       --ssh-key string                              SSH public key
       --wait                                        Wait for reinstall to be done before exiting
 ```

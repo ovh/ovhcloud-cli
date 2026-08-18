@@ -85,6 +85,10 @@ func init() {
 		Run:               baremetal.RebootRescueBaremetal,
 	}
 	baremetalRebootRescueCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reboot to be done before exiting")
+	// --wait ends by fetching the credentials that the reboot generated, so
+	// the reveal choice has to exist here too: without it the values would be
+	// masked with no way to opt in.
+	baremetalRebootRescueCmd.Flags().BoolVar(&baremetal.BaremetalRevealSecrets, "reveal", false, "Print the secret values fetched after --wait instead of masking them")
 	baremetalCmd.AddCommand(baremetalRebootRescueCmd)
 
 	// Command to reinstall a baremetal
@@ -155,6 +159,9 @@ Please note that all parameters are not compatible with all OSes.
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.SshKey, "ssh-key", "", "SSH public key")
 	reinstallBaremetalCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
+	// Same reason as reboot-rescue: --wait ends by fetching the credentials
+	// the reinstall generated.
+	reinstallBaremetalCmd.Flags().BoolVar(&baremetal.BaremetalRevealSecrets, "reveal", false, "Print the secret values fetched after --wait instead of masking them")
 	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "from-file", "editor")
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
 
@@ -220,26 +227,27 @@ Please note that all parameters are not compatible with all OSes.
 	}
 	baremetalCmd.AddCommand(baremetalCredentialsCmd)
 
-	baremetalCredentialsGetCmd := &cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Request access credentials for the given baremetal",
-		Long: `Request access credentials for the given dedicated server.
+	baremetalCredentialsCreateCmd := &cobra.Command{
+		Use:   "create <service_name>",
+		Short: "Generate new access credentials for the given baremetal",
+		Long: `Generate new access credentials for the given dedicated server.
 
-This command is a write operation: it asks the API to generate a new access
-secret. Values are masked unless --reveal is given, in every output format.
+This command performs a write: it calls POST /authenticationSecret, whose IAM
+action is authenticationSecret/create, and returns the credentials it just
+generated. Values are masked unless --reveal is given, in every output format.
 `,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.GetBaremetalAuthenticationSecrets,
 	}
-	baremetalCredentialsGetCmd.Flags().BoolVar(&baremetal.BaremetalRevealSecrets, "reveal", false, "Print secret values instead of masking them")
-	baremetalCredentialsCmd.AddCommand(withFilterFlag(baremetalCredentialsGetCmd))
+	baremetalCredentialsCreateCmd.Flags().BoolVar(&baremetal.BaremetalRevealSecrets, "reveal", false, "Print secret values instead of masking them")
+	baremetalCredentialsCmd.AddCommand(withFilterFlag(baremetalCredentialsCreateCmd))
 
 	// Deprecated alias kept so that existing scripts keep working.
 	baremetalListSecretsCmd := &cobra.Command{
 		Use:               "list-secrets <service_name>",
 		Short:             "Retrieve secrets to connect to the server",
-		Deprecated:        "use \"ovhcloud baremetal credentials get\" instead.",
+		Deprecated:        "use \"ovhcloud baremetal credentials create\" instead.",
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.GetBaremetalAuthenticationSecrets,
