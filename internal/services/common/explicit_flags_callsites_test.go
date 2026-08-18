@@ -50,11 +50,16 @@ func TestEditResourceCallSitesPassAPointer(t *testing.T) {
 
 		ast.Inspect(file, func(node ast.Node) bool {
 			call, ok := node.(*ast.CallExpr)
-			if !ok || !isEditResourceCall(call.Fun) || len(call.Args) < 4 {
+			if !ok || !isEditResourceCall(call.Fun) {
 				return true
 			}
 
 			checked++
+			if len(call.Args) < 4 {
+				t.Errorf("%s: EditResource called with %d arguments, cannot locate the parameters struct",
+					fileSet.Position(call.Pos()), len(call.Args))
+				return true
+			}
 			position := fileSet.Position(call.Args[3].Pos())
 
 			switch argument := call.Args[3].(type) {
@@ -63,7 +68,13 @@ func TestEditResourceCallSitesPassAPointer(t *testing.T) {
 					t.Errorf("%s: parameters passed by value, addExplicitlySetFlags will do nothing", position)
 				}
 			case *ast.CompositeLit:
-				// A body built by hand: every key is present, nothing to restore.
+				// A body built by hand as a map: every key is present, so
+				// omitempty cannot drop anything. A struct literal is another
+				// matter — no flag points into a value built on the spot, so
+				// the mechanism would silently do nothing.
+				if _, isMap := argument.Type.(*ast.MapType); !isMap {
+					t.Errorf("%s: a struct literal cannot be matched to any flag, pass a pointer to the parameters struct", position)
+				}
 			case *ast.Ident:
 				if _, allowed := editResourceValueArgAllowed[argument.Name]; !allowed {
 					t.Errorf("%s: %s is passed by value, pass &%s so flags set to their zero value survive",
@@ -84,11 +95,13 @@ func TestEditResourceCallSitesPassAPointer(t *testing.T) {
 	td.Cmp(t, checked > 50, true, "expected the services tree to expose many edit commands, found %d", checked)
 }
 
+// isEditResourceCall matches on the function name alone, whatever package
+// qualifier carries it: pinning it to "common" would miss an aliased import,
+// and a false positive here fails loudly rather than passing in silence.
 func isEditResourceCall(fun ast.Expr) bool {
 	switch callee := fun.(type) {
 	case *ast.SelectorExpr:
-		pkg, ok := callee.X.(*ast.Ident)
-		return ok && pkg.Name == "common" && callee.Sel.Name == "EditResource"
+		return callee.Sel.Name == "EditResource"
 	case *ast.Ident:
 		return callee.Name == "EditResource"
 	}
