@@ -40,6 +40,11 @@ var (
 // validated. That is why it is behind a sync.OnceValues and never called while
 // flags are being registered: every invocation of the CLI registers them, and
 // only a completion or an actual termination needs the values.
+//
+// sync.OnceValues caches a failure as firmly as a success, which is what we
+// want: the input is compiled into the binary by //go:embed and cannot change
+// while the process runs, so a second attempt would read the same bytes and
+// fail the same way.
 var (
 	terminationReasons = sync.OnceValues(func() ([]string, error) {
 		return openapi.GetRequestFieldEnum(assets.BaremetalOpenapiSchema, confirmTerminationPath, "post", "reason")
@@ -148,12 +153,10 @@ func TerminateBaremetal(_ *cobra.Command, args []string) {
 		return
 	}
 
-	message := fmt.Sprintf("⚡️ Termination of %s requested. A token has been emailed to the administrative contact; confirm with:\n  ovhcloud baremetal confirm-termination %s <token>", args[0], args[0])
-	if response != "" {
-		message += fmt.Sprintf("\nThe API answered: %s", response)
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, map[string]any{"service": args[0], "response": response}, "%s", message)
+	display.OutputInfo(&flags.OutputFormatConfig,
+		map[string]any{"service": args[0], "response": response},
+		"⚡️ Termination of %s requested. A token has been emailed to the administrative contact; confirm with:\n  ovhcloud baremetal confirm-termination %s <token>",
+		args[0], args[0])
 }
 
 // ConfirmBaremetalTermination is the irreversible half: it ends the contract and
@@ -173,6 +176,15 @@ func ConfirmBaremetalTermination(_ *cobra.Command, args []string) {
 		return
 	}
 
+	// cobra counts the arguments, it does not look at them: an empty second
+	// argument satisfies ExactArgs(2) and would travel all the way to a 400.
+	token := strings.TrimSpace(args[1])
+	if token == "" {
+		display.OutputError(&flags.OutputFormatConfig,
+			"no termination token given; it is the token emailed to the administrative contact by `baremetal terminate %s`", args[0])
+		return
+	}
+
 	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/confirmTermination", url.PathEscape(args[0]))
 
 	if !common.ConfirmAction(common.Destructive, args[0], fmt.Sprintf(
@@ -182,7 +194,7 @@ func ConfirmBaremetalTermination(_ *cobra.Command, args []string) {
 		return
 	}
 
-	body := map[string]any{"token": args[1]}
+	body := map[string]any{"token": token}
 	if TerminationReason != "" {
 		body["reason"] = TerminationReason
 	}
@@ -212,6 +224,18 @@ func ConfirmBaremetalTermination(_ *cobra.Command, args []string) {
 		"✅ Termination of %s confirmed", args[0])
 }
 
+// fingerprint identifies a token without reproducing it. Withholding it
+// entirely was the first answer, and it costs the one thing an operator
+// legitimately checks in a preview: that the shell handed over the token they
+// pasted, rather than one it truncated or expanded. Four characters and a
+// length settle that question and reconstruct nothing.
+func fingerprint(token string) string {
+	if len(token) < 8 {
+		return fmt.Sprintf("(%d characters, too short to show)", len(token))
+	}
+	return fmt.Sprintf("%s… (%d characters)", token[:4], len(token))
+}
+
 func describeTerminationBody(body map[string]any) string {
 	fields := make([]string, 0, len(body))
 	for _, name := range []string{"token", "reason", "futureUse", "commentary"} {
@@ -220,7 +244,7 @@ func describeTerminationBody(body map[string]any) string {
 			continue
 		}
 		if name == "token" {
-			fields = append(fields, "token: (withheld)")
+			fields = append(fields, fmt.Sprintf("token: %s", fingerprint(fmt.Sprint(value))))
 			continue
 		}
 		fields = append(fields, fmt.Sprintf("%s: %v", name, value))

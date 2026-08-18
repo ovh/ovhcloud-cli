@@ -6,6 +6,7 @@ package cmd_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -412,4 +413,65 @@ func (ms *MockSuite) TestBaremetalServiceInfoEditSendsOnlyWhatWasAsked(assert, r
 	require.NotNil(renew)
 	assert.Cmp(renew["period"], float64(12))
 	assert.Cmp(renew["automatic"], true, "automatic renewal must survive untouched")
+}
+
+// The termination survey is held in package-level variables bound by cobra. A
+// reason typed on one command must not attach itself to the next termination
+// of the same process, which would file a survey answer nobody gave.
+func (ms *MockSuite) TestBaremetalTerminationReasonDoesNotSurvive(assert, require *td.T) {
+	var sent map[string]any
+	registerBaremetalTermination(&sent)
+
+	_, err := cmd.Execute("baremetal", "confirm-termination", "fakeBaremetal", fakeTerminationToken,
+		"--reason", "TOO_EXPENSIVE", "--yes")
+	require.CmpNoError(err)
+	require.Cmp(sent["reason"], "TOO_EXPENSIVE")
+
+	cmd.PostExecute()
+
+	_, err = cmd.Execute("baremetal", "confirm-termination", "fakeBaremetal", fakeTerminationToken, "--yes")
+	require.CmpNoError(err)
+	assert.Cmp(sent["reason"], nil, "the second termination carries no reason")
+}
+
+// cobra counts the positional arguments, it does not look at them: an empty
+// token satisfies ExactArgs(2). Sending it spends a round trip to learn what
+// the CLI already knew.
+func (ms *MockSuite) TestBaremetalConfirmTerminationRefusesAnEmptyToken(assert, require *td.T) {
+	var sent map[string]any
+	registerBaremetalTermination(&sent)
+
+	_, err := cmd.Execute("baremetal", "confirm-termination", "fakeBaremetal", "   ", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("no termination token given"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "nothing must reach the API")
+}
+
+// An error from the API must not be reported as a success, whatever the CLI
+// does with the response body.
+func (ms *MockSuite) TestBaremetalConfirmTerminationReportsAnApiRefusal(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/confirmTermination",
+		httpmock.NewStringResponder(400, `{"class":"Client::BadRequest","message":"This token is not valid"}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "confirm-termination", "fakeBaremetal", fakeTerminationToken, "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("This token is not valid"), "the reason the API gave")
+	assert.Cmp(out, td.Not(td.Contains("confirmed")), "and no claim that it worked")
+}
+
+// The preview must not hide a token the shell mangled: four characters and a
+// length answer that without reproducing the credential.
+func (ms *MockSuite) TestBaremetalConfirmTerminationDryRunFingerprintsTheToken(assert, require *td.T) {
+	var sent map[string]any
+	registerBaremetalTermination(&sent)
+
+	out, err := cmd.Execute("baremetal", "confirm-termination", "fakeBaremetal", fakeTerminationToken, "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("abcd…"), "enough to recognise the token")
+	assert.Cmp(out, td.Contains(fmt.Sprintf("%d characters", len(fakeTerminationToken))), "and its length")
+	assert.Cmp(out, td.Not(td.Contains(fakeTerminationToken)), "never the token itself")
 }
