@@ -5,6 +5,10 @@
 package cmd_test
 
 import (
+	"encoding/json"
+	"io"
+	"net/http"
+
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
@@ -278,4 +282,134 @@ func (ms *MockSuite) TestBaremetalOlaResetRefusesWithoutConsent(assert, require 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("cancelled"))
 	assert.Cmp(httpmock.GetTotalCallCount(), 0, "no interface must be reset without a confirmation")
+}
+
+const fakeTerminationToken = "abcd-1234-token"
+
+func registerBaremetalTermination(captured *map[string]any) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/terminate",
+		httpmock.NewStringResponder(200, `"termination requested"`),
+	)
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/confirmTermination",
+		func(req *http.Request) (*http.Response, error) {
+			body, err := io.ReadAll(req.Body)
+			if err != nil {
+				return nil, err
+			}
+			var sent map[string]any
+			if err := json.Unmarshal(body, &sent); err != nil {
+				return nil, err
+			}
+			*captured = sent
+			return httpmock.NewStringResponse(200, `"ok"`), nil
+		},
+	)
+}
+
+// terminate stops nothing, and the token is emailed rather than returned. An
+// operator who reads "termination started: <body>" pastes that body into the
+// confirmation and wonders why it is refused.
+func (ms *MockSuite) TestBaremetalTerminateSaysWhereTheTokenComesFrom(assert, require *td.T) {
+	var sent map[string]any
+	registerBaremetalTermination(&sent)
+
+	out, err := cmd.Execute("baremetal", "terminate", "fakeBaremetal", "--yes")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("emailed"), "the operator must be told where the token arrives")
+	assert.Cmp(out, td.Contains("confirm-termination fakeBaremetal"), "and what to run next")
+}
+
+// The reversible half asks for a yes; the irreversible half asks for the name.
+// An unattended run gets neither, so it must reach nothing.
+func (ms *MockSuite) TestBaremetalTerminationRefusesWithoutConsent(assert, require *td.T) {
+	var sent map[string]any
+	registerBaremetalTermination(&sent)
+
+	_, err := cmd.Execute("baremetal", "terminate", "fakeBaremetal")
+	require.CmpError(err)
+
+	_, err = cmd.Execute("baremetal", "confirm-termination", "fakeBaremetal", fakeTerminationToken)
+	require.CmpError(err)
+
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "nothing must reach the API without a confirmation")
+}
+
+func (ms *MockSuite) TestBaremetalConfirmTerminationSendsTheSurveyFields(assert, require *td.T) {
+	var sent map[string]any
+	registerBaremetalTermination(&sent)
+
+	_, err := cmd.Execute("baremetal", "confirm-termination", "fakeBaremetal", fakeTerminationToken,
+		"--reason", "TOO_EXPENSIVE", "--future-use", "NOT_REPLACING_SERVICE",
+		"--commentary", "consolidating racks", "--yes")
+
+	require.CmpNoError(err)
+	assert.Cmp(sent["token"], fakeTerminationToken)
+	assert.Cmp(sent["reason"], "TOO_EXPENSIVE")
+	assert.Cmp(sent["futureUse"], "NOT_REPLACING_SERVICE")
+	assert.Cmp(sent["commentary"], "consolidating racks")
+}
+
+// A value the API would reject must be named as such here, with the accepted
+// ones listed. A 400 from the other side says "invalid value" and stops there.
+func (ms *MockSuite) TestBaremetalConfirmTerminationRejectsAnUnknownReason(assert, require *td.T) {
+	var sent map[string]any
+	registerBaremetalTermination(&sent)
+
+	_, err := cmd.Execute("baremetal", "confirm-termination", "fakeBaremetal", fakeTerminationToken,
+		"--reason", "BECAUSE", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("TOO_EXPENSIVE"), "the accepted values are listed")
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "and nothing is sent")
+}
+
+// The preview must describe the request, and withhold the one value that is a
+// single-use credential: --dry-run is run with the output on a screen or in a
+// pipeline log.
+func (ms *MockSuite) TestBaremetalConfirmTerminationDryRunWithholdsTheToken(assert, require *td.T) {
+	var sent map[string]any
+	registerBaremetalTermination(&sent)
+
+	out, err := cmd.Execute("baremetal", "confirm-termination", "fakeBaremetal", fakeTerminationToken,
+		"--reason", "TOO_EXPENSIVE", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("confirmTermination"), "the call is named")
+	assert.Cmp(out, td.Contains("reason: TOO_EXPENSIVE"), "and so are the fields")
+	assert.Cmp(out, td.Not(td.Contains(fakeTerminationToken)), "but never the token itself")
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "and nothing is sent")
+}
+
+// Editing one renewal setting must not carry the others along at their zero
+// value, on baremetal as anywhere else.
+func (ms *MockSuite) TestBaremetalServiceInfoEditSendsOnlyWhatWasAsked(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/serviceInfos",
+		httpmock.NewStringResponder(200, `{
+			"serviceId": 1,
+			"domain": "fakeBaremetal",
+			"renew": {"automatic": true, "deleteAtExpiration": false, "forced": false, "manualPayment": false, "period": 1}
+		}`),
+	)
+	var sent map[string]any
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/serviceInfos",
+		func(req *http.Request) (*http.Response, error) {
+			body, err := io.ReadAll(req.Body)
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(body, &sent); err != nil {
+				return nil, err
+			}
+			return httpmock.NewStringResponse(200, `null`), nil
+		},
+	)
+
+	_, err := cmd.Execute("baremetal", "service-info", "edit", "fakeBaremetal", "--renew-period", "12")
+
+	require.CmpNoError(err)
+	renew, _ := sent["renew"].(map[string]any)
+	require.NotNil(renew)
+	assert.Cmp(renew["period"], float64(12))
+	assert.Cmp(renew["automatic"], true, "automatic renewal must survive untouched")
 }
