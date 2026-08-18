@@ -7,6 +7,8 @@ package common
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 )
 
@@ -27,9 +29,22 @@ func decodeJSONObject(data []byte, target *map[string]any) error {
 
 // decodeJSONObjectFrom is decodeJSONObject reading from a stream, for the
 // parameters given in a file.
+//
+// Unlike json.Unmarshal, a Decoder stops at the end of the first value and
+// says nothing about what follows. That would accept `{"a":1}{"b":2}`, or a
+// payload a typo has split in two, and send a request built from the first
+// half alone. Everything after the object is therefore required to be blank.
 func decodeJSONObjectFrom(reader io.Reader, target *map[string]any) error {
 	decoder := json.NewDecoder(reader)
 	decoder.UseNumber()
 
-	return decoder.Decode(target)
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+
+	if err := decoder.Decode(new(json.RawMessage)); !errors.Is(err, io.EOF) {
+		return fmt.Errorf("unexpected data after the JSON object")
+	}
+
+	return nil
 }
