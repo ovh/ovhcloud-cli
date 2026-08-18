@@ -95,6 +95,18 @@ func Write(namespace, key string, data []byte, ttl time.Duration) {
 	_ = os.Rename(tmp.Name(), filepath.Join(dir, key))
 }
 
+// Remove deletes a single entry. It exists because writing an empty value is
+// not a way to forget one: Write purges the namespace against the ttl it is
+// given, so a zero ttl there would take every other entry with it.
+func Remove(namespace, key string) {
+	dir := Dir(namespace)
+	if dir == "" {
+		return
+	}
+
+	_ = os.Remove(filepath.Join(dir, key))
+}
+
 // PurgeExpired removes every entry of a namespace older than ttl.
 func PurgeExpired(namespace string, ttl time.Duration) {
 	dir := Dir(namespace)

@@ -42,6 +42,7 @@ Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal list-ips](ovhcloud_baremetal_list-ips.md)	 - List all IPs that are routed to the given baremetal
 * [ovhcloud baremetal list-secrets](ovhcloud_baremetal_list-secrets.md)	 - Retrieve secrets to connect to the server
 * [ovhcloud baremetal list-tasks](ovhcloud_baremetal_list-tasks.md)	 - Retrieve tasks of the given baremetal
+* [ovhcloud baremetal power](ovhcloud_baremetal_power.md)	 - Power the given baremetal off and on
 * [ovhcloud baremetal reboot](ovhcloud_baremetal_reboot.md)	 - Reboot the given baremetal
 * [ovhcloud baremetal reboot-rescue](ovhcloud_baremetal_reboot-rescue.md)	 - Reboot the given baremetal in rescue mode
 * [ovhcloud baremetal reinstall](ovhcloud_baremetal_reinstall.md)	 - Reinstall the given baremetal
