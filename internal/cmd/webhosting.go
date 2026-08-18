@@ -605,11 +605,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
 		Run:               webhosting.UpdateExtraSqlServiceInfo,
 	}
-	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
-	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
-	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
-	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
-	extraSQLServiceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
+	common.AddServiceInfoRenewFlags(extraSQLServiceInfoUpdateCmd)
 	addParameterFileFlags(extraSQLServiceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(extraSQLServiceInfoUpdateCmd)
 	extraSQLServiceInfoCmd.AddCommand(extraSQLServiceInfoUpdateCmd)
@@ -1330,11 +1326,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
 		Run:               webhosting.UpdateCdnServiceInfo,
 	}
-	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
-	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
-	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
-	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
-	cdnServiceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
+	common.AddServiceInfoRenewFlags(cdnServiceInfoUpdateCmd)
 	addParameterFileFlags(cdnServiceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(cdnServiceInfoUpdateCmd)
 	cdnServiceInfoCmd.AddCommand(cdnServiceInfoUpdateCmd)
@@ -1468,11 +1460,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
 		Run:               webhosting.UpdateServiceInfo,
 	}
-	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
-	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
-	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
-	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
-	serviceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
+	common.AddServiceInfoRenewFlags(serviceInfoUpdateCmd)
 	addParameterFileFlags(serviceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(serviceInfoUpdateCmd)
 	serviceInfoCmd.AddCommand(serviceInfoUpdateCmd)
@@ -1583,11 +1571,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
 		Run:               webhosting.UpdateLocalSeoLocationServiceInfo,
 	}
-	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
-	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
-	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
-	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
-	localSeoLocationServiceInfoUpdateCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period in months")
+	common.AddServiceInfoRenewFlags(localSeoLocationServiceInfoUpdateCmd)
 	addParameterFileFlags(localSeoLocationServiceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(localSeoLocationServiceInfoUpdateCmd)
 	localSeoLocationServiceInfoCmd.AddCommand(localSeoLocationServiceInfoUpdateCmd)

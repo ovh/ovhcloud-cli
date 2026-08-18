@@ -6,6 +6,8 @@ package cmd_test
 
 import (
 	"encoding/json"
+	"io"
+	"net/http"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
@@ -62,4 +64,60 @@ func (ms *MockSuite) TestVpsGetCmd(assert, require *td.T) {
 			"longName": "Region OpenStack: os-gra1"
 		}
 	}`))
+}
+
+// registerVpsServiceInfos wires a service whose renewal is currently automatic,
+// and captures whatever the CLI decides to write back.
+func registerVpsServiceInfos(captured *map[string]any) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/vps/fakeVps/serviceInfos",
+		httpmock.NewStringResponder(200, `{
+			"serviceId": 1,
+			"domain": "fakeVps",
+			"renew": {"automatic": true, "deleteAtExpiration": false, "forced": false, "manualPayment": false, "period": 1}
+		}`),
+	)
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/v1/vps/fakeVps/serviceInfos",
+		func(req *http.Request) (*http.Response, error) {
+			body, err := io.ReadAll(req.Body)
+			if err != nil {
+				return nil, err
+			}
+			var sent map[string]any
+			if err := json.Unmarshal(body, &sent); err != nil {
+				return nil, err
+			}
+			*captured = sent
+			return httpmock.NewStringResponse(200, `null`), nil
+		},
+	)
+}
+
+// Editing the renewal period used to send every other renewal setting along
+// with it, at its zero value: a service that renewed itself automatically for
+// years stopped doing so, and nothing in the output said it had changed.
+func (ms *MockSuite) TestVpsServiceInfoEditSendsOnlyWhatWasAsked(assert, require *td.T) {
+	var sent map[string]any
+	registerVpsServiceInfos(&sent)
+
+	_, err := cmd.Execute("vps", "service-info", "edit", "fakeVps", "--renew-period", "12")
+
+	require.CmpNoError(err)
+	renew, _ := sent["renew"].(map[string]any)
+	require.NotNil(renew, "the renewal block must be written")
+	assert.Cmp(renew["period"], float64(12), "the period the operator asked for")
+	assert.Cmp(renew["automatic"], true, "automatic renewal must survive untouched")
+}
+
+// The flag being absent and the flag being set to false are different
+// intentions, and pflag can tell them apart: an explicit false must be sent.
+func (ms *MockSuite) TestVpsServiceInfoEditSendsAnExplicitFalse(assert, require *td.T) {
+	var sent map[string]any
+	registerVpsServiceInfos(&sent)
+
+	_, err := cmd.Execute("vps", "service-info", "edit", "fakeVps", "--renew-automatic=false")
+
+	require.CmpNoError(err)
+	renew, _ := sent["renew"].(map[string]any)
+	require.NotNil(renew)
+	assert.Cmp(renew["automatic"], false, "the operator asked for it, so it is sent")
 }
