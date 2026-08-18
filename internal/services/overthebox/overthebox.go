@@ -42,7 +42,7 @@ func EditOverTheBox(cmd *cobra.Command, args []string) {
 		cmd,
 		"/overTheBox/{serviceName}",
 		fmt.Sprintf("/v1/overTheBox/%s", url.PathEscape(args[0])),
-		OverTheBoxSpec,
+		&OverTheBoxSpec,
 		assets.OvertheboxOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

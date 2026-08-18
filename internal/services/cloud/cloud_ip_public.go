@@ -156,7 +156,7 @@ func EditPublicIPFloating(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/publicIp/floating/{id}",
 		fmt.Sprintf("/v2/publicCloud/project/%s/publicIp/floating/%s", projectID, url.PathEscape(args[0])),
-		PublicIPFloatingUpdateSpec,
+		&PublicIPFloatingUpdateSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

@@ -133,7 +133,7 @@ func UpdateRecord(cmd *cobra.Command, args []string) {
 		cmd,
 		"/domain/zone/{zoneName}/record/{id}",
 		fmt.Sprintf("/v1/domain/zone/%s/record/%s", url.PathEscape(args[0]), url.PathEscape(args[1])),
-		UpdateRecordSpec,
+		&UpdateRecordSpec,
 		assets.DomainOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
