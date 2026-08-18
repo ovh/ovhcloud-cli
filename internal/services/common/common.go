@@ -24,20 +24,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	//go:embed templates/service_info.tmpl
-	ServiceInfoTemplate string
-
-	ServiceInfoSpec struct {
-		Renew struct {
-			Automatic          bool `json:"automatic"`
-			DeleteAtExpiration bool `json:"deleteAtExpiration"`
-			Forced             bool `json:"forced"`
-			ManualPayment      bool `json:"manualPayment"`
-			Period             int  `json:"period"`
-		} `json:"renew"`
-	}
-)
+//go:embed templates/service_info.tmpl
+var ServiceInfoTemplate string
 
 func ManageListRequest(path, idField string, columnsToDisplay, filters []string) {
 	body, err := httpLib.FetchExpandedArray(path, idField)
