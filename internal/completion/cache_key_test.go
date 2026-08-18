@@ -113,3 +113,38 @@ func TestCacheKeyFor_IsSafeAsAFileName(t *testing.T) {
 	_, err := os.Stat(filepath.Join(completionCacheDir(), key))
 	td.CmpNoError(t, err, "the key must be usable as a file name")
 }
+
+// The profile is not the only thing that selects an account: environment
+// variables override it, and in legacy mode there is no profile at all. Two
+// credentials must therefore never share a cache entry.
+func TestCacheKeyFor_IsScopedToTheCredentials(t *testing.T) {
+	origClient := httpLib.Client
+	defer func() { httpLib.Client = origClient }()
+
+	newKey := func(consumerKey string) string {
+		client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", consumerKey)
+		td.Require(t).CmpNoError(err)
+		httpLib.Client = client
+		return cacheKeyFor("/v1/dedicated/server")
+	}
+
+	td.Cmp(t, newKey("consumer_a"), td.Not(newKey("consumer_b")),
+		"two accounts must not share suggestions")
+}
+
+// Regions are separate fleets behind the same profile, and OVH_ENDPOINT is
+// enough to move between them.
+func TestCacheKeyFor_IsScopedToTheRegion(t *testing.T) {
+	origClient := httpLib.Client
+	defer func() { httpLib.Client = origClient }()
+
+	newKey := func(endpoint string) string {
+		client, err := ovh.NewClient(endpoint, "app_key", "app_secret", "consumer_key")
+		td.Require(t).CmpNoError(err)
+		httpLib.Client = client
+		return cacheKeyFor("/v1/dedicated/server")
+	}
+
+	td.Cmp(t, newKey("ovh-eu"), td.Not(newKey("ovh-ca")),
+		"two regions must not share suggestions")
+}
