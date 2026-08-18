@@ -147,7 +147,7 @@ func RebootBaremetal(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if common.ReportDryRun("POST", url) {
+	if common.ReportDryRun(common.Call{Method: "POST", Endpoint: url}) {
 		return
 	}
 
@@ -167,7 +167,14 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if common.ReportDryRun("POST", fmt.Sprintf("/v1/dedicated/server/%s/reboot", url.PathEscape(args[0]))) {
+	// Three calls, not one: the boot is read, written to the server, and only
+	// then is the server rebooted. The write is what outlives the reboot.
+	server := fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(args[0]))
+	if common.ReportDryRun(
+		common.Call{Method: "GET", Endpoint: server + "/boot?bootType=rescue"},
+		common.Call{Method: "PUT", Endpoint: server + "  (bootId of the rescue entry)"},
+		common.Call{Method: "POST", Endpoint: server + "/reboot"},
+	) {
 		return
 	}
 
@@ -511,7 +518,13 @@ func ResetBaremetalOLAAggregation(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if common.ReportDryRun("POST", url) {
+	// One call per interface, so the preview lists them rather than implying a
+	// single request.
+	calls := make([]common.Call, 0, len(BaremetalOLAInterfaces))
+	for _, itf := range BaremetalOLAInterfaces {
+		calls = append(calls, common.Call{Method: "POST", Endpoint: url + "  (virtualNetworkInterface " + itf + ")"})
+	}
+	if common.ReportDryRun(calls...) {
 		return
 	}
 

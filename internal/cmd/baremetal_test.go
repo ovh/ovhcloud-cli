@@ -207,6 +207,51 @@ func (ms *MockSuite) TestBaremetalRebootDryRunSendsNothing(assert, require *td.T
 	assert.Cmp(httpmock.GetTotalCallCount(), 0, "a dry run must send nothing")
 }
 
+// reboot-rescue is three calls, and the middle one — writing the rescue boot to
+// the server — is the change that outlives the reboot. A preview showing the
+// reboot alone would hide exactly what the operator needs to weigh.
+func (ms *MockSuite) TestBaremetalRebootRescueDryRunShowsTheBootChange(assert, require *td.T) {
+	out, err := cmd.Execute("baremetal", "reboot-rescue", "fakeBaremetal", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("GET /v1/dedicated/server/fakeBaremetal/boot?bootType=rescue"))
+	assert.Cmp(out, td.Contains("PUT /v1/dedicated/server/fakeBaremetal"), "the boot write must be announced")
+	assert.Cmp(out, td.Contains("POST /v1/dedicated/server/fakeBaremetal/reboot"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "a dry run must send nothing")
+}
+
+// One call per interface: the preview must list them rather than imply a single
+// request.
+func (ms *MockSuite) TestBaremetalOlaResetDryRunListsEveryInterface(assert, require *td.T) {
+	out, err := cmd.Execute("baremetal", "vni", "ola-reset", "fakeBaremetal",
+		"--interface", "uuid-1", "--interface", "uuid-2", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("uuid-1"))
+	assert.Cmp(out, td.Contains("uuid-2"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "a dry run must send nothing")
+}
+
+// --yes belongs to the command it was typed on. If it survived into the next
+// command of the same process — the WASM build runs several — a confirmation
+// would be skipped that nobody granted.
+func (ms *MockSuite) TestBaremetalYesDoesNotSurviveIntoTheNextCommand(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reboot",
+		httpmock.NewStringResponder(200, `{}`),
+	)
+
+	_, err := cmd.Execute("baremetal", "reboot", "fakeBaremetal", "--yes")
+	require.CmpNoError(err)
+
+	cmd.PostExecute()
+
+	_, err = cmd.Execute("baremetal", "reboot", "fakeBaremetal")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("cancelled"), "the second command must ask again")
+	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reboot"], 1,
+		"only the consented reboot must have happened")
+}
+
 // reboot-rescue leaves the server in rescue until somebody sets the boot back,
 // so it is guarded like the reboot it performs.
 func (ms *MockSuite) TestBaremetalRebootRescueRefusesWithoutConsent(assert, require *td.T) {
