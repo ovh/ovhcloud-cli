@@ -197,10 +197,11 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 	GetBaremetalAuthenticationSecrets(cmd, args)
 }
 
-const (
-	// taskPollInterval and taskPollAttempts bound how long --wait follows a
-	// task. Past that the task is not cancelled: only the waiting stops, which
-	// is what the message has to say.
+// taskPollInterval and taskPollAttempts bound how long --wait follows a task.
+// Past that the task is not cancelled: only the waiting stops, which is what
+// the message has to say. They are variables rather than constants so that the
+// test covering that message does not have to wait fifty minutes for it.
+var (
 	taskPollInterval = 30 * time.Second
 	taskPollAttempts = 100
 )
@@ -236,7 +237,10 @@ func waitForDedicatedServerTask(serviceName string, taskID any) error {
 	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/task/%s", url.PathEscape(serviceName), taskID)
 	followUp := fmt.Sprintf("follow it with: ovhcloud baremetal list-tasks %s", serviceName)
 
-	var lastStatus any
+	var (
+		lastStatus      any
+		lastDescription = fmt.Sprintf("%v", taskID)
+	)
 
 	for retry := 0; retry < taskPollAttempts; retry++ {
 		var task map[string]any
@@ -246,6 +250,7 @@ func waitForDedicatedServerTask(serviceName string, taskID any) error {
 		}
 
 		lastStatus = task["status"]
+		lastDescription = describeTask(taskID, task)
 
 		switch task["status"] {
 		case "done":
@@ -276,9 +281,11 @@ func waitForDedicatedServerTask(serviceName string, taskID any) error {
 		}
 	}
 
-	// The task is still running: only the waiting stopped.
-	return fmt.Errorf("stopped waiting for task %v after %s; it is still running (status=%v), %s",
-		taskID, time.Duration(taskPollAttempts)*taskPollInterval, lastStatus, followUp)
+	// Only the waiting stopped; the task was not cancelled. The status is
+	// quoted as what was last *seen*, not as what is true now: the loop sleeps
+	// one interval before giving up, so it is up to taskPollInterval old.
+	return fmt.Errorf("stopped waiting for task %s after %s; it had not finished (last status seen: %v), %s",
+		lastDescription, time.Duration(taskPollAttempts)*taskPollInterval, lastStatus, followUp)
 }
 
 func BaremetalGetIPMIAccess(_ *cobra.Command, args []string) {
