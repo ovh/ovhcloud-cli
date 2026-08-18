@@ -199,7 +199,7 @@ func EditKeyManagerSecret(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/keyManager/secret/{secretId}",
 		fmt.Sprintf("/v2/publicCloud/project/%s/keyManager/secret/%s", projectID, url.PathEscape(args[0])),
-		KeyManagerSecretEditSpec,
+		&KeyManagerSecretEditSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -404,7 +404,7 @@ func EditKeyManagerContainer(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/keyManager/container/{containerId}",
 		fmt.Sprintf("/v2/publicCloud/project/%s/keyManager/container/%s", projectID, url.PathEscape(args[0])),
-		KeyManagerContainerEditSpec,
+		&KeyManagerContainerEditSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

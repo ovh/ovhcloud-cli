@@ -245,7 +245,7 @@ func EditManagedDatabase(cmd *cobra.Command, args []string) {
 		cmd,
 		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}", url.PathEscape(databaseService["engine"].(string))),
 		endpoint,
-		ManagedDatabaseEditSpec,
+		&ManagedDatabaseEditSpec,
 		assets.CloudOpenapiSchema,
 		networkFields,
 	); err != nil {

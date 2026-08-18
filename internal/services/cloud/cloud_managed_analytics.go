@@ -269,7 +269,7 @@ func EditManagedAnalytics(cmd *cobra.Command, args []string) {
 		cmd,
 		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}", url.PathEscape(analyticsService["engine"].(string))),
 		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
-		ManagedAnalyticsEditSpec,
+		&ManagedAnalyticsEditSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -844,7 +844,7 @@ func EditManagedAnalyticsTopic(cmd *cobra.Command, args []string) {
 		cmd,
 		fmt.Sprintf("/publicCloud/project/{projectId}/managedAnalytics/%s/{serviceId}/topic/{topicId}", engine),
 		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "topic", args[1]),
-		ManagedAnalyticsTopicSpec,
+		&ManagedAnalyticsTopicSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
