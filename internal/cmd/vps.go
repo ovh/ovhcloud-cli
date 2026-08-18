@@ -221,11 +221,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/vps"),
 		Run:               vps.EditVpsServiceInfo,
 	}
-	serviceInfoEditCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
-	serviceInfoEditCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
-	serviceInfoEditCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Forced, "renew-forced", false, "Force renewal")
-	serviceInfoEditCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.ManualPayment, "renew-manual-payment", false, "Enable manual payment for renewal")
-	serviceInfoEditCmd.Flags().IntVar(&common.ServiceInfoSpec.Renew.Period, "renew-period", 0, "Renewal period (in months)")
+	common.AddServiceInfoRenewFlags(serviceInfoEditCmd)
 	addInteractiveEditorFlag(serviceInfoEditCmd)
 	serviceInfoCmd.AddCommand(serviceInfoEditCmd)
 
