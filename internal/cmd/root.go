@@ -40,6 +40,7 @@ var (
 		"init-file",
 		"replace",
 		"output",
+		"raw",
 		"debug",
 		"profile",
 	}
@@ -125,6 +126,9 @@ Examples:
   --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
   --output 'name+","+type' (to extract and concatenate fields in a string)
   --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)`)
+	rootCmd.PersistentFlags().BoolVar(&flags.OutputFormatConfig.Raw, "raw", false, `Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
+Example:
+  --output 'id' --raw   (prints the id without surrounding quotes)`)
 
 	var newVersionMessage atomic.Pointer[string]
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {

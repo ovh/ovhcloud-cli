@@ -37,7 +37,7 @@ var (
 	ExitFunc = os.Exit
 )
 
-func renderCustomFormat(value any, format string) error {
+func renderCustomFormat(value any, format string, raw bool) error {
 	ev, err := gval.Full(filters.AdditionalEvaluators...).NewEvaluable(format)
 	if err != nil {
 		return fmt.Errorf("invalid format given: %w", err)
@@ -52,11 +52,11 @@ func renderCustomFormat(value any, format string) error {
 				return fmt.Errorf("couldn't extract data according to given format: %w", err)
 			}
 
-			outBytes, err := json.Marshal(out)
+			formatted, err := formatCustomValue(out, raw)
 			if err != nil {
 				return fmt.Errorf("error marshalling result: %w", err)
 			}
-			output.Write(outBytes)
+			output.WriteString(formatted)
 			output.WriteString("\n")
 		}
 		ResultString = output.String()
@@ -67,12 +67,12 @@ func renderCustomFormat(value any, format string) error {
 			return fmt.Errorf("couldn't extract data according to given format: %w", err)
 		}
 
-		outBytes, err := json.Marshal(out)
+		formatted, err := formatCustomValue(out, raw)
 		if err != nil {
 			return fmt.Errorf("error marshalling result: %w", err)
 		}
-		ResultString = string(outBytes)
-		fmt.Print(string(outBytes))
+		ResultString = formatted
+		fmt.Print(formatted)
 	}
 
 	return nil
@@ -81,7 +81,7 @@ func renderCustomFormat(value any, format string) error {
 func RenderTable(values []map[string]any, columnsToDisplay []string, outputFormat *OutputFormat) {
 	switch {
 	case outputFormat.CustomFormat() != "":
-		if err := renderCustomFormat(values, outputFormat.CustomFormat()); err != nil {
+		if err := renderCustomFormat(values, outputFormat.CustomFormat(), outputFormat.Raw); err != nil {
 			exitError("error rendering custom format: %s", err)
 		}
 		return
@@ -276,7 +276,7 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 
 	switch {
 	case outputFormat.CustomFormat() != "":
-		if err := renderCustomFormat(value, outputFormat.CustomFormat()); err != nil {
+		if err := renderCustomFormat(value, outputFormat.CustomFormat(), outputFormat.Raw); err != nil {
 			exitError("error rendering custom format: %s", err)
 		}
 		return
@@ -363,7 +363,7 @@ func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
 			exitError("error unmarshalling message: %s", err)
 		}
 
-		if err := renderCustomFormat(m, outputFormat.CustomFormat()); err != nil {
+		if err := renderCustomFormat(m, outputFormat.CustomFormat(), outputFormat.Raw); err != nil {
 			exitError("error rendering custom format: %s", err)
 		}
 
