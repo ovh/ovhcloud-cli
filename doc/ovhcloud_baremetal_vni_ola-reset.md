@@ -9,8 +9,10 @@ ovhcloud baremetal vni ola-reset <service_name> --interface <uuid> --interface <
 ### Options
 
 ```
+      --dry-run                 Print the call that would be made without making it
   -h, --help                    help for ola-reset
       --interface stringArray   Interfaces to group
+  -y, --yes                     Skip the confirmation prompt (required for unattended runs)
 ```
 
 ### Options inherited from parent commands

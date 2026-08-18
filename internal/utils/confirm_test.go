@@ -75,3 +75,37 @@ func TestConfirmByName_RefusesWhenNotInteractive(t *testing.T) {
 
 	td.Cmp(t, ConfirmByName("ns3168421.ip-51-77-12.eu", "this wipes both disks"), false)
 }
+
+// A reboot asks for a yes, not for the server's name: the friction has to match
+// the risk or it gets bypassed by habit.
+func TestConfirmYesNo_AcceptsYes(t *testing.T) {
+	for _, answer := range []string{"y\n", "Y\n", "yes\n", "  YES  \n"} {
+		var confirmed bool
+		withInteractiveInput(t, answer, func() {
+			confirmed = ConfirmYesNo("this reboots the server")
+		})
+		td.Cmp(t, confirmed, true, "answer %q must confirm", answer)
+	}
+}
+
+// Everything else declines, including the empty answer that a hurried Enter
+// produces — the prompt reads [y/N] and must mean it.
+func TestConfirmYesNo_RefusesAnythingElse(t *testing.T) {
+	for _, answer := range []string{"\n", "n\n", "no\n", "ya\n", "sure\n", "yes please\n"} {
+		var confirmed bool
+		withInteractiveInput(t, answer, func() {
+			confirmed = ConfirmYesNo("this reboots the server")
+		})
+		td.Cmp(t, confirmed, false, "answer %q must decline", answer)
+	}
+}
+
+// Non-interactive means a pipeline, and a pipeline that did not say --yes did
+// not consent.
+func TestConfirmYesNo_RefusesWhenNotInteractive(t *testing.T) {
+	origInteractive := confirmInteractive
+	confirmInteractive = func() bool { return false }
+	defer func() { confirmInteractive = origInteractive }()
+
+	td.Cmp(t, ConfirmYesNo("this reboots the server"), false)
+}

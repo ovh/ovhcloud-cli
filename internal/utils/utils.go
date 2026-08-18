@@ -50,6 +50,38 @@ var (
 	}
 )
 
+// ConfirmYesNo asks for a plain yes before an action that interrupts a running
+// service without losing anything. Typing the resource name, as ConfirmByName
+// requires, is the right friction for an irreversible act and the wrong one for
+// a reboot: a guardrail that is tiresome out of proportion to its risk is a
+// guardrail people learn to bypass.
+//
+// Anything other than "y" or "yes" declines, and a non-interactive session
+// declines rather than guessing.
+func ConfirmYesNo(warning string) bool {
+	if !confirmInteractive() {
+		fmt.Fprintf(os.Stderr,
+			"🛑 %s\n   Refusing to continue without a confirmation. Re-run with --yes to confirm, or --dry-run to preview.\n",
+			warning)
+		return false
+	}
+
+	fmt.Fprintf(os.Stderr, "⚠️  %s\n   Continue? [y/N] › ", warning)
+
+	reader := bufio.NewReader(confirmInput)
+	answer, err := reader.ReadString('\n')
+	if err != nil {
+		return false
+	}
+
+	switch strings.ToLower(strings.TrimSpace(answer)) {
+	case "y", "yes":
+		return true
+	default:
+		return false
+	}
+}
+
 func ConfirmByName(expected, warning string) bool {
 	if !confirmInteractive() {
 		fmt.Fprintf(os.Stderr,

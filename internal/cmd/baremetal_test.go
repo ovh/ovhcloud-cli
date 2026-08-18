@@ -166,3 +166,71 @@ func (ms *MockSuite) TestBaremetalReinstallDryRun(assert, require *td.T) {
 	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall"], 0,
 		"no reinstall call must reach the API")
 }
+
+// The point of the guardrail: an unattended run that did not say --yes must not
+// interrupt a production server, and must not reach the API at all.
+func (ms *MockSuite) TestBaremetalRebootRefusesWithoutConsent(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reboot",
+		httpmock.NewStringResponder(200, `{}`),
+	)
+
+	_, err := cmd.Execute("baremetal", "reboot", "fakeBaremetal")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("cancelled"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "nothing must reach the API without a confirmation")
+}
+
+// --yes is how a pipeline states its intent, and it must be enough.
+func (ms *MockSuite) TestBaremetalRebootProceedsWithYes(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reboot",
+		httpmock.NewStringResponder(200, `{}`),
+	)
+
+	_, err := cmd.Execute("baremetal", "reboot", "fakeBaremetal", "--yes")
+
+	require.CmpNoError(err)
+	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reboot"], 1)
+}
+
+// --dry-run shows the call and makes none, so it must never need a confirmation
+// of its own: refusing to describe what it will not do would be absurd.
+func (ms *MockSuite) TestBaremetalRebootDryRunSendsNothing(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reboot",
+		httpmock.NewStringResponder(200, `{}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "reboot", "fakeBaremetal", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("POST /v1/dedicated/server/fakeBaremetal/reboot"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "a dry run must send nothing")
+}
+
+// reboot-rescue leaves the server in rescue until somebody sets the boot back,
+// so it is guarded like the reboot it performs.
+func (ms *MockSuite) TestBaremetalRebootRescueRefusesWithoutConsent(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/boot?bootType=rescue",
+		httpmock.NewStringResponder(200, `[1122]`),
+	)
+
+	_, err := cmd.Execute("baremetal", "reboot-rescue", "fakeBaremetal")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("cancelled"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "not even the boot lookup must happen")
+}
+
+// Resetting an aggregation takes the interfaces down; on a server reached over
+// that link the operator is cutting the branch they sit on.
+func (ms *MockSuite) TestBaremetalOlaResetRefusesWithoutConsent(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/ola/reset",
+		httpmock.NewStringResponder(200, `{}`),
+	)
+
+	_, err := cmd.Execute("baremetal", "vni", "ola-reset", "fakeBaremetal", "--interface", "uuid-1")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("cancelled"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "no interface must be reset without a confirmation")
+}
