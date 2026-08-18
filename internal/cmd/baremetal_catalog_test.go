@@ -110,13 +110,13 @@ func (ms *MockSuite) TestBaremetalCatalogAvailableOnlyDropsTheUnavailable(assert
 
 // A value the API would reject is named here, with the accepted ones, rather
 // than travelling to a 400.
-func (ms *MockSuite) TestBaremetalCatalogRejectsAnUnknownRegion(assert, require *td.T) {
+func (ms *MockSuite) TestBaremetalCatalogRejectsAnUnknownDatacenter(assert, require *td.T) {
 	registerCatalog(assert)
 
-	_, err := cmd.Execute("baremetal", "catalog", "--region", "eu-west-atlantis")
+	_, err := cmd.Execute("baremetal", "catalog", "--datacenter", "atlantis")
 
 	require.CmpError(err)
-	assert.Cmp(err.Error(), td.Contains("eu-west-gra"), "the accepted values are listed")
+	assert.Cmp(err.Error(), td.Contains("gra"), "the accepted values are listed")
 	assert.Cmp(httpmock.GetTotalCallCount(), 0, "and nothing is sent")
 }
 
@@ -193,16 +193,29 @@ func (ms *MockSuite) TestBaremetalCatalogKeepsTheLowStockWarning(assert, require
 	assert.Cmp(out, td.Contains("low stock"), "the grade of the stock survives the rendering")
 }
 
-// --region and --datacenter answer the same question at two granularities.
-// Accepting both and quietly honouring one would report a filter that was
-// never applied.
-func (ms *MockSuite) TestBaremetalCatalogRefusesBothGranularities(assert, require *td.T) {
+// This command once carried a --region flag as well, reading
+// /dedicated/server/region/availabilities. That endpoint answers 200 and
+// returns all 8973 entries with an empty regions[] on every one: it neither
+// honours the filter nor carries the data. The flag could not return a single
+// row, and eleven tests passed anyway because the fixture recorded the
+// datacenter endpoint and the region path was never exercised against the
+// service. So the assertion below is on the surviving location filter, and it
+// is on the wire rather than on the output: a filter is only applied if the
+// API was asked to apply it.
+func (ms *MockSuite) TestBaremetalCatalogSendsTheDatacenterFilter(assert, require *td.T) {
 	registerCatalog(assert)
 
-	_, err := cmd.Execute("baremetal", "catalog", "--region", "eu-west-gra", "--datacenter", "gra")
+	_, err := cmd.Execute("baremetal", "catalog", "--datacenter", "gra")
 
-	require.CmpError(err)
-	assert.Cmp(httpmock.GetTotalCallCount(), 0, "nothing is fetched on a contradictory request")
+	require.CmpNoError(err)
+	var called string
+	for call := range httpmock.GetCallCountInfo() {
+		if indexOf(call, "datacenter/availabilities") >= 0 && indexOf(call, "=~") < 0 {
+			called = call
+		}
+	}
+	require.Not(called, "", "the availabilities endpoint must have been called")
+	assert.Cmp(called, td.Contains("datacenters=gra"), "the datacenter travels as a query parameter")
 }
 
 // --refresh must reach the API even when a fresh entry is sitting in the cache,

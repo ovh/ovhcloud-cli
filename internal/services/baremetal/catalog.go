@@ -33,7 +33,6 @@ var (
 	CatalogSystemStorage string
 	CatalogGPU           string
 	CatalogDatacenters   []string
-	CatalogRegions       []string
 	CatalogCommitment    string
 	CatalogCountry       string
 	CatalogAvailableOnly bool
@@ -42,7 +41,6 @@ var (
 
 const (
 	datacenterAvailabilitiesPath = "/dedicated/server/datacenter/availabilities"
-	regionAvailabilitiesPath     = "/dedicated/server/region/availabilities"
 
 	// The public catalogue is fetched whole — it takes no filter — and weighs
 	// about twelve megabytes for a hundred plans. What is kept here is the
@@ -73,9 +71,6 @@ var (
 	availabilityDatacenters = sync.OnceValues(func() ([]string, error) {
 		return openapi.GetComponentEnum(assets.BaremetalOpenapiSchema, "dedicated.AvailabilityDatacenterEnum")
 	})
-	availabilityRegions = sync.OnceValues(func() ([]string, error) {
-		return openapi.GetParameterEnum(assets.BaremetalOpenapiSchema, regionAvailabilitiesPath, "get", "regions")
-	})
 	catalogCountries = sync.OnceValues(func() ([]string, error) {
 		return openapi.GetParameterEnum(assets.BaremetalOpenapiSchema, "/dedicated/server/availabilities", "get", "country")
 	})
@@ -83,10 +78,6 @@ var (
 
 func CompleteCatalogDatacenter(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return completeEnum(availabilityDatacenters)
-}
-
-func CompleteCatalogRegion(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return completeEnum(availabilityRegions)
 }
 
 func CompleteCatalogCountry(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
@@ -189,9 +180,6 @@ func checkEnumFlags() error {
 	if err := checkEnumValues("datacenter", CatalogDatacenters, availabilityDatacenters); err != nil {
 		return err
 	}
-	if err := checkEnumValues("region", CatalogRegions, availabilityRegions); err != nil {
-		return err
-	}
 	if CatalogCountry != "" {
 		return checkEnumFlag("country", CatalogCountry, catalogCountries)
 	}
@@ -208,7 +196,7 @@ func checkEnumValues(name string, values []string, read func() ([]string, error)
 }
 
 func emptyReason() string {
-	if len(CatalogDatacenters) > 0 || len(CatalogRegions) > 0 || CatalogPlanCode != "" || CatalogServer != "" {
+	if len(CatalogDatacenters) > 0 || CatalogPlanCode != "" || CatalogServer != "" {
 		return "Widen the filters, or drop --available-only if it is set."
 	}
 	return "This is unexpected with no filter set: the catalogue should never be empty."
@@ -228,26 +216,15 @@ type availabilityEntry struct {
 		Datacenter   string `json:"datacenter"`
 		Availability string `json:"availability"`
 	} `json:"datacenters"`
-
-	Regions []struct {
-		Region       string `json:"region"`
-		Availability string `json:"availability"`
-	} `json:"regions"`
 }
 
 // fetchAvailabilities asks the API for what it can filter, rather than
 // downloading four megabytes and sieving them here: one plan code narrows the
 // answer from 8973 entries to a handful.
 func fetchAvailabilities() ([]availabilityEntry, error) {
-	path := datacenterAvailabilitiesPath
 	query := url.Values{}
 
-	if len(CatalogRegions) > 0 {
-		path = regionAvailabilitiesPath
-		for _, region := range CatalogRegions {
-			query.Add("regions", region)
-		}
-	} else if len(CatalogDatacenters) > 0 {
+	if len(CatalogDatacenters) > 0 {
 		query.Set("datacenters", strings.Join(CatalogDatacenters, ","))
 	}
 
@@ -264,7 +241,7 @@ func fetchAvailabilities() ([]availabilityEntry, error) {
 		}
 	}
 
-	endpoint := "/v1" + path
+	endpoint := "/v1" + datacenterAvailabilitiesPath
 	if encoded := query.Encode(); encoded != "" {
 		endpoint += "?" + encoded
 	}
@@ -368,12 +345,9 @@ func buildCatalogRows(offers []availabilityEntry, prices catalogPrices, mode str
 	rows := make([]map[string]any, 0, len(offers))
 
 	for _, offer := range offers {
-		locations := make([][2]string, 0, len(offer.Datacenters)+len(offer.Regions))
+		locations := make([][2]string, 0, len(offer.Datacenters))
 		for _, datacenter := range offer.Datacenters {
 			locations = append(locations, [2]string{datacenter.Datacenter, datacenter.Availability})
-		}
-		for _, region := range offer.Regions {
-			locations = append(locations, [2]string{region.Region, region.Availability})
 		}
 
 		for _, location := range locations {
