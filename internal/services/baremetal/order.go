@@ -224,10 +224,11 @@ func order(planCode string) (*outcome, error) {
 		return nil, fmt.Errorf("the order was refused: %s", err)
 	}
 
-	message := fmt.Sprintf("✅ Order %d placed for %s and paid.", placed.OrderID, offer.ProductName)
+	message := fmt.Sprintf("✅ Order %d placed for %s and paid. Follow it with:\n  ovhcloud order follow %d",
+		placed.OrderID, offer.ProductName, placed.OrderID)
 	if OrderNoPay {
-		message = fmt.Sprintf("✅ Order %d placed for %s and NOT paid. Pay it at %s",
-			placed.OrderID, offer.ProductName, placed.URL)
+		message = fmt.Sprintf("✅ Order %d placed for %s and NOT paid. Pay it with:\n  ovhcloud order pay %d\nor at %s",
+			placed.OrderID, offer.ProductName, placed.OrderID, placed.URL)
 	}
 
 	return &outcome{

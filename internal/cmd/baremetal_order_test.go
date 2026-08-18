@@ -61,8 +61,8 @@ func registerOrder(t *td.T) {
 	httpmock.RegisterResponder("GET", base+"/me",
 		httpmock.NewStringResponder(200, `{"ovhSubsidiary": "FR"}`))
 	httpmock.RegisterResponder("GET", base+"/me/payment/method?default=true",
-		httpmock.NewStringResponder(200, `[14704224]`))
-	httpmock.RegisterResponder("GET", base+"/me/payment/method/14704224",
+		httpmock.NewStringResponder(200, `[900000010]`))
+	httpmock.RegisterResponder("GET", base+"/me/payment/method/900000010",
 		httpmock.NewStringResponder(200, `{"default": true, "status": "VALID", "label": "DeferredAccount"}`))
 	httpmock.RegisterResponder("POST", base+"/order/cart",
 		recordBody("cart", `{"cartId": "`+orderCartID+`"}`))
