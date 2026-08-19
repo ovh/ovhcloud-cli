@@ -75,3 +75,74 @@ func (ms *MockSuite) TestBaremetalRaidProfileListsControllersAndDisks(assert, re
 	assert.Cmp(out, td.Contains("PERC H730P"))
 	assert.Cmp(out, td.Contains("3726GiB"))
 }
+
+// Outside an installation the route answers 404 with a sentence, not a
+// payload. That is the state most servers are in most of the time, and it is
+// an answer: reporting it as a failure would send somebody looking for a
+// broken command.
+func (ms *MockSuite) TestBaremetalInstallStatusTreatsIdleAsAnAnswer(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/install/status",
+		httpmock.NewStringResponder(404,
+			`{"message": "Server is not being installed or reinstalled at the moment"}`))
+
+	out, err := cmd.Execute("baremetal", "install-status", "fakeBaremetal")
+
+	require.CmpNoError(err, "an idle server is not a failed command")
+	assert.Cmp(out, td.Contains("not being installed"))
+}
+
+// A genuine failure stays one: the message match only ever softens the idle
+// case.
+func (ms *MockSuite) TestBaremetalInstallStatusStillReportsRealFailures(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/install/status",
+		httpmock.NewStringResponder(403, `{"message": "This call has not been granted"}`))
+
+	_, err := cmd.Execute("baremetal", "install-status", "fakeBaremetal")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("not been granted"))
+}
+
+// The point of the command is to say which step is running and for how long.
+// A list of steps without either is the same non-answer --wait used to give.
+func (ms *MockSuite) TestBaremetalInstallStatusNamesTheRunningStep(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/install/status",
+		httpmock.NewStringResponder(200, `{
+			"elapsedTime": 754,
+			"progress": [
+				{"comment": "Initialising Installation process", "status": "done"},
+				{"comment": "Installing operating system", "status": "doing"},
+				{"comment": "Rebooting", "status": "todo"}
+			]
+		}`))
+
+	out, err := cmd.Execute("baremetal", "install-status", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("step 2 of 3"), "the position has to be visible")
+	assert.Cmp(out, td.Contains("Installing operating system"))
+	assert.Cmp(out, td.Contains("12m34s"), "754 seconds, not 754")
+	assert.Cmp(out, td.Contains("API reports"),
+		"the figure is the API's: measured shifting origin mid-install")
+	assert.Cmp(out, td.Contains("Rebooting"), "and the steps still to come")
+}
+
+// The error of a failed step is what says why, so it travels with it.
+func (ms *MockSuite) TestBaremetalInstallStatusShowsWhyAStepFailed(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/install/status",
+		httpmock.NewStringResponder(200, `{
+			"elapsedTime": 42,
+			"progress": [
+				{"comment": "Partitioning", "status": "error", "error": "disk 2 is not present"}
+			]
+		}`))
+
+	out, err := cmd.Execute("baremetal", "install-status", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("disk 2 is not present"))
+}

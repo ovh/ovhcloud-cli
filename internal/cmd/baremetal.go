@@ -415,6 +415,18 @@ a server is sitting on the power-off entry.`,
 		Run:               baremetal.GetBaremetalRaidProfile,
 	}))
 
+	// A reinstall runs for tens of minutes and, until now, said nothing while
+	// it did. This reads the same progress `reinstall --wait` follows, for
+	// somebody who started the install in another terminal — or who answered
+	// the confirmation, walked away, and wants to know whether to keep waiting.
+	baremetalCmd.AddCommand(&cobra.Command{
+		Use:               "install-status <service_name>",
+		Short:             "Show how far the running installation of this baremetal has got",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBaremetalInstallStatus,
+	})
+
 	// Commands to manage virtual network interfaces
 	// Private network, seen from the machine. The same work lives under
 	// `ovhcloud vrack`; this is where somebody holding a server looks for it.
