@@ -557,5 +557,202 @@ a server is sitting on the power-off entry.`,
 		Run:               baremetal.BaremetalResetIPMISessions,
 	})
 
+	// Nine backup routes, none of them reachable: the space included with the
+	// server, the access list that guards it, the two passwords and the cloud
+	// backup beside it.
+	baremetalBackupCmd := &cobra.Command{
+		Use:   "backup",
+		Short: "Manage the backup spaces of a dedicated server",
+	}
+	baremetalCmd.AddCommand(baremetalBackupCmd)
+
+	baremetalBackupCmd.AddCommand(&cobra.Command{
+		Use:               "orderable <service_name>",
+		Short:             "Show the backup storage capacities this server accepts",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowOrderableBackupStorage,
+	})
+
+	// Backup FTP
+	baremetalBackupFtpCmd := &cobra.Command{
+		Use:   "ftp",
+		Short: "Manage the Backup FTP space included with the server",
+	}
+	baremetalBackupCmd.AddCommand(baremetalBackupFtpCmd)
+
+	baremetalBackupFtpCmd.AddCommand(&cobra.Command{
+		Use:               "show <service_name>",
+		Short:             "Show the Backup FTP space of this server",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBackupFtp,
+	})
+
+	baremetalBackupFtpCreateCmd := &cobra.Command{
+		Use:               "create <service_name>",
+		Short:             "Create the Backup FTP space included with this server",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.CreateBackupFtp,
+	}
+	baremetalBackupFtpCreateCmd.Flags().BoolVar(&baremetal.BackupWait, "wait", false,
+		"Wait until the space actually exists before exiting")
+	addConfirmationFlags(baremetalBackupFtpCreateCmd, "Print the call that would be made without making it")
+	baremetalBackupFtpCmd.AddCommand(baremetalBackupFtpCreateCmd)
+
+	baremetalBackupFtpDeleteCmd := &cobra.Command{
+		Use:               "delete <service_name>",
+		Short:             "Terminate the Backup FTP space — all data is permanently deleted",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.DeleteBackupFtp,
+	}
+	baremetalBackupFtpDeleteCmd.Flags().BoolVar(&baremetal.BackupWait, "wait", false,
+		"Wait until the space is actually gone before exiting")
+	addConfirmationFlags(baremetalBackupFtpDeleteCmd, "Print the call that would be made without making it")
+	baremetalBackupFtpCmd.AddCommand(baremetalBackupFtpDeleteCmd)
+
+	baremetalBackupFtpPasswordCmd := &cobra.Command{
+		Use:               "password <service_name>",
+		Short:             "Change the Backup FTP password (the new one is emailed)",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ChangeBackupFtpPassword,
+	}
+	addConfirmationFlags(baremetalBackupFtpPasswordCmd, "Print the call that would be made without making it")
+	baremetalBackupFtpCmd.AddCommand(baremetalBackupFtpPasswordCmd)
+
+	baremetalBackupFtpCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "authorizable-blocks <service_name>",
+		Short:             "List the IP blocks that may be allowed on this Backup FTP space",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ListAuthorizableBlocks,
+	}))
+
+	baremetalBackupAclCmd := &cobra.Command{
+		Use:   "acl",
+		Short: "Manage who may reach the Backup FTP space, and how",
+	}
+	baremetalBackupFtpCmd.AddCommand(baremetalBackupAclCmd)
+
+	baremetalBackupAclCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "list <service_name>",
+		Aliases:           []string{"ls"},
+		Short:             "List the access rules of the Backup FTP space",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ListBackupFtpAcl,
+	}))
+
+	baremetalBackupAclCmd.AddCommand(&cobra.Command{
+		Use:               "get <service_name> <ip_block>",
+		Short:             "Show one access rule",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.GetBackupFtpAcl,
+	})
+
+	baremetalBackupAclAddCmd := &cobra.Command{
+		Use:               "add <service_name> <ip_block>",
+		Short:             "Allow an IP block to reach the Backup FTP space",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.AddBackupFtpAcl,
+	}
+	addBackupAclProtocolFlags(baremetalBackupAclAddCmd)
+	addConfirmationFlags(baremetalBackupAclAddCmd, "Print the call that would be made without making it")
+	baremetalBackupAclCmd.AddCommand(baremetalBackupAclAddCmd)
+
+	baremetalBackupAclSetCmd := &cobra.Command{
+		Use:               "set <service_name> <ip_block>",
+		Short:             "Change the protocols an access rule opens",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.SetBackupFtpAcl,
+	}
+	addBackupAclProtocolFlags(baremetalBackupAclSetCmd)
+	addConfirmationFlags(baremetalBackupAclSetCmd, "Print the call that would be made without making it")
+	baremetalBackupAclCmd.AddCommand(baremetalBackupAclSetCmd)
+
+	baremetalBackupAclDeleteCmd := &cobra.Command{
+		Use:               "delete <service_name> <ip_block>",
+		Short:             "Stop an IP block reaching the Backup FTP space",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.DeleteBackupFtpAcl,
+	}
+	addConfirmationFlags(baremetalBackupAclDeleteCmd, "Print the call that would be made without making it")
+	baremetalBackupAclCmd.AddCommand(baremetalBackupAclDeleteCmd)
+
+	// Cloud backup
+	baremetalBackupCloudCmd := &cobra.Command{
+		Use:   "cloud",
+		Short: "Manage the cloud backup containers of the server",
+	}
+	baremetalBackupCmd.AddCommand(baremetalBackupCloudCmd)
+
+	baremetalBackupCloudCmd.AddCommand(&cobra.Command{
+		Use:               "show <service_name>",
+		Short:             "Show the cloud backup containers of this server",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBackupCloud,
+	})
+
+	baremetalBackupCloudCmd.AddCommand(&cobra.Command{
+		Use:               "offer <service_name>",
+		Short:             "Show what a cloud backup would hold for this server",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBackupCloudOffer,
+	})
+
+	baremetalBackupCloudCreateCmd := &cobra.Command{
+		Use:               "create <service_name>",
+		Short:             "Create the cloud backup containers of this server",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.CreateBackupCloud,
+	}
+	baremetalBackupCloudCreateCmd.Flags().StringVar(&baremetal.BackupCloudProjectId, "project-id", "",
+		"Public cloud project to hold the containers")
+	baremetalBackupCloudCreateCmd.Flags().StringVar(&baremetal.BackupCloudProjectDescription, "project-description", "",
+		"Description of the project to create, when none is given")
+	addConfirmationFlags(baremetalBackupCloudCreateCmd, "Print the call that would be made without making it")
+	baremetalBackupCloudCmd.AddCommand(baremetalBackupCloudCreateCmd)
+
+	baremetalBackupCloudDeleteCmd := &cobra.Command{
+		Use:               "delete <service_name>",
+		Short:             "Deactivate the cloud backup — the container data is kept",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.DeleteBackupCloud,
+	}
+	addConfirmationFlags(baremetalBackupCloudDeleteCmd, "Print the call that would be made without making it")
+	baremetalBackupCloudCmd.AddCommand(baremetalBackupCloudDeleteCmd)
+
+	baremetalBackupCloudPasswordCmd := &cobra.Command{
+		Use:               "password <service_name>",
+		Short:             "Reset the four cloud backup passwords",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ChangeBackupCloudPassword,
+	}
+	baremetalBackupCloudPasswordCmd.Flags().BoolVar(&baremetal.RevealBackupPassword, "reveal", false,
+		"Print the new passwords instead of their fingerprints")
+	addConfirmationFlags(baremetalBackupCloudPasswordCmd, "Print the call that would be made without making it")
+	baremetalBackupCloudCmd.AddCommand(baremetalBackupCloudPasswordCmd)
+
 	rootCmd.AddCommand(baremetalCmd)
+}
+
+// addBackupAclProtocolFlags registers the three protocols an access rule can
+// open. They are registered together because the API takes all three and
+// accepts all three false — a rule that allows an IP block to reach nothing.
+func addBackupAclProtocolFlags(cmd *cobra.Command) {
+	cmd.Flags().BoolVar(&baremetal.BackupAclFtp, "ftp", false, "Allow the FTP protocol")
+	cmd.Flags().BoolVar(&baremetal.BackupAclNfs, "nfs", false, "Allow the NFS protocol")
+	cmd.Flags().BoolVar(&baremetal.BackupAclCifs, "cifs", false, "Allow the CIFS (SMB) protocol")
 }

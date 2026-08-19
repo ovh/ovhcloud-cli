@@ -6,15 +6,12 @@ package ip
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/ovh/go-ovh/ovh"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -250,7 +247,7 @@ func SetMitigationProfile(_ *cobra.Command, args []string) {
 		method, endpoint, payload = "PUT", profile, map[string]any{
 			"autoMitigationTimeOut": MitigationTimeout,
 		}
-	case !isNotFound(err):
+	case !common.IsNotFound(err):
 		display.OutputError(&flags.OutputFormatConfig,
 			"failed to read the mitigation profile of %s: %s", target, err)
 		return
@@ -737,13 +734,6 @@ func mitigationDelayWarning(target string, minutes int) string {
 
 	return fmt.Sprintf("Auto-mitigation on %s will stay on for %s after an attack ends.",
 		target, mitigationTimeoutLabel(int64(minutes)))
-}
-
-// isNotFound tells the API saying "this does not exist" apart from the API
-// failing to answer.
-func isNotFound(err error) bool {
-	var apiErr *ovh.APIError
-	return errors.As(err, &apiErr) && apiErr.Code == http.StatusNotFound
 }
 
 func mitigationTimeoutLabel(minutes int64) string {

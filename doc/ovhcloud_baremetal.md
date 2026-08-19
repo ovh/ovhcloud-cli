@@ -30,6 +30,7 @@ Retrieve information and manage your Bare Metal services
 ### SEE ALSO
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
+* [ovhcloud baremetal backup](ovhcloud_baremetal_backup.md)	 - Manage the backup spaces of a dedicated server
 * [ovhcloud baremetal boot](ovhcloud_baremetal_boot.md)	 - Manage boot options for the given baremetal
 * [ovhcloud baremetal catalog](ovhcloud_baremetal_catalog.md)	 - List orderable servers, their availability and their price
 * [ovhcloud baremetal confirm-termination](ovhcloud_baremetal_confirm-termination.md)	 - Confirm the termination of the given baremetal
