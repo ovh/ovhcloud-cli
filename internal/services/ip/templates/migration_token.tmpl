@@ -1,0 +1,9 @@
+🎫 Migration token for {{.ServiceName}}
+=======
+
+| Key         | Value                                |
+| ----------- | ------------------------------------ |
+| Customer    | {{index .Result "customerId"}}       |
+| Token       | {{index .Result "token"}}            |
+
+{{if index .Result "hidden"}}💡 The token is withheld. Print it with --reveal — whoever holds it can claim this IP.{{else}}⚠️  This token is a credential: whoever holds it can claim this IP.{{end}}
