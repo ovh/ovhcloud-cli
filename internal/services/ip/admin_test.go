@@ -91,3 +91,47 @@ func TestEveryLicenceProductWithARouteIsQueried(t *testing.T) {
 		t.Fatalf("the API has eight licence routes, this queries %d", len(licenseProducts))
 	}
 }
+
+// The measurement the note is built on says every IPv4 mask AND every IPv6
+// /128 answers 500. A note attached to IPv4 alone leaves the /128 with a bare
+// 500 — the case the comment names and the code missed.
+func TestDelegationErrorExplainsASingleIPv6Address(t *testing.T) {
+	err := delegationError("2001:db8::1/128", errors.New("Internal server error"))
+	if !strings.Contains(err.Error(), "IPv6 subnets") {
+		t.Fatalf("a /128 is not a subnet and should be told so, got %q", err)
+	}
+	if !strings.Contains(err.Error(), "single IPv6 address") {
+		t.Fatalf("the note should say what a /128 is, got %q", err)
+	}
+}
+
+func TestIPv6SubnetRecognisesWhatTheRouteServes(t *testing.T) {
+	for block, want := range map[string]bool{
+		"2001:db8::/56":    true,
+		"2001:db8::/64":    true,
+		"2001:db8::1/128":  false,
+		"135.125.71.80/32": false,
+		"151.80.69.32/30":  false,
+	} {
+		if got := isIPv6Subnet(block); got != want {
+			t.Errorf("isIPv6Subnet(%q) = %v, want %v", block, got, want)
+		}
+	}
+}
+
+// The preview routes read and the two others write; one prefix cannot describe
+// both. A slicing refused by the API used to report that a read had failed.
+func TestByoipErrorNamesWhatFailed(t *testing.T) {
+	read := byoipError("read the bring-your-own-IP configuration of", "1.2.3.0/24", errors.New("nope"))
+	if !strings.Contains(read.Error(), "read") {
+		t.Fatalf("got %q", read)
+	}
+
+	write := byoipError("slice", "1.2.3.0/24", errors.New("nope"))
+	if strings.Contains(write.Error(), "read") {
+		t.Fatalf("a failed slicing is not a failed read, got %q", write)
+	}
+	if !strings.Contains(write.Error(), "slice") {
+		t.Fatalf("got %q", write)
+	}
+}

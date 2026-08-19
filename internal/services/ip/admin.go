@@ -326,8 +326,20 @@ func ListDelegation(_ *cobra.Command, args []string) {
 }
 
 func GetDelegation(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest(
-		fmt.Sprintf("/v1/ip/%s/delegation", url.PathEscape(args[0])), args[1], "")
+	ipBlock, target := args[0], args[1]
+
+	var delegation map[string]any
+	path := fmt.Sprintf("/v1/ip/%s/delegation/%s",
+		url.PathEscape(ipBlock), url.PathEscape(target))
+	// Not ManageObjectRequest: this route fails the same way as the list, and
+	// going through the generic helper meant the failure lost the one sentence
+	// that explains it.
+	if err := httpLib.Client.Get(path, &delegation); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", delegationError(ipBlock, err))
+		return
+	}
+
+	display.OutputObject(delegation, target, "", &flags.OutputFormatConfig)
 }
 
 // AddDelegation points a reverse delegation at a name server.
@@ -391,12 +403,36 @@ func RemoveDelegation(_ *cobra.Command, args []string) {
 // the scope is the route's documented one and not a rule this CLI should be
 // enforcing on the API's behalf.
 func delegationError(ipBlock string, err error) error {
-	if strings.Contains(ipBlock, ":") {
+	if isIPv6Subnet(ipBlock) {
 		return fmt.Errorf("failed to read the reverse delegation of %s: %w", ipBlock, err)
 	}
 
-	return fmt.Errorf("failed to read the reverse delegation of %s: %w\n   This route covers reverse delegation on IPv6 subnets, and %s is IPv4.",
-		ipBlock, err, ipBlock)
+	return fmt.Errorf("failed to read the reverse delegation of %s: %w\n   This route covers reverse delegation on IPv6 subnets; %s is %s.",
+		ipBlock, err, ipBlock, notASubnet(ipBlock))
+}
+
+// isIPv6Subnet answers whether a block is the kind this route serves.
+//
+// The account measured splits cleanly: the 45 blocks that answered were IPv6
+// /56 and /64, and the 492 that returned HTTP 500 were every IPv4 mask and
+// every IPv6 /128 — a single address, which is not a subnet. The scope is the
+// route's own wording; the masks are how a block is told apart from it.
+func isIPv6Subnet(ipBlock string) bool {
+	if !strings.Contains(ipBlock, ":") {
+		return false
+	}
+
+	_, mask, hasMask := strings.Cut(ipBlock, "/")
+
+	return !hasMask || mask != "128"
+}
+
+func notASubnet(ipBlock string) string {
+	if strings.Contains(ipBlock, ":") {
+		return "a single IPv6 address"
+	}
+
+	return "IPv4"
 }
 
 // ListLicenses answers, in one command, which licences are attached to an IP.
@@ -461,6 +497,9 @@ func GetRipe(_ *cobra.Command, args []string) {
 func SetRipe(_ *cobra.Command, args []string) {
 	ipBlock := args[0]
 
+	// Trimmed before the test, not after: --netname "  " satisfied "a value was
+	// given" and would have published a blank netname to the public registry.
+	RipeNetname, RipeDescription = strings.TrimSpace(RipeNetname), strings.TrimSpace(RipeDescription)
 	if RipeNetname == "" && RipeDescription == "" {
 		display.OutputError(&flags.OutputFormatConfig,
 			"nothing to change; give --netname, --description, or both")
@@ -530,6 +569,15 @@ func GetMigrationToken(_ *cobra.Command, args []string) {
 	var token map[string]any
 	path := fmt.Sprintf("/v1/ip/%s/migrationToken", url.PathEscape(ipBlock))
 	if err := httpLib.Client.Get(path, &token); err != nil {
+		// Only a 404 means there is no token. Saying so after a 403 or a 500
+		// sends the operator to `migration-token create`, which fails for the
+		// same reason the message just hid.
+		if !isNotFound(err) {
+			display.OutputError(&flags.OutputFormatConfig,
+				"failed to read the migration token of %s: %s", ipBlock, err)
+			return
+		}
+
 		display.OutputError(&flags.OutputFormatConfig,
 			"no migration token exists for %s: %s\n   Create one with: ovhcloud ip migration-token create %s --customer-id <customer>",
 			ipBlock, err, ipBlock)
@@ -543,6 +591,7 @@ func GetMigrationToken(_ *cobra.Command, args []string) {
 func CreateMigrationToken(_ *cobra.Command, args []string) {
 	ipBlock := args[0]
 
+	MigrationCustomerId = strings.TrimSpace(MigrationCustomerId)
 	if MigrationCustomerId == "" {
 		display.OutputError(&flags.OutputFormatConfig,
 			"--customer-id is required; it names the account that will be able to claim %s", ipBlock)
@@ -633,7 +682,7 @@ func ListByoipAggregations(_ *cobra.Command, args []string) {
 	var previews []map[string]any
 	path := fmt.Sprintf("/v1/ip/%s/bringYourOwnIp/aggregate", url.PathEscape(ipBlock))
 	if err := httpLib.Client.Get(path, &previews); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", byoipError(ipBlock, err))
+		display.OutputError(&flags.OutputFormatConfig, "%s", byoipError("read the bring-your-own-IP configuration of", ipBlock, err))
 		return
 	}
 
@@ -658,7 +707,7 @@ func ListByoipSlices(_ *cobra.Command, args []string) {
 	var previews []map[string]any
 	path := fmt.Sprintf("/v1/ip/%s/bringYourOwnIp/slice", url.PathEscape(ipBlock))
 	if err := httpLib.Client.Get(path, &previews); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", byoipError(ipBlock, err))
+		display.OutputError(&flags.OutputFormatConfig, "%s", byoipError("read the bring-your-own-IP configuration of", ipBlock, err))
 		return
 	}
 
@@ -680,6 +729,7 @@ func ListByoipSlices(_ *cobra.Command, args []string) {
 func AggregateByoip(_ *cobra.Command, args []string) {
 	ipBlock := args[0]
 
+	ByoipAggregationIp = strings.TrimSpace(ByoipAggregationIp)
 	if ByoipAggregationIp == "" {
 		display.OutputError(&flags.OutputFormatConfig,
 			"--into is required; list the possible parents with: ovhcloud ip byoip aggregations %s", ipBlock)
@@ -700,7 +750,7 @@ func AggregateByoip(_ *cobra.Command, args []string) {
 	var task map[string]any
 	if err := httpLib.Client.Post(endpoint,
 		map[string]string{"aggregationIp": ByoipAggregationIp}, &task); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", byoipError(ipBlock, err))
+		display.OutputError(&flags.OutputFormatConfig, "%s", byoipError("aggregate", ipBlock, err))
 		return
 	}
 
@@ -713,9 +763,12 @@ func AggregateByoip(_ *cobra.Command, args []string) {
 func SliceByoip(_ *cobra.Command, args []string) {
 	ipBlock := args[0]
 
-	if ByoipSlicingSize == 0 {
+	// > 0 rather than != 0: --size -1 satisfied "it was given" and travelled to
+	// the API as a prefix length, through a confirmation offering to slice into
+	// /-1 blocks.
+	if ByoipSlicingSize <= 0 || ByoipSlicingSize > 128 {
 		display.OutputError(&flags.OutputFormatConfig,
-			"--size is required; list the possible sizes with: ovhcloud ip byoip slices %s", ipBlock)
+			"--size must be a prefix length between 1 and 128; list the ones this block accepts with: ovhcloud ip byoip slices %s", ipBlock)
 		return
 	}
 
@@ -733,7 +786,7 @@ func SliceByoip(_ *cobra.Command, args []string) {
 	var task map[string]any
 	if err := httpLib.Client.Post(endpoint,
 		map[string]int{"slicingSize": ByoipSlicingSize}, &task); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", byoipError(ipBlock, err))
+		display.OutputError(&flags.OutputFormatConfig, "%s", byoipError("slice", ipBlock, err))
 		return
 	}
 
@@ -748,6 +801,6 @@ func SliceByoip(_ *cobra.Command, args []string) {
 // Bring you own IP product." — a business answer carried by an HTTP 400, and a
 // better one than anything this CLI could add. It is passed through rather
 // than replaced.
-func byoipError(ipBlock string, err error) error {
-	return fmt.Errorf("failed to read the bring-your-own-IP configuration of %s: %w", ipBlock, err)
+func byoipError(action, ipBlock string, err error) error {
+	return fmt.Errorf("failed to %s %s: %w", action, ipBlock, err)
 }

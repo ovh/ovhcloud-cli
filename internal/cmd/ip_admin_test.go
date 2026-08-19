@@ -184,3 +184,70 @@ func (ms *MockSuite) TestIpChangeOrgPreviewsTheCall(assert, require *td.T) {
 		assert.Cmp(call, td.Not(td.HasPrefix("POST")))
 	}
 }
+
+// --size -1 satisfied "a value was given" and travelled to the API as a prefix
+// length, through a confirmation offering to slice into /-1 blocks.
+func (ms *MockSuite) TestIpByoipSliceRefusesAnImpossiblePrefix(assert, require *td.T) {
+	_, err := cmd.Execute("ip", "byoip", "slice", "192.0.2.0/24", "--size", "-1", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("between 1 and 128"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+// A blank value is not a value: --netname "  " passed the "nothing to change"
+// guard and would have published a blank netname to the public registry.
+func (ms *MockSuite) TestIpRipeSetRefusesABlankChange(assert, require *td.T) {
+	_, err := cmd.Execute("ip", "ripe", "set", "151.80.69.32/30", "--netname", "   ", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("nothing to change"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestIpMigrationTokenCreateRefusesABlankCustomer(assert, require *td.T) {
+	_, err := cmd.Execute("ip", "migration-token", "create", "192.0.2.0/24",
+		"--customer-id", "  ", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("--customer-id"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+// Only a 404 means there is no token. Saying so after a 403 or a 500 sends the
+// operator to `migration-token create`, which fails for the reason the message
+// just hid.
+func (ms *MockSuite) TestIpMigrationTokenGetDoesNotBlameAMissingTokenForEveryFailure(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/ip/192.0.2.0%2F24/migrationToken",
+		httpmock.NewStringResponder(403, `{"class":"Client::Forbidden","message":"This call has not been granted"}`))
+
+	_, err := cmd.Execute("ip", "migration-token", "get", "192.0.2.0/24")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("failed to read the migration token"))
+	assert.Cmp(err.Error(), td.Not(td.Contains("migration-token create")), "the wrong remedy must not be offered")
+}
+
+func (ms *MockSuite) TestIpMigrationTokenGetStillSaysWhenThereIsNone(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/ip/192.0.2.0%2F24/migrationToken",
+		httpmock.NewStringResponder(404, `{"message":"The requested object (migrationToken) does not exist"}`))
+
+	_, err := cmd.Execute("ip", "migration-token", "get", "192.0.2.0/24")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("no migration token exists"))
+	assert.Cmp(err.Error(), td.Contains("migration-token create"))
+}
+
+// The single-object route fails the same way as the list, and going through
+// the generic helper meant the failure lost the sentence that explains it.
+func (ms *MockSuite) TestIpDelegationGetExplainsTheFailureToo(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/ip/192.0.2.0%2F24/delegation/ns1.example.com",
+		httpmock.NewStringResponder(500, `{"class":"Server::InternalServerError","message":"Internal server error"}`))
+
+	_, err := cmd.Execute("ip", "delegation", "get", "192.0.2.0/24", "ns1.example.com")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("IPv6 subnets"))
+}
