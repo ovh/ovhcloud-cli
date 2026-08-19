@@ -1,0 +1,1023 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OVHcloud API specification",
+    "description": "Specification for OVHcloud API",
+    "version": "1.0",
+    "contact": {
+      "name": "OVH",
+      "email": "api@ml.ovh.net"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://eu.api.ovh.com/v2"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "any": {
+        "description": "Can be anything (text, int, bool, json, html, etc.)",
+        "example": "This is a content of any type !"
+      },
+      "dbaas.logs.LogKind": {
+        "type": "object",
+        "description": "Log kind",
+        "properties": {
+          "additionalReturnedFields": {
+            "type": "array",
+            "description": "List of additional log fields managed in this log kind",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the log kind",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Log kind display name",
+            "readOnly": true
+          },
+          "kindId": {
+            "type": "string",
+            "description": "Log kind ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Log kind name",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the log kind",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogSubscription": {
+        "type": "object",
+        "description": "Log subscription",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the subscription",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "kind": {
+            "type": "string",
+            "description": "Log kind name of this subscription",
+            "readOnly": true
+          },
+          "resource": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionResource"
+              }
+            ],
+            "description": "Subscribed resource, where the logs come from",
+            "readOnly": true
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Name of the destination log service",
+            "readOnly": true
+          },
+          "streamId": {
+            "type": "string",
+            "description": "Id of the destination log stream",
+            "readOnly": true
+          },
+          "subscriptionId": {
+            "type": "string",
+            "description": "Subscription ID",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the subscription",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogSubscriptionCreation": {
+        "type": "object",
+        "description": "Log subscription creation payload",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Log kind name to subscribe to"
+          },
+          "streamId": {
+            "type": "string",
+            "description": "Customer log stream ID",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "kind",
+          "streamId"
+        ]
+      },
+      "dbaas.logs.LogSubscriptionResource": {
+        "type": "object",
+        "description": "Log subscription resource",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of subscribed resource",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of subscribed resource",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogSubscriptionResponse": {
+        "type": "object",
+        "description": "Asynchronous operation after subscribing or unsubscribing to a resource logs",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "description": "Identifier of the operation",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Operation owner's service name",
+            "readOnly": true
+          }
+        }
+      },
+      "dbaas.logs.LogUrlCreation": {
+        "type": "object",
+        "description": "Log temporary URL creation payload",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Log kind name"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "dbaas.logs.TemporaryLogsLink": {
+        "type": "object",
+        "description": "Temporary url information",
+        "properties": {
+          "expirationDate": {
+            "type": "string",
+            "description": "Temporary url expiration date",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "description": "Temporary url",
+            "readOnly": true
+          }
+        }
+      },
+      "dedicated.server": {
+        "type": "object",
+        "description": "Dedicated server resource",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Service name of the dedicated server resource",
+            "readOnly": true
+          }
+        }
+      },
+      "dedicated.serverWithIAM": {
+        "type": "object",
+        "description": "Dedicated server resource",
+        "properties": {
+          "iam": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata"
+              }
+            ],
+            "description": "IAM resource metadata",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Service name of the dedicated server resource",
+            "readOnly": true
+          }
+        }
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration (e.g., P1Y2M3DT4H6M9S)",
+        "example": "P1Y2M3DT4H6M9S"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address (e.g., api@ml.ovh.net)",
+        "format": "email",
+        "example": "api@ml.ovh.net"
+      },
+      "iam.ResourceMetadata": {
+        "type": "object",
+        "description": "IAM resource metadata embedded in services models",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Resource display name",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the resource",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.ResourceMetadata.StateEnum"
+              }
+            ],
+            "description": "Resource state",
+            "nullable": true,
+            "readOnly": true
+          },
+          "tags": {
+            "type": "object",
+            "description": "Resource tags. Tags that were internally computed are prefixed with ovh:",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "urn": {
+            "type": "string",
+            "description": "Unique resource name used in policies",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.ResourceMetadata.StateEnum": {
+        "type": "string",
+        "description": "Resource state",
+        "enum": [
+          "EXPIRED",
+          "IN_CREATION",
+          "OK",
+          "SUSPENDED"
+        ]
+      },
+      "iam.resource.TagFilter": {
+        "type": "object",
+        "description": "Resource tag filter",
+        "properties": {
+          "operator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/iam.resource.TagFilter.OperatorEnum"
+              }
+            ],
+            "description": "Operator to use in order to filter on the value (defaults to 'EQ')",
+            "nullable": true,
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to use in order to filter tags",
+            "readOnly": true
+          }
+        }
+      },
+      "iam.resource.TagFilter.OperatorEnum": {
+        "type": "string",
+        "description": "Operator that can be used in order to filter resources tags",
+        "enum": [
+          "EQ",
+          "EXISTS",
+          "ILIKE",
+          "LIKE",
+          "NEQ",
+          "NEXISTS"
+        ]
+      },
+      "internationalPhoneNumber": {
+        "type": "string",
+        "description": "International phone number",
+        "format": "phone-number"
+      },
+      "ip": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipBlock": {
+        "type": "string",
+        "description": "IP (v4 or v6) CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ip-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipInterface": {
+        "type": "string",
+        "description": "IP address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4": {
+        "type": "string",
+        "description": "IPv4 address (e.g., 192.0.2.0)",
+        "format": "ipv4",
+        "example": "192.0.2.0"
+      },
+      "ipv4Block": {
+        "type": "string",
+        "description": "IPv4 CIDR notation (e.g., 192.0.2.0/24)",
+        "format": "ipv4-block",
+        "example": "192.0.2.0/24"
+      },
+      "ipv6": {
+        "type": "string",
+        "description": "IPv6 address (e.g., 2001:41d0:1:1994::1)",
+        "format": "ipv6",
+        "example": "2001:41d0:1:1994::1"
+      },
+      "ipv6Block": {
+        "type": "string",
+        "description": "IPv6 CIDR notation (e.g., 2001:41d0::/128)",
+        "format": "ipv6-block",
+        "example": "2001:41d0::/128"
+      },
+      "macAddress": {
+        "type": "string",
+        "description": "MAC address (e.g., 00:00:5e:00:53:01)",
+        "format": "mac-address",
+        "example": "00:00:5e:00:53:01"
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number",
+        "format": "phone-number"
+      },
+      "time": {
+        "type": "string",
+        "description": "Time (e.g., 15:04:05)",
+        "format": "time",
+        "example": "15:04:05"
+      }
+    },
+    "securitySchemes": {
+      "oAuth2AuthCode": {
+        "type": "oauth2",
+        "description": "Oauth2",
+        "x-client-id": "1bb9c7df371741c0",
+        "x-client-secret": "a5b4de870aca620d10fbf63cd18d205b",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.eu.ovhcloud.com/oauth2/authorize",
+            "tokenUrl": "https://auth.eu.ovhcloud.com/oauth2/token",
+            "scopes": {
+              "account/all": "Manage your account",
+              "all": "Manage your whole account and all your services",
+              "services/all": "Manage your services lifecycle and billing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/dedicated/server": {
+      "get": {
+        "summary": "List dedicated server resources",
+        "description": "Get the list of all my dedicated server resources",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "iamTags",
+            "description": "Filter resources on IAM tags",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/iam.resource.TagFilter"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/dedicated.serverWithIAM"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-developer-hub-navigation": [
+          [
+            "Bare Metal Cloud",
+            "Dedicated Servers"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "dedicatedServer:apiovh:get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "DedicatedServerWithIAM"
+      }
+    },
+    "/dedicated/server/{serviceName}": {
+      "get": {
+        "summary": "Get dedicated server resource",
+        "description": "Get the details of the dedicated server resource",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dedicated.serverWithIAM"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::DedicatedServer": {
+                    "value": {
+                      "class": "Client::NotFound::DedicatedServer",
+                      "message": "Dedicated server resource {{.id}} not found"
+                    }
+                  },
+                  "Client::NotFound::DedicatedServerMultiple": {
+                    "value": {
+                      "class": "Client::NotFound::DedicatedServerMultiple",
+                      "message": "At least one of the dedicated server resource(s) requested was not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-developer-hub-navigation": [
+          [
+            "Bare Metal Cloud",
+            "Dedicated Servers"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "dedicatedServer:apiovh:get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/dedicated/server/{serviceName}/log/kind": {
+      "get": {
+        "summary": "List available log kinds",
+        "description": "Get the list of log kinds available for subscription or live tail on a dedicated server resource",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-developer-hub-navigation": [
+          [
+            "Bare Metal Cloud",
+            "Dedicated Servers"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "dedicatedServer:apiovh:log/kind/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "DbaasLogsLogKind"
+      }
+    },
+    "/dedicated/server/{serviceName}/log/kind/{name}": {
+      "get": {
+        "summary": "Get a log kind",
+        "description": "Get the details of a specific log kind on a dedicated server resource",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogKind"
+                }
+              }
+            }
+          }
+        },
+        "x-developer-hub-navigation": [
+          [
+            "Bare Metal Cloud",
+            "Dedicated Servers"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "dedicatedServer:apiovh:log/kind/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "name"
+      }
+    },
+    "/dedicated/server/{serviceName}/log/subscription": {
+      "get": {
+        "summary": "List log forwarding subscriptions",
+        "description": "List the identifiers of all log forwarding subscriptions of a dedicated server resource",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "description": "Filter on a specific kind",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-developer-hub-navigation": [
+          [
+            "Bare Metal Cloud",
+            "Dedicated Servers"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "dedicatedServer:apiovh:log/subscription/get",
+            "required": true
+          }
+        ],
+        "x-expanded-response": "DbaasLogsLogSubscription"
+      },
+      "post": {
+        "summary": "Create a log forwarding subscription",
+        "description": "Create a persistent forwarding pipeline so that logs of the given kind are continuously written to the customer destination stream.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-developer-hub-navigation": [
+          [
+            "Bare Metal Cloud",
+            "Dedicated Servers"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "dedicatedServer:apiovh:log/subscription",
+            "required": true
+          },
+          {
+            "name": "ldp:apiovh:output/graylog/stream/forwardTo",
+            "description": "Required on the targeted LDP service",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/dedicated/server/{serviceName}/log/subscription/{subscriptionId}": {
+      "delete": {
+        "summary": "Delete a log forwarding subscription",
+        "description": "Tear down the persistent forwarding pipeline of a subscription.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subscriptionId",
+            "description": "Subscription ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogSubscriptionResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-developer-hub-navigation": [
+          [
+            "Bare Metal Cloud",
+            "Dedicated Servers"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "dedicatedServer:apiovh:log/subscription/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a log forwarding subscription",
+        "description": "Get the details of a specific log forwarding subscription of a dedicated server resource",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subscriptionId",
+            "description": "Subscription ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.LogSubscription"
+                }
+              }
+            }
+          }
+        },
+        "x-developer-hub-navigation": [
+          [
+            "Bare Metal Cloud",
+            "Dedicated Servers"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "dedicatedServer:apiovh:log/subscription/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "subscriptionId"
+      }
+    },
+    "/dedicated/server/{serviceName}/log/url": {
+      "post": {
+        "summary": "Generate a live tail URL",
+        "description": "Generate an ephemeral signed URL granting read-only real-time access to the dedicated server resource logs of the given kind. No persistent infrastructure is created.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "serviceName",
+            "description": "Service name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dbaas.logs.LogUrlCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dbaas.logs.TemporaryLogsLink"
+                }
+              }
+            }
+          }
+        },
+        "x-developer-hub-navigation": [
+          [
+            "Bare Metal Cloud",
+            "Dedicated Servers"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "dedicatedServer:apiovh:log/url",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}
