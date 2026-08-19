@@ -6,12 +6,15 @@ package ip
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/ovh/go-ovh/ovh"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -238,16 +241,22 @@ func SetMitigationProfile(_ *cobra.Command, args []string) {
 		"autoMitigationTimeOut": MitigationTimeout,
 	}
 
+	// A 404 is the only answer that means "no profile yet". Treating every
+	// failure as one sent a create where an update was due, and made --dry-run
+	// name the wrong verb — the one thing that preview exists to get right.
 	var existing map[string]any
-	if err := httpLib.Client.Get(profile, &existing); err == nil {
+	switch err := httpLib.Client.Get(profile, &existing); {
+	case err == nil:
 		method, endpoint, payload = "PUT", profile, map[string]any{
 			"autoMitigationTimeOut": MitigationTimeout,
 		}
+	case !isNotFound(err):
+		display.OutputError(&flags.OutputFormatConfig,
+			"failed to read the mitigation profile of %s: %s", target, err)
+		return
 	}
 
-	if !common.ConfirmAction(common.Disruptive, target, fmt.Sprintf(
-		"Auto-mitigation will stay on for %s after an attack on %s.",
-		mitigationTimeoutLabel(int64(MitigationTimeout)), target)) {
+	if !common.ConfirmAction(common.Disruptive, target, mitigationDelayWarning(target, MitigationTimeout)) {
 		display.OutputError(&flags.OutputFormatConfig, "change on %s cancelled", target)
 		return
 	}
@@ -271,8 +280,7 @@ func SetMitigationProfile(_ *cobra.Command, args []string) {
 
 	display.OutputInfo(&flags.OutputFormatConfig,
 		map[string]any{"ip": target, "autoMitigationTimeOut": MitigationTimeout},
-		"✅ Auto-mitigation on %s now stays on for %s after an attack.",
-		target, mitigationTimeoutLabel(int64(MitigationTimeout)))
+		"✅ %s", mitigationDelayWarning(target, MitigationTimeout))
 }
 
 // DeleteMitigationProfile drops an auto-mitigation profile.
@@ -519,6 +527,21 @@ func AddGameRule(_ *cobra.Command, args []string) {
 func DeleteGameRule(_ *cobra.Command, args []string) {
 	ipBlock, target, id := args[0], args[1], args[2]
 
+	// Removing the last rule while firewall mode is on drops all UDP traffic,
+	// exactly as turning firewall mode on with no rule does. The guard on the
+	// other path would have been decorative without this one: the same outcome
+	// is one rule deletion away, and this is the command an operator runs
+	// while tidying up rather than while changing protection.
+	if blackhole, err := deletingLastRuleWouldBlackhole(ipBlock, target); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	} else if blackhole {
+		display.OutputError(&flags.OutputFormatConfig,
+			"rule %s is the last one on %s and its firewall mode is on, so deleting it would drop every UDP packet sent to the address.\n   Turn firewall mode off first with: ovhcloud ip game edit %s %s --firewall-mode=false",
+			id, target, ipBlock, target)
+		return
+	}
+
 	if !common.ConfirmAction(common.Disruptive, target, fmt.Sprintf(
 		"Deleting rule %s changes what the anti-DDoS filter of %s lets through.", id, target)) {
 		display.OutputError(&flags.OutputFormatConfig, "deletion of rule %s cancelled", id)
@@ -539,6 +562,26 @@ func DeleteGameRule(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig,
 		map[string]any{"ip": target, "rule": id},
 		"⚡️ Rule %s is being deleted from %s.", id, target)
+}
+
+// deletingLastRuleWouldBlackhole answers whether this deletion leaves an
+// address with firewall mode on and nothing to match.
+func deletingLastRuleWouldBlackhole(ipBlock, target string) (bool, error) {
+	config, err := gameConfig(ipBlock, target)
+	if err != nil {
+		return false, err
+	}
+
+	if !boolField(config, "firewallModeEnabled") {
+		return false, nil
+	}
+
+	rules, err := gameRuleIDs(ipBlock, target)
+	if err != nil {
+		return false, err
+	}
+
+	return len(rules) <= 1, nil
 }
 
 // gameConfig reads the game anti-DDoS configuration of an address.
@@ -682,6 +725,25 @@ func gameFirewallWarning(target string, enabling bool, rules int) string {
 // address carrying this many rules drops all of its UDP traffic.
 func firewallModeWouldBlackhole(enabling bool, rules int) bool {
 	return enabling && rules == 0
+}
+
+// mitigationDelayWarning says what the delay does, including for the value the
+// API spells 0. "stays on for no delay" named the setting and described no
+// behaviour, which is the one thing a confirmation prompt has to do.
+func mitigationDelayWarning(target string, minutes int) string {
+	if minutes <= 0 {
+		return fmt.Sprintf("Auto-mitigation on %s will stop as soon as an attack ends, with no delay.", target)
+	}
+
+	return fmt.Sprintf("Auto-mitigation on %s will stay on for %s after an attack ends.",
+		target, mitigationTimeoutLabel(int64(minutes)))
+}
+
+// isNotFound tells the API saying "this does not exist" apart from the API
+// failing to answer.
+func isNotFound(err error) bool {
+	var apiErr *ovh.APIError
+	return errors.As(err, &apiErr) && apiErr.Code == http.StatusNotFound
 }
 
 func mitigationTimeoutLabel(minutes int64) string {

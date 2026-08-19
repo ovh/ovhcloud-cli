@@ -20,6 +20,7 @@ import (
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/openapi"
 	"github.com/spf13/cobra"
 )
@@ -77,11 +78,11 @@ var (
 )
 
 func CompleteCatalogDatacenter(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return completeEnum(availabilityDatacenters)
+	return common.CompleteEnum(availabilityDatacenters)
 }
 
 func CompleteCatalogCountry(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return completeEnum(catalogCountries)
+	return common.CompleteEnum(catalogCountries)
 }
 
 func CompleteCatalogCommitment(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
@@ -138,7 +139,7 @@ func GetBaremetalCatalog(_ *cobra.Command, _ []string) {
 		// Checked like an operator-supplied value, because it goes on to name a
 		// file in the cache directory. It arrives from the API rather than from
 		// a keyboard, which makes it trusted by habit rather than by argument.
-		if err := checkEnumFlag("country", resolved, catalogCountries); err != nil {
+		if err := common.CheckEnumFlag("country", resolved, catalogCountries); err != nil {
 			display.OutputError(&flags.OutputFormatConfig,
 				"this account reports an unknown subsidiary: %s", err)
 			return
@@ -191,14 +192,14 @@ func checkEnumFlags() error {
 		return err
 	}
 	if CatalogCountry != "" {
-		return checkEnumFlag("country", CatalogCountry, catalogCountries)
+		return common.CheckEnumFlag("country", CatalogCountry, catalogCountries)
 	}
 	return nil
 }
 
 func checkEnumValues(name string, values []string, read func() ([]string, error)) error {
 	for _, value := range values {
-		if err := checkEnumFlag(name, value, read); err != nil {
+		if err := common.CheckEnumFlag(name, value, read); err != nil {
 			return err
 		}
 	}

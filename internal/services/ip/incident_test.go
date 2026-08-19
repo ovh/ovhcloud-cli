@@ -38,7 +38,7 @@ func TestBlockNoteSaysWhenTheReleaseIsAlreadyPossible(t *testing.T) {
 }
 
 func TestChooseMechanismRefusesWhenNothingHoldsTheAddress(t *testing.T) {
-	_, _, err := chooseMechanism("1.2.3.0/24", "1.2.3.4", nil)
+	_, _, _, err := chooseMechanism("1.2.3.0/24", "1.2.3.4", nil)
 	if err == nil {
 		t.Fatal("releasing an address nothing blocks must be refused")
 	}
@@ -48,7 +48,7 @@ func TestChooseMechanismRefusesWhenNothingHoldsTheAddress(t *testing.T) {
 }
 
 func TestChooseMechanismCarriesTheCooldownOfTheMatchingEntry(t *testing.T) {
-	mechanism, cooldown, err := chooseMechanism("1.2.3.0/24", "1.2.3.4", []blockedAddress{
+	mechanism, address, cooldown, err := chooseMechanism("1.2.3.0/24", "1.2.3.4", []blockedAddress{
 		{IP: "1.2.3.5", Mechanism: antihackMechanism, Seconds: 999},
 		{IP: "1.2.3.4", Mechanism: arpMechanism, Seconds: 42},
 	})
@@ -61,12 +61,66 @@ func TestChooseMechanismCarriesTheCooldownOfTheMatchingEntry(t *testing.T) {
 	if cooldown != 42 {
 		t.Fatalf("expected the cooldown of the matching entry, got %d", cooldown)
 	}
+	if address != "1.2.3.4" {
+		t.Fatalf("the release must be built on the address the API lists, got %q", address)
+	}
+}
+
+// The spam `time` field is the length of the block, not a wait before the
+// release is accepted. Reading it as a cooldown made the command that finds the
+// mechanism itself refuse a release that --reason spam performed unchanged.
+func TestSpamSentenceIsNotAReleaseCooldown(t *testing.T) {
+	_, _, cooldown, err := chooseMechanism("1.2.3.0/24", "1.2.3.4", []blockedAddress{
+		{IP: "1.2.3.4", Mechanism: spamMechanism, Seconds: 86400},
+	})
+	if err != nil {
+		t.Fatalf("unexpected refusal: %s", err)
+	}
+	if cooldown != 0 {
+		t.Fatalf("a spam block has no release cooldown, got %d", cooldown)
+	}
+
+	_, _, cooldown, err = chooseMechanism("1.2.3.0/24", "1.2.3.4", []blockedAddress{
+		{IP: "1.2.3.4", Mechanism: antihackMechanism, Seconds: 86400},
+	})
+	if err != nil {
+		t.Fatalf("unexpected refusal: %s", err)
+	}
+	if cooldown != 86400 {
+		t.Fatalf("an anti-hack block does have one, got %d", cooldown)
+	}
+}
+
+// The API's spelling of an address is what the release is built on: the lookup
+// ignores case, the URL must not.
+func TestChooseMechanismAnswersTheApiSpellingOfTheAddress(t *testing.T) {
+	_, address, _, err := chooseMechanism("2001:db8::/64", "2001:DB8::1", []blockedAddress{
+		{IP: "2001:db8::1", Mechanism: arpMechanism},
+	})
+	if err != nil {
+		t.Fatalf("unexpected refusal: %s", err)
+	}
+	if address != "2001:db8::1" {
+		t.Fatalf("expected the API spelling, got %q", address)
+	}
+}
+
+// --reason accepts any case and must not carry it downstream: the value ends up
+// both in a path segment and in the comparison that exempts spam.
+func TestCanonicalMechanismAnswersTheApiSpelling(t *testing.T) {
+	mechanism, known := canonicalMechanism("SPAM")
+	if !known || mechanism != spamMechanism {
+		t.Fatalf("got %q, known=%v", mechanism, known)
+	}
+	if _, known := canonicalMechanism("ddos"); known {
+		t.Fatal("ddos is not one of the three mechanisms")
+	}
 }
 
 // An address held by two mechanisms is released twice, once per mechanism.
 // Picking one silently would report a success while the traffic stayed blocked.
 func TestChooseMechanismRefusesToPickWhenSeveralHold(t *testing.T) {
-	_, _, err := chooseMechanism("1.2.3.0/24", "1.2.3.4", []blockedAddress{
+	_, _, _, err := chooseMechanism("1.2.3.0/24", "1.2.3.4", []blockedAddress{
 		{IP: "1.2.3.4", Mechanism: antihackMechanism},
 		{IP: "1.2.3.4", Mechanism: spamMechanism},
 	})
