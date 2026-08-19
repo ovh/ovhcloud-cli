@@ -29,7 +29,15 @@ func IsInputFromPipe() bool {
 		return false
 	}
 
-	fileInfo, _ := os.Stdin.Stat()
+	// A closed or otherwise unstatable stdin returns a nil FileInfo, and every
+	// guarded command asks this before it may prompt: dereferencing it crashed
+	// the command instead of letting it decline. Treated as "not a terminal",
+	// which is the safe reading — an input nobody can describe is not one an
+	// operator is typing into.
+	fileInfo, err := os.Stdin.Stat()
+	if err != nil {
+		return true
+	}
 	return fileInfo.Mode()&os.ModeCharDevice == 0
 }
 

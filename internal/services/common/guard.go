@@ -59,6 +59,15 @@ func ConfirmAction(severity Severity, resource, warning string) bool {
 type Call struct {
 	Method   string
 	Endpoint string
+
+	// Detail says what the request carries, when the path alone does not.
+	//
+	// It is a separate field because Endpoint is read by machines as well as
+	// people: callers used to append prose to the path, which made --dry-run
+	// -o json report "/dedicated/server/x  (bootId of the rescue entry)" as an
+	// endpoint. A string that is not a path has no business in a field named
+	// after one.
+	Detail string
 }
 
 // ReportDryRun prints every call a command would have made, and reports true so
@@ -80,8 +89,14 @@ func ReportDryRun(calls ...Call) bool {
 	details := make([]map[string]any, 0, len(calls))
 	message := "🔍 Dry run: nothing was sent. This would have been called:"
 	for _, c := range calls {
-		details = append(details, map[string]any{"method": c.Method, "endpoint": c.Endpoint})
-		message += fmt.Sprintf("\n  %s %s", c.Method, c.Endpoint)
+		detail := map[string]any{"method": c.Method, "endpoint": c.Endpoint}
+		line := fmt.Sprintf("\n  %s %s", c.Method, c.Endpoint)
+		if c.Detail != "" {
+			detail["detail"] = c.Detail
+			line += "  (" + c.Detail + ")"
+		}
+		details = append(details, detail)
+		message += line
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, map[string]any{"calls": details}, "%s", message)

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/maxatome/go-testdeep/td"
+	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 )
 
@@ -51,4 +52,26 @@ func TestReportDryRun_IsInertWithoutTheFlag(t *testing.T) {
 	flags.DryRun = false
 
 	td.Cmp(t, ReportDryRun(Call{Method: "POST", Endpoint: "/v1/whatever"}), false)
+}
+
+// --dry-run is read by machines too. Callers used to append prose to Endpoint,
+// so `-o json` reported "/dedicated/server/x  (bootId of the rescue entry)" in
+// a field named after a path — a value no script can use and no reader can
+// trust.
+func TestReportDryRun_KeepsTheEndpointAPath(t *testing.T) {
+	assert := td.Assert(t)
+	origDryRun := flags.DryRun
+	flags.DryRun = true
+	defer func() { flags.DryRun = origDryRun }()
+
+	stopped := ReportDryRun(Call{
+		Method:   "PUT",
+		Endpoint: "/v1/dedicated/server/ns1.example.net",
+		Detail:   "bootId of the rescue entry",
+	})
+
+	assert.True(stopped)
+	assert.Contains(display.ResultString, "/v1/dedicated/server/ns1.example.net")
+	assert.Contains(display.ResultString, "bootId of the rescue entry",
+		"the detail is still shown, next to the path rather than inside it")
 }
