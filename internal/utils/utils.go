@@ -45,10 +45,17 @@ func IsInputFromPipe() bool {
 // disk, and a guard nobody executes is a guard nobody has checked.
 var (
 	confirmInput       io.Reader = os.Stdin
-	confirmInteractive           = func() bool {
-		return !IsInputFromPipe() && term.IsTerminal(os.Stdin.Fd())
-	}
+	confirmInteractive           = IsInteractiveTerminal
 )
+
+// IsInteractiveTerminal reports whether there is somebody at a keyboard.
+//
+// Everything that asks a question has to agree on the answer, so there is one
+// definition of it rather than one per caller: a confirmation that refuses and
+// a picker that crashes were two readings of the same situation.
+func IsInteractiveTerminal() bool {
+	return !IsInputFromPipe() && term.IsTerminal(os.Stdin.Fd())
+}
 
 // ConfirmYesNo asks for a plain yes before an action that interrupts a running
 // service without losing anything. Typing the resource name, as ConfirmByName
