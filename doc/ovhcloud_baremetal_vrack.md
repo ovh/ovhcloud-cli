@@ -1,6 +1,6 @@
-## ovhcloud vrack
+## ovhcloud baremetal vrack
 
-Retrieve information and manage your vRack services
+Attach the given baremetal to a vRack, or detach it
 
 ### Options
 
@@ -29,10 +29,8 @@ Retrieve information and manage your vRack services
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud vrack attach](ovhcloud_vrack_attach.md)	 - Attach a dedicated server to the given vRack
-* [ovhcloud vrack detach](ovhcloud_vrack_detach.md)	 - Detach a dedicated server from the given vRack
-* [ovhcloud vrack edit](ovhcloud_vrack_edit.md)	 - Edit the given vRack
-* [ovhcloud vrack get](ovhcloud_vrack_get.md)	 - Retrieve information of a specific vRack
-* [ovhcloud vrack list](ovhcloud_vrack_list.md)	 - List your vRackservices
+* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
+* [ovhcloud baremetal vrack attach](ovhcloud_baremetal_vrack_attach.md)	 - Attach the given baremetal to a vRack
+* [ovhcloud baremetal vrack detach](ovhcloud_baremetal_vrack_detach.md)	 - Detach the given baremetal from its vRack
+* [ovhcloud baremetal vrack show](ovhcloud_baremetal_vrack_show.md)	 - Show the vRack the given baremetal is in
 
