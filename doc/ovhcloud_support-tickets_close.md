@@ -1,11 +1,17 @@
-## ovhcloud support-tickets
+## ovhcloud support-tickets close
 
-Retrieve information and manage your support tickets
+Close a support ticket
+
+```
+ovhcloud support-tickets close <ticket_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for support-tickets
+      --dry-run   Print the call that would be made without making it
+  -h, --help      help for close
+  -y, --yes       Skip the confirmation prompt (required for unattended runs)
 ```
 
 ### Options inherited from parent commands
@@ -29,13 +35,5 @@ Retrieve information and manage your support tickets
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud support-tickets can-be-scored](ovhcloud_support-tickets_can-be-scored.md)	 - Tell whether a support ticket can be scored
-* [ovhcloud support-tickets close](ovhcloud_support-tickets_close.md)	 - Close a support ticket
-* [ovhcloud support-tickets create](ovhcloud_support-tickets_create.md)	 - Create a new support ticket
-* [ovhcloud support-tickets get](ovhcloud_support-tickets_get.md)	 - Retrieve information of a specific support ticket
-* [ovhcloud support-tickets list](ovhcloud_support-tickets_list.md)	 - List your support tickets
-* [ovhcloud support-tickets messages](ovhcloud_support-tickets_messages.md)	 - List messages for a support ticket
-* [ovhcloud support-tickets reopen](ovhcloud_support-tickets_reopen.md)	 - Reopen a closed support ticket
-* [ovhcloud support-tickets reply](ovhcloud_support-tickets_reply.md)	 - Reply to a support ticket
+* [ovhcloud support-tickets](ovhcloud_support-tickets.md)	 - Retrieve information and manage your support tickets
 
