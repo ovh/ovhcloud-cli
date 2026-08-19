@@ -11,6 +11,7 @@ var (
 	CloudV2OpenapiSchema                         []byte
 	MeOpenapiSchema                              []byte
 	BaremetalOpenapiSchema                       []byte
+	BaremetalV2OpenapiSchema                     []byte
 	DedicatedcephOpenapiSchema                   []byte
 	DedicatednashaOpenapiSchema                  []byte
 	DomainOpenapiSchema                          []byte
