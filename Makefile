@@ -56,6 +56,7 @@ define fetch-schema
 	curl -fsS "$(1)" -o "$$raw" && \
 	jq -e '(.openapi | type) == "string" and (.paths | length) > 0' "$$raw" > /dev/null && \
 	jq 'del(.paths[] | .[]["x-code-samples"])' "$$raw" > "$$out" && \
+	chmod 644 "$$out" && \
 	mv "$$out" "$(SCHEMAS_DIR)/$(2).json" && \
 	echo "installed $(SCHEMAS_DIR)/$(2).json ($$(jq '.paths | length' "$(SCHEMAS_DIR)/$(2).json") paths)"
 endef
