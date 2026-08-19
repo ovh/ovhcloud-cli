@@ -3436,7 +3436,7 @@ func ConfirmTermination(cmd *cobra.Command, args []string) {
 // only generic escape hatch, filed under a product it had nothing to do with.
 // `ovhcloud api call` is that escape hatch, named for what it does.
 func CallWebHostingAPI(cmd *cobra.Command, args []string) {
-	apicall.Call(cmd, args)
+	apicall.CallWrappingResult(cmd, args)
 }
 
 var errNothingToEdit = errors.New("nothing to edit")
