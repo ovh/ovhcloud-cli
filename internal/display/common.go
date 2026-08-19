@@ -18,8 +18,13 @@ type OutputFormat struct {
 func (o *OutputFormat) IsJson() bool        { return o.Output == "json" }
 func (o *OutputFormat) IsYaml() bool        { return o.Output == "yaml" }
 func (o *OutputFormat) IsInteractive() bool { return o.Output == "interactive" }
+
+// IsPlain reports whether the caller asked for borderless, uncoloured
+// columns, the shape text tools such as awk and cut can consume.
+func (o *OutputFormat) IsPlain() bool { return o.Output == "plain" }
+
 func (o *OutputFormat) CustomFormat() string {
-	if o.Output != "" && !o.IsJson() && !o.IsYaml() && !o.IsInteractive() {
+	if o.Output != "" && !o.IsJson() && !o.IsYaml() && !o.IsInteractive() && !o.IsPlain() {
 		return o.Output
 	}
 	return ""
