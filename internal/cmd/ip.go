@@ -47,6 +47,50 @@ func init() {
 	addInteractiveEditorFlag(ipEditCmd)
 	ipCmd.AddCommand(ipEditCmd)
 
+	// An additional IP is bought to be moved between services; the CLI could
+	// show where each one pointed and move none of them.
+	ipCmd.AddCommand(&cobra.Command{
+		Use:               "destinations <ip_block>",
+		Short:             "List the services this IP can be moved to",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListIpDestinations,
+	})
+
+	ipMoveCmd := &cobra.Command{
+		Use:               "move <ip_block> <service>",
+		Short:             "Route the given IP to another service",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.MoveIp,
+	}
+	ipMoveCmd.Flags().StringVar(&ip.MoveNexthop, "nexthop", "",
+		"Next hop to use, when the destination offers several")
+	ipMoveCmd.Flags().BoolVar(&ip.IPWait, "wait", false,
+		"Wait until the IP is actually routed to the destination before exiting")
+	addConfirmationFlags(ipMoveCmd, "Print the call that would be made without making it")
+	ipCmd.AddCommand(ipMoveCmd)
+
+	ipParkCmd := &cobra.Command{
+		Use:               "park <ip_block>",
+		Short:             "Detach the given IP from the service it currently serves",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ParkIp,
+	}
+	ipParkCmd.Flags().BoolVar(&ip.IPWait, "wait", false,
+		"Wait until the IP is actually parked before exiting")
+	addConfirmationFlags(ipParkCmd, "Print the call that would be made without making it")
+	ipCmd.AddCommand(ipParkCmd)
+
+	ipCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "tasks <ip_block>",
+		Short:             "List the tasks of the given IP",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListIpTasks,
+	}))
+
 	ipReverseCmd := &cobra.Command{
 		Use:   "reverse",
 		Short: "Manage reverses on the given IP",
