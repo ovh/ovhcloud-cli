@@ -1,11 +1,18 @@
-## ovhcloud ip
+## ovhcloud ip park
 
-Retrieve information and manage your IP services
+Detach the given IP from the service it currently serves
+
+```
+ovhcloud ip park <ip_block> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for ip
+      --dry-run   Print the call that would be made without making it
+  -h, --help      help for park
+      --wait      Wait until the IP is actually parked before exiting
+  -y, --yes       Skip the confirmation prompt (required for unattended runs)
 ```
 
 ### Options inherited from parent commands
@@ -29,14 +36,5 @@ Retrieve information and manage your IP services
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud ip destinations](ovhcloud_ip_destinations.md)	 - List the services this IP can be moved to
-* [ovhcloud ip edit](ovhcloud_ip_edit.md)	 - Edit the given IP
-* [ovhcloud ip firewall](ovhcloud_ip_firewall.md)	 - Manage firewall (Edge Firewall) on the given IP
-* [ovhcloud ip get](ovhcloud_ip_get.md)	 - Retrieve information of a specific Ip
-* [ovhcloud ip list](ovhcloud_ip_list.md)	 - List your Ip services
-* [ovhcloud ip move](ovhcloud_ip_move.md)	 - Route the given IP to another service
-* [ovhcloud ip park](ovhcloud_ip_park.md)	 - Detach the given IP from the service it currently serves
-* [ovhcloud ip reverse](ovhcloud_ip_reverse.md)	 - Manage reverses on the given IP
-* [ovhcloud ip tasks](ovhcloud_ip_tasks.md)	 - List the tasks of the given IP
+* [ovhcloud ip](ovhcloud_ip.md)	 - Retrieve information and manage your IP services
 
