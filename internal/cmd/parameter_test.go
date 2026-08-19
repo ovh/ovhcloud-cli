@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/maxatome/go-testdeep/td"
 	"github.com/spf13/cobra"
 )
 
@@ -210,4 +211,44 @@ func TestAllInputFlagsHidden_NoInputFlagsSection(t *testing.T) {
 	if strings.Contains(usage, "Input Flags:") {
 		t.Error("expected no 'Input Flags:' section when all input flags are hidden")
 	}
+}
+
+// --init-file is how somebody writing a script discovers the shape of a request
+// body, and it could not run in a script: it always opened a picker, which
+// needs a terminal, so it failed with "could not open a new TTY" and wrote
+// nothing. Outside a terminal there is nobody to ask, so one example is taken —
+// and which one is taken has to be decided rather than left to a map.
+func TestExampleForUnattendedRunPrefersTheOneThisCLIShips(t *testing.T) {
+	assert := td.Assert(t)
+
+	// "default" is the sample shipped with the command. For a reinstall it is
+	// the only one carrying a storage block, which is the whole reason a script
+	// asks for this file.
+	withDefault := map[string]string{
+		"Example 1 - Simple Linux Installation": `{"operatingSystem": "debian12_64"}`,
+		"Example 4 - BringYourOwnLinux":         `{"operatingSystem": "byolinux_64"}`,
+		"default":                               `{"storage": [{"partitioning": {}}]}`,
+	}
+	assert.Cmp(exampleForUnattendedRun(withDefault), "default")
+}
+
+// examples is a map, so ranging over it picks a different entry each run. A
+// parameter file that changes under a script is worse than one it did not get
+// to choose.
+func TestExampleForUnattendedRunIsStableAcrossRuns(t *testing.T) {
+	assert := td.Assert(t)
+
+	schemaOnly := map[string]string{
+		"Example 3 - Windows": `{"operatingSystem": "win2022"}`,
+		"Example 1 - Linux":   `{"operatingSystem": "debian12_64"}`,
+		"Example 2 - BSD":     `{"operatingSystem": "freebsd13"}`,
+	}
+
+	first := exampleForUnattendedRun(schemaOnly)
+	for range 20 {
+		assert.Cmp(exampleForUnattendedRun(schemaOnly), first)
+	}
+	assert.Cmp(first, "Example 1 - Linux", "and the choice is the sorted first, not an arbitrary one")
+
+	assert.Cmp(exampleForUnattendedRun(nil), "", "no example is not a crash")
 }
