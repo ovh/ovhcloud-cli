@@ -46,7 +46,6 @@ var (
 
 	wasmHiddenCommands = []string{
 		"login",
-		"logout",
 		"config",
 		"upgrade",
 	}
@@ -115,10 +114,11 @@ func initRootCmd() {
 	rootCmd.PersistentFlags().BoolVarP(&flags.Debug, "debug", "d", false, "Activate debug mode (will log all HTTP requests details)")
 	rootCmd.PersistentFlags().BoolVarP(&flags.IgnoreErrors, "ignore-errors", "e", false, "Ignore errors in API calls when it is not fatal to the execution")
 	rootCmd.PersistentFlags().StringVar(&flags.Profile, "profile", "", "Use a specific profile from the configuration file")
-	rootCmd.PersistentFlags().StringVarP(&flags.OutputFormatConfig.Output, "output", "o", "", `Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
+	rootCmd.PersistentFlags().StringVarP(&flags.OutputFormatConfig.Output, "output", "o", "", `Output format: json, yaml, plain, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
 Examples:
   --output json
   --output yaml
+  --output plain
   --output interactive
   --output 'id' (to extract a single field)
   --output 'nested.field.subfield' (to extract a nested field)

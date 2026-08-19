@@ -163,6 +163,11 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		rows = append(rows, row)
 	}
 
+	if outputFormat.IsPlain() {
+		renderPlainTable(columnsTitles, rows)
+		return
+	}
+
 	var (
 		purple = lipgloss.Color("99")
 		gray   = lipgloss.Color("245")
@@ -187,6 +192,47 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		Rows(rows...)
 
 	outputf("%s%s", t, "\n💡 Use option -o json or -o yaml to get the raw output with all information")
+}
+
+// renderPlainTable prints columns padded with spaces, without borders,
+// colours or a trailing hint, so that the output can be piped into cut, awk
+// or column without post-processing.
+func renderPlainTable(headers []string, rows [][]string) {
+	widths := make([]int, len(headers))
+	for i, header := range headers {
+		widths[i] = ansi.StringWidth(strings.ToUpper(header))
+	}
+	for _, row := range rows {
+		for i, cell := range row {
+			if i < len(widths) && ansi.StringWidth(cell) > widths[i] {
+				widths[i] = ansi.StringWidth(cell)
+			}
+		}
+	}
+
+	var out strings.Builder
+	writeRow := func(cells []string, upper bool) {
+		for i, cell := range cells {
+			if upper {
+				cell = strings.ToUpper(cell)
+			}
+			if i == len(cells)-1 {
+				out.WriteString(cell)
+				break
+			}
+			out.WriteString(cell)
+			out.WriteString(strings.Repeat(" ", widths[i]-ansi.StringWidth(cell)+2))
+		}
+		out.WriteString("\n")
+	}
+
+	writeRow(headers, true)
+	for _, row := range rows {
+		writeRow(row, false)
+	}
+
+	ResultString = out.String()
+	fmt.Fprint(os.Stdout, ResultString)
 }
 
 func RenderConfigTable(cfg *ini.File, outputformat *OutputFormat) {
@@ -222,6 +268,11 @@ func RenderConfigTable(cfg *ini.File, outputformat *OutputFormat) {
 			value := ansi.Truncate(key.Value(), maxCellWidth, "…")
 			rows = append(rows, []string{"", key.Name(), value})
 		}
+	}
+
+	if outputformat.IsPlain() {
+		renderPlainTable(columns, rows)
+		return
 	}
 
 	var (
