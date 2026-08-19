@@ -217,3 +217,112 @@ func (ms *MockSuite) TestIpMitigationProfileSetRefusesAnUnacceptedDelay(assert, 
 	assert.Cmp(err.Error(), td.Contains("0, 15, 60, 360, 1560"))
 	assert.Cmp(httpmock.GetTotalCallCount(), 0, "an impossible delay costs no request")
 }
+
+// A spam block has no release cooldown: its `time` is the length of the block.
+// Reading it as a wait made the auto-detect path refuse a release that
+// --reason spam performed unchanged — the table and the release command
+// disagreeing about the same number.
+func (ms *MockSuite) TestIpUnblockDoesNotTreatTheSpamSentenceAsACooldown(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", testBlock+"/antihack", httpmock.NewStringResponder(200, `[]`))
+	httpmock.RegisterResponder("GET", testBlock+"/arp", httpmock.NewStringResponder(200, `[]`))
+	httpmock.RegisterResponder("GET", testBlock+"/spam",
+		httpmock.NewStringResponder(200, `["192.0.2.9"]`))
+	httpmock.RegisterResponder("GET", testBlock+"/spam/192.0.2.9",
+		httpmock.NewStringResponder(200, `{"ipSpamming":"192.0.2.9","state":"blockedForSpam","time":86400}`))
+
+	out, err := cmd.Execute("ip", "unblock", "192.0.2.0/24", "192.0.2.9", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("/spam/192.0.2.9/unblock"))
+}
+
+// --reason must not become the way around the refusal the command exists to
+// give: a 404 on the detail means this mechanism does not hold the address.
+func (ms *MockSuite) TestIpUnblockWithReasonStillRefusesAnAddressItDoesNotHold(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", testBlock+"/arp/192.0.2.7",
+		httpmock.NewStringResponder(404, `{"message":"The requested object (ipBlocked = 192.0.2.7) does not exist"}`))
+
+	_, err := cmd.Execute("ip", "unblock", "192.0.2.0/24", "192.0.2.7", "--reason", "arp", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("not blocked by arp"))
+	for call := range httpmock.GetCallCountInfo() {
+		assert.Cmp(call, td.Not(td.HasPrefix("POST")))
+	}
+}
+
+// A mechanism named in another case reaches the API as a path segment and is
+// compared against the spam exemption; both need the API's own spelling.
+func (ms *MockSuite) TestIpUnblockNormalisesTheReasonBeforeUsingIt(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", testBlock+"/spam/192.0.2.9",
+		httpmock.NewStringResponder(200, `{"ipSpamming":"192.0.2.9","state":"blockedForSpam","time":86400}`))
+
+	out, err := cmd.Execute("ip", "unblock", "192.0.2.0/24", "192.0.2.9",
+		"--reason", "SPAM", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("/spam/192.0.2.9/unblock"))
+	assert.Cmp(out, td.Not(td.Contains("/SPAM/")))
+}
+
+// Removing the last rule while firewall mode is on drops all UDP, exactly as
+// enabling firewall mode with no rule does. A guard on one path only is
+// decorative.
+func (ms *MockSuite) TestIpGameRuleDeleteRefusesToRemoveTheLastRuleUnderFirewallMode(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", testBlock+"/game/192.0.2.7",
+		httpmock.NewStringResponder(200, `{"ipOnGame":"192.0.2.7","firewallModeEnabled":true,"maxRules":30,"supportedProtocols":["arma"]}`))
+	httpmock.RegisterResponder("GET", testBlock+"/game/192.0.2.7/rule",
+		httpmock.NewStringResponder(200, `[10297695]`))
+
+	_, err := cmd.Execute("ip", "game", "rule", "delete", "192.0.2.0/24", "192.0.2.7", "10297695", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("every UDP packet"))
+	assert.Cmp(err.Error(), td.Contains("--firewall-mode=false"))
+	for call := range httpmock.GetCallCountInfo() {
+		assert.Cmp(call, td.Not(td.HasPrefix("DELETE")), "nothing may be deleted for a refused change")
+	}
+}
+
+// The same deletion is fine when firewall mode is off, and when another rule
+// remains.
+func (ms *MockSuite) TestIpGameRuleDeleteAllowsWhatDoesNotBlackhole(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", testBlock+"/game/192.0.2.7",
+		httpmock.NewStringResponder(200, `{"ipOnGame":"192.0.2.7","firewallModeEnabled":false,"maxRules":30}`))
+	httpmock.RegisterResponder("GET", testBlock+"/game/192.0.2.7/rule",
+		httpmock.NewStringResponder(200, `[10297695]`))
+
+	out, err := cmd.Execute("ip", "game", "rule", "delete", "192.0.2.0/24", "192.0.2.7", "10297695", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("DELETE"))
+}
+
+// A failed read is not an absent profile: treating the two alike sent a create
+// where an update was due, and made --dry-run name the wrong verb.
+func (ms *MockSuite) TestIpMitigationProfileSetStopsOnAFailedRead(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", testBlock+"/mitigationProfiles/192.0.2.7",
+		httpmock.NewStringResponder(500, `{"class":"Server::InternalServerError","message":"Internal server error"}`))
+
+	_, err := cmd.Execute("ip", "mitigation-profile", "set", "192.0.2.0/24", "192.0.2.7",
+		"--timeout", "360", "--dry-run")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("failed to read the mitigation profile"))
+}
+
+// 0 is one of the five accepted values and means "no delay". "stays on for no
+// delay" named the setting and described no behaviour.
+func (ms *MockSuite) TestIpMitigationProfileSetDescribesTheZeroDelay(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", testBlock+"/mitigationProfiles/192.0.2.7",
+		httpmock.NewStringResponder(200, `{"ipMitigationProfile":"192.0.2.7","autoMitigationTimeOut":360,"state":"ok"}`))
+	httpmock.RegisterResponder("PUT", testBlock+"/mitigationProfiles/192.0.2.7",
+		httpmock.NewStringResponder(200, `null`))
+
+	out, err := cmd.Execute("ip", "mitigation-profile", "set", "192.0.2.0/24", "192.0.2.7",
+		"--timeout", "0", "--yes")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("as soon as an attack ends"))
+	assert.Cmp(out, td.Not(td.Contains("stay on for no delay")))
+}

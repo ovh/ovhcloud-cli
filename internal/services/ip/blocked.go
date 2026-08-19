@@ -7,12 +7,15 @@ package ip
 import (
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/ovh/go-ovh/ovh"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
@@ -187,7 +190,7 @@ func blockNote(address blockedAddress) string {
 func UnblockIp(_ *cobra.Command, args []string) {
 	ipBlock, target := args[0], args[1]
 
-	mechanism, cooldown, err := mechanismToRelease(ipBlock, target)
+	mechanism, target, cooldown, err := mechanismToRelease(ipBlock, target)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -234,19 +237,33 @@ func UnblockIp(_ *cobra.Command, args []string) {
 // three lists are read, because an operator reading "my address is blocked" has
 // no way to know which of the three did it, and guessing wrong costs a 404 that
 // says the address does not exist.
-func mechanismToRelease(ipBlock, target string) (string, int64, error) {
+func mechanismToRelease(ipBlock, target string) (string, string, int64, error) {
 	if UnblockReason != "" {
-		if !slicesContainString(blockMechanisms, UnblockReason) {
-			return "", 0, fmt.Errorf("unknown reason %q: an address is blocked by %s",
+		// The canonical spelling is what travels on, not what was typed. The
+		// match ignores case so `--reason Spam` is accepted, and everything
+		// downstream compares and builds URLs with the API's own value: a
+		// mechanism carried through as "Spam" would miss the spam exemption
+		// below and reach the API as a path segment it does not know.
+		mechanism, known := canonicalMechanism(UnblockReason)
+		if !known {
+			return "", "", 0, fmt.Errorf("unknown reason %q: an address is blocked by %s",
 				UnblockReason, strings.Join(blockMechanisms, ", "))
 		}
 
-		return UnblockReason, cooldownOf(ipBlock, UnblockReason, target), nil
+		cooldown, blocked, err := cooldownOf(ipBlock, mechanism, target)
+		if err != nil {
+			return "", "", 0, err
+		}
+		if !blocked {
+			return "", "", 0, notBlockedBy(ipBlock, target, mechanism)
+		}
+
+		return mechanism, target, cooldown, nil
 	}
 
 	blocked, err := blockedAddresses(ipBlock)
 	if err != nil {
-		return "", 0, err
+		return "", "", 0, err
 	}
 
 	return chooseMechanism(ipBlock, target, blocked)
@@ -258,7 +275,7 @@ func mechanismToRelease(ipBlock, target string) (string, int64, error) {
 // It is separate from the reading so the three answers it can give — none, one,
 // several — can be exercised without an account that has an address blocked
 // three ways. Nothing on the account measured for this lot was blocked at all.
-func chooseMechanism(ipBlock, target string, blocked []blockedAddress) (string, int64, error) {
+func chooseMechanism(ipBlock, target string, blocked []blockedAddress) (string, string, int64, error) {
 	var holding []blockedAddress
 	for _, address := range blocked {
 		if strings.EqualFold(address.IP, target) {
@@ -268,42 +285,88 @@ func chooseMechanism(ipBlock, target string, blocked []blockedAddress) (string, 
 
 	switch len(holding) {
 	case 0:
-		return "", 0, fmt.Errorf("%s is not blocked by anti-hack, ARP or anti-spam, so there is nothing to release.\n   List what is blocked with: ovhcloud ip blocked %s",
+		return "", "", 0, fmt.Errorf("%s is not blocked by anti-hack, ARP or anti-spam, so there is nothing to release.\n   List what is blocked with: ovhcloud ip blocked %s",
 			target, ipBlock)
 	case 1:
-		return holding[0].Mechanism, holding[0].Seconds, nil
+		// releaseCooldown, not Seconds: on spam that number is the length of
+		// the sentence, not a wait before the release is accepted. Passing it
+		// on as a cooldown made the command that finds the mechanism itself
+		// refuse a release that --reason spam performed without blinking.
+		// holding[0].IP rather than what was typed: the match ignores case so
+		// an IPv6 address written 2001:DB8::1 finds the one the API lists as
+		// 2001:db8::1, and it is that spelling the release has to be built on.
+		return holding[0].Mechanism, holding[0].IP, releaseCooldown(holding[0]), nil
 	default:
 		mechanisms := make([]string, 0, len(holding))
 		for _, address := range holding {
 			mechanisms = append(mechanisms, address.Mechanism)
 		}
-		return "", 0, fmt.Errorf("%s is blocked by %s at once, and each is released separately.\n   Pick one with: --reason %s",
+		return "", "", 0, fmt.Errorf("%s is blocked by %s at once, and each is released separately.\n   Pick one with: --reason %s",
 			target, strings.Join(mechanisms, " and "), mechanisms[0])
 	}
 }
 
-// cooldownOf reads how long is left before a mechanism releases an address.
+// cooldownOf reads how long is left before a mechanism releases an address,
+// and whether that mechanism holds it at all.
 //
-// A read failure answers zero rather than an error on purpose: --reason is the
-// path a script takes, and turning a transient read into a refusal would stop a
-// release the API would have accepted. The API still refuses too early requests
-// on its own; this only improves the message when the read succeeds.
-func cooldownOf(ipBlock, mechanism, target string) int64 {
+// The three answers are kept apart because they lead to three different
+// commands. A 404 means this mechanism does not hold the address, and saying so
+// is the whole point of the command — letting it through would send a request
+// whose refusal reads "The requested object does not exist", the message
+// --reason exists to avoid. Any other failure is transient and must not stop a
+// release the API would have accepted, so it is reported as itself.
+func cooldownOf(ipBlock, mechanism, target string) (int64, bool, error) {
 	var detail map[string]any
 
 	path := fmt.Sprintf("/v1/ip/%s/%s/%s",
 		url.PathEscape(ipBlock), mechanism, url.PathEscape(target))
 	if err := httpLib.Client.Get(path, &detail); err != nil {
+		var apiErr *ovh.APIError
+		if errors.As(err, &apiErr) && apiErr.Code == http.StatusNotFound {
+			return 0, false, nil
+		}
+
+		return 0, false, fmt.Errorf("failed to read the %s block of %s: %w", mechanism, target, err)
+	}
+
+	return releaseCooldown(blockedAddress{
+		Mechanism: mechanism,
+		Seconds:   intField(detail, "time"),
+	}), true, nil
+}
+
+// releaseCooldown answers how long the release has to wait, which is not what
+// the `time` field says on every mechanism.
+//
+// On anti-hack and ARP it is "time remaining before you can request your IP to
+// be unblocked". On spam it is "time while the IP will be blocked" — the
+// sentence itself, which the operator does not wait out before asking. Reading
+// the same number the same way on the three refused a release that the API
+// accepts.
+func releaseCooldown(address blockedAddress) int64 {
+	if address.Mechanism == spamMechanism {
 		return 0
 	}
 
-	if mechanism == spamMechanism {
-		// On spam the field is the length of the sentence, not a cooldown, so
-		// it must not gate the release.
-		return 0
+	return address.Seconds
+}
+
+// canonicalMechanism answers the API's spelling of a mechanism named on the
+// command line, so nothing downstream has to compare case-insensitively.
+func canonicalMechanism(wanted string) (string, bool) {
+	for _, mechanism := range blockMechanisms {
+		if strings.EqualFold(mechanism, wanted) {
+			return mechanism, true
+		}
 	}
 
-	return intField(detail, "time")
+	return "", false
+}
+
+// notBlockedBy refuses a release for a mechanism that does not hold the address.
+func notBlockedBy(ipBlock, target, mechanism string) error {
+	return fmt.Errorf("%s is not blocked by %s, so there is nothing to release.\n   List what is blocked with: ovhcloud ip blocked %s",
+		target, mechanism, ipBlock)
 }
 
 // SpamStats reports what an address sent while the anti-spam system held it.
@@ -499,11 +562,3 @@ func intField(object map[string]any, key string) int64 {
 	return 0
 }
 
-func slicesContainString(haystack []string, needle string) bool {
-	for _, candidate := range haystack {
-		if strings.EqualFold(candidate, needle) {
-			return true
-		}
-	}
-	return false
-}
