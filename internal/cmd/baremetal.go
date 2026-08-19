@@ -557,6 +557,30 @@ a server is sitting on the power-off entry.`,
 		Run:               baremetal.BaremetalResetIPMISessions,
 	})
 
+	// What quietly breaks a dedicated server is spread across five routes and
+	// none of them is where somebody would look. This reads them together.
+	baremetalDoctorCmd := &cobra.Command{
+		Use:   "doctor [service_name...]",
+		Short: "Report what is wrong with a server, or with every server",
+		Long: `Check the things that silently break a dedicated server: a machine left on the
+rescue system, monitoring switched off, hardware intervention refused, a renewal
+that will not happen, work still running, maintenance already planned.
+
+With no argument it checks every server of the account.
+
+The exit code stays 0 when findings are reported, because the command ran and
+answered. Use --strict to make findings fail the command instead, which is what
+a pipeline gating on it wants.`,
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.Doctor,
+	}
+	baremetalDoctorCmd.Flags().IntVar(&baremetal.DoctorExpiryDays, "expiry-days", 30,
+		"Report a server expiring within this many days")
+	baremetalDoctorCmd.Flags().BoolVar(&baremetal.DoctorStrict, "strict", false,
+		"Exit non-zero when anything is reported")
+	baremetalCmd.AddCommand(withFilterFlag(baremetalDoctorCmd))
+
 	// Nine backup routes, none of them reachable: the space included with the
 	// server, the access list that guards it, the two passwords and the cloud
 	// backup beside it.
