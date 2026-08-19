@@ -1,0 +1,15 @@
+🎮 Game anti-DDoS on {{.ServiceName}}
+=======
+
+**{{index .Result "summary"}}**
+
+| Key           | Value                                    |
+| ------------- | ---------------------------------------- |
+| State         | {{index .Result "state"}}                |
+| Firewall mode | {{index .Result "firewallMode"}}         |
+| Rules         | {{index .Result "rules"}}                |
+
+Supported protocols
+{{index .Result "protocols"}}
+
+💡 List the rules with: ovhcloud ip game rule list <ip_block> {{.ServiceName}}
