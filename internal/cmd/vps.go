@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/vps"
 	"github.com/spf13/cobra"
 )
@@ -221,7 +220,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/vps"),
 		Run:               vps.EditVpsServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(serviceInfoEditCmd)
+	addServiceInfoRenewFlags(serviceInfoEditCmd)
 	addInteractiveEditorFlag(serviceInfoEditCmd)
 	serviceInfoCmd.AddCommand(serviceInfoEditCmd)
 
