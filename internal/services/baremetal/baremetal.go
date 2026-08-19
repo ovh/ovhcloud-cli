@@ -172,7 +172,7 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 	server := fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(args[0]))
 	if common.ReportDryRun(
 		common.Call{Method: "GET", Endpoint: server + "/boot?bootType=rescue"},
-		common.Call{Method: "PUT", Endpoint: server + "  (bootId of the rescue entry)"},
+		common.Call{Method: "PUT", Endpoint: server, Detail: "bootId of the rescue entry"},
 		common.Call{Method: "POST", Endpoint: server + "/reboot"},
 	) {
 		return
@@ -522,7 +522,7 @@ func ResetBaremetalOLAAggregation(_ *cobra.Command, args []string) {
 	// single request.
 	calls := make([]common.Call, 0, len(BaremetalOLAInterfaces))
 	for _, itf := range BaremetalOLAInterfaces {
-		calls = append(calls, common.Call{Method: "POST", Endpoint: url + "  (virtualNetworkInterface " + itf + ")"})
+		calls = append(calls, common.Call{Method: "POST", Endpoint: url, Detail: "virtualNetworkInterface " + itf})
 	}
 	if common.ReportDryRun(calls...) {
 		return
