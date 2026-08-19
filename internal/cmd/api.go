@@ -56,6 +56,10 @@ A body for POST and PUT is read from --from-file or written in $EDITOR with
 
 	addParameterFileFlags(apiCallCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(apiCallCmd)
+	// Both together used to be accepted, with the file quietly winning. A
+	// command whose whole promise is to send exactly what it was given must not
+	// choose between two payloads without saying so.
+	markFlagsMutuallyExclusive(apiCallCmd, "from-file", "editor")
 	apiCallCmd.Flags().BoolVar(&apicall.DryRun, "dry-run", false,
 		"Print the request that would be sent, without sending it")
 

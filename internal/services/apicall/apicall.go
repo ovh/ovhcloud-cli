@@ -9,6 +9,7 @@ package apicall
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -45,8 +46,16 @@ func normalizePath(path string) string {
 
 // readBody builds the request payload from --from-file or from the editor.
 // A write with neither is a write with no body, which several endpoints accept.
+//
+// The bytes the operator wrote are kept and forwarded, not decoded and
+// re-encoded. Decoding into `any` turns every JSON number into a float64, whose
+// 53-bit mantissa silently rewrites 9007199254740993 as 9007199254740992 — and
+// this command, which knows nothing about the payload and exists precisely to
+// send what it was handed, has no way to notice. The parse still happens: it is
+// what refuses malformed JSON before anything is signed. Only its output is
+// discarded.
 func readBody() (any, error) {
-	var body any
+	var raw []byte
 
 	switch {
 	case flags.ParametersFile != "":
@@ -54,25 +63,48 @@ func readBody() (any, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read parameters file: %w", err)
 		}
-		if err := json.Unmarshal(content, &body); err != nil {
-			return nil, fmt.Errorf("failed to parse parameters file: %w", err)
+		if !json.Valid(content) {
+			return nil, fmt.Errorf("failed to parse parameters file: %s is not valid JSON", flags.ParametersFile)
 		}
+		raw = content
 
 	case flags.ParametersViaEditor:
 		edited, err := editor.EditValueWithEditor([]byte("{}"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to edit payload: %w", err)
 		}
-		if err := json.Unmarshal(edited, &body); err != nil {
-			return nil, fmt.Errorf("failed to parse edited payload: %w", err)
+		if !json.Valid(edited) {
+			return nil, errors.New("failed to parse edited payload: it is not valid JSON")
 		}
+		raw = edited
 	}
 
-	return body, nil
+	if raw == nil {
+		return nil, nil
+	}
+	return json.RawMessage(raw), nil
 }
 
 // Call runs one signed request against the API and renders the answer.
-func Call(_ *cobra.Command, args []string) {
+func Call(cmd *cobra.Command, args []string) {
+	call(cmd, args, false)
+}
+
+// CallWrappingResult is Call with the older output shape, where the answer sits
+// under a "details" key.
+//
+// It exists for `ovhcloud webhosting api call`, which shipped that shape and
+// whose users have jq expressions written against it. The wrapper is a defect —
+// a caller reads .details.datacenter for a field the API documents as
+// .datacenter — but it is a defect somebody's script already accommodates, and
+// quietly changing it would break those scripts to fix a command that is being
+// superseded anyway. The new name gets the right shape; the old one keeps its
+// word.
+func CallWrappingResult(cmd *cobra.Command, args []string) {
+	call(cmd, args, true)
+}
+
+func call(_ *cobra.Command, args []string, wrapResult bool) {
 	method := strings.ToUpper(args[0])
 	path := normalizePath(args[1])
 
@@ -122,7 +154,14 @@ func Call(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputWithFormat(&display.OutputMessage{Details: result}, &flags.OutputFormatConfig)
+	if wrapResult {
+		display.OutputWithFormat(&display.OutputMessage{Details: result}, &flags.OutputFormatConfig)
+		return
+	}
+
+	// The answer is relayed, not composed: it is rendered as the endpoint
+	// worded it, so a script reads the fields the API documents.
+	display.OutputRaw(result, &flags.OutputFormatConfig)
 }
 
 // reportDryRun prints the request that would have been signed and sent. It

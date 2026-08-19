@@ -201,6 +201,17 @@ func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
 	outputf("%s", msg.Message)
 }
 
+// OutputRaw renders a value the CLI did not compose: the answer of an
+// endpoint, as the API worded it.
+//
+// The browser build has no terminal to fall back on, so JSON is the only shape
+// there was ever a choice about — which makes this the whole of it.
+func OutputRaw(value any, outputFormat *OutputFormat) {
+	if err := prettyPrintJSON(value); err != nil {
+		exitError("error displaying JSON results: %s", err)
+	}
+}
+
 func OutputInfo(outputFormat *OutputFormat, details any, message string, params ...any) {
 	outputf(message, params...)
 }
