@@ -5,10 +5,13 @@
 package common
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"slices"
 	"strings"
 
+	"github.com/ovh/go-ovh/ovh"
 	"github.com/spf13/cobra"
 )
 
@@ -85,4 +88,15 @@ func DescribeTerminationBody(body map[string]any) string {
 		fields = append(fields, fmt.Sprintf("%s: %v", name, value))
 	}
 	return strings.Join(fields, ", ")
+}
+
+// IsNotFound tells the API saying "this does not exist" apart from the API
+// failing to answer.
+//
+// The difference decides what a command does next, and getting it wrong is not
+// theoretical: treating every failure as a 404 has already sent a create where
+// an update was due, and announced "no migration token exists" after a 403.
+func IsNotFound(err error) bool {
+	var apiErr *ovh.APIError
+	return errors.As(err, &apiErr) && apiErr.Code == http.StatusNotFound
 }

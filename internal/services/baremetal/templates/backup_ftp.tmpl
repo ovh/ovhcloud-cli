@@ -1,0 +1,12 @@
+💾 Backup FTP of {{.ServiceName}}
+=======
+
+| Key            | Value                                    |
+| -------------- | ---------------------------------------- |
+| Server         | {{index .Result "ftpBackupName"}}        |
+| Type           | {{index .Result "type"}}                 |
+| Quota          | {{with index .Result "quota"}}{{index . "value"}} {{index . "unit"}}{{end}} |
+| Usage          | {{with index .Result "usage"}}{{index . "value"}} {{index . "unit"}}{{else}}not reported{{end}} |
+| Read-only since| {{with index .Result "readOnlyDate"}}{{.}}{{else}}not read-only{{end}} |
+
+💡 List who may reach it with: ovhcloud baremetal backup ftp acl list {{.ServiceName}}
