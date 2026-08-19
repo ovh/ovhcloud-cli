@@ -77,8 +77,53 @@ var (
 	}
 )
 
+// ListBaremetal lists the servers of the account, optionally narrowed by tag.
+//
+// Without --tag it is the v1 collection, unchanged. With one, the narrowing is
+// asked of the v2 collection, which takes an iamTags parameter the v1 one does
+// not have, and the servers it names are then read on v1 — the only route that
+// answers with a machine rather than {id, iam}. Both list exactly the same
+// servers, measured, so nothing is lost in the crossing.
 func ListBaremetal(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/v1/dedicated/server", "", baremetalColumnsToDisplay, flags.GenericFilters)
+	tags, err := parseTagFilters(BaremetalTags)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	if len(tags) == 0 {
+		common.ManageListRequest("/v1/dedicated/server", "", baremetalColumnsToDisplay, flags.GenericFilters)
+		return
+	}
+
+	query, err := tagQuery(tags)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	names, err := httpLib.FetchArray("/v2/dedicated/server"+query, "id")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to list the servers matching these tags: %s", err)
+		return
+	}
+
+	servers, err := httpLib.FetchObjectsParallel[map[string]any]("/v1/dedicated/server/%s", names, flags.IgnoreErrors)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to read the servers: %s", err)
+		return
+	}
+
+	// The generic --filter runs on the table, after the servers have been read,
+	// and --tag runs on the API before they are. Both are honoured, in that
+	// order, because they answer different questions.
+	servers, err = filtersLib.FilterLines(servers, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(servers, baremetalColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
 func ListBaremetalTasks(_ *cobra.Command, args []string) {

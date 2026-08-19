@@ -27,8 +27,18 @@ func init() {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List your Baremetal services",
-		Run:     baremetal.ListBaremetal,
+		Long: "List your Baremetal services.\n\n" +
+			"--tag narrows the list on the API itself, using the IAM tags set on the servers. " +
+			"Write it as key=value, or key:OPERATOR=value to compare another way; OPERATOR is one " +
+			"of the names the API uses (EQ, NEQ, LIKE, ILIKE, EXISTS, NEXISTS), and EXISTS and " +
+			"NEXISTS take no value. Several --tag narrow further.\n\n" +
+			"It is not the same thing as --filter, which runs on the columns of the table once the " +
+			"servers have been read.",
+		Run: baremetal.ListBaremetal,
 	}
+	baremetalListCmd.Flags().StringArrayVar(&baremetal.BaremetalTags, "tag", nil,
+		"Only list servers carrying this IAM tag (key=value, or key:OPERATOR=value)")
+	_ = baremetalListCmd.RegisterFlagCompletionFunc("tag", baremetal.CompleteBaremetalTag)
 	baremetalCmd.AddCommand(withFilterFlag(baremetalListCmd))
 
 	// Command to get a single Baremetal
