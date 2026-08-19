@@ -21,7 +21,17 @@ jobs:
       - name: Check documentation is up to date
         run: |
           make doc
-          git diff --exit-code || (echo "Documentation is out of date. Please run 'make doc' and commit the result." && exit 1)
+          # git diff reports tracked files only. docgen writes one page per
+          # command, so a brand new command produces a brand new file, which is
+          # untracked and therefore invisible here: the gate stayed green while
+          # the page was never committed. git status reports untracked files
+          # too, which is the whole point of the check.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Working tree is not clean after 'make doc'. Please run 'make doc' and commit the result."
+            git status --porcelain
+            git diff
+            exit 1
+          fi
       - name: Build binary
         run: make
       - name: Build WASM binary
