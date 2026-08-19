@@ -475,3 +475,99 @@ func (ms *MockSuite) TestBaremetalConfirmTerminationDryRunFingerprintsTheToken(a
 	assert.Cmp(out, td.Contains(fmt.Sprintf("%d characters", len(fakeTerminationToken))), "and its length")
 	assert.Cmp(out, td.Not(td.Contains(fakeTerminationToken)), "never the token itself")
 }
+
+// The guarded path, with consent given.
+//
+// Every other test of this command checks that it refuses. That leaves the
+// case it exists for untested: a guard that blocked the real operation, or
+// reordered it, would pass all of them.
+func (ms *MockSuite) TestBaremetalRebootRescueRunsTheWholeSequenceWithConsent(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/boot?bootType=rescue",
+		httpmock.NewStringResponder(200, `[1122]`))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/boot/1122",
+		httpmock.NewStringResponder(200, `{"bootId": 1122, "bootType": "rescue", "description": "rescue64-pro"}`))
+
+	var sentBoot map[string]any
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal",
+		func(req *http.Request) (*http.Response, error) {
+			body, _ := io.ReadAll(req.Body)
+			_ = json.Unmarshal(body, &sentBoot)
+			return httpmock.NewStringResponse(200, `null`), nil
+		})
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reboot",
+		httpmock.NewStringResponder(200, `{"taskId": 1, "status": "done"}`))
+
+	_, err := cmd.Execute("baremetal", "reboot-rescue", "fakeBaremetal", "--yes")
+
+	require.CmpNoError(err)
+	assert.Cmp(sentBoot["bootId"], float64(1122), "the rescue entry the API named, not a hardcoded one")
+	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reboot"], 1,
+		"and the machine is actually rebooted into it")
+}
+
+// One POST per interface. A loop that stopped after the first would still
+// refuse without --yes and still preview both, so only this reaches it.
+func (ms *MockSuite) TestBaremetalOlaResetPostsOncePerInterfaceWithConsent(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/ola/reset",
+		httpmock.NewStringResponder(200, `{"taskId": 1, "status": "done"}`))
+
+	_, err := cmd.Execute("baremetal", "vni", "ola-reset", "fakeBaremetal",
+		"--interface", "uuid-1", "--interface", "uuid-2", "--yes")
+
+	require.CmpNoError(err)
+	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/ola/reset"], 2)
+}
+
+func (ms *MockSuite) TestBaremetalServiceInfoGetRendersTheService(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/serviceInfos",
+		httpmock.NewStringResponder(200, `{
+			"serviceId": 1, "domain": "fakeBaremetal", "expiration": "2026-09-01",
+			"renew": {"automatic": true, "period": 1}
+		}`))
+
+	out, err := cmd.Execute("baremetal", "service-info", "get", "fakeBaremetal", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("2026-09-01"))
+}
+
+// An API failure must reach the operator. A read that reported success on a
+// 403 would be worse than one that failed loudly: the answer would be an empty
+// object rather than a refusal.
+func (ms *MockSuite) TestBaremetalServiceInfoGetReportsAnAPIFailure(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/serviceInfos",
+		httpmock.NewStringResponder(403, `{"message": "This call has not been granted"}`))
+
+	_, err := cmd.Execute("baremetal", "service-info", "get", "fakeBaremetal")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("not been granted"))
+}
+
+// A failed write must not read as a successful edit. The command builds its
+// payload from a GET and sends it with a PUT; a refusal on either half leaves
+// the renewal settings unchanged, and saying otherwise would let somebody
+// believe automatic renewal is off when it is still on.
+func (ms *MockSuite) TestBaremetalServiceInfoEditReportsAFailedWrite(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/serviceInfos",
+		httpmock.NewStringResponder(200, `{"serviceId": 1, "domain": "fakeBaremetal", "renew": {"automatic": true, "period": 1}}`))
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/serviceInfos",
+		httpmock.NewStringResponder(400, `{"message": "Invalid renewal period"}`))
+
+	out, err := cmd.Execute("baremetal", "service-info", "edit", "fakeBaremetal", "--renew-period", "12")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("Invalid renewal period"))
+	assert.Cmp(out, td.Not(td.Contains("✅")), "and nothing claims the edit went through")
+}
+
+func (ms *MockSuite) TestBaremetalServiceInfoEditReportsAFailedRead(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/serviceInfos",
+		httpmock.NewStringResponder(404, `{"message": "This service does not exist"}`))
+
+	_, err := cmd.Execute("baremetal", "service-info", "edit", "fakeBaremetal", "--renew-period", "12")
+
+	require.CmpError(err)
+	assert.Cmp(httpmock.GetCallCountInfo()["PUT https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/serviceInfos"], 0,
+		"and nothing is written from a payload that could not be read")
+}
