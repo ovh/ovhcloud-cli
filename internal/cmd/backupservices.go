@@ -126,9 +126,29 @@ func init() {
 		Run:   backupservices.ListPolicies,
 	}))
 
+	backupCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "agents",
+		Short:   "List every backup agent, and what each one protects",
+		Aliases: []string{"agent-list"},
+		Run:     backupservices.ListAgents,
+	}))
+
+	backupCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "billing",
+		Short: "Show what each part of the backup service costs, and what it has consumed",
+		Long: "Show what each part of the backup service costs, and what it has consumed.\n\n" +
+			"The backup API carries no price. The plan, the price, the period, the renewal mode and " +
+			"the next billing date come from the account's service router, matched to each backup " +
+			"resource by its identifier; the consumption comes from the account's current usage.",
+		Run: backupservices.ShowBilling,
+	}))
+
 	backupCmd.AddCommand(&cobra.Command{
-		Use:   "deploy-script",
-		Short: "Show the command that installs the backup agent on a machine",
+		Use: "deploy-script",
+		// download-agent is the name the product brief uses for this; the
+		// command is one thing under two names rather than two commands.
+		Aliases: []string{"download-agent"},
+		Short:   "Show the command that installs the backup agent on a machine",
 		Long: "Show the command that installs the backup agent on a machine.\n\n" +
 			"An agent created through the API exists as an object and protects nothing until this " +
 			"script has run on the machine. The links carry their own authorisation.",

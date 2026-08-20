@@ -7,6 +7,7 @@ package cmd_test
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
@@ -280,4 +281,85 @@ func (ms *MockSuite) TestBaremetalBackupAgentDeleteIsPreviewedWithoutSending(ass
 	assert.Cmp(out, td.Contains("DELETE"))
 	assert.Cmp(out, td.Contains("a-1"))
 	assert.Cmp(httpmock.GetCallCountInfo()["DELETE "+backupAgents+"/a-1"], 0)
+}
+
+// The estate-wide view is the other question, and it is the one that made the
+// posture of this account visible: nine agents provisioned, none deployed.
+func (ms *MockSuite) TestBackupAgentsListsWhatEachOneProtects(assert, require *td.T) {
+	registerOneTenant()
+	httpmock.RegisterResponder(http.MethodGet, backupAgents,
+		httpmock.NewStringResponder(200, `[
+		{"id":"a-2","status":"NOT_INSTALLED","targetSpec":{"displayName":"agent-zeta"},
+		 "currentState":{"productResourceName":"zeta.example","type":"OVHCLOUD_BAREMETAL","policy":""}},
+		{"id":"a-1","status":"ENABLED","targetSpec":{"displayName":"agent-alpha"},
+		 "currentState":{"productResourceName":"alpha.example","type":"OVHCLOUD_BAREMETAL","policy":"14d_retention"}}]`))
+
+	out, err := cmd.Execute("backup-services", "agents")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("alpha.example"))
+	assert.Cmp(out, td.Contains("zeta.example"))
+	assert.Cmp(strings.Index(out, "alpha.example") < strings.Index(out, "zeta.example"), true,
+		"the estate reads in the order of the machines it protects")
+	assert.Cmp(out, td.Contains("none"), "an agent retaining nothing says so")
+}
+
+// No agent at all is an answer with the command that makes one.
+func (ms *MockSuite) TestBackupAgentsSaysWhenThereAreNone(assert, require *td.T) {
+	registerOneTenant()
+	httpmock.RegisterResponder(http.MethodGet, backupAgents, httpmock.NewStringResponder(200, `[]`))
+
+	out, err := cmd.Execute("backup-services", "agents")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("backup-agent create"))
+}
+
+// The backup API carries no price. What each part costs is joined from the
+// account's service router by the resource's own identifier.
+func (ms *MockSuite) TestBackupBillingJoinsThePriceToEachResource(assert, require *td.T) {
+	registerOneTenant()
+	httpmock.RegisterResponder(http.MethodGet, backupTenant+"/vault",
+		httpmock.NewStringResponder(200, `[{"id":"v-1","resourceStatus":"READY","targetSpec":{"name":"vault-sbg"},
+			"currentState":{"name":"vault-sbg","buckets":[]},"currentTasks":[]}]`))
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/me/consumption/usage/current",
+		httpmock.NewStringResponder(200, `[]`))
+
+	for name, id := range map[string]string{"t-1": "111", "s-1": "222", "v-1": "333"} {
+		httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/services?resourceName="+name,
+			httpmock.NewStringResponder(200, "["+id+"]"))
+	}
+	httpmock.RegisterResponder(http.MethodGet, `=~^https://eu\.api\.ovh\.com/v1/services/\d+$`,
+		httpmock.NewStringResponder(200, `{"serviceId":333,"billing":{"nextBillingDate":"2026-09-01T00:00:00Z",
+			"plan":{"code":"backup-vault-paygo","invoiceName":"Backup vault"},
+			"pricing":{"duration":"P1M","price":{"currencyCode":"EUR","text":"0.00 €","value":0}},
+			"renew":{"current":{"mode":"automatic"}},"lifecycle":{"current":{"state":"active"}}}}`))
+
+	out, err := cmd.Execute("backup-services", "billing")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("backup-vault-paygo"))
+	assert.Cmp(out, td.Contains("P1M"))
+	assert.Cmp(out, td.Contains("none yet"), "pay-as-you-go with nothing stored reports no line")
+	assert.Cmp(out, td.Contains("vault"), "and each kind of resource is named")
+}
+
+// A backup resource with no billable service behind it is what an included
+// component looks like, not a failure of the command.
+func (ms *MockSuite) TestBackupBillingKeepsGoingWhenAResourceHasNoService(assert, require *td.T) {
+	registerOneTenant()
+	httpmock.RegisterResponder(http.MethodGet, backupTenant+"/vault",
+		httpmock.NewStringResponder(200, `[]`))
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/me/consumption/usage/current",
+		httpmock.NewStringResponder(200, `[]`))
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/services?resourceName=t-1",
+		httpmock.NewStringResponder(200, `[]`))
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/services?resourceName=s-1",
+		httpmock.NewStringResponder(200, `[]`))
+
+	out, err := cmd.Execute("backup-services", "billing")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("tenant"), "the table is still printed")
+	assert.Cmp(out, td.Contains("—"), "and the missing price reads as missing")
 }

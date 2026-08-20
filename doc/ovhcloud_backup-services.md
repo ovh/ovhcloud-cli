@@ -40,6 +40,8 @@ The agents themselves are managed from the machine they protect: see `ovhcloud b
 ### SEE ALSO
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
+* [ovhcloud backup-services agents](ovhcloud_backup-services_agents.md)	 - List every backup agent, and what each one protects
+* [ovhcloud backup-services billing](ovhcloud_backup-services_billing.md)	 - Show what each part of the backup service costs, and what it has consumed
 * [ovhcloud backup-services deploy-script](ovhcloud_backup-services_deploy-script.md)	 - Show the command that installs the backup agent on a machine
 * [ovhcloud backup-services licenses](ovhcloud_backup-services_licenses.md)	 - Show the Veeam licences held by a VSPC tenant
 * [ovhcloud backup-services policies](ovhcloud_backup-services_policies.md)	 - List the retention policies an agent can be put on
