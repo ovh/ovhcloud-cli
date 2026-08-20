@@ -139,7 +139,7 @@ func (ms *MockSuite) TestRefundListHidesItsLinksToo(assert, require *td.T) {
 	captureQuery(refundsURL, `["API_FR1"]`, new(string))
 	httpmock.RegisterResponder(http.MethodGet, refundsURL+"/API_FR1",
 		httpmock.NewStringResponder(200, `{"refundId":"API_FR1","date":"2026-03-05T14:22:17+01:00",
-			"originalBillId":"PI_FR16249716","orderId":246409141,
+			"originalBillId":"PI_FR9","orderId":246409141,
 			"priceWithTax":{"text":"-71.43 €","value":-71.43,"currencyCode":"EUR"},
 			"password":"SECRETPASS","pdfUrl":"https://www.ovh.com/x?esign=SIGNATURE"}`))
 
