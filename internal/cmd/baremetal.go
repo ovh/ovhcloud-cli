@@ -616,7 +616,7 @@ sending. --dry-run prints the whole message instead of sending it.`,
 	_ = baremetalTicketCmd.RegisterFlagCompletionFunc("category", baremetal.CompleteTicketCategory)
 	_ = baremetalTicketCmd.RegisterFlagCompletionFunc("subcategory", baremetal.CompleteTicketSubcategory)
 	_ = baremetalTicketCmd.RegisterFlagCompletionFunc("impact", baremetal.CompleteTicketImpact)
-	_ = baremetalTicketCmd.RegisterFlagCompletionFunc("urgency", baremetal.CompleteTicketImpact)
+	_ = baremetalTicketCmd.RegisterFlagCompletionFunc("urgency", baremetal.CompleteTicketUrgency)
 	addConfirmationFlags(baremetalTicketCmd, "Print the whole ticket that would be created without creating it")
 	baremetalCmd.AddCommand(baremetalTicketCmd)
 
