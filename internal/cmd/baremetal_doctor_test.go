@@ -140,6 +140,77 @@ func (ms *MockSuite) TestBaremetalDoctorStrictStaysGreenWithNoFinding(assert, re
 	assert.Cmp(exited, false, "nothing to report means nothing to fail on")
 }
 
+// The server itself reads fine and every check under it fails. This is the
+// answer the command must never give: four dead checks used to print as a clean
+// bill, and exit 0 under --strict, because four of the five reads discarded
+// their error.
+func (ms *MockSuite) TestBaremetalDoctorWillNotCallAServerHealthyOnFourDeadChecks(assert, require *td.T) {
+	registerHealthyServer()
+	broken := httpmock.NewStringResponder(500, `{"class":"Server::InternalServerError","message":"Internal server error"}`)
+	for _, route := range []string{"/boot/1", "/serviceInfos", "/task?status=doing", "/plannedIntervention"} {
+		httpmock.RegisterResponder("GET", doctorServer+route, broken)
+	}
+
+	exited := false
+	previous := display.ExitFunc
+	display.ExitFunc = func(int) { exited = true }
+	defer func() { display.ExitFunc = previous }()
+
+	out, err := cmd.Execute("baremetal", "doctor", "ns1.example", "--strict")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("Nothing to report")),
+		"a check that did not run is not a check that found nothing")
+	assert.Cmp(exited, true, "and --strict must not gate green on it")
+	for _, check := range []string{"boot", "renewal", "tasks", "planned-intervention"} {
+		assert.Cmp(out, td.Contains(check), "%s is named as unchecked", check)
+	}
+}
+
+// One failed read among five, on an otherwise perfect server. The three checks
+// that did run still report, and the one that did not is still said.
+func (ms *MockSuite) TestBaremetalDoctorNamesTheOneCheckThatCouldNotRun(assert, require *td.T) {
+	registerHealthyServer()
+	httpmock.RegisterResponder("GET", doctorServer+"/plannedIntervention",
+		httpmock.NewStringResponder(500, `{"message":"Internal server error"}`))
+
+	out, err := cmd.Execute("baremetal", "doctor", "ns1.example")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("planned-intervention"))
+	assert.Cmp(out, td.Contains("could not be run"))
+	assert.Cmp(out, td.Not(td.Contains("Nothing to report")))
+}
+
+// The renewal check reads the same object five times because the field
+// disagrees with itself; three readings agree by chance about once in four.
+// A short read is therefore not a weaker answer, it is no answer — and the old
+// code decided on whatever it had managed to collect, which for a failure on
+// the second read is a single coin toss.
+func (ms *MockSuite) TestBaremetalDoctorRefusesToVoteOnAShortReadOfTheRenewal(assert, require *td.T) {
+	registerHealthyServer()
+
+	reads := 0
+	httpmock.RegisterResponder("GET", doctorServer+"/serviceInfos",
+		func(*http.Request) (*http.Response, error) {
+			reads++
+			if reads > 1 {
+				return httpmock.NewStringResponse(500, `{"message":"Internal server error"}`), nil
+			}
+			// The one reading that lands says renewal is off. Deciding on it
+			// alone is exactly what must not happen.
+			return httpmock.NewStringResponse(200,
+				`{"expiration":"2099-01-01","renew":{"automatic":false}}`), nil
+		})
+
+	out, err := cmd.Execute("baremetal", "doctor", "ns1.example")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("could not be run"), "the check is reported as unrun")
+	assert.Cmp(out, td.Not(td.Contains("read as off")),
+		"and no verdict is reached on one reading out of five")
+}
+
 // With no argument it checks every server of the account.
 func (ms *MockSuite) TestBaremetalDoctorChecksTheWholeFleetByDefault(assert, require *td.T) {
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server",
