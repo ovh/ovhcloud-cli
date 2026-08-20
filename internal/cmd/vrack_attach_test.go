@@ -25,20 +25,20 @@ const (
 	vrackOther = "pn-1066983"
 
 	// One server, one interface: the ordinary case.
-	vrackAllowedOne = `{"dedicatedServerInterface": [{"dedicatedServerInterface": "1688f939-b93f-47a2-9648-b270f8150a53", "name": "9c:6b:00:22:03:32", "dedicatedServer": "ns3070493.ip-57-129-37.eu"}], "cloudProject": [], "dedicatedServer": []}`
+	vrackAllowedOne = `{"dedicatedServerInterface": [{"dedicatedServerInterface": "1688f939-b93f-47a2-9648-b270f8150a53", "name": "9c:6b:00:22:03:32", "dedicatedServer": "ns0000001.ip-203-0-113.eu"}], "cloudProject": [], "dedicatedServer": []}`
 
 	// One server, two interfaces — an aggregation and a plain one. They do not
 	// carry the same traffic, so this is not a choice a CLI may make silently.
-	vrackAllowedTwo = `{"dedicatedServerInterface": [{"dedicatedServerInterface": "aaaaaaaa-1111-2222-3333-444444444444", "name": "vrack_aggregation", "dedicatedServer": "ns31695342.ip-162-19-43.eu"}, {"dedicatedServerInterface": "bbbbbbbb-1111-2222-3333-444444444444", "name": "c4:70:bd:16:b2:f5", "dedicatedServer": "ns31695342.ip-162-19-43.eu"}]}`
+	vrackAllowedTwo = `{"dedicatedServerInterface": [{"dedicatedServerInterface": "aaaaaaaa-1111-2222-3333-444444444444", "name": "vrack_aggregation", "dedicatedServer": "ns0000003.ip-203-0-113.eu"}, {"dedicatedServerInterface": "bbbbbbbb-1111-2222-3333-444444444444", "name": "c4:70:bd:16:b2:f5", "dedicatedServer": "ns0000003.ip-203-0-113.eu"}]}`
 
 	vrackAllowedNone = `{"dedicatedServerInterface": []}`
 
-	vrackAttachedOne = `[{"dedicatedServerInterface": "f644bc65-4a61-45f4-9bed-90a0059d35e4", "dedicatedServer": "ns3141022.ip-51-77-67.eu", "name": "d0:50:99:d7:55:0b"}]`
+	vrackAttachedOne = `[{"dedicatedServerInterface": "f644bc65-4a61-45f4-9bed-90a0059d35e4", "dedicatedServer": "ns0000002.ip-203-0-113.eu", "name": "d0:50:99:d7:55:0b"}]`
 
 	// 23 of the 35 servers on the account carry a name their owner chose. It is
 	// the only string by which somebody recognises the machine they are about
 	// to unplug.
-	vrackIamServers = `[{"name": "ns3141022.ip-51-77-67.eu", "displayName": "Yaniv - RISE-1 - LIM", "type": "dedicatedServer"}, {"name": "ns3070493.ip-57-129-37.eu", "displayName": "ns3070493.ip-57-129-37.eu", "type": "dedicatedServer"}]`
+	vrackIamServers = `[{"name": "ns0000002.ip-203-0-113.eu", "displayName": "Mail relay - Paris", "type": "dedicatedServer"}, {"name": "ns0000001.ip-203-0-113.eu", "displayName": "ns0000001.ip-203-0-113.eu", "type": "dedicatedServer"}]`
 
 	vrackTask = `{"id": 559188894, "function": "vrack_dedicatedServerInterface", "status": "todo", "serviceName": "pn-1080348"}`
 )
@@ -87,7 +87,7 @@ func recordVrackBody(key string) httpmock.Responder {
 func (ms *MockSuite) TestVrackAttachResolvesTheServerToItsInterface(assert, require *td.T) {
 	registerVrack(assert, vrackAllowedOne, `[]`)
 
-	_, err := cmd.Execute("vrack", "attach", vrackName, "ns3070493.ip-57-129-37.eu", "--yes")
+	_, err := cmd.Execute("vrack", "attach", vrackName, "ns0000001.ip-203-0-113.eu", "--yes")
 
 	require.CmpNoError(err)
 	require.Cmp(len(vrackBodies["attach"]), 1)
@@ -100,7 +100,7 @@ func (ms *MockSuite) TestVrackAttachResolvesTheServerToItsInterface(assert, requ
 func (ms *MockSuite) TestVrackAttachRefusesToChooseBetweenTwoInterfaces(assert, require *td.T) {
 	registerVrack(assert, vrackAllowedTwo, `[]`)
 
-	out, err := cmd.Execute("vrack", "attach", vrackName, "ns31695342.ip-162-19-43.eu", "--yes")
+	out, err := cmd.Execute("vrack", "attach", vrackName, "ns0000003.ip-203-0-113.eu", "--yes")
 
 	require.CmpError(err)
 	assert.Cmp(len(vrackBodies["attach"]), 0, "nothing is attached while the choice is open")
@@ -114,7 +114,7 @@ func (ms *MockSuite) TestVrackAttachRefusesToChooseBetweenTwoInterfaces(assert, 
 func (ms *MockSuite) TestVrackAttachRejectsAnInterfaceOfAnotherServer(assert, require *td.T) {
 	registerVrack(assert, vrackAllowedTwo, `[]`)
 
-	_, err := cmd.Execute("vrack", "attach", vrackName, "ns31695342.ip-162-19-43.eu",
+	_, err := cmd.Execute("vrack", "attach", vrackName, "ns0000003.ip-203-0-113.eu",
 		"--interface", "f644bc65-4a61-45f4-9bed-90a0059d35e4", "--yes")
 
 	require.CmpError(err)
@@ -124,7 +124,7 @@ func (ms *MockSuite) TestVrackAttachRejectsAnInterfaceOfAnotherServer(assert, re
 func (ms *MockSuite) TestVrackAttachUsesTheNamedInterface(assert, require *td.T) {
 	registerVrack(assert, vrackAllowedTwo, `[]`)
 
-	_, err := cmd.Execute("vrack", "attach", vrackName, "ns31695342.ip-162-19-43.eu",
+	_, err := cmd.Execute("vrack", "attach", vrackName, "ns0000003.ip-203-0-113.eu",
 		"--interface", "bbbbbbbb-1111-2222-3333-444444444444", "--yes")
 
 	require.CmpNoError(err)
@@ -139,10 +139,10 @@ func (ms *MockSuite) TestVrackAttachUsesTheNamedInterface(assert, require *td.T)
 func (ms *MockSuite) TestVrackAttachSaysWhenTheServerHasNoInterfaceAtAll(assert, require *td.T) {
 	registerVrack(assert, vrackAllowedNone, `[]`)
 	httpmock.RegisterResponder("GET",
-		"https://eu.api.ovh.com/v1/dedicated/server/ns3222663.ip-162-19-94.eu/virtualNetworkInterface",
+		"https://eu.api.ovh.com/v1/dedicated/server/ns0000004.ip-203-0-113.eu/virtualNetworkInterface",
 		httpmock.NewStringResponder(200, `[]`))
 
-	out, err := cmd.Execute("vrack", "attach", vrackName, "ns3222663.ip-162-19-94.eu", "--yes")
+	out, err := cmd.Execute("vrack", "attach", vrackName, "ns0000004.ip-203-0-113.eu", "--yes")
 
 	require.CmpError(err)
 	assert.Contains(out+err.Error(), "no virtual network interface")
@@ -155,10 +155,10 @@ func (ms *MockSuite) TestVrackAttachSaysWhenTheServerHasNoInterfaceAtAll(assert,
 func (ms *MockSuite) TestVrackAttachSaysWhenTheInterfaceIsTakenElsewhere(assert, require *td.T) {
 	registerVrack(assert, vrackAllowedNone, `[]`)
 	httpmock.RegisterResponder("GET",
-		"https://eu.api.ovh.com/v1/dedicated/server/ns3141022.ip-51-77-67.eu/virtualNetworkInterface",
+		"https://eu.api.ovh.com/v1/dedicated/server/ns0000002.ip-203-0-113.eu/virtualNetworkInterface",
 		httpmock.NewStringResponder(200, `["f644bc65-4a61-45f4-9bed-90a0059d35e4"]`))
 
-	out, err := cmd.Execute("vrack", "attach", vrackName, "ns3141022.ip-51-77-67.eu", "--yes")
+	out, err := cmd.Execute("vrack", "attach", vrackName, "ns0000002.ip-203-0-113.eu", "--yes")
 
 	require.CmpError(err)
 	assert.Contains(out+err.Error(), "one vRack at a time")
@@ -170,7 +170,7 @@ func (ms *MockSuite) TestVrackAttachSaysWhenTheInterfaceIsTakenElsewhere(assert,
 func (ms *MockSuite) TestVrackDetachRefusesWithoutConfirmation(assert, require *td.T) {
 	registerVrack(assert, `{}`, vrackAttachedOne)
 
-	_, err := cmd.Execute("vrack", "detach", vrackName, "ns3141022.ip-51-77-67.eu")
+	_, err := cmd.Execute("vrack", "detach", vrackName, "ns0000002.ip-203-0-113.eu")
 
 	require.CmpError(err)
 	assert.Cmp(len(vrackBodies["detach"]), 0)
@@ -179,7 +179,7 @@ func (ms *MockSuite) TestVrackDetachRefusesWithoutConfirmation(assert, require *
 func (ms *MockSuite) TestVrackDetachSendsNothingOnDryRun(assert, require *td.T) {
 	registerVrack(assert, `{}`, vrackAttachedOne)
 
-	out, err := cmd.Execute("vrack", "detach", vrackName, "ns3141022.ip-51-77-67.eu", "--dry-run")
+	out, err := cmd.Execute("vrack", "detach", vrackName, "ns0000002.ip-203-0-113.eu", "--dry-run")
 
 	require.CmpNoError(err)
 	assert.Cmp(len(vrackBodies["detach"]), 0)
@@ -197,8 +197,8 @@ func (ms *MockSuite) TestVrackGetShowsWhatIsInside(assert, require *td.T) {
 	out, err := cmd.Execute("vrack", "get", vrackName)
 
 	require.CmpNoError(err)
-	assert.Contains(out, "ns3141022.ip-51-77-67.eu")
-	assert.Contains(out, "Yaniv - RISE-1 - LIM")
+	assert.Contains(out, "ns0000002.ip-203-0-113.eu")
+	assert.Contains(out, "Mail relay - Paris")
 	assert.Contains(out, "d0:50:99:d7:55:0b")
 	assert.Contains(out, "Public Cloud projects", "types this command cannot attach are listed too")
 }
@@ -213,7 +213,7 @@ func (ms *MockSuite) TestVrackGetStillListsWhenTheNameLookupFails(assert, requir
 	out, err := cmd.Execute("vrack", "get", vrackName)
 
 	require.CmpNoError(err)
-	assert.Contains(out, "ns3141022.ip-51-77-67.eu")
+	assert.Contains(out, "ns0000002.ip-203-0-113.eu")
 }
 
 // Same work, other door: somebody holding a server should not have to know the
@@ -221,10 +221,10 @@ func (ms *MockSuite) TestVrackGetStillListsWhenTheNameLookupFails(assert, requir
 func (ms *MockSuite) TestBaremetalVrackDetachFindsTheVrackItself(assert, require *td.T) {
 	registerVrack(assert, `{}`, vrackAttachedOne)
 	httpmock.RegisterResponder("GET",
-		"https://eu.api.ovh.com/v1/dedicated/server/ns3141022.ip-51-77-67.eu/vrack",
+		"https://eu.api.ovh.com/v1/dedicated/server/ns0000002.ip-203-0-113.eu/vrack",
 		httpmock.NewStringResponder(200, `["`+vrackName+`"]`))
 
-	_, err := cmd.Execute("baremetal", "vrack", "detach", "ns3141022.ip-51-77-67.eu", "--yes")
+	_, err := cmd.Execute("baremetal", "vrack", "detach", "ns0000002.ip-203-0-113.eu", "--yes")
 
 	require.CmpNoError(err)
 	assert.Cmp(len(vrackBodies["detach"]), 1, "the vRack was resolved and the interface detached")
@@ -233,10 +233,10 @@ func (ms *MockSuite) TestBaremetalVrackDetachFindsTheVrackItself(assert, require
 func (ms *MockSuite) TestBaremetalVrackShowSaysWhenThereIsNoVrack(assert, require *td.T) {
 	registerVrack(assert, `{}`, `[]`)
 	httpmock.RegisterResponder("GET",
-		"https://eu.api.ovh.com/v1/dedicated/server/ns3222663.ip-162-19-94.eu/vrack",
+		"https://eu.api.ovh.com/v1/dedicated/server/ns0000004.ip-203-0-113.eu/vrack",
 		httpmock.NewStringResponder(200, `[]`))
 
-	out, err := cmd.Execute("baremetal", "vrack", "show", "ns3222663.ip-162-19-94.eu")
+	out, err := cmd.Execute("baremetal", "vrack", "show", "ns0000004.ip-203-0-113.eu")
 
 	require.CmpNoError(err)
 	assert.Contains(out, "not in any vRack")

@@ -34,8 +34,8 @@ type serverInterface struct {
 // label names the server both ways at once.
 //
 // The hostname is an address and the display name is how its owner knows it,
-// and neither replaces the other. "Yaniv - RISE-1 - LIM" is what says whether
-// this is the right machine; ns3141022.ip-51-77-67.eu is what makes it the only
+// and neither replaces the other. "Mail relay - Paris" is what says whether
+// this is the right machine; ns0000002.ip-203-0-113.eu is what makes it the only
 // one, because display names are not unique and are read from a cache that can
 // be an hour old. A prompt that showed one of them would be exactly as wrong
 // whichever one it dropped.
