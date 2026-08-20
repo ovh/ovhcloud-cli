@@ -140,7 +140,22 @@ func PowerOffBaremetal(_ *cobra.Command, args []string) {
 
 	// Remembered before anything is changed, because after the PUT the previous
 	// value is gone from the API and only `power on` knows it mattered.
-	rememberBoot(server, state.BootID)
+	//
+	// Unless the server is already sitting on the power-off entry, which is
+	// exactly what a second `power off` sees: the PUT lands immediately, the
+	// machine only goes dark 143 seconds later (measured 18 August 2026), and
+	// for that whole window the API answers powerState "poweron" with the
+	// power-off bootId. Storing that would replace the boot the machine was
+	// really on with the entry that shuts it down, and `power on` would then
+	// restore a power-off while announcing it as the previous boot. Nothing on
+	// screen would say the real entry had been lost. So the record is left
+	// alone, and what is reported is what is on it.
+	previousBoot := state.BootID
+	if state.BootID == target.BootID {
+		previousBoot, _ = recallBoot(server)
+	} else {
+		rememberBoot(server, state.BootID)
+	}
 
 	if err := httpLib.Client.Put(setBoot, map[string]any{"bootId": target.BootID}, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig,
@@ -154,8 +169,11 @@ func PowerOffBaremetal(_ *cobra.Command, args []string) {
 		return
 	}
 
-	details := map[string]any{
-		"server": server, "bootId": target.BootID, "previousBootId": state.BootID,
+	details := map[string]any{"server": server, "bootId": target.BootID}
+	// Absent rather than zero: a caller reading previousBootId out of `-o json`
+	// must be able to tell "it was on 230242" from "nothing here knows".
+	if previousBoot != 0 {
+		details["previousBootId"] = previousBoot
 	}
 
 	if !PowerWait {

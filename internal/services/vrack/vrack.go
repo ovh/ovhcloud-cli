@@ -52,12 +52,25 @@ func GetVrack(_ *cobra.Command, args []string) {
 
 	// The contents are additional information, not the object: a vRack that
 	// cannot be listed is still worth printing. So a failure here costs the
-	// section, never the command.
-	servers, err := attachedInterfaces(vrack)
-	if err != nil {
-		display.OutputWarning(&flags.OutputFormatConfig, "%s", err)
-	}
+	// section, never the command — and that is why it is folded into the object
+	// rather than reported with display.OutputWarning.
+	//
+	// A warning is not a message, it is an exit: OutputWithFormat ends on
+	// ExitFunc(0) for Warning just as it ends on ExitFunc(1) for Error. Called
+	// here it would have taken the process down before the vRack was printed,
+	// so `vrack get` answered nothing at all and exited 0 whenever one of these
+	// ten lists failed. Everything after an OutputWarning is dead code; only the
+	// suite's no-op ExitFunc stub made it look otherwise.
+	servers, serversErr := attachedInterfaces(vrack)
 	others, unreadable := otherContents(vrack)
+
+	if serversErr != nil {
+		// Counted with the other unreadable sections so the summary stops short
+		// of "This vRack is empty" — the claim this command must never make on
+		// a list it could not read.
+		object["serversError"] = serversErr.Error()
+		unreadable++
+	}
 
 	object["servers"] = serverRows(servers)
 	object["otherContents"] = others
