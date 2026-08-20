@@ -12,6 +12,7 @@ var (
 	MeOpenapiSchema                              []byte
 	BaremetalOpenapiSchema                       []byte
 	BaremetalV2OpenapiSchema                     []byte
+	BackupservicesV2OpenapiSchema                []byte
 	DedicatedcephOpenapiSchema                   []byte
 	DedicatednashaOpenapiSchema                  []byte
 	DomainOpenapiSchema                          []byte
