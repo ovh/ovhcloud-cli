@@ -122,6 +122,53 @@ func (ms *MockSuite) TestBaremetalPowerOnRestoresTheBootItWasOn(assert, require 
 	assert.Cmp(out, td.Contains("was on before it was powered off"), "and the source is stated")
 }
 
+// The window this covers is not a race, it is the normal case: the PUT lands at
+// once and the machine only goes dark 143 seconds later, so for two minutes the
+// API answers powerState "poweron" sitting on the power-off entry. A second
+// `power off` typed in that window used to overwrite the record with that very
+// entry, and `power on` then restored a power-off — announcing it, wrongly, as
+// the boot the server was on before.
+func (ms *MockSuite) TestBaremetalPowerOffTwiceKeepsTheBootItWasReallyOn(assert, require *td.T) {
+	registerPower(assert, "poweron", 230242)
+	_, err := cmd.Execute("baremetal", "power", "off", powerServer, "--yes")
+	require.CmpNoError(err)
+
+	// Still shutting down: running, and already on the power-off entry.
+	cmd.PostExecute()
+	powerBodies = map[string][]map[string]any{}
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/"+powerServer,
+		httpmock.NewStringResponder(200, `{"powerState": "poweron", "state": "ok", "bootId": 95083}`))
+	_, err = cmd.Execute("baremetal", "power", "off", powerServer, "--yes")
+	require.CmpNoError(err)
+
+	cmd.PostExecute()
+	powerBodies = map[string][]map[string]any{}
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/"+powerServer,
+		httpmock.NewStringResponder(200, `{"powerState": "poweroff", "state": "ok", "bootId": 95083}`))
+
+	_, err = cmd.Execute("baremetal", "power", "on", powerServer)
+
+	require.CmpNoError(err)
+	require.Cmp(len(powerBodies["boot"]), 1)
+	assert.Cmp(powerBodies["boot"][0]["bootId"], td.Not(float64(95083)),
+		"never the power-off entry: restoring it puts the server back where it shuts down")
+	assert.Cmp(powerBodies["boot"][0]["bootId"], float64(230242), "the rescue boot it was really on")
+}
+
+// The same window, but nothing was ever recorded: someone else powered the
+// server off. There is no previous boot to report, and reporting the power-off
+// entry as one would be worse than reporting none.
+func (ms *MockSuite) TestBaremetalPowerOffOnThePowerEntryReportsNoPreviousBoot(assert, require *td.T) {
+	registerPower(assert, "poweron", 95083)
+
+	out, err := cmd.Execute("baremetal", "power", "off", powerServer, "--yes", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("previousBootId")),
+		"absent, so a caller can tell an unknown previous boot from a known one")
+	assert.Cmp(out, td.Contains("95083"), "the entry it was put on is still reported")
+}
+
 // A `power on` run from another machine than the `power off` has no record.
 // Falling back to the disk is right; doing it silently is not — the server may
 // have been in rescue, and this one was.
