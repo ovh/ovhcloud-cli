@@ -17,14 +17,7 @@ ovhcloud baremetal cost <service_name> [flags]
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for cost
+  -h, --help   help for cost
 ```
 
 ### Options inherited from parent commands

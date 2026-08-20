@@ -130,8 +130,7 @@ func ShowBackupAgent(_ *cobra.Command, args []string) {
 		})
 	}
 
-	display.RenderTable(rows, []string{"id", "displayName", "status", "policy", "ips", "type"},
-		&flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"id", "displayName", "status", "policy", "ips", "type"})
 }
 
 // CreateBackupAgent provisions a backup agent for a server.
