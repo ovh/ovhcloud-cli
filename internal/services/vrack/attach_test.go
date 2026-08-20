@@ -139,7 +139,7 @@ func TestInterfacesOfAcceptsTheNameItPrints(t *testing.T) {
 
 	assert.Cmp(len(interfacesOf(fleet, "ns0000002.ip-203-0-113.eu")), 1, "by hostname")
 	assert.Cmp(len(interfacesOf(fleet, "Mail relay - Paris")), 1, "and by the name its owner gave it")
-	assert.Cmp(len(interfacesOf(fleet, "yaniv - rise-1 - lim")), 1, "typed by a human, so case-insensitively")
+	assert.Cmp(len(interfacesOf(fleet, "mail relay - paris")), 1, "typed by a human, so case-insensitively")
 	assert.Cmp(len(interfacesOf(fleet, "nothing")), 0)
 }
 
