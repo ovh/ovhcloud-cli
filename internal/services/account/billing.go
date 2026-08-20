@@ -182,7 +182,7 @@ func ListBills(_ *cobra.Command, _ []string) {
 		rows = append(rows, billSecretsView(bill))
 	}
 
-	display.RenderTable(rows, billColumnsToDisplay, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, billColumnsToDisplay)
 }
 
 // GetBill shows one invoice.
@@ -240,7 +240,7 @@ func ListRefunds(_ *cobra.Command, _ []string) {
 		rows = append(rows, billSecretsView(refund))
 	}
 
-	display.RenderTable(rows, refundColumnsToDisplay, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, refundColumnsToDisplay)
 }
 
 // GetRefund shows one refund.
@@ -325,7 +325,7 @@ func ShowUsage(_ *cobra.Command, _ []string) {
 		}
 	}
 
-	display.RenderTable(rows, usageColumns, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, usageColumns)
 }
 
 // decodeUsageEntry turns one raw entry into the shape this command reads.
