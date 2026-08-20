@@ -29,7 +29,7 @@ const (
 	// the first month, not instead of it.
 	orderQuote = `{"orderId": null, "url": null, "prices": {"originalWithoutTax": {"currencyCode": "EUR", "text": "179.98 €", "value": 179.98}, "reduction": {"currencyCode": "EUR", "text": "0.00 €", "value": 0}, "tax": {"currencyCode": "EUR", "text": "0.00 €", "value": 0}, "withTax": {"currencyCode": "EUR", "text": "179.98 €", "value": 179.98}, "withoutTax": {"currencyCode": "EUR", "text": "179.98 €", "value": 179.98}}, "contracts": [{"name": "Annexe Traitement de données à caractère personnel", "url": "https://storage.gra.cloud.ovh.net/v1/AUTH_325716a587c64897acbef9a4a4726e38/contracts/76ecbce-OVH_Data_Protection_Agreement-FR-7.0.pdf"}, {"name": "Specific Conditions for Global Backup \t", "url": "https://storage.gra.cloud.ovh.net/v1/AUTH_325716a587c64897acbef9a4a4726e38/contracts/d2e77b6-Backup_Agent-FR-2.0.pdf"}], "details": [{"detailType": "INSTALLATION", "description": "ADVANCE-1 | AMD EPYC 4244P location - centre de données gra - ", "quantity": 1, "totalPrice": {"currencyCode": "EUR", "text": "89.99 €", "value": 89.99}}, {"detailType": "DURATION", "description": "ADVANCE-1 | AMD EPYC 4244P location - centre de données gra - 1 mois", "quantity": 1, "totalPrice": {"currencyCode": "EUR", "text": "89.99 €", "value": 89.99}}, {"detailType": "DURATION", "description": "25Gbps guaranteed unmetered private bandwidth location - 1 mois", "quantity": 1, "totalPrice": {"currencyCode": "EUR", "text": "0.00 €", "value": 0}}]}`
 
-	orderPlaced = `{"orderId": 220912275, "url": "https://www.ovh.com/manager/order/220912275", "prices": {"withoutTax": {"currencyCode": "EUR", "text": "179.98 EUR", "value": 179.98}, "withTax": {"currencyCode": "EUR", "text": "179.98 EUR", "value": 179.98}}}`
+	orderPlaced = `{"orderId": 900000001, "url": "https://www.ovh.com/manager/order/900000001", "prices": {"withoutTax": {"currencyCode": "EUR", "text": "179.98 EUR", "value": 179.98}, "withTax": {"currencyCode": "EUR", "text": "179.98 EUR", "value": 179.98}}}`
 
 	orderCartID = "6b05735b-a551-486d-bf8c-9b89d0b5d16e"
 )
@@ -112,7 +112,7 @@ func (ms *MockSuite) TestBaremetalOrderPlacesTheOrderAndNamesTheProduct(assert, 
 	out, err := cmd.Execute("baremetal", "order", "24adv01-v3", "--datacenter", "gra", "--yes")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("220912275"), "the order number is reported")
+	assert.Cmp(out, td.Contains("900000001"), "the order number is reported")
 	assert.Cmp(orderCalls("checkout"), 1, "exactly one order is placed")
 	assert.Cmp(orderCalls("cart"), 1, "from exactly one cart")
 
