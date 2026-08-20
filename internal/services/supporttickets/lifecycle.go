@@ -28,7 +28,7 @@ var ReopenSpec struct {
 // readTicket fetches one ticket so a command can say what it is about to act
 // on. Naming the subject in a confirmation is the difference between agreeing
 // to close "12345" and agreeing to close "12345 \"Disk replacement on
-// ns3118333\"": the identifier alone is not something an operator can check.
+// ns0000006\"": the identifier alone is not something an operator can check.
 func readTicket(id string) (map[string]any, error) {
 	var ticket map[string]any
 	if err := httpLib.Client.Get(fmt.Sprintf("%s/%s", TicketsPath, url.PathEscape(id)), &ticket); err != nil {
