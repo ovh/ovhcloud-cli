@@ -13,7 +13,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
 )
 
-const testRipeBlock = "https://eu.api.ovh.com/v1/ip/151.80.69.32%2F30"
+const testRipeBlock = "https://eu.api.ovh.com/v1/ip/203.0.113.32%2F30"
 
 // The API takes the whole RIPE object, so a request carrying only one field
 // would publish an empty other one — in the public registry, and without
@@ -29,7 +29,7 @@ func (ms *MockSuite) TestIpRipeSetKeepsTheFieldItWasNotAskedToChange(assert, req
 			return httpmock.NewStringResponse(200, `null`), nil
 		})
 
-	_, err := cmd.Execute("ip", "ripe", "set", "151.80.69.32/30",
+	_, err := cmd.Execute("ip", "ripe", "set", "203.0.113.32/30",
 		"--description", "Renamed", "--yes")
 
 	require.CmpNoError(err)
@@ -38,7 +38,7 @@ func (ms *MockSuite) TestIpRipeSetKeepsTheFieldItWasNotAskedToChange(assert, req
 }
 
 func (ms *MockSuite) TestIpRipeSetRefusesToChangeNothing(assert, require *td.T) {
-	_, err := cmd.Execute("ip", "ripe", "set", "151.80.69.32/30", "--yes")
+	_, err := cmd.Execute("ip", "ripe", "set", "203.0.113.32/30", "--yes")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("--netname"))
@@ -198,7 +198,7 @@ func (ms *MockSuite) TestIpByoipSliceRefusesAnImpossiblePrefix(assert, require *
 // A blank value is not a value: --netname "  " passed the "nothing to change"
 // guard and would have published a blank netname to the public registry.
 func (ms *MockSuite) TestIpRipeSetRefusesABlankChange(assert, require *td.T) {
-	_, err := cmd.Execute("ip", "ripe", "set", "151.80.69.32/30", "--netname", "   ", "--yes")
+	_, err := cmd.Execute("ip", "ripe", "set", "203.0.113.32/30", "--netname", "   ", "--yes")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("nothing to change"))
