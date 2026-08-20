@@ -17,8 +17,8 @@ import (
 
 func sample() []destination {
 	return []destination{
-		{Family: "dedicatedServer", Service: "ns3018397.ip-57-128-116.eu"},
-		{Family: "dedicatedServer", Service: "ns3118333.ip-51-68-100.eu"},
+		{Family: "dedicatedServer", Service: "ns0000005.ip-203-0-113.eu"},
+		{Family: "dedicatedServer", Service: "ns0000006.ip-203-0-113.eu"},
 		{Family: "vps", Service: "vps-c924a68c.vps.ovh.net", Nexthop: []string{"1.2.3.4"}},
 	}
 }
@@ -29,7 +29,7 @@ func TestPickDestinationIgnoresCase(t *testing.T) {
 	chosen, ok := pickDestination(sample(), "NS3118333.IP-51-68-100.EU")
 
 	td.Require(t).Cmp(ok, true)
-	td.Cmp(t, chosen.Service, "ns3118333.ip-51-68-100.eu")
+	td.Cmp(t, chosen.Service, "ns0000006.ip-203-0-113.eu")
 	td.Cmp(t, chosen.Family, "dedicatedServer")
 }
 
@@ -43,7 +43,7 @@ func TestPickDestinationRefusesWhatIsNotThere(t *testing.T) {
 // offered a hundred destinations for one address, so the families are counted
 // and the command that lists them is given.
 func TestUnknownDestinationCountsRatherThanLists(t *testing.T) {
-	err := unknownDestination("135.125.71.80/32", "ns9999999.example", sample())
+	err := unknownDestination("203.0.113.80/32", "ns9999999.example", sample())
 
 	td.Require(t).CmpError(err)
 	message := err.Error()
@@ -51,7 +51,7 @@ func TestUnknownDestinationCountsRatherThanLists(t *testing.T) {
 	td.Cmp(t, message, td.Contains("ns9999999.example"))
 	td.Cmp(t, message, td.Contains("2 dedicatedServer"))
 	td.Cmp(t, message, td.Contains("1 vps"))
-	td.Cmp(t, message, td.Contains("ovhcloud ip destinations 135.125.71.80/32"),
+	td.Cmp(t, message, td.Contains("ovhcloud ip destinations 203.0.113.80/32"),
 		"the way out has to be named")
 	td.Cmp(t, message, td.Not(td.Contains("vps-c924a68c")),
 		"individual services are not listed: there can be a hundred of them")
@@ -61,10 +61,10 @@ func TestUnknownDestinationCountsRatherThanLists(t *testing.T) {
 // only the one it is going to. That service is the thing that goes dark, and
 // it is the only part the operator cannot see from the command they typed.
 func TestMoveWarningNamesTheServiceThatLosesTheIp(t *testing.T) {
-	warning := moveWarning("135.125.71.80/32", "ns3018397.ip-57-128-116.eu", sample()[1])
+	warning := moveWarning("203.0.113.80/32", "ns0000005.ip-203-0-113.eu", sample()[1])
 
-	td.Cmp(t, warning, td.Contains("ns3018397.ip-57-128-116.eu"), "what it leaves")
-	td.Cmp(t, warning, td.Contains("ns3118333.ip-51-68-100.eu"), "where it goes")
+	td.Cmp(t, warning, td.Contains("ns0000005.ip-203-0-113.eu"), "what it leaves")
+	td.Cmp(t, warning, td.Contains("ns0000006.ip-203-0-113.eu"), "where it goes")
 	td.Cmp(t, warning, td.Contains("dedicatedServer"))
 }
 
@@ -72,7 +72,7 @@ func TestMoveWarningNamesTheServiceThatLosesTheIp(t *testing.T) {
 // stop, and saying there is would be a warning about something that is not
 // happening.
 func TestMoveWarningSaysSoWhenNothingIsServed(t *testing.T) {
-	warning := moveWarning("135.125.71.80/32", "", sample()[1])
+	warning := moveWarning("203.0.113.80/32", "", sample()[1])
 
 	td.Cmp(t, warning, td.Contains("not routed to any service"))
 	td.Cmp(t, strings.Contains(warning, "stops the traffic"), false,
@@ -135,9 +135,9 @@ func withIpAPI(t *testing.T, attempts int, block string) {
 // that trusts the task it was handed can report success while the other half
 // is still running.
 func TestWaitForRoutingReturnsWhenTheIpHasActuallyMoved(t *testing.T) {
-	withIpAPI(t, 5, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": "ns3118333.ip-51-68-100.eu"}}`)
+	withIpAPI(t, 5, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": "ns0000006.ip-203-0-113.eu"}}`)
 
-	td.CmpNoError(t, waitForRouting("1.2.3.4/32", "ns3118333.ip-51-68-100.eu"))
+	td.CmpNoError(t, waitForRouting("1.2.3.4/32", "ns0000006.ip-203-0-113.eu"))
 }
 
 // An empty destination is the parked state, and it has to be distinguishable
@@ -152,9 +152,9 @@ func TestWaitForRoutingRecognisesParked(t *testing.T) {
 // the task may well still be running. Measured on a real move, the IP was
 // still on its old service a minute after the request was accepted.
 func TestWaitForRoutingTimesOutWithoutClaimingFailure(t *testing.T) {
-	withIpAPI(t, 2, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": "ns3018397.ip-57-128-116.eu"}}`)
+	withIpAPI(t, 2, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": "ns0000005.ip-203-0-113.eu"}}`)
 
-	err := waitForRouting("1.2.3.4/32", "ns3118333.ip-51-68-100.eu")
+	err := waitForRouting("1.2.3.4/32", "ns0000006.ip-203-0-113.eu")
 
 	td.Require(t).CmpError(err)
 	td.Cmp(t, err.Error(), td.Contains("stopped waiting"))
