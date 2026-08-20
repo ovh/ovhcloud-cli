@@ -227,3 +227,13 @@ func (ms *MockSuite) TestBaremetalPowerOnDoesNotRebootARunningServer(assert, req
 	assert.Cmp(powerCallCount("POST", "/reboot"), 0, "and the server is left running")
 	assert.Cmp(out, td.Contains("already running"))
 }
+
+// `power status` renders one object, so it has no rows to filter. A flag that
+// can only be ignored is worse than an absent one: docgen documents it, cobra
+// accepts it, and the operator believes the answer was narrowed.
+func (ms *MockSuite) TestBaremetalPowerStatusOffersNoFilterFlag(assert, require *td.T) {
+	_, err := cmd.Execute("baremetal", "power", "status", powerServer, "--filter", `x=="y"`)
+
+	require.CmpError(err, "--filter must not be accepted on a single-object command")
+	assert.Cmp(err.Error(), td.Contains("filter"))
+}
