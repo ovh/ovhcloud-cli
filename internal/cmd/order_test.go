@@ -249,3 +249,16 @@ func (ms *MockSuite) TestOrderGetRefusesSomethingThatIsNotAnOrderNumber(assert, 
 	assert.Cmp(err.Error(), td.Contains("ovhcloud order list"))
 	assert.Cmp(httpmock.GetTotalCallCount(), 0)
 }
+
+// --filter is registered on `order follow`, so it has to reach the four step
+// rows. The assertion that carries this test is the absence of the excluded
+// steps: asserting only the kept one would pass with no filtering at all.
+func (ms *MockSuite) TestOrderFollowIsFiltered(assert, require *td.T) {
+	registerFollowUp("delivered", realOrder)
+
+	out, err := cmd.Execute("order", "follow", "900000004", "--filter", `step=="DELIVERING"`)
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("DELIVERING"))
+	assert.Cmp(out, td.Not(td.Contains("VALIDATING")), "a step the filter excludes must not be printed")
+}
