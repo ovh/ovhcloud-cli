@@ -35,6 +35,12 @@ var (
 	//go:embed templates/iam_resource_group.tmpl
 	iamResourceGroupTemplate string
 
+	//go:embed templates/iam_credential.tmpl
+	credentialTemplate string
+
+	//go:embed templates/iam_application.tmpl
+	applicationTemplate string
+
 	//go:embed parameter-samples/policy-create.json
 	IAMPolicyCreateExample string
 

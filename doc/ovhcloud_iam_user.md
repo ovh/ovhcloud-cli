@@ -32,7 +32,9 @@ Manage IAM users
 * [ovhcloud iam](ovhcloud_iam.md)	 - Manage IAM resources, permissions and policies
 * [ovhcloud iam user create](ovhcloud_iam_user_create.md)	 - Create a new user
 * [ovhcloud iam user delete](ovhcloud_iam_user_delete.md)	 - Delete a specific IAM user
+* [ovhcloud iam user disable](ovhcloud_iam_user_disable.md)	 - Disable an IAM user
 * [ovhcloud iam user edit](ovhcloud_iam_user_edit.md)	 - Edit an existing user
+* [ovhcloud iam user enable](ovhcloud_iam_user_enable.md)	 - Enable an IAM user
 * [ovhcloud iam user get](ovhcloud_iam_user_get.md)	 - Get a specific IAM user
 * [ovhcloud iam user list](ovhcloud_iam_user_list.md)	 - List IAM users
 * [ovhcloud iam user token](ovhcloud_iam_user_token.md)	 - Manage IAM user tokens

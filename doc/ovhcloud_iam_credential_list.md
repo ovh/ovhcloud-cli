@@ -1,11 +1,32 @@
-## ovhcloud iam
+## ovhcloud iam credential list
 
-Manage IAM resources, permissions and policies
+List the API credentials of your account
+
+### Synopsis
+
+List the API credentials of your account.
+
+The scope column says how far a key reaches: a rule on /* covers the whole
+API with that verb. Use --unused to find the keys that were never used.
+
+```
+ovhcloud iam credential list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for iam
+      --application int      Keep only the credentials of this application
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
+      --status string        Keep only the credentials in this state
+      --unused               Keep only the credentials that were never used
 ```
 
 ### Options inherited from parent commands
@@ -29,14 +50,5 @@ Manage IAM resources, permissions and policies
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud iam application](ovhcloud_iam_application.md)	 - Manage the applications your API credentials are issued against
-* [ovhcloud iam check](ovhcloud_iam_check.md)	 - Check whether the current identity may perform actions on resources
 * [ovhcloud iam credential](ovhcloud_iam_credential.md)	 - Manage the API credentials of your account
-* [ovhcloud iam permissions-group](ovhcloud_iam_permissions-group.md)	 - Manage IAM permissions groups
-* [ovhcloud iam policy](ovhcloud_iam_policy.md)	 - Manage IAM policies
-* [ovhcloud iam reference](ovhcloud_iam_reference.md)	 - Read what can be granted by an IAM policy
-* [ovhcloud iam resource](ovhcloud_iam_resource.md)	 - Manage IAM resources
-* [ovhcloud iam resource-group](ovhcloud_iam_resource-group.md)	 - Manage IAM resource groups
-* [ovhcloud iam user](ovhcloud_iam_user.md)	 - Manage IAM users
 
