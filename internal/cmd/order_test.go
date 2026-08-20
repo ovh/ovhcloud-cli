@@ -18,7 +18,7 @@ import (
 // the API's own shape: it hands out an access token in a query string, which is
 // why `list` never prints one and `get` says what the link carries.
 const (
-	realOrder = `{"orderId": 256729207, "date": "2026-08-16T02:17:31+02:00", "expirationDate": "2026-08-23T02:17:31+02:00", "retractionDate": null, "password": "Ex4mpleP4ss", "metadatas": [], "priceWithTax": {"text": "5.48 EUR", "value": 5.48, "currencyCode": "EUR"}, "priceWithoutTax": {"text": "5.48 EUR", "value": 5.48, "currencyCode": "EUR"}, "tax": {"text": "0.00 EUR", "value": 0, "currencyCode": "EUR"}, "url": "https://www.ovh.com/cgi-bin/order/display-order.cgi?orderId=256729207&orderPassword=Ex4mpleP4ss", "pdfUrl": "https://www.ovh.com/cgi-bin/order/display-order.cgi?orderId=256729207&orderPassword=Ex4mpleP4ss"}`
+	realOrder = `{"orderId": 900000004, "date": "2026-08-16T02:17:31+02:00", "expirationDate": "2026-08-23T02:17:31+02:00", "retractionDate": null, "password": "Ex4mpleP4ss", "metadatas": [], "priceWithTax": {"text": "5.48 EUR", "value": 5.48, "currencyCode": "EUR"}, "priceWithoutTax": {"text": "5.48 EUR", "value": 5.48, "currencyCode": "EUR"}, "tax": {"text": "0.00 EUR", "value": 0, "currencyCode": "EUR"}, "url": "https://www.ovh.com/cgi-bin/order/display-order.cgi?orderId=900000004&orderPassword=Ex4mpleP4ss", "pdfUrl": "https://www.ovh.com/cgi-bin/order/display-order.cgi?orderId=900000004&orderPassword=Ex4mpleP4ss"}`
 
 	// The API's own answer on an order it calls "delivered": four steps, all
 	// TODO, no history. Which is why `follow` prints the overall status too.
@@ -45,23 +45,23 @@ func registerFollowUp(status, order string) {
 	base := "https://eu.api.ovh.com/v1/me"
 
 	httpmock.RegisterResponder("GET", `=~^https://eu\.api\.ovh\.com/v1/me/order\?`,
-		httpmock.NewStringResponder(200, `[256729207]`))
-	httpmock.RegisterResponder("GET", base+"/order/256729207",
+		httpmock.NewStringResponder(200, `[900000004]`))
+	httpmock.RegisterResponder("GET", base+"/order/900000004",
 		httpmock.NewStringResponder(200, order))
-	httpmock.RegisterResponder("GET", base+"/order/256729207/status",
+	httpmock.RegisterResponder("GET", base+"/order/900000004/status",
 		httpmock.NewStringResponder(200, `"`+status+`"`))
-	httpmock.RegisterResponder("GET", base+"/order/256729207/followUp",
+	httpmock.RegisterResponder("GET", base+"/order/900000004/followUp",
 		httpmock.NewStringResponder(200, realFollowUp))
 	httpmock.RegisterResponder("GET", base+"/payment/method?default=true",
 		httpmock.NewStringResponder(200, `[900000010]`))
-	httpmock.RegisterResponder("POST", base+"/order/256729207/pay",
+	httpmock.RegisterResponder("POST", base+"/order/900000004/pay",
 		recordOrderBody("pay", `null`))
-	httpmock.RegisterResponder("POST", base+"/order/256729207/waiveRetraction",
+	httpmock.RegisterResponder("POST", base+"/order/900000004/waiveRetraction",
 		recordOrderBody("waive", `null`))
 }
 
 func orderCallCount(suffix string) int {
-	return httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/me/order/256729207/"+suffix]
+	return httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/me/order/900000004/"+suffix]
 }
 
 // The state of an order is the reason to run `list`, and the API keeps it in a
@@ -72,7 +72,7 @@ func (ms *MockSuite) TestOrderListShowsTheState(assert, require *td.T) {
 	out, err := cmd.Execute("order", "list", "--days", "7")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("256729207"))
+	assert.Cmp(out, td.Contains("900000004"))
 	assert.Cmp(out, td.Contains("delivered"), "the state is fetched, not left blank")
 	assert.Cmp(out, td.Contains("kept"), "and so is whether the order can still be walked back")
 }
@@ -93,7 +93,7 @@ func (ms *MockSuite) TestOrderListDoesNotPrintTheAccessToken(assert, require *td
 func (ms *MockSuite) TestOrderGetShowsTheLinkAndWhatItCarries(assert, require *td.T) {
 	registerFollowUp("delivered", realOrder)
 
-	out, err := cmd.Execute("order", "get", "256729207", "-o", "json")
+	out, err := cmd.Execute("order", "get", "900000004", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("orderPassword=Ex4mpleP4ss"), "the link is handed over")
@@ -106,7 +106,7 @@ func (ms *MockSuite) TestOrderGetShowsTheLinkAndWhatItCarries(assert, require *t
 func (ms *MockSuite) TestOrderFollowPrintsTheOverallStatus(assert, require *td.T) {
 	registerFollowUp("delivered", realOrder)
 
-	out, err := cmd.Execute("order", "follow", "256729207")
+	out, err := cmd.Execute("order", "follow", "900000004")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("VALIDATING"))
@@ -124,14 +124,14 @@ func (ms *MockSuite) TestOrderFollowPrintsTheOverallStatus(assert, require *td.T
 func (ms *MockSuite) TestOrderListKeepsTheNewestWhenItStopsAtTheLimit(assert, require *td.T) {
 	registerFollowUp("delivered", realOrder)
 	httpmock.RegisterResponder("GET", `=~^https://eu\.api\.ovh\.com/v1/me/order\?`,
-		httpmock.NewStringResponder(200, `[256729207, 256700494, 256626338]`))
+		httpmock.NewStringResponder(200, `[900000004, 900000003, 900000002]`))
 
 	_, err := cmd.Execute("order", "list", "--days", "7", "--limit", "1")
 
 	require.CmpNoError(err)
-	assert.Cmp(httpmock.GetCallCountInfo()["GET https://eu.api.ovh.com/v1/me/order/256729207"], 1,
+	assert.Cmp(httpmock.GetCallCountInfo()["GET https://eu.api.ovh.com/v1/me/order/900000004"], 1,
 		"the newest order is the one read")
-	assert.Cmp(httpmock.GetCallCountInfo()["GET https://eu.api.ovh.com/v1/me/order/256626338"], 0,
+	assert.Cmp(httpmock.GetCallCountInfo()["GET https://eu.api.ovh.com/v1/me/order/900000002"], 0,
 		"and the oldest is not")
 }
 
@@ -159,7 +159,7 @@ func (ms *MockSuite) TestOrderListRefusesADateItCannotParse(assert, require *td.
 func (ms *MockSuite) TestOrderPayRefusesWithoutConfirmation(assert, require *td.T) {
 	registerFollowUp("notPaid", realOrder)
 
-	_, err := cmd.Execute("order", "pay", "256729207")
+	_, err := cmd.Execute("order", "pay", "900000004")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("cancelled"))
@@ -171,7 +171,7 @@ func (ms *MockSuite) TestOrderPayRefusesWithoutConfirmation(assert, require *td.
 func (ms *MockSuite) TestOrderPayUsesTheDefaultPaymentMethod(assert, require *td.T) {
 	registerFollowUp("notPaid", realOrder)
 
-	out, err := cmd.Execute("order", "pay", "256729207", "--yes")
+	out, err := cmd.Execute("order", "pay", "900000004", "--yes")
 
 	require.CmpNoError(err)
 	require.Cmp(len(orderBodiesB["pay"]), 1)
@@ -186,7 +186,7 @@ func (ms *MockSuite) TestOrderPayUsesTheDefaultPaymentMethod(assert, require *td
 func (ms *MockSuite) TestOrderPayRefusesAnOrderAlreadySettled(assert, require *td.T) {
 	registerFollowUp("delivered", realOrder)
 
-	_, err := cmd.Execute("order", "pay", "256729207", "--yes")
+	_, err := cmd.Execute("order", "pay", "900000004", "--yes")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("not awaiting payment"))
@@ -196,10 +196,10 @@ func (ms *MockSuite) TestOrderPayRefusesAnOrderAlreadySettled(assert, require *t
 func (ms *MockSuite) TestOrderPayDryRunSendsNothing(assert, require *td.T) {
 	registerFollowUp("notPaid", realOrder)
 
-	out, err := cmd.Execute("order", "pay", "256729207", "--dry-run")
+	out, err := cmd.Execute("order", "pay", "900000004", "--dry-run")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("/v1/me/order/256729207/pay"))
+	assert.Cmp(out, td.Contains("/v1/me/order/900000004/pay"))
 	assert.Cmp(orderCallCount("pay"), 0)
 }
 
@@ -208,7 +208,7 @@ func (ms *MockSuite) TestOrderPayDryRunSendsNothing(assert, require *td.T) {
 func (ms *MockSuite) TestOrderWaiveRetractionRefusesWithoutConfirmation(assert, require *td.T) {
 	registerFollowUp("delivered", realOrder)
 
-	_, err := cmd.Execute("order", "waive-retraction", "256729207")
+	_, err := cmd.Execute("order", "waive-retraction", "900000004")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("keeps its retraction period"))
@@ -218,7 +218,7 @@ func (ms *MockSuite) TestOrderWaiveRetractionRefusesWithoutConfirmation(assert, 
 func (ms *MockSuite) TestOrderWaiveRetractionProceedsWithYes(assert, require *td.T) {
 	registerFollowUp("delivered", realOrder)
 
-	out, err := cmd.Execute("order", "waive-retraction", "256729207", "--yes")
+	out, err := cmd.Execute("order", "waive-retraction", "900000004", "--yes")
 
 	require.CmpNoError(err)
 	assert.Cmp(orderCallCount("waiveRetraction"), 1)
@@ -229,9 +229,9 @@ func (ms *MockSuite) TestOrderWaiveRetractionProceedsWithYes(assert, require *td
 // the order the CLI just read.
 func (ms *MockSuite) TestOrderWaiveRetractionRefusesWhenAlreadyWaived(assert, require *td.T) {
 	registerFollowUp("delivered",
-		`{"orderId": 256729207, "date": "2026-08-16T02:17:31+02:00", "retractionDate": "2026-08-17T09:00:00+02:00", "priceWithTax": {"text": "5.48 EUR", "value": 5.48, "currencyCode": "EUR"}, "priceWithoutTax": {"text": "5.48 EUR", "value": 5.48, "currencyCode": "EUR"}, "url": "https://example.invalid", "pdfUrl": "https://example.invalid"}`)
+		`{"orderId": 900000004, "date": "2026-08-16T02:17:31+02:00", "retractionDate": "2026-08-17T09:00:00+02:00", "priceWithTax": {"text": "5.48 EUR", "value": 5.48, "currencyCode": "EUR"}, "priceWithoutTax": {"text": "5.48 EUR", "value": 5.48, "currencyCode": "EUR"}, "url": "https://example.invalid", "pdfUrl": "https://example.invalid"}`)
 
-	_, err := cmd.Execute("order", "waive-retraction", "256729207", "--yes")
+	_, err := cmd.Execute("order", "waive-retraction", "900000004", "--yes")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("already waived on 2026-08-17"))
