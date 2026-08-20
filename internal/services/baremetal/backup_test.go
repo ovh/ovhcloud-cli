@@ -42,7 +42,7 @@ func TestAclProtocolsReadsAsAList(t *testing.T) {
 // measured on a real account, the European servers offer around thirty and the
 // Canadian ones five — their own.
 func TestPickBlockIgnoresCaseAndAnswersTheApiSpelling(t *testing.T) {
-	block, ok := pickBlock([]string{"2001:DB8::/64", "51.68.100.160/28"}, "2001:db8::/64")
+	block, ok := pickBlock([]string{"2001:DB8::/64", "203.0.113.160/28"}, "2001:db8::/64")
 	if !ok {
 		t.Fatal("a block the server accepts must be accepted")
 	}
@@ -50,7 +50,7 @@ func TestPickBlockIgnoresCaseAndAnswersTheApiSpelling(t *testing.T) {
 		t.Fatalf("the API spelling must be sent, got %q", block)
 	}
 
-	if _, ok := pickBlock([]string{"51.68.100.160/28"}, "1.2.3.4/32"); ok {
+	if _, ok := pickBlock([]string{"203.0.113.160/28"}, "1.2.3.4/32"); ok {
 		t.Fatal("a block the server does not accept must be refused")
 	}
 }
