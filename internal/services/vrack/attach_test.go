@@ -14,7 +14,7 @@ import (
 )
 
 // The confirmation is the last moment a wrong target can be noticed, and
-// ns3141022.ip-51-77-67.eu tells nobody which machine that is. 23 of the 35
+// ns0000002.ip-203-0-113.eu tells nobody which machine that is. 23 of the 35
 // servers measured carry a name their owner chose; that is the one that has to
 // be in the sentence.
 func TestDetachWarningNamesTheServerItsOwnerWouldRecognise(t *testing.T) {
@@ -23,14 +23,14 @@ func TestDetachWarningNamesTheServerItsOwnerWouldRecognise(t *testing.T) {
 	itf := serverInterface{
 		UUID:        "f644bc65-4a61-45f4-9bed-90a0059d35e4",
 		Name:        "d0:50:99:d7:55:0b",
-		Server:      "ns3141022.ip-51-77-67.eu",
-		DisplayName: "Yaniv - RISE-1 - LIM",
+		Server:      "ns0000002.ip-203-0-113.eu",
+		DisplayName: "Mail relay - Paris",
 	}
 
 	warning := detachWarning("pn-1066983", itf)
 
-	assert.Contains(warning, "Yaniv - RISE-1 - LIM")
-	assert.Contains(warning, "ns3141022.ip-51-77-67.eu",
+	assert.Contains(warning, "Mail relay - Paris")
+	assert.Contains(warning, "ns0000002.ip-203-0-113.eu",
 		"and the hostname, because display names are neither unique nor freshly read")
 	assert.Contains(warning, "d0:50:99:d7:55:0b", "and the interface, since a server can hold several")
 	assert.Contains(warning, "pn-1066983")
@@ -41,15 +41,15 @@ func TestDetachWarningNamesTheServerItsOwnerWouldRecognise(t *testing.T) {
 func TestLabelFallsBackToTheHostnameWithoutRepeatingIt(t *testing.T) {
 	assert := td.Assert(t)
 
-	assert.Cmp(serverInterface{Server: "ns3070493.ip-57-129-37.eu"}.label(),
-		"ns3070493.ip-57-129-37.eu")
+	assert.Cmp(serverInterface{Server: "ns0000001.ip-203-0-113.eu"}.label(),
+		"ns0000001.ip-203-0-113.eu")
 
 	// The API answers the hostname as the display name when nothing was set.
 	same := serverInterface{
-		Server:      "ns3070493.ip-57-129-37.eu",
-		DisplayName: "ns3070493.ip-57-129-37.eu",
+		Server:      "ns0000001.ip-203-0-113.eu",
+		DisplayName: "ns0000001.ip-203-0-113.eu",
 	}
-	assert.Cmp(same.label(), "ns3070493.ip-57-129-37.eu")
+	assert.Cmp(same.label(), "ns0000001.ip-203-0-113.eu")
 }
 
 // A script holding a UUID from a previous -o json call must be able to pass it
@@ -59,8 +59,8 @@ func TestExplicitUUIDTellsAUUIDFromAHostname(t *testing.T) {
 
 	assert.Cmp(explicitUUID("f644bc65-4a61-45f4-9bed-90a0059d35e4"),
 		"f644bc65-4a61-45f4-9bed-90a0059d35e4")
-	assert.Cmp(explicitUUID("ns3141022.ip-51-77-67.eu"), "")
-	assert.Cmp(explicitUUID("ns31695342.ip-162-19-43.eu"), "")
+	assert.Cmp(explicitUUID("ns0000002.ip-203-0-113.eu"), "")
+	assert.Cmp(explicitUUID("ns0000003.ip-203-0-113.eu"), "")
 	assert.Cmp(explicitUUID("vrack_aggregation"), "")
 }
 
@@ -126,20 +126,20 @@ func TestSummaryDoesNotCallAVrackEmptyWhenItCouldNotBeRead(t *testing.T) {
 }
 
 // A name the CLI prints must be a name the CLI accepts. This command shows
-// "Yaniv - RISE-1 - LIM" in every prompt and every table; an operator copying
+// "Mail relay - Paris" in every prompt and every table; an operator copying
 // it back must not be told the machine has no interface.
 func TestInterfacesOfAcceptsTheNameItPrints(t *testing.T) {
 	assert := td.Assert(t)
 
 	fleet := []serverInterface{
 		{UUID: "aaa", Name: "d0:50:99:d7:55:0b",
-			Server: "ns3141022.ip-51-77-67.eu", DisplayName: "Yaniv - RISE-1 - LIM"},
-		{UUID: "bbb", Name: "9c:6b:00:22:03:32", Server: "ns3070493.ip-57-129-37.eu"},
+			Server: "ns0000002.ip-203-0-113.eu", DisplayName: "Mail relay - Paris"},
+		{UUID: "bbb", Name: "9c:6b:00:22:03:32", Server: "ns0000001.ip-203-0-113.eu"},
 	}
 
-	assert.Cmp(len(interfacesOf(fleet, "ns3141022.ip-51-77-67.eu")), 1, "by hostname")
-	assert.Cmp(len(interfacesOf(fleet, "Yaniv - RISE-1 - LIM")), 1, "and by the name its owner gave it")
-	assert.Cmp(len(interfacesOf(fleet, "yaniv - rise-1 - lim")), 1, "typed by a human, so case-insensitively")
+	assert.Cmp(len(interfacesOf(fleet, "ns0000002.ip-203-0-113.eu")), 1, "by hostname")
+	assert.Cmp(len(interfacesOf(fleet, "Mail relay - Paris")), 1, "and by the name its owner gave it")
+	assert.Cmp(len(interfacesOf(fleet, "mail relay - paris")), 1, "typed by a human, so case-insensitively")
 	assert.Cmp(len(interfacesOf(fleet, "nothing")), 0)
 }
 
