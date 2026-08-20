@@ -120,6 +120,58 @@ func (ms *MockSuite) TestBaremetalBackupCloudPasswordIsWithheldUnderJson(assert,
 	assert.Cmp(out, td.Contains("characters"))
 }
 
+// The same four passwords are not only in the reset response: they are in the
+// object, one level down, under archive and storage. `show` prints that object,
+// and unlike the reset it can be run again and again — including by a script
+// that logs what it reads.
+const backupCloudBody = `{"status":"ok","archive":{"name":"arch","region":"GRA","sftp":{"url":"sftp://x","username":"u1","password":"SftpArchiveSecret1"},"swift":{"authUrl":"https://auth","username":"u2","password":"SwiftArchiveSecret"}},"storage":{"name":"stor","region":"GRA","sftp":{"url":"sftp://y","username":"u3","password":"SftpStorageSecret1"},"swift":{"authUrl":"https://auth","username":"u4","password":"SwiftStorageSecret"}}}`
+
+func (ms *MockSuite) TestBaremetalBackupCloudShowWithholdsTheContainerPasswords(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/ns1.example/features/backupCloud",
+		httpmock.NewStringResponder(200, backupCloudBody))
+
+	out, err := cmd.Execute("baremetal", "backup", "cloud", "show", "ns1.example", "-o", "json")
+
+	require.CmpNoError(err)
+	for _, secret := range []string{
+		"SftpArchiveSecret1", "SwiftArchiveSecret", "SftpStorageSecret1", "SwiftStorageSecret",
+	} {
+		assert.Cmp(out, td.Not(td.Contains(secret)), "%s must not reach a log", secret)
+	}
+	assert.Cmp(out, td.Contains("u1"), "what is not a credential is still printed")
+	assert.Cmp(out, td.Contains("characters"), "and the fingerprint says a password was there")
+}
+
+// Withholding is not hiding: the operator who needs the credential asks for it,
+// and then owns what they do with the output.
+func (ms *MockSuite) TestBaremetalBackupCloudShowRevealsOnDemand(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/ns1.example/features/backupCloud",
+		httpmock.NewStringResponder(200, backupCloudBody))
+
+	out, err := cmd.Execute("baremetal", "backup", "cloud", "show", "ns1.example",
+		"--reveal", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("SftpArchiveSecret1"))
+	assert.Cmp(out, td.Contains("SwiftStorageSecret"))
+}
+
+// Creation answers with the same object, so it leaks the same four.
+func (ms *MockSuite) TestBaremetalBackupCloudCreateWithholdsTheContainerPasswords(assert, require *td.T) {
+	httpmock.RegisterResponder("POST",
+		"https://eu.api.ovh.com/v1/dedicated/server/ns1.example/features/backupCloud",
+		httpmock.NewStringResponder(200, backupCloudBody))
+
+	out, err := cmd.Execute("baremetal", "backup", "cloud", "create", "ns1.example",
+		"--yes", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("SftpArchiveSecret1")))
+	assert.Cmp(out, td.Not(td.Contains("SwiftStorageSecret")))
+}
+
 // A server with no capacity to order says so rather than printing an empty
 // list: four of thirty-five measured were in that state.
 func (ms *MockSuite) TestBaremetalBackupOrderableSaysWhenThereIsNothing(assert, require *td.T) {

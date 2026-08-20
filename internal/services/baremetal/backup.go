@@ -408,7 +408,7 @@ func ShowBackupCloud(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputObject(backup, server, "", &flags.OutputFormatConfig)
+	display.OutputObject(maskBackupCloud(backup), server, "", &flags.OutputFormatConfig)
 }
 
 // ShowBackupCloudOffer shows what the cloud backup of this server would hold.
@@ -468,7 +468,7 @@ func CreateBackupCloud(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputObject(created, server, "", &flags.OutputFormatConfig)
+	display.OutputObject(maskBackupCloud(created), server, "", &flags.OutputFormatConfig)
 }
 
 // DeleteBackupCloud deactivates the cloud backup of a server.
@@ -750,6 +750,73 @@ func pickBlock(allowed []string, wanted string) (string, bool) {
 func unauthorizableBlock(server, block string, allowed []string) error {
 	return fmt.Errorf("%s cannot be allowed on the Backup FTP space of %s.\n   %d block(s) can — list them with: ovhcloud baremetal backup ftp authorizable-blocks %s",
 		block, server, len(allowed), server)
+}
+
+// maskBackupCloud withholds the credentials the cloud backup object carries.
+//
+// The reset command already withholds four passwords, on the reasoning that a
+// password reset is exactly what somebody runs with the output on screen or in
+// a build log. The same four are in the object every `show` and `create`
+// prints, one level down: archive and storage each carry an sftp and a swift
+// block, and each of those a password — `format: password` in the schema, all
+// four of them. Masking on one command and printing on the two others is not a
+// policy, it is an oversight; and `show` is the one that can be run again and
+// again, so it is the likelier leak of the three.
+//
+// The walk keys on the name rather than on a list of the four paths, because
+// the object is a tree the API grows: a third container, or a third protocol
+// under an existing one, would otherwise be printed in the clear by a masker
+// that still looked like it was doing its job.
+func maskBackupCloud(object map[string]any) map[string]any {
+	if RevealBackupPassword {
+		return object
+	}
+
+	masked, changed := maskPasswords(object)
+	view, _ := masked.(map[string]any)
+	if view == nil {
+		return object
+	}
+	if changed {
+		view["hidden"] = true
+	}
+	return view
+}
+
+// maskPasswords copies the tree, replacing every value under a "password" key
+// with its fingerprint. It copies rather than edits in place: the caller's
+// object is also what -o json would have rendered, and a masker that mutated
+// its input would be a masker whose correctness depended on call order.
+func maskPasswords(value any) (any, bool) {
+	switch typed := value.(type) {
+	case map[string]any:
+		copied := make(map[string]any, len(typed))
+		changed := false
+		for key, item := range typed {
+			if key == "password" {
+				if text, ok := item.(string); ok && text != "" {
+					copied[key] = common.Fingerprint(text)
+					changed = true
+					continue
+				}
+			}
+			sub, subChanged := maskPasswords(item)
+			copied[key] = sub
+			changed = changed || subChanged
+		}
+		return copied, changed
+	case []any:
+		copied := make([]any, len(typed))
+		changed := false
+		for i, item := range typed {
+			sub, subChanged := maskPasswords(item)
+			copied[i] = sub
+			changed = changed || subChanged
+		}
+		return copied, changed
+	default:
+		return value, false
+	}
 }
 
 // backupPasswordView replaces each password with its fingerprint unless
