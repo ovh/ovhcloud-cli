@@ -7,6 +7,7 @@ package baremetal
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"sort"
@@ -204,6 +205,17 @@ func diagnoseAll(servers []string) ([]diagnosis, error) {
 }
 
 // diagnose reads one server and reports what is wrong with it.
+//
+// Five reads. The first one is fatal — without the server object there is
+// nothing to check — and the other four each answer for one check. A check
+// whose read fails does not disappear: it becomes a finding of its own.
+//
+// It used to disappear. Four of the five reads discarded their error, so a
+// server whose boot entry, renewal, running tasks and planned interventions had
+// all failed to read printed "✅ Nothing to report" — the one answer this
+// command must never give wrongly, and the exact opposite of the rule it states
+// about a server it could not read. Under --strict it also exited 0, so a
+// pipeline built on it read four dead checks as a green gate.
 func diagnose(server string) diagnosis {
 	escaped := url.PathEscape(server)
 
@@ -217,30 +229,62 @@ func diagnose(server string) diagnosis {
 	found = append(found, checkIntervention(server, detail)...)
 
 	var boot map[string]any
-	if bootID := bootIdentifier(detail); bootID != 0 {
-		if err := httpLib.Client.Get(
-			fmt.Sprintf("/v1/dedicated/server/%s/boot/%d", escaped, bootID), &boot); err == nil {
-			found = append(found, checkBoot(server, boot)...)
-		}
+	if bootID := bootIdentifier(detail); bootID == 0 {
+		found = append(found, uncheckable(server, "boot",
+			errors.New("the server object carries no boot identifier")))
+	} else if err := httpLib.Client.Get(
+		fmt.Sprintf("/v1/dedicated/server/%s/boot/%d", escaped, bootID), &boot); err != nil {
+		found = append(found, uncheckable(server, "boot", err))
+	} else {
+		found = append(found, checkBoot(server, boot)...)
 	}
 
-	if readings := readServiceInfos(escaped, renewalReadings); len(readings) > 0 {
+	// A short read is not a weaker answer here, it is no answer: the renewal
+	// check needs its five readings because this field disagrees with itself,
+	// and three agree by chance about once in four. Deciding on one reading
+	// would be the coin toss the check exists to refuse.
+	if readings, err := readServiceInfos(escaped, renewalReadings); err != nil {
+		found = append(found, uncheckable(server, "renewal", err))
+	} else {
 		found = append(found, checkRenewal(server, readings)...)
 	}
 
 	var running []int64
 	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/dedicated/server/%s/task?status=doing", escaped), &running); err == nil {
+		fmt.Sprintf("/v1/dedicated/server/%s/task?status=doing", escaped), &running); err != nil {
+		found = append(found, uncheckable(server, "tasks", err))
+	} else {
 		found = append(found, checkTasks(server, running)...)
 	}
 
 	var planned []int64
 	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/dedicated/server/%s/plannedIntervention", escaped), &planned); err == nil {
+		fmt.Sprintf("/v1/dedicated/server/%s/plannedIntervention", escaped), &planned); err != nil {
+		found = append(found, uncheckable(server, "planned-intervention", err))
+	} else {
 		found = append(found, checkPlannedIntervention(server, planned)...)
 	}
 
 	return diagnosis{Server: server, Findings: found}
+}
+
+// uncheckable turns a check that could not be run into a finding.
+//
+// A finding rather than a counter, so that it travels the same way as
+// everything else: it sorts with the rest, it is in -o json, --filter reaches
+// it, and it makes the finding list non-empty — which is what mechanically
+// removes "Nothing to report" and, under --strict, the zero exit code. Nothing
+// here has to remember to check a second list.
+//
+// warning and not critical: a check that did not run is not evidence of a
+// problem. It is the withdrawal of the guarantee, and the guarantee is the
+// whole product of this command.
+func uncheckable(server, check string, err error) finding {
+	return finding{
+		Server: server, Severity: warning, Check: check,
+		Detail: fmt.Sprintf("this check could not be run, so nothing here answers for it: %s", err),
+		Fix:    fmt.Sprintf("ovhcloud baremetal doctor %s, once the API answers again", server),
+	}
 }
 
 // checkBoot reports a server that will not come up on its own disk.
@@ -371,19 +415,22 @@ func checkIntervention(server string, detail map[string]any) []finding {
 const renewalReadings = 5
 
 // readServiceInfos reads the billing object several times.
-func readServiceInfos(escaped string, times int) []map[string]any {
+func readServiceInfos(escaped string, times int) ([]map[string]any, error) {
 	readings := make([]map[string]any, 0, times)
 
 	for range times {
 		var infos map[string]any
 		if err := httpLib.Client.Get(
 			fmt.Sprintf("/v1/dedicated/server/%s/serviceInfos", escaped), &infos); err != nil {
-			return readings
+			// The readings gathered so far are returned with the error, but the
+			// error is the answer: a vote decided on fewer ballots than it needs
+			// is not a smaller vote, it is a different one.
+			return readings, err
 		}
 		readings = append(readings, infos)
 	}
 
-	return readings
+	return readings, nil
 }
 
 // checkRenewal reports a server on its way out — or the fact that the API will
