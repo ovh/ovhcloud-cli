@@ -15,7 +15,7 @@ import (
 // mistaken for a title triggers a sweep that finds nothing, and a title
 // mistaken for a UUID is sent to the API as a stream identifier.
 func TestAStreamIdentifierIsRecognisedByItsShape(t *testing.T) {
-	if !looksLikeUUID("4459af12-6451-45de-808b-2b959c11a17e") {
+	if !looksLikeUUID("00000000-6451-45de-808b-2b959c11a17e") {
 		t.Fatal("a real stream identifier must be taken as one")
 	}
 	if !looksLikeUUID("4459AF12-6451-45DE-808B-2B959C11A17E") {
@@ -26,9 +26,9 @@ func TestAStreamIdentifierIsRecognisedByItsShape(t *testing.T) {
 		"TO REMOVE 1",
 		"datastream_test",
 		"",
-		"4459af12-6451-45de-808b-2b959c11a17",           // one short
-		"4459af12-6451-45de-808b-2b959c11a17ee",         // one long
-		"4459af12x6451-45de-808b-2b959c11a17e",          // separator moved
+		"00000000-6451-45de-808b-2b959c11a17",           // one short
+		"00000000-6451-45de-808b-2b959c11a17ee",         // one long
+		"00000000x6451-45de-808b-2b959c11a17e",          // separator moved
 		"zzzzzzzz-6451-45de-808b-2b959c11a17e",          // not hexadecimal
 		"Prestashop nginx logs (filebeat) padded to 36", // right length, wrong everything
 	} {
@@ -42,11 +42,11 @@ func TestAStreamIdentifierIsRecognisedByItsShape(t *testing.T) {
 // caller already holds is work done to learn nothing, and it is what `-o json`
 // hands back.
 func TestAnIdentifierIsUsedWithoutASweep(t *testing.T) {
-	stream, err := resolveStream("4459af12-6451-45de-808b-2b959c11a17e")
+	stream, err := resolveStream("00000000-6451-45de-808b-2b959c11a17e")
 	if err != nil {
 		t.Fatalf("an identifier must resolve to itself: %s", err)
 	}
-	if stream.StreamID != "4459af12-6451-45de-808b-2b959c11a17e" {
+	if stream.StreamID != "00000000-6451-45de-808b-2b959c11a17e" {
 		t.Fatalf("got %q", stream.StreamID)
 	}
 	if stream.Title != "" || stream.ServiceName != "" {
@@ -84,13 +84,13 @@ func TestNearbyTitlesNamesAFewAndCountsTheRest(t *testing.T) {
 // title, the identifier the API acted on is shown beside it; when they pasted
 // an identifier, repeating it says nothing.
 func TestAStreamIsNamedTheWayItWasAskedFor(t *testing.T) {
-	titled := streamLabel(ldpStream{Title: "TO REMOVE 1", StreamID: "69813166-7b66-4a09-8fcd-c47781d23966", ServiceName: "ldp-nx-19421"})
-	if !strings.Contains(titled, "TO REMOVE 1") || !strings.Contains(titled, "ldp-nx-19421") {
+	titled := streamLabel(ldpStream{Title: "TO REMOVE 1", StreamID: "00000000-0000-4000-8000-000000000001", ServiceName: "ldp-xx-00000"})
+	if !strings.Contains(titled, "TO REMOVE 1") || !strings.Contains(titled, "ldp-xx-00000") {
 		t.Fatalf("got %q", titled)
 	}
 
-	bare := streamLabel(ldpStream{StreamID: "69813166-7b66-4a09-8fcd-c47781d23966"})
-	if bare != "69813166-7b66-4a09-8fcd-c47781d23966" {
+	bare := streamLabel(ldpStream{StreamID: "00000000-0000-4000-8000-000000000001"})
+	if bare != "00000000-0000-4000-8000-000000000001" {
 		t.Fatalf("got %q", bare)
 	}
 }
@@ -125,7 +125,7 @@ func TestAWaitWithNothingToFollowSaysSo(t *testing.T) {
 	if _, err := waitForLogOperation("", "op-1"); err == nil {
 		t.Fatal("a wait without a Log Data Platform service must refuse")
 	}
-	if _, err := waitForLogOperation("ldp-nx-19421", ""); err == nil {
+	if _, err := waitForLogOperation("ldp-xx-00000", ""); err == nil {
 		t.Fatal("a wait without an operation must refuse")
 	}
 }
