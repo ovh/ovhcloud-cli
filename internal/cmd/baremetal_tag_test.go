@@ -37,7 +37,7 @@ func captureTagQuery(seen *map[string][]map[string]any) {
 			return httpmock.NewStringResponse(200, `[{"id":"ns1.example"}]`), nil
 		})
 	httpmock.RegisterResponder(http.MethodGet, serversV1+"/ns1.example",
-		httpmock.NewStringResponder(200, `{"name":"ns1.example","datacenter":"rbx8","region":"eu-west-rbx","os":"debian12","state":"ok","iam":{"displayName":"Paperclip"}}`))
+		httpmock.NewStringResponder(200, `{"name":"ns1.example","datacenter":"rbx8","region":"eu-west-rbx","os":"debian12","state":"ok","iam":{"displayName":"Build runner"}}`))
 }
 
 // The narrowing is asked of the API, in the shape the API takes.
@@ -76,7 +76,7 @@ func (ms *MockSuite) TestBaremetalListWithoutTagDoesNotTouchV2(assert, require *
 	httpmock.RegisterResponder(http.MethodGet, serversV1,
 		httpmock.NewStringResponder(200, `["ns1.example"]`))
 	httpmock.RegisterResponder(http.MethodGet, serversV1+"/ns1.example",
-		httpmock.NewStringResponder(200, `{"name":"ns1.example","datacenter":"rbx8","region":"eu-west-rbx","os":"debian12","state":"ok","iam":{"displayName":"Paperclip"}}`))
+		httpmock.NewStringResponder(200, `{"name":"ns1.example","datacenter":"rbx8","region":"eu-west-rbx","os":"debian12","state":"ok","iam":{"displayName":"Build runner"}}`))
 
 	out, err := cmd.Execute("baremetal", "list")
 

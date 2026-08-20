@@ -106,7 +106,7 @@ func TestAValueIsTakenWhole(t *testing.T) {
 // Several comparisons on one key are what the API's own shape allows: the
 // parameter maps a key to a list of filters, not to one.
 func TestSeveralComparisonsOnOneKeyAccumulate(t *testing.T) {
-	filters, err := parseTagFilters([]string{"owner:NEQ=Denis", "owner:NEQ=Yaniv"})
+	filters, err := parseTagFilters([]string{"owner:NEQ=Denis", "owner:NEQ=bob"})
 	if err != nil {
 		t.Fatalf("unexpected refusal: %s", err)
 	}
