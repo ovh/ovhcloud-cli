@@ -20,6 +20,7 @@ make doc          # regenerate doc/ (see Docs below)
 
 Refresh a **v1** OpenAPI schema: `make schemas UNIVERSE=<name>` (e.g. `cloud`, `domain`, `vps`).
 Refresh a **v2** one: `make schemas-v2 API=<path> NAME=<file>` (e.g. `API=dedicated/server NAME=baremetal_v2`).
+Check one for dead paths: `make schemas-drift NAME=<file> SOURCE=<catalogue path>` (e.g. `NAME=baremetal SOURCE=v1/dedicated/server`).
 Neither target curates — see "API schemas" below.
 
 ## Architecture — the two-file pattern
