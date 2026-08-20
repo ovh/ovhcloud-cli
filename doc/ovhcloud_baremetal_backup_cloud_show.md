@@ -9,7 +9,8 @@ ovhcloud baremetal backup cloud show <service_name> [flags]
 ### Options
 
 ```
-  -h, --help   help for show
+  -h, --help     help for show
+      --reveal   Print the container passwords instead of their fingerprints
 ```
 
 ### Options inherited from parent commands
