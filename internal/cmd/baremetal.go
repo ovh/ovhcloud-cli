@@ -302,7 +302,11 @@ a server is sitting on the power-off entry.`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.GetBaremetalPowerStatus,
 	}
-	baremetalPowerCmd.AddCommand(withFilterFlag(baremetalPowerStatusCmd))
+	// No --filter here: `power status` answers about one server and renders one
+	// object, so there are no rows to filter. Registering the flag would have
+	// docgen document it and cobra accept it, on a command where it can only
+	// ever be ignored.
+	baremetalPowerCmd.AddCommand(baremetalPowerStatusCmd)
 
 	baremetalPowerOffCmd := &cobra.Command{
 		Use:               "off <service_name>",
