@@ -334,3 +334,17 @@ func (ms *MockSuite) TestEnablingAUserDoesNotAsk(assert, require *td.T) {
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("enabled"))
 }
+
+// --filter is registered on `iam credential list`, so it has to reach the
+// rows. The assertion that carries this test is the absence of key 1: checking
+// only that key 2 is present would pass just as well with no filtering.
+func (ms *MockSuite) TestIamCredentialListIsFiltered(assert, require *td.T) {
+	var queries []string
+	registerCredentials(&queries)
+
+	out, err := cmd.Execute("iam", "credential", "list", "--filter", `credentialId==2`)
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("203.0.113.7/32"), "the key the filter keeps")
+	assert.Cmp(out, td.Not(td.Contains("2024-12-19")), "the key the filter excludes must not be printed")
+}

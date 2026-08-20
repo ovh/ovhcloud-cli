@@ -173,7 +173,7 @@ func ListCredentials(_ *cobra.Command, _ []string) {
 		})
 	}
 
-	display.RenderTable(rows, credentialColumns, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, credentialColumns)
 }
 
 // GetCredential shows one API key, with its rules spelled out.

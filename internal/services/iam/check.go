@@ -13,6 +13,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
 )
 
@@ -172,7 +173,7 @@ func ListReferenceActions(_ *cobra.Command, _ []string) {
 		})
 	}
 
-	display.RenderTable(rows, []string{"action", "categories", "description"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"action", "categories", "description"})
 }
 
 func hasCategory(action referenceAction, wanted string) bool {
@@ -207,7 +208,7 @@ func ListReferenceResourceTypes(_ *cobra.Command, _ []string) {
 		rows = append(rows, map[string]any{"resourceType": name})
 	}
 
-	display.RenderTable(rows, []string{"resourceType"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"resourceType"})
 }
 
 // CompleteResourceType offers the product families on <tab>.
