@@ -1,11 +1,11 @@
-## ovhcloud iam
+## ovhcloud iam application
 
-Manage IAM resources, permissions and policies
+Manage the applications your API credentials are issued against
 
 ### Options
 
 ```
-  -h, --help   help for iam
+  -h, --help   help for application
 ```
 
 ### Options inherited from parent commands
@@ -29,14 +29,8 @@ Manage IAM resources, permissions and policies
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud iam application](ovhcloud_iam_application.md)	 - Manage the applications your API credentials are issued against
-* [ovhcloud iam check](ovhcloud_iam_check.md)	 - Check whether the current identity may perform actions on resources
-* [ovhcloud iam credential](ovhcloud_iam_credential.md)	 - Manage the API credentials of your account
-* [ovhcloud iam permissions-group](ovhcloud_iam_permissions-group.md)	 - Manage IAM permissions groups
-* [ovhcloud iam policy](ovhcloud_iam_policy.md)	 - Manage IAM policies
-* [ovhcloud iam reference](ovhcloud_iam_reference.md)	 - Read what can be granted by an IAM policy
-* [ovhcloud iam resource](ovhcloud_iam_resource.md)	 - Manage IAM resources
-* [ovhcloud iam resource-group](ovhcloud_iam_resource-group.md)	 - Manage IAM resource groups
-* [ovhcloud iam user](ovhcloud_iam_user.md)	 - Manage IAM users
+* [ovhcloud iam](ovhcloud_iam.md)	 - Manage IAM resources, permissions and policies
+* [ovhcloud iam application delete](ovhcloud_iam_application_delete.md)	 - Delete an application and every credential issued against it
+* [ovhcloud iam application get](ovhcloud_iam_application_get.md)	 - Get one API application
+* [ovhcloud iam application list](ovhcloud_iam_application_list.md)	 - List your API applications
 

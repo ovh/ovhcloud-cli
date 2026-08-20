@@ -33,4 +33,5 @@ Manage IAM resources
 * [ovhcloud iam resource edit](ovhcloud_iam_resource_edit.md)	 - Edit a specific IAM resource
 * [ovhcloud iam resource get](ovhcloud_iam_resource_get.md)	 - Get a specific IAM resource
 * [ovhcloud iam resource list](ovhcloud_iam_resource_list.md)	 - List IAM resources
+* [ovhcloud iam resource tag](ovhcloud_iam_resource_tag.md)	 - Add or remove resource tags without touching the others
 
