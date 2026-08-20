@@ -38,7 +38,7 @@ func registerOneTenant() {
 // registerServer answers the v1 read a creation derives its spec from.
 func registerServerForAgent() {
 	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/dedicated/server/ns1.example",
-		httpmock.NewStringResponder(200, `{"name":"ns1.example","ip":"51.68.100.165","region":"eu-west-rbx"}`))
+		httpmock.NewStringResponder(200, `{"name":"ns1.example","ip":"203.0.113.7","region":"eu-west-rbx"}`))
 }
 
 func registerAgents(body string) {
@@ -132,7 +132,7 @@ func (ms *MockSuite) TestBackupDeployScriptSaysWhatTheLinksAre(assert, require *
 func (ms *MockSuite) TestBaremetalBackupAgentShowsWhatProtectsTheServer(assert, require *td.T) {
 	registerOneTenant()
 	registerAgents(`[{"id":"a-1","status":"NOT_INSTALLED","targetSpec":{"displayName":"agent-ns1.example","policy":""},
-		"currentState":{"productResourceName":"ns1.example","ips":["51.68.100.165/32"],"type":"OVHCLOUD_BAREMETAL","policy":""}},
+		"currentState":{"productResourceName":"ns1.example","ips":["203.0.113.7/32"],"type":"OVHCLOUD_BAREMETAL","policy":""}},
 		{"id":"a-2","status":"ENABLED","targetSpec":{"displayName":"agent-other"},
 		"currentState":{"productResourceName":"other.example"}}]`)
 
@@ -178,7 +178,7 @@ func (ms *MockSuite) TestBaremetalBackupAgentCreateDerivesEverythingFromTheServe
 	assert.Cmp(sent["displayName"], "agent-ns1.example")
 	assert.Cmp(sent["productResourceName"], "ns1.example")
 	assert.Cmp(sent["region"], "eu-west-rbx")
-	assert.Cmp(sent["ips"], []any{"51.68.100.165/32"})
+	assert.Cmp(sent["ips"], []any{"203.0.113.7/32"})
 }
 
 // A second agent for the same server is not something to create quietly.
@@ -213,7 +213,7 @@ func (ms *MockSuite) TestBaremetalBackupAgentCreateRefusesAnUnknownRegion(assert
 func (ms *MockSuite) TestBaremetalBackupAgentEditCarriesTheRestOver(assert, require *td.T) {
 	registerOneTenant()
 	registerAgents(`[{"id":"a-1","status":"NOT_INSTALLED",
-		"targetSpec":{"displayName":"agent-ns1.example","ips":["51.68.100.165/32"],"policy":""},
+		"targetSpec":{"displayName":"agent-ns1.example","ips":["203.0.113.7/32"],"policy":""},
 		"currentState":{"productResourceName":"ns1.example"}}]`)
 
 	var sent map[string]any
@@ -230,7 +230,7 @@ func (ms *MockSuite) TestBaremetalBackupAgentEditCarriesTheRestOver(assert, requ
 	require.CmpNoError(err)
 	assert.Cmp(sent["policy"], "14d_retention")
 	assert.Cmp(sent["displayName"], "agent-ns1.example", "the name was not being changed and must survive")
-	assert.Cmp(sent["ips"], []any{"51.68.100.165/32"}, "nor were the addresses")
+	assert.Cmp(sent["ips"], []any{"203.0.113.7/32"}, "nor were the addresses")
 }
 
 // A policy the tenant does not define is refused with the ones it does.
