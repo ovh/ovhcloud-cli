@@ -1,0 +1,28 @@
+🧾 Invoice {{ index .Result "billId" }}
+=======
+
+**Date**: {{ index .Result "date" }}
+**Category**: {{ index .Result "category" }}
+{{- with index .Result "orderId" }}
+**Order**: {{ . }}
+{{- end }}
+
+## Amount
+
+**Excluding tax**: {{ index .Result "priceWithoutTax" "text" }}
+**Tax**: {{ index .Result "tax" "text" }}
+**Total**: {{ index .Result "priceWithTax" "text" }}
+
+## Document
+
+**Download**: {{ index .Result "pdfUrl" }}
+**PDF password**: {{ index .Result "password" }}
+{{ if index .Result "hidden" }}
+The link and the password are hidden. Both are bearer secrets: the link returns
+the PDF with no API token at all. Pass --reveal to print them.
+{{ else }}
+This link carries its own authorisation — anyone holding it can download the
+invoice without logging in.
+{{ end }}
+Lines on this invoice:
+    ovhcloud account bill details {{ index .Result "billId" }}
