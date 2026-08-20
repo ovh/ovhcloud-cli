@@ -478,3 +478,65 @@ func tenantFromArgs(args []string) (string, error) {
 
 	return ResolveTenant()
 }
+
+// ListAgents shows every backup agent of the VSPC tenant, whatever it protects.
+//
+// `baremetal backup-agent show` answers for one machine, which is the question
+// an operator asks about a server. This is the other question — what is the
+// backup posture of the estate — and it is the one that made the state of this
+// account visible: nine agents provisioned, none deployed, none on a policy.
+func ListAgents(_ *cobra.Command, _ []string) {
+	tenant, vspc, err := ResolveBoth()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	var agents []struct {
+		ID           string         `json:"id"`
+		Status       string         `json:"status"`
+		TargetSpec   map[string]any `json:"targetSpec"`
+		CurrentState map[string]any `json:"currentState"`
+		CurrentTasks []currentTask  `json:"currentTasks"`
+		CreatedAt    string         `json:"createdAt"`
+	}
+
+	path := VspcPath(tenant, vspc) + "/backupAgent"
+	if err := httpLib.Client.Get(path, &agents); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to list the backup agents: %s", err)
+		return
+	}
+
+	if len(agents) == 0 {
+		display.OutputInfo(&flags.OutputFormatConfig, map[string]any{"agents": []any{}},
+			"This VSPC tenant has no backup agent.\n"+
+				"   Create one for a dedicated server with: ovhcloud baremetal backup-agent create <service_name>")
+		return
+	}
+
+	rows := make([]map[string]any, 0, len(agents))
+	for _, agent := range agents {
+		policy, _ := agent.CurrentState["policy"].(string)
+		if policy == "" {
+			policy = "none"
+		}
+
+		rows = append(rows, map[string]any{
+			"id":       agent.ID,
+			"name":     agent.TargetSpec["displayName"],
+			"protects": agent.CurrentState["productResourceName"],
+			"type":     agent.CurrentState["type"],
+			"status":   agent.Status,
+			"policy":   policy,
+			"ips":      agent.CurrentState["ips"],
+			"tasks":    taskSummary(agent.CurrentTasks),
+		})
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		return fmt.Sprint(rows[i]["protects"]) < fmt.Sprint(rows[j]["protects"])
+	})
+
+	display.RenderTable(rows,
+		[]string{"protects", "status", "policy", "type", "ips", "id", "tasks"}, &flags.OutputFormatConfig)
+}
