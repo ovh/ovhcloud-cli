@@ -216,6 +216,27 @@ func (ms *MockSuite) TestVrackGetStillListsWhenTheNameLookupFails(assert, requir
 	assert.Contains(out, "ns0000002.ip-203-0-113.eu")
 }
 
+// Ten content lists are read to fill this page, and any of them can fail. The
+// vRack itself is not one of them: it was already read, and it is what the
+// operator asked for. Reporting a failed section through OutputWarning ended
+// the process on the spot — ExitFunc(0) — so `vrack get` printed nothing at all
+// and exited 0. Run under the real exit semantics, not the suite's no-op stub,
+// because that stub is exactly what hid this.
+func (ms *MockSuite) TestVrackGetStillPrintsTheVrackWhenAListFails(assert, require *td.T) {
+	registerVrack(assert, `{}`, vrackAttachedOne)
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/vrack/"+vrackName+"/dedicatedServerInterfaceDetails",
+		httpmock.NewStringResponder(500, `{"message": "nope"}`))
+
+	out, _, exited := executeWithRealExit(assert, "vrack", "get", vrackName)
+
+	assert.False(exited, "a section that could not be read must not end the command")
+	assert.Contains(out, "urn:v1:eu:resource:vrack:"+vrackName, "the vRack is still printed")
+	assert.Contains(out, "status code 500", "and the failed section is named, not swallowed")
+	assert.Cmp(out, td.Not(td.Contains("This vRack is empty")),
+		"never empty on a list that failed: the servers may well be there")
+}
+
 // Same work, other door: somebody holding a server should not have to know the
 // vRack domain exists. The API is asked which vRack the machine is in.
 func (ms *MockSuite) TestBaremetalVrackDetachFindsTheVrackItself(assert, require *td.T) {
