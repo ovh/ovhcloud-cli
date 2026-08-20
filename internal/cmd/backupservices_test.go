@@ -363,3 +363,24 @@ func (ms *MockSuite) TestBackupBillingKeepsGoingWhenAResourceHasNoService(assert
 	assert.Cmp(out, td.Contains("tenant"), "the table is still printed")
 	assert.Cmp(out, td.Contains("—"), "and the missing price reads as missing")
 }
+
+// --filter is registered on ten commands of this group and reached none of
+// them. The assertion that carries this test is the absence of the excluded
+// vault: asserting only the kept one would pass with no filtering at all.
+func (ms *MockSuite) TestBackupVaultListIsFiltered(assert, require *td.T) {
+	registerOneTenant()
+	httpmock.RegisterResponder(http.MethodGet, backupTenant+"/vault",
+		httpmock.NewStringResponder(200, `[
+			{"id":"v-1","resourceStatus":"READY","targetSpec":{"name":"vault-sbg"},
+			 "currentState":{"name":"vault-sbg","type":"PAYGO","vspcTenants":["s-1"],"buckets":[]},
+			 "currentTasks":[]},
+			{"id":"v-2","resourceStatus":"ERROR","targetSpec":{"name":"vault-rbx"},
+			 "currentState":{"name":"vault-rbx","type":"PAYGO","vspcTenants":["s-1"],"buckets":[]},
+			 "currentTasks":[]}]`))
+
+	out, err := cmd.Execute("backup-services", "vault", "list", "--filter", `id=="v-2"`)
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("vault-rbx"))
+	assert.Cmp(out, td.Not(td.Contains("vault-sbg")), "the vault the filter excludes must not be printed")
+}

@@ -14,6 +14,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 )
@@ -105,9 +106,8 @@ func ShowBilling(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	display.RenderTable(rows,
-		[]string{"kind", "name", "plan", "price", "period", "consumption", "renew", "nextBillingDate", "state"},
-		&flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows,
+		[]string{"kind", "name", "plan", "price", "period", "consumption", "renew", "nextBillingDate", "state"})
 }
 
 // billableResources lists everything of the backup product that has a price.
