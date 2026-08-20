@@ -21,7 +21,7 @@ import (
 const (
 	powerBootEntries = `{"1": {"bootId": 1, "bootType": "harddisk", "kernel": "hd", "description": "Boot to disk"}, "95083": {"bootId": 95083, "bootType": "power", "kernel": "poweroff", "description": "Power-off server"}, "230242": {"bootId": 230242, "bootType": "rescue", "kernel": "rescue12-customer", "description": "Customer rescue system (Debian-12-based)"}}`
 
-	powerServer = "ns3070493.ip-57-129-37.eu"
+	powerServer = "ns0000001.ip-203-0-113.eu"
 )
 
 var powerBodies map[string][]map[string]any
