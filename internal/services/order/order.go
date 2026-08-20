@@ -287,7 +287,15 @@ func FollowOrder(_ *cobra.Command, args []string) {
 	// happened yet".
 	fmt.Fprintf(os.Stderr, "Order %d is %s.\n", id, status)
 
-	display.RenderTable(rows, []string{"step", "status", "latest"}, &flags.OutputFormatConfig)
+	// --filter is registered on `order follow`, so it has to reach the rows.
+	// RenderTable does not filter; withFilterFlag only binds the flag.
+	filtered, err := filtersLib.FilterLines(rows, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(filtered, []string{"step", "status", "latest"}, &flags.OutputFormatConfig)
 }
 
 func orderID(value string) (int, error) {
