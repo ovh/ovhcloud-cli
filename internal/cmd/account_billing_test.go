@@ -291,3 +291,20 @@ func (ms *MockSuite) TestCostRefusesWhenNoServiceIsTheMachine(assert, require *t
 	assert.Cmp(err.Error(), td.Contains("none of which is the machine"))
 	assert.Cmp(err.Error(), td.Contains("/dedicated/server/{serviceName}"))
 }
+
+// --category is a server-side filter and --filter is a client-side one; both
+// are offered and the second reached nothing. The assertion that carries this
+// test is the absence of the excluded invoice, since asserting only the kept
+// one would pass just as well with no filtering.
+func (ms *MockSuite) TestBillListIsFiltered(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, billsURL,
+		httpmock.NewStringResponder(200, `["FR1","FR2"]`))
+	registerOneBill("FR1")
+	registerOneBill("FR2")
+
+	out, err := cmd.Execute("account", "bill", "list", "--filter", `billId=="FR2"`)
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("FR2"))
+	assert.Cmp(out, td.Not(td.Contains("FR1")), "the invoice the filter excludes must not be printed")
+}

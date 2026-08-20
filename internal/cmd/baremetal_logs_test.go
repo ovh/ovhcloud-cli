@@ -265,3 +265,22 @@ func (ms *MockSuite) TestBaremetalLogSubscribeDryRunShowsTheBody(assert, require
 	assert.Cmp(out, td.Contains("install"))
 	assert.Cmp(httpmock.GetCallCountInfo()["POST "+logsSubscriptions], 0)
 }
+
+// --filter is registered on this command, so it has to reach the rows. The
+// assertion that carries the test is the absence of the excluded subscription:
+// checking only the kept one would pass just as well with no filtering at all.
+func (ms *MockSuite) TestBaremetalLogSubscriptionsAreFiltered(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, logsSubscriptions,
+		httpmock.NewStringResponder(200, `["sub-1","sub-2"]`))
+	httpmock.RegisterResponder(http.MethodGet, logsSubscriptions+"/sub-1",
+		httpmock.NewStringResponder(200, `{"subscriptionId":"sub-1","kind":"install","streamId":"11111111-1111-1111-1111-111111111111","serviceName":"ldp-aa-1"}`))
+	httpmock.RegisterResponder(http.MethodGet, logsSubscriptions+"/sub-2",
+		httpmock.NewStringResponder(200, `{"subscriptionId":"sub-2","kind":"install","streamId":"22222222-2222-2222-2222-222222222222","serviceName":"ldp-bb-2"}`))
+
+	out, err := cmd.Execute("baremetal", "logs", "subscription", "list", "ns1.example",
+		"--filter", `serviceName=="ldp-bb-2"`)
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("sub-2"))
+	assert.Cmp(out, td.Not(td.Contains("sub-1")), "the subscription the filter excludes must not be printed")
+}
