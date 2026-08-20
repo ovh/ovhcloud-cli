@@ -12,8 +12,8 @@ import (
 
 const ipMoveDestinations = `{
 	"dedicatedServer": [
-		{"service": "ns3018397.ip-57-128-116.eu", "nexthop": []},
-		{"service": "ns3118333.ip-51-68-100.eu", "nexthop": []}
+		{"service": "ns0000005.ip-203-0-113.eu", "nexthop": []},
+		{"service": "ns0000006.ip-203-0-113.eu", "nexthop": []}
 	],
 	"vps": [{"service": "vps-c924a68c.vps.ovh.net", "nexthop": ["1.2.3.4"]}],
 	"dedicatedCloud": [],
@@ -22,7 +22,7 @@ const ipMoveDestinations = `{
 
 func registerIpMoveDestinations() {
 	httpmock.RegisterResponder("GET",
-		"https://eu.api.ovh.com/v1/ip/135.125.71.80%2F32/move",
+		"https://eu.api.ovh.com/v1/ip/203.0.113.80%2F32/move",
 		httpmock.NewStringResponder(200, ipMoveDestinations))
 }
 
@@ -32,10 +32,10 @@ func registerIpMoveDestinations() {
 func (ms *MockSuite) TestIpDestinationsDropsEmptyFamilies(assert, require *td.T) {
 	registerIpMoveDestinations()
 
-	out, err := cmd.Execute("ip", "destinations", "135.125.71.80/32")
+	out, err := cmd.Execute("ip", "destinations", "203.0.113.80/32")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("ns3118333.ip-51-68-100.eu"))
+	assert.Cmp(out, td.Contains("ns0000006.ip-203-0-113.eu"))
 	assert.Cmp(out, td.Contains("vps-c924a68c.vps.ovh.net"))
 	assert.Cmp(out, td.Not(td.Contains("hostingReseller")), "an empty family is not a destination")
 	assert.Cmp(out, td.Not(td.Contains("dedicatedCloud")))
@@ -47,7 +47,7 @@ func (ms *MockSuite) TestIpDestinationsDropsEmptyFamilies(assert, require *td.T)
 func (ms *MockSuite) TestIpMoveRefusesAnImpossibleDestinationLocally(assert, require *td.T) {
 	registerIpMoveDestinations()
 
-	_, err := cmd.Execute("ip", "move", "135.125.71.80/32", "ns9999999.example", "--yes")
+	_, err := cmd.Execute("ip", "move", "203.0.113.80/32", "ns9999999.example", "--yes")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("ns9999999.example"))
@@ -64,11 +64,11 @@ func (ms *MockSuite) TestIpMoveRefusesAnImpossibleDestinationLocally(assert, req
 func (ms *MockSuite) TestIpMoveDryRunSendsNothing(assert, require *td.T) {
 	registerIpMoveDestinations()
 
-	out, err := cmd.Execute("ip", "move", "135.125.71.80/32", "ns3118333.ip-51-68-100.eu", "--dry-run")
+	out, err := cmd.Execute("ip", "move", "203.0.113.80/32", "ns0000006.ip-203-0-113.eu", "--dry-run")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("Dry run"))
-	assert.Cmp(out, td.Contains("ns3118333.ip-51-68-100.eu"))
+	assert.Cmp(out, td.Contains("ns0000006.ip-203-0-113.eu"))
 	for call := range httpmock.GetCallCountInfo() {
 		assert.Cmp(call, td.Not(td.HasPrefix("POST")))
 	}
@@ -78,10 +78,10 @@ func (ms *MockSuite) TestIpMoveDryRunSendsNothing(assert, require *td.T) {
 // already in the state being asked for.
 func (ms *MockSuite) TestIpParkSaysWhenThereIsNothingToPark(assert, require *td.T) {
 	httpmock.RegisterResponder("GET",
-		"https://eu.api.ovh.com/v1/ip/135.125.71.80%2F32",
-		httpmock.NewStringResponder(200, `{"ip": "135.125.71.80/32", "routedTo": {"serviceName": ""}}`))
+		"https://eu.api.ovh.com/v1/ip/203.0.113.80%2F32",
+		httpmock.NewStringResponder(200, `{"ip": "203.0.113.80/32", "routedTo": {"serviceName": ""}}`))
 
-	out, err := cmd.Execute("ip", "park", "135.125.71.80/32", "--yes")
+	out, err := cmd.Execute("ip", "park", "203.0.113.80/32", "--yes")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("nothing to park"))
