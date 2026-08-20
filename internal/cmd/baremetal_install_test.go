@@ -200,3 +200,37 @@ func (ms *MockSuite) TestBaremetalTrafficSaysWhenThereIsNoController(assert, req
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("no network controller"))
 }
+
+// --filter is registered on both commands, so it has to do something. A test
+// that only checks the kept row would pass just as well with the filtering
+// removed, which is why the assertion that matters is the absence of the other
+// one.
+func (ms *MockSuite) TestBaremetalPartitionSchemesAreFiltered(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/install/compatibleTemplatePartitionSchemes?templateName=debian12_64",
+		httpmock.NewStringResponder(200, `["default", "custom"]`))
+
+	out, err := cmd.Execute("baremetal", "list-partition-schemes", "fakeBaremetal",
+		"--os", "debian12_64", "--filter", `name=="custom"`)
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("custom"))
+	assert.Cmp(out, td.Not(td.Contains("default")), "the row the filter excludes must not be printed")
+}
+
+func (ms *MockSuite) TestBaremetalRaidProfileIsFiltered(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/install/hardwareRaidProfile",
+		httpmock.NewStringResponder(200, `{"controllers": [
+			{"model": "PERC H730P", "type": "Hardware Raid", "disks": [
+				{"diskGroupId": 1, "names": ["sda"], "type": "HDD"}]},
+			{"model": "PERC H740P", "type": "Hardware Raid", "disks": [
+				{"diskGroupId": 2, "names": ["nvme0n1"], "type": "SSD"}]}]}`))
+
+	out, err := cmd.Execute("baremetal", "raid-profile", "fakeBaremetal",
+		"--filter", `diskType=="SSD"`)
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("H740P"))
+	assert.Cmp(out, td.Not(td.Contains("H730P")), "the HDD group the filter excludes must not be printed")
+}
