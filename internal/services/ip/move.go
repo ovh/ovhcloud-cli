@@ -164,8 +164,14 @@ func MoveIp(_ *cobra.Command, args []string) {
 		return
 	}
 
-	from := routedTo(ip)
-	if !common.ConfirmAction(common.Disruptive, ip, moveWarning(ip, from, chosen)) {
+	from, err := routedTo(ip)
+	if err != nil {
+		// The move itself does not depend on this read, so it is not a reason
+		// to refuse. But the prompt must not imply the IP is free when what
+		// actually happened is that nobody knows.
+		log.Printf("%s", err)
+	}
+	if !common.ConfirmAction(common.Disruptive, ip, moveWarning(ip, from, chosen, err != nil)) {
 		display.OutputError(&flags.OutputFormatConfig, "move of %s cancelled", ip)
 		return
 	}
@@ -215,7 +221,11 @@ func MoveIp(_ *cobra.Command, args []string) {
 func ParkIp(_ *cobra.Command, args []string) {
 	ip := args[0]
 
-	from := routedTo(ip)
+	from, err := routedTo(ip)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
 	if from == "" {
 		display.OutputInfo(&flags.OutputFormatConfig,
 			map[string]any{"ip": ip, "routedTo": nil},
@@ -275,8 +285,15 @@ func ListIpTasks(_ *cobra.Command, args []string) {
 // An empty want means parked.
 func waitForRouting(ip, want string) error {
 	for attempt := 0; attempt < movePollAttempts; attempt++ {
-		if current := routedTo(ip); current == want {
+		// A read that failed is not a read that came back empty. Parking waits
+		// for exactly the empty string, so counting a failure as one would end
+		// the wait on the answer it was looking for and report the park done.
+		current, err := routedTo(ip)
+		if err == nil && current == want {
 			return nil
+		}
+		if err != nil {
+			log.Printf("%s", err)
 		}
 
 		time.Sleep(movePollInterval)
@@ -298,7 +315,16 @@ func waitForRouting(ip, want string) error {
 // confirmation prompt and a wait, and neither is improved by turning a
 // transient read error into a failed command. The prompt says "not routed"
 // rather than naming a service it could not confirm.
-func routedTo(ip string) string {
+// routedTo returns the service this IP currently serves, and an empty string
+// when it serves none.
+//
+// The error is returned rather than folded into that empty string, because the
+// two mean opposite things and every caller here acts on the difference: "this
+// IP is free" is a green light, "I could not find out" is not. Folding them
+// made `park` answer "nothing to park" on a failed read, and made the wait
+// loop below — whose target for a park IS the empty string — call the park a
+// success because the check had failed.
+func routedTo(ip string) (string, error) {
 	var block struct {
 		RoutedTo struct {
 			ServiceName string `json:"serviceName"`
@@ -306,10 +332,10 @@ func routedTo(ip string) string {
 	}
 
 	if err := httpLib.Client.Get(fmt.Sprintf("/v1/ip/%s", url.PathEscape(ip)), &block); err != nil {
-		return ""
+		return "", fmt.Errorf("failed to read what %s is routed to: %w", ip, err)
 	}
 
-	return block.RoutedTo.ServiceName
+	return block.RoutedTo.ServiceName, nil
 }
 
 // pickDestination finds the requested service among the ones that accept this IP.
@@ -347,7 +373,12 @@ func unknownDestination(ip, target string, destinations []destination) error {
 // moveWarning is the sentence somebody reads before the traffic stops. It is
 // built here rather than inline so a test can read the wording that stands
 // between an operator and a service going dark.
-func moveWarning(ip, from string, to destination) string {
+func moveWarning(ip, from string, to destination, unknown bool) string {
+	if unknown {
+		return fmt.Sprintf("Could not read what %s currently serves; moving it to %s (%s) will stop whatever traffic it carries.",
+			ip, to.Service, to.Family)
+	}
+
 	if from == "" {
 		return fmt.Sprintf("%s is not routed to any service; moving it will route it to %s (%s).",
 			ip, to.Service, to.Family)
