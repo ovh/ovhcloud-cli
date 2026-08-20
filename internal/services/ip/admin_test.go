@@ -16,7 +16,7 @@ import (
 // The note explains the failure; it does not stop the call, because the scope
 // is the route's own and not a rule this CLI enforces on the API's behalf.
 func TestDelegationErrorExplainsAnIPv4Failure(t *testing.T) {
-	err := delegationError("135.125.71.80/32", errors.New("Internal server error"))
+	err := delegationError("203.0.113.80/32", errors.New("Internal server error"))
 	if !strings.Contains(err.Error(), "IPv6 subnets") {
 		t.Fatalf("an IPv4 block should be told what this route covers, got %q", err)
 	}
@@ -110,8 +110,8 @@ func TestIPv6SubnetRecognisesWhatTheRouteServes(t *testing.T) {
 		"2001:db8::/56":    true,
 		"2001:db8::/64":    true,
 		"2001:db8::1/128":  false,
-		"135.125.71.80/32": false,
-		"151.80.69.32/30":  false,
+		"203.0.113.80/32": false,
+		"203.0.113.32/30":  false,
 	} {
 		if got := isIPv6Subnet(block); got != want {
 			t.Errorf("isIPv6Subnet(%q) = %v, want %v", block, got, want)
