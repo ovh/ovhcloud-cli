@@ -4,6 +4,9 @@
 {{index .Result "description"}}
 {{end}}
 **{{index .Result "summary"}}**
+{{if index .Result "serversError"}}
+🟠 {{index .Result "serversError"}}
+{{end}}
 {{if index .Result "servers"}}
 ## Dedicated servers
 {{if index .Result "anyServerNamed"}}
