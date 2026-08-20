@@ -13,6 +13,7 @@ ovhcloud baremetal backup cloud create <service_name> [flags]
   -h, --help                         help for create
       --project-description string   Description of the project to create, when none is given
       --project-id string            Public cloud project to hold the containers
+      --reveal                       Print the container passwords instead of their fingerprints
   -y, --yes                          Skip the confirmation prompt (required for unattended runs)
 ```
 
