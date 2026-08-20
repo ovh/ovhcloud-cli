@@ -9,10 +9,13 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/openapi"
 	"github.com/spf13/cobra"
 )
 
@@ -45,12 +48,16 @@ var (
 // a wrong value is refused by the CLI with the list rather than by the API with
 // a 400.
 var (
-	trafficPeriods = []string{"hourly", "daily", "weekly", "monthly", "yearly"}
-	trafficTypes   = []string{
-		"traffic:download", "traffic:upload",
-		"packets:download", "packets:upload",
-		"errors:download", "errors:upload",
-	}
+	// Read from the embedded schema rather than retyped here. The values happen
+	// to match today, but a list copied into Go goes stale in silence: this
+	// repository already shipped a game-protocol list that refused a protocol
+	// the API had accepted for months.
+	trafficPeriods = sync.OnceValues(func() ([]string, error) {
+		return openapi.GetComponentEnum(assets.BaremetalOpenapiSchema, "dedicated.server.MrtgPeriodEnum")
+	})
+	trafficTypes = sync.OnceValues(func() ([]string, error) {
+		return openapi.GetComponentEnum(assets.BaremetalOpenapiSchema, "dedicated.server.MrtgTypeEnum")
+	})
 )
 
 // mrtgPoint is one sample of a graph.
@@ -143,15 +150,13 @@ func readableRate(value float64, unit string) string {
 func ShowBaremetalTraffic(_ *cobra.Command, args []string) {
 	server := args[0]
 
-	if !slicesContain(trafficPeriods, TrafficPeriod) {
-		display.OutputError(&flags.OutputFormatConfig,
-			"unknown period %q; use one of %s", TrafficPeriod, strings.Join(trafficPeriods, ", "))
+	if err := checkAgainstSchema("period", TrafficPeriod, trafficPeriods); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 	for _, requested := range TrafficTypes {
-		if !slicesContain(trafficTypes, requested) {
-			display.OutputError(&flags.OutputFormatConfig,
-				"unknown type %q; use one of %s", requested, strings.Join(trafficTypes, ", "))
+		if err := checkAgainstSchema("type", requested, trafficTypes); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
 			return
 		}
 	}
@@ -206,4 +211,22 @@ func slicesContain(haystack []string, needle string) bool {
 		}
 	}
 	return false
+}
+
+// checkAgainstSchema refuses a value the API does not declare, and says which
+// ones it does. The accepted list comes from the embedded schema: a list
+// retyped in Go goes stale without a word, which is how a game protocol the
+// API had accepted for months came to be refused locally.
+func checkAgainstSchema(flag, value string, read func() ([]string, error)) error {
+	accepted, err := read()
+	if err != nil {
+		return fmt.Errorf("failed to read the values accepted for --%s: %w", flag, err)
+	}
+
+	if slicesContain(accepted, value) {
+		return nil
+	}
+
+	return fmt.Errorf("--%s does not accept %q; accepted values are: %s",
+		flag, value, strings.Join(accepted, ", "))
 }
