@@ -24,6 +24,12 @@ var (
 	//go:embed templates/me.tmpl
 	meTemplate string
 
+	//go:embed templates/bill.tmpl
+	billTemplate string
+
+	//go:embed templates/refund.tmpl
+	refundTemplate string
+
 	sshKeysColumnsToDisplay = []string{"keyName name", "key"}
 
 	Oauth2ClientSpec struct {

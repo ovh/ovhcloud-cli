@@ -107,5 +107,98 @@ func init() {
 	addInteractiveEditorFlag(oauth2ClientEditCmd)
 	oauth2ClientCmd.AddCommand(oauth2ClientEditCmd)
 
+	// Billing commands
+	billCmd := &cobra.Command{
+		Use:   "bill",
+		Short: "Read your invoices",
+	}
+	accountCmd.AddCommand(billCmd)
+
+	billListCmd := withFilterFlag(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your invoices",
+		Long: "List your invoices.\n\n" +
+			"Without --from, the window is the current month. That is a guard, not a\n" +
+			"default for comfort: an account can hold thousands of invoices, and each\n" +
+			"one listed is one request to detail it.",
+		Run: account.ListBills,
+	})
+	addBillingWindowFlags(billListCmd)
+	billListCmd.Flags().StringVar(&account.BillCategory, "category", "", "Keep only one category of invoice")
+	billListCmd.Flags().Int64Var(&account.BillOrderID, "order-id", 0, "Keep only what was billed for this order")
+	billListCmd.RegisterFlagCompletionFunc("category", account.CompleteBillCategory)
+	billListCmd.Flags().BoolVar(&account.RevealBillSecrets, "reveal", false,
+		"Print the download links instead of their fingerprints")
+	billCmd.AddCommand(billListCmd)
+
+	billGetCmd := &cobra.Command{
+		Use:   "get <bill_id>",
+		Short: "Get one invoice",
+		Args:  cobra.ExactArgs(1),
+		Run:   account.GetBill,
+	}
+	billGetCmd.Flags().BoolVar(&account.RevealBillSecrets, "reveal", false,
+		"Print the download link and the PDF password instead of their fingerprints")
+	billCmd.AddCommand(billGetCmd)
+
+	billCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "details <bill_id>",
+		Short: "List what one invoice charges for",
+		Args:  cobra.ExactArgs(1),
+		Run:   account.ListBillDetails,
+	}))
+
+	// Refunds
+	refundCmd := &cobra.Command{
+		Use:   "refund",
+		Short: "Read your refunds",
+	}
+	accountCmd.AddCommand(refundCmd)
+
+	refundListCmd := withFilterFlag(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your refunds",
+		Run:     account.ListRefunds,
+	})
+	addBillingWindowFlags(refundListCmd)
+	refundListCmd.Flags().Int64Var(&account.BillOrderID, "order-id", 0, "Keep only what was refunded for this order")
+	refundListCmd.Flags().BoolVar(&account.RevealBillSecrets, "reveal", false,
+		"Print the download links instead of their fingerprints")
+	refundCmd.AddCommand(refundListCmd)
+
+	refundGetCmd := &cobra.Command{
+		Use:   "get <refund_id>",
+		Short: "Get one refund",
+		Args:  cobra.ExactArgs(1),
+		Run:   account.GetRefund,
+	}
+	refundGetCmd.Flags().BoolVar(&account.RevealBillSecrets, "reveal", false,
+		"Print the download link and the PDF password instead of their fingerprints")
+	refundCmd.AddCommand(refundGetCmd)
+
+	// Usage running against the next invoice
+	usageCmd := withFilterFlag(&cobra.Command{
+		Use:   "usage",
+		Short: "Show what is running against your next invoice",
+		Long: "Show what is running against your next invoice.\n\n" +
+			"Dedicated servers do not appear here: they are billed at a flat rate, not\n" +
+			"per usage. What a machine costs is answered by: ovhcloud baremetal cost <server>",
+		Run: account.ShowUsage,
+	})
+	usageCmd.Flags().BoolVar(&account.BillUsageForecast, "forecast", false,
+		"Show the forecast for the period instead of the usage so far")
+	accountCmd.AddCommand(usageCmd)
+
 	rootCmd.AddCommand(accountCmd)
+}
+
+// addBillingWindowFlags gives a listing its window. Both bounds accept a plain
+// YYYY-MM-DD as well as a full RFC3339 timestamp.
+func addBillingWindowFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&account.BillFrom, "from", "",
+		"Start of the window, YYYY-MM-DD or RFC3339 (default: first day of the current month)")
+	cmd.Flags().StringVar(&account.BillTo, "to", "",
+		"End of the window, YYYY-MM-DD or RFC3339")
 }

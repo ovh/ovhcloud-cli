@@ -977,6 +977,18 @@ sending. --dry-run prints the whole message instead of sending it.`,
 	addConfirmationFlags(baremetalBackupAgentDeleteCmd, "Print the call that would be made without making it")
 	baremetalBackupAgentCmd.AddCommand(baremetalBackupAgentDeleteCmd)
 
+	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "cost <service_name>",
+		Short: "Show what a server costs and when it renews",
+		Long: "Show what a server costs and when it renews.\n\n" +
+			"A server resolves to several billable services: the machine, and the\n" +
+			"components sold with it. This lists them all, so the price shown is the\n" +
+			"price of the machine as configured rather than of its base plan.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBaremetalCost,
+	}))
+
 	rootCmd.AddCommand(baremetalCmd)
 }
 
