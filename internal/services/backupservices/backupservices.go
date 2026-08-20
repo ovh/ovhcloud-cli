@@ -39,13 +39,13 @@ func ListTenants(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	display.RenderTable(rowsOf(tenants, func(r resource) map[string]any {
+	common.RenderFilteredTable(rowsOf(tenants, func(r resource) map[string]any {
 		state := r.CurrentState
 		return map[string]any{
 			"vaults":      countOf(state["vaults"]),
 			"vspcTenants": countOf(state["vspcTenants"]),
 		}
-	}), []string{"id", "name", "resourceStatus status", "vaults", "vspcTenants", "tasks"}, &flags.OutputFormatConfig)
+	}), []string{"id", "name", "resourceStatus status", "vaults", "vspcTenants", "tasks"})
 }
 
 // ShowTenant reads one backup tenant, resolved when the account has only one.
@@ -79,15 +79,14 @@ func ListVaults(_ *cobra.Command, _ []string) {
 	// tenant's own view of its vaults, and reading them off the vault resource
 	// answers 0 on an account where the real number is 9 — a column that is
 	// wrong reads worse than a column that is missing.
-	display.RenderTable(rowsOf(vaults, func(r resource) map[string]any {
+	common.RenderFilteredTable(rowsOf(vaults, func(r resource) map[string]any {
 		return map[string]any{
 			"buckets":     countOf(r.CurrentState["buckets"]),
 			"vspcTenants": countOf(r.CurrentState["vspcTenants"]),
 			"type":        r.CurrentState["type"],
 			"regions":     strings.Join(bucketRegions(r), ", "),
 		}
-	}), []string{"id", "name", "resourceStatus status", "regions", "type", "buckets", "vspcTenants", "tasks"},
-		&flags.OutputFormatConfig)
+	}), []string{"id", "name", "resourceStatus status", "regions", "type", "buckets", "vspcTenants", "tasks"})
 }
 
 // ShowVault reads one vault.
@@ -120,8 +119,7 @@ func ListBuckets(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.RenderTable(buckets, []string{"id", "name", "region", "performance", "role", "status"},
-		&flags.OutputFormatConfig)
+	common.RenderFilteredTable(buckets, []string{"id", "name", "region", "performance", "role", "status"})
 }
 
 // EditVault renames a vault.
@@ -149,7 +147,7 @@ func ListVspc(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	display.RenderTable(rowsOf(vspcs, func(r resource) map[string]any {
+	common.RenderFilteredTable(rowsOf(vspcs, func(r resource) map[string]any {
 		state := r.CurrentState
 		addons, _ := state["enabledAddons"].([]any)
 		names := make([]string, 0, len(addons))
@@ -164,8 +162,7 @@ func ListVspc(_ *cobra.Command, _ []string) {
 			"addons":    strings.Join(names, ", "),
 			"agents":    countOf(state["backupAgents"]),
 		}
-	}), []string{"id", "name", "resourceStatus status", "vspcType type", "region", "agents", "addons", "tasks"},
-		&flags.OutputFormatConfig)
+	}), []string{"id", "name", "resourceStatus status", "vspcType type", "region", "agents", "addons", "tasks"})
 }
 
 // ShowVspc reads one VSPC tenant.
@@ -230,7 +227,7 @@ func ListPolicies(_ *cobra.Command, _ []string) {
 		rows = append(rows, map[string]any{"policy": policy})
 	}
 
-	display.RenderTable(rows, []string{"policy"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"policy"})
 }
 
 // PoliciesOf lists the retention policies of a VSPC tenant.
@@ -310,8 +307,8 @@ func ListLicenses(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	display.RenderTable(rowsOf(licenses, nil),
-		[]string{"id", "name", "resourceStatus status", "tasks"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rowsOf(licenses, nil),
+		[]string{"id", "name", "resourceStatus status", "tasks"})
 }
 
 // ListLicenseServers shows the backup servers driven by one licence.
@@ -330,12 +327,12 @@ func ListLicenseServers(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.RenderTable(rowsOf(servers, func(r resource) map[string]any {
+	common.RenderFilteredTable(rowsOf(servers, func(r resource) map[string]any {
 		return map[string]any{
 			"licenseType": r.TargetSpec["licenseType"],
 			"displayName": r.TargetSpec["displayName"],
 		}
-	}), []string{"id", "displayName", "licenseType", "status", "tasks"}, &flags.OutputFormatConfig)
+	}), []string{"id", "displayName", "licenseType", "status", "tasks"})
 }
 
 // editNamedResource sends the one field these two resources accept.
@@ -537,6 +534,6 @@ func ListAgents(_ *cobra.Command, _ []string) {
 		return fmt.Sprint(rows[i]["protects"]) < fmt.Sprint(rows[j]["protects"])
 	})
 
-	display.RenderTable(rows,
-		[]string{"protects", "status", "policy", "type", "ips", "id", "tasks"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows,
+		[]string{"protects", "status", "policy", "type", "ips", "id", "tasks"})
 }

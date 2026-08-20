@@ -188,9 +188,8 @@ func ListBaremetalLogSubscriptions(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.RenderTable(subscriptions,
-		[]string{"subscriptionId", "kind", "streamId", "serviceName", "createdAt"},
-		&flags.OutputFormatConfig)
+	common.RenderFilteredTable(subscriptions,
+		[]string{"subscriptionId", "kind", "streamId", "serviceName", "createdAt"})
 }
 
 // ShowBaremetalLogSubscription reads one subscription.
