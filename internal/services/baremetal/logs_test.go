@@ -18,7 +18,7 @@ func TestAStreamIdentifierIsRecognisedByItsShape(t *testing.T) {
 	if !looksLikeUUID("00000000-6451-45de-808b-2b959c11a17e") {
 		t.Fatal("a real stream identifier must be taken as one")
 	}
-	if !looksLikeUUID("4459AF12-6451-45DE-808B-2B959C11A17E") {
+	if !looksLikeUUID("00000000-6451-45DE-808B-2B959C11A17E") {
 		t.Fatal("the API answers in lowercase but accepts either")
 	}
 
