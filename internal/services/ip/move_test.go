@@ -26,7 +26,7 @@ func sample() []destination {
 // The service name is what the operator copies out of another command's
 // output, and case is not something they should have to reproduce.
 func TestPickDestinationIgnoresCase(t *testing.T) {
-	chosen, ok := pickDestination(sample(), "NS3118333.IP-51-68-100.EU")
+	chosen, ok := pickDestination(sample(), "NS0000006.IP-203-0-113.EU")
 
 	td.Require(t).Cmp(ok, true)
 	td.Cmp(t, chosen.Service, "ns0000006.ip-203-0-113.eu")
@@ -61,7 +61,7 @@ func TestUnknownDestinationCountsRatherThanLists(t *testing.T) {
 // only the one it is going to. That service is the thing that goes dark, and
 // it is the only part the operator cannot see from the command they typed.
 func TestMoveWarningNamesTheServiceThatLosesTheIp(t *testing.T) {
-	warning := moveWarning("203.0.113.80/32", "ns0000005.ip-203-0-113.eu", sample()[1])
+	warning := moveWarning("203.0.113.80/32", "ns0000005.ip-203-0-113.eu", sample()[1], false)
 
 	td.Cmp(t, warning, td.Contains("ns0000005.ip-203-0-113.eu"), "what it leaves")
 	td.Cmp(t, warning, td.Contains("ns0000006.ip-203-0-113.eu"), "where it goes")
@@ -72,7 +72,7 @@ func TestMoveWarningNamesTheServiceThatLosesTheIp(t *testing.T) {
 // stop, and saying there is would be a warning about something that is not
 // happening.
 func TestMoveWarningSaysSoWhenNothingIsServed(t *testing.T) {
-	warning := moveWarning("203.0.113.80/32", "", sample()[1])
+	warning := moveWarning("203.0.113.80/32", "", sample()[1], false)
 
 	td.Cmp(t, warning, td.Contains("not routed to any service"))
 	td.Cmp(t, strings.Contains(warning, "stops the traffic"), false,
@@ -160,4 +160,24 @@ func TestWaitForRoutingTimesOutWithoutClaimingFailure(t *testing.T) {
 	td.Cmp(t, err.Error(), td.Contains("stopped waiting"))
 	td.Cmp(t, err.Error(), td.Contains("ovhcloud ip tasks"), "the way to follow it is named")
 	td.Cmp(t, err.Error(), td.Not(td.Contains("failed")), "the move was not observed to fail")
+}
+
+// An unread routing is not an empty routing. The prompt is the last place a
+// wrong move can still be stopped, and "not routed to any service" is a green
+// light: it must never be what a failed read produces.
+func TestAnUnreadRoutingIsNotAnEmptyOne(t *testing.T) {
+	unknown := moveWarning("203.0.113.80/32", "", sample()[1], true)
+	if strings.Contains(unknown, "is not routed to any service") {
+		t.Fatalf("a failed read must not read as a free IP: %q", unknown)
+	}
+	if !strings.Contains(unknown, "Could not read") {
+		t.Fatalf("the prompt has to say the reading failed, got %q", unknown)
+	}
+	free := moveWarning("203.0.113.80/32", "", sample()[1], false)
+	if !strings.Contains(free, "is not routed to any service") {
+		t.Fatalf("an IP really routed nowhere still says so, got %q", free)
+	}
+	if free == unknown {
+		t.Fatal("the two cases produce the same sentence, so the prompt cannot tell them apart")
+	}
 }
