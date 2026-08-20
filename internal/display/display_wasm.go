@@ -170,6 +170,19 @@ func exitError(message string, params ...any) {
 	ResultError = fmt.Errorf("🛑 "+message+"\n", params...)
 }
 
+// ExitFunc is the wasm counterpart of the one in display.go. There is no
+// process to leave in a browser, and calling os.Exit would take the whole Go
+// runtime down with the page, so a non-zero code is reported the way every
+// other failure is here: on ResultError, which is a separate global from
+// ResultString. The output the command already produced therefore survives —
+// which is the whole point of the callers that reach for this instead of
+// OutputError.
+var ExitFunc = func(code int) {
+	if code != 0 && ResultError == nil {
+		ResultError = fmt.Errorf("🛑 command exited with code %d\n", code)
+	}
+}
+
 func outputf(message string, params ...any) {
 	valueOut := &OutputMessage{
 		Message: fmt.Sprintf(message, params...),
