@@ -14,6 +14,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
 )
 
@@ -61,7 +62,7 @@ func ListBaremetalPartitionSchemes(_ *cobra.Command, args []string) {
 		rows = append(rows, map[string]any{"name": scheme, "template": InstallTemplate})
 	}
 
-	display.RenderTable(rows, []string{"name", "template"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"name", "template"})
 }
 
 // GetBaremetalRaidProfile shows the RAID controllers of a server and the disks
@@ -117,9 +118,8 @@ func GetBaremetalRaidProfile(_ *cobra.Command, args []string) {
 		}
 	}
 
-	display.RenderTable(rows,
-		[]string{"controller", "type", "diskGroupId", "disks", "capacity", "diskType"},
-		&flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows,
+		[]string{"controller", "type", "diskGroupId", "disks", "capacity", "diskType"})
 }
 
 // isUnsupportedHardwareRaid recognises the API's way of saying a server has no
