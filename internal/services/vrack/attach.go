@@ -181,8 +181,8 @@ func detachFromVrack(vrack, target string) {
 // attachWarning and detachWarning are what somebody reads in the second before
 // they agree.
 //
-// They name the machine the way its owner does — "Yaniv - RISE-1 - LIM", not
-// ns3141022.ip-51-77-67.eu — because the prompt is the last place a wrong
+// They name the machine the way its owner does — "Mail relay - Paris", not
+// ns0000002.ip-203-0-113.eu — because the prompt is the last place a wrong
 // target can still be noticed, and a hostname is an address, not a name. The
 // interface is named too: a server can hold several, and cutting the wrong one
 // is a different outage from cutting the machine.
