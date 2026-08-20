@@ -11,6 +11,7 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
+	"github.com/ovh/ovhcloud-cli/internal/display"
 )
 
 const doctorServer = "https://eu.api.ovh.com/v1/dedicated/server/ns1.example"
@@ -103,9 +104,40 @@ func (ms *MockSuite) TestBaremetalDoctorOnlyFailsWhenAskedTo(assert, require *td
 	require.CmpNoError(err, "reporting a finding is not a failed command")
 	assert.Cmp(out, td.Contains("monitoring"))
 
-	_, strictErr := cmd.Execute("baremetal", "doctor", "ns1.example", "--strict")
-	require.CmpError(strictErr, "--strict turns findings into a failure")
-	assert.Cmp(strictErr.Error(), td.Contains("finding"))
+	// --strict changes the exit code and nothing else. A second document after
+	// the table would be the only thing left under -o json, so the pipeline
+	// that asked for --strict would get the error instead of the findings.
+	var code *int
+	previous := display.ExitFunc
+	display.ExitFunc = func(c int) { code = &c }
+	defer func() { display.ExitFunc = previous }()
+
+	strictOut, strictErr := cmd.Execute("baremetal", "doctor", "ns1.example", "--strict")
+
+	require.CmpNoError(strictErr, "--strict must not emit a second document")
+	require.NotNil(code, "--strict has to set a non-zero exit code")
+	assert.Cmp(*code, 1)
+	assert.Cmp(strictOut, td.Contains("monitoring"), "the findings are still the output")
+	assert.Cmp(strictOut, td.Not(td.Contains("🛑")), "no error document is printed")
+}
+
+// A clean fleet under --strict exits 0. The no-finding case returns before the
+// --strict block, so this pins the ORDER: moving the exit above that return
+// would fail a green fleet for having been asked to check.
+func (ms *MockSuite) TestBaremetalDoctorStrictStaysGreenWithNoFinding(assert, require *td.T) {
+	registerHealthyServer()
+	httpmock.RegisterResponder("GET", doctorServer,
+		httpmock.NewStringResponder(200, `{"state":"ok","powerState":"poweron","monitoring":true,"bootId":1}`))
+
+	exited := false
+	previous := display.ExitFunc
+	display.ExitFunc = func(int) { exited = true }
+	defer func() { display.ExitFunc = previous }()
+
+	_, err := cmd.Execute("baremetal", "doctor", "ns1.example", "--strict")
+
+	require.CmpNoError(err)
+	assert.Cmp(exited, false, "nothing to report means nothing to fail on")
 }
 
 // With no argument it checks every server of the account.
