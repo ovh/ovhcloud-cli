@@ -56,6 +56,14 @@ var (
 	ticketImpacts = sync.OnceValues(func() ([]string, error) {
 		return openapi.GetRequestFieldEnum(assets.SupportOpenapiSchema, ticketCreatePath, "post", "impact")
 	})
+	// Read separately from impact even though the two carry the same three
+	// values today. They are two fields of the request body, and nothing binds
+	// them together: the day the API adds a value to one of them, sharing the
+	// list would refuse a value the API accepts, and the refusal would name the
+	// other field's values as the accepted ones.
+	ticketUrgencies = sync.OnceValues(func() ([]string, error) {
+		return openapi.GetRequestFieldEnum(assets.SupportOpenapiSchema, ticketCreatePath, "post", "urgency")
+	})
 )
 
 func CompleteTicketProduct(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
@@ -72,6 +80,10 @@ func CompleteTicketSubcategory(_ *cobra.Command, _ []string, _ string) ([]string
 
 func CompleteTicketImpact(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return common.CompleteEnum(ticketImpacts)
+}
+
+func CompleteTicketUrgency(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return common.CompleteEnum(ticketUrgencies)
 }
 
 // contextFields are the identity of a machine as support reads it. Order is the
@@ -120,7 +132,7 @@ func OpenTicketForServer(cmd *cobra.Command, args []string) {
 		{"category", TicketSpec.Category, ticketCategories},
 		{"subcategory", TicketSpec.Subcategory, ticketSubcategories},
 		{"impact", TicketSpec.Impact, ticketImpacts},
-		{"urgency", TicketSpec.Urgency, ticketImpacts},
+		{"urgency", TicketSpec.Urgency, ticketUrgencies},
 	} {
 		if err := common.CheckEnumFlag(check.name, check.value, check.read); err != nil {
 			display.OutputError(&flags.OutputFormatConfig, "%s", err)

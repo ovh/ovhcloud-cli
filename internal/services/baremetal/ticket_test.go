@@ -7,6 +7,9 @@ package baremetal
 import (
 	"strings"
 	"testing"
+
+	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/openapi"
 )
 
 // A field the API did not send is left out; a field it sent as false is not.
@@ -54,5 +57,46 @@ func TestAnEmptyDetailProducesNoLines(t *testing.T) {
 	// not the string "<nil>".
 	if lines := identityLines(map[string]any{"rack": nil, "os": ""}); len(lines) != 0 {
 		t.Fatalf("a null and an empty string are both absences, got %v", lines)
+	}
+}
+
+// --urgency was validated against the impact list. The two carry the same
+// three values today, so nothing failed and nothing would have — which is the
+// whole difficulty: the defect is invisible until the schema moves.
+func TestUrgencyIsReadFromTheUrgencyField(t *testing.T) {
+	fromSchema, err := openapi.GetRequestFieldEnum(
+		assets.SupportOpenapiSchema, ticketCreatePath, "post", "urgency")
+	if err != nil {
+		t.Fatalf("the schema does not describe an urgency field: %s", err)
+	}
+	got, err := ticketUrgencies()
+	if err != nil {
+		t.Fatalf("reading the accepted urgencies: %s", err)
+	}
+	if strings.Join(got, ",") != strings.Join(fromSchema, ",") {
+		t.Fatalf("urgency accepts %v, the schema says %v", got, fromSchema)
+	}
+}
+
+// The canary for the test above, and the honest part of it: while impact and
+// urgency carry identical values, that test passes with either wiring, so it
+// proves nothing on its own. This one goes red the day the two lists diverge
+// — which is exactly the day the wiring starts to matter — and says what to do
+// about it. A test that cannot fail is not a test; a test that says when it
+// starts being one is worth keeping.
+func TestImpactAndUrgencyStillCarryTheSameValues(t *testing.T) {
+	impacts, err := ticketImpacts()
+	if err != nil {
+		t.Fatalf("reading the accepted impacts: %s", err)
+	}
+	urgencies, err := ticketUrgencies()
+	if err != nil {
+		t.Fatalf("reading the accepted urgencies: %s", err)
+	}
+	if strings.Join(impacts, ",") != strings.Join(urgencies, ",") {
+		t.Fatalf("impact %v and urgency %v have diverged: "+
+			"TestUrgencyIsReadFromTheUrgencyField now discriminates, and every "+
+			"place that reads one list for both fields has to be checked",
+			impacts, urgencies)
 	}
 }
