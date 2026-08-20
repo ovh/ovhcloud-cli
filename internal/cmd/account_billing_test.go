@@ -34,7 +34,7 @@ func captureQuery(url, body string, seen *string) {
 func registerOneBill(id string) {
 	httpmock.RegisterResponder(http.MethodGet, billsURL+"/"+id,
 		httpmock.NewStringResponder(200, fmt.Sprintf(`{"billId":%q,"date":"2026-08-01T08:19:43+02:00",
-			"category":"autorenew","orderId":255190117,
+			"category":"autorenew","orderId":900000006,
 			"priceWithTax":{"text":"104.99 €","value":104.99,"currencyCode":"EUR"},
 			"priceWithoutTax":{"text":"104.99 €","value":104.99,"currencyCode":"EUR"},
 			"tax":{"text":"0.00 €","value":0,"currencyCode":"EUR"},
@@ -139,7 +139,7 @@ func (ms *MockSuite) TestRefundListHidesItsLinksToo(assert, require *td.T) {
 	captureQuery(refundsURL, `["API_FR1"]`, new(string))
 	httpmock.RegisterResponder(http.MethodGet, refundsURL+"/API_FR1",
 		httpmock.NewStringResponder(200, `{"refundId":"API_FR1","date":"2026-03-05T14:22:17+01:00",
-			"originalBillId":"PI_FR9","orderId":246409141,
+			"originalBillId":"PI_FR9","orderId":900000005,
 			"priceWithTax":{"text":"-71.43 €","value":-71.43,"currencyCode":"EUR"},
 			"password":"SECRETPASS","pdfUrl":"https://www.ovh.com/x?esign=SIGNATURE"}`))
 
