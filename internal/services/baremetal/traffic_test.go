@@ -71,3 +71,32 @@ func TestSummariseSaysNothingRatherThanZero(t *testing.T) {
 	td.Cmp(t, summary["peak"], nil)
 	td.Cmp(t, summary["average"], nil)
 }
+
+// The accepted periods and types are the API's, read from the embedded schema.
+// They were retyped in Go until a cross-review pointed it out: the values
+// matched at the time, which is exactly how such a list rots unnoticed.
+func TestTrafficPeriodsAndTypesComeFromTheSchema(t *testing.T) {
+	assert := td.Assert(t)
+
+	periods, err := trafficPeriods()
+	assert.CmpNoError(err)
+	assert.Cmp(periods, td.Bag("hourly", "daily", "weekly", "monthly", "yearly"))
+
+	types, err := trafficTypes()
+	assert.CmpNoError(err)
+	assert.Cmp(types, td.SuperBagOf("traffic:download", "packets:upload", "errors:download"))
+}
+
+// A value the schema does not carry is refused before any request, and the
+// refusal lists what is accepted.
+func TestAnUnknownPeriodIsRefusedWithTheAcceptedList(t *testing.T) {
+	assert := td.Assert(t)
+
+	err := checkAgainstSchema("period", "fortnightly", trafficPeriods)
+
+	assert.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("fortnightly"))
+	assert.Cmp(err.Error(), td.Contains("monthly"), "the refusal says what is accepted")
+
+	assert.CmpNoError(checkAgainstSchema("period", "daily", trafficPeriods))
+}
