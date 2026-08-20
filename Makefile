@@ -85,8 +85,39 @@ schemas-v2:
 	@jq -r '[.paths[] | .[] | select(type == "object") | ((.["x-badges"] // [{label: "no badge"}]) | .[] | .label)] \
 		| group_by(.) | sort_by(-length) | .[] | "  \(length)\t\(.[0])"' "$(SCHEMAS_DIR)/$(NAME).json"
 
+# schemas-drift answers the question neither refresh target can: an embedded
+# schema is a hand-picked subset, so a path present in the catalogue and absent
+# from the file is normal curation. The reverse is not — a path this repository
+# ships and the catalogue no longer publishes is a route that will 404.
+#
+# Nothing calls those paths today, so this is a contract defect rather than a
+# breakage; it becomes one the day a command is built on a path that has been
+# gone for a year. Measured 20 August 2026: baremetal.json alone carries five,
+# two of them badged "Stable production version", and every one probed against
+# the live API answers 404 — including under the method it declares.
+schemas-drift:
+	@if [ -z "$(NAME)" ] || [ -z "$(SOURCE)" ]; then \
+		echo "Usage: make schemas-drift NAME=<file> SOURCE=<catalogue path>"; \
+		echo "   e.g. make schemas-drift NAME=baremetal SOURCE=v1/dedicated/server"; \
+		exit 1; \
+	fi
+	@live=$$(mktemp); \
+	trap 'rm -f "$$live"' EXIT INT TERM; \
+	curl -fsS "$(SCHEMAS_ROOT)/$(SOURCE).json?format=openapi3" -o "$$live" && \
+	jq -e '(.paths | length) > 0' "$$live" > /dev/null || { echo "the catalogue answered nothing usable"; exit 1; }; \
+	echo "$(NAME).json: $$(jq '.paths | length' "$(SCHEMAS_DIR)/$(NAME).json") paths embedded, $$(jq '.paths | length' "$$live") published by $(SOURCE)"; \
+	orphans=$$(jq -r -n --slurpfile a "$(SCHEMAS_DIR)/$(NAME).json" --slurpfile b "$$live" \
+		'($$a[0].paths | keys) - ($$b[0].paths | keys) | .[]'); \
+	if [ -z "$$orphans" ]; then \
+		echo "  no embedded path is missing from the catalogue"; \
+	else \
+		echo "  embedded but not published — these will 404:"; \
+		echo "$$orphans" | sed 's/^/    /'; \
+	fi
+
+
 setup:
 	curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/latest/download/prek-installer.sh | sh
 	prek install
 
-.PHONY: all wasm doc schemas schemas-v2 setup
+.PHONY: all wasm doc schemas schemas-v2 schemas-drift setup

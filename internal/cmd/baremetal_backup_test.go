@@ -54,7 +54,7 @@ func (ms *MockSuite) TestBaremetalBackupAclRefusesARuleThatOpensNothing(assert, 
 // seconds later without naming the ones that would work.
 func (ms *MockSuite) TestBaremetalBackupAclChecksTheBlockAgainstTheServer(assert, require *td.T) {
 	httpmock.RegisterResponder("GET", testBackupServer+"/authorizableBlocks",
-		httpmock.NewStringResponder(200, `["51.68.100.160/28","141.94.98.55/32"]`))
+		httpmock.NewStringResponder(200, `["203.0.113.160/28","203.0.113.55/32"]`))
 
 	_, err := cmd.Execute("baremetal", "backup", "ftp", "acl", "add",
 		"ns1.example", "1.2.3.4/32", "--ftp", "--yes")
