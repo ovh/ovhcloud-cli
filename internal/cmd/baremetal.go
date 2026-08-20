@@ -697,13 +697,18 @@ a server is sitting on the power-off entry.`,
 	}
 	baremetalBackupCmd.AddCommand(baremetalBackupCloudCmd)
 
-	baremetalBackupCloudCmd.AddCommand(&cobra.Command{
+	// --reveal on both, and for the same reason it exists on `password`: the
+	// object these print carries the four container passwords, one level down.
+	baremetalBackupCloudShowCmd := &cobra.Command{
 		Use:               "show <service_name>",
 		Short:             "Show the cloud backup containers of this server",
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.ShowBackupCloud,
-	})
+	}
+	baremetalBackupCloudShowCmd.Flags().BoolVar(&baremetal.RevealBackupPassword, "reveal", false,
+		"Print the container passwords instead of their fingerprints")
+	baremetalBackupCloudCmd.AddCommand(baremetalBackupCloudShowCmd)
 
 	baremetalBackupCloudCmd.AddCommand(&cobra.Command{
 		Use:               "offer <service_name>",
@@ -724,6 +729,8 @@ a server is sitting on the power-off entry.`,
 		"Public cloud project to hold the containers")
 	baremetalBackupCloudCreateCmd.Flags().StringVar(&baremetal.BackupCloudProjectDescription, "project-description", "",
 		"Description of the project to create, when none is given")
+	baremetalBackupCloudCreateCmd.Flags().BoolVar(&baremetal.RevealBackupPassword, "reveal", false,
+		"Print the container passwords instead of their fingerprints")
 	addConfirmationFlags(baremetalBackupCloudCreateCmd, "Print the call that would be made without making it")
 	baremetalBackupCloudCmd.AddCommand(baremetalBackupCloudCreateCmd)
 
