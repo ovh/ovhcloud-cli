@@ -161,9 +161,16 @@ func Doctor(_ *cobra.Command, args []string) {
 	// not fail, and every other command of this CLI reads a non-zero code that
 	// way. --strict is for the pipeline that wants the answer as a gate, and it
 	// has to be asked for rather than discovered.
+	//
+	// It changes the exit code and nothing else. Calling OutputError here would
+	// print a second document after the table, and under -o json only the last
+	// one survives -- the pipeline that asked for --strict would receive the
+	// error message instead of the findings it came for.
+	// Reached only when there is something to report: the no-finding case
+	// returned above. A len(findings) > 0 guard here would be a condition that
+	// cannot be false, which is the dead code this repository keeps finding.
 	if DoctorStrict {
-		display.OutputError(&flags.OutputFormatConfig,
-			"%d finding(s) on %d server(s)", len(findings), len(servers))
+		display.ExitFunc(1)
 	}
 }
 
