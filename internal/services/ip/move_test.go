@@ -26,7 +26,7 @@ func sample() []destination {
 // The service name is what the operator copies out of another command's
 // output, and case is not something they should have to reproduce.
 func TestPickDestinationIgnoresCase(t *testing.T) {
-	chosen, ok := pickDestination(sample(), "NS3118333.IP-51-68-100.EU")
+	chosen, ok := pickDestination(sample(), "NS0000006.IP-203-0-113.EU")
 
 	td.Require(t).Cmp(ok, true)
 	td.Cmp(t, chosen.Service, "ns0000006.ip-203-0-113.eu")
