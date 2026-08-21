@@ -927,6 +927,12 @@ sending. --dry-run prints the whole message instead of sending it.`,
 		Use:   "backup-agent",
 		Short: "Manage the Veeam backup agent protecting this server",
 	}
+	// The resolution of the tenant and the VSPC tenant lives in the same place
+	// for both trees, so its refusal — "name one with --tenant" — has to be
+	// actionable from both. Without these, every command here was unusable on an
+	// account holding more than one tenant, and said so by naming a flag cobra
+	// then rejected as unknown.
+	addBackupTenantFlags(baremetalBackupAgentCmd)
 	baremetalCmd.AddCommand(baremetalBackupAgentCmd)
 
 	baremetalBackupAgentCmd.AddCommand(withFilterFlag(&cobra.Command{
