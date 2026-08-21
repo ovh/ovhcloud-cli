@@ -561,6 +561,11 @@ func init() {
 	ipMitigationProfileSetCmd.Flags().IntVar(&ip.MitigationTimeout, "timeout", 0,
 		"Minutes auto-mitigation stays on after an attack: 0, 15, 60, 360 or 1560")
 	addConfirmationFlags(ipMitigationProfileSetCmd, "Print the call that would be made without making it")
+	// Required, because 0 is one of the five values the API accepts — "no
+	// delay" — and not a neutral default. Without this, a `set` typed to
+	// change nothing else silently wrote "no delay" over a profile that may
+	// have been at 1560.
+	_ = ipMitigationProfileSetCmd.MarkFlagRequired("timeout")
 	ipMitigationProfileCmd.AddCommand(ipMitigationProfileSetCmd)
 
 	ipMitigationProfileDeleteCmd := &cobra.Command{
