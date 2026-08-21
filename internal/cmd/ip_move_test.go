@@ -89,3 +89,24 @@ func (ms *MockSuite) TestIpParkSaysWhenThereIsNothingToPark(assert, require *td.
 		assert.Cmp(call, td.Not(td.HasPrefix("POST")))
 	}
 }
+
+// The other half of eb56fab that had no test. "Nothing to park" is the sentence
+// an operator reads as "already done, move on", and a failed read must never
+// produce it: parking waits for the empty string, and the empty string is also
+// what a folded-in error looked like. So an unreadable IP stops the command
+// instead of being reported as one that serves nothing.
+func (ms *MockSuite) TestIpParkRefusesWhenItCannotTellWhatIsServed(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/ip/203.0.113.80%2F32",
+		httpmock.NewStringResponder(500, `{"message": "gateway is having a day"}`))
+
+	_, err := cmd.Execute("ip", "park", "203.0.113.80/32", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("failed to read what 203.0.113.80/32 is routed to"))
+	assert.Cmp(err.Error(), td.Not(td.Contains("nothing to park")),
+		"an unread IP is never an unrouted one")
+	for call := range httpmock.GetCallCountInfo() {
+		assert.Cmp(call, td.Not(td.HasPrefix("POST")), "and nothing is sent")
+	}
+}

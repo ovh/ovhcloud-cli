@@ -6,9 +6,11 @@ package ip
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -207,7 +209,7 @@ func MoveIp(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := waitForRouting(ip, chosen.Service); err != nil {
+	if err := waitForRouting(ip, chosen.Service, taskIDOf(task)); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
@@ -244,7 +246,11 @@ func ParkIp(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
+	// POST /ip/{ip}/park answers with an ip.IpTask, which this used to discard.
+	// Keeping it is what lets the wait below notice a park that failed instead
+	// of polling the state for ten minutes.
+	var task map[string]any
+	if err := httpLib.Client.Post(endpoint, nil, &task); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to park %s: %s", ip, err)
 		return
 	}
@@ -253,11 +259,11 @@ func ParkIp(_ *cobra.Command, args []string) {
 
 	if !IPWait {
 		display.OutputInfo(&flags.OutputFormatConfig,
-			map[string]any{"ip": ip}, "⚡️ %s is being parked.", ip)
+			map[string]any{"ip": ip, "task": task["taskId"]}, "⚡️ %s is being parked.", ip)
 		return
 	}
 
-	if err := waitForRouting(ip, ""); err != nil {
+	if err := waitForRouting(ip, "", taskIDOf(task)); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
@@ -283,7 +289,7 @@ func ListIpTasks(_ *cobra.Command, args []string) {
 // about the thing it is asked.
 //
 // An empty want means parked.
-func waitForRouting(ip, want string) error {
+func waitForRouting(ip, want string, taskID int64) error {
 	for attempt := 0; attempt < movePollAttempts; attempt++ {
 		// A read that failed is not a read that came back empty. Parking waits
 		// for exactly the empty string, so counting a failure as one would end
@@ -296,25 +302,109 @@ func waitForRouting(ip, want string) error {
 			log.Printf("%s", err)
 		}
 
+		// The task is asked second and only about failure, which is the one
+		// question the state cannot answer. A task that ends in cancelled,
+		// customerError or ovhError leaves the IP where it was, so the state
+		// reads "not there yet" forever: the wait ran its full ten minutes and
+		// then said "not routed yet, follow it with ovhcloud ip tasks", which
+		// reads as still in progress. Ten minutes and a misleading sentence for
+		// something the API knew in seconds.
+		//
+		// It stays a complement and never a substitute — a vRack attach measured
+		// earlier in this CLI created two tasks for one request, so a wait that
+		// concluded from the task alone could report success while the other half
+		// was still running. The state is read first every round, and read once
+		// more below before a failure is announced.
+		if failed, status, comment := taskFailed(ip, taskID); failed {
+			if current, err := routedTo(ip); err == nil && current == want {
+				return nil
+			}
+			return fmt.Errorf("the %s of %s failed: task %d ended %s%s\n   See it with: ovhcloud ip tasks %s --id %d",
+				operationName(want), ip, taskID, status, taskComment(comment), ip, taskID)
+		}
+
 		time.Sleep(movePollInterval)
 	}
 
-	where := "parked"
-	if want != "" {
-		where = "routed to " + want
-	}
-
 	return fmt.Errorf("stopped waiting after %s; %s is not %s yet, follow it with: ovhcloud ip tasks %s",
-		time.Duration(movePollAttempts)*movePollInterval, ip, where, ip)
+		time.Duration(movePollAttempts)*movePollInterval, ip, destinationLabel(want), ip)
 }
 
-// routedTo answers the service an IP currently serves, and an empty string when
-// it serves none.
+// terminalTaskFailures are the three ip.TaskStatusEnum values that mean the work
+// stopped and will not resume.
 //
-// A failure to read is reported as "no service" on purpose: this feeds a
-// confirmation prompt and a wait, and neither is improved by turning a
-// transient read error into a failed command. The prompt says "not routed"
-// rather than naming a service it could not confirm.
+// Retyped here because the schema lists the seven statuses without saying which
+// of them are failures — that classification does not exist in the document. A
+// guard test holds these three against the enum, so a rename shows up as a red
+// test instead of quietly turning this branch off.
+var terminalTaskFailures = []string{"cancelled", "customerError", "ovhError"}
+
+// taskFailed asks whether the task handed to us has stopped for good.
+//
+// A task that cannot be read is not a task that failed: this is a complement to
+// the state, and turning a transient 500 on the task route into "your move
+// failed" would be worse than the ten-minute wait it replaces.
+func taskFailed(ip string, taskID int64) (bool, string, string) {
+	if taskID == 0 {
+		return false, "", ""
+	}
+
+	var task struct {
+		Status  string `json:"status"`
+		Comment string `json:"comment"`
+	}
+	endpoint := fmt.Sprintf("/v1/ip/%s/task/%d", url.PathEscape(ip), taskID)
+	if err := httpLib.Client.Get(endpoint, &task); err != nil {
+		log.Printf("failed to read task %d of %s: %s", taskID, ip, err)
+		return false, "", ""
+	}
+
+	return slices.Contains(terminalTaskFailures, task.Status), task.Status, task.Comment
+}
+
+func taskComment(comment string) string {
+	if comment == "" {
+		return ""
+	}
+	return " — " + comment
+}
+
+// operationName and destinationLabel keep the two messages above readable in
+// both directions: this loop serves a move and a park, and each has to name what
+// it was doing.
+func operationName(want string) string {
+	if want == "" {
+		return "parking"
+	}
+	return "move"
+}
+
+func destinationLabel(want string) string {
+	if want == "" {
+		return "parked"
+	}
+	return "routed to " + want
+}
+
+// taskIDOf reads the identifier out of the task an operation returns.
+//
+// go-ovh decodes with UseNumber, so a JSON integer arrives as json.Number and
+// not as float64 — a type switch that only handles float64 is dead code, which
+// is a mistake this repository has already made twice.
+func taskIDOf(task map[string]any) int64 {
+	switch id := task["taskId"].(type) {
+	case json.Number:
+		if n, err := id.Int64(); err == nil {
+			return n
+		}
+	case float64:
+		return int64(id)
+	case int64:
+		return id
+	}
+	return 0
+}
+
 // routedTo returns the service this IP currently serves, and an empty string
 // when it serves none.
 //
