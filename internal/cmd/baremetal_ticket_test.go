@@ -63,8 +63,48 @@ func (ms *MockSuite) TestBaremetalTicketReportsWhatDoctorFinds(assert, require *
 
 	require.CmpNoError(err)
 	body, _ := sent["body"].(string)
-	assert.Cmp(body, td.Contains("rescue"), "the rescue boot is in the ticket")
-	assert.Cmp(body, td.Contains("Monitoring"), "so is monitoring being off")
+
+	// Asserted on the findings block itself, not on substrings the identity
+	// block supplies anyway. "rescue" appears in the Active boot line and
+	// "Monitoring" is an identity field label, so the two assertions this
+	// replaces passed with the doctor section empty — the one thing this feature
+	// exists to add was the one thing untested.
+	assert.Cmp(body, td.Contains("[warning] boot — booted on the rescue system"),
+		"the boot finding, with its severity, is in the ticket")
+	assert.Cmp(body, td.Contains("[warning] monitoring — monitoring is off"),
+		"and so is the monitoring finding")
+	assert.Cmp(body, td.Not(td.Contains("  nothing")), "the block is not empty")
+
+	// The heading must not claim to be doctor's full verdict: the renewal check
+	// is not run here.
+	assert.Cmp(body, td.Contains("except its renewal check"))
+}
+
+// "nothing" in the findings block is read as a clean bill of health, so it has
+// to mean "nothing found" and not "nothing looked". A sub-read that failed is
+// named instead of being silently dropped — the same defect doctor itself was
+// fixed for.
+func (ms *MockSuite) TestBaremetalTicketSaysWhichChecksCouldNotRun(assert, require *td.T) {
+	registerHealthyServer()
+	httpmock.RegisterResponder(http.MethodGet, doctorServer,
+		httpmock.NewStringResponder(200, `{"state":"ok","powerState":"poweron","monitoring":true,"bootId":1}`))
+	httpmock.RegisterResponder(http.MethodGet, doctorServer+"/boot/1",
+		httpmock.NewStringResponder(500, `{"message":"internal server error"}`))
+	httpmock.RegisterResponder(http.MethodGet, doctorServer+"/task?status=doing",
+		httpmock.NewStringResponder(500, `{"message":"internal server error"}`))
+	var sent map[string]any
+	captureTicket(&sent)
+
+	_, err := cmd.Execute("baremetal", "ticket", "ns1.example",
+		"--subject", "Disk noise", "--body", "It clicks.", "--yes")
+
+	require.CmpNoError(err)
+	body, _ := sent["body"].(string)
+	assert.Cmp(body, td.Contains("not checked, the API did not answer"))
+	assert.Cmp(body, td.Contains("boot"))
+	assert.Cmp(body, td.Contains("tasks"))
+	assert.Cmp(body, td.Not(td.Re(`(?m)^  nothing$`)),
+		"a bare \"nothing\" would read as a clean bill of health over two checks that never ran")
 }
 
 // A machine the API will not answer for is the very reason somebody opens a
