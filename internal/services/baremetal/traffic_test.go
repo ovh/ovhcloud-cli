@@ -11,11 +11,13 @@ import (
 )
 
 func point(timestamp int64, unit string, value float64) mrtgPoint {
-	var p mrtgPoint
-	p.Timestamp = timestamp
-	p.Value.Unit = unit
-	p.Value.Value = value
-	return p
+	return mrtgPoint{Timestamp: timestamp, Value: &mrtgValue{Unit: unit, Value: value}}
+}
+
+// absent is a sample the API declares as null and returns as null: 348 of 5311
+// yearly samples across ten servers of this account.
+func absent(timestamp int64) mrtgPoint {
+	return mrtgPoint{Timestamp: timestamp}
 }
 
 // Every unit this API returns is a rate — bps, pps and eps, all three seen on a
@@ -99,4 +101,42 @@ func TestAnUnknownPeriodIsRefusedWithTheAcceptedList(t *testing.T) {
 	assert.Cmp(err.Error(), td.Contains("monthly"), "the refusal says what is accepted")
 
 	assert.CmpNoError(checkAgainstSchema("period", "daily", trafficPeriods))
+}
+
+// The API declares a graph sample nullable and means it: swept over ten servers
+// of this account, 348 of 5311 yearly samples came back null — 90 of 273 on one
+// machine, whose first sample was one of them.
+//
+// Decoded into a non-pointer struct, each of those became a real zero, and the
+// two figures the table prints were wrong as a result: that machine's average
+// read 14039 bps where the truth is 20944, understated by a third, and the unit
+// — taken from the first sample — was the empty string, so the row printed
+// "20.94 k" with no unit at all. This reproduces both, in the shape the API
+// returns them.
+func TestSummariseDoesNotCountAnAbsentSampleAsZero(t *testing.T) {
+	summary := summarise([]mrtgPoint{
+		absent(1),
+		point(2, "bps", 100),
+		point(3, "bps", 300),
+	})
+
+	td.Cmp(t, summary["average"], 200.0, "two samples, not three")
+	td.Cmp(t, summary["unit"], "bps", "the unit comes from the first sample that has one")
+	td.Cmp(t, summary["peak"], 300.0)
+	td.Cmp(t, summary["latest"], 300.0)
+	td.Cmp(t, summary["points"], 3, "the window is still three samples long")
+	td.Cmp(t, summary["measured"], 2)
+	td.Cmp(t, summary["missing"], 1, "and the caveat travels with the figures")
+}
+
+// A window in which nothing was recorded is not a window in which nothing
+// happened. Three zeros would say the interface carried no traffic.
+func TestSummariseSaysNothingWasRecordedRatherThanZero(t *testing.T) {
+	summary := summarise([]mrtgPoint{absent(1), absent(2)})
+
+	td.Cmp(t, summary["measured"], 0)
+	td.Cmp(t, summary["missing"], 2)
+	td.CmpNil(t, summary["peak"], "no figure is invented")
+	td.CmpNil(t, summary["average"])
+	td.CmpNil(t, summary["peakReadable"])
 }
