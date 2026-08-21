@@ -9,6 +9,10 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/jarcoal/httpmock"
+	"github.com/ovh/go-ovh/ovh"
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
 
 // The common case is the one nobody should have to look up.
@@ -185,4 +189,123 @@ func TestASpaceInAValueSurvivesTheQuery(t *testing.T) {
 	if back["Project"][0].Value != "Proof of Concept%" {
 		t.Fatalf("got %q", back["Project"][0].Value)
 	}
+}
+
+// The schema documents "ovh:" as the prefix of every tag OVHcloud computes
+// itself — ovh:default on a billing account, ovh:whoisOwner on a domain. Reading
+// the operator from the FIRST colon made that whole namespace unreachable:
+// "ovh:default=x" parsed as key "ovh" with operator "DEFAULT" and came back
+// refused for an operator nobody typed.
+func TestATagKeyMayContainAColon(t *testing.T) {
+	filters, err := parseTagFilters([]string{"ovh:default:EQ=true"})
+	if err != nil {
+		t.Fatalf("unexpected refusal: %s", err)
+	}
+	if len(filters["ovh:default"]) != 1 {
+		t.Fatalf("the key is everything before the operator: %+v", filters)
+	}
+	if filters["ovh:default"][0].Operator != "EQ" || filters["ovh:default"][0].Value != "true" {
+		t.Fatalf("got %+v", filters["ovh:default"][0])
+	}
+
+	// And with a valueless operator, which has no "=" to anchor on.
+	filters, err = parseTagFilters([]string{"ovh:whoisOwner:EXISTS"})
+	if err != nil {
+		t.Fatalf("unexpected refusal: %s", err)
+	}
+	if len(filters["ovh:whoisOwner"]) != 1 || filters["ovh:whoisOwner"][0].Operator != "EXISTS" {
+		t.Fatalf("got %+v", filters)
+	}
+}
+
+// What follows the last colon and is not an operator is genuinely ambiguous, and
+// the CLI must not choose. Reading it as a key would send "owner:CONTAINS" to the
+// API, come back with no servers, and print "nothing matches" — a wrong answer
+// wearing the shape of an answer.
+func TestAnAmbiguousColonIsRefusedWithBothReadings(t *testing.T) {
+	_, err := parseTagFilters([]string{"owner:CONTAINS=Denis"})
+	if err == nil {
+		t.Fatal("the CLI must not silently pick one of the two readings")
+	}
+	if !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("the refusal has to say so: %s", err)
+	}
+	if !strings.Contains(err.Error(), "owner:CONTAINS") {
+		t.Fatalf("the key reading has to be named: %s", err)
+	}
+	if !strings.Contains(err.Error(), "EQ") {
+		t.Fatalf("and the operators listed: %s", err)
+	}
+}
+
+// The completer must only ever offer something the parser accepts. On a key
+// holding a colon it offered "ovh:EQ" — the operator EQ appended to the first
+// segment — which no longer names the key at all. A completion that cannot be
+// accepted is worse than none: it is the CLI telling the operator to type
+// something it will then reject.
+//
+// Every suggestion is fed straight back through the parser here, which is the
+// only assertion that cannot drift from the parser's actual rules.
+func TestTheCompleterOnlyOffersWhatTheParserAccepts(t *testing.T) {
+	withTagAPI(t, `[{"id": "srv-1", "iam": {"tags": {"ovh:default": "true", "owner": "Denis"}}}]`)
+
+	operators, err := tagOperators()
+	if err != nil {
+		t.Fatalf("could not read the operators: %s", err)
+	}
+
+	for _, toComplete := range []string{"", "ovh:", "ovh:default:", "owner:"} {
+		suggestions, _ := CompleteBaremetalTag(nil, nil, toComplete)
+		if len(suggestions) == 0 {
+			t.Fatalf("nothing offered for %q, so this test would prove nothing", toComplete)
+		}
+		for _, suggestion := range suggestions {
+			candidate := suggestion
+			if !strings.HasSuffix(candidate, "EXISTS") {
+				candidate += "=x"
+			}
+			if _, _, _, err := splitTagFilter(candidate, operators); err != nil {
+				t.Fatalf("completing %q offered %q, which the parser refuses: %s",
+					toComplete, suggestion, err)
+			}
+		}
+	}
+}
+
+// And it has to reach the key, not stop at its first segment: typing "ovh:" and
+// pressing tab used to offer six operators and never the key "ovh:default".
+func TestTheCompleterReachesAKeyWithAColon(t *testing.T) {
+	withTagAPI(t, `[{"id": "srv-1", "iam": {"tags": {"ovh:default": "true"}}}]`)
+
+	suggestions, _ := CompleteBaremetalTag(nil, nil, "ovh:")
+
+	var found bool
+	for _, suggestion := range suggestions {
+		if strings.HasPrefix(suggestion, "ovh:default:") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("the key has to be reached, got %v", suggestions)
+	}
+}
+
+// withTagAPI points the shared client at httpmock for the v2 collection the
+// completer reads its keys from.
+func withTagAPI(t *testing.T, servers string) {
+	t.Helper()
+	httpmock.Activate(t)
+
+	origClient := httpLib.Client
+	client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", "consumer_key")
+	if err != nil {
+		t.Fatalf("could not build a client: %s", err)
+	}
+	httpLib.Client = client
+	t.Cleanup(func() { httpLib.Client = origClient })
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/auth/time",
+		httpmock.NewStringResponder(200, "0"))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/dedicated/server",
+		httpmock.NewStringResponder(200, servers))
 }
