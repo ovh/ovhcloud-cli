@@ -445,9 +445,13 @@ a server is sitting on the power-off entry.`,
 	}
 	baremetalTrafficCmd.Flags().StringVar(&baremetal.TrafficPeriod, "period", "daily",
 		"Window the graph covers: hourly, daily, weekly, monthly or yearly")
-	baremetalTrafficCmd.Flags().StringSliceVar(&baremetal.TrafficTypes, "type",
-		[]string{"traffic:download", "traffic:upload"},
-		"Series to read: traffic, packets or errors, each :download or :upload")
+	// Declared with no default on purpose: PostExecute resets a stringSlice by
+	// replacing it with nil rather than with DefValue — DefValue is "[]" for a
+	// slice, so it cannot be used — and a default that survives only the first
+	// command of a process is worse than no default. The default lives in
+	// defaultTrafficTypes, next to the code that reads it, and is stated here.
+	baremetalTrafficCmd.Flags().StringSliceVar(&baremetal.TrafficTypes, "type", nil,
+		"Series to read: traffic, packets or errors, each :download or :upload (default: traffic:download,traffic:upload)")
 	baremetalTrafficCmd.Flags().StringVar(&baremetal.TrafficNIC, "nic", "",
 		"Read only this controller, by MAC address (default: every controller of the server)")
 	baremetalCmd.AddCommand(baremetalTrafficCmd)
