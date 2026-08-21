@@ -179,6 +179,18 @@ func ListBills(_ *cobra.Command, _ []string) {
 
 	rows := make([]map[string]any, 0, len(bills))
 	for _, bill := range bills {
+		// FetchObjectsParallel preallocates one slot per id and only writes the
+		// ones that succeeded, so with --ignore-errors the failures stay in the
+		// slice as nil maps. Kept, they became a blank row in the table and a
+		// bare {} under -o json — one per failed read, with nothing saying how
+		// many were missing, which is worse than a short list.
+		// FetchExpandedArray in the same package already drops them; these two
+		// call sites bypass it because they need a query string and a count
+		// first.
+		if bill == nil {
+			continue
+		}
+
 		rows = append(rows, billSecretsView(bill))
 	}
 
@@ -237,6 +249,10 @@ func ListRefunds(_ *cobra.Command, _ []string) {
 
 	rows := make([]map[string]any, 0, len(refunds))
 	for _, refund := range refunds {
+		if refund == nil {
+			continue
+		}
+
 		rows = append(rows, billSecretsView(refund))
 	}
 
