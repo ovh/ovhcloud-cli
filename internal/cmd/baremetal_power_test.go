@@ -284,3 +284,64 @@ func (ms *MockSuite) TestBaremetalPowerStatusOffersNoFilterFlag(assert, require 
 	require.CmpError(err, "--filter must not be accepted on a single-object command")
 	assert.Cmp(err.Error(), td.Contains("filter"))
 }
+
+// `power on` puts the boot back so a later reboot does not shut the machine
+// down. When the machine is already on that boot, there is nothing to put back,
+// and the PUT it used to send was a write to the boot configuration of a
+// production server bought for nothing — announced, on top, as "its boot is now
+// N", which was not true because the boot had not moved.
+//
+// `power off` already makes this exact comparison before deciding what to
+// record. Leaving it out of `power on` was an omission, not a difference.
+func (ms *MockSuite) TestBaremetalPowerOnDoesNotRewriteABootAlreadyInPlace(assert, require *td.T) {
+	// Running on the disk entry, which is also what bootToRestore falls back to
+	// when this machine has no record — so target and current state coincide.
+	registerPower(assert, "poweron", 1)
+
+	out, err := cmd.Execute("baremetal", "power", "on", powerServer)
+
+	require.CmpNoError(err)
+	assert.Cmp(powerCallCount("PUT", ""), 0, "no write to the boot configuration")
+	assert.Cmp(powerCallCount("POST", "/reboot"), 0, "and no reboot")
+	assert.Cmp(out, td.Contains("Nothing to do"))
+}
+
+// The same, reached the other way: the operator names the boot the server is
+// already on. An explicit --boot is a statement of intent, not a reason to write
+// a value that is already there.
+func (ms *MockSuite) TestBaremetalPowerOnHonoursAnExplicitBootAlreadySet(assert, require *td.T) {
+	registerPower(assert, "poweron", 230242)
+
+	out, err := cmd.Execute("baremetal", "power", "on", powerServer, "--boot", "230242")
+
+	require.CmpNoError(err)
+	assert.Cmp(powerCallCount("PUT", ""), 0)
+	assert.Cmp(out, td.Contains("already running on boot 230242"))
+}
+
+// And the preview of that no-op must not have a side effect: the record of the
+// boot the machine came from is local state, so --dry-run leaves it alone. The
+// second run proves it survived — it still names the remembered boot rather than
+// falling back to the disk.
+func (ms *MockSuite) TestBaremetalPowerOnDryRunKeepsTheRememberedBoot(assert, require *td.T) {
+	registerPower(assert, "poweron", 230242)
+	_, err := cmd.Execute("baremetal", "power", "off", powerServer, "--yes")
+	require.CmpNoError(err)
+
+	// Now off, and on the entry it was told to restore — so `power on` has
+	// nothing to do but still holds a record worth keeping.
+	cmd.PostExecute()
+	powerBodies = map[string][]map[string]any{}
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/"+powerServer,
+		httpmock.NewStringResponder(200, `{"powerState": "poweron", "state": "ok", "bootId": 230242}`))
+
+	_, err = cmd.Execute("baremetal", "power", "on", powerServer, "--dry-run")
+	require.CmpNoError(err)
+
+	cmd.PostExecute()
+	out, err := cmd.Execute("baremetal", "power", "on", powerServer)
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("was on before it was powered off"),
+		"the dry run did not consume the record")
+}

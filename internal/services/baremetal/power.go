@@ -213,18 +213,55 @@ func PowerOnBaremetal(_ *cobra.Command, args []string) {
 	setBoot := fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(server))
 	reboot := fmt.Sprintf("/v1/dedicated/server/%s/reboot", url.PathEscape(server))
 
-	calls := []common.Call{{Method: "PUT", Endpoint: setBoot}}
+	// ... but only when it is not already there. The PUT rewrites the boot
+	// configuration of a production machine, and doing it to set the value it
+	// already holds is a write with no effect to buy. `power off`, three
+	// functions up, already compares state.BootID against the entry it is about
+	// to use before deciding what to record; not doing it here was an omission,
+	// not a difference between the two commands.
+	//
+	// It also stops the command from claiming work it did not do: the message
+	// below announces that the boot has changed, which was untrue in exactly
+	// this case.
+	needsBoot := state.BootID != restore
+
+	calls := make([]common.Call, 0, 2)
+	if needsBoot {
+		calls = append(calls, common.Call{Method: "PUT", Endpoint: setBoot})
+	}
 	if state.PowerState != "poweron" {
 		calls = append(calls, common.Call{Method: "POST", Endpoint: reboot})
 	}
+
+	if len(calls) == 0 {
+		// Running, and on the entry we would have set. Saying "already running"
+		// and stopping is the whole answer; the memory of a previous boot has
+		// served its purpose and is dropped so a later `power on` does not act
+		// on a value the machine has since moved away from.
+		//
+		// Dropping it is still a change, so --dry-run does not do it either. A
+		// preview that quietly forgets which boot the machine came from is a
+		// preview with a side effect, which is the one thing it must not have.
+		if !flags.DryRun {
+			forgetBoot(server)
+		}
+		display.OutputInfo(&flags.OutputFormatConfig,
+			map[string]any{"server": server, "bootId": restore, "bootSource": source},
+			"%s is already running on boot %d (%s). Nothing to do.",
+			server, restore, source)
+		return
+	}
+
 	if common.ReportDryRun(calls...) {
 		return
 	}
 
-	if err := httpLib.Client.Put(setBoot, map[string]any{"bootId": restore}, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig,
-			"failed to set boot %d on %s: %s", restore, server, err)
-		return
+	if needsBoot {
+		if err := httpLib.Client.Put(setBoot, map[string]any{"bootId": restore}, nil); err != nil {
+			display.OutputError(&flags.OutputFormatConfig,
+				"failed to set boot %d on %s: %s", restore, server, err)
+			return
+		}
 	}
 	forgetBoot(server)
 
