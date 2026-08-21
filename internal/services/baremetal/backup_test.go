@@ -5,8 +5,15 @@
 package baremetal
 
 import (
+	"errors"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/jarcoal/httpmock"
+	"github.com/maxatome/go-testdeep/td"
+	"github.com/ovh/go-ovh/ovh"
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
 
 // The API takes three booleans and accepts all three false, which creates a
@@ -162,4 +169,93 @@ func TestWaitingForADeletionIsNotWaitingForUnreadiness(t *testing.T) {
 	if backupFtpSettled(nil, false, true) {
 		t.Fatal("no space is not a created space")
 	}
+}
+
+// withBackupAPI points the shared client at httpmock and shortens the poll, so
+// the wait can be exercised without the sixteen minutes a real creation took.
+func withBackupAPI(t *testing.T, attempts int) {
+	t.Helper()
+	httpmock.Activate(t)
+
+	origClient := httpLib.Client
+	origInterval, origAttempts := backupPollInterval, backupPollAttempts
+	client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", "consumer_key")
+	td.Require(t).CmpNoError(err)
+	httpLib.Client = client
+	backupPollInterval, backupPollAttempts = time.Millisecond, attempts
+
+	t.Cleanup(func() {
+		httpLib.Client = origClient
+		backupPollInterval, backupPollAttempts = origInterval, origAttempts
+	})
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/auth/time",
+		httpmock.NewStringResponder(200, "0"))
+}
+
+// The deletion waits for the space to stop being there, and every failure to
+// read used to count as that: the loop decided on `err == nil`, so a 500, a rate
+// limit or a dropped connection during the poll ended the wait and printed
+// "✅ deleted" over a space that was still there. This is the worst shape the
+// class takes — the operator is told the thing is gone.
+//
+// A read that did not happen is now a third outcome, distinct from the API
+// saying the space is absent.
+func TestDeleteWaitDoesNotReadAFailureAsAGoneSpace(t *testing.T) {
+	withBackupAPI(t, 2)
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/srv/features/backupFTP",
+		httpmock.NewStringResponder(500, `{"message": "gateway is having a day"}`))
+
+	err := waitForBackupFtp("srv", false)
+
+	td.Require(t).CmpError(err, "a deletion is never concluded from a failed read")
+	td.Cmp(t, err.Error(), td.Contains("stopped waiting"))
+	td.Cmp(t, err.Error(), td.Contains("not deleted yet"))
+}
+
+// And the deletion still completes on the answer that means it: a 404 is the API
+// saying the space is not there, which is exactly what was asked for.
+func TestDeleteWaitFinishesOnA404(t *testing.T) {
+	withBackupAPI(t, 5)
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/srv/features/backupFTP",
+		httpmock.NewStringResponder(404, `{"message": "The requested object (backupFTP) does not exist"}`))
+
+	td.CmpNoError(t, waitForBackupFtp("srv", false))
+}
+
+// The same distinction the other way: waiting for a creation must not be ended
+// by a 404 either, and that is the answer the route gives for most of the
+// sixteen minutes a creation takes.
+func TestCreateWaitIsNotEndedByAnAbsentSpace(t *testing.T) {
+	withBackupAPI(t, 2)
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/srv/features/backupFTP",
+		httpmock.NewStringResponder(404, `{"message": "The requested object (backupFTP) does not exist"}`))
+
+	err := waitForBackupFtp("srv", true)
+
+	td.Require(t).CmpError(err)
+	td.Cmp(t, err.Error(), td.Contains("not created yet"))
+}
+
+// The sentinel is what makes the three outcomes tellable apart, and it has to
+// survive being wrapped — the message the operator reads is built around it.
+func TestNoSpaceSurvivesWrapping(t *testing.T) {
+	_, err := func() (map[string]any, error) {
+		withBackupAPI(t, 1)
+		httpmock.RegisterResponder("GET",
+			"https://eu.api.ovh.com/v1/dedicated/server/srv/features/backupFTP",
+			httpmock.NewStringResponder(404, `{"message": "The requested object (backupFTP) does not exist"}`))
+		return backupFtpSpace("srv")
+	}()
+
+	td.Require(t).CmpError(err)
+	td.Cmp(t, isNoSpace(err), true, "a 404 is recognisable through the wrapping")
+	td.Cmp(t, err.Error(), td.Contains("srv has no Backup FTP space"), "and still reads as before")
+	td.Cmp(t, err.Error(), td.Contains("backup ftp create srv"), "with the way out named")
+
+	td.Cmp(t, isNoSpace(errors.New("failed to read the Backup FTP space of srv: 500")), false,
+		"positive control: an ordinary failure is not an absent space")
 }

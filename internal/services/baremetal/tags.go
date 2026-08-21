@@ -59,6 +59,7 @@ var valuelessOperators = map[string]bool{"EXISTS": true, "NEXISTS": true}
 //	--tag owner:EXISTS         set to anything
 //	--tag owner:NEQ=Denis      set to something else
 //	--tag Project:LIKE=Proof%  the API's pattern syntax, passed through untouched
+//	--tag ovh:default:EQ=x     a key that contains a colon, operator written out
 //
 // The operator is spelled with the name the API uses, so a refusal can list the
 // ones that exist and completion can offer them.
@@ -94,9 +95,39 @@ func splitTagFilter(raw string, operators []string) (key, operator, value string
 		head, value, hasValue = raw[:at], raw[at+1:], true
 	}
 
+	// The operator is read from the LAST colon, and only when what follows it is
+	// an operator the API knows.
+	//
+	// Read from the first colon, any key containing one lost everything after it:
+	// "ovh:default=x" parsed as key "ovh" with operator "DEFAULT" and was refused
+	// as an unknown operator. That is not an exotic key — the schema documents
+	// "ovh:" as the prefix of every tag OVHcloud computes itself, so the whole
+	// namespace was unreachable, and the error blamed an operator the operator
+	// never typed.
+	// The operator is read from the LAST colon, and only when what follows it is
+	// an operator the API knows.
+	//
+	// Read from the first colon, any key containing one lost everything after it:
+	// "ovh:default=x" parsed as key "ovh" with operator "DEFAULT" and was refused
+	// as an unknown operator. That is not an exotic key — the schema documents
+	// "ovh:" as the prefix of every tag OVHcloud computes itself — so the whole
+	// namespace was unreachable, and the error blamed an operator nobody typed.
+	//
+	// What follows the last colon and is not an operator is genuinely ambiguous:
+	// "owner:CONTAINS=Denis" is either a typo for an operator or a tag key called
+	// "owner:CONTAINS". Guessing the key would send it to the API, come back with
+	// no servers, and read as "nothing matches" — a wrong answer wearing the shape
+	// of an answer. So it is refused, with both readings named.
 	operator = "EQ"
-	if at := strings.Index(head, ":"); at >= 0 {
-		head, operator = head[:at], strings.ToUpper(head[at+1:])
+	if at := strings.LastIndex(head, ":"); at >= 0 {
+		candidate := strings.ToUpper(head[at+1:])
+		if !slicesContain(operators, candidate) {
+			return "", "", "", fmt.Errorf(
+				"%q is ambiguous: %q is not one of %s, so this can only be read as the tag key %q with no operator.\n"+
+					"   If that is what you meant, write the operator out: --tag %s:EQ=<value>",
+				raw, head[at+1:], strings.Join(operators, ", "), head, head)
+		}
+		head, operator = head[:at], candidate
 	}
 
 	key = strings.TrimSpace(head)
@@ -155,21 +186,6 @@ func tagQuery(filters map[string][]tagFilter) (string, error) {
 // The keys come from the same collection the filter runs against, so what is
 // offered is what exists rather than what somebody documented once.
 func CompleteBaremetalTag(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if at := strings.Index(toComplete, ":"); at >= 0 {
-		operators, err := tagOperators()
-		if err != nil {
-			return nil, cobra.ShellCompDirectiveError
-		}
-
-		prefix := toComplete[:at+1]
-		suggestions := make([]string, 0, len(operators))
-		for _, operator := range operators {
-			suggestions = append(suggestions, prefix+operator)
-		}
-
-		return suggestions, cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveNoFileComp
-	}
-
 	if strings.Contains(toComplete, "=") {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -179,7 +195,42 @@ func CompleteBaremetalTag(_ *cobra.Command, _ []string, toComplete string) ([]st
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	return keys, cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveNoFileComp
+	operators, err := tagOperators()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
+	// Every suggestion is a form the parser accepts, which is not a detail: this
+	// used to offer "ovh:EQ" for a key named "ovh:default" — the operator glued to
+	// the first segment of the key — and the parser then refused it. A completion
+	// that cannot be accepted is worse than none.
+	//
+	// So a key holding a colon is only ever offered with its operator written out,
+	// because that is the only form in which such a key is unambiguous. A key
+	// without one is offered bare, where the implied EQ is unambiguous.
+	suggestions := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if !strings.HasPrefix(key, toComplete) && !strings.HasPrefix(toComplete, key+":") {
+			continue
+		}
+		if strings.Contains(key, ":") {
+			for _, operator := range operators {
+				suggestions = append(suggestions, key+":"+operator)
+			}
+			continue
+		}
+		suggestions = append(suggestions, key)
+	}
+
+	// A key already typed in full, followed by a colon: the operator is what is
+	// being asked for.
+	if at := strings.LastIndex(toComplete, ":"); at >= 0 && slicesContain(keys, toComplete[:at]) {
+		for _, operator := range operators {
+			suggestions = append(suggestions, toComplete[:at]+":"+operator)
+		}
+	}
+
+	return suggestions, cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveNoFileComp
 }
 
 // tagKeysInUse lists the tag keys actually set on the servers of the account.

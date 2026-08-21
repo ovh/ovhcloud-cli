@@ -52,7 +52,10 @@ var (
 	BackupAgentWait bool
 )
 
-const (
+// var and not const so a test can shorten the poll, which is what the two other
+// wait loops of this package already do. A wait that can only be exercised in
+// five minutes is a wait nobody exercises.
+var (
 	backupAgentPollInterval = 5 * time.Second
 	backupAgentPollAttempts = 60
 )
@@ -72,13 +75,67 @@ var backupRegions = sync.OnceValues(func() ([]string, error) {
 })
 
 // backupAgent is one agent, flattened out of the resource shape.
+//
+// CurrentTasks is read because it is the only place this generation of the API
+// reports a failure. There is no task route and no operation identifier; the
+// status enumeration has no failed value at all, so an agent whose provisioning
+// broke keeps a status that looks like any other. Measured on this account:
+// three BACKUP_VAULT_CREATE and one VSPC_AGENT_UPDATE sat in ERROR for five
+// minutes on resources every status field called READY.
+//
+// The sibling package reads it. This one did not, and its --wait therefore
+// reported success over a failed creation.
 type backupAgent struct {
 	ID           string         `json:"id"`
 	Status       string         `json:"status"`
 	TargetSpec   map[string]any `json:"targetSpec"`
 	CurrentState map[string]any `json:"currentState"`
+	CurrentTasks []agentTask    `json:"currentTasks"`
 	CreatedAt    string         `json:"createdAt"`
 	UpdatedAt    string         `json:"updatedAt"`
+}
+
+// agentTask is one operation in flight on an agent.
+type agentTask struct {
+	ID     string `json:"id"`
+	Type   string `json:"type"`
+	Status string `json:"status"`
+	Errors []struct {
+		Message string `json:"message"`
+	} `json:"errors"`
+}
+
+// backupAgentTaskFailed are the two task statuses an agent does not come back
+// from on its own. ERROR is over; WAITING_USER_INPUT is not an error but is just
+// as terminal for a command that can only wait — polling it forever would hold
+// the terminal open for something only a person can unblock.
+var backupAgentTaskFailed = map[string]bool{"ERROR": true, "WAITING_USER_INPUT": true}
+
+// blockingTask returns the first task that will not finish by waiting.
+func (a backupAgent) blockingTask() (agentTask, bool) {
+	for _, task := range a.CurrentTasks {
+		if backupAgentTaskFailed[task.Status] {
+			return task, true
+		}
+	}
+	return agentTask{}, false
+}
+
+// describe names the operation and, when the API bothers to say, the reason.
+//
+// The type is what makes the status useful: "ERROR" answers "error doing what"
+// with nothing. The schema declares errors on a task and the API leaves the list
+// empty even on a failed one, so the reason is printed when it is there and
+// nothing pretends it will be.
+func (t agentTask) describe() string {
+	described := t.Status
+	if t.Type != "" {
+		described = t.Type + " " + t.Status
+	}
+	if len(t.Errors) > 0 && t.Errors[0].Message != "" {
+		described += ": " + t.Errors[0].Message
+	}
+	return described
 }
 
 func (a backupAgent) protects() string {
@@ -466,9 +523,27 @@ func waitForBackupAgent(tenant, vspc, server string, want bool) (backupAgent, er
 		case !want && len(agents) == 0:
 			return backupAgent{}, nil
 
-		case want && len(agents) > 0:
+		case len(agents) > 0:
+			// Asked before the status, and asked in both directions: a removal
+			// that failed leaves the agent in place, so the loop would otherwise
+			// poll a corpse for its full timeout.
+			if task, blocked := agents[0].blockingTask(); blocked {
+				return backupAgent{}, fmt.Errorf(
+					"the backup agent of %s did not finish: %s\n   Read it with: ovhcloud baremetal backup-agent show %s",
+					server, task.describe(), server)
+			}
+
+			if !want {
+				break
+			}
+
 			last = agents[0].Status
-			if !backupAgentTransient[last] {
+
+			// An empty status is not a finished one. It used to count as settled
+			// — backupAgentTransient has no entry for "" — so an answer that
+			// carried no status at all was returned as a successfully created
+			// agent.
+			if last != "" && !backupAgentTransient[last] {
 				return agents[0], nil
 			}
 		}
