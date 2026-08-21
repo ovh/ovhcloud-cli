@@ -22,12 +22,7 @@ func init() {
 			"`ovhcloud baremetal backup-agent`.",
 	}
 
-	// Both levels of the hierarchy are UUIDs, and both are resolved when there
-	// is only one. These flags exist for the accounts where there is not.
-	backupCmd.PersistentFlags().StringVar(&backupservices.Tenant, "tenant", "",
-		"Backup tenant to work on (default: the only one on the account)")
-	backupCmd.PersistentFlags().StringVar(&backupservices.Vspc, "vspc", "",
-		"VSPC tenant to work on (default: the only one in the backup tenant)")
+	addBackupTenantFlags(backupCmd)
 
 	// Tenants
 	backupTenantCmd := &cobra.Command{
@@ -176,4 +171,20 @@ func init() {
 	}))
 
 	rootCmd.AddCommand(backupCmd)
+}
+
+// addBackupTenantFlags registers the two levels of the hierarchy on a command
+// tree.
+//
+// Both levels are UUIDs and both are resolved when there is only one, so these
+// flags exist for the accounts where there is not. It is a function and not two
+// lines repeated because it is needed on two trees: `backup-services`, and
+// `baremetal backup-agent`, which reaches the same resources from the machine
+// they protect. Registering them on only one of the two made the resolution
+// refuse on a multi-tenant account and name a flag the command did not have.
+func addBackupTenantFlags(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringVar(&backupservices.Tenant, "tenant", "",
+		"Backup tenant to work on (default: the only one on the account)")
+	cmd.PersistentFlags().StringVar(&backupservices.Vspc, "vspc", "",
+		"VSPC tenant to work on (default: the only one in the backup tenant)")
 }

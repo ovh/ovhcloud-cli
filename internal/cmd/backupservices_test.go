@@ -89,6 +89,66 @@ func (ms *MockSuite) TestBackupRefusesToChooseBetweenTenants(assert, require *td
 	assert.Cmp(err.Error(), td.Contains("second"))
 }
 
+// The refusal above names --tenant, and that is only useful on a command that
+// takes --tenant. The two flags were registered on the `backup-services` tree
+// alone, while the agents are reached from `baremetal backup-agent` — which
+// resolves the same two levels and produces the same refusal. On an account
+// with more than one tenant, every command of that subtree therefore failed,
+// told the operator to name one, and then rejected the flag it had just named:
+// the whole subtree was unreachable.
+//
+// Asserted by running the command rather than by inspecting a FlagSet, because
+// what matters is what cobra accepts on the command line.
+func (ms *MockSuite) TestBackupAgentTakesTheFlagItsRefusalNames(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, backupTenants,
+		httpmock.NewStringResponder(200, `[{"id":"t-1","targetSpec":{"name":"first"}},{"id":"t-2","targetSpec":{"name":"second"}}]`))
+
+	// Without it: the refusal, naming the flag.
+	_, err := cmd.Execute("baremetal", "backup-agent", "show", "ns1.example")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("--tenant"))
+
+	// With it: the flag is accepted, and the command gets past that level.
+	cmd.PostExecute()
+	httpmock.RegisterResponder(http.MethodGet, backupTenants+"/t-2/vspc",
+		httpmock.NewStringResponder(200, `[{"id":"s-9","targetSpec":{"name":"vspc-second"},
+			"currentState":{"name":"vspc-second","backupAgents":[]},"currentTasks":[]}]`))
+	registerServerForAgent()
+	httpmock.RegisterResponder(http.MethodGet, backupTenants+"/t-2/vspc/s-9/backupAgent",
+		httpmock.NewStringResponder(200, `[]`))
+
+	_, err = cmd.Execute("baremetal", "backup-agent", "show", "ns1.example", "--tenant", "t-2")
+
+	if err != nil {
+		assert.Cmp(err.Error(), td.Not(td.Contains("unknown flag")),
+			"the flag the refusal names must exist on the command that refused")
+		assert.Cmp(err.Error(), td.Not(td.Contains("--tenant")),
+			"and naming it must settle the question, not repeat it")
+	}
+}
+
+// Both trees resolve the same two levels, so both must offer the same two
+// flags. Registered through one helper for that reason; this pins it.
+func (ms *MockSuite) TestBothBackupTreesOfferTheSameTwoFlags(assert, require *td.T) {
+	for _, path := range [][]string{
+		{"backup-services", "policies"},
+		{"baremetal", "backup-agent", "show"},
+		{"baremetal", "backup-agent", "create"},
+		{"baremetal", "backup-agent", "edit"},
+		{"baremetal", "backup-agent", "delete"},
+	} {
+		found, _, err := cmd.GetRootCommand().Find(path)
+		require.CmpNoError(err)
+		for _, flag := range []string{"tenant", "vspc"} {
+			local := found.Flags().Lookup(flag)
+			inherited := found.InheritedFlags().Lookup(flag)
+			assert.True(local != nil || inherited != nil,
+				"%v must accept --%s", path, flag)
+		}
+	}
+}
+
 // An account with no backup tenant is a state, and saying so beats a stack of
 // failed lookups underneath.
 func (ms *MockSuite) TestBackupSaysWhenThereIsNoTenant(assert, require *td.T) {
