@@ -65,3 +65,36 @@ func TestFetchObjectsParallel_IgnoredErrorLogging(t *testing.T) {
 	td.Cmp(t, strings.Contains(run(true), "error fetching"), true,
 		"ignored errors must be logged when debug is enabled")
 }
+
+// The index alignment of FetchObjectsParallel is a contract that seven call sites
+// in internal/services/browser depend on: they pair objects[i] with a name held
+// in a parallel slice, so a result compacted to drop failures would attach one
+// region's details to another region's name.
+//
+// The padding reads like a bug — a slice with nil holes in it — which is exactly
+// why it needs a test. This one fails if anyone makes the result dense.
+func TestFetchObjectsParallelKeepsFailedItemsInPlace(t *testing.T) {
+	httpmock.Activate(t)
+	client, err := ovh.NewClient("ovh-eu", "k", "s", "c")
+	td.Require(t).CmpNoError(err)
+	saved := Client
+	Client = client
+	t.Cleanup(func() { Client = saved })
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/auth/time",
+		httpmock.NewStringResponder(200, "0"))
+	for _, id := range []string{"a", "c"} {
+		httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/thing/"+id,
+			httpmock.NewStringResponder(200, `{"name":"`+id+`"}`))
+	}
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/thing/b",
+		httpmock.NewStringResponder(500, `{"message":"nope"}`))
+
+	objects, err := FetchObjectsParallel[map[string]any]("/thing/%s", []any{"a", "b", "c"}, true)
+
+	td.Require(t).CmpNoError(err, "ignoreErrors means the batch still succeeds")
+	td.Require(t).Cmp(len(objects), 3, "one slot per id, however many failed")
+	td.Cmp(t, objects[0]["name"], "a")
+	td.CmpNil(t, objects[1], "the failed id keeps its slot, holding the zero value")
+	td.Cmp(t, objects[2]["name"], "c", "and the ids after it are not shifted up")
+}

@@ -66,6 +66,25 @@ func InitClientWithProfile(cfg *ini.File, profileOverride string) {
 	}
 }
 
+// FetchObjectsParallel fetches one object per id, ten requests at a time.
+//
+// The result is INDEX-ALIGNED with ids, and stays aligned when ignoreErrors is
+// set: an id whose fetch failed keeps its slot, holding the zero value of T. That
+// is the contract, not an oversight, and compacting the result would be a silent
+// breaking change — seven call sites in internal/services/browser pair
+// objects[i] with a name they hold in a parallel slice, so dropping a hole there
+// would attach one region's details to another region's name.
+//
+// What that leaves each caller to do depends on T, and measured across the 30
+// call sites all three cases are already handled:
+//
+//   - ignoreErrors false: a failure returns an error and no holes exist (2 sites).
+//   - T is a map or a struct: the hole is nil and has to be skipped explicitly
+//     (20 sites do, several of them through FetchExpandedArray, which filters).
+//   - T is a slice: the hole is a nil slice, which ranges as empty (8 sites).
+//
+// So it is safe to leave alone, and worth saying so: the padding looks like a bug
+// until you know who depends on it.
 func FetchObjectsParallel[T any](path string, ids []any, ignoreErrors bool) ([]T, error) {
 	var (
 		parallelRequests = 10
