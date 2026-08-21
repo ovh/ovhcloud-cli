@@ -610,12 +610,15 @@ func initLogSubCommands(loadbalancerCmd *cobra.Command) {
 	}
 	loadbalancerCmd.AddCommand(logCmd)
 
-	logCmd.AddCommand(withFilterFlag(&cobra.Command{
+	// No --filter here: the API answers a list of plain strings, and --filter
+	// selects on the properties of a row. There is nothing for it to select on,
+	// so registering it only had docgen document it and cobra accept it.
+	logCmd.AddCommand(&cobra.Command{
 		Use:   "list-kinds <region>",
 		Short: "List available log kinds",
 		Run:   cloud.ListCloudLoadbalancerLogKinds,
 		Args:  cobra.ExactArgs(1),
-	}))
+	})
 
 	logCmd.AddCommand(&cobra.Command{
 		Use:   "get-kind <region> <kind_name>",
