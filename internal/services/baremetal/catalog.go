@@ -139,9 +139,13 @@ func GetBaremetalCatalog(_ *cobra.Command, _ []string) {
 		// Checked like an operator-supplied value, because it goes on to name a
 		// file in the cache directory. It arrives from the API rather than from
 		// a keyboard, which makes it trusted by habit rather than by argument.
-		if err := common.CheckEnumFlag("country", resolved, catalogCountries); err != nil {
+		//
+		// Checked for that, and only for that. This used to be validated against
+		// the schema's enum, which locks the command out of every account it was
+		// meant to serve outside Europe: see checkSubsidiary.
+		if err := checkSubsidiary(resolved); err != nil {
 			display.OutputError(&flags.OutputFormatConfig,
-				"this account reports an unknown subsidiary: %s", err)
+				"this account reports a subsidiary this command cannot use: %s", err)
 			return
 		}
 		country = resolved
@@ -192,7 +196,44 @@ func checkEnumFlags() error {
 		return err
 	}
 	if CatalogCountry != "" {
-		return common.CheckEnumFlag("country", CatalogCountry, catalogCountries)
+		return checkSubsidiary(CatalogCountry)
+	}
+	return nil
+}
+
+// checkSubsidiary accepts anything that can safely name a cache file, and
+// leaves the question of which subsidiaries exist to the API.
+//
+// The enum this replaces came from the embedded schema, which is a snapshot of
+// the EU API — the Makefile can only download from there. Measured against both
+// endpoints, the accepted set is a property of the endpoint, not of the product:
+//
+//	eu.api.ovh.com  accepts CZ DE ES FI FR GB IE IT LT MA NL PL PT SN TN
+//	ca.api.ovh.com  accepts CA QC ASIA AU SG IN WE WS
+//
+// So the enum was wrong in both directions. It carries EU, which the EU endpoint
+// answers 400 to, and it carries none of the eight the CA endpoint accepts — so
+// on a CA-configured profile the resolved subsidiary was refused locally, and
+// --country, the way out, was refused by the same list. The command was
+// unreachable for those accounts, which no amount of reading a better enum
+// fixes: there is no local list that is right for both endpoints.
+//
+// An unknown value now costs one request and comes back as
+// "invalid ovhSubsidiary", which names the problem. A wrong local gate costs the
+// command.
+func checkSubsidiary(value string) error {
+	if value == "" {
+		return fmt.Errorf("the subsidiary is empty")
+	}
+	// Two to eight ASCII letters covers every subsidiary either endpoint
+	// accepts, and excludes anything that could walk out of the cache directory.
+	for _, r := range value {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') {
+			return fmt.Errorf("%q is not a subsidiary code (letters only)", value)
+		}
+	}
+	if len(value) < 2 || len(value) > 8 {
+		return fmt.Errorf("%q is not a subsidiary code (two to eight letters)", value)
 	}
 	return nil
 }
