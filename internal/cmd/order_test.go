@@ -262,3 +262,29 @@ func (ms *MockSuite) TestOrderFollowIsFiltered(assert, require *td.T) {
 	assert.Cmp(out, td.Contains("DELIVERING"))
 	assert.Cmp(out, td.Not(td.Contains("VALIDATING")), "a step the filter excludes must not be printed")
 }
+
+// The four steps all read TODO on an order the API calls delivered, so the
+// overall status is the one thing `follow` adds over `order get`. It was printed
+// to os.Stderr only, which is fine for a human and invisible to `-o json` — so
+// a script reading the output of this command got the four TODOs and nothing to
+// tell it the order was done. It now travels on every row, and stays out of the
+// column list so the human table is unchanged.
+func (ms *MockSuite) TestOrderFollowPublishesTheOverallStatusUnderJson(assert, require *td.T) {
+	registerFollowUp("delivered", realOrder)
+
+	out, err := cmd.Execute("order", "follow", "900000004", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("orderStatus"), "the status a parser needs is in the document")
+	assert.Cmp(out, td.Contains("delivered"))
+}
+
+func (ms *MockSuite) TestOrderFollowKeepsTheHumanTableToThreeColumns(assert, require *td.T) {
+	registerFollowUp("delivered", realOrder)
+
+	out, err := cmd.Execute("order", "follow", "900000004")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("orderStatus")), "not a fourth column")
+	assert.Cmp(out, td.Contains("VALIDATING"))
+}
