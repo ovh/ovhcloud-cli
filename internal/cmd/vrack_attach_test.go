@@ -216,6 +216,22 @@ func (ms *MockSuite) TestVrackGetStillListsWhenTheNameLookupFails(assert, requir
 	assert.Contains(out, "ns0000002.ip-203-0-113.eu")
 }
 
+// The attached list is one entry per interface, and a server can carry several.
+// Counting rows announced two machines where there is one — and the operator
+// reading "2 dedicated servers" above a table with two lines has no way to see
+// that both lines name the same host.
+func (ms *MockSuite) TestVrackGetCountsServersNotInterfaces(assert, require *td.T) {
+	registerVrack(assert, `{}`, `[{"dedicatedServerInterface": "aaaaaaaa-1111-2222-3333-444444444444", "dedicatedServer": "ns0000002.ip-203-0-113.eu", "name": "d0:50:99:d7:55:0b"}, {"dedicatedServerInterface": "bbbbbbbb-1111-2222-3333-444444444444", "dedicatedServer": "ns0000002.ip-203-0-113.eu", "name": "d0:50:99:d7:55:0c"}]`)
+
+	out, err := cmd.Execute("vrack", "get", vrackName)
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("2 dedicated servers")),
+		"two interfaces of one machine are not two machines")
+	assert.Cmp(out, td.Contains("1 dedicated server"))
+	assert.Cmp(out, td.Contains("d0:50:99:d7:55:0c"), "and both interfaces are still listed")
+}
+
 // Ten content lists are read to fill this page, and any of them can fail. The
 // vRack itself is not one of them: it was already read, and it is what the
 // operator asked for. Reporting a failed section through OutputWarning ended
