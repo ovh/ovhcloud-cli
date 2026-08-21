@@ -272,3 +272,41 @@ func (ms *MockSuite) TestBaremetalCatalogRefreshIgnoresTheCache(assert, require 
 	assert.Cmp(httpmock.GetCallCountInfo()["GET https://eu.api.ovh.com/v1/order/catalog/public/eco?ovhSubsidiary=FR"], 2,
 		"--refresh downloads the price list again")
 }
+
+// The subsidiary is not a closed list, and the command must not pretend it is.
+//
+// The set of accepted values is a property of the endpoint, measured on both:
+// eu.api.ovh.com takes CZ DE ES FI FR GB IE IT LT MA NL PL PT SN TN, and
+// ca.api.ovh.com takes CA QC ASIA AU SG IN WE WS. The embedded schema is a
+// snapshot of the EU one, so validating against its enum locked eight
+// subsidiaries out of the command — and `--country`, the documented way out, was
+// checked against the very same list. QC stands in for all eight here.
+func (ms *MockSuite) TestBaremetalCatalogServesASubsidiaryOutsideTheSchemaEnum(assert, require *td.T) {
+	assert.Setenv("XDG_CACHE_HOME", assert.TempDir())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/me",
+		httpmock.NewStringResponder(200, `{"ovhSubsidiary": "QC"}`))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/eco?ovhSubsidiary=QC",
+		httpmock.NewStringResponder(200, realCatalog))
+	httpmock.RegisterResponder("GET", `=~^https://eu\.api\.ovh\.com/v1/dedicated/server/datacenter/availabilities`,
+		httpmock.NewStringResponder(200, realAvailabilities))
+
+	out, err := cmd.Execute("baremetal", "catalog")
+
+	require.CmpNoError(err)
+	assert.Cmp(httpmock.GetCallCountInfo()["GET https://eu.api.ovh.com/v1/order/catalog/public/eco?ovhSubsidiary=QC"], 1,
+		"the subsidiary the account reports is the one asked for")
+	assert.Cmp(out, td.Contains("24adv01-v3"), "and the offers come back")
+}
+
+// What replaces the enum still has to hold: the value names a file in the cache
+// directory, so it is checked for being a subsidiary code and nothing else. This
+// is the half of the old check that was doing real work.
+func (ms *MockSuite) TestBaremetalCatalogRefusesASubsidiaryThatCouldNameAnyFile(assert, require *td.T) {
+	registerCatalog(assert)
+
+	_, err := cmd.Execute("baremetal", "catalog", "--country", "../../etc/passwd")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("letters only"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "and nothing is sent")
+}
