@@ -306,7 +306,7 @@ func ListDelegation(_ *cobra.Command, args []string) {
 	var targets []string
 	path := fmt.Sprintf("/v1/ip/%s/delegation", url.PathEscape(ipBlock))
 	if err := httpLib.Client.Get(path, &targets); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", delegationError(ipBlock, err))
+		display.OutputError(&flags.OutputFormatConfig, "%s", delegationError("read", ipBlock, err))
 		return
 	}
 
@@ -335,7 +335,7 @@ func GetDelegation(_ *cobra.Command, args []string) {
 	// going through the generic helper meant the failure lost the one sentence
 	// that explains it.
 	if err := httpLib.Client.Get(path, &delegation); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", delegationError(ipBlock, err))
+		display.OutputError(&flags.OutputFormatConfig, "%s", delegationError("read", ipBlock, err))
 		return
 	}
 
@@ -358,7 +358,7 @@ func AddDelegation(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Post(endpoint, map[string]string{"target": target}, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", delegationError(ipBlock, err))
+		display.OutputError(&flags.OutputFormatConfig, "%s", delegationError("add to", ipBlock, err))
 		return
 	}
 
@@ -384,7 +384,7 @@ func RemoveDelegation(_ *cobra.Command, args []string) {
 	}
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", delegationError(ipBlock, err))
+		display.OutputError(&flags.OutputFormatConfig, "%s", delegationError("remove from", ipBlock, err))
 		return
 	}
 
@@ -402,13 +402,17 @@ func RemoveDelegation(_ *cobra.Command, args []string) {
 // The note is attached to the error rather than replacing the call, because
 // the scope is the route's documented one and not a rule this CLI should be
 // enforcing on the API's behalf.
-func delegationError(ipBlock string, err error) error {
+// The verb travels with the error because the same note serves four call sites,
+// two of which are writes. Fixed to "read", a refused POST printed "failed to
+// read the reverse delegation of X", which sends the operator to check a read
+// right they never used.
+func delegationError(action, ipBlock string, err error) error {
 	if isIPv6Subnet(ipBlock) {
-		return fmt.Errorf("failed to read the reverse delegation of %s: %w", ipBlock, err)
+		return fmt.Errorf("failed to %s the reverse delegation of %s: %w", action, ipBlock, err)
 	}
 
-	return fmt.Errorf("failed to read the reverse delegation of %s: %w\n   This route covers reverse delegation on IPv6 subnets; %s is %s.",
-		ipBlock, err, ipBlock, notASubnet(ipBlock))
+	return fmt.Errorf("failed to %s the reverse delegation of %s: %w\n   This route covers reverse delegation on IPv6 subnets; %s is %s.",
+		action, ipBlock, err, ipBlock, notASubnet(ipBlock))
 }
 
 // isIPv6Subnet answers whether a block is the kind this route serves.
