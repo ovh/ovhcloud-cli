@@ -12,7 +12,7 @@ ovhcloud baremetal traffic <service_name> [flags]
   -h, --help            help for traffic
       --nic string      Read only this controller, by MAC address (default: every controller of the server)
       --period string   Window the graph covers: hourly, daily, weekly, monthly or yearly (default "daily")
-      --type strings    Series to read: traffic, packets or errors, each :download or :upload (default [traffic:download,traffic:upload])
+      --type strings    Series to read: traffic, packets or errors, each :download or :upload (default: traffic:download,traffic:upload)
 ```
 
 ### Options inherited from parent commands
