@@ -288,12 +288,14 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	}
 	storageS3Cmd.AddCommand(quotaCmd)
 
-	quotaCmd.AddCommand(withFilterFlag(&cobra.Command{
+	// No --filter here: this reads the quota of one region and renders one
+	// object. There are no rows to filter.
+	quotaCmd.AddCommand(&cobra.Command{
 		Use:   "get <region>",
 		Short: "Get storage quota for the given region",
 		Run:   cloud.GetStorageS3Quota,
 		Args:  cobra.ExactArgs(1),
-	}))
+	})
 
 	quotaEditCmd := &cobra.Command{
 		Use:   "edit <region>",
