@@ -442,8 +442,8 @@ func checkRenewal(server string, readings []map[string]any) []finding {
 	renew, _ := infos["renew"].(map[string]any)
 	expiration := stringValue(infos, "expiration")
 
-	switch automatic, agreed := agreedRenewal(readings); {
-	case !agreed:
+	switch automatic, verdict := agreedRenewal(readings); {
+	case verdict == renewalDisagreed:
 		// Reporting "renewal is off" from one of these readings would be a coin
 		// toss, and reporting nothing would hide that nobody can tell. What is
 		// certain is that the answer is not trustworthy, and that is the
@@ -452,6 +452,15 @@ func checkRenewal(server string, readings []map[string]any) []finding {
 			Server: server, Severity: warning, Check: "renewal",
 			Detail: fmt.Sprintf("the API gave different answers about automatic renewal across %d reads, so whether this server renews on %s cannot be established from here",
 				len(readings), expiration),
+			Fix: fmt.Sprintf("ovhcloud baremetal service-info get %s (and check the Manager)", server),
+		})
+
+	case verdict == renewalAbsent:
+		// Not the same thing at all, and it used to print as the case above.
+		found = append(found, finding{
+			Server: server, Severity: warning, Check: "renewal",
+			Detail: fmt.Sprintf("this route does not return renew.automatic for this server, so whether it renews on %s cannot be read here",
+				expiration),
 			Fix: fmt.Sprintf("ovhcloud baremetal service-info get %s (and check the Manager)", server),
 		})
 
@@ -474,7 +483,7 @@ func checkRenewal(server string, readings []map[string]any) []finding {
 
 	if days, ok := daysUntil(expiration); ok && days <= int64(DoctorExpiryDays) {
 		severity := note
-		if automatic, agreed := agreedRenewal(readings); agreed && !automatic {
+		if automatic, verdict := agreedRenewal(readings); verdict == renewalAgreed && !automatic {
 			severity = warning
 		}
 		found = append(found, finding{
@@ -490,7 +499,22 @@ func checkRenewal(server string, readings []map[string]any) []finding {
 // agreedRenewal answers what the readings say about automatic renewal, and
 // whether they agree at all. See renewalReadings for why the question has to be
 // asked that way.
-func agreedRenewal(readings []map[string]any) (bool, bool) {
+// renewalVerdict is what several reads of the same field add up to.
+//
+// Three outcomes and not two: the readings can agree, they can disagree, and
+// the field can simply not be there. Folding the last two together made the
+// finding say "the API gave different answers across 5 reads" about a route
+// that had answered the same thing every time — namely nothing. That sends the
+// operator to look for an instability that does not exist.
+type renewalVerdict int
+
+const (
+	renewalAgreed renewalVerdict = iota
+	renewalDisagreed
+	renewalAbsent
+)
+
+func agreedRenewal(readings []map[string]any) (bool, renewalVerdict) {
 	var (
 		value bool
 		known bool
@@ -500,7 +524,7 @@ func agreedRenewal(readings []map[string]any) (bool, bool) {
 		renew, _ := infos["renew"].(map[string]any)
 		automatic, set := renew["automatic"].(bool)
 		if !set {
-			return false, false
+			return false, renewalAbsent
 		}
 
 		if !known {
@@ -509,11 +533,16 @@ func agreedRenewal(readings []map[string]any) (bool, bool) {
 		}
 
 		if automatic != value {
-			return false, false
+			return false, renewalDisagreed
 		}
 	}
 
-	return value, known
+	if !known {
+		// No readings at all: nothing was measured, so nothing is known.
+		return false, renewalAbsent
+	}
+
+	return value, renewalAgreed
 }
 
 // checkTasks reports work still running on the server, because most of the

@@ -222,3 +222,22 @@ func (ms *MockSuite) TestBaremetalDoctorChecksTheWholeFleetByDefault(assert, req
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("1 server"))
 }
+
+// Disagreement and absence are not the same reading, and they used to print the
+// same sentence: "the API gave different answers across 5 reads" about a route
+// that answered the same thing every time — nothing. That sends the operator
+// looking for an instability that is not there.
+func (ms *MockSuite) TestBaremetalDoctorTellsAbsenceFromDisagreement(assert, require *td.T) {
+	registerHealthyServer()
+	httpmock.RegisterResponder("GET", doctorServer+"/serviceInfos",
+		httpmock.NewStringResponder(200, `{"expiration":"2099-01-01","renew":{"deleteAtExpiration":false}}`))
+
+	out, err := cmd.Execute("baremetal", "doctor", "ns1.example")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("does not return renew.automatic"))
+	assert.Cmp(out, td.Not(td.Contains("gave different answers")),
+		"a field that is absent has not disagreed with itself")
+	assert.Cmp(out, td.Not(td.Contains("read as off")),
+		"and no verdict is reached on a field that was never returned")
+}
