@@ -266,3 +266,39 @@ func (ms *MockSuite) TestBaremetalRaidProfileLeavesAnAbsentQuantityEmpty(assert,
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Not(td.Contains("0 ")), "no invented zero")
 }
+
+// --type has a default, and it has to survive a second command in the same
+// process. PostExecute puts a used slice flag back to nil rather than to its
+// default — DefValue is "[]" for a slice, so there is nothing else it could use
+// — and --type was the only slice flag in the CLI carrying a non-empty default.
+// So the second `baremetal traffic` of a process looped over an empty list and
+// printed an empty table with exit 0.
+//
+// One invocation cannot see this, which is why the flag went out that way. The
+// two here are the shape the wasm build runs in, where the process outlives the
+// command.
+func (ms *MockSuite) TestBaremetalTrafficKeepsItsDefaultTypesAcrossTwoRuns(assert, require *td.T) {
+	register := func() {
+		httpmock.RegisterResponder("GET",
+			"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/networkInterfaceController",
+			httpmock.NewStringResponder(200, `["9c:6b:00:a9:c5:10"]`))
+		httpmock.RegisterResponder("GET",
+			"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/networkInterfaceController/9c:6b:00:a9:c5:10/mrtg",
+			httpmock.NewStringResponder(200,
+				`[{"timestamp": 1787052600, "value": {"unit": "bps", "value": 33978092.769}}]`))
+	}
+
+	register()
+	first, err := cmd.Execute("baremetal", "traffic", "fakeBaremetal", "--type", "traffic:download")
+	require.CmpNoError(err)
+	assert.Cmp(first, td.Contains("traffic:download"))
+
+	cmd.PostExecute()
+	register()
+	second, err := cmd.Execute("baremetal", "traffic", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(second, td.Contains("traffic:download"))
+	assert.Cmp(second, td.Contains("traffic:upload"),
+		"both default series, on the second run as on the first")
+}
