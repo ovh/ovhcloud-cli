@@ -161,8 +161,12 @@ func resolveStream(wanted string) (ldpStream, error) {
 		return matches[0], nil
 
 	case 0:
+		// Not `ovhcloud ldp list`: that lists Log Data Platform services, not
+		// Graylog streams, and no command of this tree lists streams at all.
+		// nearbyTitles already says how many there are and which ones are close,
+		// so pointing at completion is the only thing here that works.
 		return ldpStream{}, fmt.Errorf(
-			"no stream is called %q. %s\n   List them with: ovhcloud ldp list",
+			"no stream is called %q. %s\n   Complete them with: ovhcloud baremetal logs subscribe <server> --stream <TAB>",
 			wanted, nearbyTitles(streams, wanted))
 
 	default:
