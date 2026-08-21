@@ -5,6 +5,9 @@
 package ip
 
 import (
+	"encoding/json"
+	"net/http"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -12,7 +15,9 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
 	"github.com/ovh/go-ovh/ovh"
+	"github.com/ovh/ovhcloud-cli/internal/assets"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/openapi"
 )
 
 func sample() []destination {
@@ -137,7 +142,7 @@ func withIpAPI(t *testing.T, attempts int, block string) {
 func TestWaitForRoutingReturnsWhenTheIpHasActuallyMoved(t *testing.T) {
 	withIpAPI(t, 5, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": "ns0000006.ip-203-0-113.eu"}}`)
 
-	td.CmpNoError(t, waitForRouting("1.2.3.4/32", "ns0000006.ip-203-0-113.eu"))
+	td.CmpNoError(t, waitForRouting("1.2.3.4/32", "ns0000006.ip-203-0-113.eu", 0))
 }
 
 // An empty destination is the parked state, and it has to be distinguishable
@@ -145,7 +150,7 @@ func TestWaitForRoutingReturnsWhenTheIpHasActuallyMoved(t *testing.T) {
 func TestWaitForRoutingRecognisesParked(t *testing.T) {
 	withIpAPI(t, 5, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": ""}}`)
 
-	td.CmpNoError(t, waitForRouting("1.2.3.4/32", ""))
+	td.CmpNoError(t, waitForRouting("1.2.3.4/32", "", 0))
 }
 
 // Giving up is not the move failing, and the message must not claim it is:
@@ -154,7 +159,7 @@ func TestWaitForRoutingRecognisesParked(t *testing.T) {
 func TestWaitForRoutingTimesOutWithoutClaimingFailure(t *testing.T) {
 	withIpAPI(t, 2, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": "ns0000005.ip-203-0-113.eu"}}`)
 
-	err := waitForRouting("1.2.3.4/32", "ns0000006.ip-203-0-113.eu")
+	err := waitForRouting("1.2.3.4/32", "ns0000006.ip-203-0-113.eu", 0)
 
 	td.Require(t).CmpError(err)
 	td.Cmp(t, err.Error(), td.Contains("stopped waiting"))
@@ -180,4 +185,104 @@ func TestAnUnreadRoutingIsNotAnEmptyOne(t *testing.T) {
 	if free == unknown {
 		t.Fatal("the two cases produce the same sentence, so the prompt cannot tell them apart")
 	}
+}
+
+// The half of eb56fab that had no test: parking waits for exactly the empty
+// string, so a read that fails must not be counted as one. Folded together, the
+// wait ended on the very answer it was looking for and called the park done —
+// the worst shape of wrong, because the operator is told the traffic stopped.
+func TestWaitForParkedDoesNotReadAFailureAsArrival(t *testing.T) {
+	withIpAPI(t, 2, `{}`)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/ip/1.2.3.4%2F32",
+		httpmock.NewStringResponder(500, `{"message": "gateway is having a day"}`))
+
+	err := waitForRouting("1.2.3.4/32", "", 0)
+
+	td.Require(t).CmpError(err, "a park is never concluded from a failed read")
+	td.Cmp(t, err.Error(), td.Contains("stopped waiting"))
+}
+
+// A task that ended in one of the three terminal failures leaves the IP where it
+// was, so the state says "not there yet" for as long as anyone asks. The wait ran
+// its full ten minutes and then said "not routed yet, follow it with ovhcloud ip
+// tasks", which reads as still in progress.
+//
+// The task is asked second and only about failure: the state stays the authority
+// on where the IP is, because a request here can create more than one task.
+func TestWaitForRoutingStopsOnATerminalTaskFailure(t *testing.T) {
+	withIpAPI(t, 120, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": "ns0000005.ip-203-0-113.eu"}}`)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/ip/1.2.3.4%2F32/task/4242",
+		httpmock.NewStringResponder(200,
+			`{"taskId": 4242, "function": "genericMoveFloatingIp", "status": "customerError", "comment": "destination refused the route"}`))
+
+	err := waitForRouting("1.2.3.4/32", "ns0000006.ip-203-0-113.eu", 4242)
+
+	td.Require(t).CmpError(err)
+	td.Cmp(t, err.Error(), td.Contains("customerError"), "the status is named")
+	td.Cmp(t, err.Error(), td.Contains("destination refused the route"), "and so is the reason")
+	td.Cmp(t, err.Error(), td.Not(td.Contains("stopped waiting")),
+		"it stopped because the task failed, not because it ran out of patience")
+}
+
+// The state remains the authority, and this is the case that says so: the IP had
+// not arrived when the round began, the task then reported a terminal failure,
+// and the IP had arrived by the time it was read again.
+//
+// That ordering is the two-tasks-for-one-request shape measured on a vRack
+// attach — the task we were handed can fail while the work completes elsewhere.
+// So a failure is never announced on the strength of the task: the state is read
+// once more first, and it wins.
+func TestWaitForRoutingTrustsTheStateOverAFailedTask(t *testing.T) {
+	withIpAPI(t, 2, `{}`)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/ip/1.2.3.4%2F32",
+		httpmock.ResponderFromMultipleResponses([]*http.Response{
+			httpmock.NewStringResponse(200, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": "ns0000005.ip-203-0-113.eu"}}`),
+			httpmock.NewStringResponse(200, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": "ns0000006.ip-203-0-113.eu"}}`),
+		}))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/ip/1.2.3.4%2F32/task/4242",
+		httpmock.NewStringResponder(200, `{"taskId": 4242, "status": "ovhError"}`))
+
+	td.CmpNoError(t, waitForRouting("1.2.3.4/32", "ns0000006.ip-203-0-113.eu", 4242),
+		"the IP arrived; the failed task does not overrule it")
+}
+
+// A task that cannot be read is not a task that failed. Turning a 500 on the
+// task route into "your move failed" would be worse than the wait it replaces.
+func TestWaitForRoutingDoesNotFailOnAnUnreadableTask(t *testing.T) {
+	withIpAPI(t, 2, `{"ip": "1.2.3.4/32", "routedTo": {"serviceName": "ns0000005.ip-203-0-113.eu"}}`)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/ip/1.2.3.4%2F32/task/4242",
+		httpmock.NewStringResponder(500, `{"message": "nope"}`))
+
+	err := waitForRouting("1.2.3.4/32", "ns0000006.ip-203-0-113.eu", 4242)
+
+	td.Require(t).CmpError(err)
+	td.Cmp(t, err.Error(), td.Contains("stopped waiting"), "it waited, it did not conclude")
+}
+
+// The three statuses treated as terminal failures are retyped in Go, because the
+// schema lists the seven statuses without saying which are failures — that
+// classification is not in the document. This holds them against the enum, so a
+// rename upstream shows up here instead of quietly turning the branch off.
+func TestTerminalTaskFailuresAreAllDeclaredByTheSchema(t *testing.T) {
+	declared, err := openapi.GetComponentEnum(assets.IpOpenapiSchema, "ip.TaskStatusEnum")
+	td.Require(t).CmpNoError(err)
+	td.Cmp(t, len(declared) > 3, true, "positive control: the enum was read")
+
+	for _, status := range terminalTaskFailures {
+		td.Cmp(t, slices.Contains(declared, status), true,
+			"%q is treated as a terminal failure but the schema does not declare it", status)
+	}
+}
+
+// go-ovh decodes with UseNumber, so a JSON integer arrives as json.Number. A
+// type switch that only handles float64 is dead code — a mistake this repository
+// has already made twice, once in baremetal.go and once in the vRack wait.
+func TestTaskIDOfReadsAJsonNumber(t *testing.T) {
+	var task map[string]any
+	decoder := json.NewDecoder(strings.NewReader(`{"taskId": 559188894}`))
+	decoder.UseNumber()
+	td.Require(t).CmpNoError(decoder.Decode(&task))
+
+	td.Cmp(t, taskIDOf(task), int64(559188894))
+	td.Cmp(t, taskIDOf(map[string]any{}), int64(0), "and an absent task is zero, not a panic")
 }
