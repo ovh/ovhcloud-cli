@@ -6,10 +6,10 @@ package backupservices
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -50,15 +50,22 @@ func ShowBilling(_ *cobra.Command, _ []string) {
 		return
 	}
 
+	// Consumption is one half of the answer and the prices are the other. Losing
+	// the half that failed is better than answering nothing, so the table is
+	// still printed.
+	//
+	// But it is printed as ONE document. This used to emit an OutputInfo and then
+	// the table, which under -o json put two JSON documents on stdout back to
+	// back — something no parser accepts, so a script asking for the prices got a
+	// decode error precisely on the runs where half the data was missing. The
+	// sentence goes to the log, which is stderr, and the fact goes where a script
+	// will find it: in the consumption cell of every row.
 	usage, err := currentUsage()
 	if err != nil {
-		// Consumption is one half of the answer and the prices are the other.
-		// Losing the half that failed is better than answering nothing, so it
-		// is reported and the table is still printed.
-		display.OutputInfo(&flags.OutputFormatConfig, nil,
-			"🟠 Current consumption could not be read (%s); the prices below are still what is billed.", err)
+		log.Printf("🟠 Current consumption could not be read (%s); the prices below are still what is billed.", err)
 		usage = nil
 	}
+	usageReadable := err == nil
 
 	rows := make([]map[string]any, len(resources))
 	group := new(errgroup.Group)
@@ -93,7 +100,7 @@ func ShowBilling(_ *cobra.Command, _ []string) {
 				row["nextBillingDate"] = billing.NextBillingDate
 				row["renew"] = billing.Renew.Current.Mode
 				row["state"] = billing.Lifecycle.Current.State
-				row["consumption"] = usageOf(usage, service.ServiceID)
+				row["consumption"] = usageOf(usage, service.ServiceID, usageReadable)
 			}
 
 			rows[index] = row
@@ -204,14 +211,26 @@ type usageEntry struct {
 	} `json:"price"`
 }
 
-var currentUsage = sync.OnceValues(func() ([]usageEntry, error) {
+// currentUsage reads this month's consumption.
+//
+// A plain function, not a sync.OnceValues. It was one, and a once-value over a
+// live API read is a process-wide cache over data that changes: the first call
+// decided the answer for the life of the process, so a transient 500 on that
+// first read made every later `backup-services billing` in the same process
+// report the consumption as unreadable — for as long as the process lived. The
+// once-values elsewhere in this repository all wrap the embedded schema, which
+// cannot change; this one wraps an account.
+//
+// It is also the only reason a test could pass alone and fail in its suite, which
+// is how this was found.
+func currentUsage() ([]usageEntry, error) {
 	var entries []usageEntry
 	if err := httpLib.Client.Get("/v1/me/consumption/usage/current", &entries); err != nil {
 		return nil, err
 	}
 
 	return entries, nil
-})
+}
 
 // usageOf says what a service has consumed so far this month.
 //
@@ -219,9 +238,16 @@ var currentUsage = sync.OnceValues(func() ([]usageEntry, error) {
 // which is the state of every backup service on this account — all nine agents
 // are NOT_INSTALLED, so nothing has been stored. "none yet" says that; an empty
 // cell would read as a column that failed to fill.
-func usageOf(entries []usageEntry, serviceID int) string {
+// The last argument tells the two empty answers apart: consumption that could
+// not be read, and consumption that is legitimately absent. "unknown" for both
+// would have made a failed read indistinguishable from a service nobody has used
+// yet — and the second is the normal state of a freshly ordered vault.
+func usageOf(entries []usageEntry, serviceID int, readable bool) string {
+	if !readable {
+		return "unreadable"
+	}
 	if entries == nil {
-		return "unknown"
+		return "none yet"
 	}
 
 	var parts []string
