@@ -234,3 +234,35 @@ func (ms *MockSuite) TestBaremetalRaidProfileIsFiltered(assert, require *td.T) {
 	assert.Cmp(out, td.Contains("H740P"))
 	assert.Cmp(out, td.Not(td.Contains("H730P")), "the HDD group the filter excludes must not be printed")
 }
+
+// capacity and speed are complexType.UnitAndValue in the schema, not scalars.
+// Left untyped they reached the table as the decoded map and rendered as
+// "map[unit:GB value:1000]" — on every server that actually has a controller,
+// which is none of the fourteen measured. Hence a defect nobody could see.
+func (ms *MockSuite) TestBaremetalRaidProfileRendersQuantitiesWithTheirUnit(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/install/hardwareRaidProfile",
+		httpmock.NewStringResponder(200, `{"controllers":[{"model":"PERC H755","type":"Hardware","disks":[
+			{"capacity":{"unit":"GB","value":1000},"diskGroupId":1,"names":["disk0","disk1"],
+			 "speed":{"unit":"rpm","value":7200},"type":"SATA"}]}]}`))
+
+	out, err := cmd.Execute("baremetal", "raid-profile", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("map[")), "the decoded object must not reach a cell")
+	assert.Cmp(out, td.Contains("1000 GB"))
+	assert.Cmp(out, td.Contains("7200 rpm"))
+}
+
+// An absent quantity renders as nothing, not as a zero the API never sent.
+func (ms *MockSuite) TestBaremetalRaidProfileLeavesAnAbsentQuantityEmpty(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/install/hardwareRaidProfile",
+		httpmock.NewStringResponder(200, `{"controllers":[{"model":"PERC H755","type":"Hardware","disks":[
+			{"diskGroupId":1,"names":["disk0"],"type":"SATA"}]}]}`))
+
+	out, err := cmd.Execute("baremetal", "raid-profile", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("0 ")), "no invented zero")
+}
