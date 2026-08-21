@@ -94,20 +94,35 @@ func TestAgreedReadingsDecide(t *testing.T) {
 		{"renew": map[string]any{"automatic": false}},
 		{"renew": map[string]any{"automatic": false}},
 	}
-	if value, agreed := agreedRenewal(off); !agreed || value {
-		t.Fatalf("readings that agree on false decide false, got value=%v agreed=%v", value, agreed)
+	if value, verdict := agreedRenewal(off); verdict != renewalAgreed || value {
+		t.Fatalf("readings that agree on false decide false, got value=%v verdict=%v", value, verdict)
 	}
 
 	on := []map[string]any{
 		{"renew": map[string]any{"automatic": true}},
 		{"renew": map[string]any{"automatic": true}},
 	}
-	if value, agreed := agreedRenewal(on); !agreed || !value {
-		t.Fatalf("readings that agree on true decide true, got value=%v agreed=%v", value, agreed)
+	if value, verdict := agreedRenewal(on); verdict != renewalAgreed || !value {
+		t.Fatalf("readings that agree on true decide true, got value=%v verdict=%v", value, verdict)
 	}
 
-	if _, agreed := agreedRenewal([]map[string]any{{"renew": map[string]any{}}}); agreed {
-		t.Fatal("an absent field is not an agreement")
+	// Three outcomes, not two: an absent field is neither an agreement nor a
+	// disagreement, and calling it the latter made the finding describe an
+	// instability that had not happened.
+	if _, verdict := agreedRenewal([]map[string]any{{"renew": map[string]any{}}}); verdict != renewalAbsent {
+		t.Fatalf("an absent field is absent, not %v", verdict)
+	}
+
+	mixed := []map[string]any{
+		{"renew": map[string]any{"automatic": true}},
+		{"renew": map[string]any{"automatic": false}},
+	}
+	if _, verdict := agreedRenewal(mixed); verdict != renewalDisagreed {
+		t.Fatalf("readings that differ disagree, got %v", verdict)
+	}
+
+	if _, verdict := agreedRenewal(nil); verdict != renewalAbsent {
+		t.Fatalf("no reading at all establishes nothing, got %v", verdict)
 	}
 }
 

@@ -422,11 +422,25 @@ func ShowBackupCloudOffer(_ *cobra.Command, args []string) {
 	var offer map[string]any
 	path := fmt.Sprintf("/v1/dedicated/server/%s/backupCloudOfferDetails", url.PathEscape(server))
 	if err := httpLib.Client.Get(path, &offer); err != nil {
+		// Matched on the message and not on the status alone. The 403 the
+		// business answer carries says "Not available for this server" —
+		// recorded on the 34 servers of the account that answered it — and an
+		// API key simply lacking the right on this route answers 403 too. Read
+		// by status, that key was told no offer covers the machine, and
+		// -o json handed a script offered:false, which is a claim about the
+		// catalogue rather than about the caller's rights.
 		var apiErr *ovh.APIError
 		if errors.As(err, &apiErr) && apiErr.Code == http.StatusForbidden {
-			display.OutputInfo(&flags.OutputFormatConfig,
-				map[string]any{"serviceName": server, "offered": false},
-				"No cloud backup offer covers %s.", server)
+			if strings.Contains(strings.ToLower(apiErr.Message), "not available for this server") {
+				display.OutputInfo(&flags.OutputFormatConfig,
+					map[string]any{"serviceName": server, "offered": false},
+					"No cloud backup offer covers %s.", server)
+				return
+			}
+
+			display.OutputError(&flags.OutputFormatConfig,
+				"not allowed to read the cloud backup offer of %s: %s\n   This is a rights answer, not a catalogue one: check the API key's grant on dedicatedServer:apiovh:backupCloudOfferDetails/get.",
+				server, err)
 			return
 		}
 

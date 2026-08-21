@@ -64,17 +64,35 @@ var (
 	BaremetalIpmiIP         string
 	BaremetalIpmiSshKey     string
 
+	// The two booleans are pointers, and the two plain bools below them are what
+	// cobra writes into.
+	//
+	// `omitempty` on a bool drops false, so `--monitoring=false` and
+	// `--no-intervention=false` sent nothing at all — and EditResource reads the
+	// object, merges the (empty) command-line map into it and PUTs the result, so
+	// the current value came straight back and the command answered "✅ Resource
+	// updated successfully". Turning a flag off was not a no-op, it was a no-op
+	// that claimed to have worked. On a pointer, omitempty drops only nil, so an
+	// explicit false travels.
+	//
+	// Monitoring had the same defect and looked fine: the only caller that names
+	// it, the doctor's remedy for monitoring being off, happens to pass true.
 	EditBaremetalParams struct {
 		BootId            int    `json:"bootId,omitempty"`
 		BootScript        string `json:"bootScript,omitempty"`
 		EfiBootloaderPath string `json:"efiBootloaderPath,omitempty"`
-		Monitoring        bool   `json:"monitoring,omitempty"`
-		NoIntervention    bool   `json:"noIntervention,omitempty"`
+		Monitoring        *bool  `json:"monitoring,omitempty"`
+		NoIntervention    *bool  `json:"noIntervention,omitempty"`
 		RescueMail        string `json:"rescueMail,omitempty"`
 		RescueSshKey      string `json:"rescueSshKey,omitempty"`
 		RootDevice        string `json:"rootDevice,omitempty"`
 		State             string `json:"state,omitempty"`
 	}
+
+	// EditBaremetalMonitoring and EditBaremetalNoIntervention hold what cobra
+	// parsed; EditBaremetal decides whether it was asked for.
+	EditBaremetalMonitoring     bool
+	EditBaremetalNoIntervention bool
 )
 
 func ListBaremetal(_ *cobra.Command, _ []string) {
@@ -126,6 +144,21 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 }
 
 func EditBaremetal(cmd *cobra.Command, args []string) {
+	// A boolean flag has no absent value of its own, so the question "was it
+	// typed" is asked of cobra rather than of the value.
+	//
+	// Assigned both ways round, never only on the true branch: the wasm build
+	// keeps one process across invocations, and a pointer left over from an
+	// earlier command would send a value nobody asked for this time.
+	EditBaremetalParams.Monitoring = nil
+	EditBaremetalParams.NoIntervention = nil
+	if cmd.Flags().Changed("monitoring") {
+		EditBaremetalParams.Monitoring = &EditBaremetalMonitoring
+	}
+	if cmd.Flags().Changed("no-intervention") {
+		EditBaremetalParams.NoIntervention = &EditBaremetalNoIntervention
+	}
+
 	if err := common.EditResource(
 		cmd,
 		"/dedicated/server/{serviceName}",
