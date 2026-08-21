@@ -36,6 +36,8 @@ ovhcloud baremetal backup-agent show <service_name> [flags]
                            --output 'name+","+type' (to extract and concatenate fields in a string)
                            --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string   Use a specific profile from the configuration file
+      --tenant string    Backup tenant to work on (default: the only one on the account)
+      --vspc string      VSPC tenant to work on (default: the only one in the backup tenant)
 ```
 
 ### SEE ALSO

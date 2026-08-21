@@ -5,7 +5,9 @@ Manage the Veeam backup agent protecting this server
 ### Options
 
 ```
-  -h, --help   help for backup-agent
+  -h, --help            help for backup-agent
+      --tenant string   Backup tenant to work on (default: the only one on the account)
+      --vspc string     VSPC tenant to work on (default: the only one in the backup tenant)
 ```
 
 ### Options inherited from parent commands
