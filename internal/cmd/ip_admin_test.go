@@ -251,3 +251,27 @@ func (ms *MockSuite) TestIpDelegationGetExplainsTheFailureToo(assert, require *t
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("IPv6 subnets"))
 }
+
+// The same note serves four call sites, two of which are writes. Fixed to
+// "read", a refused POST printed "failed to read the reverse delegation of X",
+// which sends the operator to check a right they never used.
+func (ms *MockSuite) TestIpDelegationAddReportsAWriteAsAWrite(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/ip/2001:db8::%2F64/delegation",
+		httpmock.NewStringResponder(403, `{"message":"This call has not been granted"}`))
+
+	_, err := cmd.Execute("ip", "delegation", "add", "2001:db8::/64", "ns1.example", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Not(td.Contains("failed to read")), "a refused POST is not a failed read")
+	assert.Cmp(err.Error(), td.Contains("failed to add to the reverse delegation"))
+}
+
+func (ms *MockSuite) TestIpDelegationRemoveReportsAWriteAsAWrite(assert, require *td.T) {
+	httpmock.RegisterResponder("DELETE", `=~^https://eu\.api\.ovh\.com/v1/ip/2001:db8::%2F64/delegation/.+`,
+		httpmock.NewStringResponder(403, `{"message":"This call has not been granted"}`))
+
+	_, err := cmd.Execute("ip", "delegation", "remove", "2001:db8::/64", "ns1.example", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("failed to remove from the reverse delegation"))
+}
