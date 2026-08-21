@@ -93,16 +93,37 @@ func (ms *MockSuite) TestBaremetalBackupFtpDeletePreviewsWithoutSending(assert, 
 
 // Thirty-four of thirty-five servers answered 403 on the cloud backup offer,
 // and the thirty-fifth answered its sizes. A 403 there is a business answer,
-// not a permission problem.
+// not a permission problem — and the body is what says so. The message here is
+// the one those 34 servers actually returned; the fixture used to carry an
+// invented "not offered", which is how the status-only test passed while the
+// command could not tell a business answer from a rights refusal.
 func (ms *MockSuite) TestBaremetalBackupCloudOfferReadsA403AsAnAnswer(assert, require *td.T) {
 	httpmock.RegisterResponder("GET",
 		"https://eu.api.ovh.com/v1/dedicated/server/ns1.example/backupCloudOfferDetails",
-		httpmock.NewStringResponder(403, `{"class":"Client::Forbidden","message":"not offered"}`))
+		httpmock.NewStringResponder(403, `{"message":"Not available for this server"}`))
 
 	out, err := cmd.Execute("baremetal", "backup", "cloud", "offer", "ns1.example")
 
 	require.CmpNoError(err, "a server the offer does not cover is not a failed command")
 	assert.Cmp(out, td.Contains("No cloud backup offer"))
+}
+
+// The same 403 comes back when the API key simply lacks the right on this route.
+// Read by status alone, that key was told no offer covers the machine — and
+// -o json handed a script offered:false, a claim about the catalogue made from a
+// fact about the caller.
+func (ms *MockSuite) TestBaremetalBackupCloudOfferSeparatesRightsFromCatalogue(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/ns1.example/backupCloudOfferDetails",
+		httpmock.NewStringResponder(403, `{"class":"Client::Forbidden","message":"This call has not been granted"}`))
+
+	_, err := cmd.Execute("baremetal", "backup", "cloud", "offer", "ns1.example", "-o", "json")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Not(td.Contains("No cloud backup offer")),
+		"a rights refusal says nothing about what the catalogue covers")
+	assert.Cmp(err.Error(), td.Not(td.Contains("offered")), "and offered:false must not be published")
+	assert.Cmp(err.Error(), td.Contains("backupCloudOfferDetails"), "the grant to check is named")
 }
 
 // The four cloud backup passwords come back in the response body, unlike the

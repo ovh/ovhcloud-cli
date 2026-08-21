@@ -16,7 +16,7 @@ import (
 // The note explains the failure; it does not stop the call, because the scope
 // is the route's own and not a rule this CLI enforces on the API's behalf.
 func TestDelegationErrorExplainsAnIPv4Failure(t *testing.T) {
-	err := delegationError("203.0.113.80/32", errors.New("Internal server error"))
+	err := delegationError("read", "203.0.113.80/32", errors.New("Internal server error"))
 	if !strings.Contains(err.Error(), "IPv6 subnets") {
 		t.Fatalf("an IPv4 block should be told what this route covers, got %q", err)
 	}
@@ -26,7 +26,7 @@ func TestDelegationErrorExplainsAnIPv4Failure(t *testing.T) {
 }
 
 func TestDelegationErrorAddsNothingForAnIPv6Subnet(t *testing.T) {
-	err := delegationError("2001:db8::/64", errors.New("boom"))
+	err := delegationError("read", "2001:db8::/64", errors.New("boom"))
 	if strings.Contains(err.Error(), "IPv6 subnets") {
 		t.Fatalf("an IPv6 subnet is already in scope, got %q", err)
 	}
@@ -96,7 +96,7 @@ func TestEveryLicenceProductWithARouteIsQueried(t *testing.T) {
 // /128 answers 500. A note attached to IPv4 alone leaves the /128 with a bare
 // 500 — the case the comment names and the code missed.
 func TestDelegationErrorExplainsASingleIPv6Address(t *testing.T) {
-	err := delegationError("2001:db8::1/128", errors.New("Internal server error"))
+	err := delegationError("read", "2001:db8::1/128", errors.New("Internal server error"))
 	if !strings.Contains(err.Error(), "IPv6 subnets") {
 		t.Fatalf("a /128 is not a subnet and should be told so, got %q", err)
 	}
@@ -107,11 +107,11 @@ func TestDelegationErrorExplainsASingleIPv6Address(t *testing.T) {
 
 func TestIPv6SubnetRecognisesWhatTheRouteServes(t *testing.T) {
 	for block, want := range map[string]bool{
-		"2001:db8::/56":    true,
-		"2001:db8::/64":    true,
-		"2001:db8::1/128":  false,
+		"2001:db8::/56":   true,
+		"2001:db8::/64":   true,
+		"2001:db8::1/128": false,
 		"203.0.113.80/32": false,
-		"203.0.113.32/30":  false,
+		"203.0.113.32/30": false,
 	} {
 		if got := isIPv6Subnet(block); got != want {
 			t.Errorf("isIPv6Subnet(%q) = %v, want %v", block, got, want)
