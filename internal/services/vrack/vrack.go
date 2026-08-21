@@ -74,7 +74,12 @@ func GetVrack(_ *cobra.Command, args []string) {
 
 	object["servers"] = serverRows(servers)
 	object["otherContents"] = others
-	object["summary"] = summarise(len(servers), others, unreadable)
+	// distinctServers and not len(servers): the list is one entry per attached
+	// *interface*, and a server can have several. This whole package knows it —
+	// interfacesOf sorts the interfaces of one server, and attach refuses when a
+	// server has more than one — so counting rows here printed "2 dedicated
+	// servers" for one machine with two NICs.
+	object["summary"] = summarise(distinctServers(servers), others, unreadable)
 	object["anyServerNamed"] = anyNamed(servers)
 
 	display.OutputObject(object, vrack, vrackTemplate, &flags.OutputFormatConfig)
