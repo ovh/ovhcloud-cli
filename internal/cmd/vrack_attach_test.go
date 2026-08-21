@@ -278,3 +278,55 @@ func (ms *MockSuite) TestBaremetalVrackShowSaysWhenThereIsNoVrack(assert, requir
 	require.CmpNoError(err)
 	assert.Contains(out, "not in any vRack")
 }
+
+// /v2/iam/resource is a v2 route, and v2 routes paginate by cursor. The lookup
+// read it with a plain GET, so it saw the first page and no more.
+//
+// The account this was written against has 35 servers — fewer than one default
+// page — so a single GET happened to see all of them. Measured with
+// X-Pagination-Size: 10, the route answers ten objects and an
+// X-Pagination-Cursor-Next, so the pagination is real and the defect was latent,
+// not absent: past one page a machine loses its display name, and that is the
+// name an operator recognises in the sentence asking them to cut its network.
+func (ms *MockSuite) TestVrackGetReadsEveryPageOfDisplayNames(assert, require *td.T) {
+	registerVrack(assert, `{}`, vrackAttachedOne)
+
+	const iamURL = "https://eu.api.ovh.com/v2/iam/resource?resourceType=dedicatedServer"
+	httpmock.RegisterResponder("GET", iamURL, func(req *http.Request) (*http.Response, error) {
+		if req.Header.Get("X-Pagination-Cursor") != "" {
+			// Second page: the server the table actually shows.
+			return httpmock.NewStringResponse(200,
+				`[{"name": "ns0000002.ip-203-0-113.eu", "displayName": "Mail relay - Paris"}]`), nil
+		}
+		first := httpmock.NewStringResponse(200,
+			`[{"name": "ns0000404.ip-203-0-113.eu", "displayName": "Somebody else"}]`)
+		first.Header.Set("X-Pagination-Cursor-Next", "page-two")
+		return first, nil
+	})
+
+	out, err := cmd.Execute("vrack", "get", vrackName)
+
+	require.CmpNoError(err)
+	assert.Contains(out, "Mail relay - Paris", "the name on the second page is found")
+}
+
+// The legacy attachment binds a server to the vRack directly instead of through
+// one of its interfaces. Nothing read it: the servers section reads
+// dedicatedServerInterface, so a vRack bound that way printed "This vRack is
+// empty" while holding a production machine.
+//
+// Zero of the 71 vRacks on the account measured use it, which is why the omission
+// was invisible rather than harmless.
+func (ms *MockSuite) TestVrackGetShowsAServerAttachedTheLegacyWay(assert, require *td.T) {
+	registerVrack(assert, `{}`, `[]`)
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/vrack/"+vrackName+"/dedicatedServer",
+		httpmock.NewStringResponder(200, `["ns0000009.ip-203-0-113.eu"]`))
+
+	out, err := cmd.Execute("vrack", "get", vrackName)
+
+	require.CmpNoError(err)
+	assert.Contains(out, "ns0000009.ip-203-0-113.eu")
+	assert.Contains(out, "legacy attachment")
+	assert.Not(out, td.Contains("This vRack is empty"))
+}
