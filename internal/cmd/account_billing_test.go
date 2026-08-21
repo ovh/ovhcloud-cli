@@ -5,6 +5,7 @@
 package cmd_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -307,4 +308,28 @@ func (ms *MockSuite) TestBillListIsFiltered(assert, require *td.T) {
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("FR2"))
 	assert.Cmp(out, td.Not(td.Contains("FR1")), "the invoice the filter excludes must not be printed")
+}
+
+// --ignore-errors was meant to make a partial failure survivable.
+// FetchObjectsParallel preallocates one slot per id and only writes the ones
+// that succeeded, so the failures stayed in the slice as nil maps: one blank row
+// per failed read, and a bare {} under -o json, with nothing saying how many
+// were missing. That is worse than a short list, because a short list is
+// visible.
+func (ms *MockSuite) TestAccountBillListDropsTheReadsThatFailed(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", `=~^https://eu\.api\.ovh\.com/v1/me/bill\?`,
+		httpmock.NewStringResponder(200, `["PI_FR1","PI_FR2"]`))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/me/bill/PI_FR1",
+		httpmock.NewStringResponder(200, `{"billId":"PI_FR1","date":"2026-08-01","priceWithTax":{"text":"10.00 EUR"}}`))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/me/bill/PI_FR2",
+		httpmock.NewStringResponder(500, `{"message":"Internal server error"}`))
+
+	out, err := cmd.Execute("account", "bill", "list", "--ignore-errors", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("PI_FR1"))
+	assert.Cmp(out, td.Not(td.Contains("{}")), "a failed read must not become an empty object")
+	var rows []map[string]any
+	require.CmpNoError(json.Unmarshal([]byte(out), &rows))
+	assert.Cmp(len(rows), 1, "one invoice was read, so one row")
 }
