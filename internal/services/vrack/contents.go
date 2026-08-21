@@ -129,20 +129,30 @@ func withDisplayNames(interfaces []serverInterface) []serverInterface {
 //
 // It returns an empty map on any failure. Callers treat that as "no names
 // available", never as an error.
+// It reads through FetchArray rather than a plain GET because this is a v2
+// route and v2 routes paginate by cursor. Measured: sending X-Pagination-Size: 10
+// returns ten objects and an X-Pagination-Cursor-Next, so the pagination is real
+// — the account this was written against simply has 35 servers, fewer than one
+// default page, so a single GET happened to see all of them. A fleet past that
+// size would have had its later servers silently lose their names, and a missing
+// name here is a machine an operator does not recognise in the sentence asking
+// them to cut its network.
 func serverDisplayNames() map[string]string {
-	var resources []struct {
-		Name        string `json:"name"`
-		DisplayName string `json:"displayName"`
-	}
-
-	if err := httpLib.Client.Get("/v2/iam/resource?resourceType=dedicatedServer", &resources); err != nil {
+	items, err := httpLib.FetchArray("/v2/iam/resource?resourceType=dedicatedServer", "")
+	if err != nil {
 		return nil
 	}
 
-	names := make(map[string]string, len(resources))
-	for _, resource := range resources {
-		if resource.DisplayName != "" && resource.DisplayName != resource.Name {
-			names[resource.Name] = resource.DisplayName
+	names := make(map[string]string, len(items))
+	for _, item := range items {
+		resource, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		name, _ := resource["name"].(string)
+		displayName, _ := resource["displayName"].(string)
+		if name != "" && displayName != "" && displayName != name {
+			names[name] = displayName
 		}
 	}
 
@@ -181,37 +191,61 @@ func distinctServers(interfaces []serverInterface) int {
 	return len(seen)
 }
 
+// contentType is one listable kind of vRack member.
+//
+// Package-level so a test can hold it against vrack.AllowedServiceEnum in the
+// embedded schema. A list of API paths retyped into Go stops being true in
+// silence, which is what happened here: two of the thirteen values the schema
+// declares were missing, and a vRack whose only content was one of them printed
+// as "This vRack is empty."
+type contentType struct {
+	path  string
+	label string
+	one   string
+}
+
+// contentTypes is read in this order rather than ranged over a map: a listing
+// that reshuffles itself between two runs cannot be diffed, and these are read
+// side by side.
+//
+// dedicatedServerInterface is deliberately absent — the servers section above
+// reads it, with the interface and display-name resolution this listing has no
+// business repeating. Everything else the schema names belongs here.
+var contentTypes = []contentType{
+	{"cloudProject", "Public Cloud projects", "Public Cloud project"},
+	{"ip", "IP blocks", "IP block"},
+	{"ipv6", "IPv6 blocks", "IPv6 block"},
+	{"ipLoadbalancing", "Load balancers", "load balancer"},
+	// The legacy attachment: a server bound to the vRack directly rather than
+	// through one of its interfaces. POST /vrack/{n}/dedicatedServer is still
+	// live and this is the only place a vRack using it would show up — the
+	// servers section reads dedicatedServerInterface and would see nothing. Zero
+	// of the 71 vRacks on the account measured use it, which is exactly why its
+	// absence was invisible rather than harmless.
+	{"dedicatedServer", "Dedicated servers (legacy attachment)", "dedicated server (legacy attachment)"},
+	{"dedicatedCloud", "Hosted Private Cloud", "Hosted Private Cloud"},
+	{"dedicatedCloudDatacenter", "Hosted Private Cloud datacenters", "Hosted Private Cloud datacenter"},
+	{"dedicatedConnect", "Dedicated Connect", "Dedicated Connect"},
+	{"ovhCloudConnect", "OVHcloud Connect", "OVHcloud Connect"},
+	{"vrackServices", "vRack Services", "vRack Service"},
+	{"vmwareCloudDirectorVirtualDataCenter", "VMware Cloud Director", "VMware Cloud Director"},
+	{"legacyVrack", "Legacy vRacks", "legacy vRack"},
+}
+
 // otherContents lists everything else the vRack holds, by type.
 //
-// This command only attaches and detaches dedicated servers, and it lists all
-// eleven attachable types anyway. Showing two of them because those are the two
-// it can act on would make `vrack get` answer "what is in this vRack" with a
-// filtered truth — and the account this was written against has 32 vRacks whose
-// only content is a cloud project, every one of which would have looked empty.
+// This command only attaches and detaches dedicated servers, and it lists every
+// attachable type anyway. Showing two of them because those are the two it can
+// act on would make `vrack get` answer "what is in this vRack" with a filtered
+// truth — and the account this was written against has 32 vRacks whose only
+// content is a cloud project, every one of which would have looked empty.
 //
 // The identifiers are shown raw. Resolving them would mean a lookup per type,
 // each with its own shape and its own failure; naming them is enough to say
 // what is there.
 func otherContents(vrack string) ([]map[string]any, int) {
 	unreadable := 0
-	// Ordered rather than ranged over a map: a listing that reshuffles itself
-	// between two runs cannot be diffed, and these are read side by side.
-	types := []struct {
-		path  string
-		label string
-		one   string
-	}{
-		{"cloudProject", "Public Cloud projects", "Public Cloud project"},
-		{"ip", "IP blocks", "IP block"},
-		{"ipv6", "IPv6 blocks", "IPv6 block"},
-		{"ipLoadbalancing", "Load balancers", "load balancer"},
-		{"dedicatedCloud", "Hosted Private Cloud", "Hosted Private Cloud"},
-		{"dedicatedConnect", "Dedicated Connect", "Dedicated Connect"},
-		{"ovhCloudConnect", "OVHcloud Connect", "OVHcloud Connect"},
-		{"vrackServices", "vRack Services", "vRack Service"},
-		{"vmwareCloudDirectorVirtualDataCenter", "VMware Cloud Director", "VMware Cloud Director"},
-		{"legacyVrack", "Legacy vRacks", "legacy vRack"},
-	}
+	types := contentTypes
 
 	var sections []map[string]any
 	for _, t := range types {
