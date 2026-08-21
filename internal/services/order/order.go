@@ -278,6 +278,15 @@ func FollowOrder(_ *cobra.Command, args []string) {
 			"step":   step.Step,
 			"status": step.Status,
 			"latest": latest,
+			// Carried on every row, and deliberately absent from the column
+			// list below: RenderTable projects only the named columns for the
+			// human table but hands the whole row map to the JSON and YAML
+			// encoders. So this is the one place the overall status can live
+			// without widening the table — and it has to live somewhere, because
+			// the line printed to stderr further down never reaches -o json,
+			// and the overall status is the single thing `follow` adds over
+			// `order get`.
+			"orderStatus": status,
 		})
 	}
 
