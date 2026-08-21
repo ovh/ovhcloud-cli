@@ -326,3 +326,44 @@ func (ms *MockSuite) TestIpMitigationProfileSetDescribesTheZeroDelay(assert, req
 	assert.Cmp(out, td.Contains("as soon as an attack ends"))
 	assert.Cmp(out, td.Not(td.Contains("stay on for no delay")))
 }
+
+// These /ip/ routes answer HTTP 500 for every block hosted outside Europe — 52
+// of the 537 on the account measured, ten network prefixes failing on 100% of
+// their blocks. Reporting that as "is not flagged by the anti-spam system" is a
+// statement of fact about the address, and the wrong one.
+func (ms *MockSuite) TestIpSpamStatsDoesNotReadAFailureAsAllClear(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", testBlock+"/spam/192.0.2.7",
+		httpmock.NewStringResponder(500, `{"class":"Server::InternalServerError","message":"Internal server error"}`))
+
+	_, err := cmd.Execute("ip", "spam-stats", "192.0.2.0/24", "192.0.2.7")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Not(td.Contains("is not flagged")),
+		"a read that failed says nothing about whether the address is flagged")
+	assert.Cmp(err.Error(), td.Contains("failed to read the anti-spam record"))
+	assert.Cmp(err.Error(), td.Contains("500"), "and the API error travels with it")
+}
+
+// A 404 is the one failure that does mean "not flagged", and it keeps the
+// sentence that names the command listing the flagged addresses.
+func (ms *MockSuite) TestIpSpamStatsStillSaysWhenAnAddressIsNotFlagged(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", testBlock+"/spam/192.0.2.7",
+		httpmock.NewStringResponder(404, `{"message":"The requested object (spam) does not exist"}`))
+
+	_, err := cmd.Execute("ip", "spam-stats", "192.0.2.0/24", "192.0.2.7")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("is not flagged by the anti-spam system"))
+	assert.Cmp(err.Error(), td.Contains("ovhcloud ip blocked"))
+}
+
+// 0 is one of the five delays the API accepts — "no delay" — so it cannot also
+// be the default. A `set` typed to change something else used to write "no
+// delay" over a profile that may have been at 1560, silently.
+func (ms *MockSuite) TestIpMitigationProfileSetRequiresTheTimeout(assert, require *td.T) {
+	_, err := cmd.Execute("ip", "mitigation-profile", "set", "192.0.2.0/24", "192.0.2.7", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`required flag(s) "timeout" not set`))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "and nothing is written")
+}

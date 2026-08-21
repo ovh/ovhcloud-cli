@@ -436,6 +436,15 @@ func spamWindow(ipBlock, target string) (string, string, string, error) {
 	var detail map[string]any
 	path := fmt.Sprintf("/v1/ip/%s/spam/%s", url.PathEscape(ipBlock), url.PathEscape(target))
 	if err := httpLib.Client.Get(path, &detail); err != nil {
+		// Only a 404 means "not flagged". Every other failure was reported as
+		// that same sentence, which is a statement of fact about the address —
+		// and the wrong one: these /ip/ routes answer 500 for every block hosted
+		// outside Europe, 52 of the 537 on the account measured, so the false
+		// negative is the likely case rather than the exotic one.
+		if !isNotFound(err) {
+			return "", "", "", fmt.Errorf("failed to read the anti-spam record of %s: %w\n   Give an explicit window with --from and --to to read the statistics anyway", target, err)
+		}
+
 		return "", "", "", fmt.Errorf("%s is not flagged by the anti-spam system, so it has no statistics.\n   List the flagged addresses with: ovhcloud ip blocked %s\n   Or give an explicit window with --from and --to", target, ipBlock)
 	}
 
@@ -561,4 +570,3 @@ func intField(object map[string]any, key string) int64 {
 	}
 	return 0
 }
-

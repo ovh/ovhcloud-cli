@@ -284,3 +284,20 @@ func (ms *MockSuite) TestBaremetalLogSubscriptionsAreFiltered(assert, require *t
 	assert.Cmp(out, td.Contains("sub-2"))
 	assert.Cmp(out, td.Not(td.Contains("sub-1")), "the subscription the filter excludes must not be printed")
 }
+
+// The refusal used to send the operator to `ovhcloud ldp list`, which lists Log
+// Data Platform *services*, not Graylog streams — and no command of this tree
+// lists streams at all. A remedy that names the wrong thing is the defect this
+// whole audit keeps finding, including twice in its own output.
+func (ms *MockSuite) TestBaremetalLogsRefusalNamesSomethingThatWorks(assert, require *td.T) {
+	registerOneLogKind()
+	registerStreams()
+
+	_, err := cmd.Execute("baremetal", "logs", "subscribe", "ns1.example",
+		"--stream", "no-such-stream", "--yes")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Not(td.Contains("ovhcloud ldp list")),
+		"that command lists services, not streams")
+	assert.Cmp(err.Error(), td.Contains("--stream <TAB>"), "completion is what actually lists them")
+}
