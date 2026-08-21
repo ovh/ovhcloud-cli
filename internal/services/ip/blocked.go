@@ -441,7 +441,7 @@ func spamWindow(ipBlock, target string) (string, string, string, error) {
 		// and the wrong one: these /ip/ routes answer 500 for every block hosted
 		// outside Europe, 52 of the 537 on the account measured, so the false
 		// negative is the likely case rather than the exotic one.
-		if !isNotFound(err) {
+		if !common.IsNotFound(err) {
 			return "", "", "", fmt.Errorf("failed to read the anti-spam record of %s: %w\n   Give an explicit window with --from and --to to read the statistics anyway", target, err)
 		}
 
