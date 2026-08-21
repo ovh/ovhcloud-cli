@@ -332,7 +332,12 @@ func ListLicenseServers(_ *cobra.Command, args []string) {
 			"licenseType": r.TargetSpec["licenseType"],
 			"displayName": r.TargetSpec["displayName"],
 		}
-	}), []string{"id", "displayName", "licenseType", "status", "tasks"})
+		// "resourceStatus status" and not "status": rowsOf writes the value under
+		// resourceStatus, and the second word is only the header. Asking for
+		// "status" asked for a key no row has, so the column was empty on every
+		// line — and an empty status column reads as "nothing to report" on
+		// exactly the resources somebody is checking on.
+	}), []string{"id", "displayName", "licenseType", "resourceStatus status", "tasks"})
 }
 
 // editNamedResource sends the one field these two resources accept.

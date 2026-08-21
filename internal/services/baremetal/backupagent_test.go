@@ -4,7 +4,15 @@
 
 package baremetal
 
-import "testing"
+import (
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/jarcoal/httpmock"
+	"github.com/ovh/go-ovh/ovh"
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+)
 
 // All nine agents of this account carry an empty policy while two retention
 // policies exist beside them. An empty cell reads as "not shown"; the fact is
@@ -61,5 +69,104 @@ func TestOnlyTwoAgentStatusesAreTransitions(t *testing.T) {
 		if backupAgentTransient[settled] {
 			t.Fatalf("%s is where an agent stops, not a transition", settled)
 		}
+	}
+}
+
+// withAgentAPI points the shared client at httpmock and shortens the poll, so
+// the timeout path is reachable in a test rather than in five minutes.
+func withAgentAPI(t *testing.T, agents string) {
+	t.Helper()
+	httpmock.Activate(t)
+
+	origClient := httpLib.Client
+	origInterval, origAttempts := backupAgentPollInterval, backupAgentPollAttempts
+	client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", "consumer_key")
+	if err != nil {
+		t.Fatalf("could not build a client: %s", err)
+	}
+	httpLib.Client = client
+	backupAgentPollInterval, backupAgentPollAttempts = time.Millisecond, 2
+
+	t.Cleanup(func() {
+		httpLib.Client = origClient
+		backupAgentPollInterval, backupAgentPollAttempts = origInterval, origAttempts
+	})
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/auth/time",
+		httpmock.NewStringResponder(200, "0"))
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v2/backupServices/tenant/t-1/vspc/s-1/backupAgent",
+		httpmock.NewStringResponder(200, agents))
+}
+
+// An empty status is not a finished one. backupAgentTransient has no entry for
+// "", so an answer carrying no status at all counted as settled and was returned
+// as a successfully created agent — the wait ending on the absence of an answer.
+func TestWaitForAgentDoesNotTakeABlankStatusForDone(t *testing.T) {
+	withAgentAPI(t, `[{"id":"a-1","status":"",
+		"currentState":{"productResourceName":"ns1.example"},"currentTasks":[]}]`)
+
+	_, err := waitForBackupAgent("t-1", "s-1", "ns1.example", true)
+
+	if err == nil {
+		t.Fatal("a blank status must be waited on, never taken for an outcome")
+	}
+	if !strings.Contains(err.Error(), "stopped waiting") {
+		t.Fatalf("got %q", err)
+	}
+}
+
+// The status enumeration has no failed value and there is no task route, so
+// currentTasks is the only place a failure appears. Measured on this account:
+// three BACKUP_VAULT_CREATE and one VSPC_AGENT_UPDATE sat in ERROR for five
+// minutes on resources every status field called READY.
+func TestWaitForAgentStopsOnAFailedTask(t *testing.T) {
+	withAgentAPI(t, `[{"id":"a-1","status":"NOT_INSTALLED",
+		"currentState":{"productResourceName":"ns1.example"},
+		"currentTasks":[{"id":"tk-1","type":"VSPC_AGENT_CREATE","status":"ERROR","errors":[]}]}]`)
+
+	_, err := waitForBackupAgent("t-1", "s-1", "ns1.example", true)
+
+	if err == nil {
+		t.Fatal("a failed task is not a created agent")
+	}
+	if !strings.Contains(err.Error(), "VSPC_AGENT_CREATE ERROR") {
+		t.Fatalf("the operation has to be named, ERROR alone says nothing: %q", err)
+	}
+	if strings.Contains(err.Error(), "stopped waiting") {
+		t.Fatalf("it stopped because the task failed, not out of patience: %q", err)
+	}
+}
+
+// WAITING_USER_INPUT is not an error, and it is just as terminal for a command
+// whose only move is to wait: only a person can unblock it, so holding the
+// terminal open until the timeout tells nobody anything.
+func TestWaitForAgentStopsWhenOnlyAPersonCanUnblockIt(t *testing.T) {
+	withAgentAPI(t, `[{"id":"a-1","status":"CREATING",
+		"currentState":{"productResourceName":"ns1.example"},
+		"currentTasks":[{"id":"tk-1","type":"VSPC_AGENT_CREATE","status":"WAITING_USER_INPUT","errors":[]}]}]`)
+
+	_, err := waitForBackupAgent("t-1", "s-1", "ns1.example", true)
+
+	if err == nil || !strings.Contains(err.Error(), "WAITING_USER_INPUT") {
+		t.Fatalf("got %v", err)
+	}
+}
+
+// A removal that failed leaves the agent in place, so the loop would otherwise
+// poll a corpse for its whole timeout and then blame its own patience.
+func TestWaitForAgentRemovalStopsOnAFailedTask(t *testing.T) {
+	withAgentAPI(t, `[{"id":"a-1","status":"DELETING",
+		"currentState":{"productResourceName":"ns1.example"},
+		"currentTasks":[{"id":"tk-1","type":"VSPC_AGENT_DELETE","status":"ERROR",
+			"errors":[{"message":"the vault still holds restore points"}]}]}]`)
+
+	_, err := waitForBackupAgent("t-1", "s-1", "ns1.example", false)
+
+	if err == nil {
+		t.Fatal("a failed removal is not a removal")
+	}
+	if !strings.Contains(err.Error(), "the vault still holds restore points") {
+		t.Fatalf("the reason is printed when the API gives one: %q", err)
 	}
 }

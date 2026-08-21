@@ -6,7 +6,9 @@ package cmd_test
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/jarcoal/httpmock"
@@ -443,4 +445,128 @@ func (ms *MockSuite) TestBackupVaultListIsFiltered(assert, require *td.T) {
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("vault-rbx"))
 	assert.Cmp(out, td.Not(td.Contains("vault-sbg")), "the vault the filter excludes must not be printed")
+}
+
+// A failed consumption read used to print an OutputInfo document and then the
+// table, so `-o json` put two JSON documents on stdout back to back — which no
+// parser accepts. A script asking for the prices therefore got a decode error
+// precisely on the runs where half the data was missing.
+//
+// The whole point of losing only the missing half was to still answer, so the
+// answer has to be parseable. This decodes the output rather than pattern-
+// matching it, which is the only assertion that catches a second document.
+func (ms *MockSuite) TestBackupBillingStaysOneJsonDocumentWhenUsageFails(assert, require *td.T) {
+	registerOneTenant()
+	httpmock.RegisterResponder(http.MethodGet, backupTenant+"/vault",
+		httpmock.NewStringResponder(200, `[]`))
+	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/me/consumption/usage/current",
+		httpmock.NewStringResponder(500, `{"message":"gateway is having a day"}`))
+	for name, id := range map[string]string{"t-1": "111", "s-1": "222"} {
+		httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/services?resourceName="+name,
+			httpmock.NewStringResponder(200, "["+id+"]"))
+	}
+	httpmock.RegisterResponder(http.MethodGet, `=~^https://eu\.api\.ovh\.com/v1/services/\d+$`,
+		httpmock.NewStringResponder(200, `{"serviceId":333,"billing":{"nextBillingDate":"2026-09-01T00:00:00Z",
+			"plan":{"code":"backup-vault-paygo","invoiceName":"Backup vault"},
+			"pricing":{"duration":"P1M","price":{"currencyCode":"EUR","text":"0.00 €","value":0}},
+			"renew":{"current":{"mode":"automatic"}},"lifecycle":{"current":{"state":"active"}}}}`))
+
+	// Captured from os.Stdout and not from what Execute returns: every writer
+	// sets display.ResultString, so the second document overwrites the first
+	// there and the return value shows only the last one. The two documents only
+	// exist where they matter, on the actual output, which is why this defect
+	// survived a suite full of tests reading the return value.
+	printed := captureStdout(require, func() {
+		_, err := cmd.Execute("backup-services", "billing", "-o", "json")
+		require.CmpNoError(err)
+	})
+
+	var decoded []map[string]any
+	require.CmpNoError(json.Unmarshal([]byte(printed), &decoded),
+		"stdout has to be one JSON document: %s", printed)
+	require.Cmp(len(decoded) > 0, true, "positive control: rows were produced")
+
+	// And the fact travels where a script will find it, not only in a sentence
+	// on stderr.
+	assert.Cmp(decoded[0]["consumption"], "unreadable")
+}
+
+// captureStdout returns everything the given function prints to os.Stdout.
+//
+// Needed because display writes to stdout directly and only remembers the last
+// thing it wrote, so a command that emits two documents looks like one from the
+// return value of Execute.
+func captureStdout(require *td.T, run func()) string {
+	reader, writer, err := os.Pipe()
+	require.CmpNoError(err)
+
+	saved := os.Stdout
+	os.Stdout = writer
+
+	done := make(chan string, 1)
+	go func() {
+		var buffer strings.Builder
+		_, _ = io.Copy(&buffer, reader)
+		done <- buffer.String()
+	}()
+
+	run()
+
+	os.Stdout = saved
+	_ = writer.Close()
+	printed := <-done
+	_ = reader.Close()
+
+	return printed
+}
+
+// The status enumeration of this API generation has no failed value, and there is
+// no task route: currentTasks is the only place a failure appears. The sibling
+// package reads it; this one did not, so `create --wait` returned an agent whose
+// provisioning had failed and called it created.
+//
+// Measured on this account: three BACKUP_VAULT_CREATE and one VSPC_AGENT_UPDATE
+// sat in ERROR for five minutes on resources every status field called READY.
+func (ms *MockSuite) TestBaremetalBackupAgentCreateReportsAFailedTask(assert, require *td.T) {
+	registerOneTenant()
+	registerServerForAgent()
+	httpmock.RegisterResponder(http.MethodPost, backupAgents,
+		httpmock.NewStringResponder(200, ``))
+	httpmock.RegisterResponder(http.MethodGet, backupAgents,
+		httpmock.ResponderFromMultipleResponses([]*http.Response{
+			httpmock.NewStringResponse(200, `[]`),
+			httpmock.NewStringResponse(200, `[{"id":"a-1","status":"NOT_INSTALLED",
+				"targetSpec":{"name":"agent-ns1.example"},
+				"currentState":{"productResourceName":"ns1.example"},
+				"currentTasks":[{"id":"tk-1","type":"VSPC_AGENT_CREATE","status":"ERROR","errors":[]}]}]`),
+		}))
+
+	_, err := cmd.Execute("baremetal", "backup-agent", "create", "ns1.example", "--wait", "--yes")
+
+	require.CmpError(err, "a failed task is not a created agent")
+	assert.Cmp(err.Error(), td.Contains("VSPC_AGENT_CREATE ERROR"),
+		"the operation is named, because ERROR alone answers 'error doing what' with nothing")
+	assert.Cmp(err.Error(), td.Not(td.Contains("stopped waiting")),
+		"it stopped because the task failed, not because it ran out of patience")
+}
+
+// rowsOf writes the value under the key "resourceStatus"; the column list asked
+// for "status", which is a key no row has, so the column was empty on every
+// line. An empty status column reads as "nothing to report" on exactly the
+// resources somebody is checking on.
+//
+// The two-word form is the repository's own syntax: key first, header second.
+func (ms *MockSuite) TestBackupLicenseServersFillTheStatusColumn(assert, require *td.T) {
+	registerOneTenant()
+	httpmock.RegisterResponder(http.MethodGet, backupVspc+"/backupLicenses/l-1/backupServer",
+		httpmock.NewStringResponder(200, `[{"id":"bs-1","resourceStatus":"OUT_OF_SYNC",
+			"targetSpec":{"displayName":"veeam-rbx-1","licenseType":"RENTAL"},
+			"currentState":{"displayName":"veeam-rbx-1"},"currentTasks":[]}]`))
+
+	out, err := cmd.Execute("backup-services", "licenses", "servers", "l-1")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("veeam-rbx-1"), "positive control: the row is rendered")
+	assert.Cmp(out, td.Contains("OUT_OF_SYNC"), "and its status is in it")
+	assert.Cmp(out, td.Contains("status"), "under a header still called status")
 }
