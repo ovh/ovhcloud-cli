@@ -76,14 +76,19 @@ schemas:
 # in one is a judgement call, not a transformation. It does print what it just
 # pulled in, broken down by maturity badge, because "Internal use only" is the
 # one thing a curator has to look at and it is invisible in a 2 MB diff.
+#
+# The jq program is on one line on purpose. A backslash continuation inside the
+# single quotes is not a continuation: make hands the shell a backslash-newline
+# the shell will not touch, jq receives a literal backslash and dies with a
+# syntax error. And it died AFTER the schema was installed, so the refresh
+# succeeded, make reported failure, and the breakdown never printed once.
 schemas-v2:
 	@if [ -z "$(API)" ] || [ -z "$(NAME)" ]; then \
 		echo "Usage: make schemas-v2 API=<path> NAME=<file> (e.g. API=dedicated/server NAME=baremetal_v2)"; \
 		exit 1; \
 	fi
 	$(call fetch-schema,$(SCHEMAS_ROOT)/v2/$(API).json?format=openapi3,$(NAME))
-	@jq -r '[.paths[] | .[] | select(type == "object") | ((.["x-badges"] // [{label: "no badge"}]) | .[] | .label)] \
-		| group_by(.) | sort_by(-length) | .[] | "  \(length)\t\(.[0])"' "$(SCHEMAS_DIR)/$(NAME).json"
+	@jq -r '[.paths[] | .[] | select(type == "object") | ((.["x-badges"] // [{label: "no badge"}]) | .[] | .label)] | group_by(.) | sort_by(-length) | .[] | "  \(length)\t\(.[0])"' "$(SCHEMAS_DIR)/$(NAME).json"
 
 # schemas-drift answers the question neither refresh target can: an embedded
 # schema is a hand-picked subset, so a path present in the catalogue and absent
@@ -92,7 +97,13 @@ schemas-v2:
 #
 # Nothing calls those paths today, so this is a contract defect rather than a
 # breakage; it becomes one the day a command is built on a path that has been
-# gone for a year. Measured 20 August 2026: baremetal.json alone carries five,
+# gone for a year.
+#
+# The `|| exit 1` on the orphan list is what stops this target from doing the
+# thing it exists to prevent. A command substitution captures stdout only: with
+# an unreadable NAME, jq's complaint goes to stderr, the capture is empty, and
+# the recipe printed "no embedded path is missing from the catalogue" and exited
+# 0. A typo in NAME bought a clean bill of health. Measured 20 August 2026: baremetal.json alone carries five,
 # two of them badged "Stable production version", and every one probed against
 # the live API answers 404 — including under the method it declares.
 schemas-drift:
@@ -107,7 +118,8 @@ schemas-drift:
 	jq -e '(.paths | length) > 0' "$$live" > /dev/null || { echo "the catalogue answered nothing usable"; exit 1; }; \
 	echo "$(NAME).json: $$(jq '.paths | length' "$(SCHEMAS_DIR)/$(NAME).json") paths embedded, $$(jq '.paths | length' "$$live") published by $(SOURCE)"; \
 	orphans=$$(jq -r -n --slurpfile a "$(SCHEMAS_DIR)/$(NAME).json" --slurpfile b "$$live" \
-		'($$a[0].paths | keys) - ($$b[0].paths | keys) | .[]'); \
+		'($$a[0].paths | keys) - ($$b[0].paths | keys) | .[]') \
+		|| { echo "  could not read $(SCHEMAS_DIR)/$(NAME).json"; exit 1; }; \
 	if [ -z "$$orphans" ]; then \
 		echo "  no embedded path is missing from the catalogue"; \
 	else \
