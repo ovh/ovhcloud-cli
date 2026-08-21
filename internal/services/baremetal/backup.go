@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -586,14 +587,40 @@ func backupFtpSpace(server string) (map[string]any, error) {
 	path := fmt.Sprintf("/v1/dedicated/server/%s/features/backupFTP", url.PathEscape(server))
 	if err := httpLib.Client.Get(path, &space); err != nil {
 		if common.IsNotFound(err) {
-			return nil, fmt.Errorf("%s has no Backup FTP space.\n   Create the one included with the server: ovhcloud baremetal backup ftp create %s",
-				server, server)
+			return nil, fmt.Errorf("%w.\n   Create the one included with the server: ovhcloud baremetal backup ftp create %s",
+				&noSpaceError{server: server}, server)
 		}
 
 		return nil, fmt.Errorf("failed to read the Backup FTP space of %s: %w", server, err)
 	}
 
 	return space, nil
+}
+
+// noSpaceError is the one error from backupFtpSpace that means the space is not
+// there, as opposed to not readable.
+//
+// It exists because `delete --wait` decided on `err == nil`: every failure —
+// a 500, a rate limit, a dropped connection — became "not found", and "not
+// found" is precisely what the deletion is waiting for. So one bad read during
+// the poll ended the wait and printed "✅ deleted" over a space that was still
+// there, which is the worst shape this class of bug takes: the operator is told
+// the thing is gone.
+//
+// A sentinel rather than a boolean beside the error, so that a caller cannot
+// forget to look at it.
+type noSpaceError struct {
+	server string
+}
+
+func (e *noSpaceError) Error() string {
+	return fmt.Sprintf("%s has no Backup FTP space", e.server)
+}
+
+// isNoSpace reports whether an error says the space does not exist.
+func isNoSpace(err error) bool {
+	var absent *noSpaceError
+	return errors.As(err, &absent)
 }
 
 func backupFtpAclBlocks(server string) ([]string, error) {
@@ -651,8 +678,22 @@ func authorizableBlocks(server string) ([]string, error) {
 func waitForBackupFtp(server string, want bool) error {
 	for attempt := 0; attempt < backupPollAttempts; attempt++ {
 		space, err := backupFtpSpace(server)
-		if backupFtpSettled(space, err == nil, want) {
-			return nil
+
+		// Three outcomes, not two. A space that answered, a space the API says
+		// is not there, and a read that did not happen — and only the second one
+		// is an answer about the space. Collapsing the third into it is what let
+		// a single failed poll end a deletion with "✅ deleted".
+		switch {
+		case err == nil:
+			if backupFtpSettled(space, true, want) {
+				return nil
+			}
+		case isNoSpace(err):
+			if backupFtpSettled(nil, false, want) {
+				return nil
+			}
+		default:
+			log.Printf("%s", err)
 		}
 
 		time.Sleep(backupPollInterval)

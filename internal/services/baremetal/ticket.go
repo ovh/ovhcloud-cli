@@ -247,34 +247,61 @@ func serverContext(server string) string {
 	found = append(found, checkMonitoring(server, detail)...)
 	found = append(found, checkIntervention(server, detail)...)
 
+	// A check whose read failed is a check that did not run, and the block below
+	// is read as a verdict. Naming what was left out is what keeps "nothing"
+	// meaning "nothing found" rather than "nothing looked".
+	var unchecked []string
+
 	var boot map[string]any
 	if bootID := bootIdentifier(detail); bootID != 0 {
 		if err := httpLib.Client.Get(fmt.Sprintf("/v1/dedicated/server/%s/boot/%d", escaped, bootID), &boot); err == nil {
 			lines = append(lines, fmt.Sprintf("%-20s #%d %s, kernel %s", "Active boot", bootID,
 				stringValue(boot, "bootType"), stringValue(boot, "kernel")))
 			found = append(found, checkBoot(server, boot)...)
+		} else {
+			unchecked = append(unchecked, "boot")
 		}
+	} else {
+		unchecked = append(unchecked, "boot")
 	}
 
 	var running []int64
 	if err := httpLib.Client.Get(fmt.Sprintf("/v1/dedicated/server/%s/task?status=doing", escaped), &running); err == nil {
 		lines = append(lines, fmt.Sprintf("%-20s %d", "Running tasks", len(running)))
 		found = append(found, checkTasks(server, running)...)
+	} else {
+		unchecked = append(unchecked, "tasks")
 	}
 
 	var planned []int64
 	if err := httpLib.Client.Get(fmt.Sprintf("/v1/dedicated/server/%s/plannedIntervention", escaped), &planned); err == nil {
 		lines = append(lines, fmt.Sprintf("%-20s %d", "Planned maintenance", len(planned)))
 		found = append(found, checkPlannedIntervention(server, planned)...)
+	} else {
+		unchecked = append(unchecked, "intervention schedule")
 	}
 
-	// The renewal check is deliberately absent: it reads serviceInfos five times
-	// because that field disagrees with itself between reads, and five requests
-	// is not a reasonable price for a line of context in a technical ticket.
 	sortFindings(found)
-	lines = append(lines, "", "What ovhcloud baremetal doctor reports on this server:")
+
+	// The heading says which checks these are, because it is not all of them.
+	// It used to read "What ovhcloud baremetal doctor reports on this server",
+	// which a support agent reads as the full verdict — while the renewal check
+	// is deliberately not run here: it reads serviceInfos five times because that
+	// field disagrees with itself between reads, and five requests is not a
+	// reasonable price for one line of context in a technical ticket. Claiming
+	// doctor's name for six of its seven checks is a smaller version of the thing
+	// doctor itself was fixed for.
+	lines = append(lines, "", "Checks from ovhcloud baremetal doctor, except its renewal check (not run here):")
+	if len(unchecked) > 0 {
+		lines = append(lines, fmt.Sprintf("  not checked, the API did not answer: %s",
+			strings.Join(unchecked, ", ")))
+	}
 	if len(found) == 0 {
-		lines = append(lines, "  nothing")
+		if len(unchecked) > 0 {
+			lines = append(lines, "  nothing found by the checks that did run")
+		} else {
+			lines = append(lines, "  nothing")
+		}
 		return strings.Join(lines, "\n")
 	}
 	for _, f := range found {
