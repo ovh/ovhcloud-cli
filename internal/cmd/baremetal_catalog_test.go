@@ -310,3 +310,63 @@ func (ms *MockSuite) TestBaremetalCatalogRefusesASubsidiaryThatCouldNameAnyFile(
 	assert.Cmp(err.Error(), td.Contains("letters only"))
 	assert.Cmp(httpmock.GetTotalCallCount(), 0, "and nothing is sent")
 }
+
+// Two memory configurations of the same range, 24adv01: one at 89.99, the
+// other — a fictitious second plan code, since the point is the range name
+// repeating, not a real second SKU — at 149.99.
+const (
+	twoConfigsAvailabilities = `[{"fqn": "24adv01-v3.cheap", "memory": "ram-128g-on-die-ecc-3600", "planCode": "24adv01-v3", "server": "24adv01", "storage": "hybridsoftraid-2x960nvme-pcie-gen4-2x1920nvme-pcie-gen4", "datacenters": [{"availability": "1H-high", "datacenter": "gra"}]}, {"fqn": "24adv01-v3.pricier", "memory": "ram-256g-on-die-ecc-3600", "planCode": "24adv02-v3", "server": "24adv01", "storage": "hybridsoftraid-2x960nvme-pcie-gen4-2x1920nvme-pcie-gen4", "datacenters": [{"availability": "1H-high", "datacenter": "gra"}]}]`
+	twoConfigsCatalog        = `{"locale": {"currencyCode": "EUR"}, "plans": [{"planCode": "24adv01-v3", "pricings": [{"mode": "default", "price": 8999000000, "interval": 1, "intervalUnit": "month", "capacities": ["renew"]}]}, {"planCode": "24adv02-v3", "pricings": [{"mode": "default", "price": 14999000000, "interval": 1, "intervalUnit": "month", "capacities": ["renew"]}]}]}`
+)
+
+func registerTwoConfigs(t *td.T) {
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/me",
+		httpmock.NewStringResponder(200, `{"ovhSubsidiary": "FR"}`))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/eco?ovhSubsidiary=FR",
+		httpmock.NewStringResponder(200, twoConfigsCatalog))
+	httpmock.RegisterResponder("GET", `=~^https://eu\.api\.ovh\.com/v1/dedicated/server/datacenter/availabilities`,
+		httpmock.NewStringResponder(200, twoConfigsAvailabilities))
+}
+
+// With nothing narrowing the hardware, the table shows one row per range —
+// its cheapest configuration — so a range is not read as two unrelated
+// entries with nothing telling them apart.
+func (ms *MockSuite) TestBaremetalCatalogShowsOneRowPerRangeByDefault(assert, require *td.T) {
+	registerTwoConfigs(assert)
+
+	out, err := cmd.Execute("baremetal", "catalog")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("24adv01-v3"), "the cheaper configuration is kept")
+	assert.Cmp(out, td.Not(td.Contains("24adv02-v3")), "the pricier one is not shown twice under the same range")
+	// The explanatory line is printed straight to stdout, like the existing
+	// "🚀 To create a new resource" hint elsewhere in this codebase, rather than
+	// through outputf: ResultString holds one message, already the table's own,
+	// so it is not part of `out` here — that is this harness's limit, not a
+	// sign the line is missing. Seen directly on a real run instead.
+}
+
+// -o json is for a script, not a PM reading a table: every configuration
+// comes back, exactly as -o json already promises for every other filter.
+func (ms *MockSuite) TestBaremetalCatalogKeepsEveryConfigOnJSON(assert, require *td.T) {
+	registerTwoConfigs(assert)
+
+	out, err := cmd.Execute("baremetal", "catalog", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains(`"planCode": "24adv01-v3"`))
+	assert.Cmp(out, td.Contains(`"planCode": "24adv02-v3"`), "the reduction does not apply to -o json")
+}
+
+// --memory is already how an operator asks for a specific configuration: the
+// reduction must not hide the very row that flag was written to surface.
+func (ms *MockSuite) TestBaremetalCatalogMemoryFlagBypassesTheReduction(assert, require *td.T) {
+	registerTwoConfigs(assert)
+
+	out, err := cmd.Execute("baremetal", "catalog", "--memory", "ram-256g-on-die-ecc-3600")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("24adv02-v3"), "the narrowed-to configuration is shown")
+}

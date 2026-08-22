@@ -185,9 +185,76 @@ func GetBaremetalCatalog(_ *cobra.Command, _ []string) {
 		return
 	}
 
+	// Nothing narrowed the hardware yet: one plan code times its memory,
+	// storage and datacenter combinations is a wall of rows a PM cannot read a
+	// range out of. Show the range and its cheapest configuration first; the
+	// same flags that narrow the API call also narrow this table, so asking
+	// for --memory, --storage, --gpu or --plan-code is how the options show up.
+	// -o json/yaml/custom keep every row: that reduction is for the table only.
+	format := &flags.OutputFormatConfig
+	narrowed := CatalogPlanCode != "" || CatalogMemory != "" || CatalogStorage != "" ||
+		CatalogSystemStorage != "" || CatalogGPU != ""
+	if !narrowed && format.CustomFormat() == "" && !format.IsInteractive() &&
+		!format.IsYaml() && !format.IsJson() {
+		filtered = defaultConfigPerRange(filtered)
+		fmt.Println("💡 One row per range, its cheapest configuration — narrow with " +
+			"--memory, --storage, --gpu or --plan-code to see the options.")
+	}
+
 	display.RenderTable(filtered,
 		[]string{"planCode", "server", "memory", "storage", "location", "delivery", "monthly", "dueAtOrder"},
 		&flags.OutputFormatConfig)
+}
+
+// defaultConfigPerRange keeps one row per range ("server"): its cheapest
+// priced configuration, or the first seen when none is priced (Scale, High
+// Grade and SAP sell on quotation only). That is the first thing a PM needs —
+// which ranges exist and what they start at — before narrowing to the RAM,
+// storage or GPU options each one takes.
+func defaultConfigPerRange(rows []map[string]any) []map[string]any {
+	best := make(map[string]map[string]any, len(rows))
+	for _, row := range rows {
+		server, _ := row["server"].(string)
+		if current, seen := best[server]; !seen || cheaperDefault(row, current) {
+			best[server] = row
+		}
+	}
+
+	winners := make([]map[string]any, 0, len(best))
+	for _, row := range best {
+		winners = append(winners, row)
+	}
+	// Same comparator as buildCatalogRows: soonest delivery first. Sorting the
+	// reduced set by range name instead would drop the one thing an operator
+	// reads this table for, just for the accounts with more than one range.
+	sort.SliceStable(winners, func(i, j int) bool {
+		left, _ := winners[i]["deliveryHours"].(int)
+		right, _ := winners[j]["deliveryHours"].(int)
+		if left != right {
+			return left < right
+		}
+		leftCode, _ := winners[i]["planCode"].(string)
+		rightCode, _ := winners[j]["planCode"].(string)
+		return leftCode < rightCode
+	})
+	return winners
+}
+
+// cheaperDefault says whether candidate is the better range default than
+// current: priced beats unpriced, then the lower monthly price, then the
+// shorter delivery.
+func cheaperDefault(candidate, current map[string]any) bool {
+	candidatePrice, candidatePriced := candidate["monthlyValue"].(float64)
+	currentPrice, currentPriced := current["monthlyValue"].(float64)
+	if candidatePriced != currentPriced {
+		return candidatePriced
+	}
+	if candidatePriced && candidatePrice != currentPrice {
+		return candidatePrice < currentPrice
+	}
+	candidateHours, _ := candidate["deliveryHours"].(int)
+	currentHours, _ := current["deliveryHours"].(int)
+	return candidateHours < currentHours
 }
 
 func checkEnumFlags() error {
