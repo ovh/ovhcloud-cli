@@ -940,7 +940,7 @@ func GetExtraSqlServiceInfo(_ *cobra.Command, args []string) {
 }
 
 func UpdateExtraSqlServiceInfo(cmd *cobra.Command, args []string) {
-	payload := buildServiceInfoRenewPayload(cmd)
+	payload := common.ServiceInfoRenewPayload(cmd)
 	if len(payload) == 0 && !flags.ParametersViaEditor && flags.ParametersFile == "" {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
 		return
@@ -2532,7 +2532,7 @@ func GetCdnServiceInfo(_ *cobra.Command, args []string) {
 }
 
 func UpdateCdnServiceInfo(cmd *cobra.Command, args []string) {
-	payload := buildServiceInfoRenewPayload(cmd)
+	payload := common.ServiceInfoRenewPayload(cmd)
 	if len(payload) == 0 && !flags.ParametersViaEditor && flags.ParametersFile == "" {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
 		return
@@ -2733,31 +2733,6 @@ func buildCdnOptionConfig(cmd *cobra.Command) map[string]any {
 	}
 
 	return config
-}
-
-func buildServiceInfoRenewPayload(cmd *cobra.Command) map[string]any {
-	renew := map[string]any{}
-	if cmd.Flags().Changed("renew-automatic") {
-		renew["automatic"] = common.ServiceInfoSpec.Renew.Automatic
-	}
-	if cmd.Flags().Changed("renew-delete-at-expiration") {
-		renew["deleteAtExpiration"] = common.ServiceInfoSpec.Renew.DeleteAtExpiration
-	}
-	if cmd.Flags().Changed("renew-forced") {
-		renew["forced"] = common.ServiceInfoSpec.Renew.Forced
-	}
-	if cmd.Flags().Changed("renew-manual-payment") {
-		renew["manualPayment"] = common.ServiceInfoSpec.Renew.ManualPayment
-	}
-	if cmd.Flags().Changed("renew-period") {
-		renew["period"] = common.ServiceInfoSpec.Renew.Period
-	}
-
-	if len(renew) == 0 {
-		return map[string]any{}
-	}
-
-	return map[string]any{"renew": renew}
 }
 
 func formatQuota(value any) (string, bool) {
@@ -2980,7 +2955,7 @@ func GetServiceInfo(_ *cobra.Command, args []string) {
 }
 
 func UpdateServiceInfo(cmd *cobra.Command, args []string) {
-	payload := buildServiceInfoRenewPayload(cmd)
+	payload := common.ServiceInfoRenewPayload(cmd)
 	if len(payload) == 0 && !flags.ParametersViaEditor && flags.ParametersFile == "" && !utils.IsInputFromPipe() {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
 		return
@@ -3240,7 +3215,7 @@ func GetLocalSeoLocationServiceInfo(_ *cobra.Command, args []string) {
 }
 
 func UpdateLocalSeoLocationServiceInfo(cmd *cobra.Command, args []string) {
-	payload := buildServiceInfoRenewPayload(cmd)
+	payload := common.ServiceInfoRenewPayload(cmd)
 	if len(payload) == 0 && !flags.ParametersViaEditor && flags.ParametersFile == "" {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
 		return
