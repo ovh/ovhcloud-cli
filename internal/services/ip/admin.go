@@ -132,7 +132,7 @@ func EditIpService(cmd *cobra.Command, args []string) {
 		cmd,
 		"/ip/service/{serviceName}",
 		fmt.Sprintf("/v1/ip/service/%s", url.PathEscape(args[0])),
-		IPServiceSpec,
+		&IPServiceSpec,
 		assets.IpOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -154,11 +154,13 @@ func GetIpServiceInfo(_ *cobra.Command, args []string) {
 }
 
 func EditIpServiceInfo(cmd *cobra.Command, args []string) {
+	renewPayload := common.ServiceInfoRenewPayload(cmd)
+
 	if err := common.EditResource(
 		cmd,
 		"/ip/service/{serviceName}/serviceInfos",
 		fmt.Sprintf("/v1/ip/service/%s/serviceInfos", url.PathEscape(args[0])),
-		common.ServiceInfoRenewPayload(cmd),
+		renewPayload,
 		assets.IpOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
