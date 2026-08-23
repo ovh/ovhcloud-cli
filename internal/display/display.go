@@ -172,8 +172,14 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		purple = lipgloss.Color("99")
 		gray   = lipgloss.Color("245")
 
-		headerStyle = lipgloss.NewStyle().Foreground(purple).Bold(true).Align(lipgloss.Center)
-		cellStyle   = lipgloss.NewStyle().Padding(0, 1)
+		cellStyle = lipgloss.NewStyle().Padding(0, 1)
+		// The header carries the SAME padding as a cell. Without it, a column
+		// is as wide as max(header, widest cell + 2), so the header only looks
+		// padded while some row is wider than it. Empty out, and every column
+		// collapses onto its title: `│subscriptionId│kind│streamId│`. That is
+		// not a rare case — an empty list is the normal answer of half the
+		// `list` commands on a fresh account.
+		headerStyle = cellStyle.Foreground(purple).Bold(true).Align(lipgloss.Center)
 		oddRowStyle = cellStyle.Foreground(gray)
 	)
 
@@ -280,8 +286,10 @@ func RenderConfigTable(cfg *ini.File, outputformat *OutputFormat) {
 		gray      = lipgloss.Color("245")
 		lightGray = lipgloss.Color("241")
 
-		headerStyle  = lipgloss.NewStyle().Foreground(purple).Bold(true).Align(lipgloss.Center)
-		cellStyle    = lipgloss.NewStyle().Padding(0, 1)
+		cellStyle = lipgloss.NewStyle().Padding(0, 1)
+		// Same reason as in RenderTable above: the padding belongs to the
+		// header too, or an empty table prints its titles wall to wall.
+		headerStyle  = cellStyle.Foreground(purple).Bold(true).Align(lipgloss.Center)
 		oddRowStyle  = cellStyle.Foreground(gray)
 		evenRowStyle = cellStyle.Foreground(lightGray)
 	)
