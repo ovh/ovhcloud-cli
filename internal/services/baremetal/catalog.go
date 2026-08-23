@@ -201,8 +201,15 @@ func GetBaremetalCatalog(_ *cobra.Command, _ []string) {
 			"--memory, --storage, --gpu or --plan-code to see the options.")
 	}
 
+	// Six columns, not eight, and the two widest in readable form: the table
+	// was 225 characters across, so any terminal narrower than that wrapped
+	// every line and the borders stopped lining up — which is exactly what
+	// "les | font deriver l affichage" describes. `server` went because it is
+	// the plan code minus its suffix, and `location` because the cheapest
+	// configuration of a range says nothing about where the range is sold.
+	// Both remain one -o json away.
 	display.RenderTable(filtered,
-		[]string{"planCode", "server", "memory", "storage", "location", "delivery", "monthly", "dueAtOrder"},
+		[]string{"planCode", "ram memory", "disks storage", "eta delivery", "monthly", "dueAtOrder"},
 		&flags.OutputFormatConfig)
 }
 
@@ -517,6 +524,13 @@ func buildCatalogRows(offers []availabilityEntry, prices catalogPrices, mode str
 				"availability":  location[1],
 				"delivery":      humaniseDelay(location[1]),
 				"deliveryHours": deliveryHours(location[1]),
+
+				// Readable forms of the two widest columns. The raw addon
+				// codes stay in the row: -o json still gives ram-128g-ecc-4800
+				// and softraid-2x1920nvme, which is what a script matches on.
+				"ram":   humaniseMemory(offer.Memory),
+				"disks": humaniseStorage(offer.Storage),
+				"eta":   shortDelay(location[1]),
 			}
 
 			applyPrice(row, prices, offer.PlanCode, mode)
@@ -542,6 +556,133 @@ func buildCatalogRows(offers []availabilityEntry, prices catalogPrices, mode str
 	})
 
 	return rows
+}
+
+// humaniseMemory turns an addon code into what the row is actually offering.
+//
+// Every code in the catalogue follows one shape, ram-<size>g-<qualifiers>, so
+// the size is the only part a reader needs: ram-128g-on-die-ecc-3600 and
+// ram-128g-ecc-4800 are both "128 GB" as far as choosing a range goes, and the
+// qualifiers cost 20 characters of table width to say what -o json says
+// better. An unrecognised code is returned untouched rather than mangled.
+func humaniseMemory(code string) string {
+	rest, ok := strings.CutPrefix(code, "ram-")
+	if !ok {
+		return code
+	}
+	size, _, _ := strings.Cut(rest, "-")
+	gigabytes, err := strconv.Atoi(strings.TrimSuffix(size, "g"))
+	if err != nil {
+		return code
+	}
+	if gigabytes >= 1024 && gigabytes%1024 == 0 {
+		return fmt.Sprintf("%d TB", gigabytes/1024)
+	}
+	return fmt.Sprintf("%d GB", gigabytes)
+}
+
+// humaniseStorage does the same for the widest column of the table.
+//
+// softraid-2x1920nvme becomes "2x1.92 TB NVMe"; a hybrid layout keeps both of
+// its groups. noraid-0 means the range carries no disk of its own — every one
+// of them is sold on quotation — and an empty-looking cell reads as a bug, so
+// it says so.
+func humaniseStorage(code string) string {
+	if code == "" {
+		return ""
+	}
+	if strings.HasPrefix(code, "noraid") {
+		return "on request"
+	}
+
+	rest := code
+	for _, prefix := range []string{"hybridsoftraid-", "softraid-", "hardraid-", "raid-"} {
+		if trimmed, ok := strings.CutPrefix(rest, prefix); ok {
+			rest = trimmed
+			break
+		}
+	}
+
+	var groups []string
+	for _, part := range strings.Split(rest, "-") {
+		count, size, ok := strings.Cut(part, "x")
+		if !ok {
+			continue
+		}
+		if _, err := strconv.Atoi(count); err != nil {
+			continue
+		}
+		digits := strings.TrimRight(size, "abcdefghijklmnopqrstuvwxyz")
+		kind := strings.TrimPrefix(size, digits)
+		gigabytes, err := strconv.Atoi(digits)
+		if err != nil {
+			continue
+		}
+		groups = append(groups, strings.TrimSpace(fmt.Sprintf("%sx%s %s", count,
+			humaniseSize(gigabytes), diskKind(kind))))
+	}
+	if len(groups) == 0 {
+		return code
+	}
+	return strings.Join(groups, " + ")
+}
+
+// humaniseSize keeps the number short without rounding it away: 1920 GB is
+// 1.92 TB, and 960 GB stays 960 GB rather than becoming 0.96 TB.
+func humaniseSize(gigabytes int) string {
+	if gigabytes < 1000 {
+		return fmt.Sprintf("%d GB", gigabytes)
+	}
+	terabytes := float64(gigabytes) / 1000
+	return strings.TrimSuffix(strings.TrimRight(fmt.Sprintf("%.2f", terabytes), "0"), ".") + " TB"
+}
+
+// diskKind spells out the suffixes the catalogue uses for the medium, in the
+// casing the products are actually sold under.
+func diskKind(suffix string) string {
+	switch suffix {
+	case "sa", "sata":
+		return "SATA"
+	case "ssd":
+		return "SSD"
+	case "nvme":
+		return "NVMe"
+	case "":
+		return ""
+	default:
+		return strings.ToUpper(suffix)
+	}
+}
+
+// shortDelay is humaniseDelay in the width a table can afford.
+//
+// The long form is what a sentence wants ("within the hour", "within 72
+// hours"); a column wants "< 1 h". The stock warning is the one thing that
+// cannot be dropped in the short form either — it is the only signal the API
+// gives that the machine may be gone before the order lands.
+func shortDelay(availability string) string {
+	switch availability {
+	case "comingSoon":
+		return "soon"
+	case "unavailable":
+		return "—"
+	case "", "unknown":
+		return "?"
+	}
+
+	hours := deliveryHours(availability)
+	suffix := ""
+	if strings.HasSuffix(availability, "-low") {
+		suffix = " (low)"
+	}
+	switch {
+	case hours <= 1:
+		return "< 1 h" + suffix
+	case hours < 24:
+		return fmt.Sprintf("%d h%s", hours, suffix)
+	default:
+		return fmt.Sprintf("%d d%s", hours/24, suffix)
+	}
 }
 
 // applyPrice attaches what a plan costs, or says why it has no price. A blank
@@ -599,7 +740,9 @@ func applyPrice(row map[string]any, prices catalogPrices, planCode, mode string)
 	if entry.Promotion != "" {
 		row["promotion"] = entry.Promotion
 		row["listPrice"] = formatAmount(entry.ListPrice, prices.Currency)
-		row["dueAtOrder"] = fmt.Sprintf("%s (promo, was %s)",
+		// "(promo, was 129.98 EUR)" spent 24 characters of a table that did not
+		// have them; the currency is already in the figure beside it.
+		row["dueAtOrder"] = fmt.Sprintf("%s (was %s)",
 			row["dueAtOrder"], formatAmount(entry.ListPrice, prices.Currency))
 	}
 }
