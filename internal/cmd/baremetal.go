@@ -180,6 +180,23 @@ Please note that all parameters are not compatible with all OSes.
 		Run:               baremetal.SetBaremetalBootId,
 	})
 
+	baremetalBootCmd.AddCommand(&cobra.Command{
+		Use:   "set-disk <service_name>",
+		Short: "Configure the given baremetal to boot on its hard disk",
+		Long: `Restore the hard disk boot entry of the given dedicated server.
+
+This is the counterpart of "baremetal reboot-rescue": a server left with the
+rescue boot entry will come back in rescue mode at its next reboot, whatever
+triggers it. The change applies at the next reboot:
+
+	ovhcloud baremetal boot set-disk ns1234.ip-11.22.33.net
+	ovhcloud baremetal reboot ns1234.ip-11.22.33.net
+`,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.SetBaremetalBootDisk,
+	})
+
 	baremetalBootSetScriptCmd := &cobra.Command{
 		Use:               "set-script <service_name>",
 		Short:             "Configure a boot script on the given baremetal",

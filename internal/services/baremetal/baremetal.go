@@ -6,6 +6,7 @@ package baremetal
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -121,6 +122,17 @@ func GetBaremetal(_ *cobra.Command, args []string) {
 		return
 	}
 	object["serviceInfo"] = serviceInfo
+
+	// Resolve the configured boot entry so that the sheet says whether the
+	// server starts on its disk or in rescue mode. Best-effort: a server whose
+	// boot entry cannot be read is still worth displaying.
+	if bootID, ok := jsonInt(object["bootId"]); ok {
+		path = fmt.Sprintf("/v1/dedicated/server/%s/boot/%d", url.PathEscape(args[0]), bootID)
+		var boot map[string]any
+		if err := httpLib.Client.Get(path, &boot); err == nil {
+			object["currentBoot"] = boot
+		}
+	}
 
 	display.OutputObject(object, args[0], baremetalTemplate, &flags.OutputFormatConfig)
 }
@@ -375,6 +387,40 @@ func ListBaremetalInterventions(_ *cobra.Command, args []string) {
 	display.RenderTable(plannedInterventions, []string{"type", "date", "status"}, &flags.OutputFormatConfig)
 }
 
+// jsonInt reads a numeric value coming from an API response. The API client
+// decodes with UseNumber, so a number stored in a map[string]any is a
+// json.Number, never a float64.
+func jsonInt(value any) (int64, bool) {
+	switch n := value.(type) {
+	case json.Number:
+		i, err := n.Int64()
+		return i, err == nil
+	case float64:
+		return int64(n), true
+	case int64:
+		return n, true
+	case int:
+		return int64(n), true
+	}
+
+	return 0, false
+}
+
+// fetchCurrentBootID returns the boot entry the server is currently
+// configured to start on. It is best-effort: a failure here must not prevent
+// the caller from displaying what it already fetched.
+func fetchCurrentBootID(serviceName string) (int64, bool) {
+	var server struct {
+		BootID int64 `json:"bootId"`
+	}
+	path := fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(serviceName))
+	if err := httpLib.Client.Get(path, &server); err != nil {
+		return 0, false
+	}
+
+	return server.BootID, true
+}
+
 func ListBaremetalBoots(_ *cobra.Command, args []string) {
 	path := fmt.Sprintf("/v1/dedicated/server/%s/boot", url.PathEscape(args[0]))
 
@@ -383,6 +429,8 @@ func ListBaremetalBoots(_ *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "error fetching boot options for server %q: %s", args[0], err)
 		return
 	}
+
+	currentBootID, hasCurrent := fetchCurrentBootID(args[0])
 
 	for _, boot := range boots {
 		path = fmt.Sprintf("/v1/dedicated/server/%s/boot/%s/option", url.PathEscape(args[0]), boot["bootId"])
@@ -394,6 +442,14 @@ func ListBaremetalBoots(_ *cobra.Command, args []string) {
 		}
 
 		boot["options"] = options
+
+		// Without this column, nothing in the CLI tells which entry the
+		// server will actually start on: a server left in rescue mode looks
+		// exactly like one booting on its disk.
+		boot["active"] = ""
+		if bootID, ok := jsonInt(boot["bootId"]); ok && hasCurrent && bootID == currentBootID {
+			boot["active"] = "→"
+		}
 	}
 
 	boots, err = filtersLib.FilterLines(boots, flags.GenericFilters)
@@ -402,7 +458,38 @@ func ListBaremetalBoots(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.RenderTable(boots, []string{"bootId", "bootType", "description", "kernel"}, &flags.OutputFormatConfig)
+	display.RenderTable(boots, []string{"bootId", "active", "bootType", "description", "kernel"}, &flags.OutputFormatConfig)
+}
+
+// SetBaremetalBootDisk restores the hard disk boot entry. Without it, leaving
+// rescue mode means listing boot entries, recognising the harddisk one and
+// setting its identifier by hand — and a server forgotten in rescue mode
+// silently comes back in rescue at the next reboot.
+func SetBaremetalBootDisk(_ *cobra.Command, args []string) {
+	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/boot?bootType=harddisk", url.PathEscape(args[0]))
+
+	var boots []int
+	if err := httpLib.Client.Get(endpoint, &boots); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch boot options: %s", err)
+		return
+	}
+
+	if len(boots) == 0 {
+		display.OutputError(&flags.OutputFormatConfig, "no hard disk boot entry found for server %s", args[0])
+		return
+	}
+
+	endpoint = fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(args[0]))
+	if err := httpLib.Client.Put(endpoint, map[string]any{
+		"bootId": boots[0],
+	}, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to set hard disk boot for server %s: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil,
+		"✅ Server %s is set to boot on its hard disk. Reboot to apply: ovhcloud baremetal reboot %s",
+		args[0], args[0])
 }
 
 func SetBaremetalBootId(_ *cobra.Command, args []string) {

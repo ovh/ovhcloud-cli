@@ -20,6 +20,12 @@ _{{index .Result "iam" "displayName"}}_
 {{if index .Result "network" "routing" "ipv6"}}| IPv6 | {{index .Result "network" "routing" "ipv6" "ip"}} |{{end}}
 | Reverse | {{index .Result "reverse"}} |
 | Power state | {{index .Result "powerState"}} |
+{{with index .Result "currentBoot"}}| Boot | {{.bootType}} — {{.description}} |{{end}}
+
+{{with index .Result "currentBoot"}}{{if eq .bootType "rescue"}}
+> ⚠️ This server is configured to boot in **rescue** mode: any reboot will come back in rescue, not in production.
+> Restore the disk boot with `ovhcloud baremetal boot set-disk {{index $.Result "name"}}`.
+{{end}}{{end}}
 
 
 {{if index .Result "tasks"}}
