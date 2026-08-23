@@ -65,3 +65,34 @@ func TestRenderConfigTable_HonoursPlain(t *testing.T) {
 	td.Cmp(t, ResultString, td.Contains("application_key"))
 	td.Cmp(t, ResultString, td.Contains("SECTION"), "headers are upper-cased")
 }
+
+// An empty list is the ordinary answer of half the `list` commands on a fresh
+// account, and it used to print its own titles wall to wall:
+//
+//	┌──────────────┬────┬────────┐
+//	│subscriptionId│kind│streamId│
+//	├──────────────┼────┼────────┤
+//	└──────────────┴────┴────────┘
+//
+// The header carried no padding, so a column was only as wide as the widest
+// DATA cell plus two — and with no data at all it fell back to the bare title.
+// Nothing in the suite looked at an empty table, which is why the defect
+// survived every green run.
+func TestRenderTable_EmptyTableStillPadsItsHeaders(t *testing.T) {
+	RenderTable(nil, []string{"subscriptionId", "kind", "streamId"}, &OutputFormat{})
+
+	td.Cmp(t, ResultString, td.Contains("│ subscriptionId │"),
+		"a header keeps one space on each side even with no row under it")
+	td.Cmp(t, ResultString, td.Not(td.Contains("│subscriptionId│")))
+}
+
+// The same padding must not appear twice once rows are back: a header sitting
+// in a column widened by its data is centred, not double-padded.
+func TestRenderTable_PaddingIsNotDoubledWhenRowsExist(t *testing.T) {
+	values := []map[string]any{{"kind": "installation-logs-are-long"}}
+
+	RenderTable(values, []string{"kind"}, &OutputFormat{})
+
+	td.Cmp(t, ResultString, td.Contains("│ installation-logs-are-long │"))
+	td.Cmp(t, ResultString, td.Not(td.Contains("  installation-logs-are-long  ")))
+}
