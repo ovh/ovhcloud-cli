@@ -1,17 +1,32 @@
-## ovhcloud baremetal reboot-rescue
+## ovhcloud baremetal credentials create
 
-Reboot the given baremetal in rescue mode
+Generate new access credentials for the given baremetal
+
+### Synopsis
+
+Generate new access credentials for the given dedicated server.
+
+This command performs a write: it calls POST /authenticationSecret, whose IAM
+action is authenticationSecret/create, and returns the credentials it just
+generated. Values are masked unless --reveal is given, in every output format.
+
 
 ```
-ovhcloud baremetal reboot-rescue <service_name> [flags]
+ovhcloud baremetal credentials create <service_name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help     help for reboot-rescue
-      --reveal   Print the secret values fetched after --wait instead of masking them
-      --wait     Wait for reboot to be done before exiting
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for create
+      --reveal               Print secret values instead of masking them
 ```
 
 ### Options inherited from parent commands
@@ -35,5 +50,5 @@ ovhcloud baremetal reboot-rescue <service_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
+* [ovhcloud baremetal credentials](ovhcloud_baremetal_credentials.md)	 - Manage access credentials of the given baremetal
 

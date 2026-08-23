@@ -1,22 +1,11 @@
-## ovhcloud baremetal list-secrets
+## ovhcloud baremetal credentials
 
-Retrieve secrets to connect to the server
-
-```
-ovhcloud baremetal list-secrets <service_name> [flags]
-```
+Manage access credentials of the given baremetal
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list-secrets
+  -h, --help   help for credentials
 ```
 
 ### Options inherited from parent commands
@@ -41,4 +30,5 @@ ovhcloud baremetal list-secrets <service_name> [flags]
 ### SEE ALSO
 
 * [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
+* [ovhcloud baremetal credentials create](ovhcloud_baremetal_credentials_create.md)	 - Generate new access credentials for the given baremetal
 
