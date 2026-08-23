@@ -15,6 +15,7 @@ import (
 	"github.com/ovh/go-ovh/ovh"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"gopkg.in/ini.v1"
 )
 
 // withMockedAPI points the shared client at httpmock and gives the test its own
@@ -90,6 +91,50 @@ func TestCacheKeyFor_IsScopedToTheProfile(t *testing.T) {
 	withProfile := cacheKeyFor("/v1/dedicated/server")
 
 	td.Cmp(t, withProfile, td.Not(withoutProfile))
+}
+
+// The flag is the one way of picking a profile that this cache used to see. The
+// two others select an account just as effectively, and on a real keystroke
+// they are the likely ones — a shell completes without anybody typing
+// --profile. Both were sharing a key, and with it the previous account's
+// identifiers, for the whole TTL.
+func TestCacheKeyFor_IsScopedToTheProfileChosenByEnvironment(t *testing.T) {
+	origProfile, origEnv := flags.Profile, os.Getenv("OVH_PROFILE")
+	defer func() { flags.Profile = origProfile; os.Setenv("OVH_PROFILE", origEnv) }()
+
+	flags.Profile = ""
+	os.Unsetenv("OVH_PROFILE")
+	plain := cacheKeyFor("/v1/dedicated/server")
+
+	os.Setenv("OVH_PROFILE", "prod")
+	fromEnv := cacheKeyFor("/v1/dedicated/server")
+	os.Setenv("OVH_PROFILE", "staging")
+	otherFromEnv := cacheKeyFor("/v1/dedicated/server")
+
+	td.Cmp(t, fromEnv, td.Not(plain), "OVH_PROFILE must reach the key")
+	td.Cmp(t, otherFromEnv, td.Not(fromEnv), "and two of them must not collide")
+}
+
+func TestCacheKeyFor_IsScopedToTheProfileChosenByConfig(t *testing.T) {
+	origProfile, origEnv := flags.Profile, os.Getenv("OVH_PROFILE")
+	origConfig := flags.CliConfig
+	defer func() {
+		flags.Profile = origProfile
+		os.Setenv("OVH_PROFILE", origEnv)
+		flags.CliConfig = origConfig
+	}()
+
+	flags.Profile = ""
+	os.Unsetenv("OVH_PROFILE")
+	flags.CliConfig = nil
+	plain := cacheKeyFor("/v1/dedicated/server")
+
+	cfg := ini.Empty()
+	cfg.Section("default").Key("profile").SetValue("prod")
+	flags.CliConfig = cfg
+
+	td.Cmp(t, cacheKeyFor("/v1/dedicated/server"), td.Not(plain),
+		"the profile named by the configuration file must reach the key")
 }
 
 // Two endpoints must not share a cache entry, including when their readable
