@@ -402,6 +402,39 @@ func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
 	}
 }
 
+// OutputRaw renders a value the CLI did not compose: the answer of an endpoint,
+// as the API worded it.
+//
+// It exists because OutputWithFormat renders an OutputMessage — a message, a
+// couple of flags and a details field — which is the right envelope for
+// something this CLI is saying and the wrong one for something it is only
+// relaying. Through that envelope a caller reads `.details.datacenter` for a
+// field the API documents as `.datacenter`, a custom format resolves against
+// the wrapper, and the default branch prints the (empty) message instead of the
+// answer.
+//
+// With no -o it prints JSON rather than nothing: a raw API value has no
+// human-facing form to fall back on, and JSON is what the endpoint's own
+// documentation shows.
+func OutputRaw(value any, outputFormat *OutputFormat) {
+	switch {
+	case outputFormat.CustomFormat() != "":
+		if err := renderCustomFormat(value, outputFormat.CustomFormat()); err != nil {
+			exitError("error rendering custom format: %s", err)
+		}
+	case outputFormat.IsYaml():
+		if err := prettyPrintYAML(value); err != nil {
+			exitError("error displaying YAML results: %s", err)
+		}
+	case outputFormat.IsInteractive():
+		displayInteractive(value)
+	default:
+		if err := prettyPrintJSON(value); err != nil {
+			exitError("error displaying JSON results: %s", err)
+		}
+	}
+}
+
 func OutputInfo(outputFormat *OutputFormat, details any, message string, params ...any) {
 	OutputWithFormat(&OutputMessage{
 		Message: fmt.Sprintf(message, params...),
