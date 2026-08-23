@@ -56,7 +56,7 @@ func EditCloudProject(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}",
 		fmt.Sprintf("/v1/cloud/project/%s", url.PathEscape(args[0])),
-		CloudProjectSpec,
+		&CloudProjectSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

@@ -528,7 +528,7 @@ func EditGateway(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/region/{regionName}/gateway/{id}",
 		foundURL,
-		CloudGatewaySpec,
+		&CloudGatewaySpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

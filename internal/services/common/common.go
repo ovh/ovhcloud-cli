@@ -204,6 +204,10 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 		return fmt.Errorf("failed to parse arguments from command line: %w", err)
 	}
 
+	// Put back the values `omitempty` dropped although the user set them
+	// explicitly, such as a boolean turned to false.
+	addExplicitlySetFlags(cmd, cliParams, cliParameters)
+
 	// Handle data from file if --from-file flag is used
 	if flags.ParametersFile != "" {
 		log.Print("Flag --from-file used, all other flags will override the file values")

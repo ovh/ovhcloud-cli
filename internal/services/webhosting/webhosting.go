@@ -357,7 +357,7 @@ func EditWebHosting(cmd *cobra.Command, args []string) {
 		cmd,
 		"/hosting/web/{serviceName}",
 		fmt.Sprintf("/v1/hosting/web/%s", url.PathEscape(args[0])),
-		WebHostingSpec,
+		&WebHostingSpec,
 		assets.WebhostingOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

@@ -40,7 +40,7 @@ func EditPackXDSL(cmd *cobra.Command, args []string) {
 		cmd,
 		"/pack/xdsl/{packName}",
 		fmt.Sprintf("/v1/pack/xdsl/%s", url.PathEscape(args[0])),
-		PackXDSLSpec,
+		&PackXDSLSpec,
 		assets.PackxdslOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
