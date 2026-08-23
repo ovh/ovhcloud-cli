@@ -7,7 +7,6 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/completion"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/ip"
 	"github.com/spf13/cobra"
 )
@@ -192,7 +191,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/ip/service"),
 		Run:               ip.EditIpServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(ipServiceInfoEditCmd)
+	addServiceInfoRenewFlags(ipServiceInfoEditCmd)
 	addInteractiveEditorFlag(ipServiceInfoEditCmd)
 	ipServiceInfoCmd.AddCommand(ipServiceInfoEditCmd)
 
