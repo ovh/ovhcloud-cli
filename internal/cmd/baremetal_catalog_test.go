@@ -5,6 +5,8 @@
 package cmd_test
 
 import (
+	"strings"
+
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
@@ -129,12 +131,31 @@ func (ms *MockSuite) TestBaremetalCatalogSortsBySoonestDelivery(assert, require 
 	out, err := cmd.Execute("baremetal", "catalog")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("within the hour"), "1H-high is rendered as a delay, not a code")
-	assert.Cmp(out, td.Contains("10d"), "and 240H as ten days")
+	assert.Cmp(out, td.Contains("< 1 h"), "1H-high is rendered as a delay, not a code")
+	assert.Cmp(out, td.Contains("10 d"), "and 240H as ten days")
 
-	firstHour := indexOf(out, "within the hour")
-	firstTenDays := indexOf(out, "10d")
+	firstHour := indexOf(out, "< 1 h")
+	firstTenDays := indexOf(out, "10 d")
 	assert.Cmp(firstHour < firstTenDays, true, "the soonest delivery comes first")
+}
+
+// The table has to fit a terminal, and nothing else in the suite measures that.
+//
+// It was 225 characters across: every line wrapped below that width, the
+// borders of the wrapped halves landed under the middle of the cells above,
+// and the whole grid read as misaligned. "Les | font deriver l affichage en
+// colonne" is what a reader calls that, and no assertion here would have
+// caught it — they all check content, and the content was right.
+func (ms *MockSuite) TestBaremetalCatalogFitsATerminal(assert, require *td.T) {
+	registerCatalog(assert)
+
+	out, err := cmd.Execute("baremetal", "catalog")
+
+	require.CmpNoError(err)
+	for _, line := range strings.Split(out, "\n") {
+		assert.Cmp(len([]rune(line)) <= 132, true,
+			"a %d-character line does not fit a terminal: %s", len([]rune(line)), line)
+	}
 }
 
 // --available-only must drop what cannot be ordered, and keep what can.
@@ -145,7 +166,7 @@ func (ms *MockSuite) TestBaremetalCatalogAvailableOnlyDropsTheUnavailable(assert
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Not(td.Contains("unavailable")), "nothing undeliverable is listed")
-	assert.Cmp(out, td.Contains("within the hour"), "and what is deliverable stays")
+	assert.Cmp(out, td.Contains("< 1 h"), "and what is deliverable stays")
 }
 
 // A value the API would reject is named here, with the accepted ones, rather
@@ -230,7 +251,10 @@ func (ms *MockSuite) TestBaremetalCatalogKeepsTheLowStockWarning(assert, require
 	out, err := cmd.Execute("baremetal", "catalog")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("low stock"), "the grade of the stock survives the rendering")
+	// The column is short now, so the warning is "(low)" rather than
+	// "(low stock)" — but it is still there, which is the point: it is the
+	// only signal that the machine may be gone before the order lands.
+	assert.Cmp(out, td.Contains("(low)"), "the grade of the stock survives the rendering")
 }
 
 // This command once carried a --region flag as well, reading
