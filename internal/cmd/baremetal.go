@@ -9,7 +9,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
 )
 
@@ -158,7 +157,7 @@ carries no choice of system. The retraction period is never waived here.`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
