@@ -6,35 +6,31 @@ package common
 
 import "github.com/spf13/cobra"
 
-// The renewal flags shared by every `service-info edit` command, paired with
-// the field each one sets in the API object.
-//
-// The registration and the payload builder live side by side on purpose: the
-// flag name is the only thing that ties them together, so a rename that
-// touches one and not the other would silently stop sending a setting rather
-// than fail to compile.
-var serviceInfoRenewFlags = []struct {
-	name  string
-	field string
-	usage string
-}{
-	{"renew-automatic", "automatic", "Renew the service automatically"},
-	{"renew-delete-at-expiration", "deleteAtExpiration", "Delete the service when it expires"},
-	{"renew-forced", "forced", "Force the renewal"},
-	{"renew-manual-payment", "manualPayment", "Pay the renewal manually"},
-	{"renew-period", "period", "Renewal period, in months"},
+// ServiceInfoRenewFlag describes one renewal flag: what it is called on the
+// command line, and which field of the API object it sets.
+type ServiceInfoRenewFlag struct {
+	Name  string
+	Field string
+	Usage string
+
+	// Period is the one flag that carries a number rather than a yes or no.
+	Period bool
 }
 
-// AddServiceInfoRenewFlags registers the renewal flags on a `service-info
-// edit` command.
-func AddServiceInfoRenewFlags(cmd *cobra.Command) {
-	for _, flag := range serviceInfoRenewFlags {
-		if flag.field == "period" {
-			cmd.Flags().Int(flag.name, 0, flag.usage)
-			continue
-		}
-		cmd.Flags().Bool(flag.name, false, flag.usage)
-	}
+// ServiceInfoRenewFlags is the single description of the renewal flags shared
+// by every `service-info edit` command.
+//
+// It is exported rather than kept private because the command layer registers
+// the flags and this layer reads them back: the flag name is the only thing
+// tying the two halves together, so they must not each hold their own copy of
+// it. One table, read twice — a rename in it changes both sides at once, and a
+// rename anywhere else does not compile.
+var ServiceInfoRenewFlags = []ServiceInfoRenewFlag{
+	{Name: "renew-automatic", Field: "automatic", Usage: "Renew the service automatically"},
+	{Name: "renew-delete-at-expiration", Field: "deleteAtExpiration", Usage: "Delete the service when it expires"},
+	{Name: "renew-forced", Field: "forced", Usage: "Force the renewal"},
+	{Name: "renew-manual-payment", Field: "manualPayment", Usage: "Pay the renewal manually"},
+	{Name: "renew-period", Field: "period", Usage: "Renewal period, in months", Period: true},
 }
 
 // ServiceInfoRenewPayload returns the renewal settings the operator actually
@@ -53,25 +49,25 @@ func AddServiceInfoRenewFlags(cmd *cobra.Command) {
 func ServiceInfoRenewPayload(cmd *cobra.Command) map[string]any {
 	renew := map[string]any{}
 
-	for _, flag := range serviceInfoRenewFlags {
-		if !cmd.Flags().Changed(flag.name) {
+	for _, flag := range ServiceInfoRenewFlags {
+		if !cmd.Flags().Changed(flag.Name) {
 			continue
 		}
 
-		if flag.field == "period" {
-			period, err := cmd.Flags().GetInt(flag.name)
+		if flag.Period {
+			period, err := cmd.Flags().GetInt(flag.Name)
 			if err != nil {
 				continue
 			}
-			renew[flag.field] = period
+			renew[flag.Field] = period
 			continue
 		}
 
-		value, err := cmd.Flags().GetBool(flag.name)
+		value, err := cmd.Flags().GetBool(flag.Name)
 		if err != nil {
 			continue
 		}
-		renew[flag.field] = value
+		renew[flag.Field] = value
 	}
 
 	if len(renew) == 0 {
