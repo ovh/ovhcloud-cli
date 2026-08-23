@@ -41,8 +41,7 @@ func (ms *MockSuite) TestCloudKubeListCmd(assert, require *td.T) {
 │     id     │   name    │ region │ plan │ version │   status   │
 ├────────────┼───────────┼────────┼──────┼─────────┼────────────┤
 │ kube-12345 │ test-kube │ GRA11  │ free │ 1.21.5  │ INSTALLING │
-└────────────┴───────────┴────────┴──────┴─────────┴────────────┘
-💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+└────────────┴───────────┴────────┴──────┴─────────┴────────────┘`[1:])
 }
 
 //

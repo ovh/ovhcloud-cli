@@ -52,8 +52,7 @@ func (ms *MockSuite) TestBaremetalListCompatibleOSCmd(assert, require *td.T) {
 │ ovh    │ alma9_64               │
 │ ovh    │ byoi_64                │
 │ ovh    │ byolinux_64            │
-└────────┴────────────────────────┘
-💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+└────────┴────────────────────────┘`[1:])
 }
 
 // registerReinstallTask wires a reinstall whose task ends in the given state.

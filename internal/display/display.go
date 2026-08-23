@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"strconv"
@@ -38,7 +39,29 @@ var (
 	ExitFunc = os.Exit
 )
 
-func renderCustomFormat(value any, format string) error {
+// writeTo writes command data to the given stream and records it so that
+// Execute can return it to the caller.
+func writeTo(w io.Writer, message string, params ...any) {
+	ResultString = fmt.Sprintf(message, params...)
+	fmt.Fprintln(w, ResultString)
+}
+
+// errorf writes an error or a warning to stderr. Diagnostics must never be
+// mixed with command data: a redirected stdout has to stay parsable.
+func errorf(message string, params ...any) {
+	fmt.Fprintln(os.Stderr, fmt.Sprintf(message, params...))
+}
+
+// hintf writes a non-essential hint to stderr, and only when stdout is a
+// terminal: a hint is useless to a script and pollutes its input.
+func hintf(message string, params ...any) {
+	if !term.IsTerminal(os.Stdout.Fd()) {
+		return
+	}
+	fmt.Fprintln(os.Stderr, fmt.Sprintf(message, params...))
+}
+
+func renderCustomFormat(value any, format string, w io.Writer) error {
 	ev, err := gval.Full(filters.AdditionalEvaluators...).NewEvaluable(format)
 	if err != nil {
 		return fmt.Errorf("invalid format given: %w", err)
@@ -61,7 +84,7 @@ func renderCustomFormat(value any, format string) error {
 			output.WriteString("\n")
 		}
 		ResultString = output.String()
-		fmt.Print(ResultString)
+		fmt.Fprint(w, ResultString)
 	default:
 		out, err := ev(context.Background(), value)
 		if err != nil {
@@ -73,7 +96,7 @@ func renderCustomFormat(value any, format string) error {
 			return fmt.Errorf("error marshalling result: %w", err)
 		}
 		ResultString = string(outBytes)
-		fmt.Print(string(outBytes))
+		fmt.Fprint(w, ResultString)
 	}
 
 	return nil
@@ -82,7 +105,7 @@ func renderCustomFormat(value any, format string) error {
 func RenderTable(values []map[string]any, columnsToDisplay []string, outputFormat *OutputFormat) {
 	switch {
 	case outputFormat.CustomFormat() != "":
-		if err := renderCustomFormat(values, outputFormat.CustomFormat()); err != nil {
+		if err := renderCustomFormat(values, outputFormat.CustomFormat(), os.Stdout); err != nil {
 			exitError("error rendering custom format: %s", err)
 		}
 		return
@@ -90,12 +113,12 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		displayInteractive(values)
 		return
 	case outputFormat.IsYaml():
-		if err := prettyPrintYAML(values); err != nil {
+		if err := prettyPrintYAML(values, os.Stdout); err != nil {
 			exitError("error displaying YAML results: %s", err)
 		}
 		return
 	case outputFormat.IsJson():
-		if err := prettyPrintJSON(values); err != nil {
+		if err := prettyPrintJSON(values, os.Stdout); err != nil {
 			exitError("error displaying JSON results: %s", err)
 		}
 		return
@@ -186,7 +209,8 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		Headers(columnsTitles...).
 		Rows(rows...)
 
-	outputf("%s%s", t, "\n💡 Use option -o json or -o yaml to get the raw output with all information")
+	outputf("%s", t)
+	hintf("💡 Use option -o json or -o yaml to get the raw output with all information")
 }
 
 func RenderConfigTable(cfg *ini.File, outputformat *OutputFormat) {
@@ -254,24 +278,24 @@ func RenderConfigTable(cfg *ini.File, outputformat *OutputFormat) {
 	outputf("%s", t)
 }
 
-func prettyPrintJSON(value any) error {
+func prettyPrintJSON(value any, w io.Writer) error {
 	bytesOut, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	outputf("%s", bytesOut)
+	writeTo(w, "%s", bytesOut)
 
 	return nil
 }
 
-func prettyPrintYAML(value any) error {
+func prettyPrintYAML(value any, w io.Writer) error {
 	bytesOut, err := yaml.Marshal(value)
 	if err != nil {
 		return err
 	}
 
-	outputf("%s", bytesOut)
+	writeTo(w, "%s", bytesOut)
 
 	return nil
 }
@@ -285,17 +309,17 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 
 	switch {
 	case outputFormat.CustomFormat() != "":
-		if err := renderCustomFormat(value, outputFormat.CustomFormat()); err != nil {
+		if err := renderCustomFormat(value, outputFormat.CustomFormat(), os.Stdout); err != nil {
 			exitError("error rendering custom format: %s", err)
 		}
 		return
 	case outputFormat.IsYaml():
-		if err := prettyPrintYAML(value); err != nil {
+		if err := prettyPrintYAML(value, os.Stdout); err != nil {
 			exitError("error displaying YAML results: %s", err)
 		}
 		return
 	case outputFormat.IsJson():
-		if err := prettyPrintJSON(value); err != nil {
+		if err := prettyPrintJSON(value, os.Stdout); err != nil {
 			exitError("error displaying JSON results: %s", err)
 		}
 		return
@@ -335,7 +359,7 @@ func OutputObject(value map[string]any, serviceName, templateContent string, out
 		if err != nil {
 			exitError("execution failed: %s", err)
 		}
-		fmt.Print(out)
+		fmt.Fprint(os.Stdout, out)
 		ResultString = out
 	}
 }
@@ -350,17 +374,24 @@ func displayInteractive(value any) {
 
 func exitError(message string, params ...any) {
 	resultString := fmt.Sprintf("🛑 "+message, params...)
-	fmt.Println(resultString)
+	errorf("%s", resultString)
 	ResultError = errors.New(resultString)
 	ExitFunc(1)
 }
 
 func outputf(message string, params ...any) {
-	ResultString = fmt.Sprintf(message, params...)
-	fmt.Println(ResultString)
+	writeTo(os.Stdout, "%s", fmt.Sprintf(message, params...))
 }
 
 func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
+	// Errors and warnings go to stderr whatever the output format, so that a
+	// redirected stdout only ever holds command data: `cmd -o json > out.json`
+	// must leave out.json empty when the call failed.
+	dst := io.Writer(os.Stdout)
+	if msg.Error || msg.Warning {
+		dst = os.Stderr
+	}
+
 	switch {
 	case outputFormat.CustomFormat() != "":
 		data, err := json.Marshal(msg)
@@ -372,25 +403,32 @@ func OutputWithFormat(msg *OutputMessage, outputFormat *OutputFormat) {
 			exitError("error unmarshalling message: %s", err)
 		}
 
-		if err := renderCustomFormat(m, outputFormat.CustomFormat()); err != nil {
+		if err := renderCustomFormat(m, outputFormat.CustomFormat(), dst); err != nil {
 			exitError("error rendering custom format: %s", err)
 		}
 
 	case outputFormat.IsYaml():
-		if err := prettyPrintYAML(msg); err != nil {
+		if err := prettyPrintYAML(msg, dst); err != nil {
 			exitError("error displaying YAML results: %s", err)
 		}
 
 	case outputFormat.IsJson():
-		if err := prettyPrintJSON(msg); err != nil {
+		if err := prettyPrintJSON(msg, dst); err != nil {
 			exitError(err.Error())
 		}
 
 	case outputFormat.IsInteractive():
-		displayInteractive(msg)
+		// A diagnostic is not data to browse. The interactive viewer starts a
+		// full-screen program on stdout, which would put the message back on
+		// the stream this function exists to keep clean.
+		if msg.Error || msg.Warning {
+			writeTo(dst, "%s", msg.Message)
+		} else {
+			displayInteractive(msg)
+		}
 
 	default:
-		outputf("%s", msg.Message)
+		writeTo(dst, "%s", msg.Message)
 	}
 
 	if msg.Error {
