@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ovh/ovhcloud-cli/internal/config"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
@@ -24,9 +25,16 @@ import (
 // Credentials only ever enter the SHA-256 digest, so nothing readable is
 // written to disk. The readable prefix is the endpoint alone, so that the cache
 // directory can still be inspected by hand.
+// The profile has to be the ACTIVE one, not the --profile flag: OVH_PROFILE and
+// the `[default] profile` setting select an account without the flag ever being
+// set, so hashing the flag alone leaves those two cases sharing a key. And
+// clientIdentity() cannot make up for it here — completion skips
+// PersistentPreRun, so on a real keystroke there is no API client at all and it
+// contributes nothing. The two gaps line up exactly on the path that matters.
 func cacheKeyFor(endpoint string) string {
 	digest := sha256.Sum256([]byte(strings.Join(
-		append([]string{flags.Profile, endpoint}, clientIdentity()...), "\x00")))
+		append([]string{config.GetActiveProfileName(flags.CliConfig, flags.Profile), endpoint},
+			clientIdentity()...), "\x00")))
 
 	return fmt.Sprintf("%s-%x", slugify(endpoint), digest[:8])
 }
