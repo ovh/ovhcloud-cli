@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
@@ -124,7 +123,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -588,6 +587,45 @@ a pipeline gating on it wants.`,
 	baremetalDoctorCmd.Flags().BoolVar(&baremetal.DoctorStrict, "strict", false,
 		"Exit non-zero when anything is reported")
 	baremetalCmd.AddCommand(withFilterFlag(baremetalDoctorCmd))
+
+	// Opening a ticket about a server is where the two halves of this audit
+	// meet: the support API already accepts a serviceName, and doctor already
+	// knows how to read the machine. Nothing joined them, so the operator
+	// retyped the server name and described its state from memory.
+	baremetalTicketCmd := &cobra.Command{
+		Use:   "ticket <service_name>",
+		Short: "Open a support ticket about a server, with its state already in it",
+		Long: `Create a support ticket that names the server and carries its current state:
+commercial range, datacenter, active boot, monitoring, running tasks, planned
+maintenance, and whatever "ovhcloud baremetal doctor" reports about it.
+
+The description is yours - the collected block says what the machine is, not
+what is wrong from your side. Use --no-context to send the description alone.
+
+A ticket is read by a person at OVHcloud, so the command confirms before
+sending. --dry-run prints the whole message instead of sending it.`,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.OpenTicketForServer,
+	}
+	baremetalTicketCmd.Flags().StringVar(&baremetal.TicketSpec.Subject, "subject", "", "Ticket subject (short summary)")
+	baremetalTicketCmd.Flags().StringVar(&baremetal.TicketSpec.Body, "body", "", "Describe the problem in your own words")
+	baremetalTicketCmd.Flags().StringVar(&baremetal.TicketSpec.Product, "product", "dedicated", "Product the ticket is filed under")
+	baremetalTicketCmd.Flags().StringVar(&baremetal.TicketSpec.Category, "category", "", "Ticket category")
+	baremetalTicketCmd.Flags().StringVar(&baremetal.TicketSpec.Subcategory, "subcategory", "", "Ticket subcategory")
+	baremetalTicketCmd.Flags().StringVar(&baremetal.TicketSpec.Impact, "impact", "", "Ticket impact - Business/Enterprise support only")
+	baremetalTicketCmd.Flags().StringVar(&baremetal.TicketSpec.Urgency, "urgency", "", "Ticket urgency - Business/Enterprise support only")
+	baremetalTicketCmd.Flags().StringSliceVar(&baremetal.TicketSpec.Watchers, "watchers", nil, "E-mail addresses to notify on updates (max. 10)")
+	baremetalTicketCmd.Flags().BoolVar(&baremetal.TicketSpec.NoContext, "no-context", false, "Send the description without the collected machine state")
+	_ = baremetalTicketCmd.MarkFlagRequired("subject")
+	_ = baremetalTicketCmd.MarkFlagRequired("body")
+	_ = baremetalTicketCmd.RegisterFlagCompletionFunc("product", baremetal.CompleteTicketProduct)
+	_ = baremetalTicketCmd.RegisterFlagCompletionFunc("category", baremetal.CompleteTicketCategory)
+	_ = baremetalTicketCmd.RegisterFlagCompletionFunc("subcategory", baremetal.CompleteTicketSubcategory)
+	_ = baremetalTicketCmd.RegisterFlagCompletionFunc("impact", baremetal.CompleteTicketImpact)
+	_ = baremetalTicketCmd.RegisterFlagCompletionFunc("urgency", baremetal.CompleteTicketUrgency)
+	addConfirmationFlags(baremetalTicketCmd, "Print the whole ticket that would be created without creating it")
+	baremetalCmd.AddCommand(baremetalTicketCmd)
 
 	// Nine backup routes, none of them reachable: the space included with the
 	// server, the access list that guards it, the two passwords and the cloud

@@ -53,6 +53,7 @@ Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal reinstall](ovhcloud_baremetal_reinstall.md)	 - Reinstall the given baremetal
 * [ovhcloud baremetal service-info](ovhcloud_baremetal_service-info.md)	 - Manage service information of the given baremetal
 * [ovhcloud baremetal terminate](ovhcloud_baremetal_terminate.md)	 - Ask for the termination of the given baremetal
+* [ovhcloud baremetal ticket](ovhcloud_baremetal_ticket.md)	 - Open a support ticket about a server, with its state already in it
 * [ovhcloud baremetal traffic](ovhcloud_baremetal_traffic.md)	 - Show the traffic graphs of this baremetal's network controllers
 * [ovhcloud baremetal vni](ovhcloud_baremetal_vni.md)	 - Manage Virtual Network Interfaces of the given baremetal
 * [ovhcloud baremetal vrack](ovhcloud_baremetal_vrack.md)	 - Attach the given baremetal to a vRack, or detach it
