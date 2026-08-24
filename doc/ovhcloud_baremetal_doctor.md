@@ -14,6 +14,12 @@ The exit code stays 0 when findings are reported, because the command ran and
 answered. Use --strict to make findings fail the command instead, which is what
 a pipeline gating on it wants.
 
+--strict fails on a warning or a critical. A note never fails it: every server
+renewing inside the next 30 days reports one, so a --strict that counted notes
+would be red permanently, and a gate that is always red is read like no gate.
+Narrowing with --filter narrows the gate too — 'severity=="critical"' fails only
+on criticals.
+
 ```
 ovhcloud baremetal doctor [service_name...] [flags]
 ```
@@ -30,7 +36,7 @@ ovhcloud baremetal doctor [service_name...] [flags]
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
   -h, --help                 help for doctor
-      --strict               Exit non-zero when anything is reported
+      --strict               Exit non-zero when a warning or a critical is reported (notes never fail it)
 ```
 
 ### Options inherited from parent commands
