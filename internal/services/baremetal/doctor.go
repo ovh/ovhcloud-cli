@@ -167,12 +167,29 @@ func Doctor(_ *cobra.Command, args []string) {
 	// print a second document after the table, and under -o json only the last
 	// one survives -- the pipeline that asked for --strict would receive the
 	// error message instead of the findings it came for.
-	// Reached only when there is something to report: the no-finding case
-	// returned above. A len(findings) > 0 guard here would be a condition that
-	// cannot be false, which is the dead code this repository keeps finding.
-	if DoctorStrict {
+	// A note never fails the gate, and that is the whole point of having three
+	// severities. `expiry` reports a note for every server renewing inside the
+	// next 30 days, which on a real account is most of them, most of the time:
+	// a --strict that counted notes would be red permanently, and a gate that
+	// is always red is read exactly like no gate at all.
+	//
+	// The filtered rows are what the caller sees, so they are what the exit
+	// code answers for: --filter 'severity=="critical"' narrows the gate too,
+	// instead of failing on rows the caller asked not to see.
+	if DoctorStrict && worseThanNote(filtered) {
 		display.ExitFunc(1)
 	}
+}
+
+// worseThanNote reports whether any displayed row is a warning or a critical.
+func worseThanNote(rows []map[string]any) bool {
+	for _, row := range rows {
+		switch row["severity"] {
+		case critical.String(), warning.String():
+			return true
+		}
+	}
+	return false
 }
 
 // diagnoseAll checks every server, ten at a time.

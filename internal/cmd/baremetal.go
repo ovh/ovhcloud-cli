@@ -577,7 +577,13 @@ With no argument it checks every server of the account.
 
 The exit code stays 0 when findings are reported, because the command ran and
 answered. Use --strict to make findings fail the command instead, which is what
-a pipeline gating on it wants.`,
+a pipeline gating on it wants.
+
+--strict fails on a warning or a critical. A note never fails it: every server
+renewing inside the next 30 days reports one, so a --strict that counted notes
+would be red permanently, and a gate that is always red is read like no gate.
+Narrowing with --filter narrows the gate too — 'severity=="critical"' fails only
+on criticals.`,
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.Doctor,
@@ -585,7 +591,7 @@ a pipeline gating on it wants.`,
 	baremetalDoctorCmd.Flags().IntVar(&baremetal.DoctorExpiryDays, "expiry-days", 30,
 		"Report a server expiring within this many days")
 	baremetalDoctorCmd.Flags().BoolVar(&baremetal.DoctorStrict, "strict", false,
-		"Exit non-zero when anything is reported")
+		"Exit non-zero when a warning or a critical is reported (notes never fail it)")
 	baremetalCmd.AddCommand(withFilterFlag(baremetalDoctorCmd))
 
 	// Nine backup routes, none of them reachable: the space included with the

@@ -5,6 +5,8 @@
 package cmd_test
 
 import (
+	"time"
+
 	"fmt"
 	"net/http"
 
@@ -119,6 +121,59 @@ func (ms *MockSuite) TestBaremetalDoctorOnlyFailsWhenAskedTo(assert, require *td
 	assert.Cmp(*code, 1)
 	assert.Cmp(strictOut, td.Contains("monitoring"), "the findings are still the output")
 	assert.Cmp(strictOut, td.Not(td.Contains("🛑")), "no error document is printed")
+}
+
+// A note on its own must NOT fail --strict, and this is the case that decides
+// whether the flag is usable at all: `expiry` reports a note for every server
+// renewing inside the next 30 days, which on a real account is most of them,
+// most of the time. Counting notes made --strict red permanently, and a gate
+// that is always red is read exactly like no gate.
+//
+// The suite only ever exercised --strict against a warning, so nothing said
+// what a note should do — which is why the behaviour could be wrong and green.
+func (ms *MockSuite) TestBaremetalDoctorStrictIgnoresANoteOnItsOwn(assert, require *td.T) {
+	registerHealthyServer()
+	// Expiring inside the default 30-day window: a note, and nothing else.
+	httpmock.RegisterResponder("GET", doctorServer+"/serviceInfos",
+		httpmock.NewStringResponder(200,
+			`{"expiration":"`+time.Now().AddDate(0, 0, 7).Format("2006-01-02")+
+				`","renew":{"automatic":true,"deleteAtExpiration":false}}`))
+
+	var code *int
+	previous := display.ExitFunc
+	display.ExitFunc = func(c int) { code = &c }
+	defer func() { display.ExitFunc = previous }()
+
+	out, err := cmd.Execute("baremetal", "doctor", "ns1.example", "--strict")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("expires in"), "the note is still reported")
+	assert.Cmp(code, td.Nil(), "a note alone must not fail the gate")
+}
+
+// The positive control of the test above: a warning alongside the same note
+// still fails. Without it, never exiting at all would pass.
+func (ms *MockSuite) TestBaremetalDoctorStrictStillFailsOnAWarningBesideANote(assert, require *td.T) {
+	registerHealthyServer()
+	httpmock.RegisterResponder("GET", doctorServer+"/serviceInfos",
+		httpmock.NewStringResponder(200,
+			`{"expiration":"`+time.Now().AddDate(0, 0, 7).Format("2006-01-02")+
+				`","renew":{"automatic":true,"deleteAtExpiration":false}}`))
+	httpmock.RegisterResponder("GET", doctorServer,
+		httpmock.NewStringResponder(200,
+			`{"state":"ok","powerState":"poweron","monitoring":false,"bootId":1}`))
+
+	var code *int
+	previous := display.ExitFunc
+	display.ExitFunc = func(c int) { code = &c }
+	defer func() { display.ExitFunc = previous }()
+
+	out, err := cmd.Execute("baremetal", "doctor", "ns1.example", "--strict")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("monitoring"))
+	require.NotNil(code, "a warning must still fail the gate")
+	assert.Cmp(*code, 1)
 }
 
 // A clean fleet under --strict exits 0. The no-finding case returns before the
