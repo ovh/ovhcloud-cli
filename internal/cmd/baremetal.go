@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
@@ -51,8 +50,8 @@ func init() {
 	editBaremetalCmd.Flags().IntVar(&baremetal.EditBaremetalParams.BootId, "boot-id", 0, "Boot ID")
 	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.BootScript, "boot-script", "", "Boot script")
 	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.EfiBootloaderPath, "efi-bootloader-path", "", "EFI bootloader path")
-	editBaremetalCmd.Flags().BoolVar(&baremetal.EditBaremetalParams.Monitoring, "monitoring", false, "Enable monitoring")
-	editBaremetalCmd.Flags().BoolVar(&baremetal.EditBaremetalParams.NoIntervention, "no-intervention", false, "Disable interventions")
+	editBaremetalCmd.Flags().BoolVar(&baremetal.EditBaremetalMonitoring, "monitoring", false, "Enable monitoring")
+	editBaremetalCmd.Flags().BoolVar(&baremetal.EditBaremetalNoIntervention, "no-intervention", false, "Disable interventions")
 	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.RescueMail, "rescue-mail", "", "Rescue mail")
 	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.RescueSshKey, "rescue-ssh-key", "", "Rescue SSH key")
 	editBaremetalCmd.Flags().StringVar(&baremetal.EditBaremetalParams.RootDevice, "root-device", "", "Root device")
@@ -124,7 +123,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -564,6 +563,36 @@ a server is sitting on the power-off entry.`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.BaremetalResetIPMISessions,
 	})
+
+	// What quietly breaks a dedicated server is spread across five routes and
+	// none of them is where somebody would look. This reads them together.
+	baremetalDoctorCmd := &cobra.Command{
+		Use:   "doctor [service_name...]",
+		Short: "Report what is wrong with a server, or with every server",
+		Long: `Check the things that silently break a dedicated server: a machine left on the
+rescue system, monitoring switched off, hardware intervention refused, a renewal
+that will not happen, work still running, maintenance already planned.
+
+With no argument it checks every server of the account.
+
+The exit code stays 0 when findings are reported, because the command ran and
+answered. Use --strict to make findings fail the command instead, which is what
+a pipeline gating on it wants.
+
+--strict fails on a warning or a critical. A note never fails it: every server
+renewing inside the next 30 days reports one, so a --strict that counted notes
+would be red permanently, and a gate that is always red is read like no gate.
+Narrowing with --filter narrows the gate too — 'severity=="critical"' fails only
+on criticals.`,
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.Doctor,
+	}
+	baremetalDoctorCmd.Flags().IntVar(&baremetal.DoctorExpiryDays, "expiry-days", 30,
+		"Report a server expiring within this many days")
+	baremetalDoctorCmd.Flags().BoolVar(&baremetal.DoctorStrict, "strict", false,
+		"Exit non-zero when a warning or a critical is reported (notes never fail it)")
+	baremetalCmd.AddCommand(withFilterFlag(baremetalDoctorCmd))
 
 	// Nine backup routes, none of them reachable: the space included with the
 	// server, the access list that guards it, the two passwords and the cloud
