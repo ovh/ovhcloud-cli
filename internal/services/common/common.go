@@ -201,8 +201,6 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		return nil, fmt.Errorf("parameters cannot be marshalled: %w", err)
 	}
 
-	log.Println("Final parameters: \n" + string(out))
-
 	// --dry-run stops here: the caller sees exactly what would have been sent,
 	// and nothing reaches the API.
 	if flags.DryRun {
@@ -220,6 +218,19 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		}, "🔍 Dry run: nothing was sent. This would have been posted to %s:\n%s", endpoint, payload)
 		return nil, nil
 	}
+
+	// Logged only once the dry run is ruled out. A --dry-run already prints the
+	// payload as its message, so logging it here printed the same JSON twice,
+	// the second time behind a Go timestamp no other command in this CLI emits:
+	//
+	//	🔍 Dry run: nothing was sent. This would have been posted to …
+	//	{ "operatingSystem": "debian12_64" }
+	//	2026/08/23 23:47:22 Final parameters:
+	//	{ "operatingSystem": "debian12_64" }
+	//
+	// A real run still logs what it is about to send, which is what this line
+	// was for.
+	log.Println("Final parameters: \n" + string(out))
 
 	var createdResource map[string]any
 	if err := httpLib.Client.Post(endpoint, parameters, &createdResource); err != nil {

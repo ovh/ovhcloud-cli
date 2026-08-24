@@ -124,6 +124,262 @@ func init() {
 	}
 	ipReverseCmd.AddCommand(ipReverseDeleteCmd)
 
+	// The incident surface. Three mechanisms can block an address, each with
+	// its own list and its own release route, and an operator hit by one of
+	// them does not know which. `blocked` reads the three, and what it prints
+	// is what `unblock` takes.
+	ipCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "blocked <ip_block>",
+		Short:             "List the addresses of this block held by anti-hack, ARP or anti-spam",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListBlocked,
+	}))
+
+	ipUnblockCmd := &cobra.Command{
+		Use:               "unblock <ip_block> <ip>",
+		Short:             "Release an address from the mechanism blocking it",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.UnblockIp,
+	}
+	ipUnblockCmd.Flags().StringVar(&ip.UnblockReason, "reason", "",
+		"Mechanism to release from: antihack, arp or spam (read from the API when omitted)")
+	addConfirmationFlags(ipUnblockCmd, "Print the call that would be made without making it")
+	ipCmd.AddCommand(ipUnblockCmd)
+
+	ipSpamStatsCmd := &cobra.Command{
+		Use:               "spam-stats <ip_block> <ip>",
+		Short:             "Show what an address sent while the anti-spam system held it",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.SpamStats,
+	}
+	ipSpamStatsCmd.Flags().StringVar(&ip.SpamStatsFrom, "from", "",
+		"Start of the window, RFC3339 (defaults to the date the address was blocked)")
+	ipSpamStatsCmd.Flags().StringVar(&ip.SpamStatsTo, "to", "",
+		"End of the window, RFC3339 (defaults to now)")
+	ipCmd.AddCommand(withFilterFlag(ipSpamStatsCmd))
+
+	// Anti-phishing
+	ipPhishingCmd := &cobra.Command{
+		Use:   "phishing",
+		Short: "Read the phishing URLs reported on the given IP block",
+	}
+	ipCmd.AddCommand(ipPhishingCmd)
+
+	ipPhishingCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "list <ip_block>",
+		Aliases:           []string{"ls"},
+		Short:             "List the phishing entries reported on this block",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListPhishing,
+	}))
+
+	ipPhishingCmd.AddCommand(&cobra.Command{
+		Use:               "get <ip_block> <id>",
+		Short:             "Show one phishing entry",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetPhishing,
+	})
+
+	// DDoS mitigation
+	ipMitigationCmd := &cobra.Command{
+		Use:   "mitigation",
+		Short: "Manage DDoS mitigation on the given IP block",
+	}
+	ipCmd.AddCommand(ipMitigationCmd)
+
+	ipMitigationListCmd := &cobra.Command{
+		Use:               "list <ip_block>",
+		Aliases:           []string{"ls"},
+		Short:             "List the addresses under mitigation",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListMitigation,
+	}
+	ipMitigationListCmd.Flags().StringVar(&ip.MitigationStateFilter, "state", "",
+		"Keep only this state: creationPending, ok or removalPending")
+	ipMitigationListCmd.Flags().StringVar(&ip.MitigationAutoFilter, "auto", "",
+		"Keep only auto-mitigated (true) or manually mitigated (false) addresses")
+	ipMitigationCmd.AddCommand(withFilterFlag(ipMitigationListCmd))
+
+	ipMitigationCmd.AddCommand(&cobra.Command{
+		Use:               "get <ip_block> <ip>",
+		Short:             "Show the mitigation state of an address",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetMitigation,
+	})
+
+	ipMitigationAddCmd := &cobra.Command{
+		Use:               "add <ip_block> <ip>",
+		Short:             "Put an address on permanent mitigation",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.AddMitigation,
+	}
+	addConfirmationFlags(ipMitigationAddCmd, "Print the call that would be made without making it")
+	ipMitigationCmd.AddCommand(ipMitigationAddCmd)
+
+	ipMitigationSetCmd := &cobra.Command{
+		Use:               "set <ip_block> <ip>",
+		Short:             "Turn permanent mitigation on or off for an address already known to the system",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.SetMitigation,
+	}
+	ipMitigationSetCmd.Flags().BoolVar(&ip.MitigationPermanent, "permanent", false,
+		"Keep the traffic of this address in the scrubbing centre at all times")
+	addConfirmationFlags(ipMitigationSetCmd, "Print the call that would be made without making it")
+	ipMitigationCmd.AddCommand(ipMitigationSetCmd)
+
+	ipMitigationRemoveCmd := &cobra.Command{
+		Use:               "remove <ip_block> <ip>",
+		Short:             "Remove an address from mitigation",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.RemoveMitigation,
+	}
+	addConfirmationFlags(ipMitigationRemoveCmd, "Print the call that would be made without making it")
+	ipMitigationCmd.AddCommand(ipMitigationRemoveCmd)
+
+	// Auto-mitigation profiles
+	ipMitigationProfileCmd := &cobra.Command{
+		Use:   "mitigation-profile",
+		Short: "Manage how long auto-mitigation stays on after an attack",
+	}
+	ipCmd.AddCommand(ipMitigationProfileCmd)
+
+	ipMitigationProfileCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "list <ip_block>",
+		Aliases:           []string{"ls"},
+		Short:             "List the auto-mitigation profiles of this block",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListMitigationProfiles,
+	}))
+
+	ipMitigationProfileCmd.AddCommand(&cobra.Command{
+		Use:               "get <ip_block> <ip>",
+		Short:             "Show one auto-mitigation profile",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetMitigationProfile,
+	})
+
+	ipMitigationProfileSetCmd := &cobra.Command{
+		Use:               "set <ip_block> <ip>",
+		Short:             "Set the auto-mitigation delay of an address, creating its profile if needed",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.SetMitigationProfile,
+	}
+	ipMitigationProfileSetCmd.Flags().IntVar(&ip.MitigationTimeout, "timeout", 0,
+		"Minutes auto-mitigation stays on after an attack: 0, 15, 60, 360 or 1560")
+	addConfirmationFlags(ipMitigationProfileSetCmd, "Print the call that would be made without making it")
+	// Required, because 0 is one of the five values the API accepts — "no
+	// delay" — and not a neutral default. Without this, a `set` typed to
+	// change nothing else silently wrote "no delay" over a profile that may
+	// have been at 1560.
+	_ = ipMitigationProfileSetCmd.MarkFlagRequired("timeout")
+	ipMitigationProfileCmd.AddCommand(ipMitigationProfileSetCmd)
+
+	ipMitigationProfileDeleteCmd := &cobra.Command{
+		Use:               "delete <ip_block> <ip>",
+		Short:             "Delete an auto-mitigation profile",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.DeleteMitigationProfile,
+	}
+	addConfirmationFlags(ipMitigationProfileDeleteCmd, "Print the call that would be made without making it")
+	ipMitigationProfileCmd.AddCommand(ipMitigationProfileDeleteCmd)
+
+	// Game anti-DDoS
+	ipGameCmd := &cobra.Command{
+		Use:   "game",
+		Short: "Manage the game anti-DDoS filter on the given IP block",
+	}
+	ipCmd.AddCommand(ipGameCmd)
+
+	ipGameCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "list <ip_block>",
+		Aliases:           []string{"ls"},
+		Short:             "List the addresses under game anti-DDoS",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListGame,
+	}))
+
+	ipGameCmd.AddCommand(&cobra.Command{
+		Use:               "get <ip_block> <ip>",
+		Short:             "Show the game anti-DDoS configuration of an address",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetGame,
+	})
+
+	ipGameEditCmd := &cobra.Command{
+		Use:               "edit <ip_block> <ip>",
+		Short:             "Turn UDP firewall mode on or off",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.EditGame,
+	}
+	ipGameEditCmd.Flags().BoolVar(&ip.GameFirewallMode, "firewall-mode", false,
+		"In UDP, let through only the traffic matching a rule")
+	addConfirmationFlags(ipGameEditCmd, "Print the call that would be made without making it")
+	ipGameCmd.AddCommand(ipGameEditCmd)
+
+	ipGameRuleCmd := &cobra.Command{
+		Use:   "rule",
+		Short: "Manage game anti-DDoS rules",
+	}
+	ipGameCmd.AddCommand(ipGameRuleCmd)
+
+	ipGameRuleCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "list <ip_block> <ip>",
+		Aliases:           []string{"ls"},
+		Short:             "List the game anti-DDoS rules of an address",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListGameRules,
+	}))
+
+	ipGameRuleCmd.AddCommand(&cobra.Command{
+		Use:               "get <ip_block> <ip> <id>",
+		Short:             "Show one game anti-DDoS rule",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetGameRule,
+	})
+
+	ipGameRuleAddCmd := &cobra.Command{
+		Use:               "add <ip_block> <ip>",
+		Short:             "Open a port range for one game protocol",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.AddGameRule,
+	}
+	ipGameRuleAddCmd.Flags().StringVar(&ip.GameProtocol, "protocol", "",
+		"Game protocol, among the ones this address supports (required)")
+	ipGameRuleAddCmd.Flags().StringVar(&ip.GamePorts, "ports", "",
+		"Single port (7777) or range (7777-7778) (required)")
+	addConfirmationFlags(ipGameRuleAddCmd, "Print the call that would be made without making it")
+	ipGameRuleCmd.AddCommand(ipGameRuleAddCmd)
+
+	ipGameRuleDeleteCmd := &cobra.Command{
+		Use:               "delete <ip_block> <ip> <id>",
+		Short:             "Delete a game anti-DDoS rule",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.DeleteGameRule,
+	}
+	addConfirmationFlags(ipGameRuleDeleteCmd, "Print the call that would be made without making it")
+	ipGameRuleCmd.AddCommand(ipGameRuleDeleteCmd)
+
 	// Firewall commands
 	ipFirewallCmd := &cobra.Command{
 		Use:   "firewall",
