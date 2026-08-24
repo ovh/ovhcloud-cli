@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
@@ -134,7 +133,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -923,6 +922,80 @@ sending. --dry-run prints the whole message instead of sending it.`,
 		"Wait until the subscription is actually gone before exiting")
 	addConfirmationFlags(baremetalLogsUnsubscribeCmd, "Print the call that would be made without making it")
 	baremetalLogsCmd.AddCommand(baremetalLogsUnsubscribeCmd)
+
+	// The Veeam backup agent belongs to a VSPC tenant reached by two UUIDs, but
+	// it protects one machine and says so. These commands start from the server
+	// and resolve the rest; the tenants themselves are under `backup-services`.
+	baremetalBackupAgentCmd := &cobra.Command{
+		Use:   "backup-agent",
+		Short: "Manage the Veeam backup agent protecting this server",
+	}
+	// The resolution of the tenant and the VSPC tenant lives in the same place
+	// for both trees, so its refusal — "name one with --tenant" — has to be
+	// actionable from both. Without these, every command here was unusable on an
+	// account holding more than one tenant, and said so by naming a flag cobra
+	// then rejected as unknown.
+	addBackupTenantFlags(baremetalBackupAgentCmd)
+	baremetalCmd.AddCommand(baremetalBackupAgentCmd)
+
+	baremetalBackupAgentCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "show <service_name>",
+		Short:             "Show the backup agent protecting this server",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBackupAgent,
+	}))
+
+	baremetalBackupAgentCreateCmd := &cobra.Command{
+		Use:   "create <service_name>",
+		Short: "Provision a Veeam backup agent for this server",
+		Long: "Provision a Veeam backup agent for this server.\n\n" +
+			"The name, the addresses and the region are derived from the server itself, so nothing " +
+			"but the server name is needed. The agent is created NOT_INSTALLED: it protects nothing " +
+			"until the agent software runs on the machine, and retains nothing until it is put on a " +
+			"policy with `backup-agent edit --policy`.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.CreateBackupAgent,
+	}
+	baremetalBackupAgentCreateCmd.Flags().StringVar(&baremetal.BackupAgentName, "display-name", "",
+		"Name of the agent (default: agent-<service_name>)")
+	baremetalBackupAgentCreateCmd.Flags().StringArrayVar(&baremetal.BackupAgentIPs, "ip", nil,
+		"Address the agent is reached at (default: the server's own address, in a /32)")
+	baremetalBackupAgentCreateCmd.Flags().StringVar(&baremetal.BackupAgentRegion, "region", "",
+		"Region the agent operates in (default: the server's region)")
+	baremetalBackupAgentCreateCmd.Flags().BoolVar(&baremetal.BackupAgentWait, "wait", false,
+		"Wait until the agent has settled before exiting")
+	addConfirmationFlags(baremetalBackupAgentCreateCmd, "Print the call that would be made without making it")
+	baremetalBackupAgentCmd.AddCommand(baremetalBackupAgentCreateCmd)
+
+	baremetalBackupAgentEditCmd := &cobra.Command{
+		Use:               "edit <service_name>",
+		Short:             "Change the backup agent of this server",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.EditBackupAgent,
+	}
+	baremetalBackupAgentEditCmd.Flags().StringVar(&baremetal.BackupAgentPolicy, "policy", "",
+		"Retention policy to put the agent on (empty takes it off retention)")
+	baremetalBackupAgentEditCmd.Flags().StringVar(&baremetal.BackupAgentName, "display-name", "",
+		"New name of the agent")
+	baremetalBackupAgentEditCmd.Flags().StringArrayVar(&baremetal.BackupAgentIPs, "ip", nil,
+		"Addresses the agent is reached at")
+	addConfirmationFlags(baremetalBackupAgentEditCmd, "Print the call that would be made without making it")
+	baremetalBackupAgentCmd.AddCommand(baremetalBackupAgentEditCmd)
+
+	baremetalBackupAgentDeleteCmd := &cobra.Command{
+		Use:               "delete <service_name>",
+		Short:             "Remove the backup agent of this server — its restore points go with it",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.DeleteBackupAgent,
+	}
+	baremetalBackupAgentDeleteCmd.Flags().BoolVar(&baremetal.BackupAgentWait, "wait", false,
+		"Wait until the agent is actually gone before exiting")
+	addConfirmationFlags(baremetalBackupAgentDeleteCmd, "Print the call that would be made without making it")
+	baremetalBackupAgentCmd.AddCommand(baremetalBackupAgentDeleteCmd)
 
 	rootCmd.AddCommand(baremetalCmd)
 }
