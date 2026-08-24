@@ -1,12 +1,24 @@
-## ovhcloud cloud storage-swift
+## ovhcloud logout
 
-Manage SWIFT storage containers in the given cloud project
+Revoke your API credentials and remove them from the configuration
+
+```
+ovhcloud logout [flags]
+```
+
+### Examples
+
+```
+ovhcloud logout
+ovhcloud logout --yes
+ovhcloud logout --profile work
+```
 
 ### Options
 
 ```
-      --cloud-project string   Cloud project ID
-  -h, --help                   help for storage-swift
+  -h, --help   help for logout
+  -y, --yes    Do not ask for confirmation
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +42,5 @@ Manage SWIFT storage containers in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
-* [ovhcloud cloud storage-swift edit](ovhcloud_cloud_storage-swift_edit.md)	 - Edit the given SWIFT storage container
-* [ovhcloud cloud storage-swift get](ovhcloud_cloud_storage-swift_get.md)	 - Get a specific SWIFT storage container
-* [ovhcloud cloud storage-swift list](ovhcloud_cloud_storage-swift_list.md)	 - List SWIFT storage containers
+* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
 
