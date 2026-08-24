@@ -19,7 +19,9 @@ make doc          # regenerate doc/ (see Docs below)
 ```
 
 Refresh a **v1** OpenAPI schema: `make schemas UNIVERSE=<name>` (e.g. `cloud`, `domain`, `vps`).
-There is **no** automated refresh for v2 schemas (see "API schemas" below).
+Refresh a **v2** one: `make schemas-v2 API=<path> NAME=<file>` (e.g. `API=dedicated/server NAME=baremetal_v2`).
+Check one for dead paths: `make schemas-drift NAME=<file> SOURCE=<catalogue path>` (e.g. `NAME=baremetal SOURCE=v1/dedicated/server`).
+Neither target curates — see "API schemas" below.
 
 ## Architecture — the two-file pattern
 
@@ -102,10 +104,16 @@ or users can't drive the new/changed fields.
 **v1** (`cloud.json`, `me.json`, …): full spec minus `x-code-samples`, refreshed with
 `make schemas UNIVERSE=<name>`.
 
-**v2** (`cloud_v2.json`): a **hand-curated subset** — only the paths the CLI actually exposes plus
-the schemas those paths reference (transitively) and OVH's standard scalar types. There is no `make`
-target; it is maintained manually (only public — alpha/beta/stable — paths are curated in, never
-`Internal use only` ones).
+**v2** (`cloud_v2.json`, `iam.json`, `vrackservices.json`, `vmwareclouddirector*.json`): a
+**hand-curated subset** — only the paths the CLI actually exposes plus the schemas those paths
+reference (transitively) and OVH's standard scalar types (only public — alpha/beta/stable — paths
+are curated in, never `Internal use only` ones).
+
+`make schemas-v2 API=<path> NAME=<file>` downloads one and prints its maturity breakdown, but it
+does **not** curate: deciding what belongs in the subset is a judgement call. Note that the v2
+catalogue addresses APIs by path, not by universe name, and four of these files are v2 documents
+stored under a name with no `_v2` suffix — `make schemas UNIVERSE=iam` cannot refresh them, the v1
+URL answers 404.
 
 **Gotcha**: in the schema, v2 paths have **no `/v2` prefix** (`/publicCloud/project/{projectId}/rancher`),
 but the Go HTTP calls and the `schemaPath` argument to `Create/EditResource` also omit `/v2` while the
