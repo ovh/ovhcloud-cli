@@ -382,7 +382,7 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(networkID)), 10*time.Minute); err != nil {
+	if _, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(networkID)), 10*time.Minute); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for network creation: %s", err)
 		return
 	}
@@ -519,7 +519,7 @@ func CreatePrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(subnetID)), 10*time.Minute); err != nil {
+	if _, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(subnetID)), 10*time.Minute); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for subnet creation: %s", err)
 		return
 	}

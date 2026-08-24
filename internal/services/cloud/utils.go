@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
@@ -115,57 +114,6 @@ func runFlavorSelector(projectID string, region string) (string, string, error) 
 	}
 
 	return selectedFlavor, selectedID, nil
-}
-
-// cloudResourceState is the minimal projection of a Public Cloud API v2
-// resource used to track its asynchronous readiness.
-type cloudResourceState struct {
-	ResourceStatus string `json:"resourceStatus"`
-	CurrentTasks   []struct {
-		Id     string `json:"id"`
-		Type   string `json:"type"`
-		Status string `json:"status"`
-	} `json:"currentTasks"`
-}
-
-// waitForCloudResourceReady polls the given Public Cloud API v2 resource
-// endpoint until its resourceStatus becomes READY. Current tasks in ERROR are
-// logged but do not stop the wait; the function only fails when the resource
-// itself reaches status ERROR or when the timeout expires.
-func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
-	defer cancel()
-
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		var resource cloudResourceState
-		if err := httpLib.Client.Get(endpoint, &resource); err != nil {
-			return fmt.Errorf("error fetching resource: %w", err)
-		}
-
-		for _, task := range resource.CurrentTasks {
-			if strings.EqualFold(task.Status, "ERROR") {
-				log.Printf("⚠️  Task %s (%s) is in error", task.Id, task.Type)
-			}
-		}
-
-		switch strings.ToUpper(resource.ResourceStatus) {
-		case "READY":
-			return nil
-		case "ERROR":
-			return errors.New("resource reached status ERROR")
-		}
-
-		select {
-		case <-ctx.Done():
-			return errors.New("timeout waiting for resource to be ready")
-		case <-ticker.C:
-			log.Printf("Still waiting for resource to be ready (status=%s)…", resource.ResourceStatus)
-			continue
-		}
-	}
 }
 
 func waitForCloudOperation(projectID, operationID, action string, retryDuration time.Duration) (string, error) {
