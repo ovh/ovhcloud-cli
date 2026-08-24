@@ -202,7 +202,14 @@ func nearbyTitles(streams []ldpStream, wanted string) string {
 	}
 
 	if len(near) == 0 {
-		return fmt.Sprintf("This account has %d of them.", len(streams))
+		// A bare count names nothing, and the reviewer who hit this said so:
+		// "no stream is called X. This account has 59 of them" leaves you with
+		// no idea what a title even looks like here, and the completion hint
+		// that follows needs a TAB key — which a script, a CI log or a web
+		// console does not have. Three examples cost one line and show the
+		// shape.
+		return fmt.Sprintf("This account has %d of them, such as %s.",
+			len(streams), strings.Join(someTitles(streams, 3), ", "))
 	}
 
 	// Five is enough to recognise a typo. The rest are counted rather than
@@ -214,6 +221,23 @@ func nearbyTitles(streams []ldpStream, wanted string) string {
 	}
 
 	return "Close to: " + strings.Join(near, ", ") + "."
+}
+
+// someTitles picks the first few titles that exist, to show what one looks
+// like. Sorted, so the same account gives the same examples twice running: an
+// error message that changes between two identical calls reads as instability.
+func someTitles(streams []ldpStream, count int) []string {
+	var titles []string
+	for _, stream := range streams {
+		if stream.Title != "" {
+			titles = append(titles, fmt.Sprintf("%q", stream.Title))
+		}
+	}
+	sort.Strings(titles)
+	if len(titles) > count {
+		titles = titles[:count]
+	}
+	return titles
 }
 
 // looksLikeUUID recognises the shape of a stream identifier.
