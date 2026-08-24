@@ -1,0 +1,9 @@
+🔧 Installation of {{.ServiceName}}
+=======
+
+**{{index .Result "summary"}}**
+
+| # | Status | Step |
+| --- | --- | --- |
+{{range index .Result "steps"}}| {{index . "position"}} | {{index . "status"}} | {{index . "comment"}}{{if index . "error"}} — {{index . "error"}}{{end}} |
+{{end}}

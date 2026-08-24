@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
@@ -124,7 +123,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -418,6 +417,18 @@ a server is sitting on the power-off entry.`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.GetBaremetalRaidProfile,
 	}))
+
+	// A reinstall runs for tens of minutes and, until now, said nothing while
+	// it did. This reads the same progress `reinstall --wait` follows, for
+	// somebody who started the install in another terminal — or who answered
+	// the confirmation, walked away, and wants to know whether to keep waiting.
+	baremetalCmd.AddCommand(&cobra.Command{
+		Use:               "install-status <service_name>",
+		Short:             "Show how far the running installation of this baremetal has got",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBaremetalInstallStatus,
+	})
 
 	// Commands to manage virtual network interfaces
 	// Private network, seen from the machine. The same work lives under

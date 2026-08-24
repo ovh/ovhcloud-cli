@@ -5,6 +5,9 @@
 package baremetal
 
 import (
+	"bytes"
+	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -45,7 +48,7 @@ func withTaskAPI(t *testing.T, attempts int, task string) {
 func TestWaitForTask_TimeoutDoesNotClaimTheTaskFailed(t *testing.T) {
 	withTaskAPI(t, 2, `{"taskId": 156839472, "function": "reinstallServer", "status": "doing"}`)
 
-	err := waitForDedicatedServerTask("srv", "156839472")
+	err := waitForDedicatedServerTask("srv", "156839472", nil)
 
 	td.Require(t).CmpError(err)
 	td.Cmp(t, err.Error(), td.Contains("stopped waiting"))
@@ -63,9 +66,44 @@ func TestWaitForTask_TimeoutDoesNotClaimTheTaskFailed(t *testing.T) {
 func TestWaitForTask_TimeoutPrintsAReadableIdentifier(t *testing.T) {
 	withTaskAPI(t, 1, `{"taskId": 156839472, "status": "todo"}`)
 
-	err := waitForDedicatedServerTask("srv", "156839472")
+	err := waitForDedicatedServerTask("srv", "156839472", nil)
 
 	td.Require(t).CmpError(err)
 	td.Cmp(t, err.Error(), td.Contains("156839472"))
 	td.Cmp(t, err.Error(), td.Not(td.Contains("%!")))
+}
+
+// The note is the whole point of the change: without it a reinstall printed
+// the same sentence every thirty seconds for half an hour. A note that is
+// computed and then dropped would leave the wait exactly as mute as before,
+// and no other test would notice.
+func TestWaitForTask_PrintsTheNoteInsteadOfRepeatingItself(t *testing.T) {
+	withTaskAPI(t, 2, `{"taskId": 156839472, "function": "reinstallServer", "status": "doing"}`)
+
+	var logged bytes.Buffer
+	log.SetOutput(&logged)
+	defer log.SetOutput(os.Stderr)
+
+	_ = waitForDedicatedServerTask("srv", "156839472", func() string {
+		return "step 3/21: Running Hardware Reboot (2m14s elapsed)"
+	})
+
+	td.Cmp(t, logged.String(), td.Contains("step 3/21: Running Hardware Reboot"))
+	td.Cmp(t, logged.String(), td.Not(td.Contains("Still waiting for task")),
+		"the note replaces the bare line rather than adding to it")
+}
+
+// Reading the progress is decoration on top of the task poll. A server whose
+// status cannot be read is still being installed, and the wait must carry on
+// saying what it always said rather than fail.
+func TestWaitForTask_FallsBackWhenThereIsNoNote(t *testing.T) {
+	withTaskAPI(t, 2, `{"taskId": 156839472, "function": "reinstallServer", "status": "doing"}`)
+
+	var logged bytes.Buffer
+	log.SetOutput(&logged)
+	defer log.SetOutput(os.Stderr)
+
+	_ = waitForDedicatedServerTask("srv", "156839472", func() string { return "" })
+
+	td.Cmp(t, logged.String(), td.Contains("Still waiting for task"))
 }
