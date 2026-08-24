@@ -576,7 +576,7 @@ func GetMigrationToken(_ *cobra.Command, args []string) {
 		// Only a 404 means there is no token. Saying so after a 403 or a 500
 		// sends the operator to `migration-token create`, which fails for the
 		// same reason the message just hid.
-		if !isNotFound(err) {
+		if !common.IsNotFound(err) {
 			display.OutputError(&flags.OutputFormatConfig,
 				"failed to read the migration token of %s: %s", ipBlock, err)
 			return
