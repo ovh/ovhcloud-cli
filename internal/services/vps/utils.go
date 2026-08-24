@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
@@ -113,4 +114,32 @@ func runSSHKeySelector() (string, string, error) {
 	}
 
 	return display.RunGenericChoicePicker("Please select an SSH key", keyChoices, 10)
+}
+
+// getAccountSSHKeyByName returns the public key content of the account SSH key
+// (/me/sshKey) matching the given name. If no key matches, it returns an error
+// listing the available key names, so the user does not silently end up with an
+// empty authorized_keys file after a reinstall (see issue #260).
+func getAccountSSHKeyByName(name string) (string, error) {
+	keys, err := httpLib.FetchExpandedArray("/v1/me/sshKey", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch account ssh keys: %w", err)
+	}
+
+	var available []string
+	for _, key := range keys {
+		keyName, _ := key["keyName"].(string)
+		if keyName == name {
+			publicKey, _ := key["key"].(string)
+			return publicKey, nil
+		}
+		if keyName != "" {
+			available = append(available, keyName)
+		}
+	}
+
+	if len(available) == 0 {
+		return "", fmt.Errorf("SSH key %q not found: your account has no SSH key registered in /me/sshKey", name)
+	}
+	return "", fmt.Errorf("SSH key %q not found in your account; available keys: %s", name, strings.Join(available, ", "))
 }
