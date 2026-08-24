@@ -147,6 +147,60 @@ func (ms *MockSuite) TestBaremetalInstallStatusShowsWhyAStepFailed(assert, requi
 	assert.Cmp(out, td.Contains("disk 2 is not present"))
 }
 
+// A MAC address is not something this CLI could tell anybody before this
+// command existed: nothing listed the controllers of a server. So the server
+// is resolved to its controllers, and asking for a graph takes only the name
+// somebody already has.
+func (ms *MockSuite) TestBaremetalTrafficResolvesTheControllersItself(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/networkInterfaceController",
+		httpmock.NewStringResponder(200, `["9c:6b:00:a9:c5:10", "9c:6b:00:a9:ca:25"]`))
+	for _, mac := range []string{"9c:6b:00:a9:c5:10", "9c:6b:00:a9:ca:25"} {
+		httpmock.RegisterResponder("GET",
+			"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/networkInterfaceController/"+mac+"/mrtg",
+			httpmock.NewStringResponder(200,
+				`[{"timestamp": 1787052600, "value": {"unit": "bps", "value": 33978092.769}}]`))
+	}
+
+	out, err := cmd.Execute("baremetal", "traffic", "fakeBaremetal", "--type", "traffic:download")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("9c:6b:00:a9:c5:10"))
+	assert.Cmp(out, td.Contains("9c:6b:00:a9:ca:25"), "both controllers, not just the first")
+	assert.Cmp(out, td.Contains("33.98 Mbps"), "and a number somebody can read")
+}
+
+// The enum is checked here rather than by the API, so a typo comes back with
+// the list of what would have worked instead of a 400.
+func (ms *MockSuite) TestBaremetalTrafficRefusesAnUnknownPeriod(assert, require *td.T) {
+	_, err := cmd.Execute("baremetal", "traffic", "fakeBaremetal", "--period", "fortnightly")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("fortnightly"))
+	assert.Cmp(err.Error(), td.Contains("hourly"), "the accepted values are named")
+	assert.Cmp(err.Error(), td.Contains("yearly"))
+}
+
+func (ms *MockSuite) TestBaremetalTrafficRefusesAnUnknownType(assert, require *td.T) {
+	_, err := cmd.Execute("baremetal", "traffic", "fakeBaremetal", "--type", "bogus:down")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("bogus:down"))
+	assert.Cmp(err.Error(), td.Contains("traffic:download"))
+}
+
+// A server with no controller is an answer, not an empty table.
+func (ms *MockSuite) TestBaremetalTrafficSaysWhenThereIsNoController(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/networkInterfaceController",
+		httpmock.NewStringResponder(200, `[]`))
+
+	out, err := cmd.Execute("baremetal", "traffic", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("no network controller"))
+}
+
 // --filter is registered on both commands, so it has to do something. A test
 // that only checks the kept row would pass just as well with the filtering
 // removed, which is why the assertion that matters is the absence of the other
@@ -211,4 +265,40 @@ func (ms *MockSuite) TestBaremetalRaidProfileLeavesAnAbsentQuantityEmpty(assert,
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Not(td.Contains("0 ")), "no invented zero")
+}
+
+// --type has a default, and it has to survive a second command in the same
+// process. PostExecute puts a used slice flag back to nil rather than to its
+// default — DefValue is "[]" for a slice, so there is nothing else it could use
+// — and --type was the only slice flag in the CLI carrying a non-empty default.
+// So the second `baremetal traffic` of a process looped over an empty list and
+// printed an empty table with exit 0.
+//
+// One invocation cannot see this, which is why the flag went out that way. The
+// two here are the shape the wasm build runs in, where the process outlives the
+// command.
+func (ms *MockSuite) TestBaremetalTrafficKeepsItsDefaultTypesAcrossTwoRuns(assert, require *td.T) {
+	register := func() {
+		httpmock.RegisterResponder("GET",
+			"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/networkInterfaceController",
+			httpmock.NewStringResponder(200, `["9c:6b:00:a9:c5:10"]`))
+		httpmock.RegisterResponder("GET",
+			"https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/networkInterfaceController/9c:6b:00:a9:c5:10/mrtg",
+			httpmock.NewStringResponder(200,
+				`[{"timestamp": 1787052600, "value": {"unit": "bps", "value": 33978092.769}}]`))
+	}
+
+	register()
+	first, err := cmd.Execute("baremetal", "traffic", "fakeBaremetal", "--type", "traffic:download")
+	require.CmpNoError(err)
+	assert.Cmp(first, td.Contains("traffic:download"))
+
+	cmd.PostExecute()
+	register()
+	second, err := cmd.Execute("baremetal", "traffic", "fakeBaremetal")
+
+	require.CmpNoError(err)
+	assert.Cmp(second, td.Contains("traffic:download"))
+	assert.Cmp(second, td.Contains("traffic:upload"),
+		"both default series, on the second run as on the first")
 }

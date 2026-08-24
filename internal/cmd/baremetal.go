@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
@@ -124,7 +123,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -423,6 +422,29 @@ a server is sitting on the power-off entry.`,
 	// it did. This reads the same progress `reinstall --wait` follows, for
 	// somebody who started the install in another terminal — or who answered
 	// the confirmation, walked away, and wants to know whether to keep waiting.
+	// Traffic graphs, from the only mrtg route that is not deprecated. The
+	// controllers are resolved from the server, because a MAC address is
+	// otherwise not something this CLI can tell anybody.
+	baremetalTrafficCmd := &cobra.Command{
+		Use:               "traffic <service_name>",
+		Short:             "Show the traffic graphs of this baremetal's network controllers",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBaremetalTraffic,
+	}
+	baremetalTrafficCmd.Flags().StringVar(&baremetal.TrafficPeriod, "period", "daily",
+		"Window the graph covers: hourly, daily, weekly, monthly or yearly")
+	// Declared with no default on purpose: PostExecute resets a stringSlice by
+	// replacing it with nil rather than with DefValue — DefValue is "[]" for a
+	// slice, so it cannot be used — and a default that survives only the first
+	// command of a process is worse than no default. The default lives in
+	// defaultTrafficTypes, next to the code that reads it, and is stated here.
+	baremetalTrafficCmd.Flags().StringSliceVar(&baremetal.TrafficTypes, "type", nil,
+		"Series to read: traffic, packets or errors, each :download or :upload (default: traffic:download,traffic:upload)")
+	baremetalTrafficCmd.Flags().StringVar(&baremetal.TrafficNIC, "nic", "",
+		"Read only this controller, by MAC address (default: every controller of the server)")
+	baremetalCmd.AddCommand(baremetalTrafficCmd)
+
 	baremetalCmd.AddCommand(&cobra.Command{
 		Use:               "install-status <service_name>",
 		Short:             "Show how far the running installation of this baremetal has got",
