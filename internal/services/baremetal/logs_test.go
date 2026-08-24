@@ -74,9 +74,25 @@ func TestNearbyTitlesNamesAFewAndCountsTheRest(t *testing.T) {
 		t.Fatalf("five near misses were expected, got %q", near)
 	}
 
-	// Nothing close: say how many exist rather than pretend to suggest.
-	if far := nearbyTitles(streams, "zzzz"); !strings.Contains(far, "7 of them") {
-		t.Fatalf("got %q", far)
+	// Nothing close: say how many exist, AND name a few. The reviewer who hit
+	// this got "no stream is called X. This account has 59 of them" and asked
+	// the obvious question — which ones? A bare count names nothing, and the
+	// completion hint that follows it needs a TAB key that a script, a CI log
+	// or a web console does not have.
+	far := nearbyTitles(streams, "zzzz")
+	if !strings.Contains(far, "7 of them") {
+		t.Fatalf("the count has to survive, got %q", far)
+	}
+	if !strings.Contains(far, "such as") {
+		t.Fatalf("a bare count names nothing: examples are the point, got %q", far)
+	}
+	if strings.Count(far, `"`) != 6 {
+		t.Fatalf("three titles were expected, quoted, got %q", far)
+	}
+	// Stable between two identical calls: an error message that reshuffles
+	// itself reads as instability rather than as an example.
+	if far != nearbyTitles(streams, "zzzz") {
+		t.Fatal("the same account has to give the same examples twice running")
 	}
 }
 
