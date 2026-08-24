@@ -39,14 +39,44 @@ func IsInputFromPipe() bool {
 // by default: such runs must opt in explicitly.
 //
 // The prompt is written to stderr so that a redirected stdout keeps holding
-// data only.
-// Both indirections exist so that the confirmation path itself can be
+// data only. It deliberately does not go through internal/display: that
+// package renders a *result* in the format the caller asked for, and every
+// path through it ends in fmt.Println on stdout, JSON-encodes the message
+// under -o json, overwrites the ResultString global, and — for a warning or an
+// error — calls ExitFunc. A question is none of those things, and one that
+// ended the process before reading the answer would not be a question.
+//
+// These indirections exist so that the confirmation path itself can be
 // exercised by a test: it is the guard standing between a typo and an erased
-// disk, and a guard nobody executes is a guard nobody has checked.
+// disk, and a guard nobody executes is a guard nobody has checked. The writer
+// is injectable for the same reason as the reader — the wording an operator
+// reads before destroying something is the part worth pinning, and while only
+// the reader could be swapped that wording was the one thing a test could not
+// see.
 var (
 	confirmInput       io.Reader = os.Stdin
+	confirmOutput      io.Writer = os.Stderr
 	confirmInteractive           = IsInteractiveTerminal
 )
+
+// readAnswer reads one typed line.
+//
+// A terminal can reach end of file with a line already typed — somebody who
+// answers and then presses Ctrl-D rather than Enter — and bufio reports that
+// as an error alongside the text. Discarding the text on any error threw such
+// an answer away and refused in silence, which reads to the operator as the
+// command ignoring them. Anything actually typed is honoured; only an empty
+// read is a failure to answer, and that one is now said out loud instead of
+// looking like a decline nobody made.
+func readAnswer() (string, bool) {
+	line, err := bufio.NewReader(confirmInput).ReadString('\n')
+	if err != nil && strings.TrimSpace(line) == "" {
+		fmt.Fprintf(confirmOutput, "\n🛑 No answer could be read, so nothing was done.\n")
+		return "", false
+	}
+
+	return strings.TrimSpace(line), true
+}
 
 // IsInteractiveTerminal reports whether there is somebody at a keyboard.
 //
@@ -67,21 +97,20 @@ func IsInteractiveTerminal() bool {
 // declines rather than guessing.
 func ConfirmYesNo(warning string) bool {
 	if !confirmInteractive() {
-		fmt.Fprintf(os.Stderr,
+		fmt.Fprintf(confirmOutput,
 			"🛑 %s\n   Refusing to continue without a confirmation. Re-run with --yes to confirm, or --dry-run to preview.\n",
 			warning)
 		return false
 	}
 
-	fmt.Fprintf(os.Stderr, "⚠️  %s\n   Continue? [y/N] › ", warning)
+	fmt.Fprintf(confirmOutput, "⚠️  %s\n   Continue? [y/N] › ", warning)
 
-	reader := bufio.NewReader(confirmInput)
-	answer, err := reader.ReadString('\n')
-	if err != nil {
+	answer, ok := readAnswer()
+	if !ok {
 		return false
 	}
 
-	switch strings.ToLower(strings.TrimSpace(answer)) {
+	switch strings.ToLower(answer) {
 	case "y", "yes":
 		return true
 	default:
@@ -91,19 +120,18 @@ func ConfirmYesNo(warning string) bool {
 
 func ConfirmByName(expected, warning string) bool {
 	if !confirmInteractive() {
-		fmt.Fprintf(os.Stderr,
+		fmt.Fprintf(confirmOutput,
 			"🛑 %s\n   Refusing to continue without a confirmation. Re-run with --yes to confirm, or --dry-run to preview.\n",
 			warning)
 		return false
 	}
 
-	fmt.Fprintf(os.Stderr, "⚠️  %s\n   Type %q to confirm › ", warning, expected)
+	fmt.Fprintf(confirmOutput, "⚠️  %s\n   Type %q to confirm › ", warning, expected)
 
-	reader := bufio.NewReader(confirmInput)
-	answer, err := reader.ReadString('\n')
-	if err != nil {
+	answer, ok := readAnswer()
+	if !ok {
 		return false
 	}
 
-	return strings.TrimSpace(answer) == expected
+	return answer == expected
 }

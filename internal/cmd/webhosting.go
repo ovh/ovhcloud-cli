@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/completion"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/webhosting"
 	"github.com/spf13/cobra"
 )
@@ -605,7 +604,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
 		Run:               webhosting.UpdateExtraSqlServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(extraSQLServiceInfoUpdateCmd)
+	addServiceInfoRenewFlags(extraSQLServiceInfoUpdateCmd)
 	addParameterFileFlags(extraSQLServiceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(extraSQLServiceInfoUpdateCmd)
 	extraSQLServiceInfoCmd.AddCommand(extraSQLServiceInfoUpdateCmd)
@@ -1326,7 +1325,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
 		Run:               webhosting.UpdateCdnServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(cdnServiceInfoUpdateCmd)
+	addServiceInfoRenewFlags(cdnServiceInfoUpdateCmd)
 	addParameterFileFlags(cdnServiceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(cdnServiceInfoUpdateCmd)
 	cdnServiceInfoCmd.AddCommand(cdnServiceInfoUpdateCmd)
@@ -1460,7 +1459,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
 		Run:               webhosting.UpdateServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(serviceInfoUpdateCmd)
+	addServiceInfoRenewFlags(serviceInfoUpdateCmd)
 	addParameterFileFlags(serviceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(serviceInfoUpdateCmd)
 	serviceInfoCmd.AddCommand(serviceInfoUpdateCmd)
@@ -1571,7 +1570,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
 		Run:               webhosting.UpdateLocalSeoLocationServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(localSeoLocationServiceInfoUpdateCmd)
+	addServiceInfoRenewFlags(localSeoLocationServiceInfoUpdateCmd)
 	addParameterFileFlags(localSeoLocationServiceInfoUpdateCmd, true, nil, "", "", "", nil)
 	addInteractiveEditorFlag(localSeoLocationServiceInfoUpdateCmd)
 	localSeoLocationServiceInfoCmd.AddCommand(localSeoLocationServiceInfoUpdateCmd)
