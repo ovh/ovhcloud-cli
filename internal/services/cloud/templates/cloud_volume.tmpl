@@ -1,17 +1,29 @@
 🚀 Volume {{.ServiceName}}
 =======
-
-_{{index .Result "description"}}_
-
+{{if index .Result "currentState" "description"}}
+_{{index .Result "currentState" "description"}}_
+{{end}}
 ## General information
 
-**Name**:               {{index .Result "name"}}
-**Region**:             {{index .Result "region"}}
-**Availability zone**:  {{index .Result "availabilityZone"}}
-**Type**:               {{index .Result "type"}}
-**Status**:             {{index .Result "status"}}
-**Size**:               {{index .Result "size"}}GB
-**Creation time**:      {{index .Result "creationDate"}}
-**Attached instances**: {{index .Result "attachedTo"}}
+**Status**:        {{index .Result "resourceStatus"}}
+**Creation date**: {{index .Result "createdAt"}}
+**Update date**:   {{index .Result "updatedAt"}}
+
+## Current state
+
+**Name**:               {{index .Result "currentState" "name"}}
+**Region**:             {{index .Result "currentState" "location" "region"}}
+{{if index .Result "currentState" "location" "availabilityZone"}}**Availability zone**:  {{index .Result "currentState" "location" "availabilityZone"}}
+{{end}}**Type**:               {{index .Result "currentState" "volumeType"}}
+**Status**:             {{index .Result "currentState" "status"}}
+**Size**:               {{index .Result "currentState" "size"}}GB
+**Bootable**:           {{index .Result "currentState" "bootable"}}
+{{if index .Result "currentState" "attachedInstances"}}**Attached instances**: {{index .Result "currentState" "attachedInstances"}}
+{{end}}
+## Target state
+
+**Name**: {{index .Result "targetSpec" "name"}}
+**Type**: {{index .Result "targetSpec" "volumeType"}}
+**Size**: {{index .Result "targetSpec" "size"}}GB
 
 💡 Use option -o json or -o yaml to get the raw output with all information
