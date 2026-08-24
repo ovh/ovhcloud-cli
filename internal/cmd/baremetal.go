@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
@@ -134,7 +133,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -997,6 +996,21 @@ sending. --dry-run prints the whole message instead of sending it.`,
 		"Wait until the agent is actually gone before exiting")
 	addConfirmationFlags(baremetalBackupAgentDeleteCmd, "Print the call that would be made without making it")
 	baremetalBackupAgentCmd.AddCommand(baremetalBackupAgentDeleteCmd)
+
+	// No --filter: `cost` renders one object through a template, not rows.
+	// Registering the flag would document it and accept it on a command that
+	// can only ignore it.
+	baremetalCmd.AddCommand(&cobra.Command{
+		Use:   "cost <service_name>",
+		Short: "Show what a server costs and when it renews",
+		Long: "Show what a server costs and when it renews.\n\n" +
+			"A server resolves to several billable services: the machine, and the\n" +
+			"components sold with it. This lists them all, so the price shown is the\n" +
+			"price of the machine as configured rather than of its base plan.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBaremetalCost,
+	})
 
 	rootCmd.AddCommand(baremetalCmd)
 }

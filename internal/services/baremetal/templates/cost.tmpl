@@ -1,0 +1,15 @@
+💶 {{ index .Result "server" }} — {{ index .Result "total" }}
+=======
+
+{{ index .Result "plan" }}
+{{ index .Result "renewal" }}
+
+## Billed for this machine
+
+| Item | Kind | Price | Billed |
+|---|---|---|---|
+{{- range $line := index .Result "lines" }}
+| {{ index $line "item" }} | {{ index $line "kind" }} | {{ index $line "price" }} | {{ index $line "billed" }} |
+{{- end }}
+
+{{ index .Result "services" }} billable service(s). Service IDs are in `-o json`.

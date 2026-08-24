@@ -1,11 +1,26 @@
-## ovhcloud account
+## ovhcloud account refund list
 
-Manage your account
+List your refunds
+
+```
+ovhcloud account refund list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for account
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+      --from string          Start of the window, YYYY-MM-DD or RFC3339 (default: first day of the current month)
+  -h, --help                 help for list
+      --order-id int         Keep only what was refunded for this order
+      --reveal               Print the download links instead of their fingerprints
+      --to string            End of the window, YYYY-MM-DD or RFC3339
 ```
 
 ### Options inherited from parent commands
@@ -29,11 +44,5 @@ Manage your account
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud account api](ovhcloud_account_api.md)	 - Manage your API credentials
-* [ovhcloud account bill](ovhcloud_account_bill.md)	 - Read your invoices
-* [ovhcloud account get](ovhcloud_account_get.md)	 - Retrieve basic personal information
 * [ovhcloud account refund](ovhcloud_account_refund.md)	 - Read your refunds
-* [ovhcloud account ssh-key](ovhcloud_account_ssh-key.md)	 - Manage your SSH keys
-* [ovhcloud account usage](ovhcloud_account_usage.md)	 - Show what is running against your next invoice
 

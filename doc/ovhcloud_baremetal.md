@@ -35,6 +35,7 @@ Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal boot](ovhcloud_baremetal_boot.md)	 - Manage boot options for the given baremetal
 * [ovhcloud baremetal catalog](ovhcloud_baremetal_catalog.md)	 - List orderable servers, their availability and their price
 * [ovhcloud baremetal confirm-termination](ovhcloud_baremetal_confirm-termination.md)	 - Confirm the termination of the given baremetal
+* [ovhcloud baremetal cost](ovhcloud_baremetal_cost.md)	 - Show what a server costs and when it renews
 * [ovhcloud baremetal doctor](ovhcloud_baremetal_doctor.md)	 - Report what is wrong with a server, or with every server
 * [ovhcloud baremetal edit](ovhcloud_baremetal_edit.md)	 - Update the given baremetal
 * [ovhcloud baremetal get](ovhcloud_baremetal_get.md)	 - Retrieve information of a specific baremetal

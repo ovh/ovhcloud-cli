@@ -1,11 +1,24 @@
-## ovhcloud account
+## ovhcloud logout
 
-Manage your account
+Revoke your API credentials and remove them from the configuration
+
+```
+ovhcloud logout [flags]
+```
+
+### Examples
+
+```
+ovhcloud logout
+ovhcloud logout --yes
+ovhcloud logout --profile work
+```
 
 ### Options
 
 ```
-  -h, --help   help for account
+  -h, --help   help for logout
+  -y, --yes    Do not ask for confirmation
 ```
 
 ### Options inherited from parent commands
@@ -30,10 +43,4 @@ Manage your account
 ### SEE ALSO
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud account api](ovhcloud_account_api.md)	 - Manage your API credentials
-* [ovhcloud account bill](ovhcloud_account_bill.md)	 - Read your invoices
-* [ovhcloud account get](ovhcloud_account_get.md)	 - Retrieve basic personal information
-* [ovhcloud account refund](ovhcloud_account_refund.md)	 - Read your refunds
-* [ovhcloud account ssh-key](ovhcloud_account_ssh-key.md)	 - Manage your SSH keys
-* [ovhcloud account usage](ovhcloud_account_usage.md)	 - Show what is running against your next invoice
 

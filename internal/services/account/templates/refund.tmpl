@@ -1,0 +1,23 @@
+💶 Refund {{ index .Result "refundId" }}
+=======
+
+**Date**: {{ index .Result "date" }}
+**Refunds invoice**: {{ index .Result "originalBillId" }}
+{{- with index .Result "orderId" }}
+**Order**: {{ . }}
+{{- end }}
+
+## Amount
+
+**Excluding tax**: {{ index .Result "priceWithoutTax" "text" }}
+**Tax**: {{ index .Result "tax" "text" }}
+**Total**: {{ index .Result "priceWithTax" "text" }}
+
+## Document
+
+**Download**: {{ index .Result "pdfUrl" }}
+**PDF password**: {{ index .Result "password" }}
+{{ if index .Result "hidden" }}
+The link and the password are hidden. Both are bearer secrets. Pass --reveal to
+print them.
+{{ end }}
