@@ -5,11 +5,12 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
 )
 
@@ -121,7 +122,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -261,6 +262,67 @@ be sent without sending them.
 	addConfirmationFlags(reinstallBaremetalCmd, "Print the installation parameters without sending anything")
 	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "from-file", "editor")
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
+
+	// Powering a server off and back on.
+	//
+	// There is no power endpoint in this API. `power` is a boot type: setting
+	// the server's boot to its "Power-off server" entry and rebooting into it
+	// halts the machine, and putting the previous boot back and rebooting
+	// starts it again.
+	baremetalPowerCmd := &cobra.Command{
+		Use:   "power",
+		Short: "Power the given baremetal off and on",
+		Long: `Power the given dedicated server off and on.
+
+There is no power switch in the API: powering off works by setting the server's
+"Power-off server" boot entry and rebooting into it. That has a consequence
+worth knowing — a server left on that entry shuts itself down at every reboot,
+including a reboot asked for from the manager. "power on" therefore puts the
+previous boot back before starting the server, and "power status" says so when
+a server is sitting on the power-off entry.`,
+	}
+	baremetalCmd.AddCommand(baremetalPowerCmd)
+
+	baremetalPowerStatusCmd := &cobra.Command{
+		Use:               "status <service_name>",
+		Short:             "Show whether the server is on, and what it will boot on",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.GetBaremetalPowerStatus,
+	}
+	// No --filter here: `power status` answers about one server and renders one
+	// object, so there are no rows to filter. Registering the flag would have
+	// docgen document it and cobra accept it, on a command where it can only
+	// ever be ignored.
+	baremetalPowerCmd.AddCommand(baremetalPowerStatusCmd)
+
+	baremetalPowerOffCmd := &cobra.Command{
+		Use:               "off <service_name>",
+		Short:             "Power off the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.PowerOffBaremetal,
+	}
+	baremetalPowerOffCmd.Flags().BoolVar(&baremetal.PowerWait, "wait", false, "Wait until the server reports itself off before exiting")
+	baremetalPowerOffCmd.Flags().DurationVar(&baremetal.PowerTimeout, "timeout", 10*time.Minute, "How long --wait waits")
+	addConfirmationFlags(baremetalPowerOffCmd, "Print the two calls that would be made without making them")
+	baremetalPowerCmd.AddCommand(baremetalPowerOffCmd)
+
+	baremetalPowerOnCmd := &cobra.Command{
+		Use:               "on <service_name>",
+		Short:             "Power on the given baremetal, restoring the boot it was on",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.PowerOnBaremetal,
+	}
+	baremetalPowerOnCmd.Flags().BoolVar(&baremetal.PowerWait, "wait", false, "Wait until the server reports itself on before exiting")
+	baremetalPowerOnCmd.Flags().DurationVar(&baremetal.PowerTimeout, "timeout", 10*time.Minute, "How long --wait waits")
+	baremetalPowerOnCmd.Flags().IntVar(&baremetal.PowerBootID, "boot", 0, "Boot to start on, instead of the one the server was on before it was powered off")
+	// --dry-run without --yes: powering a server on interrupts nothing, so there
+	// is no prompt to skip, and offering a flag that skips nothing would be one
+	// more thing to learn that turns out to mean nothing.
+	baremetalPowerOnCmd.Flags().BoolVar(&flags.DryRun, "dry-run", false, "Print the calls that would be made without making them")
+	baremetalPowerCmd.AddCommand(baremetalPowerOnCmd)
 
 	// List boots and their options
 	baremetalBootCmd := &cobra.Command{
