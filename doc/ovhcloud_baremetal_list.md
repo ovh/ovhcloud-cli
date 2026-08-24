@@ -2,6 +2,14 @@
 
 List your Baremetal services
 
+### Synopsis
+
+List your Baremetal services.
+
+--tag narrows the list on the API itself, using the IAM tags set on the servers. Write it as key=value, or key:OPERATOR=value to compare another way; OPERATOR is one of the names the API uses (EQ, NEQ, LIKE, ILIKE, EXISTS, NEXISTS), and EXISTS and NEXISTS take no value. Several --tag narrow further.
+
+It is not the same thing as --filter, which runs on the columns of the table once the servers have been read.
+
 ```
 ovhcloud baremetal list [flags]
 ```
@@ -17,6 +25,7 @@ ovhcloud baremetal list [flags]
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
   -h, --help                 help for list
+      --tag stringArray      Only list servers carrying this IAM tag (key=value, or key:OPERATOR=value)
 ```
 
 ### Options inherited from parent commands
