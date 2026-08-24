@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
@@ -124,7 +123,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -393,6 +392,30 @@ a server is sitting on the power-off entry.`,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.GetBaremetalCompatibleOses,
+	}))
+
+	// What to put in the storage block of a reinstall. The block itself already
+	// travels through --from-file; these are the three questions you have to
+	// answer before writing it, and on a reinstall the disks are wiped before
+	// the API tells you the answer was wrong.
+	listPartitionSchemesCmd := &cobra.Command{
+		Use:               "list-partition-schemes <service_name>",
+		Short:             "List the partition schemes an OS template allows on this baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ListBaremetalPartitionSchemes,
+	}
+	listPartitionSchemesCmd.Flags().StringVar(&baremetal.InstallTemplate, "os", "",
+		"OS template the schemes are relative to (see `ovhcloud baremetal list-compatible-os`)")
+	listPartitionSchemesCmd.MarkFlagRequired("os")
+	baremetalCmd.AddCommand(withFilterFlag(listPartitionSchemesCmd))
+
+	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "raid-profile <service_name>",
+		Short:             "Show the hardware RAID controllers of this baremetal, if it has any",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.GetBaremetalRaidProfile,
 	}))
 
 	// Commands to manage virtual network interfaces

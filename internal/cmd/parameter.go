@@ -8,13 +8,16 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/openapi"
+	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -143,6 +146,34 @@ func markFlagsOneRequired(cmd *cobra.Command, flagNames ...string) {
 	}
 }
 
+// exampleForUnattendedRun names the example to write when nobody can be asked.
+//
+// "default" is the example this CLI ships for the command, as opposed to the
+// ones lifted from the API schema, and it is the one written to document the
+// shapes a schema example leaves out — the storage block of a reinstall is why
+// this matters. It wins when it is there.
+//
+// Otherwise the names are sorted and the first is taken. Sorted, because
+// examples is a map: ranging over it would write a different file on each run,
+// and a scripted file that changes under you is worse than one you did not get
+// to choose.
+func exampleForUnattendedRun(examples map[string]string) string {
+	if _, ok := examples["default"]; ok {
+		return "default"
+	}
+
+	names := make([]string, 0, len(examples))
+	for name := range examples {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	if len(names) == 0 {
+		return ""
+	}
+	return names[0]
+}
+
 func addParameterFileFlags(cmd *cobra.Command, skipInit bool, openapiSchema []byte, path, method, defaultContent string, replaceValueFn func(*cobra.Command, []string) (map[string]any, error)) {
 	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
 		return
@@ -194,8 +225,26 @@ func addParameterFileFlags(cmd *cobra.Command, skipInit bool, openapiSchema []by
 		}
 
 		// Run choice picker to select an example
+		//
+		// The picker needs a terminal, and --init-file is how somebody writing
+		// a script discovers the shape of a request body — so the one context
+		// where it is most useful is the one where it could not run at all: it
+		// failed with "could not open a new TTY" and wrote nothing. Outside a
+		// terminal there is nobody to ask, so the first example is taken and
+		// said, which is also what the single-example case always meant.
 		var choice string
-		if len(examples) > 0 {
+		switch {
+		case len(examples) == 0:
+		case !utils.IsInteractiveTerminal():
+			name := exampleForUnattendedRun(examples)
+			choice = examples[name]
+
+			// log, not display.OutputWarning: that one ends the process — it
+			// sets Warning, which reaches ExitFunc(0) — so the file this
+			// function exists to write would never have been written.
+			log.Printf("Not running in a terminal: writing example %q to %s without asking (%d available).",
+				name, paramFile, len(examples))
+		default:
 			_, choice, err = display.RunGenericChoicePicker("Please select a parameter example", examples, 0)
 			if err != nil {
 				display.OutputError(&flags.OutputFormatConfig, "%s", err)

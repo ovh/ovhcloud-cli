@@ -43,6 +43,41 @@ func ManageListRequest(path, idField string, columnsToDisplay, filters []string)
 	display.RenderTable(body, columnsToDisplay, &flags.OutputFormatConfig)
 }
 
+// RenderFilteredTable renders rows that a command assembled itself, applying
+// --filter on the way.
+//
+// display.RenderTable does not filter, and withFilterFlag only binds the flag
+// to flags.GenericFilters. A command that registers the flag and then calls
+// RenderTable directly therefore accepts --filter, has it documented by
+// docgen, and ignores it — which is worse than not offering it, because the
+// operator reads a filtered list that is not filtered. ManageListRequest does
+// this for commands that fetch a plain collection; this is the same three
+// lines for the ones that build their rows first.
+func RenderFilteredTable(rows []map[string]any, columnsToDisplay []string) {
+	filtered, ok := FilteredRows(rows)
+	if !ok {
+		return
+	}
+
+	display.RenderTable(filtered, columnsToDisplay, &flags.OutputFormatConfig)
+}
+
+// FilteredRows applies --filter and reports whether the caller may carry on.
+//
+// Separate from RenderFilteredTable for the commands that do not render a table:
+// a few wrap their list in an object and hand it to a template, and there the
+// filter has to run before the wrapping. Returning false means the failure has
+// already been reported.
+func FilteredRows(rows []map[string]any) ([]map[string]any, bool) {
+	filtered, err := filtersLib.FilterLines(rows, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return nil, false
+	}
+
+	return filtered, true
+}
+
 func ManageListRequestNoExpand(path string, columnsToDisplay, filters []string) {
 	body, err := httpLib.FetchArray(path, "")
 	if err != nil {
@@ -166,8 +201,6 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		return nil, fmt.Errorf("parameters cannot be marshalled: %w", err)
 	}
 
-	log.Println("Final parameters: \n" + string(out))
-
 	// --dry-run stops here: the caller sees exactly what would have been sent,
 	// and nothing reaches the API.
 	if flags.DryRun {
@@ -185,6 +218,19 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		}, "🔍 Dry run: nothing was sent. This would have been posted to %s:\n%s", endpoint, payload)
 		return nil, nil
 	}
+
+	// Logged only once the dry run is ruled out. A --dry-run already prints the
+	// payload as its message, so logging it here printed the same JSON twice,
+	// the second time behind a Go timestamp no other command in this CLI emits:
+	//
+	//	🔍 Dry run: nothing was sent. This would have been posted to …
+	//	{ "operatingSystem": "debian12_64" }
+	//	2026/08/23 23:47:22 Final parameters:
+	//	{ "operatingSystem": "debian12_64" }
+	//
+	// A real run still logs what it is about to send, which is what this line
+	// was for.
+	log.Println("Final parameters: \n" + string(out))
 
 	var createdResource map[string]any
 	if err := httpLib.Client.Post(endpoint, parameters, &createdResource); err != nil {
