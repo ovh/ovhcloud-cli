@@ -628,6 +628,45 @@ func (ms *MockSuite) TestCloudContainerRegistryPlanListCapabilitiesCmd(assert, r
 💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
+// TestCloudContainerRegistryPlanListCapabilitiesFallbackCmd checks that when the
+// per-registry capabilities endpoint returns nothing (as it does for some
+// regions), the command falls back to the project-level capabilities and shows
+// the plans of the registry's region (issue #197).
+func (ms *MockSuite) TestCloudContainerRegistryPlanListCapabilitiesFallbackCmd(assert, require *td.T) {
+	const regID = "550e8400-e29b-41d4-a716-446655440000"
+
+	// Per-registry endpoint returns no plan.
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/"+regID+"/capabilities/plan",
+		httpmock.NewStringResponder(200, `[]`).Once())
+
+	// Registry details give its region.
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/containerRegistry/"+regID,
+		httpmock.NewStringResponder(200, `{"id": "`+regID+`", "region": "DE"}`).Once())
+
+	// Project-level capabilities carry the plans per region.
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/capabilities/containerRegistry",
+		httpmock.NewStringResponder(200, `[
+			{"regionName": "GRA", "regionType": "region", "plans": []},
+			{"regionName": "DE", "regionType": "region", "plans": [
+				{
+					"id": "c5ddc763-be75-48f7-b7ec-e923ca040bee",
+					"name": "MEDIUM",
+					"registryLimits": {"imageStorage": 644245094400, "parallelRequest": 45},
+					"features": {"vulnerability": true}
+				}
+			]}
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "managed-registry", "plan", "list-capabilities", regID, "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("MEDIUM"))
+	assert.Cmp(out, td.Contains("600G"))
+}
+
 func (ms *MockSuite) TestCloudContainerRegistryPlanUpgradeCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(
 		http.MethodPut,

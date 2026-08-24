@@ -525,6 +525,19 @@ func ListContainerRegistryPlanCapabilities(_ *cobra.Command, args []string) {
 		return
 	}
 
+	// The per-registry endpoint returns no plan for some regions. In that case,
+	// fall back to the project-level capabilities, which list the available
+	// plans per region, and pick the entry matching the registry's region
+	// (see issue #197).
+	if len(plans) == 0 {
+		fallback, err := registryPlansFromProjectCapabilities(projectID, args[0])
+		if err != nil {
+			display.OutputWarning(&flags.OutputFormatConfig, "could not fetch plan capabilities from project capabilities: %s", err)
+		} else {
+			plans = fallback
+		}
+	}
+
 	for _, plan := range plans {
 		formatContainerRegistryPlans(plan)
 	}
@@ -535,7 +548,56 @@ func ListContainerRegistryPlanCapabilities(_ *cobra.Command, args []string) {
 		return
 	}
 
+	if len(plans) == 0 {
+		display.OutputWarning(&flags.OutputFormatConfig, "no plan capabilities available for registry %s", args[0])
+		return
+	}
+
 	display.RenderTable(plans, cloudprojectContainerRegistryPlanCapabilitiesColumnsToDisplay, &flags.OutputFormatConfig)
+}
+
+// registryPlansFromProjectCapabilities returns the container registry plans
+// available in the given registry's region, taken from the project-level
+// capabilities endpoint. It is used as a fallback when the per-registry
+// capabilities endpoint returns nothing (see issue #197).
+func registryPlansFromProjectCapabilities(projectID, registryID string) ([]map[string]any, error) {
+	var registry map[string]any
+	registryEndpoint := fmt.Sprintf("/v1/cloud/project/%s/containerRegistry/%s", projectID, url.PathEscape(registryID))
+	if err := httpLib.Client.Get(registryEndpoint, &registry); err != nil {
+		return nil, fmt.Errorf("failed to fetch registry %s: %w", registryID, err)
+	}
+
+	region, _ := registry["region"].(string)
+	if region == "" {
+		return nil, fmt.Errorf("could not determine the region of registry %s", registryID)
+	}
+
+	var capabilities []map[string]any
+	capabilitiesEndpoint := fmt.Sprintf("/v1/cloud/project/%s/capabilities/containerRegistry", projectID)
+	if err := httpLib.Client.Get(capabilitiesEndpoint, &capabilities); err != nil {
+		return nil, fmt.Errorf("failed to fetch project container registry capabilities: %w", err)
+	}
+
+	for _, capability := range capabilities {
+		if name, _ := capability["regionName"].(string); name != region {
+			continue
+		}
+
+		rawPlans, ok := capability["plans"].([]any)
+		if !ok {
+			return nil, nil
+		}
+
+		plans := make([]map[string]any, 0, len(rawPlans))
+		for _, rawPlan := range rawPlans {
+			if plan, ok := rawPlan.(map[string]any); ok {
+				plans = append(plans, plan)
+			}
+		}
+		return plans, nil
+	}
+
+	return nil, nil
 }
 
 func UpgradeContainerRegistryPlan(_ *cobra.Command, args []string) {
