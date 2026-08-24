@@ -11,7 +11,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
+	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
 
@@ -123,7 +123,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -395,6 +395,49 @@ a server is sitting on the power-off entry.`,
 	}))
 
 	// Commands to manage virtual network interfaces
+	// Private network, seen from the machine. The same work lives under
+	// `ovhcloud vrack`; this is where somebody holding a server looks for it.
+	baremetalVrackCmd := &cobra.Command{
+		Use:   "vrack",
+		Short: "Attach the given baremetal to a vRack, or detach it",
+	}
+	baremetalCmd.AddCommand(baremetalVrackCmd)
+
+	baremetalVrackCmd.AddCommand(&cobra.Command{
+		Use:               "show <service_name>",
+		Short:             "Show the vRack the given baremetal is in",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBaremetalVrack,
+	})
+
+	baremetalVrackAttachCmd := &cobra.Command{
+		Use:               "attach <service_name> <vrack>",
+		Short:             "Attach the given baremetal to a vRack",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.AttachBaremetalToVrack,
+	}
+	addVrackTaskFlags(baremetalVrackAttachCmd)
+	baremetalVrackAttachCmd.Flags().StringVar(&vrack.VrackInterface, "interface", "",
+		"Interface to attach, when the server has several")
+	addConfirmationFlags(baremetalVrackAttachCmd, "Print the call that would be made without making it")
+	baremetalVrackCmd.AddCommand(baremetalVrackAttachCmd)
+
+	// The vRack argument is optional: a server is in at most one, and this CLI
+	// can read which. Making the operator look it up first would be work the
+	// tool exists to remove.
+	baremetalVrackDetachCmd := &cobra.Command{
+		Use:               "detach <service_name> [vrack]",
+		Short:             "Detach the given baremetal from its vRack",
+		Args:              cobra.RangeArgs(1, 2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.DetachBaremetalFromVrack,
+	}
+	addVrackTaskFlags(baremetalVrackDetachCmd)
+	addConfirmationFlags(baremetalVrackDetachCmd, "Print the call that would be made without making it")
+	baremetalVrackCmd.AddCommand(baremetalVrackDetachCmd)
+
 	baremetalVNICmd := &cobra.Command{
 		Use:   "vni",
 		Short: "Manage Virtual Network Interfaces of the given baremetal",

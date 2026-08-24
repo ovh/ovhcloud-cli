@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"net/url"
 
+	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -32,8 +34,90 @@ func ListVrack(_ *cobra.Command, _ []string) {
 	common.ManageListRequest("/v1/vrack", "", vrackColumnsToDisplay, flags.GenericFilters)
 }
 
+// GetVrack shows a vRack and what is inside it.
+//
+// It used to show the name, the description and the IAM URN, which meant a
+// vRack holding two servers and an OVHcloud Connect printed exactly like an
+// empty one. The contents are the reason anybody looks at a vRack, so they are
+// read here and folded into the same object -- which also puts them in the
+// -o json output, where a script can act on them.
 func GetVrack(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/v1/vrack", args[0], vrackTemplate)
+	vrack := args[0]
+
+	var object map[string]any
+	if err := httpLib.Client.Get(fmt.Sprintf("/v1/vrack/%s", url.PathEscape(vrack)), &object); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch vRack %s: %s", vrack, err)
+		return
+	}
+
+	// The contents are additional information, not the object: a vRack that
+	// cannot be listed is still worth printing. So a failure here costs the
+	// section, never the command — and that is why it is folded into the object
+	// rather than reported with display.OutputWarning.
+	//
+	// A warning is not a message, it is an exit: OutputWithFormat ends on
+	// ExitFunc(0) for Warning just as it ends on ExitFunc(1) for Error. Called
+	// here it would have taken the process down before the vRack was printed,
+	// so `vrack get` answered nothing at all and exited 0 whenever one of these
+	// ten lists failed. Everything after an OutputWarning is dead code; only the
+	// suite's no-op ExitFunc stub made it look otherwise.
+	servers, serversErr := attachedInterfaces(vrack)
+	others, unreadable := otherContents(vrack)
+
+	if serversErr != nil {
+		// Counted with the other unreadable sections so the summary stops short
+		// of "This vRack is empty" — the claim this command must never make on
+		// a list it could not read.
+		object["serversError"] = serversErr.Error()
+		unreadable++
+	}
+
+	object["servers"] = serverRows(servers)
+	object["otherContents"] = others
+	// distinctServers and not len(servers): the list is one entry per attached
+	// *interface*, and a server can have several. This whole package knows it —
+	// interfacesOf sorts the interfaces of one server, and attach refuses when a
+	// server has more than one — so counting rows here printed "2 dedicated
+	// servers" for one machine with two NICs.
+	object["summary"] = summarise(distinctServers(servers), others, unreadable)
+	object["anyServerNamed"] = anyNamed(servers)
+
+	display.OutputObject(object, vrack, vrackTemplate, &flags.OutputFormatConfig)
+}
+
+// serverRows turns the interfaces into what the template prints.
+func serverRows(interfaces []serverInterface) []map[string]any {
+	rows := make([]map[string]any, 0, len(interfaces))
+	for _, itf := range interfaces {
+		name := ""
+		if itf.DisplayName != "" && itf.DisplayName != itf.Server {
+			name = itf.DisplayName
+		}
+		rows = append(rows, map[string]any{
+			"name":          name,
+			"server":        itf.Server,
+			"interface":     itf.Name,
+			"interfaceUuid": itf.UUID,
+		})
+	}
+	return rows
+}
+
+// anyNamed reports whether the Name column has anything to say.
+//
+// Written after seeing the real output: a vRack whose servers are all unnamed
+// printed the hostname twice per row, once under Name and once under Server.
+// A column repeating its neighbour costs width -- and on a terminal narrow
+// enough it is what pushes the row onto two lines, which is the thing the
+// table was chosen to avoid. So the column appears when at least one server
+// has a name of its own, and not otherwise.
+func anyNamed(interfaces []serverInterface) bool {
+	for _, itf := range interfaces {
+		if itf.DisplayName != "" && itf.DisplayName != itf.Server {
+			return true
+		}
+	}
+	return false
 }
 
 func EditVrack(cmd *cobra.Command, args []string) {

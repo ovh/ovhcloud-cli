@@ -49,4 +49,5 @@ Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal service-info](ovhcloud_baremetal_service-info.md)	 - Manage service information of the given baremetal
 * [ovhcloud baremetal terminate](ovhcloud_baremetal_terminate.md)	 - Ask for the termination of the given baremetal
 * [ovhcloud baremetal vni](ovhcloud_baremetal_vni.md)	 - Manage Virtual Network Interfaces of the given baremetal
+* [ovhcloud baremetal vrack](ovhcloud_baremetal_vrack.md)	 - Attach the given baremetal to a vRack, or detach it
 
