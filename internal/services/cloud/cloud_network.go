@@ -368,7 +368,7 @@ func CreatePrivateNetwork(cmd *cobra.Command, args []string) {
 		PrivateNetworkCreationExample,
 		CloudNetworkSpec,
 		assets.CloudV2OpenapiSchema,
-		[]string{"targetSpec"})
+		[]string{"targetSpec.name"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create private network: %s", err)
 		return
@@ -505,7 +505,7 @@ func CreatePrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 		PrivateNetworkSubnetCreationExample,
 		CloudNetworkSubnetSpec,
 		assets.CloudV2OpenapiSchema,
-		[]string{"targetSpec"})
+		[]string{"targetSpec.name", "targetSpec.cidr"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create subnet: %s", err)
 		return

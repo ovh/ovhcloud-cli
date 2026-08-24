@@ -259,3 +259,14 @@ func (ms *MockSuite) TestCloudPrivateNetworkSubnetDeleteCmd(assert, require *td.
 	require.CmpNoError(err)
 	assert.String(out, `✅ Subnet subnet-1 is being deleted from network pn-123456…`)
 }
+
+// TestCloudPrivateNetworkCreateMissingNameCmd checks that a create without the
+// mandatory --name fails client-side and does NOT hit the API (no POST
+// responder is registered, so any call would error differently).
+func (ms *MockSuite) TestCloudPrivateNetworkCreateMissingNameCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "network", "private", "vrack", "create", "GRA11",
+		"--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`mandatory field "targetSpec.name"`))
+}
