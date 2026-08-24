@@ -268,5 +268,8 @@ func (ms *MockSuite) TestCloudPrivateNetworkCreateMissingNameCmd(assert, require
 		"--cloud-project", "fakeProjectID")
 
 	require.CmpError(err)
-	assert.Cmp(err.Error(), td.Contains(`mandatory field "targetSpec.name"`))
+	// The error must reference the user-facing field name, not the internal
+	// JSON path "targetSpec.name" (#224 review).
+	assert.Cmp(err.Error(), td.Contains(`mandatory field "name"`))
+	assert.Cmp(err.Error(), td.Not(td.Contains("targetSpec")))
 }
