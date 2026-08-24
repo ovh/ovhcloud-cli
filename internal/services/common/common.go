@@ -24,20 +24,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	//go:embed templates/service_info.tmpl
-	ServiceInfoTemplate string
-
-	ServiceInfoSpec struct {
-		Renew struct {
-			Automatic          bool `json:"automatic"`
-			DeleteAtExpiration bool `json:"deleteAtExpiration"`
-			Forced             bool `json:"forced"`
-			ManualPayment      bool `json:"manualPayment"`
-			Period             int  `json:"period"`
-		} `json:"renew"`
-	}
-)
+//go:embed templates/service_info.tmpl
+var ServiceInfoTemplate string
 
 func ManageListRequest(path, idField string, columnsToDisplay, filters []string) {
 	body, err := httpLib.FetchExpandedArray(path, idField)
@@ -178,6 +166,35 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		return nil, fmt.Errorf("parameters cannot be marshalled: %w", err)
 	}
 
+	// --dry-run stops here: the caller sees exactly what would have been sent,
+	// and nothing reaches the API.
+	if flags.DryRun {
+		// The payload goes in the message, not only in the details: the
+		// default output prints the message alone, so a --dry-run whose body
+		// lived in the details printed a promise and no request.
+		payload, err := json.MarshalIndent(parameters, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to render the parameters: %w", err)
+		}
+
+		display.OutputInfo(&flags.OutputFormatConfig, map[string]any{
+			"endpoint":   endpoint,
+			"parameters": parameters,
+		}, "🔍 Dry run: nothing was sent. This would have been posted to %s:\n%s", endpoint, payload)
+		return nil, nil
+	}
+
+	// Logged only once the dry run is ruled out. A --dry-run already prints the
+	// payload as its message, so logging it here printed the same JSON twice,
+	// the second time behind a Go timestamp no other command in this CLI emits:
+	//
+	//	🔍 Dry run: nothing was sent. This would have been posted to …
+	//	{ "operatingSystem": "debian12_64" }
+	//	2026/08/23 23:47:22 Final parameters:
+	//	{ "operatingSystem": "debian12_64" }
+	//
+	// A real run still logs what it is about to send, which is what this line
+	// was for.
 	log.Println("Final parameters: \n" + string(out))
 
 	var createdResource map[string]any

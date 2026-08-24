@@ -158,3 +158,41 @@ func pruneUnknownFields(data map[string]any, schema *openapi3.Schema) map[string
 	}
 	return cleaned
 }
+
+// GetRequestFieldEnum returns the values a request body field accepts, in the
+// order the specification lists them.
+//
+// Enumerations are worth reading rather than copying: `reason` on a termination
+// carries fourteen values today, and a list transcribed into Go drifts the day
+// the API gains a fifteenth — silently, into a 400 the operator cannot explain.
+// The specification already ships inside the binary, so the values are free.
+//
+// It returns nil, without an error, for a field that exists but enumerates
+// nothing: a caller asking for a free-text field wants an empty list, not a
+// failure.
+func GetRequestFieldEnum(spec []byte, path, method, field string) ([]string, error) {
+	content, err := getRequestBodyFromSpec(spec, path, method)
+	if err != nil {
+		return nil, err
+	}
+
+	if content.Schema == nil || content.Schema.Value == nil {
+		return nil, fmt.Errorf("no request schema for %s %s", method, path)
+	}
+
+	property, found := content.Schema.Value.Properties[field]
+	if !found || property.Value == nil {
+		return nil, fmt.Errorf("field %q not found in the body of %s %s", field, method, path)
+	}
+
+	values := make([]string, 0, len(property.Value.Enum))
+	for _, value := range property.Value.Enum {
+		text, ok := value.(string)
+		if !ok {
+			return nil, fmt.Errorf("field %q enumerates a %T, expected a string", field, value)
+		}
+		values = append(values, text)
+	}
+
+	return values, nil
+}

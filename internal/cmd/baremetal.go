@@ -66,6 +66,66 @@ func init() {
 	}
 	baremetalCmd.AddCommand(withFilterFlag(baremetalListTasksCmd))
 
+	// Service information and life cycle
+	baremetalServiceInfoCmd := &cobra.Command{
+		Use:   "service-info",
+		Short: "Manage service information of the given baremetal",
+	}
+	baremetalCmd.AddCommand(baremetalServiceInfoCmd)
+
+	baremetalServiceInfoCmd.AddCommand(&cobra.Command{
+		Use:               "get <service_name>",
+		Short:             "Get service information of the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.GetBaremetalServiceInfo,
+	})
+
+	baremetalServiceInfoEditCmd := &cobra.Command{
+		Use:               "edit <service_name>",
+		Short:             "Edit service information of the given baremetal",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.EditBaremetalServiceInfo,
+	}
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
+	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
+
+	baremetalTerminateCmd := &cobra.Command{
+		Use:   "terminate <service_name>",
+		Short: "Ask for the termination of the given baremetal",
+		Long: `Ask for the termination of the given baremetal.
+
+Nothing stops when this returns: OVHcloud emails a termination token to the
+administrative contact of the service, and the server keeps running until that
+token is confirmed with "baremetal confirm-termination".`,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.TerminateBaremetal,
+	}
+	addConfirmationFlags(baremetalTerminateCmd, "Print the call that would be made without making it")
+	baremetalCmd.AddCommand(baremetalTerminateCmd)
+
+	baremetalConfirmTerminationCmd := &cobra.Command{
+		Use:   "confirm-termination <service_name> <token>",
+		Short: "Confirm the termination of the given baremetal",
+		Long: `Confirm the termination of the given baremetal, using the token emailed to
+the administrative contact by "baremetal terminate".
+
+This ends the contract: the server is returned to OVHcloud at expiry.`,
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ConfirmBaremetalTermination,
+	}
+	baremetalConfirmTerminationCmd.Flags().StringVar(&baremetal.TerminationReason, "reason", "", "Why the service is being terminated (press <tab> for the accepted values)")
+	baremetalConfirmTerminationCmd.Flags().StringVar(&baremetal.TerminationFutureUse, "future-use", "", "What comes next after this termination (press <tab> for the accepted values)")
+	baremetalConfirmTerminationCmd.Flags().StringVar(&baremetal.TerminationComment, "commentary", "", "Free-text comment attached to the termination request")
+	baremetalConfirmTerminationCmd.RegisterFlagCompletionFunc("reason", baremetal.CompleteTerminationReason)
+	baremetalConfirmTerminationCmd.RegisterFlagCompletionFunc("future-use", baremetal.CompleteTerminationFutureUse)
+	addConfirmationFlags(baremetalConfirmTerminationCmd, "Print the call that would be made without making it")
+	baremetalCmd.AddCommand(baremetalConfirmTerminationCmd)
+
 	// Command to reboot a baremetal
 	baremetalRebootCmd := &cobra.Command{
 		Use:               "reboot <service_name>",
@@ -74,6 +134,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.RebootBaremetal,
 	}
+	addConfirmationFlags(baremetalRebootCmd, "Print the call that would be made without making it")
 	baremetalCmd.AddCommand(baremetalRebootCmd)
 
 	// Command to reboot a baremetal in rescue mode
@@ -85,6 +146,7 @@ func init() {
 		Run:               baremetal.RebootRescueBaremetal,
 	}
 	baremetalRebootRescueCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reboot to be done before exiting")
+	addConfirmationFlags(baremetalRebootRescueCmd, "Print the call that would be made without making it")
 	baremetalCmd.AddCommand(baremetalRebootRescueCmd)
 
 	// Command to reinstall a baremetal
@@ -111,7 +173,10 @@ There are three ways to define the installation parameters:
 
   Note that you can also pipe the content of the file to reinstall, like the following:
 
-	cat ./install.json | ovhcloud baremetal reinstall ns1234.ip-11.22.33.net
+	cat ./install.json | ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --yes
+
+  Piped input is not a terminal, so there is nobody to answer the confirmation:
+  such a run refuses to start unless --yes is given.
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
@@ -132,6 +197,11 @@ You can visit https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&bran
 to see all the available parameters and real life examples.
 
 Please note that all parameters are not compatible with all OSes.
+
+Reinstalling wipes every disk of the server, so the command asks for a
+confirmation: type the server name when prompted. Unattended runs (pipelines,
+piped input) must pass --yes, and --dry-run prints the parameters that would
+be sent without sending them.
 `,
 		Args:              cobra.MaximumNArgs(1),
 		ArgAliases:        []string{"service_name"},
@@ -155,6 +225,7 @@ Please note that all parameters are not compatible with all OSes.
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.SshKey, "ssh-key", "", "SSH public key")
 	reinstallBaremetalCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
+	addConfirmationFlags(reinstallBaremetalCmd, "Print the installation parameters without sending anything")
 	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "from-file", "editor")
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
 
@@ -263,6 +334,7 @@ Please note that all parameters are not compatible with all OSes.
 	}
 	baremetalVNIResetOLAAggregationCmd.Flags().StringArrayVar(&baremetal.BaremetalOLAInterfaces, "interface", nil, "Interfaces to group")
 	baremetalVNIResetOLAAggregationCmd.MarkFlagRequired("interface")
+	addConfirmationFlags(baremetalVNIResetOLAAggregationCmd, "Print the call that would be made without making it")
 	baremetalVNICmd.AddCommand(baremetalVNIResetOLAAggregationCmd)
 
 	baremetalIPMICmd := &cobra.Command{

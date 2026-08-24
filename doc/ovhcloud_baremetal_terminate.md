@@ -1,22 +1,25 @@
-## ovhcloud webhosting local-seo location service-info update
+## ovhcloud baremetal terminate
 
-Update Local SEO location service info
+Ask for the termination of the given baremetal
+
+### Synopsis
+
+Ask for the termination of the given baremetal.
+
+Nothing stops when this returns: OVHcloud emails a termination token to the
+administrative contact of the service, and the server keeps running until that
+token is confirmed with "baremetal confirm-termination".
 
 ```
-ovhcloud webhosting local-seo location service-info update <service_name> <id> [flags]
+ovhcloud baremetal terminate <service_name> [flags]
 ```
 
 ### Options
 
 ```
-      --editor                       Use a text editor to define parameters
-      --from-file string             File containing parameters
-  -h, --help                         help for update
-      --renew-automatic              Renew the service automatically
-      --renew-delete-at-expiration   Delete the service when it expires
-      --renew-forced                 Force the renewal
-      --renew-manual-payment         Pay the renewal manually
-      --renew-period int             Renewal period, in months
+      --dry-run   Print the call that would be made without making it
+  -h, --help      help for terminate
+  -y, --yes       Skip the confirmation prompt (required for unattended runs)
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +43,5 @@ ovhcloud webhosting local-seo location service-info update <service_name> <id> [
 
 ### SEE ALSO
 
-* [ovhcloud webhosting local-seo location service-info](ovhcloud_webhosting_local-seo_location_service-info.md)	 - Manage Local SEO location service info
+* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
 
