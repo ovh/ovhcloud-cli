@@ -31,6 +31,8 @@ Retrieve information and manage your Bare Metal services
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
 * [ovhcloud baremetal boot](ovhcloud_baremetal_boot.md)	 - Manage boot options for the given baremetal
+* [ovhcloud baremetal catalog](ovhcloud_baremetal_catalog.md)	 - List orderable servers, their availability and their price
+* [ovhcloud baremetal confirm-termination](ovhcloud_baremetal_confirm-termination.md)	 - Confirm the termination of the given baremetal
 * [ovhcloud baremetal edit](ovhcloud_baremetal_edit.md)	 - Update the given baremetal
 * [ovhcloud baremetal get](ovhcloud_baremetal_get.md)	 - Retrieve information of a specific baremetal
 * [ovhcloud baremetal ipmi](ovhcloud_baremetal_ipmi.md)	 - Manage IPMI on your baremetal
@@ -43,5 +45,7 @@ Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal reboot](ovhcloud_baremetal_reboot.md)	 - Reboot the given baremetal
 * [ovhcloud baremetal reboot-rescue](ovhcloud_baremetal_reboot-rescue.md)	 - Reboot the given baremetal in rescue mode
 * [ovhcloud baremetal reinstall](ovhcloud_baremetal_reinstall.md)	 - Reinstall the given baremetal
+* [ovhcloud baremetal service-info](ovhcloud_baremetal_service-info.md)	 - Manage service information of the given baremetal
+* [ovhcloud baremetal terminate](ovhcloud_baremetal_terminate.md)	 - Ask for the termination of the given baremetal
 * [ovhcloud baremetal vni](ovhcloud_baremetal_vni.md)	 - Manage Virtual Network Interfaces of the given baremetal
 

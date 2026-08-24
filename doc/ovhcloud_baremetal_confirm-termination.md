@@ -1,22 +1,27 @@
-## ovhcloud webhosting local-seo location service-info update
+## ovhcloud baremetal confirm-termination
 
-Update Local SEO location service info
+Confirm the termination of the given baremetal
+
+### Synopsis
+
+Confirm the termination of the given baremetal, using the token emailed to
+the administrative contact by "baremetal terminate".
+
+This ends the contract: the server is returned to OVHcloud at expiry.
 
 ```
-ovhcloud webhosting local-seo location service-info update <service_name> <id> [flags]
+ovhcloud baremetal confirm-termination <service_name> <token> [flags]
 ```
 
 ### Options
 
 ```
-      --editor                       Use a text editor to define parameters
-      --from-file string             File containing parameters
-  -h, --help                         help for update
-      --renew-automatic              Renew the service automatically
-      --renew-delete-at-expiration   Delete the service when it expires
-      --renew-forced                 Force the renewal
-      --renew-manual-payment         Pay the renewal manually
-      --renew-period int             Renewal period, in months
+      --commentary string   Free-text comment attached to the termination request
+      --dry-run             Print the call that would be made without making it
+      --future-use string   What comes next after this termination (press <tab> for the accepted values)
+  -h, --help                help for confirm-termination
+      --reason string       Why the service is being terminated (press <tab> for the accepted values)
+  -y, --yes                 Skip the confirmation prompt (required for unattended runs)
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +45,5 @@ ovhcloud webhosting local-seo location service-info update <service_name> <id> [
 
 ### SEE ALSO
 
-* [ovhcloud webhosting local-seo location service-info](ovhcloud_webhosting_local-seo_location_service-info.md)	 - Manage Local SEO location service info
+* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
 

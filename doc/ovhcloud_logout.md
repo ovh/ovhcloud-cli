@@ -1,22 +1,24 @@
-## ovhcloud webhosting local-seo location service-info update
+## ovhcloud logout
 
-Update Local SEO location service info
+Revoke your API credentials and remove them from the configuration
 
 ```
-ovhcloud webhosting local-seo location service-info update <service_name> <id> [flags]
+ovhcloud logout [flags]
+```
+
+### Examples
+
+```
+ovhcloud logout
+ovhcloud logout --yes
+ovhcloud logout --profile work
 ```
 
 ### Options
 
 ```
-      --editor                       Use a text editor to define parameters
-      --from-file string             File containing parameters
-  -h, --help                         help for update
-      --renew-automatic              Renew the service automatically
-      --renew-delete-at-expiration   Delete the service when it expires
-      --renew-forced                 Force the renewal
-      --renew-manual-payment         Pay the renewal manually
-      --renew-period int             Renewal period, in months
+  -h, --help   help for logout
+  -y, --yes    Do not ask for confirmation
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +42,5 @@ ovhcloud webhosting local-seo location service-info update <service_name> <id> [
 
 ### SEE ALSO
 
-* [ovhcloud webhosting local-seo location service-info](ovhcloud_webhosting_local-seo_location_service-info.md)	 - Manage Local SEO location service info
+* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
 
