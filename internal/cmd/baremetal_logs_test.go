@@ -159,6 +159,40 @@ func (ms *MockSuite) TestBaremetalLogSubscribeResolvesATitle(assert, require *td
 	assert.Cmp(sent["streamId"], "33333333-3333-3333-3333-333333333333")
 }
 
+// Resolving a title silently is how a machine's logs end up on the wrong
+// service. This account carries 59 streams over 25 Log Data Platform services,
+// and three titles are shared by two streams each: the operator has to see
+// which one was picked, and on which service, BEFORE the call goes out.
+//
+// The confirmation prompt said it — and a dry run never shows the prompt, so
+// the only trace left was a UUID inside the payload.
+func (ms *MockSuite) TestBaremetalLogSubscribeNamesWhatTheTitleResolvedTo(assert, require *td.T) {
+	registerOneLogKind()
+	registerStreams()
+
+	out, err := cmd.Execute("baremetal", "logs", "subscribe", "ns1.example",
+		"--stream", "TO REMOVE 1", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("TO REMOVE 1"), "the title asked for")
+	assert.Cmp(out, td.Contains("33333333-3333-3333-3333-333333333333"), "the stream it became")
+	assert.Cmp(out, td.Contains("ldp-"), "and the service carrying it")
+}
+
+// The other way round: an identifier resolves to itself, so there is nothing to
+// report and the line must not appear. A resolution line on every run would be
+// noise, and noise gets skipped exactly when it matters.
+func (ms *MockSuite) TestBaremetalLogSubscribeSaysNothingWhenGivenAnIdentifier(assert, require *td.T) {
+	registerOneLogKind()
+	registerStreams()
+
+	out, err := cmd.Execute("baremetal", "logs", "subscribe", "ns1.example",
+		"--stream", "33333333-3333-3333-3333-333333333333", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("resolves to")))
+}
+
 // The operation says the platform finished. The subscription says the logs
 // actually go somewhere. Every wait in this CLI reads the second.
 func (ms *MockSuite) TestBaremetalLogSubscribeWaitReadsTheSubscriptionBack(assert, require *td.T) {

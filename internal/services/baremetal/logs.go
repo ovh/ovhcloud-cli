@@ -135,7 +135,7 @@ func ShowBaremetalLogURL(_ *cobra.Command, args []string) {
 
 	endpoint := fmt.Sprintf(logURLPath, url.PathEscape(server))
 	body := map[string]any{"kind": kind}
-	if reportLogDryRun(http.MethodPost, endpoint, body) {
+	if reportLogDryRun(http.MethodPost, endpoint, body, "") {
 		return
 	}
 
@@ -214,6 +214,7 @@ func SubscribeBaremetalLogs(_ *cobra.Command, args []string) {
 		return
 	}
 
+
 	// Disruptive rather than destructive: nothing is lost, but the logs of a
 	// machine start landing somewhere new and the indexing they cause is
 	// billed on the receiving service.
@@ -226,7 +227,7 @@ func SubscribeBaremetalLogs(_ *cobra.Command, args []string) {
 
 	endpoint := fmt.Sprintf(logSubscriptionsPath, url.PathEscape(server))
 	body := map[string]any{"kind": kind, "streamId": stream.StreamID}
-	if reportLogDryRun(http.MethodPost, endpoint, body) {
+	if reportLogDryRun(http.MethodPost, endpoint, body, resolutionNote(stream)) {
 		return
 	}
 
@@ -236,14 +237,14 @@ func SubscribeBaremetalLogs(_ *cobra.Command, args []string) {
 	}
 	if err := httpLib.Client.Post(endpoint, body, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig,
-			"failed to subscribe %s to stream %s: %s", server, stream.StreamID, err)
+			"failed to subscribe %s to stream %s: %s", server, streamLabel(stream), err)
 		return
 	}
 
 	if !LogWait {
 		display.OutputInfo(&flags.OutputFormatConfig, response,
 			"⚡️ The %s logs of %s are being subscribed to stream %s. Follow it with: ovhcloud baremetal logs subscription list %s",
-			kind, server, stream.StreamID, server)
+			kind, server, streamLabel(stream), server)
 		return
 	}
 
@@ -310,7 +311,7 @@ func UnsubscribeBaremetalLogs(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if reportLogDryRun(http.MethodDelete, path, nil) {
+	if reportLogDryRun(http.MethodDelete, path, nil, "") {
 		return
 	}
 
@@ -435,6 +436,23 @@ func waitForLogOperation(ldpService, operationID string) (map[string]any, error)
 		time.Duration(logPollAttempts)*logPollInterval, operationID, ldpService, last)
 }
 
+// resolutionNote dit ce qu un TITRE a designe : le stream ET le service qui le
+// porte. Vide quand l operateur a donne un identifiant -- il n y a alors rien a
+// resoudre, et une ligne sur chaque execution serait du bruit, donc sautee
+// exactement le jour ou elle compte.
+//
+// Mesure du 25/08 sur le compte de test : 59 streams sur 25 services, et trois
+// titres portes par deux streams chacun. Sans cette ligne, la seule trace de la
+// resolution etait un UUID dans le corps de la requete.
+func resolutionNote(stream ldpStream) string {
+	if stream.Title == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("  %q resolves to stream %s on Log Data Platform service %s",
+		stream.Title, stream.StreamID, stream.ServiceName)
+}
+
 // streamLabel names a stream the way the operator asked for it.
 //
 // When a title was resolved, the title is what they recognise and the
@@ -476,15 +494,26 @@ func expiryPhrase(expiration string) string {
 // neither is in the URL. Printing them as a second message would mean two JSON
 // documents on one stdout under -o json, so this builds the one document
 // itself — the same reason `baremetal ticket` does.
-func reportLogDryRun(method, endpoint string, body map[string]any) bool {
+// reportLogDryRun rend true quand la commande s arrete la. `note` dit ce que
+// l operateur ne pourrait pas deduire du corps -- aujourd hui, sur quel stream
+// et quel service un TITRE est tombe. Le corps ne porte qu un UUID, et la
+// question de confirmation, qui le disait, ne s affiche pas en dry-run.
+func reportLogDryRun(method, endpoint string, body map[string]any, note string) bool {
 	if !flags.DryRun {
 		return false
 	}
 
-	message := fmt.Sprintf("🔍 Dry run: nothing was sent. This would have been called:\n  %s %s", method, endpoint)
+	message := "🔍 Dry run: nothing was sent."
 	details := map[string]any{
 		"calls": []map[string]any{{"method": method, "endpoint": endpoint}},
 	}
+	// La resolution vient avant l appel : elle est le contexte de ce qui suit,
+	// et c est la ligne sur laquelle on renonce ou on continue.
+	if note != "" {
+		message += "\n" + note
+		details["resolved"] = strings.TrimSpace(note)
+	}
+	message += fmt.Sprintf("\nThis would have been called:\n  %s %s", method, endpoint)
 
 	if len(body) > 0 {
 		rendered, err := json.MarshalIndent(body, "  ", "  ")
