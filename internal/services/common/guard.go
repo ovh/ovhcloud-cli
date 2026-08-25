@@ -42,8 +42,21 @@ const (
 //
 // When it answers false it has already told the operator why, so the caller
 // only has to stop.
+// pendingWarning garde l avertissement qu un dry-run n a PAS pose, pour que le
+// rapport le porte. Une valeur de paquet : un processus de CLI execute une
+// commande, et ReportDryRun la consomme aussitot.
+var pendingWarning string
+
 func ConfirmAction(severity Severity, resource, warning string) bool {
 	if flags.AssumeYes || flags.DryRun {
+		// Un dry-run saute la question -- et sautait donc la seule chose que
+		// certains points ont a juger : ce que la garde AURAIT dit. Sur
+		// `ip change-org`, la phrase qui annonce que l adresse quitte le compte
+		// n apparaissait nulle part, puisque la prevision ne pose pas de
+		// question. On la garde de cote et le rapport l imprime.
+		if flags.DryRun {
+			pendingWarning = warning
+		}
 		return true
 	}
 
@@ -87,7 +100,14 @@ func ReportDryRun(calls ...Call) bool {
 	}
 
 	details := make([]map[string]any, 0, len(calls))
-	message := "🔍 Dry run: nothing was sent. This would have been called:"
+	message := "🔍 Dry run: nothing was sent."
+	// Ce que la commande aurait demande avant d agir. Sans cette ligne, une
+	// prevision cache precisement la garde qu on lui a demande de montrer.
+	if pendingWarning != "" {
+		message += "\n  It would have asked first: " + pendingWarning
+		pendingWarning = ""
+	}
+	message += "\nThis would have been called:"
 	for _, c := range calls {
 		detail := map[string]any{"method": c.Method, "endpoint": c.Endpoint}
 		line := fmt.Sprintf("\n  %s %s", c.Method, c.Endpoint)
