@@ -73,18 +73,40 @@ type Call struct {
 // Endpoints are shown in full: these commands have no other preview, and the
 // point is to let somebody read the paths before they are acted on.
 func ReportDryRun(calls ...Call) bool {
+	return ReportDryRunWith("", nil, calls...)
+}
+
+// ReportDryRunWith is ReportDryRun with something to say before the sequence.
+//
+// A preview of an ORDER that lists routes and no price answers a question
+// nobody asked. What the operator is deciding is whether to spend the money, so
+// the amount belongs above the calls — and `extra` carries it, in one message,
+// because each display call replaces the last in `-o json`.
+func ReportDryRunWith(context string, contextDetails map[string]any, calls ...Call) bool {
 	if !flags.DryRun {
 		return false
 	}
 
 	details := make([]map[string]any, 0, len(calls))
-	message := "🔍 Dry run: nothing was sent. This would have been called:"
+	// Un contexte est, par construction, le produit d une LECTURE : on ne peut
+	// pas chiffrer un achat sans lire un prix. Le promettre « rien envoye »
+	// serait alors faux, et une promesse fausse vaut moins que pas de promesse.
+	// Sans contexte, rien n a ete appele du tout et la formule forte tient.
+	message := "🔍 Dry run: nothing was sent."
+	if context != "" {
+		message = "🔍 Dry run: nothing was written; the figures below were read.\n" + context
+	}
+	message += "\nThis would have been called:"
 	for _, c := range calls {
 		details = append(details, map[string]any{"method": c.Method, "endpoint": c.Endpoint})
 		message += fmt.Sprintf("\n  %s %s", c.Method, c.Endpoint)
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, map[string]any{"calls": details}, "%s", message)
+	payload := map[string]any{"calls": details}
+	for key, value := range contextDetails {
+		payload[key] = value
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, payload, "%s", message)
 
 	return true
 }

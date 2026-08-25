@@ -113,7 +113,11 @@ func order(planCode string) (*outcome, error) {
 	// established the rule in #242: a preview that shows the last call hides
 	// the ones that made it possible. Here the hidden ones create a cart and
 	// put a machine in it.
-	if common.ReportDryRun(orderCalls(planCode)...) {
+	// Ce qu un dry-run d ACHAT doit dire, c est ce qu on achete et combien --
+	// pas la liste des routes. Le devis se lit sans rien ecrire : le catalogue
+	// public est en GET, et c est la meme source que `baremetal catalog`.
+	preview, previewDetails := previewOrder(planCode, mode, configs)
+	if common.ReportDryRunWith(preview, previewDetails, orderCalls(planCode)...) {
 		return nil, nil
 	}
 
@@ -256,6 +260,98 @@ const datacenterLabel = "dedicated_datacenter"
 // orderCalls is the sequence, for --dry-run. The cart and item identifiers do
 // not exist yet, so they are named rather than filled: the point is to let an
 // operator read what would be created before it is.
+// previewOrder decrit l achat en une phrase et son prix en une autre, sans
+// rien envoyer.
+//
+// Le prix vient du catalogue public (GET, mis en cache par fetchCatalogPrices),
+// et « du a la commande » se calcule comme dans `baremetal catalog` : frais
+// d installation PLUS premiere periode, chacun apres promotion. Ce n est pas
+// une convention -- une version anterieure annoncait l installation seule, soit
+// la moitie du prix reel, et la regle ci-dessous a ete verifiee contre sept
+// devis reels.
+//
+// Une gamme absente du catalogue public (Scale, High Grade, HCI, SAP se vendent
+// sur devis) rend le prix « on quotation » : dire qu on ne sait pas vaut mieux
+// que taire la question.
+func previewOrder(planCode, mode string, configs map[string]string) (string, map[string]any) {
+	what := fmt.Sprintf("  %s", planCode)
+	if OrderQuantity > 1 {
+		what = fmt.Sprintf("  %d × %s", OrderQuantity, planCode)
+	}
+	if datacenter := configs["dedicated_datacenter"]; datacenter != "" {
+		what += fmt.Sprintf(", delivered in %s", datacenter)
+	}
+	if OrderCommitment != "default" {
+		what += fmt.Sprintf(", on a %s-month commitment", OrderCommitment)
+	}
+	details := map[string]any{"planCode": planCode, "quantity": OrderQuantity}
+
+	subsidiary, err := accountSubsidiary()
+	if err != nil {
+		// Sans filiale, pas de catalogue : on decrit l achat sans son prix
+		// plutot que d inventer une devise.
+		return what, details
+	}
+
+	prices, err := fetchCatalogPrices(subsidiary)
+	if err != nil {
+		return what, details
+	}
+
+	byMode, priced := prices.Plans[planCode]
+	entry, hasMode := byMode[mode]
+	switch {
+	case !priced && !planIsOffered(planCode):
+		// Un code absent des DEUX sources n existe pas. Sans cette distinction
+		// une faute de frappe repartait creer un panier pour echouer plus loin,
+		// sous un message qui parlait de devis.
+		return what + fmt.Sprintf("\n  no plan code %s is offered today; list them with: ovhcloud baremetal catalog", planCode), details
+	case !priced:
+		return what + "\n  on quotation: this range is not sold from the public price list", details
+	case !hasMode:
+		return what + fmt.Sprintf("\n  %s is not sold with the %s commitment", planCode, OrderCommitment), details
+	}
+
+	months := entry.Interval
+	if months < 1 {
+		months = 1
+	}
+	monthly := entry.Recurring / float64(months)
+	dueAtOrder := entry.Setup + entry.Recurring
+
+	line := fmt.Sprintf("  %s per month, %s due at order",
+		formatAmount(monthly, prices.Currency),
+		formatAmount(dueAtOrder*float64(OrderQuantity), prices.Currency))
+	if entry.Promotion != "" {
+		line += fmt.Sprintf(" (promotion %q applied)", entry.Promotion)
+	}
+	details["monthly"] = monthly
+	details["dueAtOrder"] = dueAtOrder * float64(OrderQuantity)
+	details["currency"] = prices.Currency
+	if entry.Promotion != "" {
+		details["promotion"] = entry.Promotion
+	}
+
+	return what + "\n" + line, details
+}
+
+// planIsOffered dit si le catalogue des disponibilites connait ce plan code.
+// Lecture seule, un appel filtre. Le catalogue public ne price que l Eco, donc
+// « absent du prix » et « inexistant » sont deux faits differents : mesure du
+// 25/08, 244 plan codes sont offerts et 99 seulement ont un prix public.
+func planIsOffered(planCode string) bool {
+	var entries []struct {
+		PlanCode string `json:"planCode"`
+	}
+	endpoint := fmt.Sprintf("/v1%s?planCode=%s", datacenterAvailabilitiesPath, url.QueryEscape(planCode))
+	if err := httpLib.Client.Get(endpoint, &entries); err != nil {
+		// Une question sans reponse n est pas une reponse negative : on ne
+		// declare pas inexistant un plan qu on n a pas pu verifier.
+		return true
+	}
+	return len(entries) > 0
+}
+
 func orderCalls(planCode string) []common.Call {
 	calls := []common.Call{
 		{Method: "GET", Endpoint: "/v1/me"},
