@@ -26,6 +26,13 @@ var (
 	IPSpec struct {
 		Description string `json:"description,omitempty"`
 	}
+
+	// IPServiceSpec is what `ip service edit` writes. The block object and the
+	// service object are different resources with a description each: 537
+	// blocks and 80 services on the account measured.
+	IPServiceSpec struct {
+		Description string `json:"description,omitempty"`
+	}
 )
 
 func ListIp(_ *cobra.Command, _ []string) {

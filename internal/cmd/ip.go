@@ -124,6 +124,286 @@ func init() {
 	}
 	ipReverseCmd.AddCommand(ipReverseDeleteCmd)
 
+	// Where IPs can live, and which registries each site accepts for a
+	// bring-your-own-IP announcement. The only route of this domain that
+	// answers something about OVHcloud rather than about the account.
+	ipCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "campus",
+		Short: "List the IP campuses and the registries they accept",
+		Args:  cobra.NoArgs,
+		Run:   ip.ListCampus,
+	}))
+
+	// The billed services. `ip list` and `ip service list` are different
+	// resources: a block is what gets routed, a service is what gets renewed,
+	// has contacts and can be terminated.
+	ipServiceCmd := &cobra.Command{
+		Use:   "service",
+		Short: "Manage your IP services: contacts, renewal and termination",
+	}
+	ipCmd.AddCommand(ipServiceCmd)
+
+	ipServiceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your IP services",
+		Args:    cobra.NoArgs,
+		Run:     ip.ListIpServices,
+	}))
+
+	ipServiceCmd.AddCommand(&cobra.Command{
+		Use:               "get <service_name>",
+		Short:             "Show one IP service",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip/service"),
+		Run:               ip.GetIpService,
+	})
+
+	ipServiceEditCmd := &cobra.Command{
+		Use:               "edit <service_name>",
+		Short:             "Edit an IP service",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip/service"),
+		Run:               ip.EditIpService,
+	}
+	ipServiceEditCmd.Flags().StringVar(&ip.IPServiceSpec.Description, "description", "", "Description of the service")
+	addInteractiveEditorFlag(ipServiceEditCmd)
+	ipServiceCmd.AddCommand(ipServiceEditCmd)
+
+	ipServiceInfoCmd := &cobra.Command{
+		Use:   "service-info",
+		Short: "Manage the billing information of an IP service",
+	}
+	ipServiceCmd.AddCommand(ipServiceInfoCmd)
+
+	ipServiceInfoCmd.AddCommand(&cobra.Command{
+		Use:               "get <service_name>",
+		Short:             "Show the billing information of an IP service",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip/service"),
+		Run:               ip.GetIpServiceInfo,
+	})
+
+	ipServiceInfoEditCmd := &cobra.Command{
+		Use:               "edit <service_name>",
+		Short:             "Edit the billing information of an IP service",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip/service"),
+		Run:               ip.EditIpServiceInfo,
+	}
+	addServiceInfoRenewFlags(ipServiceInfoEditCmd)
+	addInteractiveEditorFlag(ipServiceInfoEditCmd)
+	ipServiceInfoCmd.AddCommand(ipServiceInfoEditCmd)
+
+	ipServiceContactCmd := &cobra.Command{
+		Use:               "change-contact <service_name>",
+		Short:             "Start a contact change procedure on an IP service",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip/service"),
+		Run:               ip.ChangeIpServiceContact,
+	}
+	ipServiceContactCmd.Flags().StringVar(&ip.ContactAdmin, "admin", "", "New administrative contact")
+	ipServiceContactCmd.Flags().StringVar(&ip.ContactBilling, "billing", "", "New billing contact")
+	ipServiceContactCmd.Flags().StringVar(&ip.ContactTech, "tech", "", "New technical contact")
+	addConfirmationFlags(ipServiceContactCmd, "Print the call that would be made without making it")
+	ipServiceCmd.AddCommand(ipServiceContactCmd)
+
+	ipServiceTerminateCmd := &cobra.Command{
+		Use:               "terminate <service_name>",
+		Short:             "Ask for the termination of an IP service",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip/service"),
+		Run:               ip.TerminateIpService,
+	}
+	addConfirmationFlags(ipServiceTerminateCmd, "Print the call that would be made without making it")
+	ipServiceCmd.AddCommand(ipServiceTerminateCmd)
+
+	ipServiceConfirmCmd := &cobra.Command{
+		Use:               "confirm-termination <service_name> <token>",
+		Short:             "Confirm the termination of an IP service with the emailed token",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip/service"),
+		Run:               ip.ConfirmIpServiceTermination,
+	}
+	ipServiceConfirmCmd.Flags().StringVar(&ip.TerminationReason, "reason", "", "Why the service is being terminated (press <tab> for the accepted values)")
+	ipServiceConfirmCmd.Flags().StringVar(&ip.TerminationFutureUse, "future-use", "", "What comes next after this termination (press <tab> for the accepted values)")
+	ipServiceConfirmCmd.Flags().StringVar(&ip.TerminationComment, "commentary", "", "Free-text comment attached to the termination request")
+	ipServiceConfirmCmd.RegisterFlagCompletionFunc("reason", ip.CompleteTerminationReason)
+	ipServiceConfirmCmd.RegisterFlagCompletionFunc("future-use", ip.CompleteTerminationFutureUse)
+	addConfirmationFlags(ipServiceConfirmCmd, "Print the call that would be made without making it")
+	ipServiceCmd.AddCommand(ipServiceConfirmCmd)
+
+	// Reverse delegation
+	ipDelegationCmd := &cobra.Command{
+		Use:   "delegation",
+		Short: "Manage the reverse delegation of an IPv6 subnet",
+	}
+	ipCmd.AddCommand(ipDelegationCmd)
+
+	ipDelegationCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "list <ip_block>",
+		Aliases:           []string{"ls"},
+		Short:             "List the name servers the reverse is delegated to",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListDelegation,
+	}))
+
+	ipDelegationCmd.AddCommand(&cobra.Command{
+		Use:               "get <ip_block> <target>",
+		Short:             "Show one reverse delegation target",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetDelegation,
+	})
+
+	ipDelegationAddCmd := &cobra.Command{
+		Use:               "add <ip_block> <target>",
+		Short:             "Delegate the reverse of this subnet to a name server",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.AddDelegation,
+	}
+	addConfirmationFlags(ipDelegationAddCmd, "Print the call that would be made without making it")
+	ipDelegationCmd.AddCommand(ipDelegationAddCmd)
+
+	ipDelegationRemoveCmd := &cobra.Command{
+		Use:               "remove <ip_block> <target>",
+		Short:             "Stop delegating the reverse of this subnet to a name server",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.RemoveDelegation,
+	}
+	addConfirmationFlags(ipDelegationRemoveCmd, "Print the call that would be made without making it")
+	ipDelegationCmd.AddCommand(ipDelegationRemoveCmd)
+
+	// The API has one licence route per product and no index, so asking
+	// "does this address carry a licence" is eight requests.
+	ipCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "licenses <ip_block>",
+		Aliases:           []string{"licences"},
+		Short:             "List every licence attached to this IP",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListLicenses,
+	}))
+
+	// RIPE record
+	ipRipeCmd := &cobra.Command{
+		Use:   "ripe",
+		Short: "Read and change the RIPE record published for an IP block",
+	}
+	ipCmd.AddCommand(ipRipeCmd)
+
+	ipRipeCmd.AddCommand(&cobra.Command{
+		Use:               "get <ip_block>",
+		Short:             "Show the RIPE record of this block",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetRipe,
+	})
+
+	ipRipeSetCmd := &cobra.Command{
+		Use:               "set <ip_block>",
+		Short:             "Change the RIPE record of this block",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.SetRipe,
+	}
+	ipRipeSetCmd.Flags().StringVar(&ip.RipeNetname, "netname", "", "Netname published in the registry")
+	ipRipeSetCmd.Flags().StringVar(&ip.RipeDescription, "description", "", "Description published in the registry")
+	addConfirmationFlags(ipRipeSetCmd, "Print the call that would be made without making it")
+	ipRipeCmd.AddCommand(ipRipeSetCmd)
+
+	// Bring your own IP
+	ipByoipCmd := &cobra.Command{
+		Use:   "byoip",
+		Short: "Aggregate or slice a bring-your-own-IP block",
+	}
+	ipCmd.AddCommand(ipByoipCmd)
+
+	ipByoipCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "aggregations <ip_block>",
+		Short:             "List the blocks this one could be merged into",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListByoipAggregations,
+	}))
+
+	ipByoipCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "slices <ip_block>",
+		Short:             "List the ways this block could be split",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListByoipSlices,
+	}))
+
+	ipByoipAggregateCmd := &cobra.Command{
+		Use:               "aggregate <ip_block>",
+		Short:             "Merge this block with its neighbours",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.AggregateByoip,
+	}
+	ipByoipAggregateCmd.Flags().StringVar(&ip.ByoipAggregationIp, "into", "",
+		"Parent block to merge into, as listed by `byoip aggregations` (required)")
+	addConfirmationFlags(ipByoipAggregateCmd, "Print the call that would be made without making it")
+	ipByoipCmd.AddCommand(ipByoipAggregateCmd)
+
+	ipByoipSliceCmd := &cobra.Command{
+		Use:               "slice <ip_block>",
+		Short:             "Split this block into smaller ones",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.SliceByoip,
+	}
+	ipByoipSliceCmd.Flags().IntVar(&ip.ByoipSlicingSize, "size", 0,
+		"Prefix length of the smaller blocks, as listed by `byoip slices` (required)")
+	addConfirmationFlags(ipByoipSliceCmd, "Print the call that would be made without making it")
+	ipByoipCmd.AddCommand(ipByoipSliceCmd)
+
+	// Migration token
+	ipMigrationCmd := &cobra.Command{
+		Use:   "migration-token",
+		Short: "Manage the token letting another account claim this IP",
+	}
+	ipCmd.AddCommand(ipMigrationCmd)
+
+	ipMigrationGetCmd := &cobra.Command{
+		Use:               "get <ip_block>",
+		Short:             "Show the pending migration token of this IP",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetMigrationToken,
+	}
+	ipMigrationGetCmd.Flags().BoolVar(&ip.RevealMigrationToken, "reveal", false,
+		"Print the token itself instead of its fingerprint")
+	ipMigrationCmd.AddCommand(ipMigrationGetCmd)
+
+	ipMigrationCreateCmd := &cobra.Command{
+		Use:               "create <ip_block>",
+		Short:             "Generate a token letting another account claim this IP",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.CreateMigrationToken,
+	}
+	ipMigrationCreateCmd.Flags().StringVar(&ip.MigrationCustomerId, "customer-id", "",
+		"Account that will be able to claim the IP (required)")
+	ipMigrationCreateCmd.Flags().BoolVar(&ip.RevealMigrationToken, "reveal", false,
+		"Print the token itself instead of its fingerprint")
+	addConfirmationFlags(ipMigrationCreateCmd, "Print the call that would be made without making it")
+	ipMigrationCmd.AddCommand(ipMigrationCreateCmd)
+
+	ipChangeOrgCmd := &cobra.Command{
+		Use:               "change-org <ip_block> <organisation>",
+		Short:             "Register this IP to another organisation in the regional registry",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ChangeIpOrganisation,
+	}
+	addConfirmationFlags(ipChangeOrgCmd, "Print the call that would be made without making it")
+	ipCmd.AddCommand(ipChangeOrgCmd)
+
 	// The incident surface. Three mechanisms can block an address, each with
 	// its own list and its own release route, and an operator hit by one of
 	// them does not know which. `blocked` reads the three, and what it prints
