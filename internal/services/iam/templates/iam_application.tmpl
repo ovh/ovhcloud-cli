@@ -1,0 +1,10 @@
+📇 Application {{ index .Result "name" }}
+=======
+
+**Identifier**: {{ index .Result "applicationId" }}
+**Status**: {{ index .Result "status" }}
+**Description**: {{ index .Result "description" }}
+**Application key**: {{ index .Result "applicationKey" }}
+
+The keys issued against it:
+    ovhcloud iam credential list --application {{ index .Result "applicationId" }}

@@ -1,11 +1,11 @@
-## ovhcloud iam
+## ovhcloud iam credential
 
-Manage IAM resources, permissions and policies
+Manage the API credentials of your account
 
 ### Options
 
 ```
-  -h, --help   help for iam
+  -h, --help   help for credential
 ```
 
 ### Options inherited from parent commands
@@ -29,14 +29,8 @@ Manage IAM resources, permissions and policies
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud iam application](ovhcloud_iam_application.md)	 - Manage the applications your API credentials are issued against
-* [ovhcloud iam check](ovhcloud_iam_check.md)	 - Check whether the current identity may perform actions on resources
-* [ovhcloud iam credential](ovhcloud_iam_credential.md)	 - Manage the API credentials of your account
-* [ovhcloud iam permissions-group](ovhcloud_iam_permissions-group.md)	 - Manage IAM permissions groups
-* [ovhcloud iam policy](ovhcloud_iam_policy.md)	 - Manage IAM policies
-* [ovhcloud iam reference](ovhcloud_iam_reference.md)	 - Read what can be granted by an IAM policy
-* [ovhcloud iam resource](ovhcloud_iam_resource.md)	 - Manage IAM resources
-* [ovhcloud iam resource-group](ovhcloud_iam_resource-group.md)	 - Manage IAM resource groups
-* [ovhcloud iam user](ovhcloud_iam_user.md)	 - Manage IAM users
+* [ovhcloud iam](ovhcloud_iam.md)	 - Manage IAM resources, permissions and policies
+* [ovhcloud iam credential delete](ovhcloud_iam_credential_delete.md)	 - Revoke an API credential
+* [ovhcloud iam credential get](ovhcloud_iam_credential_get.md)	 - Get one API credential, with the paths it may call
+* [ovhcloud iam credential list](ovhcloud_iam_credential_list.md)	 - List the API credentials of your account
 

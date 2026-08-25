@@ -7,6 +7,7 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/completion"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/iam"
 	"github.com/spf13/cobra"
 )
@@ -145,7 +146,10 @@ func init() {
 		Run:   iam.EditIAMResource,
 		Args:  cobra.ExactArgs(1),
 	}
-	iamResourceEditCmd.Flags().StringToStringVar(&iam.IAMResourceSpec.Tags, "tag", nil, "Tags to apply to the resource")
+	iamResourceEditCmd.Flags().StringToStringVar(&iam.IAMResourceSpec.Tags, "tag", nil,
+		// Pas de backticks ici : cobra les lit comme le NOM du type d argument,
+		// et l aide affichait « --tag iam resource tag remove ».
+		"Tags to apply, merged with the ones already there (a tag left out is kept; remove one with: iam resource tag remove)")
 	addInteractiveEditorFlag(iamResourceEditCmd)
 	iamResourceCmd.AddCommand(iamResourceEditCmd)
 
@@ -256,6 +260,166 @@ func init() {
 		Run:               iam.DeleteUserToken,
 		Args:              cobra.ExactArgs(2),
 	})
+
+	// API credentials. They live in the /me catalogue while the rest of IAM is
+	// v2; they are placed here because that is where an operator looks for
+	// "what can this key do", and because Scaleway, AWS and gcloud all keep
+	// API keys under their identity command.
+	iamCredentialCmd := &cobra.Command{
+		Use:   "credential",
+		Short: "Manage the API credentials of your account",
+	}
+	iamCmd.AddCommand(iamCredentialCmd)
+
+	iamCredentialListCmd := withFilterFlag(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List the API credentials of your account",
+		Long: "List the API credentials of your account.\n\n" +
+			"The scope column says how far a key reaches: a rule on /* covers the whole\n" +
+			"API with that verb. Use --unused to find the keys that were never used.",
+		Run: iam.ListCredentials,
+	})
+	iamCredentialListCmd.Flags().StringVar(&iam.CredentialStatus, "status", "", "Keep only the credentials in this state")
+	iamCredentialListCmd.Flags().Int64Var(&iam.CredentialApplication, "application", 0, "Keep only the credentials of this application")
+	iamCredentialListCmd.Flags().BoolVar(&iam.CredentialUnusedOnly, "unused", false, "Keep only the credentials that were never used")
+	iamCredentialListCmd.RegisterFlagCompletionFunc("status", iam.CompleteCredentialStatus)
+	iamCredentialCmd.AddCommand(iamCredentialListCmd)
+
+	iamCredentialCmd.AddCommand(&cobra.Command{
+		Use:   "get <credential_id>",
+		Short: "Get one API credential, with the paths it may call",
+		Args:  cobra.ExactArgs(1),
+		Run:   iam.GetCredential,
+	})
+
+	iamCredentialDeleteCmd := &cobra.Command{
+		Use:   "delete <credential_id>",
+		Short: "Revoke an API credential",
+		Args:  cobra.ExactArgs(1),
+		Run:   iam.DeleteCredential,
+	}
+	addConfirmationFlags(iamCredentialDeleteCmd, "Print the call that would be made without making it")
+	iamCredentialCmd.AddCommand(iamCredentialDeleteCmd)
+
+	iamApplicationCmd := &cobra.Command{
+		Use:   "application",
+		Short: "Manage the applications your API credentials are issued against",
+	}
+	iamCmd.AddCommand(iamApplicationCmd)
+
+	iamApplicationCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List your API applications",
+		Run:     iam.ListApplications,
+	}))
+
+	iamApplicationCmd.AddCommand(&cobra.Command{
+		Use:   "get <application_id>",
+		Short: "Get one API application",
+		Args:  cobra.ExactArgs(1),
+		Run:   iam.GetApplication,
+	})
+
+	iamApplicationDeleteCmd := &cobra.Command{
+		Use:   "delete <application_id>",
+		Short: "Delete an application and every credential issued against it",
+		Args:  cobra.ExactArgs(1),
+		Run:   iam.DeleteApplication,
+	}
+	addConfirmationFlags(iamApplicationDeleteCmd, "Print the call that would be made without making it")
+	iamApplicationCmd.AddCommand(iamApplicationDeleteCmd)
+
+	// Authorization check: a POST that writes nothing, and the only command
+	// that answers "why can this identity not do that".
+	iamCheckCmd := &cobra.Command{
+		Use:   "check <action>...",
+		Short: "Check whether the current identity may perform actions on resources",
+		Long: "Check whether the current identity may perform actions on resources.\n\n" +
+			"This writes nothing. It answers the question a permission error does not:\n" +
+			"which of these actions are allowed on which resource.",
+		Args: cobra.MinimumNArgs(1),
+		Run:  iam.CheckAuthorization,
+	}
+	iamCheckCmd.Flags().StringArrayVar(&iam.CheckResources, "on", nil, "Resource URN to check against (repeatable)")
+	iamCmd.AddCommand(iamCheckCmd)
+
+	// The action reference, which is what makes a policy writable.
+	iamReferenceCmd := &cobra.Command{
+		Use:   "reference",
+		Short: "Read what can be granted by an IAM policy",
+	}
+	iamCmd.AddCommand(iamReferenceCmd)
+
+	iamReferenceActionsCmd := withFilterFlag(&cobra.Command{
+		Use:   "actions",
+		Short: "List the actions an IAM policy can grant",
+		Long: "List the actions an IAM policy can grant.\n\n" +
+			"There are over nine thousand of them across a hundred-odd product\n" +
+			"families, so this asks to be narrowed rather than printing them all.",
+		Run: iam.ListReferenceActions,
+	})
+	iamReferenceActionsCmd.Flags().StringVar(&iam.ActionResourceType, "type", "", "Keep only the actions of this resource type")
+	iamReferenceActionsCmd.Flags().StringVar(&iam.ActionCategory, "category", "", "Keep only the actions in this category (READ, EDIT, DELETE...)")
+	iamReferenceActionsCmd.Flags().StringVar(&iam.ActionSearch, "search", "", "Keep the actions whose name or description contains this")
+	iamReferenceActionsCmd.RegisterFlagCompletionFunc("type", iam.CompleteResourceType)
+	iamReferenceCmd.AddCommand(iamReferenceActionsCmd)
+
+	iamReferenceCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "resource-types",
+		Short: "List the resource types actions are grouped by",
+		Run:   iam.ListReferenceResourceTypes,
+	}))
+
+	// Fine-grained tagging. `iam resource edit --tag` sends a PUT that replaces
+	// the whole map: adding one tag drops the others, silently and with a 200.
+	iamResourceTagCmd := &cobra.Command{
+		Use:   "tag",
+		Short: "Add or remove resource tags without touching the others",
+	}
+	iamResourceCmd.AddCommand(iamResourceTagCmd)
+
+	iamResourceTagSetCmd := &cobra.Command{
+		Use:   "set <resource_urn> <key>=<value>...",
+		Short: "Add or update tags, leaving the other tags in place",
+		Args:  cobra.MinimumNArgs(2),
+		Run:   iam.SetResourceTags,
+	}
+	// No --yes: setting a tag prompts for nothing, and a flag that answers a
+	// question never asked is the defect P4bis found through generated docs.
+	iamResourceTagSetCmd.Flags().BoolVar(&flags.DryRun, "dry-run", false,
+		"Print the calls that would be made without making them")
+	iamResourceTagCmd.AddCommand(iamResourceTagSetCmd)
+
+	iamResourceTagRemoveCmd := &cobra.Command{
+		Use:   "remove <resource_urn> <key>...",
+		Short: "Remove tags by key, leaving the other tags in place",
+		Args:  cobra.MinimumNArgs(2),
+		Run:   iam.RemoveResourceTags,
+	}
+	iamResourceTagRemoveCmd.Flags().BoolVar(&flags.DryRun, "dry-run", false,
+		"Print the calls that would be made without making them")
+	iamResourceTagCmd.AddCommand(iamResourceTagRemoveCmd)
+
+	iamUserEnableCmd := &cobra.Command{
+		Use:   "enable <user_login>",
+		Short: "Enable an IAM user",
+		Args:  cobra.ExactArgs(1),
+		Run:   iam.SetUserState(true),
+	}
+	iamUserEnableCmd.Flags().BoolVar(&flags.DryRun, "dry-run", false,
+		"Print the call that would be made without making it")
+	iamUserCmd.AddCommand(iamUserEnableCmd)
+
+	iamUserDisableCmd := &cobra.Command{
+		Use:   "disable <user_login>",
+		Short: "Disable an IAM user",
+		Args:  cobra.ExactArgs(1),
+		Run:   iam.SetUserState(false),
+	}
+	addConfirmationFlags(iamUserDisableCmd, "Print the call that would be made without making it")
+	iamUserCmd.AddCommand(iamUserDisableCmd)
 
 	rootCmd.AddCommand(iamCmd)
 }
