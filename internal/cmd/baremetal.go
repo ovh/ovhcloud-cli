@@ -9,7 +9,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
 )
 
@@ -99,6 +98,43 @@ they are not sold from the public price list, and show as "on quotation".`,
 	baremetalCatalogCmd.RegisterFlagCompletionFunc("commitment", baremetal.CompleteCatalogCommitment)
 	baremetalCmd.AddCommand(withFilterFlag(baremetalCatalogCmd))
 
+	// Ordering: the one command in this package that spends money.
+	baremetalOrderCmd := &cobra.Command{
+		Use:   "order <plan_code>",
+		Short: "Order a dedicated server",
+		Long: `Order one of the plan codes listed by "ovhcloud baremetal catalog".
+
+This command spends money. It builds a cart, prices it, shows what the order
+will cost and what has to be accepted, and asks for the datacenter to be typed
+back before it buys anything. --quote stops at the price and never orders;
+--dry-run describes the whole sequence and sends nothing at all.
+
+The server is delivered without an operating system: a dedicated server is
+installed after delivery with "ovhcloud baremetal reinstall", and the order
+carries no choice of system. The retraction period is never waived here.`,
+		Example: `  # What would this cost, and what would it need?
+  ovhcloud baremetal order 24adv01-v3 --datacenter gra --quote
+
+  # Buy it, monthly
+  ovhcloud baremetal order 24adv01-v3 --datacenter gra
+
+  # Buy two on a twelve-month commitment, unattended
+  ovhcloud baremetal order 24adv01-v3 --datacenter gra --commitment 12 --quantity 2 --yes`,
+		Args: cobra.ExactArgs(1),
+		Run:  baremetal.OrderBaremetal,
+	}
+	baremetalOrderCmd.Flags().StringVar(&baremetal.OrderDatacenter, "datacenter", "", "Where to deliver the server, for example gra")
+	baremetalOrderCmd.Flags().StringArrayVar(&baremetal.OrderConfigs, "config", nil, "A configuration this product requires, as label=value (repeatable)")
+	baremetalOrderCmd.Flags().StringVar(&baremetal.OrderCommitment, "commitment", "default", "How it is paid: default (monthly), 12 or 24 (months paid upfront)")
+	baremetalOrderCmd.Flags().IntVar(&baremetal.OrderQuantity, "quantity", 1, "How many servers to order")
+	baremetalOrderCmd.Flags().BoolVar(&baremetal.OrderQuoteOnly, "quote", false, "Stop at the price: build the cart, show what it would cost, order nothing")
+	baremetalOrderCmd.Flags().BoolVar(&baremetal.OrderNoPay, "no-pay", false, "Place the order without paying it, and return the order number to pay later")
+	baremetalOrderCmd.RegisterFlagCompletionFunc("datacenter", baremetal.CompleteCatalogDatacenter)
+	baremetalOrderCmd.RegisterFlagCompletionFunc("commitment", baremetal.CompleteCatalogCommitment)
+	markFlagsMutuallyExclusive(baremetalOrderCmd, "quote", "no-pay")
+	addConfirmationFlags(baremetalOrderCmd, "Describe the whole ordering sequence without sending any of it")
+	baremetalCmd.AddCommand(baremetalOrderCmd)
+
 	// Service information and life cycle
 	baremetalServiceInfoCmd := &cobra.Command{
 		Use:   "service-info",
@@ -121,7 +157,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
