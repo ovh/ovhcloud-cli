@@ -192,7 +192,27 @@ func GetIAMResource(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest("/v2/iam/resource", args[0], iamResourceTemplate)
 }
 
+// EditIAMResource applies tags to a resource. It MERGES: the CLI reads the
+// resource, adds what was given and writes the whole thing back, so a shorter
+// --tag list removes nothing.
+//
+// The natural attempt at removing one is `--tag env=`, and it is the worst
+// possible outcome: the API accepts it, stores `{"env": ""}`, and the tag looks
+// gone while it is still there — still matched by a policy written against its
+// key. There is now a command that removes for real, so the empty value is
+// refused and points at it.
 func EditIAMResource(cmd *cobra.Command, args []string) {
+	for key, value := range IAMResourceSpec.Tags {
+		if value == "" {
+			display.OutputError(&flags.OutputFormatConfig,
+				"--tag %s= would store an empty value, not remove the tag: this edit merges, "+
+					"so a tag left out is kept and a tag emptied still matches a policy written "+
+					"on its key.\n   Remove it with: ovhcloud iam resource tag remove %s %s",
+				key, args[0], key)
+			return
+		}
+	}
+
 	if err := common.EditResource(
 		cmd,
 		"/iam/resource/{resourceURN}",

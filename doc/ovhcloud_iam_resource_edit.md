@@ -11,7 +11,7 @@ ovhcloud iam resource edit <resource_urn> [flags]
 ```
       --editor               Use a text editor to define parameters
   -h, --help                 help for edit
-      --tag stringToString   Tags to apply to the resource (default [])
+      --tag stringToString   Tags to apply, merged with the ones already there (a tag left out is kept; remove one with: iam resource tag remove) (default [])
 ```
 
 ### Options inherited from parent commands
