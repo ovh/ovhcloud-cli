@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
@@ -124,7 +123,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -823,7 +822,111 @@ sending. --dry-run prints the whole message instead of sending it.`,
 	addConfirmationFlags(baremetalBackupCloudPasswordCmd, "Print the call that would be made without making it")
 	baremetalBackupCloudCmd.AddCommand(baremetalBackupCloudPasswordCmd)
 
+	// Seven routes in the v2 catalogue send a server's logs to a Log Data
+	// Platform stream, and none of them was reachable: the CLI could not even
+	// fetch a schema for v2 until #262. The whole group is badged "Alpha
+	// version" upstream.
+	baremetalLogsCmd := &cobra.Command{
+		Use:   "logs",
+		Short: "Read the logs of a dedicated server, and send them to a stream",
+	}
+	baremetalCmd.AddCommand(baremetalLogsCmd)
+
+	baremetalLogsCmd.AddCommand(&cobra.Command{
+		Use:               "kinds <service_name>",
+		Short:             "List the kinds of log this server can send",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ListBaremetalLogKinds,
+	})
+
+	baremetalLogsUrlCmd := &cobra.Command{
+		Use:   "url <service_name>",
+		Short: "Get a temporary link to read the logs of this server",
+		Long: "Get a temporary link to read the logs of this server.\n\n" +
+			"The link opens the Log Data Platform search interface and carries its own " +
+			"authorisation, so anyone holding it can read these logs. It expires; the command " +
+			"says when.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBaremetalLogURL,
+	}
+	addLogKindFlag(baremetalLogsUrlCmd)
+	baremetalLogsUrlCmd.Flags().BoolVar(&flags.DryRun, "dry-run",
+		false, "Print the call that would be made without making it")
+	baremetalLogsCmd.AddCommand(baremetalLogsUrlCmd)
+
+	baremetalLogsSubscriptionCmd := &cobra.Command{
+		Use:   "subscription",
+		Short: "Show where the logs of this server are sent",
+	}
+	baremetalLogsCmd.AddCommand(baremetalLogsSubscriptionCmd)
+
+	baremetalLogsSubscriptionListCmd := withFilterFlag(&cobra.Command{
+		Use:               "list <service_name>",
+		Short:             "List the log subscriptions of this server",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ListBaremetalLogSubscriptions,
+	})
+	addLogKindFlag(baremetalLogsSubscriptionListCmd)
+	baremetalLogsSubscriptionCmd.AddCommand(baremetalLogsSubscriptionListCmd)
+
+	baremetalLogsSubscriptionCmd.AddCommand(&cobra.Command{
+		Use:               "get <service_name> <subscription_id>",
+		Short:             "Show one log subscription of this server",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.ShowBaremetalLogSubscription,
+	})
+
+	baremetalLogsSubscribeCmd := &cobra.Command{
+		Use:   "subscribe <service_name>",
+		Short: "Send the logs of this server to a Log Data Platform stream",
+		Long: "Send the logs of this server to a Log Data Platform stream.\n\n" +
+			"--stream takes the title of a stream or its identifier. A title is resolved " +
+			"across every Log Data Platform service on the account, and a title carried by " +
+			"more than one stream is refused rather than guessed.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.SubscribeBaremetalLogs,
+	}
+	baremetalLogsSubscribeCmd.Flags().StringVar(&baremetal.LogStream, "stream", "",
+		"Title or identifier of the stream to send the logs to")
+	_ = baremetalLogsSubscribeCmd.MarkFlagRequired("stream")
+	_ = baremetalLogsSubscribeCmd.RegisterFlagCompletionFunc("stream", baremetal.CompleteLogStream)
+	addLogKindFlag(baremetalLogsSubscribeCmd)
+	baremetalLogsSubscribeCmd.Flags().BoolVar(&baremetal.LogWait, "wait", false,
+		"Wait until the subscription actually exists before exiting")
+	addConfirmationFlags(baremetalLogsSubscribeCmd, "Print the call that would be made without making it")
+	baremetalLogsCmd.AddCommand(baremetalLogsSubscribeCmd)
+
+	baremetalLogsUnsubscribeCmd := &cobra.Command{
+		Use:               "unsubscribe <service_name> <subscription_id>",
+		Short:             "Stop sending the logs of this server to a stream",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
+		Run:               baremetal.UnsubscribeBaremetalLogs,
+	}
+	baremetalLogsUnsubscribeCmd.Flags().BoolVar(&baremetal.LogWait, "wait", false,
+		"Wait until the subscription is actually gone before exiting")
+	addConfirmationFlags(baremetalLogsUnsubscribeCmd, "Print the call that would be made without making it")
+	baremetalLogsCmd.AddCommand(baremetalLogsUnsubscribeCmd)
+
 	rootCmd.AddCommand(baremetalCmd)
+}
+
+// addLogKindFlag registers the kind of log a command works on.
+//
+// It is never required. Only one kind exists today, so a command that demanded
+// it would make everybody type the only possible value; a command that
+// defaulted to it in Go would still be reaching that one kind on the day a
+// second appears. Left empty, the server is asked, and it is the answer that
+// decides — one kind is taken, several are refused with their names.
+func addLogKindFlag(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&baremetal.LogKind, "kind", "",
+		"Kind of log to work on (default: the only one the server offers)")
+	_ = cmd.RegisterFlagCompletionFunc("kind", baremetal.CompleteLogKind)
 }
 
 // addBackupAclProtocolFlags registers the three protocols an access rule can

@@ -46,6 +46,7 @@ Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal list-partition-schemes](ovhcloud_baremetal_list-partition-schemes.md)	 - List the partition schemes an OS template allows on this baremetal
 * [ovhcloud baremetal list-secrets](ovhcloud_baremetal_list-secrets.md)	 - Retrieve secrets to connect to the server
 * [ovhcloud baremetal list-tasks](ovhcloud_baremetal_list-tasks.md)	 - Retrieve tasks of the given baremetal
+* [ovhcloud baremetal logs](ovhcloud_baremetal_logs.md)	 - Read the logs of a dedicated server, and send them to a stream
 * [ovhcloud baremetal power](ovhcloud_baremetal_power.md)	 - Power the given baremetal off and on
 * [ovhcloud baremetal raid-profile](ovhcloud_baremetal_raid-profile.md)	 - Show the hardware RAID controllers of this baremetal, if it has any
 * [ovhcloud baremetal reboot](ovhcloud_baremetal_reboot.md)	 - Reboot the given baremetal
