@@ -55,6 +55,40 @@ func ManageListRequest(path, idField string, columnsToDisplay, filters []string)
 	display.RenderTable(body, columnsToDisplay, &flags.OutputFormatConfig)
 }
 
+// RenderFilteredTable prints rows through --filter.
+//
+// withFilterFlag only binds the flag to flags.GenericFilters; display.RenderTable
+// does not filter. ManageListRequest and ManageListRequestNoExpand call
+// FilterLines for their callers, so a command that assembles its own rows and
+// renders them itself has to do it explicitly — and twenty of them did not, so
+// --filter was accepted, documented, completed, and ignored. This is that call,
+// in one place, so the next command to assemble its own rows has something to
+// reach for.
+func RenderFilteredTable(rows []map[string]any, columnsToDisplay []string) {
+	filtered, ok := FilteredRows(rows)
+	if !ok {
+		return
+	}
+
+	display.RenderTable(filtered, columnsToDisplay, &flags.OutputFormatConfig)
+}
+
+// FilteredRows applies --filter and reports whether the caller may carry on.
+//
+// Separate from RenderFilteredTable for the commands that do not render a table:
+// a few wrap their list in an object and hand it to a template, and there the
+// filter has to run before the wrapping. Returning false means the failure has
+// already been reported.
+func FilteredRows(rows []map[string]any) ([]map[string]any, bool) {
+	filtered, err := filtersLib.FilterLines(rows, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return nil, false
+	}
+
+	return filtered, true
+}
+
 func ManageListRequestNoExpand(path string, columnsToDisplay, filters []string) {
 	body, err := httpLib.FetchArray(path, "")
 	if err != nil {
