@@ -146,7 +146,10 @@ func init() {
 		Run:   iam.EditIAMResource,
 		Args:  cobra.ExactArgs(1),
 	}
-	iamResourceEditCmd.Flags().StringToStringVar(&iam.IAMResourceSpec.Tags, "tag", nil, "Tags to apply to the resource")
+	iamResourceEditCmd.Flags().StringToStringVar(&iam.IAMResourceSpec.Tags, "tag", nil,
+		// Pas de backticks ici : cobra les lit comme le NOM du type d argument,
+		// et l aide affichait « --tag iam resource tag remove ».
+		"Tags to apply, merged with the ones already there (a tag left out is kept; remove one with: iam resource tag remove)")
 	addInteractiveEditorFlag(iamResourceEditCmd)
 	iamResourceCmd.AddCommand(iamResourceEditCmd)
 
