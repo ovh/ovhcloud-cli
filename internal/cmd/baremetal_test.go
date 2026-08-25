@@ -279,3 +279,20 @@ func (ms *MockSuite) TestBaremetalOlaResetRefusesWithoutConsent(assert, require 
 	assert.Cmp(err.Error(), td.Contains("cancelled"))
 	assert.Cmp(httpmock.GetTotalCallCount(), 0, "no interface must be reset without a confirmation")
 }
+
+// Une prevision qui tait la garde cache exactement ce qu on lui demande de
+// montrer. `ip change-org` en est le cas extreme : ce qu il y a a juger est la
+// phrase qui annonce que l adresse quitte le compte, et elle ne s affichait
+// nulle part -- un dry-run ne pose pas de question.
+func (ms *MockSuite) TestDryRunShowsTheConfirmationItSkipped(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reboot",
+		httpmock.NewStringResponder(200, `{}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "reboot", "fakeBaremetal", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("would have asked first"), "la garde est citee")
+	assert.Cmp(out, td.Contains("interrupts"), "avec ses propres mots")
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "et rien n est envoye")
+}
