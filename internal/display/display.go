@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	maxCellWidth = 50
+	maxCellWidth = 75
 )
 
 var (

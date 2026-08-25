@@ -12,6 +12,7 @@ import (
 	"maps"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -595,29 +596,94 @@ func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
 	display.RenderTable(allSecrets, []string{"type", "url", "user", "secret", "expiration"}, &flags.OutputFormatConfig)
 }
 
-func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/v1/dedicated/server/%s/install/compatibleTemplates", url.PathEscape(args[0]))
+type templateOsInfo struct {
+	TemplateName string `json:"templateName"`
+	Description  string `json:"description"`
+	Category     string `json:"category"`
+	Family       string `json:"family"`
+	Subfamily    string `json:"subfamily"`
+	EndOfInstall string `json:"endOfInstall,omitempty"`
+}
 
-	var oses map[string]any
-	if err := httpLib.Client.Get(path, &oses); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch compatible OSes: %s", err)
-		return
+// osTemplateColumns are the columns displayed for OS template rows, in order.
+var osTemplateColumns = []string{"name", "description", "category", "family", "subfamily", "endOfInstall"}
+
+// osTemplateDetailFields are the columns only available by calling
+// installationTemplate/templateInfos, on top of the plain OS names returned by
+// installationTemplate (or install/compatibleTemplates).
+var osTemplateDetailFields = []string{"description", "category", "family", "subfamily", "endOfInstall"}
+
+// osTemplateDetailsNeeded reports whether the requested output format or any
+// active filter references a detail field, so the more expensive templateInfos
+// call can be skipped when only OS names are needed (e.g. `-o name`).
+func osTemplateDetailsNeeded() bool {
+	if flags.OutputFormatConfig.IsJson() || flags.OutputFormatConfig.IsYaml() || flags.OutputFormatConfig.IsInteractive() {
+		return true
+	}
+
+	custom := flags.OutputFormatConfig.CustomFormat()
+	if custom == "" {
+		// Default table rendering always shows every detail column.
+		return true
+	}
+
+	haystacks := append([]string{custom}, flags.GenericFilters...)
+	for _, field := range osTemplateDetailFields {
+		re := regexp.MustCompile(`\b` + field + `\b`)
+		for _, h := range haystacks {
+			if re.MatchString(h) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// fetchOsTemplatesInfo calls installationTemplate/templateInfos and returns one
+// row per template, keeping only those for which keep(templateName) is true.
+func fetchOsTemplatesInfo(keep func(templateName string) bool) ([]map[string]any, error) {
+	var templatesInfo []templateOsInfo
+	if err := httpLib.Client.Get("/v1/dedicated/installationTemplate/templateInfos", &templatesInfo); err != nil {
+		return nil, err
 	}
 
 	var formattedValues []map[string]any
-	for _, os := range oses["ovh"].([]any) {
+	for _, info := range templatesInfo {
+		if keep != nil && !keep(info.TemplateName) {
+			continue
+		}
 		formattedValues = append(formattedValues, map[string]any{
-			"source": "ovh",
-			"name":   os,
+			"name":         info.TemplateName,
+			"description":  info.Description,
+			"category":     info.Category,
+			"family":       info.Family,
+			"subfamily":    info.Subfamily,
+			"endOfInstall": info.EndOfInstall,
 		})
 	}
 
-	if personalOSes, ok := oses["personal"]; ok {
-		for _, os := range personalOSes.([]any) {
-			formattedValues = append(formattedValues, map[string]any{
-				"source": "personal",
-				"name":   os,
-			})
+	return formattedValues, nil
+}
+
+func ListBaremetalOses(_ *cobra.Command, _ []string) {
+	var formattedValues []map[string]any
+
+	if osTemplateDetailsNeeded() {
+		var err error
+		formattedValues, err = fetchOsTemplatesInfo(nil)
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch OS details: %s", err)
+			return
+		}
+	} else {
+		var names []string
+		if err := httpLib.Client.Get("/v1/dedicated/installationTemplate", &names); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch OSes: %s", err)
+			return
+		}
+		for _, name := range names {
+			formattedValues = append(formattedValues, map[string]any{"name": name})
 		}
 	}
 
@@ -627,5 +693,50 @@ func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.RenderTable(formattedValues, []string{"source", "name"}, &flags.OutputFormatConfig)
+	display.RenderTable(formattedValues, osTemplateColumns, &flags.OutputFormatConfig)
+}
+
+func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
+	path := fmt.Sprintf("/v1/dedicated/server/%s/install/compatibleTemplates", url.PathEscape(args[0]))
+
+	var oses map[string]any
+	if err := httpLib.Client.Get(path, &oses); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch compatible OSes: %s", err)
+		return
+	}
+
+	var names []string
+	seenNames := make(map[string]bool)
+	addNames := func(list []any) {
+		for _, os := range list {
+			name := os.(string)
+			if !seenNames[name] {
+				seenNames[name] = true
+				names = append(names, name)
+			}
+		}
+	}
+	addNames(oses["ovh"].([]any))
+
+	var formattedValues []map[string]any
+	if osTemplateDetailsNeeded() {
+		var err error
+		formattedValues, err = fetchOsTemplatesInfo(func(templateName string) bool { return seenNames[templateName] })
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch OS details: %s", err)
+			return
+		}
+	} else {
+		for _, name := range names {
+			formattedValues = append(formattedValues, map[string]any{"name": name})
+		}
+	}
+
+	formattedValues, err := filtersLib.FilterLines(formattedValues, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(formattedValues, osTemplateColumns, &flags.OutputFormatConfig)
 }
