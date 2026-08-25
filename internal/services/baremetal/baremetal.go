@@ -142,6 +142,16 @@ func EditBaremetal(cmd *cobra.Command, args []string) {
 func RebootBaremetal(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/v1/dedicated/server/%s/reboot", url.PathEscape(args[0]))
 
+	if !common.ConfirmAction(common.Disruptive, args[0],
+		fmt.Sprintf("Rebooting %s interrupts everything running on it.", args[0])) {
+		display.OutputError(&flags.OutputFormatConfig, "reboot of %s cancelled", args[0])
+		return
+	}
+
+	if common.ReportDryRun(common.Call{Method: "POST", Endpoint: url}) {
+		return
+	}
+
 	if err := httpLib.Client.Post(url, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error rebooting server %s: %s", args[0], err)
 		return
@@ -151,6 +161,24 @@ func RebootBaremetal(_ *cobra.Command, args []string) {
 }
 
 func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
+	if !common.ConfirmAction(common.Disruptive, args[0], fmt.Sprintf(
+		"Rebooting %s into rescue mode interrupts everything running on it, and it stays in rescue until the boot is set back to disk.",
+		args[0])) {
+		display.OutputError(&flags.OutputFormatConfig, "reboot of %s into rescue mode cancelled", args[0])
+		return
+	}
+
+	// Three calls, not one: the boot is read, written to the server, and only
+	// then is the server rebooted. The write is what outlives the reboot.
+	server := fmt.Sprintf("/v1/dedicated/server/%s", url.PathEscape(args[0]))
+	if common.ReportDryRun(
+		common.Call{Method: "GET", Endpoint: server + "/boot?bootType=rescue"},
+		common.Call{Method: "PUT", Endpoint: server, Detail: "bootId of the rescue entry"},
+		common.Call{Method: "POST", Endpoint: server + "/reboot"},
+	) {
+		return
+	}
+
 	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/boot?bootType=rescue", url.PathEscape(args[0]))
 
 	var boots []int
@@ -482,6 +510,25 @@ func CreateBaremetalOLAAggregation(_ *cobra.Command, args []string) {
 func ResetBaremetalOLAAggregation(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/v1/dedicated/server/%s/ola/reset", url.PathEscape(args[0]))
 
+	// Resetting an aggregation takes the interfaces down and back up: on a
+	// server reached over that link, the operator is cutting the branch.
+	if !common.ConfirmAction(common.Disruptive, args[0], fmt.Sprintf(
+		"Resetting %d interface(s) of %s to their default configuration interrupts the network of the server.",
+		len(BaremetalOLAInterfaces), args[0])) {
+		display.OutputError(&flags.OutputFormatConfig, "interface reset on %s cancelled", args[0])
+		return
+	}
+
+	// One call per interface, so the preview lists them rather than implying a
+	// single request.
+	calls := make([]common.Call, 0, len(BaremetalOLAInterfaces))
+	for _, itf := range BaremetalOLAInterfaces {
+		calls = append(calls, common.Call{Method: "POST", Endpoint: url, Detail: "virtualNetworkInterface " + itf})
+	}
+	if common.ReportDryRun(calls...) {
+		return
+	}
+
 	for _, itf := range BaremetalOLAInterfaces {
 		if err := httpLib.Client.Post(url, map[string]string{
 			"virtualNetworkInterface": itf,
@@ -503,6 +550,18 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// Reinstalling wipes every disk of the server, so this one asks for the
+	// server's name rather than a yes.
+	warning := fmt.Sprintf("Reinstalling %s wipes every disk of the server. This cannot be undone.", args[0])
+	if OperatingSystem != "" {
+		warning += fmt.Sprintf("\n   Operating system to install: %s", OperatingSystem)
+	}
+
+	if !common.ConfirmAction(common.Destructive, args[0], warning) {
+		display.OutputError(&flags.OutputFormatConfig, "reinstallation of %s cancelled", args[0])
+		return
+	}
+
 	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
 	task, err := common.CreateResource(
 		cmd,
@@ -520,6 +579,11 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		[]string{"operatingSystem"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error reinstalling server: %s", err)
+		return
+	}
+
+	// Nothing was sent in dry-run mode, so there is no task to follow.
+	if flags.DryRun {
 		return
 	}
 
