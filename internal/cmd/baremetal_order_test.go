@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
@@ -199,7 +200,46 @@ func (ms *MockSuite) TestBaremetalOrderDryRunDescribesTheWholeSequence(assert, r
 	} {
 		assert.Cmp(out, td.Contains(endpoint), "the preview names %s", endpoint)
 	}
-	assert.Cmp(httpmock.GetTotalCallCount(), 0, "and nothing at all is sent")
+	// Le dry-run LIT desormais, pour chiffrer : la filiale du compte, le
+	// catalogue public et les disponibilites. Ce qu il ne fait pas, c est
+	// ecrire -- et c est cela que ce test tient. Compter tous les appels
+	// interdisait de dire le prix, qui est la seule question que se pose
+	// quelqu un devant une commande d achat.
+	for endpoint, count := range httpmock.GetCallCountInfo() {
+		if strings.HasPrefix(endpoint, "POST ") || strings.HasPrefix(endpoint, "DELETE ") ||
+			strings.HasPrefix(endpoint, "PUT ") {
+			assert.Cmp(count, 0, "%s must not be called by a dry run", endpoint)
+		}
+	}
+}
+
+// Le prix est ce que le dry-run d un ACHAT doit dire. Il se lit sans rien
+// ecrire : meme source que `baremetal catalog`, et meme regle de calcul --
+// installation PLUS premiere periode, verifiee contre sept devis reels.
+func (ms *MockSuite) TestBaremetalOrderDryRunPricesWhatIsBeingBought(assert, require *td.T) {
+	registerOrder(assert)
+	// Le catalogue est mis en cache sur le disque de qui lance les tests. Sans
+	// ce repertoire jetable, ce test passait au vert en lisant le catalogue
+	// REEL d une execution precedente -- un vert qui ne disait rien du code.
+	// Mesure : avec XDG_CACHE_HOME vide, il tombait sur « due at order ».
+	assert.Setenv("XDG_CACHE_HOME", assert.TempDir())
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/order/catalog/public/eco?ovhSubsidiary=FR",
+		httpmock.NewStringResponder(200, `{"locale":{"currencyCode":"EUR"},"plans":[
+			{"planCode":"24adv01-v3","invoiceName":"ADVANCE-1 | AMD EPYC 4244P","pricings":[
+				{"mode":"default","price":8999000000,"interval":1,"intervalUnit":"month","capacities":["renew"]},
+				{"mode":"default","price":8999000000,"interval":1,"intervalUnit":"month","capacities":["installation"]}]}]}`))
+
+	out, err := cmd.Execute("baremetal", "order", "24adv01-v3", "--datacenter", "gra", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("24adv01-v3"), "what is being bought")
+	assert.Cmp(out, td.Contains("gra"), "and where it lands")
+	assert.Cmp(out, td.Contains("per month"), "the recurring price")
+	assert.Cmp(out, td.Contains("due at order"), "and what is charged on the day")
+	// Installation PLUS premiere periode : 89.99 + 89.99. La version qui
+	// annoncait l installation seule disait la moitie du prix reel.
+	assert.Cmp(out, td.Contains("179.98"), "installation and first period, not either")
 }
 
 // The cart is a draft, and a draft left behind is litter on the account. This

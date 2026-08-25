@@ -95,12 +95,23 @@ type Call struct {
 // Endpoints are shown in full: these commands have no other preview, and the
 // point is to let somebody read the paths before they are acted on.
 func ReportDryRun(calls ...Call) bool {
+	return ReportDryRunWith("", nil, calls...)
+}
+
+// ReportDryRunWith is ReportDryRun with a context read before the write: a
+// price, a quote, a list. A context is by construction the product of a READ,
+// so promising "nothing was sent" would then be false; the message says what
+// was read instead, and contextDetails join the structured payload.
+func ReportDryRunWith(context string, contextDetails map[string]any, calls ...Call) bool {
 	if !flags.DryRun {
 		return false
 	}
 
 	details := make([]map[string]any, 0, len(calls))
 	message := "🔍 Dry run: nothing was sent."
+	if context != "" {
+		message = "🔍 Dry run: nothing was written; the figures below were read.\n" + context
+	}
 	// Ce que la commande aurait demande avant d agir. Sans cette ligne, une
 	// prevision cache precisement la garde qu on lui a demande de montrer.
 	if pendingWarning != "" {
@@ -119,7 +130,11 @@ func ReportDryRun(calls ...Call) bool {
 		message += line
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, map[string]any{"calls": details}, "%s", message)
+	payload := map[string]any{"calls": details}
+	for key, value := range contextDetails {
+		payload[key] = value
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, payload, "%s", message)
 
 	return true
 }
