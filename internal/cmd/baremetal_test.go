@@ -180,6 +180,9 @@ func (ms *MockSuite) TestBaremetalListOsCmdFilterOnDetailFieldFetchesDetails(ass
 }
 
 // registerReinstallTask wires a reinstall whose task ends in the given state.
+//
+// These tests pass --yes: they are about what the CLI says when a task fails,
+// not about the confirmation, and without it the reinstall never starts.
 func registerReinstallTask(task string) {
 	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall",
 		httpmock.NewStringResponder(200, `{"taskId": 156839472}`),
@@ -195,7 +198,7 @@ func (ms *MockSuite) TestBaremetalReinstallReportsTheFailureReason(assert, requi
 	registerReinstallTask(`{"taskId": 156839472, "function": "reinstallServer",
 		"status": "customerError", "comment": "partitioning scheme incompatible with this hardware"}`)
 
-	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait")
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait", "--yes")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("customerError"), "the real status is named")
@@ -209,7 +212,7 @@ func (ms *MockSuite) TestBaremetalReinstallReportsTheFailureReason(assert, requi
 func (ms *MockSuite) TestBaremetalReinstallPrintsAReadableTaskID(assert, require *td.T) {
 	registerReinstallTask(`{"taskId": 156839472, "function": "reinstallServer", "status": "ovhError"}`)
 
-	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait")
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait", "--yes")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("156839472"))
@@ -222,7 +225,7 @@ func (ms *MockSuite) TestBaremetalReinstallPrintsAReadableTaskID(assert, require
 func (ms *MockSuite) TestBaremetalReinstallReportsAnUnknownStatus(assert, require *td.T) {
 	registerReinstallTask(`{"taskId": 156839472, "function": "reinstallServer", "status": "quarantined"}`)
 
-	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait")
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait", "--yes")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("unexpected status quarantined"))
@@ -235,7 +238,54 @@ func (ms *MockSuite) TestBaremetalReinstallSucceedsOnDoneTask(assert, require *t
 		httpmock.NewStringResponder(200, `[]`),
 	)
 
-	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait")
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--wait", "--yes")
 
 	require.CmpNoError(err)
+}
+
+// Reinstalling wipes the disks: an unattended run must not do it silently.
+func (ms *MockSuite) TestBaremetalReinstallRefusesWithoutConfirmation(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall",
+		httpmock.NewStringResponder(200, `{"taskId": 123}`),
+	)
+
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("cancelled"))
+	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall"], 0,
+		"no reinstall call must reach the API")
+}
+
+func (ms *MockSuite) TestBaremetalReinstallProceedsWithYes(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall",
+		httpmock.NewStringResponder(200, `{"taskId": 123}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--yes")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("Reinstallation is started"))
+	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall"], 1)
+}
+
+// --dry-run shows what would be sent and sends nothing.
+func (ms *MockSuite) TestBaremetalReinstallDryRun(assert, require *td.T) {
+	httpmock.RegisterResponder("POST", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall",
+		httpmock.NewStringResponder(200, `{"taskId": 123}`),
+	)
+
+	out, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--os", "debian12_64", "--dry-run")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("Dry run"))
+	// The parameters must be in the message itself: the default output prints
+	// the message alone, so a payload living only in the structured details
+	// would leave stdout with a promise and no request.
+	assert.Cmp(out, td.Contains(`"operatingSystem": "debian12_64"`),
+		"the request that would be sent is printed")
+	assert.Cmp(out, td.Contains("/v1/dedicated/server/fakeBaremetal/reinstall"),
+		"and the endpoint it would go to")
+	assert.Cmp(httpmock.GetCallCountInfo()["POST https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/reinstall"], 0,
+		"no reinstall call must reach the API")
 }

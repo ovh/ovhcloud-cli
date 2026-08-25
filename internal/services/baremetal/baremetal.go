@@ -24,6 +24,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
+	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -503,6 +504,20 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// Reinstalling wipes every disk of the server. Nothing else in this CLI
+	// destroys customer data, so this is the one place that asks before acting.
+	if !flags.AssumeYes && !flags.DryRun {
+		warning := fmt.Sprintf("Reinstalling %s wipes every disk of the server. This cannot be undone.", args[0])
+		if OperatingSystem != "" {
+			warning += fmt.Sprintf("\n   Operating system to install: %s", OperatingSystem)
+		}
+
+		if !utils.ConfirmByName(args[0], warning) {
+			display.OutputError(&flags.OutputFormatConfig, "reinstallation of %s cancelled", args[0])
+			return
+		}
+	}
+
 	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
 	task, err := common.CreateResource(
 		cmd,
@@ -520,6 +535,11 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		[]string{"operatingSystem"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error reinstalling server: %s", err)
+		return
+	}
+
+	// Nothing was sent in dry-run mode, so there is no task to follow.
+	if flags.DryRun {
 		return
 	}
 
