@@ -647,6 +647,20 @@ func migrationTokenView(token map[string]any) map[string]any {
 	return view
 }
 
+// changeOrgWarning is what the guard puts in front of the operator.
+//
+// It used to say the address was "registered to" the new organisation and that
+// the change reached the regional registry. Both true, and both silent on the
+// only consequence the person typing this has to weigh: the address is no
+// longer theirs afterwards, and getting it back is not their decision.
+func changeOrgWarning(ipBlock, organisation string) string {
+	return fmt.Sprintf(
+		"This hands %s over to the organisation %s: the address leaves this account, "+
+			"and the change is published to the regional registry. Taking it back needs "+
+			"the new holder to agree.",
+		ipBlock, organisation)
+}
+
 // ChangeIpOrganisation changes the organisation an IP is registered to.
 func ChangeIpOrganisation(_ *cobra.Command, args []string) {
 	ipBlock, organisation := args[0], args[1]
@@ -655,9 +669,8 @@ func ChangeIpOrganisation(_ *cobra.Command, args []string) {
 	// in the regional registry. Nothing stops, and nothing is undone by
 	// running the command again with the old value either — the previous
 	// holder has to agree to take it back.
-	if !common.ConfirmAction(common.Destructive, ipBlock, fmt.Sprintf(
-		"This registers %s to the organisation %s. The change is published to the regional registry.",
-		ipBlock, organisation)) {
+	if !common.ConfirmAction(common.Destructive, ipBlock,
+		changeOrgWarning(ipBlock, organisation)) {
 		display.OutputError(&flags.OutputFormatConfig, "organisation change on %s cancelled", ipBlock)
 		return
 	}
