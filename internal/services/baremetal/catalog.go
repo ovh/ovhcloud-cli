@@ -57,7 +57,7 @@ const (
 	baremetalCatalogProduct = "eco"
 
 	// Bumped whenever catalogPrices changes shape.
-	catalogCacheVersion = 2
+	catalogCacheVersion = 3
 )
 
 // commitmentModes maps what an operator asks for to what the catalogue calls it.
@@ -111,6 +111,36 @@ type price struct {
 type catalogPrices struct {
 	Currency string                      `json:"currency"`
 	Plans    map[string]map[string]price `json:"plans"`
+	// Le nom sous lequel la gamme est vendue, par plan code. Le catalogue le
+	// porte deja (`invoiceName`) : la table affichait « 24adv03-v3 » la ou une
+	// facture, un devis et le site disent « ADVANCE-3 ». Un product manager
+	// doit reconnaitre sa gamme avant de reconnaitre son code.
+	Names map[string]string `json:"names"`
+}
+
+// commercialName rend « ADVANCE-3 2024 » depuis `invoiceName` et le plan code.
+//
+// `invoiceName` vaut « ADVANCE-3 | AMD EPYC 4464P » : le CPU est deja une
+// colonne ailleurs, donc seule la partie de gauche sert. La casse n est PAS
+// retouchee -- un Title-case naif ecrit « Rise-Xl » et « Rise-Gpu-1 », donc
+// abime les sigles que la gamme porte vraiment.
+//
+// L annee vient des deux premiers chiffres du plan code (24adv03-v3 -> 2024).
+// Elle desambigue : RISE-1 existe en 2024 et en 2025, sous deux codes.
+// Mesure du 25/08 : 99 des 244 plans annonces par /availabilities portent un
+// `invoiceName` -- le catalogue public eco ne couvre ni Scale, ni High Grade,
+// ni SAP. Pour les 145 autres cette fonction rend "" et la colonne garde le
+// plan code : inventer un nom serait pire que montrer le code.
+func commercialName(planCode, invoiceName string) string {
+	name := strings.TrimSpace(strings.SplitN(invoiceName, "|", 2)[0])
+	if name == "" {
+		return ""
+	}
+	if len(planCode) >= 2 && planCode[0] >= '0' && planCode[0] <= '9' &&
+		planCode[1] >= '0' && planCode[1] <= '9' {
+		return name + " 20" + planCode[:2]
+	}
+	return name
 }
 
 // GetBaremetalCatalog lists what can be ordered, where it can be delivered, how
@@ -208,9 +238,30 @@ func GetBaremetalCatalog(_ *cobra.Command, _ []string) {
 	// the plan code minus its suffix, and `location` because the cheapest
 	// configuration of a range says nothing about where the range is sold.
 	// Both remain one -o json away.
+	// Une gamme sans nom n est pas une gamme sans importance : Scale, High
+	// Grade, HCI et SAP se vendent sur devis, et le catalogue public ne les
+	// decrit pas. Le dire evite de lire le tiret comme un defaut d affichage.
+	if unnamed := countUnnamed(filtered); unnamed > 0 && !format.IsJson() &&
+		!format.IsYaml() && format.CustomFormat() == "" && !format.IsInteractive() {
+		fmt.Printf("💡 %d of these rows carry no commercial name: the public catalogue "+
+			"prices Eco ranges only, and the rest sell on quotation.\n", unnamed)
+	}
+
 	display.RenderTable(filtered,
-		[]string{"planCode", "ram memory", "disks storage", "eta delivery", "monthly", "dueAtOrder"},
+		[]string{"name range", "planCode", "ram memory", "disks storage", "eta delivery",
+			"monthly", "dueAtOrder"},
 		&flags.OutputFormatConfig)
+}
+
+// countUnnamed compte les lignes que le catalogue public ne nomme pas.
+func countUnnamed(rows []map[string]any) int {
+	n := 0
+	for _, row := range rows {
+		if name, _ := row["name"].(string); name == "" || name == "-" {
+			n++
+		}
+	}
+	return n
 }
 
 // defaultConfigPerRange keeps one row per range ("server"): its cheapest
@@ -403,6 +454,8 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 		} `json:"locale"`
 		Plans []struct {
 			PlanCode string `json:"planCode"`
+			// Le nom commercial, celui que porte la facture.
+			InvoiceName string `json:"invoiceName"`
 			Pricings []struct {
 				Mode         string   `json:"mode"`
 				Price        float64  `json:"price"`
@@ -430,8 +483,14 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 		return catalogPrices{}, err
 	}
 
-	prices := catalogPrices{Currency: raw.Locale.CurrencyCode, Plans: map[string]map[string]price{}}
+	prices := catalogPrices{Currency: raw.Locale.CurrencyCode,
+		Plans: map[string]map[string]price{}, Names: map[string]string{}}
 	for _, plan := range raw.Plans {
+		// Le nom se retient meme quand le plan n a pas de prix dans ce mode :
+		// une gamme vendue sur devis a droit a son nom comme les autres.
+		if name := commercialName(plan.PlanCode, plan.InvoiceName); name != "" {
+			prices.Names[plan.PlanCode] = name
+		}
 		byMode := map[string]price{}
 		for _, pricing := range plan.Pricings {
 			// The catalogue states prices in ucents: 8999000000 is 89.99. A
@@ -533,6 +592,14 @@ func buildCatalogRows(offers []availabilityEntry, prices catalogPrices, mode str
 				"eta":   shortDelay(location[1]),
 			}
 
+			// Le nom d abord, le code ensuite : le code reste ce qu on passe a
+			// `baremetal order` et a --plan-code, donc il ne disparait pas -- il
+			// cesse seulement d etre la seule facon de reconnaitre une gamme.
+			if name, named := prices.Names[offer.PlanCode]; named {
+				row["name"] = name
+			} else {
+				row["name"] = "-"
+			}
 			applyPrice(row, prices, offer.PlanCode, mode)
 			rows = append(rows, row)
 		}
