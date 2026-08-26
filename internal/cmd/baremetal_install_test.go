@@ -212,3 +212,30 @@ func (ms *MockSuite) TestBaremetalInstallStatusShowsWhyAStepFailed(assert, requi
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("disk 2 is not present"))
 }
+
+// --guided settles the operating system, which --from-file and --editor also
+// carry. Letting them run together would make the last writer win in silence.
+func (ms *MockSuite) TestBaremetalReinstallGuidedExcludesTheOtherWays(assert, require *td.T) {
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--guided", "--from-file", "/tmp/x.json")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("guided"))
+	assert.Cmp(err.Error(), td.Contains("from-file"))
+}
+
+// A test run has no terminal, which is exactly the situation a pipeline is in.
+// The wizard must say so and stop, rather than draw an alternate screen over
+// the logs and wait for an answer nobody can give — and it must stop before
+// asking the API anything.
+func (ms *MockSuite) TestBaremetalReinstallGuidedRefusesWithoutATerminal(assert, require *td.T) {
+	_, err := cmd.Execute("baremetal", "reinstall", "fakeBaremetal", "--guided", "--dry-run")
+
+	// It exits non-zero: a pipeline that asked for the wizard did not get what
+	// it asked for, and carrying on with the API's idea of a default would
+	// reinstall the machine with an OS nobody chose.
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("no terminal"))
+	assert.Cmp(err.Error(), td.Contains("--from-file"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0,
+		"nothing is fetched for a wizard that cannot be run")
+}
