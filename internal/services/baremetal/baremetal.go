@@ -500,19 +500,19 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	// No server ID given, print usage and exit
 	if len(args) == 0 {
 		cmd.Help()
-		display.OutputError(&flags.OutputFormatConfig, "reinstall command requires a server ID as the first argument")
+		display.OutputError(&flags.OutputFormatConfig, "OS reinstall command requires a server ID as the first argument")
 		return
 	}
 
 	if ReinstallWizard {
 		body, launch, savedPath, err := runReinstallWizard(args[0])
 		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "wizard failed: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "OS reinstallation wizard failed: %s", err)
 			return
 		}
 
 		if savedPath != "" {
-			display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Parameters saved to %s", savedPath)
+			display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ OS reinstallation parameters saved to %s", savedPath)
 		}
 
 		if !launch {
@@ -526,7 +526,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 
 		var task map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &task); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to reinstall server: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "OS reinstallation on server %s failed: %s", args[0], err)
 			return
 		}
 
@@ -551,7 +551,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		assets.BaremetalOpenapiSchema,
 		[]string{"operatingSystem"})
 	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error reinstalling server: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "OS reinstallation on server %s failed: %s", args[0], err)
 		return
 	}
 
@@ -559,19 +559,19 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 }
 
 func finishReinstall(cmd *cobra.Command, serviceName string, task map[string]any) {
-	log.Println("⚡️ Reinstallation started…")
+	log.Printf("⚡️ OS reinstallation starting on server %s…", serviceName)
 
 	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Reinstallation is started…")
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ OS reinstallation is starting on server %s…", serviceName)
 		return
 	}
 
 	if err := waitForDedicatedServerTask(serviceName, task["taskId"]); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for server to be reinstalled: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for OS to be reinstalled on server %s: %s", serviceName, err)
 		return
 	}
 
-	log.Println("⚡️ Reinstall done, fetching new authentication secrets…")
+	log.Printf("⚡️ OS reinstall done on server %s, fetching new authentication secrets…", serviceName)
 
 	// Fetch new secrets
 	GetBaremetalAuthenticationSecrets(cmd, []string{serviceName})
