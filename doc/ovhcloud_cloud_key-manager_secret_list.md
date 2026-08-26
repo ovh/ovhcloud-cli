@@ -1,15 +1,22 @@
-## ovhcloud cloud network private vrack subnet get
+## ovhcloud cloud key-manager secret list
 
-Get a specific subnet in a private network
+List Key Manager secrets
 
 ```
-ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
+ovhcloud cloud key-manager secret list [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +41,5 @@ ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network
+* [ovhcloud cloud key-manager secret](ovhcloud_cloud_key-manager_secret.md)	 - Manage Key Manager secrets
 

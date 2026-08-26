@@ -1,15 +1,11 @@
-## ovhcloud cloud network private vrack subnet get
+## ovhcloud cloud key-manager container consumer
 
-Get a specific subnet in a private network
-
-```
-ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
-```
+Manage consumers of a Key Manager container
 
 ### Options
 
 ```
-  -h, --help   help for get
+  -h, --help   help for consumer
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +30,9 @@ ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network
+* [ovhcloud cloud key-manager container](ovhcloud_cloud_key-manager_container.md)	 - Manage Key Manager containers
+* [ovhcloud cloud key-manager container consumer delete](ovhcloud_cloud_key-manager_container_consumer_delete.md)	 - Delete a consumer from the given container
+* [ovhcloud cloud key-manager container consumer get](ovhcloud_cloud_key-manager_container_consumer_get.md)	 - Get a specific consumer of the given container
+* [ovhcloud cloud key-manager container consumer list](ovhcloud_cloud_key-manager_container_consumer_list.md)	 - List consumers registered for the given container
+* [ovhcloud cloud key-manager container consumer register](ovhcloud_cloud_key-manager_container_consumer_register.md)	 - Register a consumer for the given container
 

@@ -1,15 +1,17 @@
-## ovhcloud cloud network private vrack subnet get
+## ovhcloud cloud key-manager secret edit
 
-Get a specific subnet in a private network
+Edit the given Key Manager secret (only metadata is mutable)
 
 ```
-ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
+ovhcloud cloud key-manager secret edit <secret_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --editor                    Use a text editor to define parameters
+  -h, --help                      help for edit
+      --metadata stringToString   Metadata key-value pairs (replaces all existing metadata) (default [])
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +36,5 @@ ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network
+* [ovhcloud cloud key-manager secret](ovhcloud_cloud_key-manager_secret.md)	 - Manage Key Manager secrets
 

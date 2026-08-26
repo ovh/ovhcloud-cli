@@ -1,33 +1,33 @@
 🚀 Subnet {{.ServiceName}}
 =======
 
-_{{index .Result "name"}}_
+_{{index .Result "currentState" "name"}}_
 
 ## General information
 
-**CIDR**:         {{index .Result "cidr"}}
-**IP Version**:   {{index .Result "ipVersion"}}
-**Gateway IP**:   {{index .Result "gatewayIp"}}
-**DHCP Enabled**: {{index .Result "dhcpEnabled"}}
+**Status**:       {{index .Result "resourceStatus"}}
+**CIDR**:         {{index .Result "currentState" "cidr"}}
+**Gateway IP**:   {{index .Result "currentState" "gatewayIp"}}
+**DHCP Enabled**: {{index .Result "currentState" "dhcpEnabled"}}
 
 ## DNS Name Servers
 
-{{ range index .Result "dnsNameServers" }}- {{.}}
+{{ range index .Result "currentState" "dnsNameservers" }}- {{.}}
 {{end}}
 
 ## Allocation Pools
 
 | Start | End |
 | --- | --- |
-{{ range index .Result "allocationPools" }}| {{.start}} | {{.end}} |
+{{ range index .Result "currentState" "allocationPools" }}| {{.start}} | {{.end}} |
 {{end}}
 
-{{if index .Result "hostRoutes"}}## Host Routes
+{{if index .Result "currentState" "hostRoutes"}}## Host Routes
 
 | Destination | Next Hop |
 | --- | --- |
-{{ range index .Result "hostRoutes" }}| {{.destination}} | {{.nextHop}} |
+{{ range index .Result "currentState" "hostRoutes" }}| {{.destination}} | {{.nextHop}} |
 {{end}}
 {{end}}
 
-💡 Use option --json or --yaml to get the raw output with all information
+💡 Use option -o json or -o yaml to get the raw output with all information

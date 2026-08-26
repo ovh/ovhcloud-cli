@@ -1,15 +1,25 @@
-## ovhcloud cloud network private vrack subnet get
+## ovhcloud cloud key-manager container create
 
-Get a specific subnet in a private network
+Create a new Key Manager container
 
 ```
-ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
+ovhcloud cloud key-manager container create [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --availability-zone string   Availability zone within the region
+      --editor                     Use a text editor to define parameters
+      --from-file string           File containing parameters
+  -h, --help                       help for create
+      --init-file string           Create a file with example parameters
+      --name string                Desired container name
+      --region string              Region code where the container is located
+      --replace                    Replace parameters file if it already exists
+      --secret-ref stringArray     Secret reference as '<name>=<secretId>' (repeatable)
+      --type string                Type of the container (CERTIFICATE, GENERIC, RSA)
+      --wait                       Wait for the container to be ready before exiting
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +44,5 @@ ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network
+* [ovhcloud cloud key-manager container](ovhcloud_cloud_key-manager_container.md)	 - Manage Key Manager containers
 

@@ -1,15 +1,11 @@
-## ovhcloud cloud network private vrack subnet get
+## ovhcloud cloud key-manager secret
 
-Get a specific subnet in a private network
-
-```
-ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
-```
+Manage Key Manager secrets
 
 ### Options
 
 ```
-  -h, --help   help for get
+  -h, --help   help for secret
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +30,12 @@ ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network
+* [ovhcloud cloud key-manager](ovhcloud_cloud_key-manager.md)	 - Manage Key Management Service (KMS) resources in the given cloud project
+* [ovhcloud cloud key-manager secret consumer](ovhcloud_cloud_key-manager_secret_consumer.md)	 - Manage consumers of a Key Manager secret
+* [ovhcloud cloud key-manager secret create](ovhcloud_cloud_key-manager_secret_create.md)	 - Create a new Key Manager secret
+* [ovhcloud cloud key-manager secret delete](ovhcloud_cloud_key-manager_secret_delete.md)	 - Delete the given Key Manager secret
+* [ovhcloud cloud key-manager secret edit](ovhcloud_cloud_key-manager_secret_edit.md)	 - Edit the given Key Manager secret (only metadata is mutable)
+* [ovhcloud cloud key-manager secret get](ovhcloud_cloud_key-manager_secret_get.md)	 - Get a specific Key Manager secret
+* [ovhcloud cloud key-manager secret list](ovhcloud_cloud_key-manager_secret_list.md)	 - List Key Manager secrets
+* [ovhcloud cloud key-manager secret payload](ovhcloud_cloud_key-manager_secret_payload.md)	 - Manage the payload (sensitive material) of a Key Manager secret
 

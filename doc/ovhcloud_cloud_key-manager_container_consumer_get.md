@@ -1,9 +1,9 @@
-## ovhcloud cloud network private vrack subnet get
+## ovhcloud cloud key-manager container consumer get
 
-Get a specific subnet in a private network
+Get a specific consumer of the given container
 
 ```
-ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
+ovhcloud cloud key-manager container consumer get <container_id> <consumer_id> [flags]
 ```
 
 ### Options
@@ -34,5 +34,5 @@ ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network
+* [ovhcloud cloud key-manager container consumer](ovhcloud_cloud_key-manager_container_consumer.md)	 - Manage consumers of a Key Manager container
 
