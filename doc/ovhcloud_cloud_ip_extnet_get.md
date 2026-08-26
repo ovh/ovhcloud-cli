@@ -1,15 +1,15 @@
-## ovhcloud cloud ip failover attach
+## ovhcloud cloud ip extnet get
 
-Attach a failover IP to an instance
+Get a specific ext-net IP
 
 ```
-ovhcloud cloud ip failover attach <ip_id> <instance_id> [flags]
+ovhcloud cloud ip extnet get <ip> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for attach
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +34,5 @@ ovhcloud cloud ip failover attach <ip_id> <instance_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip failover](ovhcloud_cloud_ip_failover.md)	 - Manage failover public IPs in the given cloud project
+* [ovhcloud cloud ip extnet](ovhcloud_cloud_ip_extnet.md)	 - Manage ext-net public IPs in the given cloud project
 

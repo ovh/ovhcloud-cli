@@ -1,11 +1,11 @@
-## ovhcloud cloud ip failover
+## ovhcloud cloud ip extnet
 
-Manage failover public IPs in the given cloud project
+Manage ext-net public IPs in the given cloud project
 
 ### Options
 
 ```
-  -h, --help   help for failover
+  -h, --help   help for extnet
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +30,8 @@ Manage failover public IPs in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional, ext-net and failover) in the given cloud project
-* [ovhcloud cloud ip failover attach](ovhcloud_cloud_ip_failover_attach.md)	 - Attach a failover IP to an instance
-* [ovhcloud cloud ip failover get](ovhcloud_cloud_ip_failover_get.md)	 - Get a specific failover IP
-* [ovhcloud cloud ip failover list](ovhcloud_cloud_ip_failover_list.md)	 - List failover IPs
+* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional and ext-net) in the given cloud project
+* [ovhcloud cloud ip extnet delete](ovhcloud_cloud_ip_extnet_delete.md)	 - Delete a specific ext-net IP
+* [ovhcloud cloud ip extnet get](ovhcloud_cloud_ip_extnet_get.md)	 - Get a specific ext-net IP
+* [ovhcloud cloud ip extnet list](ovhcloud_cloud_ip_extnet_list.md)	 - List ext-net IPs
 

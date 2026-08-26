@@ -174,7 +174,7 @@ func (ms *MockSuite) TestCloudExtNetIPListCmd(assert, require *td.T) {
 			{"id": "5.6.7.8", "resourceStatus": "READY", "currentState": {"ip": "5.6.7.8", "location": {"region": "GRA11"}}}
 		]`))
 
-	out, err := cmd.Execute("cloud", "ip", "extNet", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "ip", "extnet", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{"id": "5.6.7.8", "resourceStatus": "READY", "currentState": {"ip": "5.6.7.8", "location": {"region": "GRA11"}}}
@@ -186,7 +186,7 @@ func (ms *MockSuite) TestCloudExtNetIPGetCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/publicIp/extNet/5.6.7.8",
 		httpmock.NewStringResponder(200, `{"id": "5.6.7.8", "resourceStatus": "READY", "currentState": {"ip": "5.6.7.8"}}`))
 
-	out, err := cmd.Execute("cloud", "ip", "extNet", "get", "5.6.7.8", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "ip", "extnet", "get", "5.6.7.8", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"id": "5.6.7.8", "resourceStatus": "READY", "currentState": {"ip": "5.6.7.8"}}`))
 }
@@ -196,71 +196,20 @@ func (ms *MockSuite) TestCloudExtNetIPDeleteCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/publicIp/extNet/5.6.7.8",
 		httpmock.NewStringResponder(204, ``))
 
-	out, err := cmd.Execute("cloud", "ip", "extNet", "delete", "5.6.7.8", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "ip", "extnet", "delete", "5.6.7.8", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.String(out, `✅ Ext-Net IP 5.6.7.8 deleted successfully`)
 }
 
-// ---------------------------------------------------------------------------
-// Failover IP – list / get / attach (API v1)
-// ---------------------------------------------------------------------------
-
-func (ms *MockSuite) TestCloudFailoverIPListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/ip/failover",
-		httpmock.NewStringResponder(200, `[
-			{
-				"id": "failover-001",
-				"ip": "9.8.7.6",
-				"status": "ok",
-				"routedTo": "vps-001",
-				"geoloc": "fr"
-			}
-		]`))
-
-	out, err := cmd.Execute("cloud", "ip", "failover", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`[
-		{
-			"id": "failover-001",
-			"ip": "9.8.7.6",
-			"status": "ok",
-			"routedTo": "vps-001",
-			"geoloc": "fr"
-		}
-	]`))
-}
-
-func (ms *MockSuite) TestCloudFailoverIPGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/ip/failover/failover-001",
-		httpmock.NewStringResponder(200, `{
-			"id": "failover-001",
-			"ip": "9.8.7.6",
-			"status": "ok",
-			"routedTo": "vps-001",
-			"geoloc": "fr"
-		}`))
-
-	out, err := cmd.Execute("cloud", "ip", "failover", "get", "failover-001", "--cloud-project", "fakeProjectID", "-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"id": "failover-001",
-		"ip": "9.8.7.6",
-		"status": "ok",
-		"routedTo": "vps-001",
-		"geoloc": "fr"
-	}`))
-}
-
-func (ms *MockSuite) TestCloudFailoverIPAttachCmd(assert, require *td.T) {
+func (ms *MockSuite) TestCloudAdditionalIPAttachCmd(assert, require *td.T) {
+	// Attach is not available on the v2 publicIp API yet, so it still uses v1.
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/ip/failover/failover-001/attach",
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/ip/failover/additional-001/attach",
 		httpmock.NewStringResponder(200, `{}`))
 
-	out, err := cmd.Execute("cloud", "ip", "failover", "attach", "failover-001", "instance-123", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "ip", "additional", "attach", "additional-001", "instance-123", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"message": "✅ Failover IP failover-001 attached to instance instance-123 successfully"
+		"message": "✅ Additional IP additional-001 attached to instance instance-123 successfully"
 	}`))
 }

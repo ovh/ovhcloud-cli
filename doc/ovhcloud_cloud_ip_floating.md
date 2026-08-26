@@ -30,7 +30,7 @@ Manage floating public IPs in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional, ext-net and failover) in the given cloud project
+* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional and ext-net) in the given cloud project
 * [ovhcloud cloud ip floating create](ovhcloud_cloud_ip_floating_create.md)	 - Create a new floating IP
 * [ovhcloud cloud ip floating delete](ovhcloud_cloud_ip_floating_delete.md)	 - Delete a specific floating IP
 * [ovhcloud cloud ip floating edit](ovhcloud_cloud_ip_floating_edit.md)	 - Edit the given floating IP

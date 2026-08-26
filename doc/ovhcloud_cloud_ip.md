@@ -1,6 +1,6 @@
 ## ovhcloud cloud ip
 
-Manage public IPs (floating, additional, ext-net and failover) in the given cloud project
+Manage public IPs (floating, additional and ext-net) in the given cloud project
 
 ### Options
 
@@ -32,8 +32,7 @@ Manage public IPs (floating, additional, ext-net and failover) in the given clou
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud ip additional](ovhcloud_cloud_ip_additional.md)	 - Manage additional public IPs in the given cloud project
-* [ovhcloud cloud ip extNet](ovhcloud_cloud_ip_extNet.md)	 - Manage ext-net public IPs in the given cloud project
-* [ovhcloud cloud ip failover](ovhcloud_cloud_ip_failover.md)	 - Manage failover public IPs in the given cloud project
+* [ovhcloud cloud ip extnet](ovhcloud_cloud_ip_extnet.md)	 - Manage ext-net public IPs in the given cloud project
 * [ovhcloud cloud ip floating](ovhcloud_cloud_ip_floating.md)	 - Manage floating public IPs in the given cloud project
 * [ovhcloud cloud ip list](ovhcloud_cloud_ip_list.md)	 - List all public IPs (floating, additional and ext-net) of the project
 

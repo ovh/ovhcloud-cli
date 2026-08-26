@@ -1,15 +1,15 @@
-## ovhcloud cloud ip failover get
+## ovhcloud cloud ip extnet delete
 
-Get a specific failover IP
+Delete a specific ext-net IP
 
 ```
-ovhcloud cloud ip failover get <ip_id> [flags]
+ovhcloud cloud ip extnet delete <ip> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +34,5 @@ ovhcloud cloud ip failover get <ip_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip failover](ovhcloud_cloud_ip_failover.md)	 - Manage failover public IPs in the given cloud project
+* [ovhcloud cloud ip extnet](ovhcloud_cloud_ip_extnet.md)	 - Manage ext-net public IPs in the given cloud project
 

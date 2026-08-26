@@ -30,7 +30,8 @@ Manage additional public IPs in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional, ext-net and failover) in the given cloud project
+* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional and ext-net) in the given cloud project
+* [ovhcloud cloud ip additional attach](ovhcloud_cloud_ip_additional_attach.md)	 - Attach an additional IP to an instance
 * [ovhcloud cloud ip additional get](ovhcloud_cloud_ip_additional_get.md)	 - Get a specific additional IP
 * [ovhcloud cloud ip additional list](ovhcloud_cloud_ip_additional_list.md)	 - List additional IPs
 

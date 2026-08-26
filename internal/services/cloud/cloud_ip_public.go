@@ -22,7 +22,7 @@ var (
 	// Columns displayed for the various public IP kinds (API v2).
 	cloudPublicIPColumnsToDisplay           = []string{"ip", "type"}
 	cloudPublicIPFloatingColumnsToDisplay   = []string{"id", "currentState.status status", "currentState.location.region region", "resourceStatus"}
-	cloudPublicIPAdditionalColumnsToDisplay = []string{"id", "currentState.ip ip", "resourceStatus"}
+	cloudPublicIPAdditionalColumnsToDisplay = []string{"id", "currentState.associatedResource.id associatedResource", "resourceStatus"}
 	cloudPublicIPExtNetColumnsToDisplay     = []string{"id", "currentState.location.region region", "resourceStatus"}
 
 	//go:embed templates/cloud_ip_public_floating.tmpl
@@ -210,6 +210,26 @@ func GetPublicIPAdditional(_ *cobra.Command, args []string) {
 		args[0],
 		cloudPublicIPAdditionalTemplate,
 	)
+}
+
+// AttachPublicIPAdditional attaches an additional IP to an instance. Attach is
+// not available on the v2 publicIp API yet, so it still uses the v1 endpoint.
+func AttachPublicIPAdditional(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/ip/failover/%s/attach", projectID, url.PathEscape(args[0]))
+
+	var result map[string]any
+	if err := httpLib.Client.Post(endpoint, map[string]string{"instanceId": args[1]}, &result); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to attach additional IP %q to instance %q: %s", args[0], args[1], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Additional IP %s attached to instance %s successfully", args[0], args[1])
 }
 
 // ---------------------------------------------------------------------------

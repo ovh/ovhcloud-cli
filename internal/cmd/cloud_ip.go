@@ -14,7 +14,7 @@ import (
 func initCloudIPCommand(cloudCmd *cobra.Command) {
 	ipCmd := &cobra.Command{
 		Use:   "ip",
-		Short: "Manage public IPs (floating, additional, ext-net and failover) in the given cloud project",
+		Short: "Manage public IPs (floating, additional and ext-net) in the given cloud project",
 	}
 	ipCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
@@ -31,9 +31,6 @@ func initCloudIPCommand(cloudCmd *cobra.Command) {
 	initCloudIPFloatingCommand(ipCmd)
 	initCloudIPAdditionalCommand(ipCmd)
 	initCloudIPExtNetCommand(ipCmd)
-
-	// Failover IPs (API v1)
-	initCloudIPFailoverCommand(ipCmd)
 
 	cloudCmd.AddCommand(ipCmd)
 }
@@ -130,7 +127,8 @@ func getCloudIPFloatingEditCmd() *cobra.Command {
 	return editCmd
 }
 
-// initCloudIPAdditionalCommand registers the `cloud ip additional` subcommands (API v2, read-only).
+// initCloudIPAdditionalCommand registers the `cloud ip additional` subcommands.
+// List and get use API v2; attach still uses API v1 (not available in v2 yet).
 func initCloudIPAdditionalCommand(ipCmd *cobra.Command) {
 	additionalCmd := &cobra.Command{
 		Use:   "additional",
@@ -152,13 +150,20 @@ func initCloudIPAdditionalCommand(ipCmd *cobra.Command) {
 		Run:   cloud.GetPublicIPAdditional,
 	})
 
+	additionalCmd.AddCommand(&cobra.Command{
+		Use:   "attach <ip_id> <instance_id>",
+		Short: "Attach an additional IP to an instance",
+		Args:  cobra.ExactArgs(2),
+		Run:   cloud.AttachPublicIPAdditional,
+	})
+
 	ipCmd.AddCommand(additionalCmd)
 }
 
 // initCloudIPExtNetCommand registers the `cloud ip extNet` subcommands (API v2).
 func initCloudIPExtNetCommand(ipCmd *cobra.Command) {
 	extNetCmd := &cobra.Command{
-		Use:   "extNet",
+		Use:   "extnet",
 		Short: "Manage ext-net public IPs in the given cloud project",
 	}
 
@@ -185,36 +190,4 @@ func initCloudIPExtNetCommand(ipCmd *cobra.Command) {
 	})
 
 	ipCmd.AddCommand(extNetCmd)
-}
-
-// initCloudIPFailoverCommand registers the `cloud ip failover` subcommands (API v1).
-func initCloudIPFailoverCommand(ipCmd *cobra.Command) {
-	failoverCmd := &cobra.Command{
-		Use:   "failover",
-		Short: "Manage failover public IPs in the given cloud project",
-	}
-
-	failoverListCmd := &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls"},
-		Short:   "List failover IPs",
-		Run:     cloud.ListCloudIPFailovers,
-	}
-	failoverCmd.AddCommand(withFilterFlag(failoverListCmd))
-
-	failoverCmd.AddCommand(&cobra.Command{
-		Use:   "get <ip_id>",
-		Short: "Get a specific failover IP",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.GetCloudIPFailover,
-	})
-
-	failoverCmd.AddCommand(&cobra.Command{
-		Use:   "attach <ip_id> <instance_id>",
-		Short: "Attach a failover IP to an instance",
-		Args:  cobra.ExactArgs(2),
-		Run:   cloud.AttachCloudIPFailover,
-	})
-
-	ipCmd.AddCommand(failoverCmd)
 }

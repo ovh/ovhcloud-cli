@@ -1,11 +1,22 @@
-## ovhcloud cloud ip extNet
+## ovhcloud cloud ip extnet list
 
-Manage ext-net public IPs in the given cloud project
+List ext-net IPs
+
+```
+ovhcloud cloud ip extnet list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for extNet
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +41,5 @@ Manage ext-net public IPs in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional, ext-net and failover) in the given cloud project
-* [ovhcloud cloud ip extNet delete](ovhcloud_cloud_ip_extNet_delete.md)	 - Delete a specific ext-net IP
-* [ovhcloud cloud ip extNet get](ovhcloud_cloud_ip_extNet_get.md)	 - Get a specific ext-net IP
-* [ovhcloud cloud ip extNet list](ovhcloud_cloud_ip_extNet_list.md)	 - List ext-net IPs
+* [ovhcloud cloud ip extnet](ovhcloud_cloud_ip_extnet.md)	 - Manage ext-net public IPs in the given cloud project
 
