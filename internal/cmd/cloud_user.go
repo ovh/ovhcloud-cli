@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -26,10 +27,11 @@ func initCloudUserCommand(cloudCmd *cobra.Command) {
 	userCmd.AddCommand(withFilterFlag(userListCmd))
 
 	userCmd.AddCommand(&cobra.Command{
-		Use:   "get <user_id>",
-		Short: "Get information about a user",
-		Run:   cloud.GetCloudUser,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <user_id>",
+		Short:             "Get information about a user",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/user"),
+		Run:               cloud.GetCloudUser,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	userCreateCmd := &cobra.Command{
@@ -45,10 +47,11 @@ func initCloudUserCommand(cloudCmd *cobra.Command) {
 	userCmd.AddCommand(userCreateCmd)
 
 	userCmd.AddCommand(&cobra.Command{
-		Use:   "delete <user_id>",
-		Short: "Delete the given user",
-		Run:   cloud.DeleteCloudUser,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <user_id>",
+		Short:             "Delete the given user",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/user"),
+		Run:               cloud.DeleteCloudUser,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	// S3 policy commands
@@ -59,17 +62,19 @@ func initCloudUserCommand(cloudCmd *cobra.Command) {
 	userCmd.AddCommand(s3PolicyCmd)
 
 	s3PolicyCmd.AddCommand(&cobra.Command{
-		Use:   "get <user_id>",
-		Short: "Get the policy for the given user ID",
-		Run:   cloud.GetUserS3Policy,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <user_id>",
+		Short:             "Get the policy for the given user ID",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/user"),
+		Run:               cloud.GetUserS3Policy,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	s3PolicyCreateCmd := &cobra.Command{
-		Use:   "create <user_id>",
-		Short: "Create a policy for the given user ID",
-		Run:   cloud.CreateUserS3Policy,
-		Args:  cobra.ExactArgs(1),
+		Use:               "create <user_id>",
+		Short:             "Create a policy for the given user ID",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/user"),
+		Run:               cloud.CreateUserS3Policy,
+		Args:              cobra.ExactArgs(1),
 	}
 	s3PolicyCreateCmd.Flags().StringVar(&cloud.StorageS3ContainerPolicySpec.Policy, "policy", "", "Policy in JSON format")
 	addParameterFileFlags(s3PolicyCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/user/{userId}/policy", "post", cloud.CloudStorageS3ContainerPolicyExample, nil)

@@ -105,10 +105,7 @@ func Login(_ *cobra.Command, _ []string) {
 
 	// Legacy mode: store credentials in endpoint section
 	configSection := endpoint
-	if !customEndpoint {
-		selectedRegion = strings.ToUpper(selectedRegion)
-	}
-	serviceconfig.SetEndpoint(nil, []string{selectedRegion})
+	serviceconfig.SetEndpoint(nil, []string{legacyEndpointArg(selectedRegion, endpoint, customEndpoint)})
 
 	for k, v := range credentials {
 		if err := config.SetConfigValue(flags.CliConfig, flags.CliConfigPath, configSection, k, v); err != nil {
@@ -118,3 +115,12 @@ func Login(_ *cobra.Command, _ []string) {
 	}
 }
 
+// legacyEndpointArg returns the value to pass to serviceconfig.SetEndpoint
+// when saving credentials in legacy (non-profile) mode: the raw URL for a
+// custom endpoint, or the uppercased region name (EU/CA/US) otherwise.
+func legacyEndpointArg(selectedRegion, endpoint string, customEndpoint bool) string {
+	if customEndpoint {
+		return endpoint
+	}
+	return strings.ToUpper(selectedRegion)
+}

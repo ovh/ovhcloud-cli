@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	cloudprojectColumnsToDisplay = []string{"project_id", "projectName", "status", "description"}
+	cloudprojectColumnsToDisplay = []string{"id", "currentState.name name", "currentState.mode mode", "resourceStatus"}
 
 	// Cloud project set by CLI flags
 	CloudProject string
@@ -44,11 +44,11 @@ var (
 )
 
 func ListCloudProject(_ *cobra.Command, _ []string) {
-	common.ManageListRequest("/v1/cloud/project", "", cloudprojectColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequestNoExpand("/v2/publicCloud/project", cloudprojectColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudProject(_ *cobra.Command, args []string) {
-	common.ManageObjectRequest("/v1/cloud/project", args[0], cloudProjectTemplate)
+	common.ManageObjectRequest("/v2/publicCloud/project", args[0], cloudProjectTemplate)
 }
 
 func EditCloudProject(cmd *cobra.Command, args []string) {
@@ -95,14 +95,8 @@ func getCloudRegionsWithFeatureAvailable(projectID string, features ...string) (
 	if err != nil {
 		return nil, err
 	}
-
-	// Filter regions having given feature available
 	var regionIDs []any
 	for _, region := range regions {
-		if region["status"] != "UP" {
-			continue
-		}
-
 		services := region["services"].([]any)
 		for _, service := range services {
 			service := service.(map[string]any)

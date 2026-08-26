@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/dedicatedceph"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single DedicatedCeph
 	dedicatedcephCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific Dedicated Ceph",
-		Args:  cobra.ExactArgs(1),
-		Run:   dedicatedceph.GetDedicatedCeph,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific Dedicated Ceph",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/ceph"),
+		Run:               dedicatedceph.GetDedicatedCeph,
 	})
 
 	// Command to update a single DedicatedCeph
 	editCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given Dedicated Ceph",
-		Args:  cobra.ExactArgs(1),
-		Run:   dedicatedceph.EditDedicatedCeph,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given Dedicated Ceph",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/dedicated/ceph"),
+		Run:               dedicatedceph.EditDedicatedCeph,
 	}
 	editCmd.Flags().StringVar(&dedicatedceph.DedicatedCephSpec.CrushTunables, "crush-tunables", "", "Tunables of cluster (ARGONAUT, BOBTAIL, DEFAULT, FIREFLY, HAMMER, JEWEL, LEGACY, OPTIMAL)")
 	editCmd.Flags().StringVar(&dedicatedceph.DedicatedCephSpec.Label, "label", "", "Name of the cluster")

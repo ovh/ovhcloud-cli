@@ -3,7 +3,7 @@
 Get information about a SSH key
 
 ```
-ovhcloud cloud ssh-key get <ssh_key_id> [flags]
+ovhcloud cloud ssh-key get <ssh_key_name> [flags]
 ```
 
 ### Options

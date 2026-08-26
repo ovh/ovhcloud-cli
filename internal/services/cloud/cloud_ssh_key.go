@@ -11,7 +11,6 @@ import (
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
-	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
@@ -19,7 +18,7 @@ import (
 )
 
 var (
-	cloudprojectSSHKeyColumnsToDisplay = []string{"id", "name", "regions"}
+	cloudprojectSSHKeyColumnsToDisplay = []string{"name", "createdAt", "updatedAt"}
 
 	//go:embed templates/cloud_ssh_key.tmpl
 	cloudSSHKeyTemplate string
@@ -27,11 +26,10 @@ var (
 	//go:embed parameter-samples/ssh-key-create.json
 	SSHKeyCreationExample string
 
-	// sshKeyCreationParameters holds the parameters for creating a new SSH key.
+	// SSHKeyCreationParameters holds the parameters for creating a new SSH key.
 	SSHKeyCreationParameters struct {
 		Name      string `json:"name,omitempty"`
 		PublicKey string `json:"publicKey,omitempty"`
-		Region    string `json:"region,omitempty"`
 	}
 )
 
@@ -41,21 +39,8 @@ func ListCloudSSHKeys(_ *cobra.Command, _ []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	path := fmt.Sprintf("/v1/cloud/project/%s/sshkey", projectID)
 
-	var body []map[string]any
-	if err := httpLib.Client.Get(path, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch SSH keys: %s", err)
-		return
-	}
-
-	body, err = filtersLib.FilterLines(body, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(body, cloudprojectSSHKeyColumnsToDisplay, &flags.OutputFormatConfig)
+	common.ManageListRequestNoExpand(fmt.Sprintf("/v2/publicCloud/project/%s/sshKey", projectID), cloudprojectSSHKeyColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudSSHKey(_ *cobra.Command, args []string) {
@@ -65,7 +50,7 @@ func GetCloudSSHKey(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/sshkey", projectID), args[0], cloudSSHKeyTemplate)
+	common.ManageObjectRequest(fmt.Sprintf("/v2/publicCloud/project/%s/sshKey", projectID), args[0], cloudSSHKeyTemplate)
 }
 
 func CreateCloudSSHKey(cmd *cobra.Command, _ []string) {
@@ -75,14 +60,14 @@ func CreateCloudSSHKey(cmd *cobra.Command, _ []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/sshkey", projectID)
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/sshKey", projectID)
 	_, err = common.CreateResource(
 		cmd,
-		"/v1/cloud/project/{serviceName}/sshkey",
+		"/publicCloud/project/{projectId}/sshKey",
 		endpoint,
 		SSHKeyCreationExample,
 		SSHKeyCreationParameters,
-		assets.CloudOpenapiSchema,
+		assets.CloudV2OpenapiSchema,
 		[]string{"name", "publicKey"},
 	)
 	if err != nil {
@@ -100,7 +85,7 @@ func DeleteCloudSSHKey(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/sshkey/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/sshKey/%s", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting SSH key %q: %s", args[0], err)

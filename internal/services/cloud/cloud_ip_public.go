@@ -137,7 +137,7 @@ func CreatePublicIPFloating(cmd *cobra.Command, _ []string) {
 	}
 
 	resourceEndpoint := fmt.Sprintf("%s/%s", endpoint, url.PathEscape(id))
-	if err := waitForCloudResourceReady(resourceEndpoint, 20*time.Minute); err != nil {
+	if _, err := waitForCloudResourceReady(resourceEndpoint, 20*time.Minute); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for floating IP creation: %s", err)
 		return
 	}

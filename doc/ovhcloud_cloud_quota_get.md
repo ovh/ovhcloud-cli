@@ -1,9 +1,9 @@
 ## ovhcloud cloud quota get
 
-Get quotas for a specific region
+Get the project quota
 
 ```
-ovhcloud cloud quota get <region> [flags]
+ovhcloud cloud quota get [flags]
 ```
 
 ### Options
@@ -34,5 +34,5 @@ ovhcloud cloud quota get <region> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud quota](ovhcloud_cloud_quota.md)	 - Check quotas in the given cloud project
+* [ovhcloud cloud quota](ovhcloud_cloud_quota.md)	 - Manage quotas in the given cloud project
 

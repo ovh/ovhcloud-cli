@@ -541,12 +541,33 @@ func ReinstallVps(cmd *cobra.Command, args []string) {
 	}
 
 	if VpsSSHKeyViaInteractiveSelector {
-		keyName, _, err := runSSHKeySelector()
+		_, publicKey, err := runSSHKeySelector()
 		if err != nil {
 			display.OutputError(&flags.OutputFormatConfig, "error selecting SSH key: %s", err)
 			return
 		}
-		VpsReinstallSpec.SshKey = keyName
+		// Send the public key directly (publicSshKey) rather than the key name:
+		// this reliably populates authorized_keys, matching the web behavior.
+		VpsReinstallSpec.SshKey = ""
+		VpsReinstallSpec.PublicSshKey = publicKey
+	} else if VpsReinstallSpec.SshKey != "" {
+		// The --ssh-key flag takes the name of an account SSH key (/me/sshKey).
+		// Resolve it to its public key and send it as publicSshKey, so a wrong
+		// name fails fast instead of silently leaving authorized_keys empty (#260).
+		publicKey, err := getAccountSSHKeyByName(VpsReinstallSpec.SshKey)
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
+			return
+		}
+		VpsReinstallSpec.SshKey = ""
+		VpsReinstallSpec.PublicSshKey = publicKey
+	}
+
+	// Guard against locking yourself out: --do-not-send-password only makes
+	// sense if an SSH key is provided, otherwise there is no way to log in.
+	if VpsReinstallSpec.DoNotSendPassword && VpsReinstallSpec.PublicSshKey == "" {
+		display.OutputError(&flags.OutputFormatConfig, "--do-not-send-password requires an SSH key (use --ssh-key <name>, --public-ssh-key <key> or --ssh-key-selector), otherwise you would have no way to log in")
+		return
 	}
 
 	response, err := common.CreateResource(
