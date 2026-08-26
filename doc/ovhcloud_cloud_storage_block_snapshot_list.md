@@ -1,22 +1,16 @@
-## ovhcloud cloud storage block volume backup list
+## ovhcloud cloud storage block snapshot list
 
-List volume backups
+List snapshots of the given volume
 
 ```
-ovhcloud cloud storage block volume backup list [flags]
+ovhcloud cloud storage block snapshot list <volume_id (optional, list all snapshots if omitted)> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help               help for list
+      --volume-id string   Volume ID to filter snapshots by
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +35,5 @@ ovhcloud cloud storage block volume backup list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block volume backup](ovhcloud_cloud_storage_block_volume_backup.md)	 - Manage volume backups in the given cloud project
+* [ovhcloud cloud storage block snapshot](ovhcloud_cloud_storage_block_snapshot.md)	 - Manage snapshots of the given volume
 

@@ -1,15 +1,16 @@
-## ovhcloud cloud storage block volume snapshot delete
+## ovhcloud cloud storage block backup create
 
-Delete the given snapshot
+Create a backup of the given volume
 
 ```
-ovhcloud cloud storage block volume snapshot delete <snapshot_id> [flags]
+ovhcloud cloud storage block backup create <volume_id> <backup_name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+  -h, --help   help for create
+      --wait   Wait for the backup to be READY before exiting
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +35,5 @@ ovhcloud cloud storage block volume snapshot delete <snapshot_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block volume snapshot](ovhcloud_cloud_storage_block_volume_snapshot.md)	 - Manage snapshots of the given volume
+* [ovhcloud cloud storage block backup](ovhcloud_cloud_storage_block_backup.md)	 - Manage volume backups in the given cloud project
 

@@ -31,5 +31,7 @@ Manage block storage in the given cloud project
 ### SEE ALSO
 
 * [ovhcloud cloud storage](ovhcloud_cloud_storage.md)	 - Manage storage services in the given cloud project
+* [ovhcloud cloud storage block backup](ovhcloud_cloud_storage_block_backup.md)	 - Manage volume backups in the given cloud project
+* [ovhcloud cloud storage block snapshot](ovhcloud_cloud_storage_block_snapshot.md)	 - Manage snapshots of the given volume
 * [ovhcloud cloud storage block volume](ovhcloud_cloud_storage_block_volume.md)	 - Manage block storage volumes in the given cloud project
 

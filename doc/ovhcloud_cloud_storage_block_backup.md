@@ -1,11 +1,11 @@
-## ovhcloud cloud storage block volume snapshot
+## ovhcloud cloud storage block backup
 
-Manage snapshots of the given volume
+Manage volume backups in the given cloud project
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+  -h, --help   help for backup
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +30,10 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block volume](ovhcloud_cloud_storage_block_volume.md)	 - Manage block storage volumes in the given cloud project
-* [ovhcloud cloud storage block volume snapshot create](ovhcloud_cloud_storage_block_volume_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block volume snapshot delete](ovhcloud_cloud_storage_block_volume_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block volume snapshot list](ovhcloud_cloud_storage_block_volume_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
+* [ovhcloud cloud storage block backup create](ovhcloud_cloud_storage_block_backup_create.md)	 - Create a backup of the given volume
+* [ovhcloud cloud storage block backup delete](ovhcloud_cloud_storage_block_backup_delete.md)	 - Delete the given volume backup
+* [ovhcloud cloud storage block backup get](ovhcloud_cloud_storage_block_backup_get.md)	 - Get a specific volume backup
+* [ovhcloud cloud storage block backup list](ovhcloud_cloud_storage_block_backup_list.md)	 - List volume backups
+* [ovhcloud cloud storage block backup restore](ovhcloud_cloud_storage_block_backup_restore.md)	 - Restore a volume from the given backup
 

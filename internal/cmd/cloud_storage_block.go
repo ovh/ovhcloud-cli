@@ -87,7 +87,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Use:   "snapshot",
 		Short: "Manage snapshots of the given volume",
 	}
-	volumeCmd.AddCommand(volumeSnapshotCmd)
+	storageBlockCmd.AddCommand(volumeSnapshotCmd)
 
 	volumeSnapshotCreateCmd := &cobra.Command{
 		Use:               "create <volume_id>",
@@ -123,7 +123,7 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Use:   "backup",
 		Short: "Manage volume backups in the given cloud project",
 	}
-	volumeCmd.AddCommand(volumeBackupCmd)
+	storageBlockCmd.AddCommand(volumeBackupCmd)
 
 	volumeBackupCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:     "list",

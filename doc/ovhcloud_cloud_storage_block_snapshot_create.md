@@ -1,9 +1,9 @@
-## ovhcloud cloud storage block volume snapshot create
+## ovhcloud cloud storage block snapshot create
 
 Create a snapshot of the given volume
 
 ```
-ovhcloud cloud storage block volume snapshot create <volume_id> [flags]
+ovhcloud cloud storage block snapshot create <volume_id> [flags]
 ```
 
 ### Options
@@ -37,5 +37,5 @@ ovhcloud cloud storage block volume snapshot create <volume_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block volume snapshot](ovhcloud_cloud_storage_block_volume_snapshot.md)	 - Manage snapshots of the given volume
+* [ovhcloud cloud storage block snapshot](ovhcloud_cloud_storage_block_snapshot.md)	 - Manage snapshots of the given volume
 

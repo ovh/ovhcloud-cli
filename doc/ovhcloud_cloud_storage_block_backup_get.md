@@ -1,15 +1,15 @@
-## ovhcloud cloud storage block volume backup delete
+## ovhcloud cloud storage block backup get
 
-Delete the given volume backup
+Get a specific volume backup
 
 ```
-ovhcloud cloud storage block volume backup delete <backup_id> [flags]
+ovhcloud cloud storage block backup get <backup_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +34,5 @@ ovhcloud cloud storage block volume backup delete <backup_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block volume backup](ovhcloud_cloud_storage_block_volume_backup.md)	 - Manage volume backups in the given cloud project
+* [ovhcloud cloud storage block backup](ovhcloud_cloud_storage_block_backup.md)	 - Manage volume backups in the given cloud project
 

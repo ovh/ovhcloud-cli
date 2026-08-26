@@ -173,7 +173,7 @@ func (ms *MockSuite) TestCloudStorageBlockSnapshotListCmd(assert, require *td.T)
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "volume", "snapshot", "list", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "snapshot", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("snap-1"))
@@ -195,7 +195,7 @@ func (ms *MockSuite) TestCloudStorageBlockBackupListCmd(assert, require *td.T) {
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "volume", "backup", "list", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "backup", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("backup-1"))

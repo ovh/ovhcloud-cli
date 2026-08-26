@@ -1,16 +1,15 @@
-## ovhcloud cloud storage block volume snapshot list
+## ovhcloud cloud storage block backup restore
 
-List snapshots of the given volume
+Restore a volume from the given backup
 
 ```
-ovhcloud cloud storage block volume snapshot list <volume_id (optional, list all snapshots if omitted)> [flags]
+ovhcloud cloud storage block backup restore <backup_id> <volume_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help               help for list
-      --volume-id string   Volume ID to filter snapshots by
+  -h, --help   help for restore
 ```
 
 ### Options inherited from parent commands
@@ -35,5 +34,5 @@ ovhcloud cloud storage block volume snapshot list <volume_id (optional, list all
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block volume snapshot](ovhcloud_cloud_storage_block_volume_snapshot.md)	 - Manage snapshots of the given volume
+* [ovhcloud cloud storage block backup](ovhcloud_cloud_storage_block_backup.md)	 - Manage volume backups in the given cloud project
 

@@ -1,11 +1,22 @@
-## ovhcloud cloud storage block volume backup
+## ovhcloud cloud storage block backup list
 
-Manage volume backups in the given cloud project
+List volume backups
+
+```
+ovhcloud cloud storage block backup list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for backup
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,10 +41,5 @@ Manage volume backups in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block volume](ovhcloud_cloud_storage_block_volume.md)	 - Manage block storage volumes in the given cloud project
-* [ovhcloud cloud storage block volume backup create](ovhcloud_cloud_storage_block_volume_backup_create.md)	 - Create a backup of the given volume
-* [ovhcloud cloud storage block volume backup delete](ovhcloud_cloud_storage_block_volume_backup_delete.md)	 - Delete the given volume backup
-* [ovhcloud cloud storage block volume backup get](ovhcloud_cloud_storage_block_volume_backup_get.md)	 - Get a specific volume backup
-* [ovhcloud cloud storage block volume backup list](ovhcloud_cloud_storage_block_volume_backup_list.md)	 - List volume backups
-* [ovhcloud cloud storage block volume backup restore](ovhcloud_cloud_storage_block_volume_backup_restore.md)	 - Restore a volume from the given backup
+* [ovhcloud cloud storage block backup](ovhcloud_cloud_storage_block_backup.md)	 - Manage volume backups in the given cloud project
 
