@@ -1,10 +1,6 @@
 ## ovhcloud cloud key-manager secret payload
 
-Fetch the payload (sensitive material) of the given Key Manager secret
-
-```
-ovhcloud cloud key-manager secret payload <secret_id> [flags]
-```
+Manage the payload (sensitive material) of a Key Manager secret
 
 ### Options
 
@@ -35,4 +31,5 @@ ovhcloud cloud key-manager secret payload <secret_id> [flags]
 ### SEE ALSO
 
 * [ovhcloud cloud key-manager secret](ovhcloud_cloud_key-manager_secret.md)	 - Manage Key Manager secrets
+* [ovhcloud cloud key-manager secret payload get](ovhcloud_cloud_key-manager_secret_payload_get.md)	 - Fetch the payload (sensitive material) of the given Key Manager secret
 

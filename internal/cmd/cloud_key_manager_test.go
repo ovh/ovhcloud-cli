@@ -35,8 +35,13 @@ func (ms *MockSuite) TestCloudKeyManagerSecretListCmd(assert, require *td.T) {
 	out, err := cmd.Execute("cloud", "key-manager", "secret", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("secret-1"))
-	assert.Cmp(out, td.Contains("my-secret"))
+	assert.String(out, `
+┌──────────┬───────────┬────────┬────────┬────────────────┐
+│    id    │   name    │ region │  type  │ resourceStatus │
+├──────────┼───────────┼────────┼────────┼────────────────┤
+│ secret-1 │ my-secret │ GRA    │ OPAQUE │ READY          │
+└──────────┴───────────┴────────┴────────┴────────────────┘
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudKeyManagerSecretGetCmd(assert, require *td.T) {
@@ -110,7 +115,7 @@ func (ms *MockSuite) TestCloudKeyManagerSecretPayloadCmd(assert, require *td.T) 
 		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/keyManager/secret/secret-1/payload",
 		httpmock.NewStringResponder(200, `{"payload": "super-secret-value"}`))
 
-	out, err := cmd.Execute("cloud", "key-manager", "secret", "payload", "secret-1", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "key-manager", "secret", "payload", "get", "secret-1", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("super-secret-value"))

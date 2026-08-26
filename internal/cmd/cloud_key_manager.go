@@ -69,12 +69,18 @@ func getKeyManagerSecretCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	secretCmd.AddCommand(&cobra.Command{
-		Use:   "payload <secret_id>",
+	// Payload subcommands
+	payloadCmd := &cobra.Command{
+		Use:   "payload",
+		Short: "Manage the payload (sensitive material) of a Key Manager secret",
+	}
+	payloadCmd.AddCommand(&cobra.Command{
+		Use:   "get <secret_id>",
 		Short: "Fetch the payload (sensitive material) of the given Key Manager secret",
 		Run:   cloud.GetKeyManagerSecretPayload,
 		Args:  cobra.ExactArgs(1),
 	})
+	secretCmd.AddCommand(payloadCmd)
 
 	// Consumer subcommands
 	secretCmd.AddCommand(getKeyManagerSecretConsumerCmd())

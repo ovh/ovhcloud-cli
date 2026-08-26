@@ -1,11 +1,15 @@
-## ovhcloud cloud key-manager secret
+## ovhcloud cloud key-manager secret payload get
 
-Manage Key Manager secrets
+Fetch the payload (sensitive material) of the given Key Manager secret
+
+```
+ovhcloud cloud key-manager secret payload get <secret_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for secret
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -30,12 +34,5 @@ Manage Key Manager secrets
 
 ### SEE ALSO
 
-* [ovhcloud cloud key-manager](ovhcloud_cloud_key-manager.md)	 - Manage Key Management Service (KMS) resources in the given cloud project
-* [ovhcloud cloud key-manager secret consumer](ovhcloud_cloud_key-manager_secret_consumer.md)	 - Manage consumers of a Key Manager secret
-* [ovhcloud cloud key-manager secret create](ovhcloud_cloud_key-manager_secret_create.md)	 - Create a new Key Manager secret
-* [ovhcloud cloud key-manager secret delete](ovhcloud_cloud_key-manager_secret_delete.md)	 - Delete the given Key Manager secret
-* [ovhcloud cloud key-manager secret edit](ovhcloud_cloud_key-manager_secret_edit.md)	 - Edit the given Key Manager secret (only metadata is mutable)
-* [ovhcloud cloud key-manager secret get](ovhcloud_cloud_key-manager_secret_get.md)	 - Get a specific Key Manager secret
-* [ovhcloud cloud key-manager secret list](ovhcloud_cloud_key-manager_secret_list.md)	 - List Key Manager secrets
 * [ovhcloud cloud key-manager secret payload](ovhcloud_cloud_key-manager_secret_payload.md)	 - Manage the payload (sensitive material) of a Key Manager secret
 
