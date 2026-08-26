@@ -19,6 +19,9 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 	networkCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 	cloudCmd.AddCommand(networkCmd)
 
+	// Security group commands (Cloud API v2)
+	initCloudSecurityGroupCommand(networkCmd)
+
 	// Private network commands
 	privateNetworkCmd := &cobra.Command{
 		Use:   "private",
@@ -158,8 +161,11 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.EditGateway,
 		Args:  cobra.ExactArgs(1),
 	}
-	gatewayEditCmd.Flags().StringVar(&cloud.CloudGatewaySpec.Name, "name", "", "Name of the gateway")
-	gatewayEditCmd.Flags().StringVar(&cloud.CloudGatewaySpec.Model, "model", "", "Model of the gateway (s, m, l, xl, 2xl, 3xl)")
+	gatewayEditCmd.Flags().StringVar(&cloud.CloudGatewaySpec.TargetSpec.Name, "name", "", "Name of the gateway")
+	gatewayEditCmd.Flags().StringVar(&cloud.CloudGatewaySpec.TargetSpec.Description, "description", "", "Description of the gateway")
+	gatewayEditCmd.Flags().BoolVar(&cloud.CloudGatewaySpec.TargetSpec.ExternalGateway.Enabled, "external-gateway-enabled", false, "Whether the external gateway is enabled")
+	gatewayEditCmd.Flags().StringVar(&cloud.CloudGatewaySpec.TargetSpec.ExternalGateway.Model, "external-gateway-model", "", "External gateway sizing model (S, M, L, XL, 2XL, 3XL)")
+	gatewayEditCmd.Flags().StringSliceVar(&cloud.CloudGatewaySpec.TargetSpec.CliSubnets, "subnet", nil, "ID of a subnet to attach to the gateway (repeatable)")
 	addInteractiveEditorFlag(gatewayEditCmd)
 	gatewayCmd.AddCommand(gatewayEditCmd)
 
@@ -375,87 +381,56 @@ func getSubnetEditCmd() *cobra.Command {
 
 func getGatewayCreationCmd() *cobra.Command {
 	gatewayCreateCmd := &cobra.Command{
-		Use:   "create <region>",
+		Use:   "create",
 		Short: "Create a gateway in the given cloud project",
-		Long: `Use this command to create a new gateway.
+		Long: `Use this command to create a new gateway in the given public cloud project.
 
-Two options are available to create a gateway:
-	- Create a gateway in an existing private network
-	- Create a gateway in a new private network
-
-When creating a gateway in an existing private network, you must specify the network ID and subnet ID 
-using the flags --network-id and --subnet-id.
-In this case, only two parameters are supported and required: the gateway model and its name (respectively
---model and --name flags).
-
-There are three ways to define the parameters:
+Subnets are nested objects: to attach them, use the repeatable --subnet flag, a
+configuration file or your text editor. There are three ways to define the
+creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud network gateway create <region> --name MyGateway --model xl
+	ovhcloud cloud network gateway create --name MyGateway --region GRA11 --external-gateway-enabled --external-gateway-model S
 
 2. Using a configuration file:
 
   First you can generate an example of parameters file using the following command:
 
-	ovhcloud cloud network gateway create <region> --init-file ./params.json
+	ovhcloud cloud network gateway create --init-file ./params.json
 
-  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
   After editing the file to set the correct creation parameters, run:
 
-	ovhcloud cloud network gateway create <region> --from-file ./params.json
+	ovhcloud cloud network gateway create --from-file ./params.json
 
   Note that you can also pipe the content of the parameters file, like the following:
 
-	cat ./params.json | ovhcloud cloud network gateway create <region>
+	cat ./params.json | ovhcloud cloud network gateway create
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovhcloud cloud network gateway create <region> --from-file ./params.json --name MyGateway
+	ovhcloud cloud network gateway create --from-file ./params.json --name MyGateway
 
 3. Using your default text editor:
 
-	ovhcloud cloud network gateway create <region> --editor
-
-  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
-  default text editor to update the parameters. When saving the file, the creation will start.
-
-  Note that it is also possible to override values in the presented examples using command line flags like the following:
-
-	ovhcloud cloud network gateway create <region> --editor --name MyGateway
+	ovhcloud cloud network gateway create --editor
 `,
-		Run:  cloud.CreateGateway,
-		Args: cobra.ExactArgs(1),
+		Run: cloud.CreateGateway,
 	}
 
-	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.Model, "model", "", "Gateway model (s, m, l, xl, 2xl, 3xl)")
-	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.Name, "name", "", "Name of the gateway")
-
-	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.Network.Name, "network-name", "", "Name of the private network")
-	gatewayCreateCmd.Flags().IntVar(&cloud.CloudGatewaySpec.Network.VlanId, "network-vlan-id", 0, "VLAN ID for the private network")
-
-	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.Network.Subnet.Name, "subnet-name", "", "Name of the subnet")
-	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.Network.Subnet.Cidr, "subnet-cidr", "", "CIDR of the subnet")
-	gatewayCreateCmd.Flags().IntVar(&cloud.CloudGatewaySpec.Network.Subnet.IPVersion, "subnet-ip-version", 0, "IP version (4 or 6)")
-	gatewayCreateCmd.Flags().BoolVar(&cloud.CloudGatewaySpec.Network.Subnet.EnableDhcp, "subnet-enable-dhcp", false, "Enable DHCP for the subnet")
-	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.Network.Subnet.GatewayIp, "subnet-gateway-ip", "", "Gateway IP address for the subnet")
-	gatewayCreateCmd.Flags().BoolVar(&cloud.CloudGatewaySpec.Network.Subnet.UseDefaultPublicDNSResolver, "subnet-use-default-public-dns-resolver", false, "Use default DNS resolver for the subnet")
-
-	gatewayCreateCmd.Flags().StringSliceVar(&cloud.CloudGatewaySpec.Network.Subnet.DnsNameServers, "subnet-dns-name-servers", nil, "DNS name servers for the subnet")
-	gatewayCreateCmd.Flags().StringSliceVar(&cloud.CloudGatewaySpec.Network.Subnet.CliAllocationPools, "subnet-allocation-pools", nil, "Allocation pools for the subnet in format start:end")
-	gatewayCreateCmd.Flags().StringSliceVar(&cloud.CloudGatewaySpec.Network.Subnet.CliHostRoutes, "subnet-host-routes", nil, "Host routes for the subnet in format destination:nextHop")
+	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.TargetSpec.Name, "name", "", "Name of the gateway")
+	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.TargetSpec.Description, "description", "", "Description of the gateway")
+	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.TargetSpec.Location.Region, "region", "", "Region where the gateway will be created")
+	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.TargetSpec.Location.AvailabilityZone, "availability-zone", "", "Availability zone within the region")
+	gatewayCreateCmd.Flags().BoolVar(&cloud.CloudGatewaySpec.TargetSpec.ExternalGateway.Enabled, "external-gateway-enabled", false, "Whether the external gateway is enabled")
+	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.TargetSpec.ExternalGateway.Model, "external-gateway-model", "", "External gateway sizing model (S, M, L, XL, 2XL, 3XL)")
+	gatewayCreateCmd.Flags().StringSliceVar(&cloud.CloudGatewaySpec.TargetSpec.CliSubnets, "subnet", nil, "ID of a subnet to attach to the gateway (repeatable)")
 
 	// Common flags for other means to define parameters
-	addParameterFileFlags(gatewayCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/gateway", "post", cloud.GatewayCreationExample, nil)
+	addParameterFileFlags(gatewayCreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/gateway", "post", cloud.GatewayCreationExample, nil)
 	addInteractiveEditorFlag(gatewayCreateCmd)
 	gatewayCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for gateway creation to be done before exiting")
 	markFlagsMutuallyExclusive(gatewayCreateCmd, "from-file", "editor")
-
-	// Add a flag to specify the network ID if creating in an existing private network
-	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.ExistingNetworkID, "network-id", "", "ID of the existing private network to create the gateway in")
-	gatewayCreateCmd.Flags().StringVar(&cloud.CloudGatewaySpec.ExistingSubnetID, "subnet-id", "", "ID of the existing subnet to create the gateway in")
-	markFlagsMutuallyExclusive(gatewayCreateCmd, "network-name", "network-id")
-	markFlagsMutuallyExclusive(gatewayCreateCmd, "subnet-name", "subnet-id")
 
 	return gatewayCreateCmd
 }

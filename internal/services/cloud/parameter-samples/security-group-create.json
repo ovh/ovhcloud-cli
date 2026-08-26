@@ -1,0 +1,20 @@
+{
+  "targetSpec": {
+    "name": "my-security-group",
+    "description": "My security group",
+    "location": {
+      "region": "GRA11"
+    },
+    "rules": [
+      {
+        "description": "Allow inbound SSH",
+        "direction": "INGRESS",
+        "ethernetType": "IPV4",
+        "protocol": "TCP",
+        "portRangeMin": 22,
+        "portRangeMax": 22,
+        "remoteIpPrefix": "0.0.0.0/0"
+      }
+    ]
+  }
+}

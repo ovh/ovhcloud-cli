@@ -1,21 +1,11 @@
-## ovhcloud cloud network gateway edit
+## ovhcloud cloud network security-group
 
-Edit the given gateway
-
-```
-ovhcloud cloud network gateway edit <gateway_id> [flags]
-```
+Manage security groups in the given cloud project
 
 ### Options
 
 ```
-      --description string              Description of the gateway
-      --editor                          Use a text editor to define parameters
-      --external-gateway-enabled        Whether the external gateway is enabled
-      --external-gateway-model string   External gateway sizing model (S, M, L, XL, 2XL, 3XL)
-  -h, --help                            help for edit
-      --name string                     Name of the gateway
-      --subnet strings                  ID of a subnet to attach to the gateway (repeatable)
+  -h, --help   help for security-group
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +30,10 @@ ovhcloud cloud network gateway edit <gateway_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network gateway](ovhcloud_cloud_network_gateway.md)	 - Manage gateways in the given cloud project
+* [ovhcloud cloud network](ovhcloud_cloud_network.md)	 - Manage networks in the given cloud project
+* [ovhcloud cloud network security-group create](ovhcloud_cloud_network_security-group_create.md)	 - Create a new security group
+* [ovhcloud cloud network security-group delete](ovhcloud_cloud_network_security-group_delete.md)	 - Delete a specific security group
+* [ovhcloud cloud network security-group edit](ovhcloud_cloud_network_security-group_edit.md)	 - Edit the given security group
+* [ovhcloud cloud network security-group get](ovhcloud_cloud_network_security-group_get.md)	 - Get a specific security group
+* [ovhcloud cloud network security-group list](ovhcloud_cloud_network_security-group_list.md)	 - List security groups
 

@@ -4,82 +4,59 @@ Create a gateway in the given cloud project
 
 ### Synopsis
 
-Use this command to create a new gateway.
+Use this command to create a new gateway in the given public cloud project.
 
-Two options are available to create a gateway:
-	- Create a gateway in an existing private network
-	- Create a gateway in a new private network
-
-When creating a gateway in an existing private network, you must specify the network ID and subnet ID 
-using the flags --network-id and --subnet-id.
-In this case, only two parameters are supported and required: the gateway model and its name (respectively
---model and --name flags).
-
-There are three ways to define the parameters:
+Subnets are nested objects: to attach them, use the repeatable --subnet flag, a
+configuration file or your text editor. There are three ways to define the
+creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud network gateway create <region> --name MyGateway --model xl
+	ovhcloud cloud network gateway create --name MyGateway --region GRA11 --external-gateway-enabled --external-gateway-model S
 
 2. Using a configuration file:
 
   First you can generate an example of parameters file using the following command:
 
-	ovhcloud cloud network gateway create <region> --init-file ./params.json
+	ovhcloud cloud network gateway create --init-file ./params.json
 
-  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
   After editing the file to set the correct creation parameters, run:
 
-	ovhcloud cloud network gateway create <region> --from-file ./params.json
+	ovhcloud cloud network gateway create --from-file ./params.json
 
   Note that you can also pipe the content of the parameters file, like the following:
 
-	cat ./params.json | ovhcloud cloud network gateway create <region>
+	cat ./params.json | ovhcloud cloud network gateway create
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovhcloud cloud network gateway create <region> --from-file ./params.json --name MyGateway
+	ovhcloud cloud network gateway create --from-file ./params.json --name MyGateway
 
 3. Using your default text editor:
 
-	ovhcloud cloud network gateway create <region> --editor
-
-  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
-  default text editor to update the parameters. When saving the file, the creation will start.
-
-  Note that it is also possible to override values in the presented examples using command line flags like the following:
-
-	ovhcloud cloud network gateway create <region> --editor --name MyGateway
+	ovhcloud cloud network gateway create --editor
 
 
 ```
-ovhcloud cloud network gateway create <region> [flags]
+ovhcloud cloud network gateway create [flags]
 ```
 
 ### Options
 
 ```
-      --editor                                   Use a text editor to define parameters
-      --from-file string                         File containing parameters
-  -h, --help                                     help for create
-      --init-file string                         Create a file with example parameters
-      --model string                             Gateway model (s, m, l, xl, 2xl, 3xl)
-      --name string                              Name of the gateway
-      --network-id string                        ID of the existing private network to create the gateway in
-      --network-name string                      Name of the private network
-      --network-vlan-id int                      VLAN ID for the private network
-      --replace                                  Replace parameters file if it already exists
-      --subnet-allocation-pools strings          Allocation pools for the subnet in format start:end
-      --subnet-cidr string                       CIDR of the subnet
-      --subnet-dns-name-servers strings          DNS name servers for the subnet
-      --subnet-enable-dhcp                       Enable DHCP for the subnet
-      --subnet-gateway-ip string                 Gateway IP address for the subnet
-      --subnet-host-routes strings               Host routes for the subnet in format destination:nextHop
-      --subnet-id string                         ID of the existing subnet to create the gateway in
-      --subnet-ip-version int                    IP version (4 or 6)
-      --subnet-name string                       Name of the subnet
-      --subnet-use-default-public-dns-resolver   Use default DNS resolver for the subnet
-      --wait                                     Wait for gateway creation to be done before exiting
+      --availability-zone string        Availability zone within the region
+      --description string              Description of the gateway
+      --editor                          Use a text editor to define parameters
+      --external-gateway-enabled        Whether the external gateway is enabled
+      --external-gateway-model string   External gateway sizing model (S, M, L, XL, 2XL, 3XL)
+      --from-file string                File containing parameters
+  -h, --help                            help for create
+      --init-file string                Create a file with example parameters
+      --name string                     Name of the gateway
+      --region string                   Region where the gateway will be created
+      --replace                         Replace parameters file if it already exists
+      --subnet strings                  ID of a subnet to attach to the gateway (repeatable)
+      --wait                            Wait for gateway creation to be done before exiting
 ```
 
 ### Options inherited from parent commands
