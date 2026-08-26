@@ -1,15 +1,11 @@
-## ovhcloud cloud ip delete
+## ovhcloud cloud ip floating
 
-Delete a public IP (only supported for --type=floating)
-
-```
-ovhcloud cloud ip delete <ip_id> [flags]
-```
+Manage floating public IPs in the given cloud project
 
 ### Options
 
 ```
-  -h, --help   help for delete
+  -h, --help   help for floating
 ```
 
 ### Options inherited from parent commands
@@ -33,11 +29,14 @@ ovhcloud cloud ip delete <ip_id> [flags]
       --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
                                Example:
                                  --output 'id' --raw   (prints the id without surrounding quotes)
-      --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
-      --type string            Type of IP to manage (floating or failover)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
+* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional and ext-net) in the given cloud project
+* [ovhcloud cloud ip floating create](ovhcloud_cloud_ip_floating_create.md)	 - Create a new floating IP
+* [ovhcloud cloud ip floating delete](ovhcloud_cloud_ip_floating_delete.md)	 - Delete a specific floating IP
+* [ovhcloud cloud ip floating edit](ovhcloud_cloud_ip_floating_edit.md)	 - Edit the given floating IP
+* [ovhcloud cloud ip floating get](ovhcloud_cloud_ip_floating_get.md)	 - Get a specific floating IP
+* [ovhcloud cloud ip floating list](ovhcloud_cloud_ip_floating_list.md)	 - List floating IPs
 

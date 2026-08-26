@@ -1,21 +1,22 @@
-## ovhcloud cloud network gateway edit
+## ovhcloud cloud ip floating list
 
-Edit the given gateway
+List floating IPs
 
 ```
-ovhcloud cloud network gateway edit <gateway_id> [flags]
+ovhcloud cloud ip floating list [flags]
 ```
 
 ### Options
 
 ```
-      --description string              Description of the gateway
-      --editor                          Use a text editor to define parameters
-      --external-gateway-enabled        Whether the external gateway is enabled
-      --external-gateway-model string   External gateway sizing model (S, M, L, XL, 2XL, 3XL)
-  -h, --help                            help for edit
-      --name string                     Name of the gateway
-      --subnet strings                  ID of a subnet to attach to the gateway (repeatable)
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -43,5 +44,5 @@ ovhcloud cloud network gateway edit <gateway_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network gateway](ovhcloud_cloud_network_gateway.md)	 - Manage gateways in the given cloud project
+* [ovhcloud cloud ip floating](ovhcloud_cloud_ip_floating.md)	 - Manage floating public IPs in the given cloud project
 

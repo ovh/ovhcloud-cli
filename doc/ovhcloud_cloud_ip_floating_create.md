@@ -1,15 +1,47 @@
-## ovhcloud cloud ip get
+## ovhcloud cloud ip floating create
 
-Get information about a public IP
+Create a new floating IP
+
+### Synopsis
+
+Use this command to create a floating IP in the given public cloud project.
+There are three ways to define the creation parameters:
+
+1. Using only CLI flags:
+
+	ovhcloud cloud ip floating create --region GRA11 --description "My floating IP"
+
+2. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud ip floating create --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud ip floating create --from-file ./params.json
+
+3. Using your default text editor:
+
+	ovhcloud cloud ip floating create --editor
+
 
 ```
-ovhcloud cloud ip get <ip_id> [flags]
+ovhcloud cloud ip floating create [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --availability-zone string   Availability zone within the region
+      --description string         Description of the floating IP
+      --editor                     Use a text editor to define parameters
+      --from-file string           File containing parameters
+  -h, --help                       help for create
+      --init-file string           Create a file with example parameters
+      --region string              Region where the floating IP will be created
+      --replace                    Replace parameters file if it already exists
+      --wait                       Wait for floating IP creation to be done before exiting
 ```
 
 ### Options inherited from parent commands
@@ -33,11 +65,9 @@ ovhcloud cloud ip get <ip_id> [flags]
       --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
                                Example:
                                  --output 'id' --raw   (prints the id without surrounding quotes)
-      --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
-      --type string            Type of IP to manage (floating or failover)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
+* [ovhcloud cloud ip floating](ovhcloud_cloud_ip_floating.md)	 - Manage floating public IPs in the given cloud project
 

@@ -1,15 +1,18 @@
-## ovhcloud cloud ip attach
+## ovhcloud cloud network security-group edit
 
-Attach a public IP to an instance (only supported for --type=failover)
+Edit the given security group
 
 ```
-ovhcloud cloud ip attach <ip_id> <instance_id> [flags]
+ovhcloud cloud network security-group edit <security_group_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for attach
+      --description string   Description of the security group
+      --editor               Use a text editor to define parameters
+  -h, --help                 help for edit
+      --name string          Name of the security group
 ```
 
 ### Options inherited from parent commands
@@ -33,11 +36,9 @@ ovhcloud cloud ip attach <ip_id> <instance_id> [flags]
       --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
                                Example:
                                  --output 'id' --raw   (prints the id without surrounding quotes)
-      --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
-      --type string            Type of IP to manage (floating or failover)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
+* [ovhcloud cloud network security-group](ovhcloud_cloud_network_security-group.md)	 - Manage security groups in the given cloud project
 

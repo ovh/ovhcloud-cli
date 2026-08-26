@@ -37,4 +37,5 @@ Manage networks in the given cloud project
 * [ovhcloud cloud network gateway](ovhcloud_cloud_network_gateway.md)	 - Manage gateways in the given cloud project
 * [ovhcloud cloud network private](ovhcloud_cloud_network_private.md)	 - Manage private networks in the given cloud project
 * [ovhcloud cloud network public](ovhcloud_cloud_network_public.md)	 - Manage public networks in the given cloud project
+* [ovhcloud cloud network security-group](ovhcloud_cloud_network_security-group.md)	 - Manage security groups in the given cloud project
 

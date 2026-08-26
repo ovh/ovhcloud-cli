@@ -1,6 +1,6 @@
 ## ovhcloud cloud ip list
 
-List public IPs (both floating and failover when --type is not specified)
+List all public IPs (floating, additional and ext-net) of the project
 
 ```
 ovhcloud cloud ip list [flags]
@@ -40,11 +40,9 @@ ovhcloud cloud ip list [flags]
       --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
                                Example:
                                  --output 'id' --raw   (prints the id without surrounding quotes)
-      --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
-      --type string            Type of IP to manage (floating or failover)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
+* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional and ext-net) in the given cloud project
 

@@ -1,21 +1,11 @@
-## ovhcloud cloud network gateway edit
+## ovhcloud cloud ip additional
 
-Edit the given gateway
-
-```
-ovhcloud cloud network gateway edit <gateway_id> [flags]
-```
+Manage additional public IPs in the given cloud project
 
 ### Options
 
 ```
-      --description string              Description of the gateway
-      --editor                          Use a text editor to define parameters
-      --external-gateway-enabled        Whether the external gateway is enabled
-      --external-gateway-model string   External gateway sizing model (S, M, L, XL, 2XL, 3XL)
-  -h, --help                            help for edit
-      --name string                     Name of the gateway
-      --subnet strings                  ID of a subnet to attach to the gateway (repeatable)
+  -h, --help   help for additional
 ```
 
 ### Options inherited from parent commands
@@ -43,5 +33,8 @@ ovhcloud cloud network gateway edit <gateway_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network gateway](ovhcloud_cloud_network_gateway.md)	 - Manage gateways in the given cloud project
+* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional and ext-net) in the given cloud project
+* [ovhcloud cloud ip additional attach](ovhcloud_cloud_ip_additional_attach.md)	 - Attach an additional IP to an instance
+* [ovhcloud cloud ip additional get](ovhcloud_cloud_ip_additional_get.md)	 - Get a specific additional IP
+* [ovhcloud cloud ip additional list](ovhcloud_cloud_ip_additional_list.md)	 - List additional IPs
 

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
@@ -194,7 +195,21 @@ func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) (ma
 					continue
 				}
 				if taskStatus, _ := task["status"].(string); taskStatus == "ERROR" {
-					log.Printf("resource task %v is in error state, still waiting…", task["type"])
+					var messages []string
+					if taskErrors, ok := task["errors"].([]any); ok {
+						for _, e := range taskErrors {
+							if em, ok := e.(map[string]any); ok {
+								if msg, ok := em["message"].(string); ok && msg != "" {
+									messages = append(messages, msg)
+								}
+							}
+						}
+					}
+					if len(messages) > 0 {
+						log.Printf("resource task %v is in error state: %s (still waiting…)", task["type"], strings.Join(messages, "; "))
+					} else {
+						log.Printf("resource task %v is in error state, still waiting…", task["type"])
+					}
 				}
 			}
 		}
