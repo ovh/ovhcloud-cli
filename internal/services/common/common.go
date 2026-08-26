@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/editor"
@@ -86,6 +87,34 @@ func ManageObjectRequest(path, objectID, templateContent string) {
 	}
 
 	display.OutputObject(object, objectID, templateContent, &flags.OutputFormatConfig)
+}
+
+// nestedValue returns the value at a dotted path (e.g. "targetSpec.name") in a
+// nested map, and whether it was found. A path without a dot is a plain
+// top-level key lookup (backward compatible with single-level mandatory fields).
+func nestedValue(m map[string]any, path string) (any, bool) {
+	var current any = m
+	for _, part := range strings.Split(path, ".") {
+		asMap, ok := current.(map[string]any)
+		if !ok {
+			return nil, false
+		}
+		current, ok = asMap[part]
+		if !ok {
+			return nil, false
+		}
+	}
+	return current, true
+}
+
+// isEmptyValue reports whether a value should be considered missing for the
+// purpose of mandatory-field validation (nil or empty string).
+func isEmptyValue(v any) bool {
+	if v == nil {
+		return true
+	}
+	s, ok := v.(string)
+	return ok && s == ""
 }
 
 func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
@@ -166,9 +195,13 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		}
 	}
 
-	// Check if mandatory fields are present
+	// Check if mandatory fields are present. Field names may be dotted paths
+	// (e.g. "targetSpec.name") to require a nested value, so incomplete
+	// parameters are rejected client-side instead of being sent to the API.
+	// The full path is kept in the error message so the user knows exactly
+	// which value is missing.
 	for _, field := range mandatoryFields {
-		if _, ok := parameters[field]; !ok {
+		if value, ok := nestedValue(parameters, field); !ok || isEmptyValue(value) {
 			return nil, fmt.Errorf("mandatory field %q is missing in the parameters\n\n%s", field, cmd.UsageString())
 		}
 	}
