@@ -198,16 +198,11 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 	// Check if mandatory fields are present. Field names may be dotted paths
 	// (e.g. "targetSpec.name") to require a nested value, so incomplete
 	// parameters are rejected client-side instead of being sent to the API.
+	// The full path is kept in the error message so the user knows exactly
+	// which value is missing.
 	for _, field := range mandatoryFields {
 		if value, ok := nestedValue(parameters, field); !ok || isEmptyValue(value) {
-			// Display the leaf name (which maps to a CLI flag, e.g. "name"),
-			// not the internal dotted JSON path "targetSpec.name", so the
-			// message is meaningful to CLI users.
-			name := field
-			if i := strings.LastIndex(field, "."); i != -1 {
-				name = field[i+1:]
-			}
-			return nil, fmt.Errorf("mandatory field %q is missing in the parameters\n\n%s", name, cmd.UsageString())
+			return nil, fmt.Errorf("mandatory field %q is missing in the parameters\n\n%s", field, cmd.UsageString())
 		}
 	}
 
