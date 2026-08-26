@@ -1,6 +1,6 @@
 ## ovhcloud cloud quota
 
-Check quotas in the given cloud project
+Manage quotas in the given cloud project
 
 ### Options
 
@@ -31,5 +31,6 @@ Check quotas in the given cloud project
 ### SEE ALSO
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
-* [ovhcloud cloud quota get](ovhcloud_cloud_quota_get.md)	 - Get quotas for a specific region
+* [ovhcloud cloud quota edit](ovhcloud_cloud_quota_edit.md)	 - Update the project quota (target quota profile per region)
+* [ovhcloud cloud quota get](ovhcloud_cloud_quota_get.md)	 - Get the project quota
 

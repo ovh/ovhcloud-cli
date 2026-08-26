@@ -46,6 +46,7 @@ var (
 
 	wasmHiddenCommands = []string{
 		"login",
+		"logout",
 		"config",
 		"upgrade",
 	}
@@ -129,9 +130,12 @@ Examples:
 	var newVersionMessage atomic.Pointer[string]
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 		// Skip authentication for the completion command and its subcommands
-		// (e.g. "ovhcloud completion bash") — no API access is needed.
+		// (e.g. "ovhcloud completion bash"), as well as the hidden commands cobra
+		// invokes for shell completion (pressing <tab>) — no API access is needed,
+		// and failing here would make completion unusable when not authenticated.
 		for c := cmd; c != nil; c = c.Parent() {
-			if c.Name() == "completion" {
+			switch c.Name() {
+			case "completion", cobra.ShellCompRequestCmd, cobra.ShellCompNoDescRequestCmd:
 				return
 			}
 		}

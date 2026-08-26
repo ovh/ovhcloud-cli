@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
@@ -27,47 +28,52 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	storageBlockCmd.AddCommand(withFilterFlag(volumeListCmd))
 
 	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "get <volume_id>",
-		Short: "Get a specific volume",
-		Run:   cloud.GetVolume,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <volume_id>",
+		Short:             "Get a specific volume",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.GetVolume,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	volumeEditCmd := &cobra.Command{
-		Use:   "edit <volume_id>",
-		Short: "Edit the given volume",
-		Run:   cloud.EditVolume,
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <volume_id>",
+		Short:             "Edit the given volume",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.EditVolume,
+		Args:              cobra.ExactArgs(1),
 	}
-	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Description, "description", "", "Volume description")
-	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Name, "name", "", "Volume name")
-	volumeEditCmd.Flags().IntVar(&cloud.VolumeEditSpec.Size, "size", 0, "Volume size (in GB, can only be increased)")
-	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.Type, "type", "", "Volume type (classic, classic-luks, classic-multiattach, high-speed, high-speed-gen2, high-speed-gen2-luks, high-speed-luks)")
+	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.TargetSpec.Name, "name", "", "Volume name")
+	volumeEditCmd.Flags().IntVar(&cloud.VolumeEditSpec.TargetSpec.Size, "size", 0, "Volume size (in GB, can only be increased)")
+	volumeEditCmd.Flags().StringVar(&cloud.VolumeEditSpec.TargetSpec.VolumeType, "type", "", "Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)")
+	volumeEditCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the volume to be READY before exiting")
 	addInteractiveEditorFlag(volumeEditCmd)
 	storageBlockCmd.AddCommand(volumeEditCmd)
 
 	storageBlockCmd.AddCommand(getVolumeCreateCmd())
 
 	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "delete <volume_id>",
-		Short: "Delete the given volume",
-		Run:   cloud.DeleteVolume,
-		Args:  cobra.ExactArgs(1),
+		Use:               "delete <volume_id>",
+		Short:             "Delete the given volume",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.DeleteVolume,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	// Volume action commands
 	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "attach <volume_id> <instance_id>",
-		Short: "Attach the given volume to the given instance",
-		Run:   cloud.AttachVolumeToInstance,
-		Args:  cobra.ExactArgs(2),
+		Use:               "attach <volume_id> <instance_id>",
+		Short:             "Attach the given volume to the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.AttachVolumeToInstance,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "detach <volume_id> <instance_id>",
-		Short: "Detach the given volume from the given instance",
-		Run:   cloud.DetachVolumeFromInstance,
-		Args:  cobra.ExactArgs(2),
+		Use:               "detach <volume_id> <instance_id>",
+		Short:             "Detach the given volume from the given instance",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.DetachVolumeFromInstance,
+		Args:              cobra.ExactArgs(2),
 	})
 
 	// Volume snapshot commands
@@ -78,13 +84,15 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	storageBlockCmd.AddCommand(volumeSnapshotCmd)
 
 	volumeSnapshotCreateCmd := &cobra.Command{
-		Use:   "create <volume_id>",
-		Short: "Create a snapshot of the given volume",
-		Run:   cloud.CreateVolumeSnapshot,
-		Args:  cobra.ExactArgs(1),
+		Use:               "create <volume_id>",
+		Short:             "Create a snapshot of the given volume",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.CreateVolumeSnapshot,
+		Args:              cobra.ExactArgs(1),
 	}
 	volumeSnapshotCreateCmd.Flags().StringVar(&cloud.VolumeSnapShotSpec.Description, "description", "", "Snapshot description")
 	volumeSnapshotCreateCmd.Flags().StringVar(&cloud.VolumeSnapShotSpec.Name, "name", "", "Snapshot name")
+	volumeSnapshotCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the snapshot to be READY before exiting")
 	volumeSnapshotCmd.AddCommand(volumeSnapshotCreateCmd)
 
 	volumeSnapshotListCmd := &cobra.Command{
@@ -125,12 +133,15 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	volumeBackupCmd.AddCommand(&cobra.Command{
-		Use:   "create <volume_id> <backup_name>",
-		Short: "Create a backup of the given volume",
-		Run:   cloud.CreateVolumeBackup,
-		Args:  cobra.ExactArgs(2),
-	})
+	volumeBackupCreateCmd := &cobra.Command{
+		Use:               "create <volume_id> <backup_name>",
+		Short:             "Create a backup of the given volume",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		Run:               cloud.CreateVolumeBackup,
+		Args:              cobra.ExactArgs(2),
+	}
+	volumeBackupCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the backup to be READY before exiting")
+	volumeBackupCmd.AddCommand(volumeBackupCreateCmd)
 
 	volumeBackupCmd.AddCommand(&cobra.Command{
 		Use:   "delete <backup_id>",
@@ -146,13 +157,6 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(2),
 	})
 
-	storageBlockCmd.AddCommand(&cobra.Command{
-		Use:   "create-from-backup <backup_id> <volume_name>",
-		Short: "Create a volume from the given backup",
-		Run:   cloud.CreateVolumeFromBackup,
-		Args:  cobra.ExactArgs(2),
-	})
-
 	cloudCmd.AddCommand(storageBlockCmd)
 }
 
@@ -163,17 +167,15 @@ func getVolumeCreateCmd() *cobra.Command {
 		Run:   cloud.CreateVolume,
 		Args:  cobra.ExactArgs(1),
 	}
-	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.AvailabilityZone, "availability-zone", "", "Availability zone of the volume")
-	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.BackupId, "backup-id", "", "Backup ID")
-	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.Description, "description", "", "Volume description")
-	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.ImageId, "image-id", "", "Image ID to create the volume from")
-	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.InstanceId, "instance-id", "", "Instance ID to attach the volume to")
-	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.Name, "name", "", "Volume name")
-	volumeCreateCmd.Flags().IntVar(&cloud.VolumeSpec.Size, "size", 0, "Volume size (in GB)")
-	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.SnapshotId, "snapshot-id", "", "Snapshot ID to create the volume from")
-	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.Type, "type", "", "Volume type (classic, classic-luks, classic-multiattach, high-speed, high-speed-gen2, high-speed-gen2-luks, high-speed-luks)")
+	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.TargetSpec.Location.AvailabilityZone, "availability-zone", "", "Availability zone of the volume")
+	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.TargetSpec.CreateFrom.BackupId, "backup-id", "", "Backup ID to create the volume from")
+	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.TargetSpec.CreateFrom.ImageId, "image-id", "", "Image ID to create the volume from")
+	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.TargetSpec.Name, "name", "", "Volume name")
+	volumeCreateCmd.Flags().IntVar(&cloud.VolumeSpec.TargetSpec.Size, "size", 0, "Volume size (in GB)")
+	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.TargetSpec.CreateFrom.SnapshotId, "snapshot-id", "", "Snapshot ID to create the volume from")
+	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.TargetSpec.VolumeType, "type", "", "Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)")
 
-	addParameterFileFlags(volumeCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/volume", "post", cloud.VolumeCreateExample, nil)
+	addParameterFileFlags(volumeCreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/storage/block/volume", "post", cloud.VolumeCreateExample, nil)
 	addInteractiveEditorFlag(volumeCreateCmd)
 	volumeCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for volume creation to be done before exiting")
 	markFlagsMutuallyExclusive(volumeCreateCmd, "from-file", "editor")

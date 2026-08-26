@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/overthebox"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single OverTheBox
 	overtheboxCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific OverTheBox",
-		Args:  cobra.ExactArgs(1),
-		Run:   overthebox.GetOverTheBox,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific OverTheBox",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/overTheBox"),
+		Run:               overthebox.GetOverTheBox,
 	})
 
 	// Command to update a single OverTheBox
 	overtheboxEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given OverTheBox",
-		Args:  cobra.ExactArgs(1),
-		Run:   overthebox.EditOverTheBox,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given OverTheBox",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/overTheBox"),
+		Run:               overthebox.EditOverTheBox,
 	}
 	overtheboxEditCmd.Flags().BoolVar(&overthebox.OverTheBoxSpec.AutoUpgrade, "auto-upgrade", false, "Enable device auto upgrade")
 	overtheboxEditCmd.Flags().StringVar(&overthebox.OverTheBoxSpec.CustomerDescription, "customer-description", "", "Customer description")

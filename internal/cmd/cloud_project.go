@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -31,17 +32,19 @@ func init() {
 
 	// Command to get a single CloudProject
 	cloudprojectCmd.AddCommand(&cobra.Command{
-		Use:   "get <project_id>",
-		Short: "Retrieve information of a specific cloud project",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.GetCloudProject,
+		Use:               "get <project_id>",
+		Short:             "Retrieve information of a specific cloud project",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/cloud/project"),
+		Run:               cloud.GetCloudProject,
 	})
 
 	editCloudProjectCmd := &cobra.Command{
-		Use:   "edit <project_id>",
-		Short: "Edit the given cloud project",
-		Args:  cobra.ExactArgs(1),
-		Run:   cloud.EditCloudProject,
+		Use:               "edit <project_id>",
+		Short:             "Edit the given cloud project",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/cloud/project"),
+		Run:               cloud.EditCloudProject,
 	}
 	editCloudProjectCmd.Flags().StringVar(&cloud.CloudProjectSpec.Description, "description", "", "Description of the project")
 	editCloudProjectCmd.Flags().BoolVar(&cloud.CloudProjectSpec.ManualQuota, "manual-quota", false, "Prevent automatic quota upgrade")
@@ -122,5 +125,21 @@ func init() {
 	initCloudAlertingCommand(cloudCmd)
 
 	cloudCmd.AddCommand(cloudprojectCmd)
+
+	// Register the cloud-project flag completion on every (sub)command exposing it,
+	// instead of repeating the registration in each command definition.
+	registerCloudProjectCompletion(cloudCmd)
+
 	rootCmd.AddCommand(cloudCmd)
+}
+
+// registerCloudProjectCompletion walks the command tree and registers the
+// completion function for the "cloud-project" flag on every command that exposes it.
+func registerCloudProjectCompletion(cmd *cobra.Command) {
+	if cmd.PersistentFlags().Lookup("cloud-project") != nil {
+		cmd.RegisterFlagCompletionFunc("cloud-project", completion.CloudProjects) //nolint:errcheck
+	}
+	for _, child := range cmd.Commands() {
+		registerCloudProjectCompletion(child)
+	}
 }

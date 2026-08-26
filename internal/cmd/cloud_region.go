@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -25,10 +26,11 @@ func initCloudRegionCommand(cloudCmd *cobra.Command) {
 	regionCmd.AddCommand(withFilterFlag(regionListCmd))
 
 	regionCmd.AddCommand(&cobra.Command{
-		Use:   "get <region>",
-		Short: "Get information about a region",
-		Run:   cloud.GetCloudRegion,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <region>",
+		Short:             "Get information about a region",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/region"),
+		Run:               cloud.GetCloudRegion,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	cloudCmd.AddCommand(regionCmd)

@@ -116,53 +116,6 @@ func runFlavorSelector(projectID string, region string) (string, string, error) 
 	return selectedFlavor, selectedID, nil
 }
 
-// waitForCloudResourceReady polls a Cloud API v2 managed resource until its
-// resourceStatus reaches READY. Tasks reported in error are logged but do not
-// abort the wait; only a resource-level ERROR status is fatal. It times out
-// after retryDuration.
-func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
-	defer cancel()
-
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		var resource struct {
-			ResourceStatus string `json:"resourceStatus"`
-			CurrentTasks   []struct {
-				ID     string `json:"id"`
-				Type   string `json:"type"`
-				Status string `json:"status"`
-			} `json:"currentTasks"`
-		}
-		if err := httpLib.Client.Get(endpoint, &resource); err != nil {
-			return fmt.Errorf("error fetching resource: %w", err)
-		}
-
-		switch resource.ResourceStatus {
-		case "READY":
-			return nil
-		case "ERROR":
-			return fmt.Errorf("resource ended in error state")
-		}
-
-		for _, task := range resource.CurrentTasks {
-			if task.Status == "ERROR" {
-				log.Printf("Task %s (%s) is in error, still waiting for resource to recover…", task.ID, task.Type)
-			}
-		}
-
-		select {
-		case <-ctx.Done():
-			return errors.New("timeout waiting for resource to be ready")
-		case <-ticker.C:
-			log.Printf("Still waiting for resource to be ready (status=%s)…", resource.ResourceStatus)
-			continue
-		}
-	}
-}
-
 func waitForCloudOperation(projectID, operationID, action string, retryDuration time.Duration) (string, error) {
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/operation/%s", url.PathEscape(projectID), url.PathEscape(operationID))
 	resourceID := ""
@@ -201,6 +154,56 @@ func waitForCloudOperation(projectID, operationID, action string, retryDuration 
 			return "", errors.New("timeout waiting for operation to complete")
 		case <-ticker.C:
 			log.Printf("Still waiting for operation to complete (status=%s)…", operation.Status)
+			continue
+		}
+	}
+}
+
+// waitForCloudResourceReady polls a v2 asynchronous resource at the given full
+// endpoint (e.g. ".../storage/block/volume/{id}") until its "resourceStatus"
+// reaches "READY". It fails if the resource reports an "ERROR" status and times
+// out after retryDuration. Tasks reported in error are logged but not treated as
+// fatal, as they can be transient. The last fetched resource is returned.
+func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) (map[string]any, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
+	defer cancel()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		var resource map[string]any
+		if err := httpLib.Client.Get(endpoint, &resource); err != nil {
+			return nil, fmt.Errorf("error fetching resource: %w", err)
+		}
+
+		status, _ := resource["resourceStatus"].(string)
+		switch status {
+		case "READY":
+			return resource, nil
+		case "ERROR":
+			return nil, errors.New("resource ended in error state (resourceStatus=ERROR)")
+		}
+
+		// Log tasks reported in error but keep waiting: such errors can be
+		// temporary and get resolved by the backend.
+		if tasks, ok := resource["currentTasks"].([]any); ok {
+			for _, t := range tasks {
+				task, ok := t.(map[string]any)
+				if !ok {
+					continue
+				}
+				if taskStatus, _ := task["status"].(string); taskStatus == "ERROR" {
+					log.Printf("resource task %v is in error state, still waiting…", task["type"])
+				}
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, errors.New("timeout waiting for resource to be ready")
+		case <-ticker.C:
+			log.Printf("Still waiting for resource to be ready (resourceStatus=%s)…", status)
 			continue
 		}
 	}

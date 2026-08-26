@@ -180,7 +180,7 @@ func CreateKeyManagerSecret(cmd *cobra.Command, _ []string) {
 		return
 	}
 
-	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(secretID)), 20*time.Minute); err != nil {
+	if _, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(secretID)), 20*time.Minute); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for Key Manager secret to be ready: %s", err)
 		return
 	}
@@ -376,7 +376,7 @@ func CreateKeyManagerContainer(cmd *cobra.Command, _ []string) {
 		return
 	}
 
-	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(containerID)), 20*time.Minute); err != nil {
+	if _, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(containerID)), 20*time.Minute); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for Key Manager container to be ready: %s", err)
 		return
 	}
