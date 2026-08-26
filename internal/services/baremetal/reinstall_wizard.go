@@ -9,6 +9,7 @@ package baremetal
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -28,6 +29,7 @@ const (
 	reinstallStepKeyValue
 	reinstallStepKeyValueEdit
 	reinstallStepDiskGroup
+	reinstallStepEraseOthers
 	reinstallStepDiskCount
 	reinstallStepPartitionMode
 	reinstallStepScheme
@@ -265,9 +267,16 @@ type reinstallWizardModel struct {
 	hardware     *hardwareSpecifications
 	schemes      []osPartitionScheme
 	diskGroupIdx int
-	diskCount    int
-	partModeList list.Model
-	schemeList   list.Model
+	// eraseOtherGroups holds, for every disk group other than the one the OS
+	// is installed on, whether it should be erased (the API's own default)
+	// or have its data kept (storage[].erase: false) — keyed by disk group
+	// ID, since eraseOthersIdx (into otherDiskGroups(), the currently
+	// highlighted one) doesn't survive that list changing.
+	eraseOtherGroups map[int]bool
+	eraseOthersIdx   int
+	diskCount        int
+	partModeList     list.Model
+	schemeList       list.Model
 	// schemeDetailViewport shows the currently highlighted scheme's partitions,
 	// scrollable independently of schemeList: unlike a bubbles/list item (whose
 	// declared Height() must be one fixed value for every item, list-wide), a
@@ -600,6 +609,8 @@ func (m *reinstallWizardModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleKeyValueEditKeys(msg)
 	case reinstallStepDiskGroup:
 		return m.handleDiskGroupKeys(key)
+	case reinstallStepEraseOthers:
+		return m.handleEraseOthersKeys(key)
 	case reinstallStepDiskCount:
 		return m.handleDiskCountKeys(key)
 	case reinstallStepPartitionMode:
@@ -783,6 +794,8 @@ func (m *reinstallWizardModel) View() string {
 		content.WriteString(m.renderKeyValueEditStep())
 	case reinstallStepDiskGroup:
 		content.WriteString(m.renderDiskGroupStep())
+	case reinstallStepEraseOthers:
+		content.WriteString(m.renderEraseOthersStep())
 	case reinstallStepDiskCount:
 		content.WriteString(m.renderDiskCountStep())
 	case reinstallStepPartitionMode:
@@ -809,7 +822,7 @@ func (m *reinstallWizardModel) stepLabel() string {
 	case reinstallStepInputs, reinstallStepEnum, reinstallStepSSHKey,
 		reinstallStepKeyValue, reinstallStepKeyValueEdit:
 		return "Step 2/4 — Installation parameters"
-	case reinstallStepDiskGroup, reinstallStepDiskCount, reinstallStepPartitionMode,
+	case reinstallStepDiskGroup, reinstallStepEraseOthers, reinstallStepDiskCount, reinstallStepPartitionMode,
 		reinstallStepScheme, reinstallStepLayout, reinstallStepLayoutEdit:
 		return "Step 3/4 — Storage"
 	default:
@@ -831,14 +844,23 @@ func (m *reinstallWizardModel) result() reinstallWizardResult {
 		jbodOnly = group.hasHardwareRaid()
 	}
 
+	var keepDataDiskGroupIDs []int
+	for _, group := range m.otherDiskGroups() {
+		if !m.eraseOtherGroups[group.DiskGroupID] {
+			keepDataDiskGroupIDs = append(keepDataDiskGroupIDs, group.DiskGroupID)
+		}
+	}
+	slices.Sort(keepDataDiskGroupIDs)
+
 	return reinstallWizardResult{
-		osName:         m.osName,
-		customizations: m.customizations,
-		diskGroupID:    m.selectedDiskGroupID(),
-		diskCount:      m.diskCount,
-		schemeName:     m.schemeName,
-		layout:         m.layout,
-		jbodOnly:       jbodOnly,
+		osName:               m.osName,
+		customizations:       m.customizations,
+		diskGroupID:          m.selectedDiskGroupID(),
+		diskCount:            m.diskCount,
+		schemeName:           m.schemeName,
+		layout:               m.layout,
+		jbodOnly:             jbodOnly,
+		keepDataDiskGroupIDs: keepDataDiskGroupIDs,
 	}
 }
 

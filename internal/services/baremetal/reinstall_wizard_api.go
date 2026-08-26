@@ -494,6 +494,10 @@ type reinstallWizardResult struct {
 	// controller: the wizard doesn't support configuring it, so the disks are
 	// always installed in JBOD mode instead.
 	jbodOnly bool
+	// keepDataDiskGroupIDs lists disk groups, other than diskGroupID, whose
+	// existing data must be kept (storage[].erase: false) instead of erased,
+	// the API's own default for every disk group not otherwise declared.
+	keepDataDiskGroupIDs []int
 }
 
 func buildReinstallPayload(result reinstallWizardResult) map[string]any {
@@ -542,9 +546,17 @@ func buildReinstallPayload(result reinstallWizardResult) map[string]any {
 		storageEntry["hardwareRaid"] = []any{map[string]any{"raidLevel": nil}}
 	}
 
+	storage := []any{storageEntry}
+	for _, diskGroupID := range result.keepDataDiskGroupIDs {
+		storage = append(storage, map[string]any{
+			"diskGroupId": diskGroupID,
+			"erase":       false,
+		})
+	}
+
 	body := map[string]any{
 		"operatingSystem": result.osName,
-		"storage":         []any{storageEntry},
+		"storage":         storage,
 	}
 
 	if len(result.customizations) > 0 {

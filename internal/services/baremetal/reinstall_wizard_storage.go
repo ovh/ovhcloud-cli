@@ -188,7 +188,12 @@ func (m *reinstallWizardModel) handleDiskGroupKeys(key string) (tea.Model, tea.C
 		m.backToLastInput()
 	case "enter":
 		m.errorMsg = ""
-		m.step = reinstallStepDiskCount
+		if len(m.otherDiskGroups()) == 0 {
+			m.step = reinstallStepDiskCount
+			return m, nil
+		}
+		m.initEraseOthersSelection()
+		m.step = reinstallStepEraseOthers
 	}
 
 	return m, nil
@@ -202,6 +207,78 @@ func (m *reinstallWizardModel) diskGroups() []diskGroup {
 	}
 
 	return m.hardware.DiskGroups
+}
+
+// otherDiskGroups returns every disk group except the one the OS is
+// installed on (diskGroupIdx) — the only ones the reinstallStepEraseOthers
+// step, and the API's own "erase" attribute, apply to.
+func (m *reinstallWizardModel) otherDiskGroups() []diskGroup {
+	groups := m.diskGroups()
+
+	others := make([]diskGroup, 0, len(groups))
+	for i, group := range groups {
+		if i != m.diskGroupIdx {
+			others = append(others, group)
+		}
+	}
+
+	return others
+}
+
+// initEraseOthersSelection prepares reinstallStepEraseOthers: every other
+// disk group defaults to erased (the API's own default), previous choices
+// are kept across a trip back to reinstallStepDiskGroup unless the group
+// they were for is no longer "other" (e.g. it just became the install
+// target).
+func (m *reinstallWizardModel) initEraseOthersSelection() {
+	others := m.otherDiskGroups()
+
+	if m.eraseOtherGroups == nil {
+		m.eraseOtherGroups = make(map[int]bool, len(others))
+	}
+
+	stillOther := make(map[int]bool, len(others))
+	for _, group := range others {
+		stillOther[group.DiskGroupID] = true
+		if _, ok := m.eraseOtherGroups[group.DiskGroupID]; !ok {
+			m.eraseOtherGroups[group.DiskGroupID] = true
+		}
+	}
+	for id := range m.eraseOtherGroups {
+		if !stillOther[id] {
+			delete(m.eraseOtherGroups, id)
+		}
+	}
+
+	m.eraseOthersIdx = min(m.eraseOthersIdx, max(len(others)-1, 0))
+}
+
+func (m *reinstallWizardModel) handleEraseOthersKeys(key string) (tea.Model, tea.Cmd) {
+	others := m.otherDiskGroups()
+
+	switch key {
+	case "up", "k":
+		if m.eraseOthersIdx > 0 {
+			m.eraseOthersIdx--
+		}
+	case "down", "j":
+		if m.eraseOthersIdx < len(others)-1 {
+			m.eraseOthersIdx++
+		}
+	case " ":
+		if m.eraseOthersIdx < len(others) {
+			id := others[m.eraseOthersIdx].DiskGroupID
+			m.eraseOtherGroups[id] = !m.eraseOtherGroups[id]
+		}
+	case "left":
+		m.errorMsg = ""
+		m.step = reinstallStepDiskGroup
+	case "enter":
+		m.errorMsg = ""
+		m.step = reinstallStepDiskCount
+	}
+
+	return m, nil
 }
 
 func (m *reinstallWizardModel) backToLastInput() {
@@ -228,6 +305,9 @@ func (m *reinstallWizardModel) handleDiskCountKeys(key string) (tea.Model, tea.C
 	case "left":
 		m.errorMsg = ""
 		m.step = reinstallStepDiskGroup
+		if len(m.otherDiskGroups()) > 0 {
+			m.step = reinstallStepEraseOthers
+		}
 	case "enter":
 		m.errorMsg = ""
 		if m.details != nil && m.details.NoPartitioning {
@@ -600,7 +680,7 @@ func (m *reinstallWizardModel) savePartitionEdition() error {
 
 func (m *reinstallWizardModel) renderDiskGroupStep() string {
 	var content strings.Builder
-	content.WriteString(wizardTitleStyle.Render("Select the disk group to install on:") + "\n\n")
+	content.WriteString(wizardTitleStyle.Render("Select the disk group the OS will be installed on:") + "\n\n")
 
 	groups := m.diskGroups()
 	if len(groups) == 0 {
@@ -612,7 +692,7 @@ func (m *reinstallWizardModel) renderDiskGroupStep() string {
 
 	width := diskGroupsBoxWidth(groups)
 	for i, group := range groups {
-		box := formatPartitionBox(diskGroupAttrs(group), width, diskGroupTags(group))
+		box := formatPartitionBox(diskGroupAttrs(group, diskGroupAvailableDisksLabel), width, diskGroupTags(group))
 		content.WriteString(renderPartitionEntry(box, i == m.diskGroupIdx))
 	}
 	content.WriteString("\n")
@@ -629,14 +709,49 @@ func (m *reinstallWizardModel) renderDiskGroupStep() string {
 	return content.String()
 }
 
+func (m *reinstallWizardModel) renderEraseOthersStep() string {
+	var content strings.Builder
+	content.WriteString(wizardTitleStyle.Render("Data on the other disk groups:") + "\n")
+	content.WriteString(wizardDescStyle.Render(
+		"Every disk group is erased during reinstallation by default — pick which of these should keep their data instead.") + "\n\n")
+
+	others := m.otherDiskGroups()
+	width := otherDiskGroupsBoxWidth(others)
+	for i, group := range others {
+		erase := m.eraseOtherGroups[group.DiskGroupID]
+		attrs := append(diskGroupAttrs(group, diskGroupDisksLabel), partitionAttr{"Erase data", eraseChoiceLabel(erase)})
+		box := formatPartitionBox(attrs, width, diskGroupTags(group))
+		content.WriteString(renderPartitionEntry(box, i == m.eraseOthersIdx))
+	}
+	content.WriteString("\n")
+
+	content.WriteString(m.renderError())
+	content.WriteString(wizardHintStyle.Render(
+		"↑↓ Navigate • Space: Toggle erase/keep • Enter: Continue • ←: Back • Esc: Cancel"))
+
+	return content.String()
+}
+
 func (m *reinstallWizardModel) renderDiskCountStep() string {
+	group := m.selectedDiskGroup()
+
 	title := "Number of disks to use:"
-	if group := m.selectedDiskGroup(); group != nil {
+	if group != nil {
 		title = fmt.Sprintf("Number of disks to use on disk group %d:", group.DiskGroupID)
 	}
 
 	var content strings.Builder
 	content.WriteString(wizardTitleStyle.Render(title) + "\n\n")
+
+	if group != nil {
+		attrs := diskGroupAttrs(*group, diskGroupAvailableDisksLabel)
+		box := formatPartitionBox(attrs, partitionRowWidth(attrs), diskGroupTags(*group))
+		for _, line := range strings.Split(box, "\n") {
+			content.WriteString(wizardDimStyle.Render("  "+line) + "\n")
+		}
+		content.WriteString("\n")
+	}
+
 	content.WriteString(wizardNumberInputStyle.Render(strconv.Itoa(m.diskCount)) + "\n")
 	content.WriteString(wizardSubtleStyle.Render(fmt.Sprintf("  Between 1 and %d", m.maxDiskCount())) + "\n")
 
@@ -762,11 +877,19 @@ func partitionModeQuestion(diskCount int) string {
 	return fmt.Sprintf("How should the %d disks be partitioned?", diskCount)
 }
 
+// diskGroupDisksLabel is the "Disks" row's label in a disk group's box.
+// "Available Disks" is more accurate while picking the install target and
+// its disk count (before other, non-erased disk groups can even be
+// factored in), but plain "Disks" fits every other context (e.g. the
+// reinstallStepEraseOthers step, which isn't about availability at all).
+const diskGroupDisksLabel = "Disks"
+const diskGroupAvailableDisksLabel = "Available Disks"
+
 // diskGroupAttrs lists a disk group's attributes for display as its own box,
 // the same way a partition's are.
-func diskGroupAttrs(group diskGroup) []partitionAttr {
+func diskGroupAttrs(group diskGroup, disksLabel string) []partitionAttr {
 	attrs := []partitionAttr{
-		{"Disks", strconv.Itoa(group.NumberOfDisks)},
+		{disksLabel, strconv.Itoa(group.NumberOfDisks)},
 	}
 	if size := formatQuantity(group.DiskSize); size != "" {
 		attrs = append(attrs, partitionAttr{"Disk size", size})
@@ -782,6 +905,45 @@ func diskGroupAttrs(group diskGroup) []partitionAttr {
 	}
 
 	return attrs
+}
+
+// diskGroupLabel names a disk group for display in prose (e.g. a warning),
+// as opposed to diskGroupAttrs' own box of individual attribute rows: its
+// id, then how many disks it has, what type/size they are, and how they're
+// assembled (a hardware RAID controller's name, or "JBOD" otherwise) —
+// e.g. "Group 1 (2 X Disk SSD 480 GB, JBOD)".
+func diskGroupLabel(group diskGroup) string {
+	disks := fmt.Sprintf("%d X Disk", group.NumberOfDisks)
+	if group.DiskType != "" {
+		disks += " " + strings.ToUpper(group.DiskType)
+	}
+	if size := formatQuantity(group.DiskSize); size != "" {
+		disks += " " + size
+	}
+
+	raid := "JBOD"
+	if group.hasHardwareRaid() {
+		raid = group.RaidController
+	}
+
+	return fmt.Sprintf("Group %d (%s, %s)", group.DiskGroupID, disks, raid)
+}
+
+// erasedDiskGroupLabels names every disk group that will actually be erased:
+// the one the OS is installed on, always, plus any other one not set to
+// keep its data — the ones the confirm screen's erasure warning must list.
+func (m *reinstallWizardModel) erasedDiskGroupLabels() []string {
+	var labels []string
+	if group := m.selectedDiskGroup(); group != nil {
+		labels = append(labels, diskGroupLabel(*group))
+	}
+	for _, group := range m.otherDiskGroups() {
+		if m.eraseOtherGroups[group.DiskGroupID] {
+			labels = append(labels, diskGroupLabel(group))
+		}
+	}
+
+	return labels
 }
 
 // diskGroupTags names the badge shown above a disk group's box: "HARDWARE
@@ -800,7 +962,28 @@ func diskGroupTags(group diskGroup) []string {
 func diskGroupsBoxWidth(groups []diskGroup) int {
 	attrSets := make([][]partitionAttr, len(groups))
 	for i, group := range groups {
-		attrSets[i] = diskGroupAttrs(group)
+		attrSets[i] = diskGroupAttrs(group, diskGroupAvailableDisksLabel)
+	}
+
+	return partitionBoxWidth(attrSets)
+}
+
+// eraseChoiceLabel describes what an "erase" choice does to a disk group's
+// existing data, for display next to the yes/no toggle.
+func eraseChoiceLabel(erase bool) string {
+	if erase {
+		return "Yes (data erased)"
+	}
+
+	return "No (data kept)"
+}
+
+// otherDiskGroupsBoxWidth is diskGroupsBoxWidth, but also accounting for the
+// "Erase data" row reinstallStepEraseOthers adds to every box.
+func otherDiskGroupsBoxWidth(groups []diskGroup) int {
+	attrSets := make([][]partitionAttr, len(groups))
+	for i, group := range groups {
+		attrSets[i] = append(diskGroupAttrs(group, diskGroupDisksLabel), partitionAttr{"Erase data", eraseChoiceLabel(true)})
 	}
 
 	return partitionBoxWidth(attrSets)

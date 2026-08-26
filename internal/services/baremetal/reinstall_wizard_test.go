@@ -117,6 +117,31 @@ func TestBuildReinstallPayload_JbodOnly(t *testing.T) {
 	})
 }
 
+// A disk group other than the install target can be declared with only
+// "erase: false", to keep its existing data instead of the API's own
+// default (every disk group is erased unless said otherwise).
+func TestBuildReinstallPayload_KeepDataDiskGroups(t *testing.T) {
+	body := buildReinstallPayload(reinstallWizardResult{
+		osName:               "debian12_64",
+		diskGroupID:          1,
+		diskCount:            2,
+		schemeName:           "default",
+		keepDataDiskGroupIDs: []int{2, 3},
+	})
+
+	td.Cmp(t, body, map[string]any{
+		"operatingSystem": "debian12_64",
+		"storage": []any{
+			map[string]any{
+				"diskGroupId":  1,
+				"partitioning": map[string]any{"disks": 2, "schemeName": "default"},
+			},
+			map[string]any{"diskGroupId": 2, "erase": false},
+			map[string]any{"diskGroupId": 3, "erase": false},
+		},
+	})
+}
+
 // A custom layout and a scheme name are mutually exclusive: the layout wins
 // because it is the only one the user built by hand.
 func TestBuildReinstallPayload_WithCustomLayout(t *testing.T) {
@@ -611,6 +636,65 @@ func TestSchemePartitionToLayout(t *testing.T) {
 func TestDiskGroupHasHardwareRaid(t *testing.T) {
 	td.Cmp(t, diskGroup{RaidController: "HBA330"}.hasHardwareRaid(), true)
 	td.Cmp(t, diskGroup{}.hasHardwareRaid(), false)
+}
+
+func TestOtherDiskGroups(t *testing.T) {
+	m := newReinstallWizardModel("srv")
+	m.hardware = &hardwareSpecifications{DiskGroups: []diskGroup{
+		{DiskGroupID: 1}, {DiskGroupID: 2}, {DiskGroupID: 3},
+	}}
+	m.diskGroupIdx = 1
+
+	others := m.otherDiskGroups()
+	td.Cmp(t, []int{others[0].DiskGroupID, others[1].DiskGroupID}, []int{1, 3},
+		"every disk group except the one at diskGroupIdx (the install target)")
+}
+
+// Choices already made on reinstallStepEraseOthers must survive a trip back
+// to reinstallStepDiskGroup, unless the group they were about stopped being
+// "other" (it became the new install target, or vice versa).
+func TestInitEraseOthersSelection(t *testing.T) {
+	m := newReinstallWizardModel("srv")
+	m.hardware = &hardwareSpecifications{DiskGroups: []diskGroup{
+		{DiskGroupID: 1}, {DiskGroupID: 2}, {DiskGroupID: 3},
+	}}
+	m.diskGroupIdx = 0
+
+	m.initEraseOthersSelection()
+	td.Cmp(t, m.eraseOtherGroups, map[int]bool{2: true, 3: true}, "every other group defaults to erased")
+
+	m.eraseOtherGroups[2] = false
+	m.initEraseOthersSelection()
+	td.Cmp(t, m.eraseOtherGroups[2], false, "an existing choice is kept, not reset back to the default")
+
+	m.diskGroupIdx = 2
+	m.initEraseOthersSelection()
+	td.Cmp(t, m.eraseOtherGroups, map[int]bool{1: true, 2: false},
+		"group 3 dropped (now the install target), group 1 added (now an other group)")
+}
+
+func TestErasedDiskGroupLabels(t *testing.T) {
+	m := newReinstallWizardModel("srv")
+	m.hardware = &hardwareSpecifications{DiskGroups: []diskGroup{
+		{DiskGroupID: 1, NumberOfDisks: 2, DiskType: "ssd"},
+		{DiskGroupID: 2, NumberOfDisks: 24, DiskType: "sas", RaidController: "MegaRaid9361-8i-2G"},
+		{DiskGroupID: 3},
+	}}
+	m.diskGroupIdx = 0
+	m.eraseOtherGroups = map[int]bool{2: true, 3: false}
+
+	td.Cmp(t, m.erasedDiskGroupLabels(),
+		[]string{"Group 1 (2 X Disk SSD, JBOD)", "Group 2 (24 X Disk SAS, MegaRaid9361-8i-2G)"},
+		"the install target is always listed, group 3 is left out since its data is kept")
+}
+
+func TestDiskGroupLabel(t *testing.T) {
+	td.Cmp(t, diskGroupLabel(diskGroup{DiskGroupID: 1, NumberOfDisks: 2, DiskType: "ssd"}),
+		"Group 1 (2 X Disk SSD, JBOD)", "no hardware RAID controller: JBOD")
+
+	td.Cmp(t, diskGroupLabel(diskGroup{
+		DiskGroupID: 2, NumberOfDisks: 24, DiskType: "sas", RaidController: "MegaRaid9361-8i-2G",
+	}), "Group 2 (24 X Disk SAS, MegaRaid9361-8i-2G)", "a hardware RAID controller is named instead of JBOD")
 }
 
 func TestHardwareRaidWarning(t *testing.T) {

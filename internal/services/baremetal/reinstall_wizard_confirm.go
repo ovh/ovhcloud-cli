@@ -175,6 +175,16 @@ func (m *reinstallWizardModel) renderConfirmStorageSection() string {
 	b.WriteString(wizardLabelStyle.Render("    Disks used:") +
 		wizardValueStyle.Render(fmt.Sprintf("%d", m.diskCount)) + "\n")
 
+	for _, group := range m.otherDiskGroups() {
+		status := "erased"
+		style := wizardErrorStyle
+		if !m.eraseOtherGroups[group.DiskGroupID] {
+			status, style = "data kept", wizardValueStyle
+		}
+		b.WriteString(wizardLabelStyle.Render(fmt.Sprintf("    Disk group %d:", group.DiskGroupID)) +
+			style.Render(status) + "\n")
+	}
+
 	switch {
 	case len(m.layout) > 0:
 		b.WriteString(wizardLabelStyle.Render("    Partitioning:") + wizardValueStyle.Render("custom layout") + "\n")
@@ -219,15 +229,19 @@ func (m *reinstallWizardModel) renderConfirmStep() string {
 	content.WriteString(wizardSelectedStyle.Render(saveLabel) + "\n\n")
 
 	if group := m.selectedDiskGroup(); group != nil {
-		groupLabel := fmt.Sprintf("Group %d", group.DiskGroupID)
-		if group.Description != "" {
-			groupLabel += fmt.Sprintf(" (%s)", group.Description)
-		}
 		if warning := hardwareRaidWarning(*group); warning != "" {
 			content.WriteString(wizardErrorStyle.Render("⚠  "+warning+"  ⚠") + "\n\n")
 		}
-		content.WriteString(wizardErrorStyle.Render(fmt.Sprintf(
-			"⚠  All data on %s of server %s will be erased  ⚠", groupLabel, m.serviceName)) + "\n")
+
+		if labels := m.erasedDiskGroupLabels(); len(labels) > 1 {
+			content.WriteString(wizardErrorStyle.Render("⚠  All data of following groups will be erased ⚠") + "\n")
+			for _, label := range labels {
+				content.WriteString(wizardErrorStyle.Render("- "+label) + "\n")
+			}
+		} else {
+			content.WriteString(wizardErrorStyle.Render(fmt.Sprintf(
+				"⚠  All data on %s of server %s will be erased  ⚠", labels[0], m.serviceName)) + "\n")
+		}
 		content.WriteString(wizardErrorStyle.Render("Are you sure to continue ?") + "\n\n")
 	}
 
