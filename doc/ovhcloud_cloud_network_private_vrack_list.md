@@ -40,7 +40,6 @@ ovhcloud cloud network private vrack list [flags]
       --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
                                Example:
                                  --output 'id' --raw   (prints the id without surrounding quotes)
-      --region string          Filter by region or specify the region of the network
 ```
 
 ### SEE ALSO

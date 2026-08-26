@@ -49,14 +49,16 @@ ovhcloud cloud network private vrack create <region> [flags]
 ### Options
 
 ```
-      --editor             Use a text editor to define parameters
-      --from-file string   File containing parameters
-  -h, --help               help for create
-      --init-file string   Create a file with example parameters
-      --name string        Name of the private network
-      --replace            Replace parameters file if it already exists
-      --vlan-id int        VLAN ID for the private network
-      --wait               Wait for network creation to be done before exiting
+      --availability-zone string   Availability zone within the region
+      --description string         Description of the private network
+      --editor                     Use a text editor to define parameters
+      --from-file string           File containing parameters
+  -h, --help                       help for create
+      --init-file string           Create a file with example parameters
+      --name string                Name of the private network
+      --replace                    Replace parameters file if it already exists
+      --vlan-id int                VLAN ID for the private network (not supported on localzone regions)
+      --wait                       Wait for network creation to be done before exiting
 ```
 
 ### Options inherited from parent commands
@@ -80,7 +82,6 @@ ovhcloud cloud network private vrack create <region> [flags]
       --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
                                Example:
                                  --output 'id' --raw   (prints the id without surrounding quotes)
-      --region string          Filter by region or specify the region of the network
 ```
 
 ### SEE ALSO

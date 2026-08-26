@@ -1,0 +1,44 @@
+## ovhcloud cloud key-manager secret consumer register
+
+Register a consumer for the given secret
+
+```
+ovhcloud cloud key-manager secret consumer register <secret_id> [flags]
+```
+
+### Options
+
+```
+  -h, --help                   help for register
+      --resource-id string     UUID of the resource consuming the secret/container
+      --resource-type string   Type of the consuming resource (IMAGE, INSTANCE, LOADBALANCER)
+      --service string         OpenStack service type of the consumer (COMPUTE, IMAGE, LOADBALANCER, NETWORK)
+```
+
+### Options inherited from parent commands
+
+```
+      --cloud-project string   Cloud project ID
+  -d, --debug                  Activate debug mode (will log all HTTP requests details)
+  -e, --ignore-errors          Ignore errors in API calls when it is not fatal to the execution
+  -o, --output string          Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
+                               Examples:
+                                 --output json
+                                 --output yaml
+                                 --output interactive
+                                 --output 'id' (to extract a single field)
+                                 --output 'nested.field.subfield' (to extract a nested field)
+                                 --output '[id, "name"]' (to extract multiple fields as an array)
+                                 --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
+                                 --output 'name+","+type' (to extract and concatenate fields in a string)
+                                 --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --profile string         Use a specific profile from the configuration file
+      --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
+                               Example:
+                                 --output 'id' --raw   (prints the id without surrounding quotes)
+```
+
+### SEE ALSO
+
+* [ovhcloud cloud key-manager secret consumer](ovhcloud_cloud_key-manager_secret_consumer.md)	 - Manage consumers of a Key Manager secret
+

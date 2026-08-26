@@ -5,8 +5,7 @@ Manage vRack-based private networks in the given cloud project
 ### Options
 
 ```
-  -h, --help            help for vrack
-      --region string   Filter by region or specify the region of the network
+  -h, --help   help for vrack
 ```
 
 ### Options inherited from parent commands
@@ -37,6 +36,7 @@ Manage vRack-based private networks in the given cloud project
 * [ovhcloud cloud network private](ovhcloud_cloud_network_private.md)	 - Manage private networks in the given cloud project
 * [ovhcloud cloud network private vrack create](ovhcloud_cloud_network_private_vrack_create.md)	 - Create a private network in the given cloud project
 * [ovhcloud cloud network private vrack delete](ovhcloud_cloud_network_private_vrack_delete.md)	 - Delete a specific private network
+* [ovhcloud cloud network private vrack edit](ovhcloud_cloud_network_private_vrack_edit.md)	 - Edit a specific private network
 * [ovhcloud cloud network private vrack get](ovhcloud_cloud_network_private_vrack_get.md)	 - Get a specific private network
 * [ovhcloud cloud network private vrack list](ovhcloud_cloud_network_private_vrack_list.md)	 - List your private networks
 * [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network

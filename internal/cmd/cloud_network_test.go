@@ -16,241 +16,258 @@ import (
 
 func (ms *MockSuite) TestCloudPrivateNetworkCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
-				"name": "TestFromTheCLI"
+				"targetSpec": {
+					"name": "TestFromTheCLI",
+					"location": {
+						"region": "BHS5"
+					}
+				}
 			}`),
 		),
-		httpmock.NewStringResponder(200, `{"id": "operation-12345"}`),
-	)
-
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/operation/operation-12345",
-		httpmock.NewStringResponder(200, `
-		{
-			"id": "6610ec10-9b09-11f0-a8ac-0050568ce122",
-			"action": "network#create",
-			"createdAt": "2025-09-26T20:43:14.376907+02:00",
-			"startedAt": "2025-09-26T20:43:14.376907+02:00",
-			"completedAt": "2025-09-26T20:43:36.631086+02:00",
-			"progress": 0,
-			"regions": [
-				"BHS5"
-			],
-			"resourceId": "80c1de3e-9b09-11f0-993b-0050568ce122",
-			"status": "completed",
-			"subOperations": [
-				{
-					"id": "8c0806ba-9b09-11f0-9a54-0050568ce122",
-					"action": "gateway#create",
-					"startedAt": "2025-09-26T20:43:14.376907+02:00",
-					"completedAt": "2025-09-26T20:43:36.631086+02:00",
-					"progress": 0,
-					"regions": [
-						"BHS5"
-					],
-					"resourceId": "97a2703c-9b09-11f0-9b6c-0050568ce122",
-					"status": "completed"
-				}
-			]
-		}`),
-	)
-
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/80c1de3e-9b09-11f0-993b-0050568ce122",
-		httpmock.NewStringResponder(200, `{
-			"id": "80c1de3e-9b09-11f0-993b-0050568ce122",
-			"name": "TestFromTheCLI",
-			"region": "BHS5",
-			"visibility": "private",
-			"vlanId": 1234
-		}`),
-	)
-
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/80c1de3e-9b09-11f0-993b-0050568ce122/subnet",
-		httpmock.NewStringResponder(200, `[
-			{
-				"id": "c59a3fdc-9b0f-11f0-ac97-0050568ce122",
-				"name": "TestFromTheCLI",
-				"cidr": "10.0.0.0/24",
-				"ipVersion": 4,
-				"dhcpEnabled": false,
-				"gatewayIp": "10.0.0.1",
-				"allocationPools": [
-					{
-						"start": "10.0.0.2",
-						"end": "10.0.0.254"
-					}
-				]
-			}
-		]`),
-	)
-
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/gateway?subnetId=c59a3fdc-9b0f-11f0-ac97-0050568ce122",
-		httpmock.NewStringResponder(200, `[
-			{
-				"id": "e7045f34-8f2b-41a4-a734-97b7b0e323de",
-				"status": "active",
-				"name": "TestFromTheCLI",
-				"interfaces": [
-					{
-						"id": "56d17852-9b11-11f0-8d13-0050568ce122",
-						"ip": "10.0.0.1",
-						"subnetId": "56d17852-9b11-11f0-8d13-0050568ce122",
-						"networkId": "c59a3fdc-9b0f-11f0-ac97-0050568ce122"
-					},
-					{
-						"id": "56d17852-9b11-11f0-8d13-0050568ce122",
-						"ip": "10.0.0.218",
-						"subnetId": "56d17852-9b11-11f0-8d13-0050568ce122",
-						"networkId": "c59a3fdc-9b0f-11f0-ac97-0050568ce122"
-					}
-				],
-				"externalInformation": {
-					"ips": [
-						{
-							"ip": "1.2.3.4",
-							"subnetId": "981c226c-57da-4766-966b-3b45db0cfc84"
-						}
-					],
-					"networkId": "c59a3fdc-9b0f-11f0-ac97-0050568ce122"
-				},
-				"region": "BHS5",
-				"model": "s"
-			}
-		]`),
+		httpmock.NewStringResponder(200, `{"id": "80c1de3e-9b09-11f0-993b-0050568ce122"}`),
 	)
 
 	out, err := cmd.Execute("cloud", "network", "private", "vrack", "create", "BHS5", "--cloud-project", "fakeProjectID",
-		"--name", "TestFromTheCLI", "--wait", "-o", "yaml")
+		"--name", "TestFromTheCLI", "-o", "json")
 	require.CmpNoError(err)
-	assert.String(out, `message: ✅ Network 80c1de3e-9b09-11f0-993b-0050568ce122 created successfully in region
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Network creation started successfully (id: 80c1de3e-9b09-11f0-993b-0050568ce122)",
+		"details": {"id": "80c1de3e-9b09-11f0-993b-0050568ce122"}
+	}`))
+}
+
+func (ms *MockSuite) TestCloudPrivateNetworkCreateCmdWithWait(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"name": "TestFromTheCLI",
+					"vlanId": 1234,
+					"location": {
+						"region": "BHS5"
+					}
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, `{"id": "80c1de3e-9b09-11f0-993b-0050568ce122"}`),
+	)
+
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network/80c1de3e-9b09-11f0-993b-0050568ce122",
+		httpmock.NewStringResponder(200, `{
+			"id": "80c1de3e-9b09-11f0-993b-0050568ce122",
+			"resourceStatus": "READY"
+		}`),
+	)
+
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "create", "BHS5", "--cloud-project", "fakeProjectID",
+		"--name", "TestFromTheCLI", "--vlan-id", "1234", "--wait", "-o", "yaml")
+	require.CmpNoError(err)
+	assert.String(out, `details:
+  id: 80c1de3e-9b09-11f0-993b-0050568ce122
+message: ✅ Network 80c1de3e-9b09-11f0-993b-0050568ce122 created successfully in region
   BHS5
 `)
 }
 
+func (ms *MockSuite) TestCloudPrivateNetworkListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network",
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "net-1",
+				"resourceStatus": "READY",
+				"currentState": {
+					"name": "network-one",
+					"vlanId": 42,
+					"location": {"region": "BHS5"}
+				}
+			}
+		]`),
+	)
+
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "list", "--cloud-project", "fakeProjectID", "-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[
+		{
+			"id": "net-1",
+			"resourceStatus": "READY",
+			"currentState": {
+				"name": "network-one",
+				"vlanId": 42,
+				"location": {"region": "BHS5"}
+			}
+		}
+	]`))
+}
+
+func (ms *MockSuite) TestCloudPrivateNetworkDeleteCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("DELETE",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network/net-123",
+		httpmock.NewStringResponder(204, ``),
+	)
+
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "delete", "net-123", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.String(out, `✅ Private network net-123 is being deleted…`)
+}
+
+func (ms *MockSuite) TestCloudPrivateNetworkEditCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network/net-123",
+		httpmock.NewStringResponder(200, `{
+			"id": "net-123",
+			"checksum": "abc123",
+			"resourceStatus": "READY",
+			"targetSpec": {
+				"name": "old-name",
+				"vlanId": 42,
+				"location": {"region": "BHS5"}
+			}
+		}`),
+	)
+
+	httpmock.RegisterMatcherResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network/net-123",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"checksum": "abc123",
+				"targetSpec": {
+					"name": "new-name"
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, ``),
+	)
+
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "edit", "net-123", "--cloud-project", "fakeProjectID", "--name", "new-name")
+	require.CmpNoError(err)
+	assert.String(out, `✅ Resource updated successfully`)
+}
+
 func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmd(assert, require *td.T) {
-	// findNetwork will look up the network by region
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/pn-123456",
+	// The subnet inherits the region of its parent network.
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network/pn-123456",
 		httpmock.NewStringResponder(200, `{
 			"id": "pn-123456",
-			"name": "test-network",
-			"region": "BHS5",
-			"visibility": "private",
-			"vlanId": 0
+			"targetSpec": {
+				"name": "test-network",
+				"location": {"region": "BHS5"}
+			}
 		}`),
 	)
 
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/pn-123456/subnet",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network/pn-123456/subnet",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
-				"name": "my-subnet",
-				"cidr": "192.168.1.0/24",
-				"ipVersion": 4,
-				"enableDhcp": true,
-				"enableGatewayIp": true
+				"targetSpec": {
+					"name": "my-subnet",
+					"cidr": "192.168.1.0/24",
+					"dhcpEnabled": true,
+					"location": {"region": "BHS5"}
+				}
 			}`),
 		),
-		httpmock.NewStringResponder(200, `
-			{
-				"cidr": "192.168.1.0/24",
-				"gatewayIp": "192.168.1.1",
-				"id": "5e625f90-9ec3-11f0-9f75-0050568ce122",
-				"name": "my-subnet",
-				"ipVersion": 4,
-				"dhcpEnabled": true,
-				"allocationPools": [
-					{
-						"start": "192.168.1.2",
-						"end": "192.168.1.254"
-					}
-				]
-			}`,
-		),
+		httpmock.NewStringResponder(200, `{"id": "5e625f90-9ec3-11f0-9f75-0050568ce122"}`),
 	)
 
-	out, err := cmd.Execute("cloud", "network", "private", "vrack", "subnet", "create", "pn-123456", "--region", "BHS5", "--cloud-project", "fakeProjectID",
-		"--name", "my-subnet", "--cidr", "192.168.1.0/24", "--ip-version", "4", "--enable-dhcp", "--enable-gateway-ip", "-o", "json")
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "subnet", "create", "pn-123456", "--cloud-project", "fakeProjectID",
+		"--name", "my-subnet", "--cidr", "192.168.1.0/24", "--dhcp-enabled", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"message": "✅ Subnet 5e625f90-9ec3-11f0-9f75-0050568ce122 created successfully",
-		"details": {
-			"cidr": "192.168.1.0/24",
-			"gatewayIp": "192.168.1.1",
-			"id": "5e625f90-9ec3-11f0-9f75-0050568ce122",
-			"name": "my-subnet",
-			"ipVersion": 4,
-			"dhcpEnabled": true,
-			"allocationPools": [
-				{
-					"start": "192.168.1.2",
-					"end": "192.168.1.254"
-				}
-			]
-		}
+		"message": "✅ Subnet creation started successfully (id: 5e625f90-9ec3-11f0-9f75-0050568ce122)",
+		"details": {"id": "5e625f90-9ec3-11f0-9f75-0050568ce122"}
 	}`))
 }
 
-func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmdInferIPVersion(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/pn-123456",
+func (ms *MockSuite) TestCloudPrivateNetworkSubnetCreateCmdWithRegionFlag(assert, require *td.T) {
+	// When --region is provided, no parent network lookup should be performed.
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network/pn-123456/subnet",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"name": "my-subnet",
+					"cidr": "192.168.1.0/24",
+					"dhcpEnabled": false,
+					"allocationPools": [
+						{"start": "192.168.1.2", "end": "192.168.1.254"}
+					],
+					"location": {"region": "GRA11"}
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, `{"id": "subnet-with-region"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "subnet", "create", "pn-123456", "--cloud-project", "fakeProjectID",
+		"--name", "my-subnet", "--cidr", "192.168.1.0/24", "--region", "GRA11",
+		"--allocation-pools", "192.168.1.2:192.168.1.254", "-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Subnet creation started successfully (id: subnet-with-region)",
+		"details": {"id": "subnet-with-region"}
+	}`))
+}
+
+func (ms *MockSuite) TestCloudPrivateNetworkSubnetEditCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network/pn-123456/subnet/subnet-1",
 		httpmock.NewStringResponder(200, `{
-			"id": "pn-123456",
-			"name": "test-network",
-			"region": "BHS5",
-			"visibility": "private",
-			"vlanId": 0
+			"id": "subnet-1",
+			"checksum": "chk-1",
+			"targetSpec": {
+				"name": "old-subnet",
+				"cidr": "192.168.1.0/24",
+				"location": {"region": "BHS5"}
+			}
 		}`),
 	)
 
-	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5/network/pn-123456/subnet",
+	httpmock.RegisterMatcherResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network/pn-123456/subnet/subnet-1",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
-				"name": "my-subnet",
-				"cidr": "192.168.1.0/24",
-				"ipVersion": 4,
-				"enableDhcp": true,
-				"enableGatewayIp": true
+				"checksum": "chk-1",
+				"targetSpec": {
+					"name": "new-subnet"
+				}
 			}`),
 		),
-		httpmock.NewStringResponder(200, `
-			{
-				"cidr": "192.168.1.0/24",
-				"gatewayIp": "192.168.1.1",
-				"id": "subnet-inferred-v4",
-				"name": "my-subnet",
-				"ipVersion": 4,
-				"dhcpEnabled": true,
-				"allocationPools": [
-					{
-						"start": "192.168.1.2",
-						"end": "192.168.1.254"
-					}
-				]
-			}`,
-		),
+		httpmock.NewStringResponder(200, ``),
 	)
 
-	// Note: --ip-version is NOT provided, it should be inferred from the CIDR
-	out, err := cmd.Execute("cloud", "network", "private", "vrack", "subnet", "create", "pn-123456", "--region", "BHS5", "--cloud-project", "fakeProjectID",
-		"--name", "my-subnet", "--cidr", "192.168.1.0/24", "--enable-dhcp", "--enable-gateway-ip", "-o", "json")
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "subnet", "edit", "pn-123456", "subnet-1",
+		"--cloud-project", "fakeProjectID", "--name", "new-subnet")
 	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"message": "✅ Subnet subnet-inferred-v4 created successfully",
-		"details": {
-			"cidr": "192.168.1.0/24",
-			"gatewayIp": "192.168.1.1",
-			"id": "subnet-inferred-v4",
-			"name": "my-subnet",
-			"ipVersion": 4,
-			"dhcpEnabled": true,
-			"allocationPools": [
-				{
-					"start": "192.168.1.2",
-					"end": "192.168.1.254"
-				}
-			]
-		}
-	}`))
+	assert.String(out, `✅ Resource updated successfully`)
 }
 
+func (ms *MockSuite) TestCloudPrivateNetworkSubnetDeleteCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("DELETE",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/network/pn-123456/subnet/subnet-1",
+		httpmock.NewStringResponder(204, ``),
+	)
+
+	out, err := cmd.Execute("cloud", "network", "private", "vrack", "subnet", "delete", "pn-123456", "subnet-1", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.String(out, `✅ Subnet subnet-1 is being deleted from network pn-123456…`)
+}
+
+// TestCloudPrivateNetworkCreateMissingNameCmd checks that a create without the
+// mandatory --name fails client-side and does NOT hit the API (no POST
+// responder is registered, so any call would error differently).
+func (ms *MockSuite) TestCloudPrivateNetworkCreateMissingNameCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "network", "private", "vrack", "create", "GRA11",
+		"--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	// The error keeps the full path to the missing value (review feedback).
+	assert.Cmp(err.Error(), td.Contains(`mandatory field "targetSpec.name"`))
+}

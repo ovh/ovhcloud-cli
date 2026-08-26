@@ -12,7 +12,9 @@ import (
 	"maps"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
@@ -196,28 +198,95 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 	GetBaremetalAuthenticationSecrets(cmd, args)
 }
 
+// taskPollInterval and taskPollAttempts bound how long --wait follows a task.
+// Past that the task is not cancelled: only the waiting stops, which is what
+// the message has to say. They are variables rather than constants so that the
+// test covering that message does not have to wait fifty minutes for it.
+var (
+	taskPollInterval = 30 * time.Second
+	taskPollAttempts = 100
+)
+
+// describeTask names a task the way its owner would look it up: its
+// identifier, and the operation it performs when the API says which.
+//
+// The identifier is formatted with %v and not %d: the API client decodes with
+// UseNumber, so it arrives as a json.Number and %d rendered it as
+// "%!d(json.Number=156839472)" — in the one message written to explain a
+// failure.
+func describeTask(taskID any, task map[string]any) string {
+	if function, ok := task["function"].(string); ok && function != "" {
+		return fmt.Sprintf("%v (%s)", taskID, function)
+	}
+
+	return fmt.Sprintf("%v", taskID)
+}
+
+// taskFailureReason returns what the API said about a failure, or "" when it
+// said nothing. Both fields are free text filled in by the platform.
+func taskFailureReason(task map[string]any) string {
+	for _, field := range []string{"comment", "note"} {
+		if reason, ok := task[field].(string); ok && strings.TrimSpace(reason) != "" {
+			return strings.TrimSpace(reason)
+		}
+	}
+
+	return ""
+}
+
 func waitForDedicatedServerTask(serviceName string, taskID any) error {
 	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/task/%s", url.PathEscape(serviceName), taskID)
+	followUp := fmt.Sprintf("follow it with: ovhcloud baremetal list-tasks %s", serviceName)
 
-	for retry := 0; retry < 100; retry++ {
+	var (
+		lastStatus      any
+		lastDescription = fmt.Sprintf("%v", taskID)
+	)
+
+	for retry := 0; retry < taskPollAttempts; retry++ {
 		var task map[string]any
 
 		if err := httpLib.Client.Get(endpoint, &task); err != nil {
 			return fmt.Errorf("failed to fetch task: %w", err)
 		}
 
+		lastStatus = task["status"]
+		lastDescription = describeTask(taskID, task)
+
 		switch task["status"] {
 		case "done":
 			return nil
+
 		case "todo", "init", "doing":
-			log.Printf("Still waiting for task to complete (status=%s)…", task["status"])
-			time.Sleep(30 * time.Second)
+			log.Printf("Still waiting for task %s to complete (status=%v)…",
+				describeTask(taskID, task), task["status"])
+			time.Sleep(taskPollInterval)
+
+		// These are the terminal failures of the API enum. Calling them an
+		// invalid state told the operator the CLI had not understood, when
+		// what had happened is that their operation failed.
+		case "cancelled", "customerError", "ovhError":
+			if reason := taskFailureReason(task); reason != "" {
+				return fmt.Errorf("task %s ended with status %v: %s",
+					describeTask(taskID, task), task["status"], reason)
+			}
+
+			return fmt.Errorf("task %s ended with status %v, and the API gave no reason; %s",
+				describeTask(taskID, task), task["status"], followUp)
+
+		// A status this CLI does not know about is not a failure of the task:
+		// the enum can grow. Say what was received rather than guess.
 		default:
-			return fmt.Errorf("invalid state for task %d: %s", taskID, task["status"])
+			return fmt.Errorf("task %s reported the unexpected status %v; %s",
+				describeTask(taskID, task), task["status"], followUp)
 		}
 	}
 
-	return fmt.Errorf("timeout waiting for task %d to be completed", taskID)
+	// Only the waiting stopped; the task was not cancelled. The status is
+	// quoted as what was last *seen*, not as what is true now: the loop sleeps
+	// one interval before giving up, so it is up to taskPollInterval old.
+	return fmt.Errorf("stopped waiting for task %s after %s; it had not finished (last status seen: %v), %s",
+		lastDescription, time.Duration(taskPollAttempts)*taskPollInterval, lastStatus, followUp)
 }
 
 func BaremetalGetIPMIAccess(_ *cobra.Command, args []string) {
@@ -527,29 +596,94 @@ func GetBaremetalAuthenticationSecrets(_ *cobra.Command, args []string) {
 	display.RenderTable(allSecrets, []string{"type", "url", "user", "secret", "expiration"}, &flags.OutputFormatConfig)
 }
 
-func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/v1/dedicated/server/%s/install/compatibleTemplates", url.PathEscape(args[0]))
+type templateOsInfo struct {
+	TemplateName string `json:"templateName"`
+	Description  string `json:"description"`
+	Category     string `json:"category"`
+	Family       string `json:"family"`
+	Subfamily    string `json:"subfamily"`
+	EndOfInstall string `json:"endOfInstall,omitempty"`
+}
 
-	var oses map[string]any
-	if err := httpLib.Client.Get(path, &oses); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch compatible OSes: %s", err)
-		return
+// osTemplateColumns are the columns displayed for OS template rows, in order.
+var osTemplateColumns = []string{"name", "description", "category", "family", "subfamily", "endOfInstall"}
+
+// osTemplateDetailFields are the columns only available by calling
+// installationTemplate/templateInfos, on top of the plain OS names returned by
+// installationTemplate (or install/compatibleTemplates).
+var osTemplateDetailFields = []string{"description", "category", "family", "subfamily", "endOfInstall"}
+
+// osTemplateDetailsNeeded reports whether the requested output format or any
+// active filter references a detail field, so the more expensive templateInfos
+// call can be skipped when only OS names are needed (e.g. `-o name`).
+func osTemplateDetailsNeeded() bool {
+	if flags.OutputFormatConfig.IsJson() || flags.OutputFormatConfig.IsYaml() || flags.OutputFormatConfig.IsInteractive() {
+		return true
+	}
+
+	custom := flags.OutputFormatConfig.CustomFormat()
+	if custom == "" {
+		// Default table rendering always shows every detail column.
+		return true
+	}
+
+	haystacks := append([]string{custom}, flags.GenericFilters...)
+	for _, field := range osTemplateDetailFields {
+		re := regexp.MustCompile(`\b` + field + `\b`)
+		for _, h := range haystacks {
+			if re.MatchString(h) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// fetchOsTemplatesInfo calls installationTemplate/templateInfos and returns one
+// row per template, keeping only those for which keep(templateName) is true.
+func fetchOsTemplatesInfo(keep func(templateName string) bool) ([]map[string]any, error) {
+	var templatesInfo []templateOsInfo
+	if err := httpLib.Client.Get("/v1/dedicated/installationTemplate/templateInfos", &templatesInfo); err != nil {
+		return nil, err
 	}
 
 	var formattedValues []map[string]any
-	for _, os := range oses["ovh"].([]any) {
+	for _, info := range templatesInfo {
+		if keep != nil && !keep(info.TemplateName) {
+			continue
+		}
 		formattedValues = append(formattedValues, map[string]any{
-			"source": "ovh",
-			"name":   os,
+			"name":         info.TemplateName,
+			"description":  info.Description,
+			"category":     info.Category,
+			"family":       info.Family,
+			"subfamily":    info.Subfamily,
+			"endOfInstall": info.EndOfInstall,
 		})
 	}
 
-	if personalOSes, ok := oses["personal"]; ok {
-		for _, os := range personalOSes.([]any) {
-			formattedValues = append(formattedValues, map[string]any{
-				"source": "personal",
-				"name":   os,
-			})
+	return formattedValues, nil
+}
+
+func ListBaremetalOses(_ *cobra.Command, _ []string) {
+	var formattedValues []map[string]any
+
+	if osTemplateDetailsNeeded() {
+		var err error
+		formattedValues, err = fetchOsTemplatesInfo(nil)
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch OS details: %s", err)
+			return
+		}
+	} else {
+		var names []string
+		if err := httpLib.Client.Get("/v1/dedicated/installationTemplate", &names); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch OSes: %s", err)
+			return
+		}
+		for _, name := range names {
+			formattedValues = append(formattedValues, map[string]any{"name": name})
 		}
 	}
 
@@ -559,5 +693,50 @@ func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.RenderTable(formattedValues, []string{"source", "name"}, &flags.OutputFormatConfig)
+	display.RenderTable(formattedValues, osTemplateColumns, &flags.OutputFormatConfig)
+}
+
+func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
+	path := fmt.Sprintf("/v1/dedicated/server/%s/install/compatibleTemplates", url.PathEscape(args[0]))
+
+	var oses map[string]any
+	if err := httpLib.Client.Get(path, &oses); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch compatible OSes: %s", err)
+		return
+	}
+
+	var names []string
+	seenNames := make(map[string]bool)
+	addNames := func(list []any) {
+		for _, os := range list {
+			name := os.(string)
+			if !seenNames[name] {
+				seenNames[name] = true
+				names = append(names, name)
+			}
+		}
+	}
+	addNames(oses["ovh"].([]any))
+
+	var formattedValues []map[string]any
+	if osTemplateDetailsNeeded() {
+		var err error
+		formattedValues, err = fetchOsTemplatesInfo(func(templateName string) bool { return seenNames[templateName] })
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to fetch OS details: %s", err)
+			return
+		}
+	} else {
+		for _, name := range names {
+			formattedValues = append(formattedValues, map[string]any{"name": name})
+		}
+	}
+
+	formattedValues, err := filtersLib.FilterLines(formattedValues, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(formattedValues, osTemplateColumns, &flags.OutputFormatConfig)
 }

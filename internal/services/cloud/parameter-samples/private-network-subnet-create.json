@@ -1,15 +1,21 @@
 {
-  "name": "my-subnet",
-  "cidr": "192.168.1.0/24",
-  "ipVersion": 4,
-  "enableDhcp": true,
-  "enableGatewayIp": true,
-  "gatewayIp": "192.168.1.1",
-  "useDefaultPublicDNSResolver": false,
-  "allocationPools": [
-    {
-      "start": "192.168.1.2",
-      "end": "192.168.1.254"
+  "targetSpec": {
+    "name": "my-subnet",
+    "cidr": "192.168.1.0/24",
+    "description": "My subnet",
+    "dhcpEnabled": true,
+    "gatewayIp": "192.168.1.1",
+    "dnsNameservers": [
+      "1.1.1.1"
+    ],
+    "allocationPools": [
+      {
+        "start": "192.168.1.2",
+        "end": "192.168.1.254"
+      }
+    ],
+    "location": {
+      "region": "GRA11"
     }
-  ]
+  }
 }

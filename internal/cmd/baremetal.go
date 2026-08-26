@@ -227,6 +227,13 @@ Please note that all parameters are not compatible with all OSes.
 		Run:               baremetal.GetBaremetalCompatibleOses,
 	}))
 
+	baremetalCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:   "list-os",
+		Short: "List all OSes available at OVHcloud",
+		Args:  cobra.NoArgs,
+		Run:   baremetal.ListBaremetalOses,
+	}))
+
 	// Commands to manage virtual network interfaces
 	baremetalVNICmd := &cobra.Command{
 		Use:   "vni",

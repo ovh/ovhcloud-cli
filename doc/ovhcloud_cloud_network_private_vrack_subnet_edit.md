@@ -1,0 +1,49 @@
+## ovhcloud cloud network private vrack subnet edit
+
+Edit a specific subnet in a private network
+
+```
+ovhcloud cloud network private vrack subnet edit <network_id> <subnet_id> [flags]
+```
+
+### Options
+
+```
+      --allocation-pools strings   Allocation pools for the subnet in format start:end
+      --description string         Description of the subnet
+      --dhcp-enabled               Enable DHCP for the subnet
+      --dns-nameservers strings    DNS nameservers for the subnet
+      --editor                     Use a text editor to define parameters
+      --from-file string           File containing parameters
+      --gateway-ip string          Gateway IP address for the subnet
+  -h, --help                       help for edit
+      --name string                Name of the subnet
+```
+
+### Options inherited from parent commands
+
+```
+      --cloud-project string   Cloud project ID
+  -d, --debug                  Activate debug mode (will log all HTTP requests details)
+  -e, --ignore-errors          Ignore errors in API calls when it is not fatal to the execution
+  -o, --output string          Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
+                               Examples:
+                                 --output json
+                                 --output yaml
+                                 --output interactive
+                                 --output 'id' (to extract a single field)
+                                 --output 'nested.field.subfield' (to extract a nested field)
+                                 --output '[id, "name"]' (to extract multiple fields as an array)
+                                 --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
+                                 --output 'name+","+type' (to extract and concatenate fields in a string)
+                                 --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --profile string         Use a specific profile from the configuration file
+      --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
+                               Example:
+                                 --output 'id' --raw   (prints the id without surrounding quotes)
+```
+
+### SEE ALSO
+
+* [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network
+

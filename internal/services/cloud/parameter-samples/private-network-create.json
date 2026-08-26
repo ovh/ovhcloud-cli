@@ -1,4 +1,10 @@
 {
-  "name": "mynetwork",
-  "vlanId": 0
+  "targetSpec": {
+    "name": "mynetwork",
+    "description": "My private network",
+    "vlanId": 42,
+    "location": {
+      "region": "GRA11"
+    }
+  }
 }

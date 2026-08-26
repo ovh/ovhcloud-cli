@@ -29,7 +29,6 @@ Manage subnets in a specific private network
       --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
                                Example:
                                  --output 'id' --raw   (prints the id without surrounding quotes)
-      --region string          Filter by region or specify the region of the network
 ```
 
 ### SEE ALSO
@@ -37,6 +36,7 @@ Manage subnets in a specific private network
 * [ovhcloud cloud network private vrack](ovhcloud_cloud_network_private_vrack.md)	 - Manage vRack-based private networks in the given cloud project
 * [ovhcloud cloud network private vrack subnet create](ovhcloud_cloud_network_private_vrack_subnet_create.md)	 - Create a subnet in the given private network
 * [ovhcloud cloud network private vrack subnet delete](ovhcloud_cloud_network_private_vrack_subnet_delete.md)	 - Delete a specific subnet in a private network
+* [ovhcloud cloud network private vrack subnet edit](ovhcloud_cloud_network_private_vrack_subnet_edit.md)	 - Edit a specific subnet in a private network
 * [ovhcloud cloud network private vrack subnet get](ovhcloud_cloud_network_private_vrack_subnet_get.md)	 - Get a specific subnet in a private network
 * [ovhcloud cloud network private vrack subnet list](ovhcloud_cloud_network_private_vrack_subnet_list.md)	 - List subnets in a private network
 

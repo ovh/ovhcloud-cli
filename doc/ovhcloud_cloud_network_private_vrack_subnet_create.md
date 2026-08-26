@@ -9,7 +9,7 @@ There are three ways to define the parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud network private vrack subnet create <network_id> --region GRA9 --name MySubnet --cidr 192.168.1.0/24 --ip-version 4
+	ovhcloud cloud network private vrack subnet create <network_id> --name MySubnet --cidr 192.168.1.0/24
 
 2. Using a configuration file:
 
@@ -49,21 +49,21 @@ ovhcloud cloud network private vrack subnet create <network_id> [flags]
 ### Options
 
 ```
-      --allocation-pools strings          Allocation pools for the subnet in format start:end
-      --cidr string                       CIDR of the subnet (eg: 192.168.1.0/24)
-      --dns-name-servers strings          DNS name servers for the subnet
-      --editor                            Use a text editor to define parameters
-      --enable-dhcp                       Enable DHCP for the subnet
-      --enable-gateway-ip                 Set a gateway IP for the subnet
-      --from-file string                  File containing parameters
-      --gateway-ip string                 Gateway IP address for the subnet
-  -h, --help                              help for create
-      --host-routes strings               Host routes for the subnet in format destination:nextHop
-      --init-file string                  Create a file with example parameters
-      --ip-version int                    IP version (4 or 6)
-      --name string                       Name of the subnet
-      --replace                           Replace parameters file if it already exists
-      --use-default-public-dns-resolver   Use default DNS resolver for the subnet
+      --allocation-pools strings   Allocation pools for the subnet in format start:end
+      --availability-zone string   Availability zone within the region
+      --cidr string                CIDR of the subnet (eg: 192.168.1.0/24)
+      --description string         Description of the subnet
+      --dhcp-enabled               Enable DHCP for the subnet
+      --dns-nameservers strings    DNS nameservers for the subnet
+      --editor                     Use a text editor to define parameters
+      --from-file string           File containing parameters
+      --gateway-ip string          Gateway IP address for the subnet
+  -h, --help                       help for create
+      --init-file string           Create a file with example parameters
+      --name string                Name of the subnet
+      --region string              Region of the subnet (defaults to the parent network region)
+      --replace                    Replace parameters file if it already exists
+      --wait                       Wait for subnet creation to be done before exiting
 ```
 
 ### Options inherited from parent commands
@@ -87,7 +87,6 @@ ovhcloud cloud network private vrack subnet create <network_id> [flags]
       --raw                    Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
                                Example:
                                  --output 'id' --raw   (prints the id without surrounding quotes)
-      --region string          Filter by region or specify the region of the network
 ```
 
 ### SEE ALSO
