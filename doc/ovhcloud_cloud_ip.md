@@ -1,14 +1,12 @@
 ## ovhcloud cloud ip
 
-Manage public IPs (floating and failover) in the given cloud project
+Manage public IPs (floating, additional and ext-net) in the given cloud project
 
 ### Options
 
 ```
       --cloud-project string   Cloud project ID
   -h, --help                   help for ip
-      --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
-      --type string            Type of IP to manage (floating or failover)
 ```
 
 ### Options inherited from parent commands
@@ -33,8 +31,8 @@ Manage public IPs (floating and failover) in the given cloud project
 ### SEE ALSO
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
-* [ovhcloud cloud ip attach](ovhcloud_cloud_ip_attach.md)	 - Attach a public IP to an instance (only supported for --type=failover)
-* [ovhcloud cloud ip delete](ovhcloud_cloud_ip_delete.md)	 - Delete a public IP (only supported for --type=floating)
-* [ovhcloud cloud ip get](ovhcloud_cloud_ip_get.md)	 - Get information about a public IP
-* [ovhcloud cloud ip list](ovhcloud_cloud_ip_list.md)	 - List public IPs (both floating and failover when --type is not specified)
+* [ovhcloud cloud ip additional](ovhcloud_cloud_ip_additional.md)	 - Manage additional public IPs in the given cloud project
+* [ovhcloud cloud ip extnet](ovhcloud_cloud_ip_extnet.md)	 - Manage ext-net public IPs in the given cloud project
+* [ovhcloud cloud ip floating](ovhcloud_cloud_ip_floating.md)	 - Manage floating public IPs in the given cloud project
+* [ovhcloud cloud ip list](ovhcloud_cloud_ip_list.md)	 - List all public IPs (floating, additional and ext-net) of the project
 

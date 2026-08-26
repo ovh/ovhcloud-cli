@@ -1,22 +1,18 @@
-## ovhcloud cloud ip list
+## ovhcloud cloud ip floating edit
 
-List all public IPs (floating, additional and ext-net) of the project
+Edit the given floating IP
 
 ```
-ovhcloud cloud ip list [flags]
+ovhcloud cloud ip floating edit <ip> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+      --description string   Description of the floating IP
+      --editor               Use a text editor to define parameters
+      --from-file string     File containing parameters
+  -h, --help                 help for edit
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +37,5 @@ ovhcloud cloud ip list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional and ext-net) in the given cloud project
+* [ovhcloud cloud ip floating](ovhcloud_cloud_ip_floating.md)	 - Manage floating public IPs in the given cloud project
 

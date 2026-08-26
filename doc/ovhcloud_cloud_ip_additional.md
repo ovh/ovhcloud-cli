@@ -1,22 +1,11 @@
-## ovhcloud cloud ip list
+## ovhcloud cloud ip additional
 
-List all public IPs (floating, additional and ext-net) of the project
-
-```
-ovhcloud cloud ip list [flags]
-```
+Manage additional public IPs in the given cloud project
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help   help for additional
 ```
 
 ### Options inherited from parent commands
@@ -42,4 +31,7 @@ ovhcloud cloud ip list [flags]
 ### SEE ALSO
 
 * [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional and ext-net) in the given cloud project
+* [ovhcloud cloud ip additional attach](ovhcloud_cloud_ip_additional_attach.md)	 - Attach an additional IP to an instance
+* [ovhcloud cloud ip additional get](ovhcloud_cloud_ip_additional_get.md)	 - Get a specific additional IP
+* [ovhcloud cloud ip additional list](ovhcloud_cloud_ip_additional_list.md)	 - List additional IPs
 

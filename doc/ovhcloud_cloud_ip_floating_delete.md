@@ -1,15 +1,15 @@
-## ovhcloud cloud ip attach
+## ovhcloud cloud ip floating delete
 
-Attach a public IP to an instance (only supported for --type=failover)
+Delete a specific floating IP
 
 ```
-ovhcloud cloud ip attach <ip_id> <instance_id> [flags]
+ovhcloud cloud ip floating delete <ip> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for attach
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -30,11 +30,9 @@ ovhcloud cloud ip attach <ip_id> <instance_id> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
-      --type string            Type of IP to manage (floating or failover)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
+* [ovhcloud cloud ip floating](ovhcloud_cloud_ip_floating.md)	 - Manage floating public IPs in the given cloud project
 

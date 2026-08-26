@@ -1,15 +1,15 @@
-## ovhcloud cloud ip get
+## ovhcloud cloud ip extnet delete
 
-Get information about a public IP
+Delete a specific ext-net IP
 
 ```
-ovhcloud cloud ip get <ip_id> [flags]
+ovhcloud cloud ip extnet delete <ip> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -30,11 +30,9 @@ ovhcloud cloud ip get <ip_id> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
-      --type string            Type of IP to manage (floating or failover)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
+* [ovhcloud cloud ip extnet](ovhcloud_cloud_ip_extnet.md)	 - Manage ext-net public IPs in the given cloud project
 

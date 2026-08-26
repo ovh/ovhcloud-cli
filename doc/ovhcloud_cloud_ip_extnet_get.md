@@ -1,22 +1,15 @@
-## ovhcloud cloud ip list
+## ovhcloud cloud ip extnet get
 
-List all public IPs (floating, additional and ext-net) of the project
+Get a specific ext-net IP
 
 ```
-ovhcloud cloud ip list [flags]
+ovhcloud cloud ip extnet get <ip> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +34,5 @@ ovhcloud cloud ip list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating, additional and ext-net) in the given cloud project
+* [ovhcloud cloud ip extnet](ovhcloud_cloud_ip_extnet.md)	 - Manage ext-net public IPs in the given cloud project
 

@@ -10447,611 +10447,67 @@
         "format": "time",
         "example": "15:04:05"
       },
-      "publicCloud.sshKey.SSHKeyCreation": {
+      "publicCloud.publicIp.AdditionalIPCurrentState": {
         "type": "object",
-        "description": "Payload to create a Public Cloud SSH key",
+        "description": "Current state of an additional IP",
         "properties": {
-          "name": {
-            "type": "string",
-            "description": "Unique name for the SSH key"
-          },
-          "publicKey": {
-            "type": "string",
-            "description": "SSH public key content"
-          }
-        },
-        "required": [
-          "name",
-          "publicKey"
-        ]
-      },
-      "publicCloud.sshKey.SSHKey": {
-        "type": "object",
-        "description": "A Public Cloud SSH key (stored in database, synced to OpenStack on instance creation)",
-        "properties": {
-          "createdAt": {
-            "type": "string",
-            "description": "Creation date of the SSH key",
-            "format": "date-time",
+          "associatedResource": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.publicIp.PublicIPAssociatedResource"
+              }
+            ],
+            "description": "Resource currently associated with this IP",
+            "nullable": true,
             "readOnly": true
           },
-          "name": {
-            "type": "string",
-            "description": "Unique name of the SSH key",
+          "block": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "IP block the additional IP belongs to",
+            "nullable": true,
             "readOnly": true
           },
-          "publicKey": {
+          "id": {
             "type": "string",
-            "description": "SSH public key content",
+            "description": "ID of the underlying OpenStack resource",
+            "nullable": true,
             "readOnly": true
           },
-          "updatedAt": {
-            "type": "string",
-            "description": "Last update date of the SSH key",
-            "format": "date-time",
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "The additional IP address",
             "readOnly": true
           }
         }
       },
-      "publicCloud.quota.QuotaProfileVolume": {
+      "publicCloud.publicIp.FloatingIPCreation": {
         "type": "object",
-        "description": "Block storage limits for a quota profile",
+        "description": "Payload to create a Public Cloud floating IP",
         "properties": {
-          "backupSizeTotal": {
-            "type": "integer",
-            "description": "Maximum allowed total backup storage size in GB",
-            "readOnly": true
-          },
-          "backups": {
-            "type": "integer",
-            "description": "Maximum allowed volume backups",
-            "readOnly": true
-          },
-          "sizeTotal": {
-            "type": "integer",
-            "description": "Maximum allowed total volume storage size in GB",
-            "readOnly": true
-          },
-          "snapshots": {
-            "type": "integer",
-            "description": "Maximum allowed volume snapshots",
-            "readOnly": true
-          },
-          "volumes": {
-            "type": "integer",
-            "description": "Maximum allowed volumes",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.common.Location": {
-        "type": "object",
-        "description": "Resource location",
-        "properties": {
-          "availabilityZone": {
-            "type": "string",
-            "description": "Availability zone within the region",
-            "nullable": true
-          },
-          "region": {
-            "type": "string",
-            "description": "Region code"
-          }
-        },
-        "required": [
-          "region"
-        ]
-      },
-      "publicCloud.quota.QuotaProfileShare": {
-        "type": "object",
-        "description": "File storage limits for a quota profile",
-        "properties": {
-          "backupSizeTotal": {
-            "type": "integer",
-            "description": "Maximum allowed total backup storage size in GB",
-            "readOnly": true
-          },
-          "backups": {
-            "type": "integer",
-            "description": "Maximum allowed share backups",
-            "readOnly": true
-          },
-          "shares": {
-            "type": "integer",
-            "description": "Maximum allowed shares",
-            "readOnly": true
-          },
-          "sizeTotal": {
-            "type": "integer",
-            "description": "Maximum allowed total share storage size in GB",
-            "readOnly": true
-          },
-          "snapshots": {
-            "type": "integer",
-            "description": "Maximum allowed share snapshots",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaUpdate": {
-        "type": "object",
-        "description": "Payload to update a Public Cloud project quota",
-        "properties": {
-          "checksum": {
-            "type": "string",
-            "description": "Checksum of the current resource, for optimistic concurrency"
-          },
           "targetSpec": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUpdateTargetSpec"
+                "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIPTargetSpec"
               }
             ],
-            "description": "Update specification"
+            "description": "Desired target specification for the floating IP to create"
           }
         },
         "required": [
-          "checksum",
           "targetSpec"
         ]
       },
-      "publicCloud.quota.QuotaRegionShare": {
+      "publicCloud.publicIp.ExtNetIP": {
         "type": "object",
-        "description": "Per-region file storage quota usage",
-        "properties": {
-          "backupSizeTotal": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "File storage backup storage quota usage",
-            "readOnly": true
-          },
-          "backups": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "File storage backups quota usage",
-            "readOnly": true
-          },
-          "perShareSize": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaLimit"
-              }
-            ],
-            "description": "Maximum size per individual share",
-            "readOnly": true
-          },
-          "shareNetworks": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Share networks quota usage",
-            "readOnly": true
-          },
-          "shares": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "File storages quota usage",
-            "readOnly": true
-          },
-          "sizeTotal": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Total file storage size quota usage in GB",
-            "readOnly": true
-          },
-          "snapshotSizeTotal": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "File storage snapshot storage quota usage",
-            "readOnly": true
-          },
-          "snapshots": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "File storage snapshots quota usage",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaProfile": {
-        "type": "object",
-        "description": "A Public Cloud quota profile (read-only reference data)",
-        "properties": {
-          "compute": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaProfileCompute"
-              }
-            ],
-            "description": "Compute limits",
-            "nullable": true,
-            "readOnly": true
-          },
-          "keyManager": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaProfileKeyManager"
-              }
-            ],
-            "description": "Key manager limits",
-            "nullable": true,
-            "readOnly": true
-          },
-          "keypair": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaProfileKeypair"
-              }
-            ],
-            "description": "Keypair limits",
-            "nullable": true,
-            "readOnly": true
-          },
-          "loadbalancer": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaProfileLoadbalancer"
-              }
-            ],
-            "description": "Loadbalancer limits",
-            "nullable": true,
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Profile name",
-            "readOnly": true
-          },
-          "network": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaProfileNetwork"
-              }
-            ],
-            "description": "Network limits",
-            "nullable": true,
-            "readOnly": true
-          },
-          "share": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaProfileShare"
-              }
-            ],
-            "description": "File storage limits",
-            "nullable": true,
-            "readOnly": true
-          },
-          "volume": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaProfileVolume"
-              }
-            ],
-            "description": "Block storage limits",
-            "nullable": true,
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaProfileKeyManager": {
-        "type": "object",
-        "description": "Key manager limits for a quota profile",
-        "properties": {
-          "containers": {
-            "type": "integer",
-            "description": "Maximum allowed containers",
-            "readOnly": true
-          },
-          "secrets": {
-            "type": "integer",
-            "description": "Maximum allowed secrets",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaProfileLoadbalancer": {
-        "type": "object",
-        "description": "Loadbalancer limits for a quota profile",
-        "properties": {
-          "healthMonitors": {
-            "type": "integer",
-            "description": "Maximum allowed health monitors",
-            "readOnly": true
-          },
-          "l7Policies": {
-            "type": "integer",
-            "description": "Maximum allowed L7 policies",
-            "readOnly": true
-          },
-          "l7Rules": {
-            "type": "integer",
-            "description": "Maximum allowed L7 rules",
-            "readOnly": true
-          },
-          "listeners": {
-            "type": "integer",
-            "description": "Maximum allowed listeners",
-            "readOnly": true
-          },
-          "loadbalancers": {
-            "type": "integer",
-            "description": "Maximum allowed loadbalancers",
-            "readOnly": true
-          },
-          "members": {
-            "type": "integer",
-            "description": "Maximum allowed pool members",
-            "readOnly": true
-          },
-          "pools": {
-            "type": "integer",
-            "description": "Maximum allowed pools",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaRegionVolume": {
-        "type": "object",
-        "description": "Per-region volume quota usage",
-        "properties": {
-          "backupSizeTotal": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Volume backup storage quota usage",
-            "readOnly": true
-          },
-          "backups": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Volume backups quota usage",
-            "readOnly": true
-          },
-          "perVolumeSize": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaLimit"
-              }
-            ],
-            "description": "Maximum size per individual volume",
-            "readOnly": true
-          },
-          "sizeTotal": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Total volume storage quota usage",
-            "readOnly": true
-          },
-          "snapshots": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Volume snapshots quota usage",
-            "readOnly": true
-          },
-          "volumes": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Volumes quota usage",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaUnitEnum": {
-        "type": "string",
-        "description": "Unit of measurement for quota limits and usage",
-        "enum": [
-          "COUNT",
-          "GB",
-          "GiB",
-          "MB",
-          "MiB"
-        ]
-      },
-      "publicCloud.quota.QuotaTargetSpec": {
-        "type": "object",
-        "description": "Target specification for the project quota",
-        "properties": {
-          "preventAutomaticQuotaUpgrade": {
-            "type": "boolean",
-            "description": "When true, automatic quota upgrades are disabled for this project",
-            "readOnly": true
-          },
-          "regions": {
-            "type": "array",
-            "description": "Target quota profile per region",
-            "items": {
-              "$ref": "#/components/schemas/publicCloud.quota.QuotaRegionTargetSpec"
-            },
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaUsage": {
-        "type": "object",
-        "description": "Quota usage with limit and current consumption",
-        "properties": {
-          "limit": {
-            "type": "integer",
-            "description": "Maximum allowed",
-            "readOnly": true
-          },
-          "unit": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUnitEnum"
-              }
-            ],
-            "description": "Unit of measurement",
-            "readOnly": true
-          },
-          "used": {
-            "type": "integer",
-            "description": "Currently used (may be omitted when not available)",
-            "nullable": true,
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaCurrentState": {
-        "type": "object",
-        "description": "Current state of the project quota",
-        "properties": {
-          "availableProfiles": {
-            "type": "array",
-            "description": "Quota profiles available to this project",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/publicCloud.quota.QuotaProfile"
-            },
-            "readOnly": true
-          },
-          "preventAutomaticQuotaUpgrade": {
-            "type": "boolean",
-            "description": "When true, automatic quota upgrades are disabled for this project",
-            "readOnly": true
-          },
-          "regions": {
-            "type": "array",
-            "description": "Current state per region",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/publicCloud.quota.QuotaRegionCurrentState"
-            },
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaProfileKeypair": {
-        "type": "object",
-        "description": "Keypair limits for a quota profile",
-        "properties": {
-          "keypairs": {
-            "type": "integer",
-            "description": "Maximum allowed keypairs",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaProfileCompute": {
-        "type": "object",
-        "description": "Compute limits for a quota profile",
-        "properties": {
-          "cores": {
-            "type": "integer",
-            "description": "Maximum allowed CPU cores",
-            "readOnly": true
-          },
-          "instances": {
-            "type": "integer",
-            "description": "Maximum allowed instances",
-            "readOnly": true
-          },
-          "memory": {
-            "type": "integer",
-            "description": "Maximum allowed memory in MB",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaRegionTargetSpec": {
-        "type": "object",
-        "description": "Target specification for the project quota in a single region",
-        "properties": {
-          "location": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.common.Location"
-              }
-            ],
-            "description": "Region where the profile applies"
-          },
-          "profile": {
-            "type": "string",
-            "description": "Quota profile to apply in this region. Available values are in currentState.availableProfiles."
-          }
-        },
-        "required": [
-          "location",
-          "profile"
-        ]
-      },
-      "publicCloud.quota.QuotaRegionKeypair": {
-        "type": "object",
-        "description": "Per-region keypair quota",
-        "properties": {
-          "keypairs": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Keypairs quota",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaRegionKeyManager": {
-        "type": "object",
-        "description": "Per-region key manager quota usage",
-        "properties": {
-          "containers": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Containers quota usage",
-            "readOnly": true
-          },
-          "secrets": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Secrets quota usage",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.Quota": {
-        "type": "object",
-        "description": "A Public Cloud project quota",
+        "description": "A Public Cloud Ext-Net public IP (keyed by IP address)",
         "properties": {
           "checksum": {
             "type": "string",
@@ -11060,32 +10516,34 @@
           },
           "createdAt": {
             "type": "string",
-            "description": "Creation date of the quota",
+            "description": "Creation date of the Ext-Net IP",
             "format": "date-time",
             "readOnly": true
           },
           "currentState": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaCurrentState"
+                "$ref": "#/components/schemas/publicCloud.publicIp.ExtNetIPCurrentState"
               }
             ],
-            "description": "Current state of the quota",
-            "nullable": true,
+            "description": "Current state of the Ext-Net IP",
             "readOnly": true
           },
           "currentTasks": {
             "type": "array",
-            "description": "Ongoing asynchronous tasks related to the quota",
-            "nullable": true,
+            "description": "Ongoing asynchronous tasks related to the Ext-Net IP",
             "items": {
               "$ref": "#/components/schemas/common.CurrentTask"
             },
             "readOnly": true
           },
           "id": {
-            "type": "string",
-            "description": "Project ID this quota belongs to",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "The Ext-Net IP address, used as identifier",
             "readOnly": true
           },
           "resourceStatus": {
@@ -11094,369 +10552,377 @@
                 "$ref": "#/components/schemas/common.ResourceStatusEnum"
               }
             ],
-            "description": "Quota readiness in the system",
-            "readOnly": true
-          },
-          "targetSpec": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaTargetSpec"
-              }
-            ],
-            "description": "Last target specification of the quota",
+            "description": "Ext-Net IP readiness in the system",
             "readOnly": true
           },
           "updatedAt": {
             "type": "string",
-            "description": "Last update date of the quota",
+            "description": "Last update date of the Ext-Net IP",
             "format": "date-time",
             "readOnly": true
           }
         }
       },
-      "publicCloud.quota.QuotaProfileNetwork": {
+      "publicCloud.publicIp.FloatingIPNetwork": {
         "type": "object",
-        "description": "Network limits for a quota profile",
+        "description": "A network reference for a floating IP",
         "properties": {
-          "floatingIps": {
-            "type": "integer",
-            "description": "Maximum allowed floating IPs",
-            "readOnly": true
-          },
-          "gateways": {
-            "type": "integer",
-            "description": "Maximum allowed gateways",
-            "readOnly": true
-          },
-          "networks": {
-            "type": "integer",
-            "description": "Maximum allowed networks",
-            "readOnly": true
-          },
-          "securityGroupRules": {
-            "type": "integer",
-            "description": "Maximum allowed security group rules",
-            "readOnly": true
-          },
-          "securityGroups": {
-            "type": "integer",
-            "description": "Maximum allowed security groups",
-            "readOnly": true
-          },
-          "subnets": {
-            "type": "integer",
-            "description": "Maximum allowed subnets",
+          "id": {
+            "type": "string",
+            "description": "Network ID",
+            "format": "uuid",
             "readOnly": true
           }
         }
       },
-      "publicCloud.quota.QuotaRegionLoadbalancer": {
+      "publicCloud.publicIp.FloatingIPCurrentState": {
         "type": "object",
-        "description": "Per-region load balancer quota usage",
+        "description": "Current state of a floating IP from OpenStack",
         "properties": {
-          "healthMonitors": {
+          "associatedResource": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
+                "$ref": "#/components/schemas/publicCloud.publicIp.PublicIPAssociatedResource"
               }
             ],
-            "description": "Health monitors quota usage",
+            "description": "Resource currently associated with this floating IP",
+            "nullable": true,
             "readOnly": true
           },
-          "l7Policies": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "L7 policies quota usage",
+          "description": {
+            "type": "string",
+            "description": "Floating IP description",
+            "nullable": true,
             "readOnly": true
           },
-          "l7Rules": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "L7 rules quota usage",
+          "id": {
+            "type": "string",
+            "description": "ID of the underlying OpenStack resource",
+            "nullable": true,
+            "format": "uuid",
             "readOnly": true
           },
-          "listeners": {
+          "ip": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
+                "$ref": "#/components/schemas/ip"
               }
             ],
-            "description": "Listeners quota usage",
+            "description": "Floating IP address",
             "readOnly": true
           },
-          "loadbalancers": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Load balancers quota usage",
-            "readOnly": true
-          },
-          "members": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Pool members quota usage",
-            "readOnly": true
-          },
-          "pools": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Pools quota usage",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaRegionCurrentState": {
-        "type": "object",
-        "description": "Current state of the project quota in a single region",
-        "properties": {
           "location": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/publicCloud.common.Location"
               }
             ],
-            "description": "Region where the quota applies",
-            "readOnly": true
-          },
-          "profile": {
-            "type": "string",
-            "description": "Currently applied quota profile name",
-            "readOnly": true
-          },
-          "usage": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsageDetails"
-              }
-            ],
-            "description": "Quota usage for this region",
-            "nullable": true,
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaRegionCompute": {
-        "type": "object",
-        "description": "Per-region compute quota usage",
-        "properties": {
-          "cores": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "CPU cores quota usage",
-            "readOnly": true
-          },
-          "instances": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Instances quota usage",
-            "readOnly": true
-          },
-          "memory": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Memory quota usage in MB",
-            "readOnly": true
-          }
-        }
-      },
-      "publicCloud.quota.QuotaUsageDetails": {
-        "type": "object",
-        "description": "Quota usage across all services for a single region",
-        "properties": {
-          "compute": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaRegionCompute"
-              }
-            ],
-            "description": "Compute quota usage",
-            "nullable": true,
-            "readOnly": true
-          },
-          "keyManager": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaRegionKeyManager"
-              }
-            ],
-            "description": "Key manager quota usage",
-            "nullable": true,
-            "readOnly": true
-          },
-          "keypair": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaRegionKeypair"
-              }
-            ],
-            "description": "Keypair quota usage",
-            "nullable": true,
-            "readOnly": true
-          },
-          "loadbalancer": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaRegionLoadbalancer"
-              }
-            ],
-            "description": "Load balancer quota usage",
-            "nullable": true,
+            "description": "Current location",
             "readOnly": true
           },
           "network": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaRegionNetwork"
+                "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIPNetwork"
               }
             ],
-            "description": "Network quota usage",
+            "description": "Network the floating IP is allocated on",
             "nullable": true,
             "readOnly": true
           },
-          "share": {
+          "status": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaRegionShare"
+                "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIPStatusEnum"
               }
             ],
-            "description": "File storage quota usage",
-            "nullable": true,
-            "readOnly": true
-          },
-          "volume": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaRegionVolume"
-              }
-            ],
-            "description": "Block storage quota usage",
-            "nullable": true,
+            "description": "OpenStack floating IP status",
             "readOnly": true
           }
         }
       },
-      "publicCloud.quota.QuotaLimit": {
+      "publicCloud.publicIp.PublicIPAssociatedResourceTypeEnum": {
+        "type": "string",
+        "description": "Type of resource associated with a public IP",
+        "enum": [
+          "INSTANCE"
+        ]
+      },
+      "publicCloud.publicIp.PublicIPSummary": {
         "type": "object",
-        "description": "Quota limit without usage tracking (for per-item size caps)",
+        "description": "Lightweight view of a Public Cloud public IP, exposing only its kind and address",
         "properties": {
-          "limit": {
-            "type": "integer",
-            "description": "Maximum allowed",
-            "readOnly": true
-          },
-          "unit": {
+          "ip": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUnitEnum"
+                "$ref": "#/components/schemas/ip"
               }
             ],
-            "description": "Unit of measurement",
+            "description": "The public IP address",
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.publicIp.PublicIPKindEnum"
+              }
+            ],
+            "description": "Kind of the public IP address",
             "readOnly": true
           }
         }
       },
-      "publicCloud.quota.QuotaRegionNetwork": {
-        "type": "object",
-        "description": "Per-region network quota usage",
-        "properties": {
-          "floatingIps": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Floating IPs quota usage",
-            "readOnly": true
-          },
-          "gateways": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Gateways quota usage",
-            "readOnly": true
-          },
-          "networks": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Networks quota usage",
-            "readOnly": true
-          },
-          "securityGroupRules": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Security group rules quota usage",
-            "readOnly": true
-          },
-          "securityGroups": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Security groups quota usage",
-            "readOnly": true
-          },
-          "subnets": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUsage"
-              }
-            ],
-            "description": "Subnets quota usage",
-            "readOnly": true
-          }
-        }
+      "publicCloud.publicIp.PublicIPKindEnum": {
+        "type": "string",
+        "description": "Kind of a Public Cloud public IP address",
+        "enum": [
+          "ADDITIONAL_IP",
+          "EXT_NET_IP",
+          "FLOATING_IP"
+        ]
       },
-      "publicCloud.quota.QuotaUpdateTargetSpec": {
+      "publicCloud.publicIp.AdditionalIP": {
         "type": "object",
-        "description": "Update specification for the project quota",
+        "description": "A Public Cloud additional public IP (keyed by IP address)",
         "properties": {
-          "preventAutomaticQuotaUpgrade": {
-            "type": "boolean",
-            "description": "When true, automatic quota upgrades are disabled for this project"
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
           },
-          "regions": {
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.publicIp.AdditionalIPCurrentState"
+              }
+            ],
+            "description": "Current state of the additional IP",
+            "readOnly": true
+          },
+          "currentTasks": {
             "type": "array",
-            "description": "Target quota profile per region. Regions omitted are left unchanged.",
+            "description": "Ongoing asynchronous tasks related to the additional IP",
             "items": {
-              "$ref": "#/components/schemas/publicCloud.quota.QuotaRegionTargetSpec"
-            }
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "The additional IP address, used as identifier",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Additional IP readiness in the system",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.publicIp.FloatingIPTargetSpec": {
+        "type": "object",
+        "description": "Desired specification for a floating IP",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Floating IP description",
+            "nullable": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Target location"
           }
         },
         "required": [
-          "preventAutomaticQuotaUpgrade",
-          "regions"
+          "location"
+        ]
+      },
+      "publicCloud.publicIp.FloatingIP": {
+        "type": "object",
+        "description": "A Public Cloud floating public IP (keyed by IP address)",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the floating IP",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIPCurrentState"
+              }
+            ],
+            "description": "Current state of the floating IP",
+            "nullable": true,
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Ongoing asynchronous tasks related to the floating IP",
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "The floating IP address, used as identifier",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Floating IP readiness in the system",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIPTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the floating IP",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the floating IP",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.publicIp.FloatingIPUpdateTargetSpec": {
+        "type": "object",
+        "description": "Desired specification for updating a floating IP (mutable fields only)",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Floating IP description"
+          }
+        },
+        "required": [
+          "description"
+        ]
+      },
+      "publicCloud.publicIp.FloatingIPStatusEnum": {
+        "type": "string",
+        "description": "OpenStack floating IP status",
+        "enum": [
+          "ACTIVE",
+          "BUILD",
+          "DOWN",
+          "ERROR",
+          "PENDING_CREATE",
+          "PENDING_DELETE",
+          "PENDING_UPDATE"
+        ]
+      },
+      "publicCloud.publicIp.ExtNetIPCurrentState": {
+        "type": "object",
+        "description": "Current state of an Ext-Net IP",
+        "properties": {
+          "associatedResource": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.publicIp.PublicIPAssociatedResource"
+              }
+            ],
+            "description": "Resource currently associated with this IP",
+            "nullable": true,
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "ID of the underlying OpenStack resource",
+            "nullable": true,
+            "readOnly": true
+          },
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "The Ext-Net IP address",
+            "readOnly": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Location where the IP resides",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.publicIp.PublicIPAssociatedResource": {
+        "type": "object",
+        "description": "Resource associated with a public IP",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Associated resource identifier",
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.publicIp.PublicIPAssociatedResourceTypeEnum"
+              }
+            ],
+            "description": "Associated resource type",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.publicIp.FloatingIPUpdate": {
+        "type": "object",
+        "description": "Payload to update a Public Cloud floating IP",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash controlling concurrent modifications"
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIPUpdateTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the floating IP"
+          }
+        },
+        "required": [
+          "checksum",
+          "targetSpec"
         ]
       },
       "publicCloud.network.NetworkCurrentState": {
@@ -21928,8 +21394,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -22056,8 +21522,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -24752,8 +24218,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -24839,8 +24305,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -24925,8 +24391,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -25009,8 +24475,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -29183,9 +28649,9 @@
         ]
       }
     },
-    "/publicCloud/project/{projectId}/sshKey": {
+    "/publicCloud/project/{projectId}/publicIp": {
       "get": {
-        "summary": "List SSH keys",
+        "summary": "List the project public IPs (lightweight view: kind and address).",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -29226,7 +28692,26 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
+                    "$ref": "#/components/schemas/publicCloud.publicIp.PublicIPSummary"
+                  }
+                },
+                "examples": {
+                  "Project public IPs": {
+                    "value": [
+                      {
+                        "ip": "203.0.113.10",
+                        "type": "FLOATING_IP"
+                      },
+                      {
+                        "ip": "203.0.113.20",
+                        "type": "EXT_NET_IP"
+                      },
+                      {
+                        "ip": "203.0.113.30",
+                        "type": "ADDITIONAL_IP"
+                      }
+                    ],
+                    "summary": "Example lightweight list of the project public IPs"
                   }
                 }
               }
@@ -29234,7 +28719,7 @@
           }
         },
         "tags": [
-          "Compute"
+          "Network"
         ],
         "x-badges": [
           {
@@ -29244,15 +28729,391 @@
         ],
         "x-iam-actions": [
           {
-            "name": "publicCloudProject:apiovh:sshKey/get",
+            "name": "publicCloudProject:apiovh:publicIp/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/publicIp/additional": {
+      "get": {
+        "summary": "List additional IPs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.publicIp.AdditionalIP"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:publicIp/additional/get",
             "required": true
           }
         ],
-        "x-response-identifier": "name",
-        "x-expanded-response": "PublicCloudSshKeySSHKey"
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudPublicIpAdditionalIP"
+      }
+    },
+    "/publicCloud/project/{projectId}/publicIp/additional/{id}": {
+      "get": {
+        "summary": "Get an additional IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ip"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.publicIp.AdditionalIP"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:publicIp/additional/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/publicCloud/project/{projectId}/publicIp/extNet": {
+      "get": {
+        "summary": "List Ext-Net IPs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.publicIp.ExtNetIP"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:publicIp/extNet/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudPublicIpExtNetIP"
+      }
+    },
+    "/publicCloud/project/{projectId}/publicIp/extNet/{id}": {
+      "delete": {
+        "summary": "Delete an Ext-Net IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ip"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.publicIp.ExtNetIP"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:publicIp/extNet/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get an Ext-Net IP",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ip"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.publicIp.ExtNetIP"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:publicIp/extNet/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      }
+    },
+    "/publicCloud/project/{projectId}/publicIp/floating": {
+      "get": {
+        "summary": "List floating IPs",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIP"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:publicIp/floating/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudPublicIpFloatingIP"
       },
       "post": {
-        "summary": "Create an SSH key",
+        "summary": "Create a floating IP",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -29274,7 +29135,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/publicCloud.sshKey.SSHKeyCreation"
+                "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIPCreation"
               }
             }
           }
@@ -29285,43 +29146,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error 409 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Common error model",
-                  "properties": {
-                    "class": {
-                      "type": "string",
-                      "description": "Class of the error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  }
-                },
-                "examples": {
-                  "Client::Conflict::NameAlreadyInUse": {
-                    "value": {
-                      "class": "Client::Conflict::NameAlreadyInUse",
-                      "message": "This name is already in use"
-                    }
-                  }
+                  "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIP"
                 }
               }
             }
           }
         },
         "tags": [
-          "Compute"
+          "Network"
         ],
         "x-badges": [
           {
@@ -29331,15 +29163,15 @@
         ],
         "x-iam-actions": [
           {
-            "name": "publicCloudProject:apiovh:sshKey/create",
+            "name": "publicCloudProject:apiovh:publicIp/floating/create",
             "required": true
           }
         ]
       }
     },
-    "/publicCloud/project/{projectId}/sshKey/{name}": {
+    "/publicCloud/project/{projectId}/publicIp/floating/{id}": {
       "delete": {
-        "summary": "Delete an SSH key",
+        "summary": "Delete a floating IP",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -29348,11 +29180,11 @@
         "parameters": [
           {
             "in": "path",
-            "name": "name",
-            "description": "Name",
+            "name": "id",
+            "description": "Id",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/ip"
             }
           },
           {
@@ -29371,43 +29203,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error 404 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Common error model",
-                  "properties": {
-                    "class": {
-                      "type": "string",
-                      "description": "Class of the error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  }
-                },
-                "examples": {
-                  "Client::NotFound::SSHKeyDoesNotExist": {
-                    "value": {
-                      "class": "Client::NotFound::SSHKeyDoesNotExist",
-                      "message": "SSH key not found"
-                    }
-                  }
+                  "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIP"
                 }
               }
             }
           }
         },
         "tags": [
-          "Compute"
+          "Network"
         ],
         "x-badges": [
           {
@@ -29417,13 +29220,13 @@
         ],
         "x-iam-actions": [
           {
-            "name": "publicCloudProject:apiovh:sshKey/delete",
+            "name": "publicCloudProject:apiovh:publicIp/floating/delete",
             "required": true
           }
         ]
       },
       "get": {
-        "summary": "Get an SSH key",
+        "summary": "Get a floating IP",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -29432,11 +29235,11 @@
         "parameters": [
           {
             "in": "path",
-            "name": "name",
-            "description": "Name",
+            "name": "id",
+            "description": "Id",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/ip"
             }
           },
           {
@@ -29455,43 +29258,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/publicCloud.sshKey.SSHKey"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error 404 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Common error model",
-                  "properties": {
-                    "class": {
-                      "type": "string",
-                      "description": "Class of the error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  }
-                },
-                "examples": {
-                  "Client::NotFound::SSHKeyDoesNotExist": {
-                    "value": {
-                      "class": "Client::NotFound::SSHKeyDoesNotExist",
-                      "message": "SSH key not found"
-                    }
-                  }
+                  "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIP"
                 }
               }
             }
           }
         },
         "tags": [
-          "Compute"
+          "Network"
         ],
         "x-badges": [
           {
@@ -29501,137 +29275,29 @@
         ],
         "x-iam-actions": [
           {
-            "name": "publicCloudProject:apiovh:sshKey/get",
-            "required": true
-          }
-        ],
-        "x-response-identifier": "name"
-      }
-    },
-    "/publicCloud/project/{projectId}/quota": {
-      "get": {
-        "summary": "Get the project quota",
-        "description": "Get the project quota. When the `region` query parameter is set, the response narrows `targetSpec.regions` and `currentState.regions` to that single region. Omit it to get all regions.",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "projectId",
-            "description": "Project ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "region",
-            "description": "Optional region filter",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/publicCloud.quota.Quota"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error 400 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Common error model",
-                  "properties": {
-                    "class": {
-                      "type": "string",
-                      "description": "Class of the error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  }
-                },
-                "examples": {
-                  "Client::BadRequest::ServiceNotAvailableInRegion": {
-                    "value": {
-                      "class": "Client::BadRequest::ServiceNotAvailableInRegion",
-                      "message": "This service is not available in the selected region"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error 409 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Common error model",
-                  "properties": {
-                    "class": {
-                      "type": "string",
-                      "description": "Class of the error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  }
-                },
-                "examples": {
-                  "Client::Conflict::ResourceInInvalidState": {
-                    "value": {
-                      "class": "Client::Conflict::ResourceInInvalidState",
-                      "message": "Resource cannot be modified in its current state"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Quota"
-        ],
-        "x-badges": [
-          {
-            "color": "blue",
-            "label": "Alpha version"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:quota/get",
+            "name": "publicCloudProject:apiovh:publicIp/floating/get",
             "required": true
           }
         ],
         "x-response-identifier": "id"
       },
       "put": {
-        "summary": "Update the project quota",
-        "description": "Update the project quota. Regions omitted from `targetSpec.regions` are left unchanged. `preventAutomaticQuotaUpgrade` is required.",
+        "summary": "Update a floating IP",
         "security": [
           {
             "oAuth2AuthCode": []
           }
         ],
         "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ip"
+            }
+          },
           {
             "in": "path",
             "name": "projectId",
@@ -29647,7 +29313,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/publicCloud.quota.QuotaUpdate"
+                "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIPUpdate"
               }
             }
           }
@@ -29658,84 +29324,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/publicCloud.quota.Quota"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error 400 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Common error model",
-                  "properties": {
-                    "class": {
-                      "type": "string",
-                      "description": "Class of the error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  }
-                },
-                "examples": {
-                  "Client::BadRequest::InvalidParameter": {
-                    "value": {
-                      "class": "Client::BadRequest::InvalidParameter",
-                      "message": "Invalid parameter in the request"
-                    }
-                  },
-                  "Client::BadRequest::ServiceNotAvailableInRegion": {
-                    "value": {
-                      "class": "Client::BadRequest::ServiceNotAvailableInRegion",
-                      "message": "This service is not available in the selected region"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error 409 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Common error model",
-                  "properties": {
-                    "class": {
-                      "type": "string",
-                      "description": "Class of the error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  }
-                },
-                "examples": {
-                  "Client::Conflict::ChecksumMismatch": {
-                    "value": {
-                      "class": "Client::Conflict::ChecksumMismatch",
-                      "message": "Checksum mismatch — a concurrent update was detected. Refresh the resource and retry"
-                    }
-                  },
-                  "Client::Conflict::ResourceInInvalidState": {
-                    "value": {
-                      "class": "Client::Conflict::ResourceInInvalidState",
-                      "message": "Resource cannot be modified in its current state"
-                    }
-                  }
+                  "$ref": "#/components/schemas/publicCloud.publicIp.FloatingIP"
                 }
               }
             }
           }
         },
         "tags": [
-          "Quota"
+          "Network"
         ],
         "x-badges": [
           {
@@ -29745,7 +29341,7 @@
         ],
         "x-iam-actions": [
           {
-            "name": "publicCloudProject:apiovh:quota/edit",
+            "name": "publicCloudProject:apiovh:publicIp/floating/edit",
             "required": true
           }
         ]
