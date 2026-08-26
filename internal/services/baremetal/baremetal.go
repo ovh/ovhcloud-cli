@@ -41,6 +41,21 @@ type baremetalCustomizations struct {
 	SshKey                          string            `json:"sshKey,omitempty"`
 }
 
+// The two shapes the wizard fills in the `storage` block of a reinstall.
+//
+// Only schemeName is modelled. The rest of that block — disk groups, layouts,
+// hardware RAID — is carried untouched by --from-file, which is the right
+// instrument for a nested array of partitions; expressing it as flags is how a
+// CLI becomes unusable. The scheme is the one field the wizard can settle
+// safely, because the API enumerates its legal values for the chosen template.
+type reinstallStorage struct {
+	Partitioning reinstallPartitioning `json:"partitioning,omitzero"`
+}
+
+type reinstallPartitioning struct {
+	SchemeName string `json:"schemeName,omitempty"`
+}
+
 var (
 	baremetalColumnsToDisplay = []string{"name", "region", "iam.displayName displayName", "os", "state"}
 
@@ -53,6 +68,9 @@ var (
 	// Installation flags
 	OperatingSystem string
 	Customizations  baremetalCustomizations
+
+	// WizardStorage is the storage block the wizard settled, if it ran.
+	WizardStorage []reinstallStorage
 
 	// Virtual Network Interfaces Aggregation flags
 	BaremetalOLAInterfaces []string
@@ -565,6 +583,16 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// The wizard runs BEFORE the confirmation, so the warning can name the
+	// system it is about to install. Confirming first would ask somebody to
+	// accept wiping the disks for an installation not yet chosen.
+	if ReinstallViaWizard {
+		if err := applyWizardChoices(args[0]); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
+			return
+		}
+	}
+
 	// Reinstalling wipes every disk of the server, so this one asks for the
 	// server's name rather than a yes.
 	warning := fmt.Sprintf("Reinstalling %s wipes every disk of the server. This cannot be undone.", args[0])
@@ -586,9 +614,11 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		struct {
 			OS             string                  `json:"operatingSystem,omitempty"`
 			Customizations baremetalCustomizations `json:"customizations,omitzero"`
+			Storage        []reinstallStorage      `json:"storage,omitempty"`
 		}{
 			OS:             OperatingSystem,
 			Customizations: Customizations,
+			Storage:        WizardStorage,
 		},
 		assets.BaremetalOpenapiSchema,
 		[]string{"operatingSystem"})
