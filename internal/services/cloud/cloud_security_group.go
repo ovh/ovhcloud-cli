@@ -112,7 +112,7 @@ func CreateSecurityGroup(cmd *cobra.Command, _ []string) {
 		return
 	}
 
-	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(securityGroupID)), 30*time.Minute); err != nil {
+	if _, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(securityGroupID)), 30*time.Minute); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for security group creation: %s", err)
 		return
 	}

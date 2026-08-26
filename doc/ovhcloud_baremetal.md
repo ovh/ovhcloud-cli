@@ -38,6 +38,7 @@ Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal list-compatible-os](ovhcloud_baremetal_list-compatible-os.md)	 - Retrieve OSes that can be installed on this baremetal
 * [ovhcloud baremetal list-interventions](ovhcloud_baremetal_list-interventions.md)	 - List past and planned interventions for the given baremetal
 * [ovhcloud baremetal list-ips](ovhcloud_baremetal_list-ips.md)	 - List all IPs that are routed to the given baremetal
+* [ovhcloud baremetal list-os](ovhcloud_baremetal_list-os.md)	 - List all OSes available at OVHcloud
 * [ovhcloud baremetal list-secrets](ovhcloud_baremetal_list-secrets.md)	 - Retrieve secrets to connect to the server
 * [ovhcloud baremetal list-tasks](ovhcloud_baremetal_list-tasks.md)	 - Retrieve tasks of the given baremetal
 * [ovhcloud baremetal reboot](ovhcloud_baremetal_reboot.md)	 - Reboot the given baremetal

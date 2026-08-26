@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/packxdsl"
 	"github.com/spf13/cobra"
 )
@@ -26,18 +27,20 @@ func init() {
 
 	// Command to get a single PackXDSL
 	packxdslCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific PackXDSL",
-		Args:  cobra.ExactArgs(1),
-		Run:   packxdsl.GetPackXDSL,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific PackXDSL",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/pack/xdsl"),
+		Run:               packxdsl.GetPackXDSL,
 	})
 
 	// Command to update a single PackXDSL
 	packxdslEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given PackXDSL",
-		Args:  cobra.ExactArgs(1),
-		Run:   packxdsl.EditPackXDSL,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given PackXDSL",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/pack/xdsl"),
+		Run:               packxdsl.EditPackXDSL,
 	}
 	packxdslEditCmd.Flags().StringVar(&packxdsl.PackXDSLSpec.Description, "description", "", "Description of the PackXDSL")
 	addInteractiveEditorFlag(packxdslEditCmd)

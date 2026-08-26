@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/webhosting"
 	"github.com/spf13/cobra"
@@ -31,18 +32,20 @@ func init() {
 
 	// Command to get a single WebHosting
 	webhostingCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific WebHosting",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetWebHosting,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific WebHosting",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetWebHosting,
 	})
 
 	// Command to update a single WebHosting
 	webhostingEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given WebHosting",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.EditWebHosting,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given WebHosting",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.EditWebHosting,
 	}
 	webhostingEditCmd.Flags().StringVar(&webhosting.WebHostingDisplayName, "display-name", "", "Display name of the WebHosting")
 	webhostingEditCmd.Flags().BoolVar(&webhosting.WebHostingClearDisplayName, "clear-display-name", false, "Clear the display name (reset to service name)")
@@ -52,33 +55,37 @@ func init() {
 	// Attached domains
 	attachedDomainCmd := &cobra.Command{Use: "domain", Short: "Manage attached domains"}
 	attachedDomainListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List attached domains",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListAttachedDomains,
+		Use:               "list <service_name>",
+		Short:             "List attached domains",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListAttachedDomains,
 	}
 	attachedDomainCmd.AddCommand(withFilterFlag(attachedDomainListCmd))
 
 	attachedDomainGetCmd := &cobra.Command{
-		Use:   "get <service_name> <domain>",
-		Short: "Get an attached domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetAttachedDomain,
+		Use:               "get <service_name> <domain>",
+		Short:             "Get an attached domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetAttachedDomain,
 	}
 	attachedDomainCmd.AddCommand(attachedDomainGetCmd)
 	attachedDomainDigCmd := &cobra.Command{
-		Use:   "dig-status <service_name> <domain>",
-		Short: "Check DNS status for an attached domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetAttachedDomainDigStatus,
+		Use:               "dig-status <service_name> <domain>",
+		Short:             "Check DNS status for an attached domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetAttachedDomainDigStatus,
 	}
 	attachedDomainCmd.AddCommand(attachedDomainDigCmd)
 
 	attachedDomainAddCmd := &cobra.Command{
-		Use:   "add <service_name>",
-		Short: "Attach a domain",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.AddAttachedDomain,
+		Use:               "add <service_name>",
+		Short:             "Attach a domain",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.AddAttachedDomain,
 	}
 	attachedDomainAddCmd.Flags().StringVar(&webhosting.AttachedDomainDomain, "domain", "", "Domain to link")
 	attachedDomainAddCmd.Flags().StringVar(&webhosting.AttachedDomainPath, "path", "", "Path of the attached domain")
@@ -95,10 +102,11 @@ func init() {
 	attachedDomainCmd.AddCommand(attachedDomainAddCmd)
 
 	attachedDomainUpdateCmd := &cobra.Command{
-		Use:   "update <service_name> <domain>",
-		Short: "Update an attached domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.UpdateAttachedDomain,
+		Use:               "update <service_name> <domain>",
+		Short:             "Update an attached domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateAttachedDomain,
 	}
 	attachedDomainUpdateCmd.Flags().StringVar(&webhosting.AttachedDomainPath, "path", "", "Path of the attached domain")
 	attachedDomainUpdateCmd.Flags().IntVar(&webhosting.AttachedDomainRuntimeID, "runtime-id", 0, "Runtime configuration ID used on this domain")
@@ -127,26 +135,29 @@ func init() {
 	attachedDomainCmd.AddCommand(attachedDomainOfferCmd)
 
 	attachedDomainDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <domain>",
-		Short: "Delete an attached domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.DeleteAttachedDomain,
+		Use:               "delete <service_name> <domain>",
+		Short:             "Delete an attached domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteAttachedDomain,
 	}
 	attachedDomainCmd.AddCommand(attachedDomainDeleteCmd)
 
 	attachedDomainPurgeCmd := &cobra.Command{
-		Use:   "purge-cache <service_name> <domain>",
-		Short: "Purge CDN cache for an attached domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.PurgeAttachedDomainCache,
+		Use:               "purge-cache <service_name> <domain>",
+		Short:             "Purge CDN cache for an attached domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.PurgeAttachedDomainCache,
 	}
 	attachedDomainCmd.AddCommand(attachedDomainPurgeCmd)
 
 	attachedDomainRestartCmd := &cobra.Command{
-		Use:   "restart <service_name> <domain>",
-		Short: "Restart an attached domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.RestartAttachedDomain,
+		Use:               "restart <service_name> <domain>",
+		Short:             "Restart an attached domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RestartAttachedDomain,
 	}
 	attachedDomainCmd.AddCommand(attachedDomainRestartCmd)
 
@@ -163,25 +174,28 @@ func init() {
 	// Cron
 	cronCmd := &cobra.Command{Use: "cron", Short: "Manage cron tasks"}
 	cronListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List cron tasks",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListCrons,
+		Use:               "list <service_name>",
+		Short:             "List cron tasks",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListCrons,
 	}
 	cronCmd.AddCommand(withFilterFlag(cronListCmd))
 	cronGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get a cron task",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetCron,
+		Use:               "get <service_name> <id>",
+		Short:             "Get a cron task",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetCron,
 	}
 	cronCmd.AddCommand(cronGetCmd)
 
 	cronCreateCmd := &cobra.Command{
-		Use:   "create <service_name>",
-		Short: "Create a cron task",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.CreateCron,
+		Use:               "create <service_name>",
+		Short:             "Create a cron task",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateCron,
 	}
 	cronCreateCmd.Flags().StringVar(&webhosting.CronCommand, "command", "", "Command to execute")
 	cronCreateCmd.Flags().StringVar(&webhosting.CronFrequency, "frequency", "", "Frequency (crontab format)")
@@ -194,10 +208,11 @@ func init() {
 	cronCmd.AddCommand(cronCreateCmd)
 
 	cronUpdateCmd := &cobra.Command{
-		Use:   "update <service_name> <id>",
-		Short: "Update a cron task",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.UpdateCron,
+		Use:               "update <service_name> <id>",
+		Short:             "Update a cron task",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateCron,
 	}
 	cronUpdateCmd.Flags().StringVar(&webhosting.CronCommand, "command", "", "Command to execute")
 	cronUpdateCmd.Flags().StringVar(&webhosting.CronFrequency, "frequency", "", "Frequency (crontab format)")
@@ -209,17 +224,19 @@ func init() {
 	cronCmd.AddCommand(cronUpdateCmd)
 
 	cronDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <id>",
-		Short: "Delete a cron task",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.DeleteCron,
+		Use:               "delete <service_name> <id>",
+		Short:             "Delete a cron task",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteCron,
 	}
 	cronCmd.AddCommand(cronDeleteCmd)
 	cronAvailableLangCmd := &cobra.Command{
-		Use:   "available-languages <service_name>",
-		Short: "List available cron languages",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListCronAvailableLanguages,
+		Use:               "available-languages <service_name>",
+		Short:             "List available cron languages",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListCronAvailableLanguages,
 	}
 	cronCmd.AddCommand(cronAvailableLangCmd)
 	webhostingCmd.AddCommand(cronCmd)
@@ -227,58 +244,65 @@ func init() {
 	// Databases
 	dbCmd := &cobra.Command{Use: "db", Short: "Manage databases"}
 	dbListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List databases",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListDatabases,
+		Use:               "list <service_name>",
+		Short:             "List databases",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListDatabases,
 	}
 	dbCmd.AddCommand(withFilterFlag(dbListCmd))
 	dbGetCmd := &cobra.Command{
-		Use:   "get <service_name> <name>",
-		Short: "Get a database",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetDatabase,
+		Use:               "get <service_name> <name>",
+		Short:             "Get a database",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetDatabase,
 	}
 	dbCmd.AddCommand(dbGetCmd)
 
 	dbCapabilitiesCmd := &cobra.Command{
-		Use:   "capabilities <service_name> <name>",
-		Short: "Get database capabilities",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetDatabaseCapabilities,
+		Use:               "capabilities <service_name> <name>",
+		Short:             "Get database capabilities",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetDatabaseCapabilities,
 	}
 	dbCmd.AddCommand(dbCapabilitiesCmd)
 
 	dbAvailableTypeCmd := &cobra.Command{
-		Use:   "available-type <service_name>",
-		Short: "List database types available for creation",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListDatabaseAvailableTypes,
+		Use:               "available-type <service_name>",
+		Short:             "List database types available for creation",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListDatabaseAvailableTypes,
 	}
 	dbCmd.AddCommand(withFilterFlag(dbAvailableTypeCmd))
 
 	dbAvailableVersionCmd := &cobra.Command{
-		Use:   "available-version <service_name>",
-		Short: "List available versions for a database type",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListDatabaseAvailableVersions,
+		Use:               "available-version <service_name>",
+		Short:             "List available versions for a database type",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListDatabaseAvailableVersions,
 	}
 	dbAvailableVersionCmd.Flags().StringVar(&webhosting.DatabaseVersionQueryType, "type", "", "Database type (required)")
 	dbCmd.AddCommand(dbAvailableVersionCmd)
 
 	dbCreationCapabilitiesCmd := &cobra.Command{
-		Use:   "creation-capabilities <service_name>",
-		Short: "List database creation capabilities",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListDatabaseCreationCapabilities,
+		Use:               "creation-capabilities <service_name>",
+		Short:             "List database creation capabilities",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListDatabaseCreationCapabilities,
 	}
 	dbCmd.AddCommand(withFilterFlag(dbCreationCapabilitiesCmd))
 
 	dbCreateCmd := &cobra.Command{
-		Use:   "create <service_name>",
-		Short: "Create a database",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.CreateDatabase,
+		Use:               "create <service_name>",
+		Short:             "Create a database",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateDatabase,
 	}
 	dbCreateCmd.Flags().StringVar(&webhosting.DatabaseCapability, "capability", "", "Database capability (allowed: extraSqlPerso, local, privateDatabase, sqlLocal, sqlPerso, sqlPro)")
 	dbCreateCmd.Flags().StringVar(&webhosting.DatabaseType, "type", "", "Database type (allowed: mariadb, mysql, postgresql, redis)")
@@ -291,56 +315,63 @@ func init() {
 	dbCmd.AddCommand(dbCreateCmd)
 
 	dbDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <name>",
-		Short: "Delete a database",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.DeleteDatabase,
+		Use:               "delete <service_name> <name>",
+		Short:             "Delete a database",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteDatabase,
 	}
 	dbCmd.AddCommand(dbDeleteCmd)
 
 	dbChangePasswordCmd := &cobra.Command{
-		Use:   "change-password <service_name> <name>",
-		Short: "Change database password",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ChangeDatabasePassword,
+		Use:               "change-password <service_name> <name>",
+		Short:             "Change database password",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ChangeDatabasePassword,
 	}
 	dbChangePasswordCmd.Flags().StringVar(&webhosting.DatabasePassword, "password", "", "New password")
 	dbCmd.AddCommand(dbChangePasswordCmd)
 
 	dbCopyCmd := &cobra.Command{Use: "copy", Short: "Manage database copies"}
 	dbCopyListCmd := &cobra.Command{
-		Use:   "list <service_name> <name>",
-		Short: "List database copies",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ListDatabaseCopies,
+		Use:               "list <service_name> <name>",
+		Short:             "List database copies",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListDatabaseCopies,
 	}
 	dbCopyCmd.AddCommand(withFilterFlag(dbCopyListCmd))
 	dbCopyGetCmd := &cobra.Command{
-		Use:   "get <service_name> <name> <id>",
-		Short: "Get a database copy",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.GetDatabaseCopy,
+		Use:               "get <service_name> <name> <id>",
+		Short:             "Get a database copy",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetDatabaseCopy,
 	}
 	dbCopyCmd.AddCommand(dbCopyGetCmd)
 	dbCopyCreateCmd := &cobra.Command{
-		Use:   "create <service_name> <name>",
-		Short: "Create a database copy",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.CreateDatabaseCopy,
+		Use:               "create <service_name> <name>",
+		Short:             "Create a database copy",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateDatabaseCopy,
 	}
 	dbCopyCmd.AddCommand(dbCopyCreateCmd)
 	dbCopyDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <name> <id>",
-		Short: "Delete a database copy",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.DeleteDatabaseCopy,
+		Use:               "delete <service_name> <name> <id>",
+		Short:             "Delete a database copy",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteDatabaseCopy,
 	}
 	dbCopyCmd.AddCommand(dbCopyDeleteCmd)
 	dbCopyRestoreCmd := &cobra.Command{
-		Use:   "restore <service_name> <name>",
-		Short: "Restore a database copy",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.RestoreDatabaseCopy,
+		Use:               "restore <service_name> <name>",
+		Short:             "Restore a database copy",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RestoreDatabaseCopy,
 	}
 	dbCopyRestoreCmd.Flags().StringVar(&webhosting.DatabaseCopyID, "copy-id", "", "Copy ID to restore")
 	dbCopyRestoreCmd.Flags().BoolVar(&webhosting.DatabaseFlush, "flush", false, "Flush database before restore")
@@ -351,24 +382,27 @@ func init() {
 
 	dbDumpCmd := &cobra.Command{Use: "dump", Short: "Manage database dumps"}
 	dbDumpListCmd := &cobra.Command{
-		Use:   "list <service_name> <name>",
-		Short: "List database dumps",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ListDatabaseDumps,
+		Use:               "list <service_name> <name>",
+		Short:             "List database dumps",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListDatabaseDumps,
 	}
 	dbDumpCmd.AddCommand(withFilterFlag(dbDumpListCmd))
 	dbDumpGetCmd := &cobra.Command{
-		Use:   "get <service_name> <name> <id>",
-		Short: "Get a database dump",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.GetDatabaseDump,
+		Use:               "get <service_name> <name> <id>",
+		Short:             "Get a database dump",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetDatabaseDump,
 	}
 	dbDumpCmd.AddCommand(dbDumpGetCmd)
 	dbDumpCreateCmd := &cobra.Command{
-		Use:   "create <service_name> <name>",
-		Short: "Request a database dump",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.RequestDatabaseDump,
+		Use:               "create <service_name> <name>",
+		Short:             "Request a database dump",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RequestDatabaseDump,
 	}
 	dbDumpCreateCmd.Flags().StringVar(&webhosting.DatabaseDumpDate, "date", "", "Dump type (allowed: daily.1, now, weekly.1)")
 	dbDumpCreateCmd.Flags().BoolVar(&webhosting.DatabaseSendEmail, "send-email", true, "Send email when dump is ready")
@@ -376,26 +410,29 @@ func init() {
 	addInteractiveEditorFlag(dbDumpCreateCmd)
 	dbDumpCmd.AddCommand(dbDumpCreateCmd)
 	dbDumpDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <name> <id>",
-		Short: "Delete a database dump",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.DeleteDatabaseDump,
+		Use:               "delete <service_name> <name> <id>",
+		Short:             "Delete a database dump",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteDatabaseDump,
 	}
 	dbDumpCmd.AddCommand(dbDumpDeleteCmd)
 	dbDumpRestoreCmd := &cobra.Command{
-		Use:   "restore <service_name> <name> <id>",
-		Short: "Restore from a dump",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.RestoreDatabaseDump,
+		Use:               "restore <service_name> <name> <id>",
+		Short:             "Restore from a dump",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RestoreDatabaseDump,
 	}
 	dbDumpCmd.AddCommand(dbDumpRestoreCmd)
 	dbCmd.AddCommand(dbDumpCmd)
 
 	dbRestoreCmd := &cobra.Command{
-		Use:   "restore <service_name> <name>",
-		Short: "Restore database from snapshot date",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.RestoreDatabaseFromDate,
+		Use:               "restore <service_name> <name>",
+		Short:             "Restore database from snapshot date",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RestoreDatabaseFromDate,
 	}
 	dbRestoreCmd.Flags().StringVar(&webhosting.DatabaseDumpDate, "date", "", "Dump type to restore (allowed: daily.1, now, weekly.1)")
 	dbRestoreCmd.Flags().BoolVar(&webhosting.DatabaseSendEmail, "send-email", false, "Send email when restore completes")
@@ -404,10 +441,11 @@ func init() {
 	dbCmd.AddCommand(dbRestoreCmd)
 
 	dbImportCmd := &cobra.Command{
-		Use:   "import <service_name> <name>",
-		Short: "Import a database dump",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ImportDatabaseDump,
+		Use:               "import <service_name> <name>",
+		Short:             "Import a database dump",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ImportDatabaseDump,
 	}
 	dbImportCmd.Flags().StringVar(&webhosting.DatabaseDocumentID, "document-id", "", "Document ID from /me/documents")
 	dbImportCmd.Flags().BoolVar(&webhosting.DatabaseFlush, "flush", false, "Flush database before import")
@@ -417,20 +455,22 @@ func init() {
 	dbCmd.AddCommand(dbImportCmd)
 
 	dbStatsCmd := &cobra.Command{
-		Use:   "stats <service_name> <name>",
-		Short: "Get database statistics",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetDatabaseStatistics,
+		Use:               "stats <service_name> <name>",
+		Short:             "Get database statistics",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetDatabaseStatistics,
 	}
 	dbStatsCmd.Flags().StringVar(&webhosting.DatabaseStatsPeriod, "period", "", "Statistics period (allowed: daily, monthly, weekly, yearly)")
 	dbStatsCmd.Flags().StringVar(&webhosting.DatabaseStatsType, "type", "", "Statistics type (allowed: statement, statementMeanTime)")
 	dbCmd.AddCommand(withFilterFlag(dbStatsCmd))
 
 	dbActionCmd := &cobra.Command{
-		Use:   "request-action <service_name> <name>",
-		Short: "Request an action on a database",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.RequestDatabaseAction,
+		Use:               "request-action <service_name> <name>",
+		Short:             "Request an action on a database",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RequestDatabaseAction,
 	}
 	dbActionCmd.Flags().StringVar(&webhosting.DatabaseAction, "action", "", "Action to request (allowed: CHECK_QUOTA)")
 	addParameterFileFlags(dbActionCmd, true, nil, "", "", "", nil)
@@ -442,42 +482,47 @@ func init() {
 	// Email
 	emailCmd := &cobra.Command{Use: "email", Short: "Manage automated emails"}
 	emailInfoCmd := &cobra.Command{
-		Use:   "info <service_name>",
-		Short: "Get email sending settings",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetEmailInfo,
+		Use:               "info <service_name>",
+		Short:             "Get email sending settings",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetEmailInfo,
 	}
 	emailCmd.AddCommand(emailInfoCmd)
 	emailUpdateCmd := &cobra.Command{
-		Use:   "update <service_name>",
-		Short: "Update email sending settings",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.UpdateEmail,
+		Use:               "update <service_name>",
+		Short:             "Update email sending settings",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateEmail,
 	}
 	emailUpdateCmd.Flags().StringVar(&webhosting.EmailContactAddress, "contact-email", "", "Email used to receive error notifications")
 	addInteractiveEditorFlag(emailUpdateCmd)
 	emailCmd.AddCommand(emailUpdateCmd)
 	emailBouncesCmd := &cobra.Command{
-		Use:   "bounces <service_name>",
-		Short: "List recent email bounces",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListEmailBounces,
+		Use:               "bounces <service_name>",
+		Short:             "List recent email bounces",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListEmailBounces,
 	}
 	emailBouncesCmd.Flags().IntVar(&webhosting.EmailBounceLimit, "limit", 20, "Maximum number of bounces to fetch (1-100)")
 	emailCmd.AddCommand(emailBouncesCmd)
 	emailRequestCmd := &cobra.Command{
-		Use:   "request-action <service_name>",
-		Short: "Request an email action",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.RequestEmailAction,
+		Use:               "request-action <service_name>",
+		Short:             "Request an email action",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RequestEmailAction,
 	}
 	emailRequestCmd.Flags().StringVar(&webhosting.EmailRequestAction, "action", "", "Action to request (allowed: BLOCK, PURGE, UNBLOCK)")
 	emailCmd.AddCommand(emailRequestCmd)
 	emailVolumesCmd := &cobra.Command{
-		Use:   "volumes <service_name>",
-		Short: "List email sending volumes",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListEmailVolumes,
+		Use:               "volumes <service_name>",
+		Short:             "List email sending volumes",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListEmailVolumes,
 	}
 	emailCmd.AddCommand(withFilterFlag(emailVolumesCmd))
 	webhostingCmd.AddCommand(emailCmd)
@@ -485,31 +530,35 @@ func init() {
 	// Email options
 	emailOptionCmd := &cobra.Command{Use: "email-option", Short: "Manage email options"}
 	emailOptionListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List email options",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListEmailOptions,
+		Use:               "list <service_name>",
+		Short:             "List email options",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListEmailOptions,
 	}
 	emailOptionCmd.AddCommand(withFilterFlag(emailOptionListCmd))
 	emailOptionGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get an email option",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetEmailOption,
+		Use:               "get <service_name> <id>",
+		Short:             "Get an email option",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetEmailOption,
 	}
 	emailOptionCmd.AddCommand(emailOptionGetCmd)
 	emailOptionServiceInfoCmd := &cobra.Command{
-		Use:   "service-info <service_name> <id>",
-		Short: "Get email option service info",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetEmailOptionServiceInfo,
+		Use:               "service-info <service_name> <id>",
+		Short:             "Get email option service info",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetEmailOptionServiceInfo,
 	}
 	emailOptionCmd.AddCommand(emailOptionServiceInfoCmd)
 	emailOptionTerminateCmd := &cobra.Command{
-		Use:   "terminate <service_name> <id>",
-		Short: "Terminate an email option",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.TerminateEmailOption,
+		Use:               "terminate <service_name> <id>",
+		Short:             "Terminate an email option",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.TerminateEmailOption,
 	}
 	emailOptionCmd.AddCommand(emailOptionTerminateCmd)
 	webhostingCmd.AddCommand(emailOptionCmd)
@@ -517,39 +566,44 @@ func init() {
 	// Extra SQL options
 	extraSQLCmd := &cobra.Command{Use: "extra-sql", Short: "Manage extra SQL options"}
 	extraSQLListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List extra SQL options",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListExtraSqlOptions,
+		Use:               "list <service_name>",
+		Short:             "List extra SQL options",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListExtraSqlOptions,
 	}
 	extraSQLCmd.AddCommand(withFilterFlag(extraSQLListCmd))
 	extraSQLGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get an extra SQL option",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetExtraSqlOption,
+		Use:               "get <service_name> <id>",
+		Short:             "Get an extra SQL option",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetExtraSqlOption,
 	}
 	extraSQLCmd.AddCommand(extraSQLGetCmd)
 	extraSQLDatabasesCmd := &cobra.Command{
-		Use:   "databases <service_name> <id>",
-		Short: "List databases linked to an extra SQL option",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ListExtraSqlDatabases,
+		Use:               "databases <service_name> <id>",
+		Short:             "List databases linked to an extra SQL option",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListExtraSqlDatabases,
 	}
 	extraSQLCmd.AddCommand(withFilterFlag(extraSQLDatabasesCmd))
 	extraSQLServiceInfoCmd := &cobra.Command{Use: "service-info", Short: "Manage extra SQL service info"}
 	extraSQLServiceInfoGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get extra SQL service information",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetExtraSqlServiceInfo,
+		Use:               "get <service_name> <id>",
+		Short:             "Get extra SQL service information",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetExtraSqlServiceInfo,
 	}
 	extraSQLServiceInfoCmd.AddCommand(extraSQLServiceInfoGetCmd)
 	extraSQLServiceInfoUpdateCmd := &cobra.Command{
-		Use:   "update <service_name> <id>",
-		Short: "Update extra SQL service information",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.UpdateExtraSqlServiceInfo,
+		Use:               "update <service_name> <id>",
+		Short:             "Update extra SQL service information",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateExtraSqlServiceInfo,
 	}
 	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
 	extraSQLServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
@@ -561,10 +615,11 @@ func init() {
 	extraSQLServiceInfoCmd.AddCommand(extraSQLServiceInfoUpdateCmd)
 	extraSQLCmd.AddCommand(extraSQLServiceInfoCmd)
 	extraSQLTerminateCmd := &cobra.Command{
-		Use:   "terminate <service_name> <id>",
-		Short: "Terminate an extra SQL option",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.TerminateExtraSqlOption,
+		Use:               "terminate <service_name> <id>",
+		Short:             "Terminate an extra SQL option",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.TerminateExtraSqlOption,
 	}
 	extraSQLCmd.AddCommand(extraSQLTerminateCmd)
 	webhostingCmd.AddCommand(extraSQLCmd)
@@ -572,24 +627,27 @@ func init() {
 	// Env vars
 	envCmd := &cobra.Command{Use: "env", Short: "Manage environment variables"}
 	envListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List env vars",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListEnvVars,
+		Use:               "list <service_name>",
+		Short:             "List env vars",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListEnvVars,
 	}
 	envCmd.AddCommand(withFilterFlag(envListCmd))
 	envGetCmd := &cobra.Command{
-		Use:   "get <service_name> <key>",
-		Short: "Get an env var",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetEnvVar,
+		Use:               "get <service_name> <key>",
+		Short:             "Get an env var",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetEnvVar,
 	}
 	envCmd.AddCommand(envGetCmd)
 	envCreateCmd := &cobra.Command{
-		Use:   "create <service_name>",
-		Short: "Create an env var",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.CreateEnvVar,
+		Use:               "create <service_name>",
+		Short:             "Create an env var",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateEnvVar,
 	}
 	envCreateCmd.Flags().StringVar(&webhosting.EnvVarKey, "key", "", "Variable name")
 	envCreateCmd.Flags().StringVar(&webhosting.EnvVarType, "type", "", "Variable type (allowed: integer, password, string)")
@@ -598,20 +656,22 @@ func init() {
 	addInteractiveEditorFlag(envCreateCmd)
 	envCmd.AddCommand(envCreateCmd)
 	envUpdateCmd := &cobra.Command{
-		Use:   "update <service_name> <key>",
-		Short: "Update an env var",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.UpdateEnvVar,
+		Use:               "update <service_name> <key>",
+		Short:             "Update an env var",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateEnvVar,
 	}
 	envUpdateCmd.Flags().StringVar(&webhosting.EnvVarType, "type", "", "Variable type (allowed: integer, password, string)")
 	envUpdateCmd.Flags().StringVar(&webhosting.EnvVarValue, "value", "", "Variable value")
 	addInteractiveEditorFlag(envUpdateCmd)
 	envCmd.AddCommand(envUpdateCmd)
 	envDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <key>",
-		Short: "Delete an env var",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.DeleteEnvVar,
+		Use:               "delete <service_name> <key>",
+		Short:             "Delete an env var",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteEnvVar,
 	}
 	envCmd.AddCommand(envDeleteCmd)
 	webhostingCmd.AddCommand(envCmd)
@@ -619,24 +679,27 @@ func init() {
 	// Modules
 	moduleCmd := &cobra.Command{Use: "module", Short: "Manage one-click modules"}
 	moduleListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List modules",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListModules,
+		Use:               "list <service_name>",
+		Short:             "List modules",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListModules,
 	}
 	moduleCmd.AddCommand(withFilterFlag(moduleListCmd))
 	moduleGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get a module",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetModule,
+		Use:               "get <service_name> <id>",
+		Short:             "Get a module",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetModule,
 	}
 	moduleCmd.AddCommand(moduleGetCmd)
 	moduleInstallCmd := &cobra.Command{
-		Use:   "install <service_name>",
-		Short: "Install a module",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.InstallModule,
+		Use:               "install <service_name>",
+		Short:             "Install a module",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.InstallModule,
 	}
 	moduleInstallCmd.Flags().IntVar(&webhosting.ModuleID, "module-id", 0, "Module ID")
 	moduleInstallCmd.Flags().StringVar(&webhosting.ModuleName, "module-name", "", "Module name (latest version will be selected)")
@@ -649,10 +712,11 @@ func init() {
 	addInteractiveEditorFlag(moduleInstallCmd)
 	moduleCmd.AddCommand(moduleInstallCmd)
 	moduleDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <id>",
-		Short: "Delete a module",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.DeleteModule,
+		Use:               "delete <service_name> <id>",
+		Short:             "Delete a module",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteModule,
 	}
 	moduleCmd.AddCommand(moduleDeleteCmd)
 
@@ -695,35 +759,39 @@ func init() {
 	webhostingCmd.AddCommand(offerCmd)
 
 	abuseCmd := &cobra.Command{
-		Use:   "abuse-state <service_name>",
-		Short: "Get abuse state",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetAbuseState,
+		Use:               "abuse-state <service_name>",
+		Short:             "Get abuse state",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetAbuseState,
 	}
 	webhostingCmd.AddCommand(abuseCmd)
 
 	ovhConfigCmd := &cobra.Command{Use: "ovh-config", Short: "Manage .ovhconfig settings"}
 	ovhConfigListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List .ovhconfig entries",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListOvhConfigs,
+		Use:               "list <service_name>",
+		Short:             "List .ovhconfig entries",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListOvhConfigs,
 	}
 	ovhConfigListCmd.Flags().StringVar(&webhosting.OvhConfigPathFilter, "path", "", "Filter configurations by path")
 	ovhConfigListCmd.Flags().BoolVar(&webhosting.OvhConfigHistoricalOnly, "historical", false, "Show only historical configurations")
 	ovhConfigCmd.AddCommand(withFilterFlag(ovhConfigListCmd))
 	ovhConfigGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get a .ovhconfig entry",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetOvhConfig,
+		Use:               "get <service_name> <id>",
+		Short:             "Get a .ovhconfig entry",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetOvhConfig,
 	}
 	ovhConfigCmd.AddCommand(ovhConfigGetCmd)
 	ovhConfigChangeCmd := &cobra.Command{
-		Use:   "change <service_name> <id>",
-		Short: "Change a .ovhconfig entry",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ChangeOvhConfig,
+		Use:               "change <service_name> <id>",
+		Short:             "Change a .ovhconfig entry",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ChangeOvhConfig,
 	}
 	ovhConfigChangeCmd.Flags().StringVar(&webhosting.OvhConfigEngineName, "engine-name", "", "Engine name")
 	ovhConfigChangeCmd.Flags().StringVar(&webhosting.OvhConfigEngineVersion, "engine-version", "", "Engine version")
@@ -734,72 +802,81 @@ func init() {
 	addInteractiveEditorFlag(ovhConfigChangeCmd)
 	ovhConfigCmd.AddCommand(ovhConfigChangeCmd)
 	ovhConfigRollbackCmd := &cobra.Command{
-		Use:   "rollback <service_name> <id>",
-		Short: "Rollback a .ovhconfig entry",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.RollbackOvhConfig,
+		Use:               "rollback <service_name> <id>",
+		Short:             "Rollback a .ovhconfig entry",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RollbackOvhConfig,
 	}
 	ovhConfigRollbackCmd.Flags().IntVar(&webhosting.OvhConfigRollbackID, "rollback-id", 0, "Configuration ID to rollback to")
 	ovhConfigCmd.AddCommand(ovhConfigRollbackCmd)
 	ovhConfigCapabilitiesCmd := &cobra.Command{
-		Use:   "capabilities <service_name>",
-		Short: "List available versions and containers",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetOvhConfigCapabilities,
+		Use:               "capabilities <service_name>",
+		Short:             "List available versions and containers",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetOvhConfigCapabilities,
 	}
 	ovhConfigCmd.AddCommand(withFilterFlag(ovhConfigCapabilitiesCmd))
 	ovhConfigRecommendedCmd := &cobra.Command{
-		Use:   "recommended <service_name>",
-		Short: "Show recommended values",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetOvhConfigRecommendedValues,
+		Use:               "recommended <service_name>",
+		Short:             "Show recommended values",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetOvhConfigRecommendedValues,
 	}
 	ovhConfigCmd.AddCommand(ovhConfigRecommendedCmd)
 	ovhConfigRefreshCmd := &cobra.Command{
-		Use:   "refresh <service_name>",
-		Short: "Refresh cached .ovhconfig data",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.RefreshOvhConfig,
+		Use:               "refresh <service_name>",
+		Short:             "Refresh cached .ovhconfig data",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RefreshOvhConfig,
 	}
 	ovhConfigCmd.AddCommand(ovhConfigRefreshCmd)
 	webhostingCmd.AddCommand(ovhConfigCmd)
 
 	ownLogCmd := &cobra.Command{Use: "own-log", Short: "Manage own logs"}
 	ownLogListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List own logs",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListOwnLogsEntries,
+		Use:               "list <service_name>",
+		Short:             "List own logs",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListOwnLogsEntries,
 	}
 	ownLogCmd.AddCommand(withFilterFlag(ownLogListCmd))
 	ownLogGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get an own log entry",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetOwnLog,
+		Use:               "get <service_name> <id>",
+		Short:             "Get an own log entry",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetOwnLog,
 	}
 	ownLogCmd.AddCommand(ownLogGetCmd)
 
 	ownLogUserCmd := &cobra.Command{Use: "user", Short: "Manage own log users"}
 	ownLogUserListCmd := &cobra.Command{
-		Use:   "list <service_name> <ownlog_id>",
-		Short: "List users for an own log",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ListOwnLogUsers,
+		Use:               "list <service_name> <ownlog_id>",
+		Short:             "List users for an own log",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListOwnLogUsers,
 	}
 	ownLogUserCmd.AddCommand(withFilterFlag(ownLogUserListCmd))
 	ownLogUserGetCmd := &cobra.Command{
-		Use:   "get <service_name> <ownlog_id> <login>",
-		Short: "Get an own log user",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.GetOwnLogUser,
+		Use:               "get <service_name> <ownlog_id> <login>",
+		Short:             "Get an own log user",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetOwnLogUser,
 	}
 	ownLogUserCmd.AddCommand(ownLogUserGetCmd)
 	ownLogUserCreateCmd := &cobra.Command{
-		Use:   "create <service_name> <ownlog_id>",
-		Short: "Create an own log user",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.CreateOwnLogUser,
+		Use:               "create <service_name> <ownlog_id>",
+		Short:             "Create an own log user",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateOwnLogUser,
 	}
 	ownLogUserCreateCmd.Flags().StringVar(&webhosting.OwnLogUserLogin, "login", "", "User login used to connect to logs.ovh.net")
 	ownLogUserCreateCmd.Flags().StringVar(&webhosting.OwnLogUserPassword, "password", "", "User password (required)")
@@ -808,26 +885,29 @@ func init() {
 	addInteractiveEditorFlag(ownLogUserCreateCmd)
 	ownLogUserCmd.AddCommand(ownLogUserCreateCmd)
 	ownLogUserUpdateCmd := &cobra.Command{
-		Use:   "update <service_name> <ownlog_id> <login>",
-		Short: "Update an own log user",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.UpdateOwnLogUser,
+		Use:               "update <service_name> <ownlog_id> <login>",
+		Short:             "Update an own log user",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateOwnLogUser,
 	}
 	ownLogUserUpdateCmd.Flags().StringVar(&webhosting.OwnLogUserDescription, "description", "", "User description")
 	addInteractiveEditorFlag(ownLogUserUpdateCmd)
 	ownLogUserCmd.AddCommand(ownLogUserUpdateCmd)
 	ownLogUserDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <ownlog_id> <login>",
-		Short: "Delete an own log user",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.DeleteOwnLogUser,
+		Use:               "delete <service_name> <ownlog_id> <login>",
+		Short:             "Delete an own log user",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteOwnLogUser,
 	}
 	ownLogUserCmd.AddCommand(ownLogUserDeleteCmd)
 	ownLogUserPasswordCmd := &cobra.Command{
-		Use:   "change-password <service_name> <ownlog_id> <login>",
-		Short: "Change an own log user password",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.ChangeOwnLogUserPassword,
+		Use:               "change-password <service_name> <ownlog_id> <login>",
+		Short:             "Change an own log user password",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ChangeOwnLogUserPassword,
 	}
 	ownLogUserPasswordCmd.Flags().StringVar(&webhosting.OwnLogUserPassword, "password", "", "New password")
 	ownLogUserCmd.AddCommand(ownLogUserPasswordCmd)
@@ -835,10 +915,11 @@ func init() {
 	webhostingCmd.AddCommand(ownLogCmd)
 
 	requestCmd := &cobra.Command{
-		Use:   "request-action <service_name>",
-		Short: "Request a hosting operation",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.RequestHostingAction,
+		Use:               "request-action <service_name>",
+		Short:             "Request a hosting operation",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RequestHostingAction,
 	}
 	requestCmd.Flags().StringVar(&webhosting.RequestAction, "action", "", "Action to request (allowed: CHECK_QUOTA, FLUSH_CACHE, SCAN_ANTIHACK)")
 	webhostingCmd.AddCommand(requestCmd)
@@ -846,32 +927,36 @@ func init() {
 	// Runtime
 	runtimeCmd := &cobra.Command{Use: "runtime", Short: "Manage runtimes"}
 	runtimeListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List runtimes",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListRuntimes,
+		Use:               "list <service_name>",
+		Short:             "List runtimes",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListRuntimes,
 	}
 	runtimeCmd.AddCommand(withFilterFlag(runtimeListCmd))
 	runtimeAvailableTypesCmd := &cobra.Command{
-		Use:   "available-types <service_name>",
-		Short: "List available runtime backend types",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListRuntimeAvailableTypes,
+		Use:               "available-types <service_name>",
+		Short:             "List available runtime backend types",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListRuntimeAvailableTypes,
 	}
 	runtimeAvailableTypesCmd.Flags().StringVar(&webhosting.RuntimeLanguage, "language", "", "Filter by programming language")
 	runtimeCmd.AddCommand(withFilterFlag(runtimeAvailableTypesCmd))
 	runtimeGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get a runtime",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetRuntime,
+		Use:               "get <service_name> <id>",
+		Short:             "Get a runtime",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetRuntime,
 	}
 	runtimeCmd.AddCommand(runtimeGetCmd)
 	runtimeCreateCmd := &cobra.Command{
-		Use:   "create <service_name>",
-		Short: "Create a runtime",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.CreateRuntime,
+		Use:               "create <service_name>",
+		Short:             "Create a runtime",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateRuntime,
 	}
 	runtimeCreateCmd.Flags().StringVar(&webhosting.RuntimeName, "name", "", "Runtime name")
 	runtimeCreateCmd.Flags().StringVar(&webhosting.RuntimeType, "type", "", "Runtime backend type")
@@ -884,10 +969,11 @@ func init() {
 	addInteractiveEditorFlag(runtimeCreateCmd)
 	runtimeCmd.AddCommand(runtimeCreateCmd)
 	runtimeUpdateCmd := &cobra.Command{
-		Use:   "update <service_name> <id>",
-		Short: "Update a runtime",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.UpdateRuntime,
+		Use:               "update <service_name> <id>",
+		Short:             "Update a runtime",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateRuntime,
 	}
 	runtimeUpdateCmd.Flags().StringVar(&webhosting.RuntimeName, "name", "", "Runtime name")
 	runtimeUpdateCmd.Flags().StringVar(&webhosting.RuntimePublicDir, "public-dir", "", "Public directory")
@@ -897,17 +983,19 @@ func init() {
 	addInteractiveEditorFlag(runtimeUpdateCmd)
 	runtimeCmd.AddCommand(runtimeUpdateCmd)
 	runtimeDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <id>",
-		Short: "Delete a runtime",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.DeleteRuntime,
+		Use:               "delete <service_name> <id>",
+		Short:             "Delete a runtime",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteRuntime,
 	}
 	runtimeCmd.AddCommand(runtimeDeleteCmd)
 	runtimeDomainsCmd := &cobra.Command{
-		Use:   "domains <service_name> <id>",
-		Short: "List domains attached to a runtime",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ListRuntimeDomains,
+		Use:               "domains <service_name> <id>",
+		Short:             "List domains attached to a runtime",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListRuntimeDomains,
 	}
 	runtimeCmd.AddCommand(withFilterFlag(runtimeDomainsCmd))
 	webhostingCmd.AddCommand(runtimeCmd)
@@ -915,24 +1003,27 @@ func init() {
 	// Websites
 	websiteCmd := &cobra.Command{Use: "website", Short: "Manage websites deployments"}
 	websiteListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List websites",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListWebsites,
+		Use:               "list <service_name>",
+		Short:             "List websites",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListWebsites,
 	}
 	websiteCmd.AddCommand(withFilterFlag(websiteListCmd))
 	websiteGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get a website",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetWebsite,
+		Use:               "get <service_name> <id>",
+		Short:             "Get a website",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetWebsite,
 	}
 	websiteCmd.AddCommand(websiteGetCmd)
 	websiteCreateCmd := &cobra.Command{
-		Use:   "create <service_name>",
-		Short: "Create a website",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.CreateWebsite,
+		Use:               "create <service_name>",
+		Short:             "Create a website",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateWebsite,
 	}
 	websiteCreateCmd.Flags().StringVar(&webhosting.WebsitePath, "path", "", "Deployment path")
 	websiteCreateCmd.Flags().StringVar(&webhosting.WebsiteVcsURL, "vcs-url", "", "Repository URL")
@@ -941,57 +1032,64 @@ func init() {
 	addInteractiveEditorFlag(websiteCreateCmd)
 	websiteCmd.AddCommand(websiteCreateCmd)
 	websiteCapabilitiesCmd := &cobra.Command{
-		Use:   "creation-capabilities <service_name>",
-		Short: "Show website creation capabilities",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetWebsiteCreationCapabilities,
+		Use:               "creation-capabilities <service_name>",
+		Short:             "Show website creation capabilities",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetWebsiteCreationCapabilities,
 	}
 	websiteCmd.AddCommand(websiteCapabilitiesCmd)
 	websiteUpdateCmd := &cobra.Command{
-		Use:   "update <service_name> <id>",
-		Short: "Update a website",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.UpdateWebsite,
+		Use:               "update <service_name> <id>",
+		Short:             "Update a website",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateWebsite,
 	}
 	websiteUpdateCmd.Flags().StringVar(&webhosting.WebsiteBranch, "branch", "", "Branch to deploy")
 	addInteractiveEditorFlag(websiteUpdateCmd)
 	websiteCmd.AddCommand(websiteUpdateCmd)
 	websiteDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <id>",
-		Short: "Delete a website",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.DeleteWebsite,
+		Use:               "delete <service_name> <id>",
+		Short:             "Delete a website",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteWebsite,
 	}
 	websiteDeleteCmd.Flags().BoolVar(&webhosting.WebsiteDeleteFiles, "delete-files", false, "Also delete files in the website path")
 	websiteCmd.AddCommand(websiteDeleteCmd)
 	websiteDeployCmd := &cobra.Command{
-		Use:   "deploy <service_name> <id>",
-		Short: "Trigger a deployment",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.DeployWebsite,
+		Use:               "deploy <service_name> <id>",
+		Short:             "Trigger a deployment",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeployWebsite,
 	}
 	websiteDeployCmd.Flags().BoolVar(&webhosting.WebsiteDeployReset, "reset", false, "Reset files before deploying")
 	websiteCmd.AddCommand(websiteDeployCmd)
 	websiteDeploymentCmd := &cobra.Command{Use: "deployment", Short: "Manage website deployments"}
 	websiteDeploymentListCmd := &cobra.Command{
-		Use:   "list <service_name> <id>",
-		Short: "List deployments",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ListWebsiteDeployments,
+		Use:               "list <service_name> <id>",
+		Short:             "List deployments",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListWebsiteDeployments,
 	}
 	websiteDeploymentCmd.AddCommand(withFilterFlag(websiteDeploymentListCmd))
 	websiteDeploymentGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id> <deployment_id>",
-		Short: "Get a deployment",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.GetWebsiteDeployment,
+		Use:               "get <service_name> <id> <deployment_id>",
+		Short:             "Get a deployment",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetWebsiteDeployment,
 	}
 	websiteDeploymentCmd.AddCommand(websiteDeploymentGetCmd)
 	websiteDeploymentLogsCmd := &cobra.Command{
-		Use:   "logs <service_name> <id> <deployment_id>",
-		Short: "Get deployment logs",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.GetWebsiteDeploymentLogs,
+		Use:               "logs <service_name> <id> <deployment_id>",
+		Short:             "Get deployment logs",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetWebsiteDeploymentLogs,
 	}
 	websiteDeploymentCmd.AddCommand(websiteDeploymentLogsCmd)
 	websiteCmd.AddCommand(websiteDeploymentCmd)
@@ -999,11 +1097,12 @@ func init() {
 
 	vcsCmd := &cobra.Command{Use: "vcs", Short: "Manage VCS integrations"}
 	vcsWebhooksCmd := &cobra.Command{
-		Use:   "webhooks <service_name>",
-		Short: "Get VCS webhook URLs",
-		Long:  "Retrieve webhook URLs to configure on your VCS provider (supported platforms: github).",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetVcsWebhooks,
+		Use:               "webhooks <service_name>",
+		Short:             "Get VCS webhook URLs",
+		Long:              "Retrieve webhook URLs to configure on your VCS provider (supported platforms: github).",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetVcsWebhooks,
 	}
 	vcsWebhooksCmd.Flags().StringVar(&webhosting.VcsWebhookPath, "path", "", "Hosting path to filter on (required)")
 	vcsWebhooksCmd.Flags().StringVar(&webhosting.VcsWebhookPlatform, "vcs", "", "VCS platform (allowed: github)")
@@ -1013,71 +1112,80 @@ func init() {
 	// SSL
 	sslCmd := &cobra.Command{Use: "ssl", Short: "Manage SSL"}
 	sslGetCmd := &cobra.Command{
-		Use:   "get <service_name> <domain>",
-		Short: "Get SSL info for an attached domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetSSL,
+		Use:               "get <service_name> <domain>",
+		Short:             "Get SSL info for an attached domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetSSL,
 	}
 	sslCmd.AddCommand(sslGetCmd)
 	sslCreateCmd := &cobra.Command{
-		Use:   "create <service_name> <domain>",
-		Short: "Create the free default SSL for an attached domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.CreateSSL,
+		Use:               "create <service_name> <domain>",
+		Short:             "Create the free default SSL for an attached domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateSSL,
 	}
 	sslCmd.AddCommand(sslCreateCmd)
 	sslDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <domain>",
-		Short: "Delete SSL for an attached domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.DeleteSSL,
+		Use:               "delete <service_name> <domain>",
+		Short:             "Delete SSL for an attached domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteSSL,
 	}
 	sslCmd.AddCommand(sslDeleteCmd)
 	sslDomainsCmd := &cobra.Command{
-		Use:   "domains <service_name>",
-		Short: "List SSL domains",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListSSLAttachedDomains,
+		Use:               "domains <service_name>",
+		Short:             "List SSL domains",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListSSLAttachedDomains,
 	}
 	sslCmd.AddCommand(withFilterFlag(sslDomainsCmd))
 
 	// Service-level SSL commands
 	sslServiceGetCmd := &cobra.Command{
-		Use:   "service-get <service_name>",
-		Short: "Get the service-level SSL certificate",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetServiceSSL,
+		Use:               "service-get <service_name>",
+		Short:             "Get the service-level SSL certificate",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetServiceSSL,
 	}
 	sslCmd.AddCommand(sslServiceGetCmd)
 	sslServiceCreateCmd := &cobra.Command{
-		Use:   "service-create <service_name>",
-		Short: "Create or import a service-level SSL certificate",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.CreateServiceSSL,
+		Use:               "service-create <service_name>",
+		Short:             "Create or import a service-level SSL certificate",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateServiceSSL,
 	}
 	sslServiceCreateCmd.Flags().StringVar(&webhosting.SSLCertificate, "certificate", "", "SSL certificate (PEM)")
 	sslServiceCreateCmd.Flags().StringVar(&webhosting.SSLChain, "chain", "", "SSL certificate chain (PEM)")
 	sslServiceCreateCmd.Flags().StringVar(&webhosting.SSLKey, "key", "", "SSL private key (PEM)")
 	sslCmd.AddCommand(sslServiceCreateCmd)
 	sslServiceDeleteCmd := &cobra.Command{
-		Use:   "service-delete <service_name>",
-		Short: "Delete the service-level SSL certificate",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.DeleteServiceSSL,
+		Use:               "service-delete <service_name>",
+		Short:             "Delete the service-level SSL certificate",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteServiceSSL,
 	}
 	sslCmd.AddCommand(sslServiceDeleteCmd)
 	sslRegenerateCmd := &cobra.Command{
-		Use:   "regenerate <service_name>",
-		Short: "Regenerate the service-level SSL certificate",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.RegenerateServiceSSL,
+		Use:               "regenerate <service_name>",
+		Short:             "Regenerate the service-level SSL certificate",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RegenerateServiceSSL,
 	}
 	sslCmd.AddCommand(sslRegenerateCmd)
 	sslReportCmd := &cobra.Command{
-		Use:   "report <service_name>",
-		Short: "Get the SSL report",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetSSLReport,
+		Use:               "report <service_name>",
+		Short:             "Get the SSL report",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetSSLReport,
 	}
 	sslCmd.AddCommand(sslReportCmd)
 	webhostingCmd.AddCommand(sslCmd)
@@ -1085,54 +1193,61 @@ func init() {
 	// CDN
 	cdnCmd := &cobra.Command{Use: "cdn", Short: "Manage CDN"}
 	cdnGetCmd := &cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Get CDN info",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetCdn,
+		Use:               "get <service_name>",
+		Short:             "Get CDN info",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetCdn,
 	}
 	cdnCmd.AddCommand(cdnGetCmd)
 	cdnDomainCmd := &cobra.Command{Use: "domain", Short: "Manage CDN domains"}
 	cdnDomainListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List CDN domains",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListCdnDomains,
+		Use:               "list <service_name>",
+		Short:             "List CDN domains",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListCdnDomains,
 	}
 	cdnDomainCmd.AddCommand(withFilterFlag(cdnDomainListCmd))
 	cdnDomainGetCmd := &cobra.Command{
-		Use:   "get <service_name> <domain>",
-		Short: "Get a CDN domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetCdnDomain,
+		Use:               "get <service_name> <domain>",
+		Short:             "Get a CDN domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetCdnDomain,
 	}
 	cdnDomainCmd.AddCommand(cdnDomainGetCmd)
 	cdnPurgeCmd := &cobra.Command{
-		Use:   "purge <service_name> <domain>",
-		Short: "Purge CDN domain cache",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.PurgeCdnDomain,
+		Use:               "purge <service_name> <domain>",
+		Short:             "Purge CDN domain cache",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.PurgeCdnDomain,
 	}
 	cdnDomainCmd.AddCommand(cdnPurgeCmd)
 	cdnRefreshCmd := &cobra.Command{
-		Use:   "refresh <service_name> <domain>",
-		Short: "Refresh CDN domain",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.RefreshCdnDomain,
+		Use:               "refresh <service_name> <domain>",
+		Short:             "Refresh CDN domain",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RefreshCdnDomain,
 	}
 	cdnDomainCmd.AddCommand(cdnRefreshCmd)
 	cdnDomainOptionCmd := &cobra.Command{Use: "option", Short: "Manage CDN domain options"}
 	cdnDomainOptionListCmd := &cobra.Command{
-		Use:   "list <service_name> <domain>",
-		Short: "List CDN domain options",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ListCdnDomainOptions,
+		Use:               "list <service_name> <domain>",
+		Short:             "List CDN domain options",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListCdnDomainOptions,
 	}
 	cdnDomainOptionCmd.AddCommand(withFilterFlag(cdnDomainOptionListCmd))
 	cdnDomainOptionAddCmd := &cobra.Command{
-		Use:   "add <service_name> <domain>",
-		Short: "Add a CDN domain option",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.AddCdnDomainOption,
+		Use:               "add <service_name> <domain>",
+		Short:             "Add a CDN domain option",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.AddCdnDomainOption,
 	}
 	cdnDomainOptionAddCmd.Flags().StringVar(&webhosting.CdnOptionName, "name", "", "Option name")
 	cdnDomainOptionAddCmd.Flags().StringVar(&webhosting.CdnOptionType, "type", "", "Option type")
@@ -1151,17 +1266,19 @@ func init() {
 	addInteractiveEditorFlag(cdnDomainOptionAddCmd)
 	cdnDomainOptionCmd.AddCommand(cdnDomainOptionAddCmd)
 	cdnDomainOptionGetCmd := &cobra.Command{
-		Use:   "get <service_name> <domain> <option>",
-		Short: "Get CDN domain option details",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.GetCdnDomainOption,
+		Use:               "get <service_name> <domain> <option>",
+		Short:             "Get CDN domain option details",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetCdnDomainOption,
 	}
 	cdnDomainOptionCmd.AddCommand(cdnDomainOptionGetCmd)
 	cdnDomainOptionUpdateCmd := &cobra.Command{
-		Use:   "update <service_name> <domain> <option>",
-		Short: "Update a CDN domain option",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.UpdateCdnDomainOption,
+		Use:               "update <service_name> <domain> <option>",
+		Short:             "Update a CDN domain option",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateCdnDomainOption,
 	}
 	cdnDomainOptionUpdateCmd.Flags().BoolVar(&webhosting.CdnOptionEnabled, "enabled", false, "Enable or disable the option")
 	cdnDomainOptionUpdateCmd.Flags().StringVar(&webhosting.CdnOptionType, "type", "", "Option type")
@@ -1179,35 +1296,39 @@ func init() {
 	addInteractiveEditorFlag(cdnDomainOptionUpdateCmd)
 	cdnDomainOptionCmd.AddCommand(cdnDomainOptionUpdateCmd)
 	cdnDomainOptionDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <domain> <option>",
-		Short: "Delete a CDN domain option",
-		Args:  cobra.ExactArgs(3),
-		Run:   webhosting.DeleteCdnDomainOption,
+		Use:               "delete <service_name> <domain> <option>",
+		Short:             "Delete a CDN domain option",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteCdnDomainOption,
 	}
 	cdnDomainOptionCmd.AddCommand(cdnDomainOptionDeleteCmd)
 	cdnDomainCmd.AddCommand(cdnDomainOptionCmd)
 	cdnDomainStatsCmd := &cobra.Command{
-		Use:   "statistics <service_name> <domain>",
-		Short: "Get CDN domain statistics",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetCdnDomainStatistics,
+		Use:               "statistics <service_name> <domain>",
+		Short:             "Get CDN domain statistics",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetCdnDomainStatistics,
 	}
 	cdnDomainStatsCmd.Flags().StringVar(&webhosting.CdnStatisticPeriod, "period", "", "Statistics period (default day)")
 	cdnDomainCmd.AddCommand(withFilterFlag(cdnDomainStatsCmd))
 	cdnCmd.AddCommand(cdnDomainCmd)
 	cdnServiceInfoCmd := &cobra.Command{Use: "service-info", Short: "Manage CDN service info"}
 	cdnServiceInfoGetCmd := &cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Get CDN service information",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetCdnServiceInfo,
+		Use:               "get <service_name>",
+		Short:             "Get CDN service information",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetCdnServiceInfo,
 	}
 	cdnServiceInfoCmd.AddCommand(cdnServiceInfoGetCmd)
 	cdnServiceInfoUpdateCmd := &cobra.Command{
-		Use:   "update <service_name>",
-		Short: "Update CDN service information",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.UpdateCdnServiceInfo,
+		Use:               "update <service_name>",
+		Short:             "Update CDN service information",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateCdnServiceInfo,
 	}
 	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
 	cdnServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
@@ -1220,25 +1341,28 @@ func init() {
 	cdnCmd.AddCommand(cdnServiceInfoCmd)
 	cdnOperationCmd := &cobra.Command{Use: "operation", Short: "Manage CDN operations"}
 	cdnOpListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List CDN operations",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListCdnOperations,
+		Use:               "list <service_name>",
+		Short:             "List CDN operations",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListCdnOperations,
 	}
 	cdnOperationCmd.AddCommand(withFilterFlag(cdnOpListCmd))
 	cdnOpGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get a CDN operation",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetCdnOperation,
+		Use:               "get <service_name> <id>",
+		Short:             "Get a CDN operation",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetCdnOperation,
 	}
 	cdnOperationCmd.AddCommand(cdnOpGetCmd)
 	cdnCmd.AddCommand(cdnOperationCmd)
 	cdnAvailableOptionsCmd := &cobra.Command{
-		Use:   "available-options <service_name>",
-		Short: "List available CDN options",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListCdnAvailableOptions,
+		Use:               "available-options <service_name>",
+		Short:             "List available CDN options",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListCdnAvailableOptions,
 	}
 	cdnCmd.AddCommand(withFilterFlag(cdnAvailableOptionsCmd))
 	webhostingCmd.AddCommand(cdnCmd)
@@ -1250,24 +1374,27 @@ func init() {
 		Long:  "Create and manage the FTP/SSH users allowed to access your web hosting space.",
 	}
 	userListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List FTP/SSH users",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListUsers,
+		Use:               "list <service_name>",
+		Short:             "List FTP/SSH users",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListUsers,
 	}
 	userCmd.AddCommand(withFilterFlag(userListCmd))
 	userGetCmd := &cobra.Command{
-		Use:   "get <service_name> <login>",
-		Short: "Get a FTP/SSH user",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetUser,
+		Use:               "get <service_name> <login>",
+		Short:             "Get a FTP/SSH user",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetUser,
 	}
 	userCmd.AddCommand(userGetCmd)
 	userCreateCmd := &cobra.Command{
-		Use:   "create <service_name>",
-		Short: "Create a FTP/SSH user",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.CreateUser,
+		Use:               "create <service_name>",
+		Short:             "Create a FTP/SSH user",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateUser,
 	}
 	userCreateCmd.Flags().StringVar(&webhosting.UserHome, "home", "", "Home directory for the FTP/SSH user")
 	userCreateCmd.Flags().StringVar(&webhosting.UserLogin, "login", "", "FTP/SSH login")
@@ -1277,27 +1404,30 @@ func init() {
 	addInteractiveEditorFlag(userCreateCmd)
 	userCmd.AddCommand(userCreateCmd)
 	userUpdateCmd := &cobra.Command{
-		Use:   "update <service_name> <login>",
-		Short: "Update a FTP/SSH user",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.UpdateUser,
+		Use:               "update <service_name> <login>",
+		Short:             "Update a FTP/SSH user",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateUser,
 	}
 	userUpdateCmd.Flags().StringVar(&webhosting.UserHome, "home", "", "Home directory for the FTP/SSH user")
 	userUpdateCmd.Flags().StringVar(&webhosting.UserSSHState, "ssh-state", "", "SSH state (allowed: active, none, sftponly)")
 	addInteractiveEditorFlag(userUpdateCmd)
 	userCmd.AddCommand(userUpdateCmd)
 	userDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <login>",
-		Short: "Delete a FTP/SSH user",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.DeleteUser,
+		Use:               "delete <service_name> <login>",
+		Short:             "Delete a FTP/SSH user",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.DeleteUser,
 	}
 	userCmd.AddCommand(userDeleteCmd)
 	userChangePwdCmd := &cobra.Command{
-		Use:   "change-password <service_name> <login>",
-		Short: "Change FTP/SSH user password",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.ChangeUserPassword,
+		Use:               "change-password <service_name> <login>",
+		Short:             "Change FTP/SSH user password",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ChangeUserPassword,
 	}
 	userChangePwdCmd.Flags().StringVar(&webhosting.UserPassword, "password", "", "New FTP/SSH password")
 	userCmd.AddCommand(userChangePwdCmd)
@@ -1305,34 +1435,38 @@ func init() {
 
 	sshKeyCmd := &cobra.Command{Use: "ssh-key", Short: "Manage SSH keys"}
 	sshKeyGetCmd := &cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Get the SSH public key",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetSSHKey,
+		Use:               "get <service_name>",
+		Short:             "Get the SSH public key",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetSSHKey,
 	}
 	sshKeyCmd.AddCommand(sshKeyGetCmd)
 	sshKeyCreateCmd := &cobra.Command{
-		Use:   "create <service_name>",
-		Short: "Generate a new SSH key pair",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.CreateSSHKey,
+		Use:               "create <service_name>",
+		Short:             "Generate a new SSH key pair",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.CreateSSHKey,
 	}
 	sshKeyCmd.AddCommand(sshKeyCreateCmd)
 	webhostingCmd.AddCommand(sshKeyCmd)
 
 	serviceInfoCmd := &cobra.Command{Use: "service-info", Short: "Manage webhosting service info"}
 	serviceInfoGetCmd := &cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Get service information",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetServiceInfo,
+		Use:               "get <service_name>",
+		Short:             "Get service information",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetServiceInfo,
 	}
 	serviceInfoCmd.AddCommand(serviceInfoGetCmd)
 	serviceInfoUpdateCmd := &cobra.Command{
-		Use:   "update <service_name>",
-		Short: "Update service information",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.UpdateServiceInfo,
+		Use:               "update <service_name>",
+		Short:             "Update service information",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateServiceInfo,
 	}
 	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
 	serviceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
@@ -1390,57 +1524,64 @@ func init() {
 
 	localSeoAccountCmd := &cobra.Command{Use: "account", Short: "Manage Local SEO accounts"}
 	localSeoAccountListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List Local SEO accounts",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListLocalSeoAccounts,
+		Use:               "list <service_name>",
+		Short:             "List Local SEO accounts",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListLocalSeoAccounts,
 	}
 	localSeoAccountListCmd.Flags().StringVar(&webhosting.LocalSEOAccountEmailFilter, "email", "", "Filter accounts by email")
 	localSeoAccountCmd.AddCommand(withFilterFlag(localSeoAccountListCmd))
 	localSeoAccountGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get a Local SEO account",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetLocalSeoAccount,
+		Use:               "get <service_name> <id>",
+		Short:             "Get a Local SEO account",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetLocalSeoAccount,
 	}
 	localSeoAccountCmd.AddCommand(localSeoAccountGetCmd)
 	localSeoAccountLoginCmd := &cobra.Command{
-		Use:   "login <service_name> <id>",
-		Short: "Generate an SSO link for a Local SEO account",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.LoginLocalSeoAccount,
+		Use:               "login <service_name> <id>",
+		Short:             "Generate an SSO link for a Local SEO account",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.LoginLocalSeoAccount,
 	}
 	localSeoAccountCmd.AddCommand(localSeoAccountLoginCmd)
 	localSeoCmd.AddCommand(localSeoAccountCmd)
 
 	localSeoLocationCmd := &cobra.Command{Use: "location", Short: "Manage Local SEO locations"}
 	localSeoLocationListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List Local SEO locations",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListLocalSeoLocations,
+		Use:               "list <service_name>",
+		Short:             "List Local SEO locations",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListLocalSeoLocations,
 	}
 	localSeoLocationCmd.AddCommand(withFilterFlag(localSeoLocationListCmd))
 	localSeoLocationGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get a Local SEO location",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetLocalSeoLocation,
+		Use:               "get <service_name> <id>",
+		Short:             "Get a Local SEO location",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetLocalSeoLocation,
 	}
 	localSeoLocationCmd.AddCommand(localSeoLocationGetCmd)
 	localSeoLocationServiceInfoCmd := &cobra.Command{Use: "service-info", Short: "Manage Local SEO location service info"}
 	localSeoLocationServiceInfoGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get Local SEO location service info",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetLocalSeoLocationServiceInfo,
+		Use:               "get <service_name> <id>",
+		Short:             "Get Local SEO location service info",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetLocalSeoLocationServiceInfo,
 	}
 	localSeoLocationServiceInfoCmd.AddCommand(localSeoLocationServiceInfoGetCmd)
 	localSeoLocationServiceInfoUpdateCmd := &cobra.Command{
-		Use:   "update <service_name> <id>",
-		Short: "Update Local SEO location service info",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.UpdateLocalSeoLocationServiceInfo,
+		Use:               "update <service_name> <id>",
+		Short:             "Update Local SEO location service info",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UpdateLocalSeoLocationServiceInfo,
 	}
 	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.Automatic, "renew-automatic", false, "Enable automatic renewal")
 	localSeoLocationServiceInfoUpdateCmd.Flags().BoolVar(&common.ServiceInfoSpec.Renew.DeleteAtExpiration, "renew-delete-at-expiration", false, "Delete service at expiration")
@@ -1452,10 +1593,11 @@ func init() {
 	localSeoLocationServiceInfoCmd.AddCommand(localSeoLocationServiceInfoUpdateCmd)
 	localSeoLocationCmd.AddCommand(localSeoLocationServiceInfoCmd)
 	localSeoLocationTerminateCmd := &cobra.Command{
-		Use:   "terminate <service_name> <id>",
-		Short: "Terminate a Local SEO location",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.TerminateLocalSeoLocation,
+		Use:               "terminate <service_name> <id>",
+		Short:             "Terminate a Local SEO location",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.TerminateLocalSeoLocation,
 	}
 	localSeoLocationCmd.AddCommand(localSeoLocationTerminateCmd)
 	localSeoCmd.AddCommand(localSeoLocationCmd)
@@ -1463,26 +1605,29 @@ func init() {
 
 	tasksCmd := &cobra.Command{Use: "tasks", Short: "Manage tasks"}
 	tasksListCmd := &cobra.Command{
-		Use:   "list <service_name>",
-		Short: "List tasks",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListTasks,
+		Use:               "list <service_name>",
+		Short:             "List tasks",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListTasks,
 	}
 	tasksCmd.AddCommand(withFilterFlag(tasksListCmd))
 	tasksGetCmd := &cobra.Command{
-		Use:   "get <service_name> <id>",
-		Short: "Get a task",
-		Args:  cobra.ExactArgs(2),
-		Run:   webhosting.GetTask,
+		Use:               "get <service_name> <id>",
+		Short:             "Get a task",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetTask,
 	}
 	tasksCmd.AddCommand(tasksGetCmd)
 	webhostingCmd.AddCommand(tasksCmd)
 
 	boostCmd := &cobra.Command{
-		Use:   "request-boost <service_name>",
-		Short: "Request a boost offer",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.RequestBoost,
+		Use:               "request-boost <service_name>",
+		Short:             "Request a boost offer",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RequestBoost,
 	}
 	allowedOffers := strings.Join(webhosting.SupportedBoostOffers, ", ")
 	boostCmd.Flags().StringVar(&webhosting.BoostOffer, "offer", "", fmt.Sprintf("Boost offer (allowed: %s)", allowedOffers))
@@ -1491,10 +1636,11 @@ func init() {
 	webhostingCmd.AddCommand(boostCmd)
 
 	restoreSnapshotCmd := &cobra.Command{
-		Use:   "restore-snapshot <service_name>",
-		Short: "Restore a snapshot",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.RestoreSnapshot,
+		Use:               "restore-snapshot <service_name>",
+		Short:             "Restore a snapshot",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.RestoreSnapshot,
 	}
 	restoreSnapshotCmd.Flags().StringVar(&webhosting.RestoreBackup, "backup", "", "Backup to restore (allowed: daily.1, daily.2, daily.3, weekly.1, weekly.2)")
 	addParameterFileFlags(restoreSnapshotCmd, true, nil, "", "", "", nil)
@@ -1502,36 +1648,40 @@ func init() {
 	webhostingCmd.AddCommand(restoreSnapshotCmd)
 
 	tokenCmd := &cobra.Command{
-		Use:   "token <service_name>",
-		Short: "Get DNS verification token",
-		Long:  "Use to link an external domain. This token must be added to a TXT record on your DNS zone using the ovhcontrol subdomain.",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.GetToken,
+		Use:               "token <service_name>",
+		Short:             "Get DNS verification token",
+		Long:              "Use to link an external domain. This token must be added to a TXT record on your DNS zone using the ovhcontrol subdomain.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.GetToken,
 	}
 	webhostingCmd.AddCommand(tokenCmd)
 
 	unblockTCPCmd := &cobra.Command{
-		Use:   "unblock-tcp-out <service_name>",
-		Short: "Unblock outgoing TCP connections",
-		Long:  "Request a reset of outgoing TCP restrictions applied to your hosting service.",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.UnblockTCPOut,
+		Use:               "unblock-tcp-out <service_name>",
+		Short:             "Unblock outgoing TCP connections",
+		Long:              "Request a reset of outgoing TCP restrictions applied to your hosting service.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.UnblockTCPOut,
 	}
 	webhostingCmd.AddCommand(unblockTCPCmd)
 
 	boostHistoryCmd := &cobra.Command{
-		Use:   "boost-history <service_name>",
-		Short: "List boost history",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.ListBoostHistory,
+		Use:               "boost-history <service_name>",
+		Short:             "List boost history",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.ListBoostHistory,
 	}
 	webhostingCmd.AddCommand(withFilterFlag(boostHistoryCmd))
 
 	terminateCmd := &cobra.Command{
-		Use:   "terminate <service_name>",
-		Short: "Terminate service",
-		Args:  cobra.ExactArgs(1),
-		Run:   webhosting.TerminateService,
+		Use:               "terminate <service_name>",
+		Short:             "Terminate service",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
+		Run:               webhosting.TerminateService,
 	}
 	webhostingCmd.AddCommand(terminateCmd)
 

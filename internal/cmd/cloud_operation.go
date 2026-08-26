@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -25,10 +26,11 @@ func initCloudOperationCommand(cloudCmd *cobra.Command) {
 	operationCmd.AddCommand(withFilterFlag(operationListCmd))
 
 	operationCmd.AddCommand(&cobra.Command{
-		Use:   "get <operation_id>",
-		Short: "Get a specific operation",
-		Run:   cloud.GetCloudOperation,
-		Args:  cobra.ExactArgs(1),
+		Use:               "get <operation_id>",
+		Short:             "Get a specific operation",
+		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/operation"),
+		Run:               cloud.GetCloudOperation,
+		Args:              cobra.ExactArgs(1),
 	})
 
 	cloudCmd.AddCommand(operationCmd)

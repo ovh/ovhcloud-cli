@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/ip"
 	"github.com/spf13/cobra"
 )
@@ -27,18 +28,20 @@ func init() {
 
 	// Command to get a single Ip
 	ipCmd.AddCommand(&cobra.Command{
-		Use:   "get <service_name>",
-		Short: "Retrieve information of a specific Ip",
-		Args:  cobra.ExactArgs(1),
-		Run:   ip.GetIp,
+		Use:               "get <service_name>",
+		Short:             "Retrieve information of a specific Ip",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetIp,
 	})
 
 	// Command to update a single Ip
 	ipEditCmd := &cobra.Command{
-		Use:   "edit <service_name>",
-		Short: "Edit the given IP",
-		Args:  cobra.ExactArgs(1),
-		Run:   ip.EditIp,
+		Use:               "edit <service_name>",
+		Short:             "Edit the given IP",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.EditIp,
 	}
 	ipEditCmd.Flags().StringVar(&ip.IPSpec.Description, "description", "", "Description of the IP")
 	addInteractiveEditorFlag(ipEditCmd)
@@ -51,26 +54,29 @@ func init() {
 	ipCmd.AddCommand(ipReverseCmd)
 
 	ipReverseSetCmd := &cobra.Command{
-		Use:   "set <service_name> <ip> <reverse>",
-		Short: "Set reverse on the given IP",
-		Args:  cobra.ExactArgs(3),
-		Run:   ip.IpSetReverse,
+		Use:               "set <service_name> <ip> <reverse>",
+		Short:             "Set reverse on the given IP",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.IpSetReverse,
 	}
 	ipReverseCmd.AddCommand(ipReverseSetCmd)
 
 	ipReverseGetCmd := &cobra.Command{
-		Use:   "get <service_name>",
-		Short: "List reverse on the given IP range",
-		Args:  cobra.ExactArgs(1),
-		Run:   ip.IpGetReverse,
+		Use:               "get <service_name>",
+		Short:             "List reverse on the given IP range",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.IpGetReverse,
 	}
 	ipReverseCmd.AddCommand(ipReverseGetCmd)
 
 	ipReverseDeleteCmd := &cobra.Command{
-		Use:   "delete <service_name> <ip>",
-		Short: "Delete reverse on the given IP",
-		Args:  cobra.ExactArgs(2),
-		Run:   ip.IpDeleteReverse,
+		Use:               "delete <service_name> <ip>",
+		Short:             "Delete reverse on the given IP",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.IpDeleteReverse,
 	}
 	ipReverseCmd.AddCommand(ipReverseDeleteCmd)
 
@@ -82,46 +88,52 @@ func init() {
 	ipCmd.AddCommand(ipFirewallCmd)
 
 	ipFirewallCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <ip_block>",
-		Aliases: []string{"ls"},
-		Short:   "List IPs registered on the firewall",
-		Args:    cobra.ExactArgs(1),
-		Run:     ip.ListFirewall,
+		Use:               "list <ip_block>",
+		Aliases:           []string{"ls"},
+		Short:             "List IPs registered on the firewall",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListFirewall,
 	}))
 
 	ipFirewallCmd.AddCommand(&cobra.Command{
-		Use:   "add <ip_block> <ip>",
-		Short: "Add an IP to the firewall",
-		Args:  cobra.ExactArgs(2),
-		Run:   ip.AddFirewall,
+		Use:               "add <ip_block> <ip>",
+		Short:             "Add an IP to the firewall",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.AddFirewall,
 	})
 
 	ipFirewallCmd.AddCommand(&cobra.Command{
-		Use:   "get <ip_block> <ip>",
-		Short: "Get firewall status for a specific IP",
-		Args:  cobra.ExactArgs(2),
-		Run:   ip.GetFirewall,
+		Use:               "get <ip_block> <ip>",
+		Short:             "Get firewall status for a specific IP",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetFirewall,
 	})
 
 	ipFirewallCmd.AddCommand(&cobra.Command{
-		Use:   "enable <ip_block> <ip>",
-		Short: "Enable the firewall on the given IP",
-		Args:  cobra.ExactArgs(2),
-		Run:   ip.EnableFirewall,
+		Use:               "enable <ip_block> <ip>",
+		Short:             "Enable the firewall on the given IP",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.EnableFirewall,
 	})
 
 	ipFirewallCmd.AddCommand(&cobra.Command{
-		Use:   "disable <ip_block> <ip>",
-		Short: "Disable the firewall on the given IP",
-		Args:  cobra.ExactArgs(2),
-		Run:   ip.DisableFirewall,
+		Use:               "disable <ip_block> <ip>",
+		Short:             "Disable the firewall on the given IP",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.DisableFirewall,
 	})
 
 	ipFirewallCmd.AddCommand(&cobra.Command{
-		Use:   "delete <ip_block> <ip>",
-		Short: "Remove IP and all rules from firewall",
-		Args:  cobra.ExactArgs(2),
-		Run:   ip.DeleteFirewall,
+		Use:               "delete <ip_block> <ip>",
+		Short:             "Remove IP and all rules from firewall",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.DeleteFirewall,
 	})
 
 	// Firewall rule sub-commands
@@ -132,18 +144,20 @@ func init() {
 	ipFirewallCmd.AddCommand(ipFirewallRuleCmd)
 
 	ipFirewallRuleCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <ip_block> <ip>",
-		Aliases: []string{"ls"},
-		Short:   "List firewall rules for the given IP",
-		Args:    cobra.ExactArgs(2),
-		Run:     ip.ListFirewallRules,
+		Use:               "list <ip_block> <ip>",
+		Aliases:           []string{"ls"},
+		Short:             "List firewall rules for the given IP",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.ListFirewallRules,
 	}))
 
 	ipFirewallRuleCmd.AddCommand(&cobra.Command{
-		Use:   "get <ip_block> <ip> <sequence>",
-		Short: "Get a specific firewall rule",
-		Args:  cobra.ExactArgs(3),
-		Run:   ip.GetFirewallRule,
+		Use:               "get <ip_block> <ip> <sequence>",
+		Short:             "Get a specific firewall rule",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.GetFirewallRule,
 	})
 
 	ipFirewallRuleCreateCmd := &cobra.Command{
@@ -191,10 +205,11 @@ There are three ways to define the creation parameters:
 	ipFirewallRuleCmd.AddCommand(ipFirewallRuleCreateCmd)
 
 	ipFirewallRuleCmd.AddCommand(&cobra.Command{
-		Use:   "delete <ip_block> <ip> <sequence>",
-		Short: "Delete a firewall rule",
-		Args:  cobra.ExactArgs(3),
-		Run:   ip.DeleteFirewallRule,
+		Use:               "delete <ip_block> <ip> <sequence>",
+		Short:             "Delete a firewall rule",
+		Args:              cobra.ExactArgs(3),
+		ValidArgsFunction: completion.ServiceList("/v1/ip"),
+		Run:               ip.DeleteFirewallRule,
 	})
 
 	rootCmd.AddCommand(ipCmd)

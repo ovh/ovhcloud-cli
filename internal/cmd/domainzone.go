@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/services/domainzone"
 	"github.com/spf13/cobra"
 )
@@ -27,17 +28,19 @@ func init() {
 
 	// Command to get a single DomainZone
 	domainzoneCmd.AddCommand(&cobra.Command{
-		Use:   "get <zone_name>",
-		Short: "Retrieve information of a specific domain zone",
-		Args:  cobra.ExactArgs(1),
-		Run:   domainzone.GetDomainZone,
+		Use:               "get <zone_name>",
+		Short:             "Retrieve information of a specific domain zone",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/domain/zone"),
+		Run:               domainzone.GetDomainZone,
 	})
 
 	domainzoneCmd.AddCommand(&cobra.Command{
-		Use:   "refresh <zone_name>",
-		Short: "Refresh the given zone",
-		Args:  cobra.ExactArgs(1),
-		Run:   domainzone.RefreshZone,
+		Use:               "refresh <zone_name>",
+		Short:             "Refresh the given zone",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/domain/zone"),
+		Run:               domainzone.RefreshZone,
 	})
 
 	domainZoneRecordCmd := &cobra.Command{
@@ -47,27 +50,30 @@ func init() {
 	domainzoneCmd.AddCommand(domainZoneRecordCmd)
 
 	domainZoneRecordListCmd := &cobra.Command{
-		Use:     "list <zone_name>",
-		Aliases: []string{"ls"},
-		Short:   "List all DNS records from your zone",
-		Args:    cobra.ExactArgs(1),
-		Run:     domainzone.ListRecords,
+		Use:               "list <zone_name>",
+		Aliases:           []string{"ls"},
+		Short:             "List all DNS records from your zone",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/domain/zone"),
+		Run:               domainzone.ListRecords,
 	}
 	domainZoneRecordCmd.AddCommand(withFilterFlag(domainZoneRecordListCmd))
 
 	domainZoneRecordGetCmd := &cobra.Command{
-		Use:   "get <zone_name> <record_id>",
-		Short: "Get a single DNS record from your zone",
-		Args:  cobra.ExactArgs(2),
-		Run:   domainzone.GetRecord,
+		Use:               "get <zone_name> <record_id>",
+		Short:             "Get a single DNS record from your zone",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/domain/zone"),
+		Run:               domainzone.GetRecord,
 	}
 	domainZoneRecordCmd.AddCommand(domainZoneRecordGetCmd)
 
 	domainZoneRecordPostCmd := &cobra.Command{
-		Use:   "create <zone_name>",
-		Short: "Create a single DNS record in your zone",
-		Args:  cobra.ExactArgs(1),
-		Run:   domainzone.CreateRecord,
+		Use:               "create <zone_name>",
+		Short:             "Create a single DNS record in your zone",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/domain/zone"),
+		Run:               domainzone.CreateRecord,
 	}
 	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.FieldType, "field-type", "", "Record type (A, AAAA, CAA, CNAME, DKIM, DMARC, DNAME, HTTPS, LOC, MX, NAPTR, NS, PTR, RP, SPF, SRV, SSHFP, SVCB, TLSA, TXT)")
 	domainZoneRecordPostCmd.Flags().StringVar(&domainzone.CreateRecordSpec.SubDomain, "sub-domain", "", "Record subDomain")
@@ -81,10 +87,11 @@ func init() {
 	domainZoneRecordCmd.AddCommand(domainZoneRecordPostCmd)
 
 	domainZoneRecordPutCmd := &cobra.Command{
-		Use:   "update <zone_name> <record_id>",
-		Short: "Update a single DNS record from your zone",
-		Args:  cobra.ExactArgs(2),
-		Run:   domainzone.UpdateRecord,
+		Use:               "update <zone_name> <record_id>",
+		Short:             "Update a single DNS record from your zone",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/domain/zone"),
+		Run:               domainzone.UpdateRecord,
 	}
 	domainZoneRecordPutCmd.Flags().StringVar(&domainzone.UpdateRecordSpec.SubDomain, "sub-domain", "", "Subdomain to update")
 	domainZoneRecordPutCmd.Flags().StringVar(&domainzone.UpdateRecordSpec.Target, "target", "", "New target to apply")
@@ -97,10 +104,11 @@ func init() {
 	domainZoneRecordCmd.AddCommand(domainZoneRecordPutCmd)
 
 	domainZoneRecordDeleteCmd := &cobra.Command{
-		Use:   "delete <zone_name> <record_id>",
-		Short: "Delete a single DNS record from your zone",
-		Args:  cobra.ExactArgs(2),
-		Run:   domainzone.DeleteRecord,
+		Use:               "delete <zone_name> <record_id>",
+		Short:             "Delete a single DNS record from your zone",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.ServiceList("/v1/domain/zone"),
+		Run:               domainzone.DeleteRecord,
 	}
 	domainZoneRecordCmd.AddCommand(domainZoneRecordDeleteCmd)
 

@@ -1,15 +1,19 @@
-## ovhcloud cloud storage block create-from-backup
+## ovhcloud cloud quota edit
 
-Create a volume from the given backup
+Update the project quota (target quota profile per region)
 
 ```
-ovhcloud cloud storage block create-from-backup <backup_id> <volume_name> [flags]
+ovhcloud cloud quota edit [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for create-from-backup
+      --editor             Use a text editor to define parameters
+      --from-file string   File containing parameters
+  -h, --help               help for edit
+      --init-file string   Create a file with example parameters
+      --replace            Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +38,5 @@ ovhcloud cloud storage block create-from-backup <backup_id> <volume_name> [flags
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage volumes in the given cloud project
+* [ovhcloud cloud quota](ovhcloud_cloud_quota.md)	 - Manage quotas in the given cloud project
 

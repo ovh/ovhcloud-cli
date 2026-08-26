@@ -565,7 +565,7 @@ func CreateGateway(cmd *cobra.Command, _ []string) {
 		return
 	}
 
-	if err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(gatewayID)), 30*time.Minute); err != nil {
+	if _, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(gatewayID)), 30*time.Minute); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for gateway creation: %s", err)
 		return
 	}
