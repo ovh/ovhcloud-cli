@@ -1,15 +1,25 @@
-## ovhcloud cloud ip attach
+## ovhcloud cloud key-manager container create
 
-Attach a public IP to an instance (only supported for --type=failover)
+Create a new Key Manager container
 
 ```
-ovhcloud cloud ip attach <ip_id> <instance_id> [flags]
+ovhcloud cloud key-manager container create [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for attach
+      --availability-zone string   Availability zone within the region
+      --editor                     Use a text editor to define parameters
+      --from-file string           File containing parameters
+  -h, --help                       help for create
+      --init-file string           Create a file with example parameters
+      --name string                Desired container name
+      --region string              Region code where the container is located
+      --replace                    Replace parameters file if it already exists
+      --secret-ref stringArray     Secret reference as '<name>=<secretId>' (repeatable)
+      --type string                Type of the container (CERTIFICATE, GENERIC, RSA)
+      --wait                       Wait for the container to be ready before exiting
 ```
 
 ### Options inherited from parent commands
@@ -30,11 +40,9 @@ ovhcloud cloud ip attach <ip_id> <instance_id> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
-      --type string            Type of IP to manage (floating or failover)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
+* [ovhcloud cloud key-manager container](ovhcloud_cloud_key-manager_container.md)	 - Manage Key Manager containers
 

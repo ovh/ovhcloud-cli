@@ -10924,6 +10924,532 @@
           "checksum",
           "targetSpec"
         ]
+      },
+      "publicCloud.network.NetworkCurrentState": {
+        "type": "object",
+        "description": "Current state of a network from OpenStack",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Network description",
+            "readOnly": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Location details",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Network name",
+            "readOnly": true
+          },
+          "vlanId": {
+            "type": "integer",
+            "description": "VLAN segmentation id.",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.network.SubnetAllocationPool": {
+        "type": "object",
+        "description": "IP address pool for dynamic allocation within a subnet",
+        "properties": {
+          "end": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "End IP address of the pool"
+          },
+          "start": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Start IP address of the pool"
+          }
+        },
+        "required": [
+          "end",
+          "start"
+        ]
+      },
+      "publicCloud.network.Network": {
+        "type": "object",
+        "description": "A Public Cloud network",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the network",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.NetworkCurrentState"
+              }
+            ],
+            "description": "Current state of the network",
+            "nullable": true,
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Ongoing asynchronous tasks related to the network",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the network",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Network readiness in the system",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.NetworkTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the network",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the network",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.network.SubnetTargetSpec": {
+        "type": "object",
+        "description": "Desired specification for a subnet",
+        "properties": {
+          "allocationPools": {
+            "type": "array",
+            "description": "IP address allocation pools",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.network.SubnetAllocationPool"
+            }
+          },
+          "cidr": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "CIDR address range (immutable after creation)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Subnet description",
+            "nullable": true
+          },
+          "dhcpEnabled": {
+            "type": "boolean",
+            "description": "Whether DHCP is enabled",
+            "nullable": true
+          },
+          "dnsNameservers": {
+            "type": "array",
+            "description": "DNS nameservers for the subnet",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "gatewayIp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Default gateway IP address",
+            "nullable": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Target location"
+          },
+          "name": {
+            "type": "string",
+            "description": "Subnet name"
+          }
+        },
+        "required": [
+          "cidr",
+          "location",
+          "name"
+        ]
+      },
+      "publicCloud.network.SubnetPutTargetSpec": {
+        "type": "object",
+        "description": "Desired specification for updating a subnet (excludes immutable fields)",
+        "properties": {
+          "allocationPools": {
+            "type": "array",
+            "description": "IP address allocation pools",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.network.SubnetAllocationPool"
+            }
+          },
+          "description": {
+            "type": "string",
+            "description": "Subnet description",
+            "nullable": true
+          },
+          "dhcpEnabled": {
+            "type": "boolean",
+            "description": "Whether DHCP is enabled",
+            "nullable": true
+          },
+          "dnsNameservers": {
+            "type": "array",
+            "description": "DNS nameservers for the subnet",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "gatewayIp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Default gateway IP address",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Subnet name"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "publicCloud.network.Subnet": {
+        "type": "object",
+        "description": "A Public Cloud subnet",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the subnet",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.SubnetCurrentState"
+              }
+            ],
+            "description": "Current state of the subnet",
+            "nullable": true,
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Ongoing asynchronous tasks related to the subnet",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the subnet",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Subnet readiness in the system",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.SubnetTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the subnet",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the subnet",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.network.NetworkCreation": {
+        "type": "object",
+        "description": "Payload to create a Public Cloud network",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.NetworkTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the network to create"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.network.NetworkTargetSpec": {
+        "type": "object",
+        "description": "Desired specification for a network",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Network description",
+            "nullable": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Target location"
+          },
+          "name": {
+            "type": "string",
+            "description": "Network name"
+          },
+          "vlanId": {
+            "type": "integer",
+            "description": "VLAN segmentation id. Not supported on localzone regions.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "location",
+          "name"
+        ]
+      },
+      "publicCloud.network.SubnetUpdate": {
+        "type": "object",
+        "description": "Payload to update a Public Cloud subnet",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash controlling concurrent modifications"
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.SubnetPutTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the subnet"
+          }
+        },
+        "required": [
+          "checksum",
+          "targetSpec"
+        ]
+      },
+      "publicCloud.network.NetworkUpdate": {
+        "type": "object",
+        "description": "Payload to update a Public Cloud network",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash controlling concurrent modifications"
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.NetworkPutTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the network"
+          }
+        },
+        "required": [
+          "checksum",
+          "targetSpec"
+        ]
+      },
+      "publicCloud.network.SubnetCreation": {
+        "type": "object",
+        "description": "Payload to create a Public Cloud subnet",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.network.SubnetTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the subnet to create"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.network.NetworkPutTargetSpec": {
+        "type": "object",
+        "description": "Desired specification for updating a network (excludes immutable fields)",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Network name"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "publicCloud.network.SubnetCurrentState": {
+        "type": "object",
+        "description": "Current state of a subnet from OpenStack",
+        "properties": {
+          "allocationPools": {
+            "type": "array",
+            "description": "Allocation pools",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.network.SubnetAllocationPool"
+            },
+            "readOnly": true
+          },
+          "cidr": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "CIDR address range",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Subnet description",
+            "readOnly": true
+          },
+          "dhcpEnabled": {
+            "type": "boolean",
+            "description": "Whether DHCP is enabled",
+            "readOnly": true
+          },
+          "dnsNameservers": {
+            "type": "array",
+            "description": "DNS nameservers",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "gatewayIp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Default gateway IP",
+            "nullable": true,
+            "readOnly": true
+          },
+          "hostRoutes": {
+            "type": "array",
+            "description": "Static host routes",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.network.SubnetHostRoute"
+            },
+            "readOnly": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Location details",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Subnet name",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.network.SubnetHostRoute": {
+        "type": "object",
+        "description": "Static host route for devices in a subnet",
+        "properties": {
+          "destination": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ipBlock"
+              }
+            ],
+            "description": "Destination CIDR",
+            "readOnly": true
+          },
+          "nextHop": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "Next hop IP address",
+            "readOnly": true
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -28816,6 +29342,1040 @@
         "x-iam-actions": [
           {
             "name": "publicCloudProject:apiovh:publicIp/floating/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/network": {
+      "get": {
+        "summary": "List Public Cloud networks",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.network.Network"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:network/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudNetworkNetwork"
+      },
+      "post": {
+        "summary": "Create a new Public Cloud network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.network.NetworkCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.network.Network"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:network/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/network/{networkId}": {
+      "delete": {
+        "summary": "Delete a Public Cloud network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.network.Network"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::NetworkDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::NetworkDoesNotExist",
+                      "message": "Network not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ResourceAlreadyBeingDeleted": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceAlreadyBeingDeleted",
+                      "message": "Resource is already being deleted"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:network/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a Public Cloud network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.network.Network"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::NetworkDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::NetworkDoesNotExist",
+                      "message": "Network not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:network/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update an existing Public Cloud network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.network.NetworkUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.network.Network"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::NetworkDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::NetworkDoesNotExist",
+                      "message": "Network not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ChecksumMismatch": {
+                    "value": {
+                      "class": "Client::Conflict::ChecksumMismatch",
+                      "message": "Checksum mismatch — a concurrent update was detected. Refresh the resource and retry"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:network/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/network/{networkId}/subnet": {
+      "get": {
+        "summary": "List subnets within a network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.network.Subnet"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:network/subnet/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudNetworkSubnet"
+      },
+      "post": {
+        "summary": "Create a subnet in a network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.network.SubnetCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.network.Subnet"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:network/subnet/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/network/{networkId}/subnet/{subnetId}": {
+      "delete": {
+        "summary": "Delete a subnet from a network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subnetId",
+            "description": "Subnet ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.network.Subnet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SubnetDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SubnetDoesNotExist",
+                      "message": "Subnet not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ResourceAlreadyBeingDeleted": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceAlreadyBeingDeleted",
+                      "message": "Resource is already being deleted"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:network/subnet/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a subnet within a network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subnetId",
+            "description": "Subnet ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.network.Subnet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SubnetDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SubnetDoesNotExist",
+                      "message": "Subnet not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:network/subnet/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "summary": "Update a subnet in a network",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "networkId",
+            "description": "Network ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subnetId",
+            "description": "Subnet ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.network.SubnetUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.network.Subnet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SubnetDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SubnetDoesNotExist",
+                      "message": "Subnet not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ChecksumMismatch": {
+                    "value": {
+                      "class": "Client::Conflict::ChecksumMismatch",
+                      "message": "Checksum mismatch — a concurrent update was detected. Refresh the resource and retry"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:network/subnet/edit",
             "required": true
           }
         ]

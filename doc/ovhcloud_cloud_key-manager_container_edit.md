@@ -1,15 +1,17 @@
-## ovhcloud cloud network private vrack subnet get
+## ovhcloud cloud key-manager container edit
 
-Get a specific subnet in a private network
+Edit the given Key Manager container (only secret references are mutable)
 
 ```
-ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
+ovhcloud cloud key-manager container edit <container_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --editor                   Use a text editor to define parameters
+  -h, --help                     help for edit
+      --secret-ref stringArray   Secret reference as '<name>=<secretId>' (repeatable, replaces all existing references)
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +36,5 @@ ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network
+* [ovhcloud cloud key-manager container](ovhcloud_cloud_key-manager_container.md)	 - Manage Key Manager containers
 

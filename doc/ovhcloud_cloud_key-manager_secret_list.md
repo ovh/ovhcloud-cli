@@ -1,15 +1,22 @@
-## ovhcloud cloud ip delete
+## ovhcloud cloud key-manager secret list
 
-Delete a public IP (only supported for --type=floating)
+List Key Manager secrets
 
 ```
-ovhcloud cloud ip delete <ip_id> [flags]
+ovhcloud cloud key-manager secret list [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,11 +37,9 @@ ovhcloud cloud ip delete <ip_id> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Filter by region or specify the region of the floating IP (only used when --type=floating)
-      --type string            Type of IP to manage (floating or failover)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud ip](ovhcloud_cloud_ip.md)	 - Manage public IPs (floating and failover) in the given cloud project
+* [ovhcloud cloud key-manager secret](ovhcloud_cloud_key-manager_secret.md)	 - Manage Key Manager secrets
 

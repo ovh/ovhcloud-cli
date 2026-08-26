@@ -1,9 +1,9 @@
-## ovhcloud cloud network private vrack subnet get
+## ovhcloud cloud key-manager secret get
 
-Get a specific subnet in a private network
+Get a specific Key Manager secret
 
 ```
-ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
+ovhcloud cloud key-manager secret get <secret_id> [flags]
 ```
 
 ### Options
@@ -34,5 +34,5 @@ ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network
+* [ovhcloud cloud key-manager secret](ovhcloud_cloud_key-manager_secret.md)	 - Manage Key Manager secrets
 

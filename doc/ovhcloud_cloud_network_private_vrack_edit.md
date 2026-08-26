@@ -1,15 +1,17 @@
-## ovhcloud cloud network private vrack subnet get
+## ovhcloud cloud network private vrack edit
 
-Get a specific subnet in a private network
+Edit a specific private network
 
 ```
-ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
+ovhcloud cloud network private vrack edit <network_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --editor        Use a text editor to define parameters
+  -h, --help          help for edit
+      --name string   Name of the private network
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +36,5 @@ ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud network private vrack subnet](ovhcloud_cloud_network_private_vrack_subnet.md)	 - Manage subnets in a specific private network
+* [ovhcloud cloud network private vrack](ovhcloud_cloud_network_private_vrack.md)	 - Manage vRack-based private networks in the given cloud project
 

@@ -1,15 +1,23 @@
-## ovhcloud cloud network private vrack subnet get
+## ovhcloud cloud network private vrack subnet edit
 
-Get a specific subnet in a private network
+Edit a specific subnet in a private network
 
 ```
-ovhcloud cloud network private vrack subnet get <network_id> <subnet_id> [flags]
+ovhcloud cloud network private vrack subnet edit <network_id> <subnet_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --allocation-pools strings   Allocation pools for the subnet in format start:end
+      --description string         Description of the subnet
+      --dhcp-enabled               Enable DHCP for the subnet
+      --dns-nameservers strings    DNS nameservers for the subnet
+      --editor                     Use a text editor to define parameters
+      --from-file string           File containing parameters
+      --gateway-ip string          Gateway IP address for the subnet
+  -h, --help                       help for edit
+      --name string                Name of the subnet
 ```
 
 ### Options inherited from parent commands

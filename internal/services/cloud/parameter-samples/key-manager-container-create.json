@@ -1,0 +1,17 @@
+{
+  "targetSpec": {
+    "name": "my-container",
+    "type": "GENERIC",
+    "location": {
+      "region": "GRA"
+    },
+    "secretRefs": [
+      {
+        "name": "private_key",
+        "secret": {
+          "id": "00000000-0000-0000-0000-000000000000"
+        }
+      }
+    ]
+  }
+}
