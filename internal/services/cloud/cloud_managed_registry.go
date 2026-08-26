@@ -564,12 +564,22 @@ func formatContainerRegistryPlans(plan map[string]any) {
 	// Extract and format registry limits
 	if registryLimits, ok := plan["registryLimits"].(map[string]any); ok {
 		if imageStorage, ok := registryLimits["imageStorage"].(json.Number); ok {
-			imageStorage, err := imageStorage.Int64()
-			if err != nil {
-				display.OutputError(&flags.OutputFormatConfig, "%s", err)
+			// A quota that will not parse is one unreadable cell, not a reason to
+			// answer nothing. This called display.OutputError, which does not
+			// return — OutputWithFormat finishes on ExitFunc(1), which is
+			// os.Exit — and it runs once per plan inside the listing loop, so a
+			// single malformed imageStorage killed the whole `registry plans`
+			// listing with the other plans already collected and never shown.
+			//
+			// Worse under test: display.ExitFunc is stubbed to a no-op there, so
+			// execution fell through to the line below with imageStorage still
+			// zero and wrote "0" — a wrong quota that looks like a real one. The
+			// raw value is kept instead, so the cell says what the API said.
+			if size, err := imageStorage.Int64(); err != nil {
+				plan["imageStorage"] = imageStorage.String()
+			} else {
+				plan["imageStorage"] = bytefmt.ByteSize(uint64(size))
 			}
-
-			plan["imageStorage"] = bytefmt.ByteSize(uint64(imageStorage))
 		}
 		if parallelRequest, ok := registryLimits["parallelRequest"].(json.Number); ok {
 			plan["parallelRequest"] = parallelRequest
