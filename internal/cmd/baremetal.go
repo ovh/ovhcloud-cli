@@ -11,7 +11,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/baremetal"
-	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/services/vrack"
 	"github.com/spf13/cobra"
 )
@@ -124,7 +123,7 @@ they are not sold from the public price list, and show as "on quotation".`,
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.EditBaremetalServiceInfo,
 	}
-	common.AddServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
+	addServiceInfoRenewFlags(baremetalServiceInfoEditCmd)
 	addInteractiveEditorFlag(baremetalServiceInfoEditCmd)
 	baremetalServiceInfoCmd.AddCommand(baremetalServiceInfoEditCmd)
 
@@ -190,7 +189,7 @@ This ends the contract: the server is returned to OVHcloud at expiry.`,
 		Use:   "reinstall <service_name>",
 		Short: "Reinstall the given baremetal",
 		Long: `Use this command to reinstall the given dedicated server.
-There are three ways to define the installation parameters:
+There are four ways to define the installation parameters:
 
 1. Using only CLI flags:
 
@@ -218,7 +217,21 @@ There are three ways to define the installation parameters:
 
 	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json --hostname new-hostname
 
-3. Using your default text editor:
+3. Letting the CLI ask, when you do not know what the machine will take:
+
+	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --wizard
+
+  It lists the templates this server can actually be installed with, then the
+  partitioning schemes that template allows, then says what the machine will
+  accept in a hardwareRaid block. Each list is fetched for the answer just
+  given, because the API makes them depend on each other. The usual
+  confirmation still applies, and --dry-run still prints the request instead of
+  sending it.
+
+  A wizard needs somebody at the keyboard: a piped or unattended run refuses
+  rather than waiting for an answer that cannot come.
+
+4. Using your default text editor:
 
 	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --editor
 
@@ -248,6 +261,8 @@ be sent without sending them.
 	addParameterFileFlags(reinstallBaremetalCmd, false, assets.BaremetalOpenapiSchema, "/dedicated/server/{serviceName}/reinstall", "post", baremetal.BaremetalInstallationExample, nil)
 	addInteractiveEditorFlag(reinstallBaremetalCmd)
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.OperatingSystem, "os", "", "Operating system to install")
+	reinstallBaremetalCmd.Flags().BoolVar(&baremetal.ReinstallViaWizard, "wizard", false,
+		"Ask which OS and partitioning scheme to use, listing only what this server accepts")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.ConfigDriveUserData, "config-drive-user-data", "", "Config Drive UserData")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.EfiBootloaderPath, "efi-bootloader-path", "", "Path of the EFI bootloader from the OS installed on the server")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.Hostname, "hostname", "", "Custom hostname")
@@ -262,7 +277,9 @@ be sent without sending them.
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.SshKey, "ssh-key", "", "SSH public key")
 	reinstallBaremetalCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
 	addConfirmationFlags(reinstallBaremetalCmd, "Print the installation parameters without sending anything")
-	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "from-file", "editor")
+	// --wizard settles the same fields those two carry, and the last writer
+	// would win silently.
+	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "from-file", "editor", "wizard")
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
 
 	// Powering a server off and back on.
