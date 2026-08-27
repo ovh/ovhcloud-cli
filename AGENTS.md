@@ -52,7 +52,7 @@ ovhcloud cloud instance list -o json
 - **[references/flags.md](docs/agent-skill/references/flags.md)** — global flags in detail.
 - **[references/safety.md](docs/agent-skill/references/safety.md)** — destructive/billed ops.
 - **[recipes/public-cloud.md](docs/agent-skill/recipes/public-cloud.md)** — Public Cloud workflows.
-- **[recipes/account-and-domains.md](docs/agent-skill/recipes/account-and-domains.md)** — auth, profiles, domains/DNS.
+- **[recipes/account-and-config.md](docs/agent-skill/recipes/account-and-config.md)** — auth, profiles, account, configuration.
 
 > This guide stays small on purpose. It teaches the pattern and points to the
 > CLI's own `--help` (the always-up-to-date source of truth) instead of copying
