@@ -1,11 +1,15 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage object bucket delete
 
-Manage snapshots of the given volume
+Delete the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+
+```
+ovhcloud cloud storage object bucket delete <container_name> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +34,5 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage object bucket](ovhcloud_cloud_storage_object_bucket.md)	 - Manage object storage buckets in the given cloud project
 

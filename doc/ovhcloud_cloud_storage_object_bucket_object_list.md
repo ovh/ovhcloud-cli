@@ -1,11 +1,20 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage object bucket object list
 
-Manage snapshots of the given volume
+List objects in the given storage container
+
+```
+ovhcloud cloud storage object bucket object list <container_name> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+  -h, --help                       help for list
+      --key-marker string          Key marker for pagination
+      --limit int                  Maximum number of objects to return (default 1000)
+      --prefix string              Prefix to filter objects by name
+      --version-id-marker string   Version ID marker for pagination
+      --with-versions              Include object versions in the listing
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +39,5 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage object bucket object](ovhcloud_cloud_storage_object_bucket_object.md)	 - Manage objects in the given storage container
 

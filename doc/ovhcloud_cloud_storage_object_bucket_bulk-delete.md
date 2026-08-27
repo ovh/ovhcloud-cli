@@ -1,11 +1,18 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage object bucket bulk-delete
 
-Manage snapshots of the given volume
+Bulk delete objects in the given storage container
+
+```
+ovhcloud cloud storage object bucket bulk-delete <container_name> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+      --all               Delete all objects in the container
+  -h, --help              help for bulk-delete
+      --objects strings   List of objects to delete (format is '<object_name>' or '<object_name>:<version_id>'
+      --prefix string     Prefix to filter objects to delete
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +37,5 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage object bucket](ovhcloud_cloud_storage_object_bucket.md)	 - Manage object storage buckets in the given cloud project
 

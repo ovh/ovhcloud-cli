@@ -18,16 +18,22 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	}
 	storageS3Cmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
+	bucketCmd := &cobra.Command{
+		Use:   "bucket",
+		Short: "Manage object storage buckets in the given cloud project",
+	}
+	storageS3Cmd.AddCommand(bucketCmd)
+
 	storageS3ListCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 		Run:     cloud.ListCloudStorageS3,
 	}
-	storageS3Cmd.AddCommand(withFilterFlag(storageS3ListCmd))
+	bucketCmd.AddCommand(withFilterFlag(storageS3ListCmd))
 
 	// Container commands
-	storageS3Cmd.AddCommand(&cobra.Command{
+	bucketCmd.AddCommand(&cobra.Command{
 		Use:   "get <container_name>",
 		Short: "Get a specific S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 		Run:   cloud.GetStorageS3,
@@ -47,11 +53,11 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	editStorageS3Cmd.Flags().StringToStringVar(&cloud.StorageS3Spec.Tags, "tag", nil, "Container tags as key=value pairs")
 	editStorageS3Cmd.Flags().StringVar(&cloud.StorageS3Spec.Versioning.Status, "versioning-status", "", "Versioning status (disabled, enabled, suspended)")
 	addInteractiveEditorFlag(editStorageS3Cmd)
-	storageS3Cmd.AddCommand(editStorageS3Cmd)
+	bucketCmd.AddCommand(editStorageS3Cmd)
 
-	storageS3Cmd.AddCommand(getCloudStorageS3CreateCmd())
+	bucketCmd.AddCommand(getCloudStorageS3CreateCmd())
 
-	storageS3Cmd.AddCommand(&cobra.Command{
+	bucketCmd.AddCommand(&cobra.Command{
 		Use:   "delete <container_name>",
 		Short: "Delete the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 		Run:   cloud.DeleteStorageS3,
@@ -71,14 +77,14 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	markFlagsOneRequired(bulkDeleteCmd, "objects", "all", "prefix")
 	markFlagsMutuallyExclusive(bulkDeleteCmd, "objects", "all", "prefix")
 
-	storageS3Cmd.AddCommand(bulkDeleteCmd)
+	bucketCmd.AddCommand(bulkDeleteCmd)
 
 	// Object commands
 	objectCmd := &cobra.Command{
 		Use:   "object",
 		Short: "Manage objects in the given storage container",
 	}
-	storageS3Cmd.AddCommand(objectCmd)
+	bucketCmd.AddCommand(objectCmd)
 
 	objectListCmd := &cobra.Command{
 		Use:     "list <container_name>",
@@ -225,10 +231,10 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	addParameterFileFlags(presignedURLCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage/{name}/presign", "post", cloud.CloudStorageS3PresignedURLExample, nil)
 	addInteractiveEditorFlag(presignedURLCmd)
 	markFlagsMutuallyExclusive(presignedURLCmd, "from-file", "editor")
-	storageS3Cmd.AddCommand(presignedURLCmd)
+	bucketCmd.AddCommand(presignedURLCmd)
 
 	// Add user to bucket command
-	storageS3Cmd.AddCommand(&cobra.Command{
+	bucketCmd.AddCommand(&cobra.Command{
 		Use:   "add-user <container_name> <user_id> <role (admin, deny, readOnly, readWrite)>",
 		Short: "Add a user to the given storage container with the specified role (admin, deny, readOnly, readWrite)",
 		Run:   cloud.StorageS3AddUser,
@@ -240,7 +246,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Use:   "lifecycle",
 		Short: "Manage S3™* compatible storage container lifecycle configuration (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 	}
-	storageS3Cmd.AddCommand(lifecycleCmd)
+	bucketCmd.AddCommand(lifecycleCmd)
 
 	lifecycleCmd.AddCommand(&cobra.Command{
 		Use:   "get <container_name>",
@@ -272,7 +278,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Use:   "replication-job",
 		Short: "Manage replication jobs for S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 	}
-	storageS3Cmd.AddCommand(replicationJobCmd)
+	bucketCmd.AddCommand(replicationJobCmd)
 
 	replicationJobCmd.AddCommand(&cobra.Command{
 		Use:   "create <container_name>",
@@ -281,7 +287,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	// Quota command
+	// Quota command (stays directly under `cloud storage object`, not under `bucket`)
 	quotaCmd := &cobra.Command{
 		Use:   "quota",
 		Short: "Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
@@ -317,7 +323,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Use:   "credentials",
 		Short: "Manage storage containers credentials",
 	}
-	storageS3Cmd.AddCommand(credentialsCmd)
+	bucketCmd.AddCommand(credentialsCmd)
 
 	credentialsCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:     "list <user_id>",
@@ -360,37 +366,37 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud storage object create BHS --name mynewContainer
+	ovhcloud cloud storage object bucket create BHS --name mynewContainer
 
 2. Using a configuration file:
 
   First you can generate an example of parameters file using the following command:
 
-	ovhcloud cloud storage object create --init-file ./params.json
+	ovhcloud cloud storage object bucket create --init-file ./params.json
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
   After editing the file to set the correct creation parameters, run:
 
-	ovhcloud cloud storage object create GRA --from-file ./params.json
+	ovhcloud cloud storage object bucket create GRA --from-file ./params.json
 
   Note that you can also pipe the content of the parameters file, like the following:
 
-	cat ./params.json | ovhcloud cloud storage object create GRA
+	cat ./params.json | ovhcloud cloud storage object bucket create GRA
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovhcloud cloud storage object create GRA --from-file ./params.json --name nameoverriden
+	ovhcloud cloud storage object bucket create GRA --from-file ./params.json --name nameoverriden
 
 3. Using your default text editor:
 
-	ovhcloud cloud storage object create GRA --editor
+	ovhcloud cloud storage object bucket create GRA --editor
 
   You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
   default text editor to update the parameters. When saving the file, the creation will start.
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud storage object create GRA --editor --name nameoverriden
+	ovhcloud cloud storage object bucket create GRA --editor --name nameoverriden
 
 *S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.
 `,

@@ -1,11 +1,20 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage block volume edit
 
-Manage snapshots of the given volume
+Edit the given volume
+
+```
+ovhcloud cloud storage block volume edit <volume_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+      --editor        Use a text editor to define parameters
+  -h, --help          help for edit
+      --name string   Volume name
+      --size int      Volume size (in GB, can only be increased)
+      --type string   Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)
+      --wait          Wait for the volume to be READY before exiting
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +39,5 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage block volume](ovhcloud_cloud_storage_block_volume.md)	 - Manage block storage volumes in the given cloud project
 

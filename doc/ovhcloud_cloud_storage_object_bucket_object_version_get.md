@@ -1,11 +1,15 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage object bucket object version get
 
-Manage snapshots of the given volume
+Get a specific version of an object from the given storage container
+
+```
+ovhcloud cloud storage object bucket object version get <container_name> <object_name> <version_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +34,5 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given storage container
 

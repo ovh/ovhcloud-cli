@@ -1,11 +1,27 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage block volume create
 
-Manage snapshots of the given volume
+Create a new volume
+
+```
+ovhcloud cloud storage block volume create <region> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+      --availability-zone string   Availability zone of the volume
+      --backup-id string           Backup ID to create the volume from
+      --editor                     Use a text editor to define parameters
+      --from-file string           File containing parameters
+  -h, --help                       help for create
+      --image-id string            Image ID to create the volume from
+      --init-file string           Create a file with example parameters
+      --name string                Volume name
+      --replace                    Replace parameters file if it already exists
+      --size int                   Volume size (in GB)
+      --snapshot-id string         Snapshot ID to create the volume from
+      --type string                Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)
+      --wait                       Wait for volume creation to be done before exiting
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +46,5 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage block volume](ovhcloud_cloud_storage_block_volume.md)	 - Manage block storage volumes in the given cloud project
 

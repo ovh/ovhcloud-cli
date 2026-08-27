@@ -1,11 +1,19 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage object bucket object version edit
 
-Manage snapshots of the given volume
+Edit the given version of an object in the storage container
+
+```
+ovhcloud cloud storage object bucket object version edit <container_name> <object_name> <version_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+      --editor                     Use a text editor to define parameters
+  -h, --help                       help for edit
+      --legal-hold string          Legal hold status (on, off)
+      --lock-mode string           Lock mode (compliance, governance)
+      --lock-retain-until string   Lock retain until date (e.g., 2024-12-31T23:59:59Z)
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +38,5 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given storage container
 

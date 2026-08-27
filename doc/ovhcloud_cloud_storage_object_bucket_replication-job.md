@@ -1,11 +1,11 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage object bucket replication-job
 
-Manage snapshots of the given volume
+Manage replication jobs for S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+  -h, --help   help for replication-job
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +30,6 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage object bucket](ovhcloud_cloud_storage_object_bucket.md)	 - Manage object storage buckets in the given cloud project
+* [ovhcloud cloud storage object bucket replication-job create](ovhcloud_cloud_storage_object_bucket_replication-job_create.md)	 - Create a replication job on the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 

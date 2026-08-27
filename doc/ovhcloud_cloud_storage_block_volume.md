@@ -1,11 +1,11 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage block volume
 
-Manage snapshots of the given volume
+Manage block storage volumes in the given cloud project
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+  -h, --help   help for volume
 ```
 
 ### Options inherited from parent commands
@@ -31,7 +31,11 @@ Manage snapshots of the given volume
 ### SEE ALSO
 
 * [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage block volume attach](ovhcloud_cloud_storage_block_volume_attach.md)	 - Attach the given volume to the given instance
+* [ovhcloud cloud storage block volume create](ovhcloud_cloud_storage_block_volume_create.md)	 - Create a new volume
+* [ovhcloud cloud storage block volume delete](ovhcloud_cloud_storage_block_volume_delete.md)	 - Delete the given volume
+* [ovhcloud cloud storage block volume detach](ovhcloud_cloud_storage_block_volume_detach.md)	 - Detach the given volume from the given instance
+* [ovhcloud cloud storage block volume edit](ovhcloud_cloud_storage_block_volume_edit.md)	 - Edit the given volume
+* [ovhcloud cloud storage block volume get](ovhcloud_cloud_storage_block_volume_get.md)	 - Get a specific volume
+* [ovhcloud cloud storage block volume list](ovhcloud_cloud_storage_block_volume_list.md)	 - List volumes
 

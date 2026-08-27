@@ -30,7 +30,7 @@ func (ms *MockSuite) TestCloudStorageBlockListCmd(assert, require *td.T) {
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "list", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("vol-1"))
@@ -57,7 +57,7 @@ func (ms *MockSuite) TestCloudStorageBlockGetCmd(assert, require *td.T) {
 			}
 		}`))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "get", "vol-1", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "get", "vol-1", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("vol-1"))
@@ -90,7 +90,7 @@ func (ms *MockSuite) TestCloudStorageBlockCreateCmd(assert, require *td.T) {
 			"resourceStatus": "CREATING"
 		}`))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "create", "GRA11",
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "create", "GRA11",
 		"--cloud-project", "fakeProjectID",
 		"--name", "my-volume",
 		"--size", "50",
@@ -137,7 +137,7 @@ func (ms *MockSuite) TestCloudStorageBlockEditCmd(assert, require *td.T) {
 		),
 		httpmock.NewStringResponder(200, ``))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "edit", "vol-1",
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "edit", "vol-1",
 		"--cloud-project", "fakeProjectID",
 		"--name", "new-name",
 		"--size", "100")
@@ -151,7 +151,7 @@ func (ms *MockSuite) TestCloudStorageBlockDeleteCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/storage/block/volume/vol-1",
 		httpmock.NewStringResponder(200, ``))
 
-	out, err := cmd.Execute("cloud", "storage", "block", "delete", "vol-1", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "delete", "vol-1", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("deleted successfully"))

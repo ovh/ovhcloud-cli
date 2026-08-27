@@ -1,11 +1,15 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage object bucket add-user
 
-Manage snapshots of the given volume
+Add a user to the given storage container with the specified role (admin, deny, readOnly, readWrite)
+
+```
+ovhcloud cloud storage object bucket add-user <container_name> <user_id> <role (admin, deny, readOnly, readWrite)> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+  -h, --help   help for add-user
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +34,5 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage object bucket](ovhcloud_cloud_storage_object_bucket.md)	 - Manage object storage buckets in the given cloud project
 

@@ -30,7 +30,7 @@ Manage volume backups in the given cloud project
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage volumes in the given cloud project
+* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
 * [ovhcloud cloud storage block backup create](ovhcloud_cloud_storage_block_backup_create.md)	 - Create a backup of the given volume
 * [ovhcloud cloud storage block backup delete](ovhcloud_cloud_storage_block_backup_delete.md)	 - Delete the given volume backup
 * [ovhcloud cloud storage block backup get](ovhcloud_cloud_storage_block_backup_get.md)	 - Get a specific volume backup

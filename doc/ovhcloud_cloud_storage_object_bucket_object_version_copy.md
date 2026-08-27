@@ -1,11 +1,18 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage object bucket object version copy
 
-Manage snapshots of the given volume
+Copy a specific version of an object to another bucket or key
+
+```
+ovhcloud cloud storage object bucket object version copy <container_name> <object_name> <version_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+  -h, --help                   help for copy
+      --storage-class string   Target storage class (HIGH_PERF, STANDARD, STANDARD_IA)
+      --target-bucket string   Target bucket name
+      --target-key string      Target object key
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +37,5 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given storage container
 

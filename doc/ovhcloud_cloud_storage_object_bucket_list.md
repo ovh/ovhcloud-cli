@@ -1,11 +1,22 @@
-## ovhcloud cloud storage block snapshot
+## ovhcloud cloud storage object bucket list
 
-Manage snapshots of the given volume
+List S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+
+```
+ovhcloud cloud storage object bucket list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for snapshot
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +41,5 @@ Manage snapshots of the given volume
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage block](ovhcloud_cloud_storage_block.md)	 - Manage block storage in the given cloud project
-* [ovhcloud cloud storage block snapshot create](ovhcloud_cloud_storage_block_snapshot_create.md)	 - Create a snapshot of the given volume
-* [ovhcloud cloud storage block snapshot delete](ovhcloud_cloud_storage_block_snapshot_delete.md)	 - Delete the given snapshot
-* [ovhcloud cloud storage block snapshot list](ovhcloud_cloud_storage_block_snapshot_list.md)	 - List snapshots of the given volume
+* [ovhcloud cloud storage object bucket](ovhcloud_cloud_storage_object_bucket.md)	 - Manage object storage buckets in the given cloud project
 
