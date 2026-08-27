@@ -287,12 +287,12 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 	})
 
-	// Quota command
+	// Quota command (stays directly under `cloud storage object`, not under `bucket`)
 	quotaCmd := &cobra.Command{
 		Use:   "quota",
 		Short: "Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 	}
-	bucketCmd.AddCommand(quotaCmd)
+	storageS3Cmd.AddCommand(quotaCmd)
 
 	quotaCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:   "get <region>",

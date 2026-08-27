@@ -1,11 +1,22 @@
-## ovhcloud cloud storage object bucket quota
+## ovhcloud cloud storage object quota get
 
-Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+Get storage quota for the given region
+
+```
+ovhcloud cloud storage object quota get <region> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for quota
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for get
 ```
 
 ### Options inherited from parent commands
@@ -30,8 +41,5 @@ Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Tech
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket](ovhcloud_cloud_storage_object_bucket.md)	 - Manage object storage buckets in the given cloud project
-* [ovhcloud cloud storage object bucket quota delete](ovhcloud_cloud_storage_object_bucket_quota_delete.md)	 - Delete storage quota for the given region
-* [ovhcloud cloud storage object bucket quota edit](ovhcloud_cloud_storage_object_bucket_quota_edit.md)	 - Edit storage quota for the given region
-* [ovhcloud cloud storage object bucket quota get](ovhcloud_cloud_storage_object_bucket_quota_get.md)	 - Get storage quota for the given region
+* [ovhcloud cloud storage object quota](ovhcloud_cloud_storage_object_quota.md)	 - Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 

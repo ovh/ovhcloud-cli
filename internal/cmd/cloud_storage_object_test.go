@@ -261,7 +261,7 @@ func (ms *MockSuite) TestCloudStorageS3QuotaGetCmd(assert, require *td.T) {
 			"objectCount": 42
 		}`))
 
-	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "quota", "get", "BHS", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "storage", "object", "quota", "get", "BHS", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"bytesUsed": 1048576,
@@ -277,7 +277,7 @@ func (ms *MockSuite) TestCloudStorageS3QuotaEditCmd(assert, require *td.T) {
 		tdhttpmock.JSONBody(td.JSON(`{"quotaBytes": 21474836480}`)),
 		httpmock.NewStringResponder(200, ``))
 
-	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "quota", "edit", "BHS", "--cloud-project", "fakeProjectID", "--quota-bytes", "21474836480", "-o", "json")
+	out, err := cmd.Execute("cloud", "storage", "object", "quota", "edit", "BHS", "--cloud-project", "fakeProjectID", "--quota-bytes", "21474836480", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Storage quota for region BHS updated successfully"}`))
 }
@@ -287,7 +287,7 @@ func (ms *MockSuite) TestCloudStorageS3QuotaDeleteCmd(assert, require *td.T) {
 		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/quota/storage",
 		httpmock.NewStringResponder(200, ``))
 
-	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "quota", "delete", "BHS", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "storage", "object", "quota", "delete", "BHS", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Storage quota for region BHS deleted successfully"}`))
 }

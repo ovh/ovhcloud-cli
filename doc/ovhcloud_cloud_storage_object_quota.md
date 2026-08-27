@@ -1,15 +1,11 @@
-## ovhcloud cloud storage object bucket quota delete
+## ovhcloud cloud storage object quota
 
-Delete storage quota for the given region
-
-```
-ovhcloud cloud storage object bucket quota delete <region> [flags]
-```
+Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 
 ### Options
 
 ```
-  -h, --help   help for delete
+  -h, --help   help for quota
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +30,8 @@ ovhcloud cloud storage object bucket quota delete <region> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket quota](ovhcloud_cloud_storage_object_bucket_quota.md)	 - Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+* [ovhcloud cloud storage object](ovhcloud_cloud_storage_object.md)	 - Manage S3™* compatible storage containers in the given cloud project (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+* [ovhcloud cloud storage object quota delete](ovhcloud_cloud_storage_object_quota_delete.md)	 - Delete storage quota for the given region
+* [ovhcloud cloud storage object quota edit](ovhcloud_cloud_storage_object_quota_edit.md)	 - Edit storage quota for the given region
+* [ovhcloud cloud storage object quota get](ovhcloud_cloud_storage_object_quota_get.md)	 - Get storage quota for the given region
 

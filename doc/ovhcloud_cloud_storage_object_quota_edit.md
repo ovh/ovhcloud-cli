@@ -1,22 +1,16 @@
-## ovhcloud cloud storage object bucket quota get
+## ovhcloud cloud storage object quota edit
 
-Get storage quota for the given region
+Edit storage quota for the given region
 
 ```
-ovhcloud cloud storage object bucket quota get <region> [flags]
+ovhcloud cloud storage object quota edit <region> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for get
+  -h, --help              help for edit
+      --quota-bytes int   New quota in bytes
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +35,5 @@ ovhcloud cloud storage object bucket quota get <region> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket quota](ovhcloud_cloud_storage_object_bucket_quota.md)	 - Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+* [ovhcloud cloud storage object quota](ovhcloud_cloud_storage_object_quota.md)	 - Manage S3™* compatible storage quota (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 
