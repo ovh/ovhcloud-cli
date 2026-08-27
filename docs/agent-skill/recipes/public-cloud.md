@@ -25,7 +25,7 @@ ovhcloud cloud network private vrack subnet create <networkId> \
   --name my-subnet --cidr 192.168.1.0/24 --enable-dhcp --wait
 ```
 
-## Storage (S3-compatible object storage)
+## Object storage
 ```bash
 ovhcloud cloud storage object list -o json
 ovhcloud cloud storage object create GRA --name my-bucket
