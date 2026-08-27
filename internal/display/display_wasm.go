@@ -18,7 +18,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-func renderCustomFormat(value any, format string, raw bool) {
+func renderCustomFormat(value any, format string) {
 	ev, err := gval.Full(filters.AdditionalEvaluators...).NewEvaluable(format)
 	if err != nil {
 		exitError("invalid format given: %s", err)
@@ -34,7 +34,7 @@ func renderCustomFormat(value any, format string, raw bool) {
 				return
 			}
 
-			formatted, err := formatCustomValue(out, raw)
+			formatted, err := formatCustomValue(out)
 			if err != nil {
 				exitError("error marshalling result")
 				return
@@ -48,7 +48,7 @@ func renderCustomFormat(value any, format string, raw bool) {
 			return
 		}
 
-		formatted, err := formatCustomValue(out, raw)
+		formatted, err := formatCustomValue(out)
 		if err != nil {
 			exitError("error marshalling result")
 			return
@@ -59,7 +59,7 @@ func renderCustomFormat(value any, format string, raw bool) {
 
 func RenderTable(values []map[string]any, columnsToDisplay []string, outputFormat *OutputFormat) {
 	if outputFormat.CustomFormat() != "" {
-		renderCustomFormat(values, outputFormat.CustomFormat(), outputFormat.Raw)
+		renderCustomFormat(values, outputFormat.CustomFormat())
 		return
 	}
 
@@ -156,7 +156,7 @@ func prettyPrintJSON(value any) error {
 
 func OutputObject(value map[string]any, serviceName, templateContent string, outputFormat *OutputFormat) {
 	if outputFormat.CustomFormat() != "" {
-		renderCustomFormat(value, outputFormat.CustomFormat(), outputFormat.Raw)
+		renderCustomFormat(value, outputFormat.CustomFormat())
 		return
 	}
 

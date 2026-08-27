@@ -35,10 +35,10 @@ ovhcloud webhosting cron update <service_name> <id> [flags]
                            --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
                            --output 'name+","+type' (to extract and concatenate fields in a string)
                            --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+                         
+                         When extracting a single scalar field, the value is printed without surrounding
+                         quotes (useful for scripting); objects and arrays are still rendered as JSON.
       --profile string   Use a specific profile from the configuration file
-      --raw              Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
-                         Example:
-                           --output 'id' --raw   (prints the id without surrounding quotes)
 ```
 
 ### SEE ALSO

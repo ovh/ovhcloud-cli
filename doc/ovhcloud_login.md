@@ -36,9 +36,9 @@ ovhcloud login --profile work
                           --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
                           --output 'name+","+type' (to extract and concatenate fields in a string)
                           --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
-      --raw             Output the extracted value without JSON quoting (use with -o '<field>'), useful for scripting
-                        Example:
-                          --output 'id' --raw   (prints the id without surrounding quotes)
+                        
+                        When extracting a single scalar field, the value is printed without surrounding
+                        quotes (useful for scripting); objects and arrays are still rendered as JSON.
 ```
 
 ### SEE ALSO
