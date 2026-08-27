@@ -53,11 +53,11 @@ func renderCustomFormat(value any, format string) error {
 				return fmt.Errorf("couldn't extract data according to given format: %w", err)
 			}
 
-			outBytes, err := json.Marshal(out)
+			formatted, err := formatCustomValue(out)
 			if err != nil {
 				return fmt.Errorf("error marshalling result: %w", err)
 			}
-			output.Write(outBytes)
+			output.WriteString(formatted)
 			output.WriteString("\n")
 		}
 		ResultString = output.String()
@@ -68,12 +68,12 @@ func renderCustomFormat(value any, format string) error {
 			return fmt.Errorf("couldn't extract data according to given format: %w", err)
 		}
 
-		outBytes, err := json.Marshal(out)
+		formatted, err := formatCustomValue(out)
 		if err != nil {
 			return fmt.Errorf("error marshalling result: %w", err)
 		}
-		ResultString = string(outBytes)
-		fmt.Print(string(outBytes))
+		ResultString = formatted
+		fmt.Print(formatted)
 	}
 
 	return nil

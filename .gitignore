@@ -2,3 +2,5 @@
 dist/
 ovhcloud
 ovhcloud.wasm
+ovh.conf
+/ovhcloud

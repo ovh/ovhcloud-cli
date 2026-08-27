@@ -95,14 +95,14 @@ func (ms *MockSuite) TestBaremetalListCompatibleOSCmdNameOnlySkipsDetails(assert
 	out, err := cmd.Execute("baremetal", "list-compatible-os", "fakeBaremetal", "-o", "name")
 
 	require.CmpNoError(err)
-	assert.String(out, `"alma8-cpanel-latest_64"
-"alma8-plesk18_64"
-"alma8_64"
-"alma9-cpanel-latest_64"
-"alma9-plesk18_64"
-"alma9_64"
-"byoi_64"
-"byolinux_64"
+	assert.String(out, `alma8-cpanel-latest_64
+alma8-plesk18_64
+alma8_64
+alma9-cpanel-latest_64
+alma9-plesk18_64
+alma9_64
+byoi_64
+byolinux_64
 `)
 }
 
@@ -117,8 +117,8 @@ func (ms *MockSuite) TestBaremetalListCompatibleOSCmdFilterOnDetailFieldFetchesD
 	out, err := cmd.Execute("baremetal", "list-compatible-os", "fakeBaremetal", "-o", "name", "--filter", `category=="customer"`)
 
 	require.CmpNoError(err)
-	assert.String(out, `"byoi_64"
-"byolinux_64"
+	assert.String(out, `byoi_64
+byolinux_64
 `)
 }
 
@@ -159,8 +159,8 @@ func (ms *MockSuite) TestBaremetalListOsCmdNameOnlySkipsDetails(assert, require 
 	out, err := cmd.Execute("baremetal", "list-os", "-o", "name")
 
 	require.CmpNoError(err)
-	assert.String(out, `"alma8_64"
-"debian12_64"
+	assert.String(out, `alma8_64
+debian12_64
 `)
 }
 
@@ -174,8 +174,8 @@ func (ms *MockSuite) TestBaremetalListOsCmdFilterOnDetailFieldFetchesDetails(ass
 	out, err := cmd.Execute("baremetal", "list-os", "-o", "name", "--filter", `category=="customer"`)
 
 	require.CmpNoError(err)
-	assert.String(out, `"byoi_64"
-"byolinux_64"
+	assert.String(out, `byoi_64
+byolinux_64
 `)
 }
 

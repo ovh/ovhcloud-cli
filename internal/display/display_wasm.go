@@ -34,12 +34,12 @@ func renderCustomFormat(value any, format string) {
 				return
 			}
 
-			outBytes, err := json.Marshal(out)
+			formatted, err := formatCustomValue(out)
 			if err != nil {
 				exitError("error marshalling result")
 				return
 			}
-			ResultString = string(outBytes)
+			ResultString = formatted
 		}
 	default:
 		out, err := ev(context.Background(), value)
@@ -48,12 +48,12 @@ func renderCustomFormat(value any, format string) {
 			return
 		}
 
-		outBytes, err := json.Marshal(out)
+		formatted, err := formatCustomValue(out)
 		if err != nil {
 			exitError("error marshalling result")
 			return
 		}
-		ResultString = string(outBytes)
+		ResultString = formatted
 	}
 }
 

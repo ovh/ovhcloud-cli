@@ -67,8 +67,8 @@ func (ms *MockSuite) TestCloudReferenceRancherPlansListCmd(assert, require *td.T
 	out, err := cmd.Execute("cloud", "managed-rancher", "plan", "list", "--cloud-project", "fakeProjectID", "-o", "name")
 
 	require.CmpNoError(err)
-	assert.String(out, `"OVHCLOUD_EDITION"
-"STANDARD"
+	assert.String(out, `OVHCLOUD_EDITION
+STANDARD
 `)
 }
 
