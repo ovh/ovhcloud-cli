@@ -54,6 +54,20 @@ ovhcloud cloud instance list -o json
 - **[recipes/public-cloud.md](docs/agent-skill/recipes/public-cloud.md)** — Public Cloud workflows.
 - **[recipes/account-and-config.md](docs/agent-skill/recipes/account-and-config.md)** — auth, profiles, account, configuration.
 
+### Product skills (per-product bases)
+
+Focused entry points for the most common products — sub-resources, key verbs,
+recipes and safety notes:
+
+- **[products/cloud-instance.md](docs/agent-skill/products/cloud-instance.md)** — Public Cloud instances.
+- **[products/cloud-kubernetes.md](docs/agent-skill/products/cloud-kubernetes.md)** — Managed Kubernetes (MKS).
+- **[products/cloud-object-storage.md](docs/agent-skill/products/cloud-object-storage.md)** — Object Storage (S3).
+- **[products/cloud-block-storage.md](docs/agent-skill/products/cloud-block-storage.md)** — Block Storage volumes.
+- **[products/network.md](docs/agent-skill/products/network.md)** — Public Cloud network & vRack.
+- **[products/baremetal.md](docs/agent-skill/products/baremetal.md)** — Bare Metal (dedicated servers).
+- **[products/vps.md](docs/agent-skill/products/vps.md)** — VPS.
+- **[products/domain.md](docs/agent-skill/products/domain.md)** — Domains & DNS.
+
 > This guide stays small on purpose. It teaches the pattern and points to the
 > CLI's own `--help` (the always-up-to-date source of truth) instead of copying
 > the ~900 generated command pages.
