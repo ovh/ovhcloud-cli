@@ -5,7 +5,7 @@ Reinstall the given baremetal
 ### Synopsis
 
 Use this command to reinstall the given dedicated server.
-There are three ways to define the installation parameters:
+There are four ways to define the installation parameters:
 
 1. Using only CLI flags:
 
@@ -41,6 +41,16 @@ There are three ways to define the installation parameters:
 
 	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --editor --os debian12_64
 
+4. Using an interactive wizard:
+
+	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --wizard
+
+  The wizard asks for the operating system, then dynamically builds its installation-parameters
+  and storage questions from what that OS actually supports, so it never lets you pick an invalid
+  combination — this is more ergonomic than hand-writing a file or flags, where those mistakes
+  only surface once the API rejects the request. Once you're done, you can launch the
+  reinstallation, save the parameters to a file, or both.
+
 You can visit https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&branch=v1#post-/dedicated/server/-serviceName-/reinstall
 to see all the available parameters and real life examples.
 
@@ -73,6 +83,7 @@ ovhcloud baremetal reinstall <service_name> [flags]
       --replace                                     Replace parameters file if it already exists
       --ssh-key string                              SSH public key
       --wait                                        Wait for reinstall to be done before exiting
+      --wizard                                      Launch an interactive wizard to select installation parameters
 ```
 
 ### Options inherited from parent commands

@@ -5,6 +5,8 @@
 package cmd
 
 import (
+	"runtime"
+
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -92,7 +94,7 @@ func init() {
 		Use:   "reinstall <service_name>",
 		Short: "Reinstall the given baremetal",
 		Long: `Use this command to reinstall the given dedicated server.
-There are three ways to define the installation parameters:
+There are four ways to define the installation parameters:
 
 1. Using only CLI flags:
 
@@ -128,6 +130,16 @@ There are three ways to define the installation parameters:
 
 	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --editor --os debian12_64
 
+4. Using an interactive wizard:
+
+	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --wizard
+
+  The wizard asks for the operating system, then dynamically builds its installation-parameters
+  and storage questions from what that OS actually supports, so it never lets you pick an invalid
+  combination — this is more ergonomic than hand-writing a file or flags, where those mistakes
+  only surface once the API rejects the request. Once you're done, you can launch the
+  reinstallation, save the parameters to a file, or both.
+
 You can visit https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&branch=v1#post-/dedicated/server/-serviceName-/reinstall
 to see all the available parameters and real life examples.
 
@@ -156,6 +168,13 @@ Please note that all parameters are not compatible with all OSes.
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.SshKey, "ssh-key", "", "SSH public key")
 	reinstallBaremetalCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
 	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "from-file", "editor")
+	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
+		reinstallBaremetalCmd.Flags().BoolVar(&baremetal.ReinstallWizard, "wizard", false, "Launch an interactive wizard to select installation parameters")
+		markFlagsMutuallyExclusive(reinstallBaremetalCmd, "wizard", "from-file")
+		markFlagsMutuallyExclusive(reinstallBaremetalCmd, "wizard", "editor")
+		markFlagsMutuallyExclusive(reinstallBaremetalCmd, "wizard", "init-file")
+		markFlagsMutuallyExclusive(reinstallBaremetalCmd, "wizard", "os")
+	}
 	baremetalCmd.AddCommand(reinstallBaremetalCmd)
 
 	// List boots and their options

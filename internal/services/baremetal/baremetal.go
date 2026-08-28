@@ -54,6 +54,7 @@ var (
 	// Installation flags
 	OperatingSystem string
 	Customizations  baremetalCustomizations
+	ReinstallWizard bool
 
 	// Virtual Network Interfaces Aggregation flags
 	BaremetalOLAInterfaces []string
@@ -499,7 +500,38 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	// No server ID given, print usage and exit
 	if len(args) == 0 {
 		cmd.Help()
-		display.OutputError(&flags.OutputFormatConfig, "reinstall command requires a server ID as the first argument")
+		display.OutputError(&flags.OutputFormatConfig, "OS reinstall command requires a server ID as the first argument")
+		return
+	}
+
+	if ReinstallWizard {
+		body, launch, savedPath, err := runReinstallWizard(args[0])
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "OS reinstallation wizard failed: %s", err)
+			return
+		}
+
+		if savedPath != "" {
+			display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ OS reinstallation parameters saved to %s", savedPath)
+		}
+
+		if !launch {
+			if savedPath == "" {
+				display.OutputInfo(&flags.OutputFormatConfig, nil, "OS reinstallation on server %s cancelled", args[0])
+			}
+			return
+		}
+
+		endpoint := fmt.Sprintf("/v1/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
+
+		var task map[string]any
+		if err := httpLib.Client.Post(endpoint, body, &task); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "OS reinstallation on server %s failed: %s", args[0], err)
+			return
+		}
+
+		finishReinstall(cmd, args[0], task)
+
 		return
 	}
 
@@ -519,26 +551,30 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		assets.BaremetalOpenapiSchema,
 		[]string{"operatingSystem"})
 	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error reinstalling server: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "OS reinstallation on server %s failed: %s", args[0], err)
 		return
 	}
 
-	log.Println("⚡️ Reinstallation started…")
+	finishReinstall(cmd, args[0], task)
+}
+
+func finishReinstall(cmd *cobra.Command, serviceName string, task map[string]any) {
+	log.Printf("⚡️ OS reinstallation starting on server %s…", serviceName)
 
 	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Reinstallation is started…")
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ OS reinstallation is starting on server %s…", serviceName)
 		return
 	}
 
-	if err := waitForDedicatedServerTask(args[0], task["taskId"]); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for server to be reinstalled: %s", err)
+	if err := waitForDedicatedServerTask(serviceName, task["taskId"]); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for OS to be reinstalled on server %s: %s", serviceName, err)
 		return
 	}
 
-	log.Println("⚡️ Reinstall done, fetching new authentication secrets…")
+	log.Printf("⚡️ OS reinstall done on server %s, fetching new authentication secrets…", serviceName)
 
 	// Fetch new secrets
-	GetBaremetalAuthenticationSecrets(cmd, args)
+	GetBaremetalAuthenticationSecrets(cmd, []string{serviceName})
 }
 
 func GetBaremetalRelatedIPs(_ *cobra.Command, args []string) {
@@ -696,27 +732,40 @@ func ListBaremetalOses(_ *cobra.Command, _ []string) {
 	display.RenderTable(formattedValues, osTemplateColumns, &flags.OutputFormatConfig)
 }
 
-func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
-	path := fmt.Sprintf("/v1/dedicated/server/%s/install/compatibleTemplates", url.PathEscape(args[0]))
+// fetchCompatibleOsNames returns the (deduplicated) OVH OS template names
+// compatible with the given dedicated server.
+func fetchCompatibleOsNames(serviceName string) ([]string, error) {
+	path := fmt.Sprintf("/v1/dedicated/server/%s/install/compatibleTemplates", url.PathEscape(serviceName))
 
 	var oses map[string]any
 	if err := httpLib.Client.Get(path, &oses); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch compatible OSes: %s", err)
-		return
+		return nil, fmt.Errorf("failed to fetch compatible OSes: %w", err)
 	}
 
 	var names []string
 	seenNames := make(map[string]bool)
-	addNames := func(list []any) {
-		for _, os := range list {
-			name := os.(string)
-			if !seenNames[name] {
-				seenNames[name] = true
-				names = append(names, name)
-			}
+	for _, os := range oses["ovh"].([]any) {
+		name := os.(string)
+		if !seenNames[name] {
+			seenNames[name] = true
+			names = append(names, name)
 		}
 	}
-	addNames(oses["ovh"].([]any))
+
+	return names, nil
+}
+
+func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
+	names, err := fetchCompatibleOsNames(args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	seenNames := make(map[string]bool, len(names))
+	for _, name := range names {
+		seenNames[name] = true
+	}
 
 	var formattedValues []map[string]any
 	if osTemplateDetailsNeeded() {
@@ -732,7 +781,7 @@ func GetBaremetalCompatibleOses(_ *cobra.Command, args []string) {
 		}
 	}
 
-	formattedValues, err := filtersLib.FilterLines(formattedValues, flags.GenericFilters)
+	formattedValues, err = filtersLib.FilterLines(formattedValues, flags.GenericFilters)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
 		return
