@@ -29,6 +29,10 @@ var (
 	}
 )
 
+// HeaderKeyPrefix prefixes INI keys used to store custom HTTP headers
+// (e.g. "header.X-Routing-Key = abc123") in a profile or endpoint section.
+const HeaderKeyPrefix = "header."
+
 // currentUserHome attempts to get current user's home directory.
 func currentUserHome() (string, error) {
 	usr, err := user.Current()
@@ -164,6 +168,66 @@ func SetConfigValue(cfg *ini.File, path, sectionName, keyName, value string) err
 	return cfg.SaveTo(path)
 }
 
+// DeleteConfigValue removes a key from the given section. If sectionName is
+// empty, it is resolved via ConfigurableFields like SetConfigValue does.
+func DeleteConfigValue(cfg *ini.File, path, sectionName, keyName string) error {
+	if path == "" {
+		path = ConfigPaths[0]
+	}
+
+	if sectionName == "" {
+		sectionName = ConfigurableFields[keyName]
+		if sectionName == "" {
+			return fmt.Errorf("unknown configuration field %q", keyName)
+		}
+	}
+
+	if section := cfg.Section(sectionName); section != nil {
+		section.DeleteKey(keyName)
+	}
+
+	return cfg.SaveTo(path)
+}
+
+// GetCustomHeaders returns the custom HTTP headers configured in the given
+// section (an endpoint-named legacy section), stored as "header.<Name>" INI
+// keys. Returns an empty map if cfg is nil, sectionName is empty, or the
+// section has no such keys.
+func GetCustomHeaders(cfg *ini.File, sectionName string) map[string]string {
+	if cfg == nil || sectionName == "" {
+		return map[string]string{}
+	}
+	return customHeadersFromSection(cfg.Section(sectionName))
+}
+
+// GetProfileCustomHeaders returns the custom HTTP headers configured for the
+// given profile, stored as "header.<Name>" INI keys in its profile section.
+func GetProfileCustomHeaders(cfg *ini.File, profileName string) map[string]string {
+	if cfg == nil {
+		return map[string]string{}
+	}
+	section, err := GetProfileSection(cfg, profileName)
+	if err != nil {
+		return map[string]string{}
+	}
+	return customHeadersFromSection(section)
+}
+
+func customHeadersFromSection(section *ini.Section) map[string]string {
+	headers := map[string]string{}
+	if section == nil {
+		return headers
+	}
+
+	for _, key := range section.Keys() {
+		if name, ok := strings.CutPrefix(key.Name(), HeaderKeyPrefix); ok {
+			headers[name] = key.Value()
+		}
+	}
+
+	return headers
+}
+
 // ActiveProfileOverride is set from the --profile CLI flag by the root command's
 // PersistentPreRun. It allows GetConfigValue to respect the --profile flag without
 // the config package needing to import the flags package.
@@ -179,7 +243,7 @@ func ProfileSectionName(profileName string) string {
 }
 
 // DeleteCredentials removes the API credential keys (application_key,
-// application_secret, consumer_key) 
+// application_secret, consumer_key)
 func DeleteCredentials(cfg *ini.File, path, sectionName string) error {
 	if path == "" {
 		path = ConfigPaths[0]
@@ -353,5 +417,18 @@ func SetProfileConfigValue(cfg *ini.File, path, profileName, keyName, value stri
 	}
 
 	section.Key(keyName).SetValue(value)
+	return cfg.SaveTo(path)
+}
+
+// DeleteProfileConfigValue removes a key from a profile section.
+func DeleteProfileConfigValue(cfg *ini.File, path, profileName, keyName string) error {
+	if path == "" {
+		path = ConfigPaths[0]
+	}
+
+	if section := cfg.Section(profileSectionPrefix + profileName); section != nil {
+		section.DeleteKey(keyName)
+	}
+
 	return cfg.SaveTo(path)
 }

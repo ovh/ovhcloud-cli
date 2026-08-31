@@ -23,3 +23,21 @@ func TestLegacyEndpointArg_Region(t *testing.T) {
 	got := legacyEndpointArg("eu", "ovh-eu", false)
 	td.Cmp(t, got, "EU")
 }
+
+func TestParseHeadersInput(t *testing.T) {
+	got := parseHeadersInput("X-Routing-Key: internal-build-eu, X-Debug-Bypass=true")
+	td.Cmp(t, got, map[string]string{
+		"X-Routing-Key":  "internal-build-eu",
+		"X-Debug-Bypass": "true",
+	})
+}
+
+func TestParseHeadersInput_Blank(t *testing.T) {
+	td.Cmp(t, parseHeadersInput(""), map[string]string{})
+	td.Cmp(t, parseHeadersInput("   "), map[string]string{})
+}
+
+func TestParseHeadersInput_SkipsMalformedPairs(t *testing.T) {
+	got := parseHeadersInput("no-separator-here, X-Valid: ok, : no-name")
+	td.Cmp(t, got, map[string]string{"X-Valid": "ok"})
+}
