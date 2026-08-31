@@ -149,3 +149,9 @@ wiring) from nits (naming, ordering, style).
 12. **v2 `/v2` gotcha** — `schemaPath` and Go paths omit `/v2` while the HTTP URL uses it; the embedded v2 schema is a curated public subset (don't suggest dumping the full spec).
 13. **Docs** — if commands changed, `make doc` was run; `doc/ovhcloud.md` not committed unless a deliberate manual change.
 14. **Build/tests green** — `make build` and `go test ./...` must pass (blocker if not).
+
+## Using the `ovhcloud` CLI (agent skill)
+
+The instructions above are for *contributing to* this repo. To *use* the CLI,
+see the tool-agnostic skill in [`AGENTS.md`](../AGENTS.md) and
+[`docs/agent-skill/`](../docs/agent-skill/).
