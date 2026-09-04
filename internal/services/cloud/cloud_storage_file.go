@@ -208,8 +208,7 @@ func DeleteShare(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, task, "✅ Share %s deletion started successfully (operation ID: %s)", args[0], task["id"])
-
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s deleted successfully", args[0])
 }
 
 // ACL commands
