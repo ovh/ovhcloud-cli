@@ -1,8 +1,16 @@
 {
-  "name": "my-share",
-  "description": "My file share",
-  "size": 150,
-  "type": "standard-1az",
-  "networkId": "00000000-0000-0000-0000-000000000000",
-  "subnetId": "00000000-0000-0000-0000-000000000000"
+  "targetSpec": {
+    "name": "my-share",
+    "description": "My file share",
+    "size": 150,
+    "shareType": "STANDARD_1AZ",
+    "protocol": "NFS",
+    "location": {
+      "region": "GRA1"
+    },
+    "shareNetwork": {
+      "id": "00000000-0000-0000-0000-000000000000"
+    },
+    "subnetId": "00000000-0000-0000-0000-000000000000"
+  }
 }

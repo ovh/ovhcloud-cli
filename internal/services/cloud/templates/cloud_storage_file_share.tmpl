@@ -5,16 +5,15 @@ _{{index .Result "description"}}_
 
 ## General information
 
-**Name**:              {{index .Result "name"}}
-**Region**:            {{index .Result "region"}}
-**Availability zone**: {{index .Result "availabilityZone"}}
-**Protocol**:          {{index .Result "protocol"}}
-**Type**:              {{index .Result "type"}}
-**Status**:            {{index .Result "status"}}
-**Size**:              {{index .Result "size"}}GB
-**Public**:            {{index .Result "isPublic"}}
-**Network ID**:        {{index .Result "networkId"}}
-**Subnet ID**:         {{index .Result "subnetId"}}
+**Name**:              {{index .Result "currentState" "name"}}
+**Region**:             {{index .Result "currentState" "location" "region"}}
+{{if index .Result "currentState" "location" "availabilityZone"}}**Availability zone**:  {{index .Result "currentState" "location" "availabilityZone"}}
+{{end}}
+**Protocol**:          {{index .Result "currentState" "protocol"}}
+**Type**:              {{index .Result "currentState" "shareType"}}
+**Status**:            {{index .Result "resourceStatus"}}
+**Size**:              {{index .Result "currentState" "size"}}GB
+**Network ID**:        {{index .Result "currentState" "shareNetwork" "id"}}
 **Created at**:        {{index .Result "createdAt"}}
 
 💡 Use option -o json or -o yaml to get the raw output with all information
