@@ -29,12 +29,7 @@ var (
 		"resourceStatus status",
 	}
 	shareSnapshotColumnsToDisplay = []string{"id", "name", "shareId", "size", "status"}
-	shareACLColumnsToDisplay      = []string{
-		"id",
-		"currentState.accessLevel accessLevel",
-		"currentState.accessTo accessTo",
-		"resourceStatus status",
-	}
+	shareACLColumnsToDisplay      = []string{"id", "accessLevel", "accessTo", "accessType", "status"}
 
 	//go:embed templates/cloud_storage_file_share.tmpl
 	shareTemplate string
@@ -76,10 +71,8 @@ var (
 	}
 
 	ShareACLSpec struct {
-		TargetSpec struct {
-			AccessLevel string `json:"accessLevel,omitempty"`
-			AccessTo    string `json:"accessTo,omitempty"`
-		} `json:"targetSpec"`
+		AccessLevel string `json:"accessLevel,omitempty"`
+		AccessTo    string `json:"accessTo,omitempty"`
 	}
 
 	ShareRegion string
@@ -221,26 +214,36 @@ func DeleteShare(_ *cobra.Command, args []string) {
 // ACL commands
 
 func ListShareACLs(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	endpoint, _, err := findShare(args[0])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("%s/%s/acl", shareV2Endpoint(projectID), url.PathEscape(args[0]))
-	common.ManageListRequestNoExpand(endpoint, shareACLColumnsToDisplay, flags.GenericFilters)
+	var acls []map[string]any
+	if err := httpLib.Client.Get(endpoint+"/acl", &acls); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share ACLs: %s", err)
+		return
+	}
+
+	acls, err = filtersLib.FilterLines(acls, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(acls, shareACLColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
 func GetShareACL(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	endpoint, _, err := findShare(args[0])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("%s/%s/acl/%s", shareV2Endpoint(projectID), url.PathEscape(args[0]), url.PathEscape(args[1]))
 	var acl map[string]any
-	if err := httpLib.Client.Get(endpoint, &acl); err != nil {
+	if err := httpLib.Client.Get(fmt.Sprintf("%s/acl/%s", endpoint, url.PathEscape(args[1])), &acl); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share ACL: %s", err)
 		return
 	}
@@ -249,15 +252,14 @@ func GetShareACL(_ *cobra.Command, args []string) {
 }
 
 func CreateShareACL(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	endpoint, _, err := findShare(args[0])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("%s/%s/acl", shareV2Endpoint(projectID), url.PathEscape(args[0]))
 	var response map[string]any
-	if err := httpLib.Client.Post(endpoint, ShareACLSpec, &response); err != nil {
+	if err := httpLib.Client.Post(endpoint+"/acl", ShareACLSpec, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create share ACL: %s", err)
 		return
 	}
@@ -266,14 +268,13 @@ func CreateShareACL(_ *cobra.Command, args []string) {
 }
 
 func DeleteShareACL(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
+	endpoint, _, err := findShare(args[0])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("%s/%s/acl/%s", shareV2Endpoint(projectID), url.PathEscape(args[0]), url.PathEscape(args[1]))
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	if err := httpLib.Client.Delete(fmt.Sprintf("%s/acl/%s", endpoint, url.PathEscape(args[1])), nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete share ACL: %s", err)
 		return
 	}
