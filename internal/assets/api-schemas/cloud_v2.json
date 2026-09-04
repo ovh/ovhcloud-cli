@@ -26642,7 +26642,9 @@
                           "region": "GRA1"
                         },
                         "name": "my-share",
-                        "networkId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                        "shareNetwork": {
+                          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                        },
                         "protocol": "NFS",
                         "shareType": "STANDARD_1AZ",
                         "size": 100,
@@ -26663,7 +26665,9 @@
                           "region": "GRA1"
                         },
                         "name": "my-share",
-                        "networkId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                        "shareNetwork": {
+                          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                        },
                         "protocol": "NFS",
                         "shareType": "STANDARD_1AZ",
                         "size": 100,
