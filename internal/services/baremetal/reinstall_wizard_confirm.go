@@ -234,7 +234,7 @@ func (m *reinstallWizardModel) renderConfirmStep() string {
 		}
 
 		if labels := m.erasedDiskGroupLabels(); len(labels) > 1 {
-			content.WriteString(wizardErrorStyle.Render("⚠  All data of following groups will be erased ⚠") + "\n")
+			content.WriteString(wizardErrorStyle.Render("⚠  All data on the following disk groups will be erased ⚠") + "\n")
 			for _, label := range labels {
 				content.WriteString(wizardErrorStyle.Render("- "+label) + "\n")
 			}
@@ -242,7 +242,7 @@ func (m *reinstallWizardModel) renderConfirmStep() string {
 			content.WriteString(wizardErrorStyle.Render(fmt.Sprintf(
 				"⚠  All data on %s of server %s will be erased  ⚠", labels[0], m.serviceName)) + "\n")
 		}
-		content.WriteString(wizardErrorStyle.Render("Are you sure to continue ?") + "\n\n")
+		content.WriteString(wizardErrorStyle.Render("Are you sure you want to continue?") + "\n\n")
 	}
 
 	content.WriteString(lipgloss.JoinHorizontal(lipgloss.Center,
