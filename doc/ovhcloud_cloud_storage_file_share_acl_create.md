@@ -9,7 +9,7 @@ ovhcloud cloud storage file share acl create <share_id> [flags]
 ### Options
 
 ```
-      --access-level string   Access level (ro, rw)
+      --access-level string   Access level (READ_ONLY, READ_WRITE)
       --access-to string      Access target (IP address or CIDR)
   -h, --help                  help for create
 ```
