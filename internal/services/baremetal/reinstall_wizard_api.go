@@ -367,7 +367,7 @@ func hardwareRaidWarning(group diskGroup) string {
 	}
 
 	return fmt.Sprintf(
-		"Disk group %d has a hardware RAID controller (%s), which the OVHcloud CLI does not support configuring — it will be installed in JBOD mode instead",
+		"Disk group %d has a hardware RAID controller (%s), which the OVHcloud CLI cannot configure, so it will be installed in JBOD mode instead",
 		group.DiskGroupID, group.RaidController)
 }
 
