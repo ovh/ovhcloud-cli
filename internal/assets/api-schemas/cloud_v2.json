@@ -9573,10 +9573,19 @@
             "type": "string",
             "description": "Desired file storage name"
           },
-          "networkId": {
-            "type": "string",
-            "description": "Private network ID to attach the file storage to",
-            "format": "uuid"
+          "shareNetwork": {
+            "type": "object",
+            "description": "Share network to attach the file storage to",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Share network ID",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "id"
+            ]
           },
           "protocol": {
             "allOf": [
@@ -9607,7 +9616,7 @@
         "required": [
           "location",
           "name",
-          "networkId",
+          "shareNetwork",
           "protocol",
           "shareType",
           "size",
@@ -26340,7 +26349,9 @@
                         "region": "GRA1"
                       },
                       "name": "my-share",
-                      "networkId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                      "shareNetwork": {
+                        "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                      },
                       "protocol": "NFS",
                       "shareType": "STANDARD_1AZ",
                       "size": 100,

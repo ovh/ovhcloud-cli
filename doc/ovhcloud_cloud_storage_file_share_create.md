@@ -9,19 +9,18 @@ ovhcloud cloud storage file share create <region> [flags]
 ### Options
 
 ```
-      --availability-zone string   Availability zone (required in 3AZ regions)
-      --description string         Share description
-      --editor                     Use a text editor to define parameters
-      --from-file string           File containing parameters
-  -h, --help                       help for create
-      --init-file string           Create a file with example parameters
-      --name string                Share name
-      --network-id string          Network ID
-      --replace                    Replace parameters file if it already exists
-      --size int                   Share size in GB
-      --snapshot-id string         Snapshot ID to create the share from
-      --subnet-id string           Subnet ID
-      --type string                Share type
+      --description string        Share description
+      --editor                    Use a text editor to define parameters
+      --from-file string          File containing parameters
+  -h, --help                      help for create
+      --init-file string          Create a file with example parameters
+      --name string               Share name
+      --protocol string           Share protocol
+      --replace                   Replace parameters file if it already exists
+      --share-network-id string   Share network ID
+      --share-type string         Share type
+      --size int                  Share size in GB
+      --subnetId string           Subnet ID
 ```
 
 ### Options inherited from parent commands
