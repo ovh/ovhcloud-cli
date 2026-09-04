@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
@@ -19,7 +20,14 @@ import (
 )
 
 var (
-	shareColumnsToDisplay         = []string{"id", "name", "region", "protocol", "size", "status"}
+	shareColumnsToDisplay = []string{
+		"id",
+		"currentState.name name",
+		"currentState.location.region region",
+		"currentState.protocol type",
+		"currentState.size size",
+		"resourceStatus status",
+	}
 	shareSnapshotColumnsToDisplay = []string{"id", "name", "shareId", "size", "status"}
 	shareACLColumnsToDisplay      = []string{"id", "accessLevel", "accessTo", "accessType", "status"}
 
@@ -33,20 +41,28 @@ var (
 	ShareCreateExample string
 
 	ShareSpec struct {
-		AvailabilityZone string `json:"availabilityZone,omitempty"`
-		Description      string `json:"description,omitempty"`
-		Name             string `json:"name,omitempty"`
-		NetworkId        string `json:"networkId,omitempty"`
-		Size             int    `json:"size,omitempty"`
-		SnapshotId       string `json:"snapshotId,omitempty"`
-		SubnetId         string `json:"subnetId,omitempty"`
-		Type             string `json:"type,omitempty"`
+		TargetSpec struct {
+			Description  string `json:"description,omitempty"`
+			Name         string `json:"name,omitempty"`
+			ShareNetwork struct {
+				Id string `json:"id,omitempty"`
+			} `json:"shareNetwork,omitzero"`
+			Size      int    `json:"size,omitempty"`
+			SubnetId  string `json:"subnetId,omitempty"`
+			Protocol  string `json:"protocol,omitempty"`
+			ShareType string `json:"shareType,omitempty"`
+			Location  struct {
+				Region string `json:"region,omitempty"`
+			} `json:"location,omitzero"`
+		} `json:"targetSpec"`
 	}
 
 	ShareEditSpec struct {
-		Description string `json:"description,omitempty"`
-		Name        string `json:"name,omitempty"`
-		NewSize     int    `json:"newSize,omitempty"`
+		TargetSpec struct {
+			Description string `json:"description,omitempty"`
+			Name        string `json:"name,omitempty"`
+			Size        int    `json:"size,omitempty"`
+		} `json:"targetSpec,omitzero"`
 	}
 
 	ShareSnapshotSpec struct {
@@ -61,6 +77,10 @@ var (
 
 	ShareRegion string
 )
+
+func shareV2Endpoint(projectID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/share", projectID)
+}
 
 // getShareRegions returns a single-element slice if --region is set,
 // otherwise discovers all regions with the share feature available.
@@ -104,41 +124,17 @@ func ListShares(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	regions, err := getShareRegions(projectID)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch regions with share feature available: %s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
-	shares, err := httpLib.FetchObjectsParallel[[]map[string]any](endpoint+"/%s/share", regions, true)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch shares: %s", err)
-		return
-	}
-
-	var allShares []map[string]any
-	for _, regionShares := range shares {
-		allShares = append(allShares, regionShares...)
-	}
-
-	allShares, err = filtersLib.FilterLines(allShares, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(allShares, shareColumnsToDisplay, &flags.OutputFormatConfig)
+	common.ManageListRequestNoExpand(shareV2Endpoint(projectID), shareColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetShare(_ *cobra.Command, args []string) {
-	_, share, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	display.OutputObject(share, args[0], shareTemplate, &flags.OutputFormatConfig)
+	common.ManageObjectRequest(shareV2Endpoint(projectID), args[0], shareTemplate)
 }
 
 func CreateShare(cmd *cobra.Command, args []string) {
@@ -148,15 +144,16 @@ func CreateShare(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share", projectID, url.PathEscape(args[0]))
+	ShareSpec.TargetSpec.Location.Region = args[0]
+	endpoint := shareV2Endpoint(projectID)
 	task, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/share",
+		"/publicCloud/project/{projectId}/storage/file/share",
 		endpoint,
 		ShareCreateExample,
 		ShareSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"type"},
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -167,39 +164,51 @@ func CreateShare(cmd *cobra.Command, args []string) {
 }
 
 func EditShare(cmd *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
+	endpoint := fmt.Sprintf("%s/%s", shareV2Endpoint(projectID), url.PathEscape(args[0]))
 	if err := common.EditResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/share/{shareId}",
+		"/publicCloud/project/{projectId}/storage/file/share/{fileStorageId}",
 		endpoint,
 		ShareEditSpec,
-		assets.CloudOpenapiSchema,
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
+
+	if !flags.WaitForTask {
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(endpoint, 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for share to be ready: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Share %s is now ready", args[0])
 }
 
 func DeleteShare(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var task map[string]any
-	if err := httpLib.Client.Delete(endpoint, &task); err != nil {
+	endpoint := fmt.Sprintf("%s/%s", shareV2Endpoint(projectID), url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete share: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, task, "✅ Share %s deletion started successfully (operation ID: %s)", args[0], task["id"])
-
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Share %s deleted successfully", args[0])
 }
 
 // ACL commands
