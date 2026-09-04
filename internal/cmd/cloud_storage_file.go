@@ -48,9 +48,9 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.EditShare,
 		Args:  cobra.ExactArgs(1),
 	}
-	shareEditCmd.Flags().StringVar(&cloud.ShareEditSpec.Description, "description", "", "Share description")
-	shareEditCmd.Flags().StringVar(&cloud.ShareEditSpec.Name, "name", "", "Share name")
-	shareEditCmd.Flags().IntVar(&cloud.ShareEditSpec.NewSize, "new-size", 0, "New share size in GB")
+	shareEditCmd.Flags().StringVar(&cloud.ShareEditSpec.TargetSpec.Description, "description", "", "Share description")
+	shareEditCmd.Flags().StringVar(&cloud.ShareEditSpec.TargetSpec.Name, "name", "", "Share name")
+	shareEditCmd.Flags().IntVar(&cloud.ShareEditSpec.TargetSpec.Size, "new-size", 0, "New share size in GB")
 	addInteractiveEditorFlag(shareEditCmd)
 	shareCmd.AddCommand(shareEditCmd)
 
@@ -90,8 +90,8 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.CreateShareACL,
 		Args:  cobra.ExactArgs(1),
 	}
-	aclCreateCmd.Flags().StringVar(&cloud.ShareACLSpec.AccessLevel, "access-level", "", "Access level (ro, rw)")
-	aclCreateCmd.Flags().StringVar(&cloud.ShareACLSpec.AccessTo, "access-to", "", "Access target (IP address or CIDR)")
+	aclCreateCmd.Flags().StringVar(&cloud.ShareACLSpec.TargetSpec.AccessLevel, "access-level", "", "Access level (READ_ONLY, READ_WRITE)")
+	aclCreateCmd.Flags().StringVar(&cloud.ShareACLSpec.TargetSpec.AccessTo, "access-to", "", "Access target (IP address or CIDR)")
 	aclCmd.AddCommand(aclCreateCmd)
 
 	aclCmd.AddCommand(&cobra.Command{
@@ -151,16 +151,15 @@ func getShareCreateCmd() *cobra.Command {
 		Run:   cloud.CreateShare,
 		Args:  cobra.ExactArgs(1),
 	}
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.AvailabilityZone, "availability-zone", "", "Availability zone (required in 3AZ regions)")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Description, "description", "", "Share description")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Name, "name", "", "Share name")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.NetworkId, "network-id", "", "Network ID")
-	shareCreateCmd.Flags().IntVar(&cloud.ShareSpec.Size, "size", 0, "Share size in GB")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.SnapshotId, "snapshot-id", "", "Snapshot ID to create the share from")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.SubnetId, "subnet-id", "", "Subnet ID")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Type, "type", "", "Share type")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Description, "description", "", "Share description")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Name, "name", "", "Share name")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.ShareNetwork.Id, "share-network-id", "", "Share network ID")
+	shareCreateCmd.Flags().IntVar(&cloud.ShareSpec.TargetSpec.Size, "size", 0, "Share size in GB")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.SubnetId, "subnetId", "", "Subnet ID")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Protocol, "protocol", "", "Share protocol")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.ShareType, "share-type", "", "Share type")
 
-	addParameterFileFlags(shareCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/share", "post", cloud.ShareCreateExample, nil)
+	addParameterFileFlags(shareCreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/storage/file/share", "post", cloud.ShareCreateExample, nil)
 	addInteractiveEditorFlag(shareCreateCmd)
 	markFlagsMutuallyExclusive(shareCreateCmd, "from-file", "editor")
 
