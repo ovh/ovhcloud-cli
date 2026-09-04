@@ -29,7 +29,12 @@ var (
 		"resourceStatus status",
 	}
 	shareSnapshotColumnsToDisplay = []string{"id", "name", "shareId", "size", "status"}
-	shareACLColumnsToDisplay      = []string{"id", "accessLevel", "accessTo", "accessType", "status"}
+	shareACLColumnsToDisplay      = []string{
+		"id",
+		"currentState.accessLevel accessLevel",
+		"currentState.accessTo accessTo",
+		"resourceStatus status",
+	}
 
 	//go:embed templates/cloud_storage_file_share.tmpl
 	shareTemplate string
@@ -71,8 +76,10 @@ var (
 	}
 
 	ShareACLSpec struct {
-		AccessLevel string `json:"accessLevel,omitempty"`
-		AccessTo    string `json:"accessTo,omitempty"`
+		TargetSpec struct {
+			AccessLevel string `json:"accessLevel,omitempty"`
+			AccessTo    string `json:"accessTo,omitempty"`
+		} `json:"targetSpec"`
 	}
 
 	ShareRegion string
@@ -208,42 +215,32 @@ func DeleteShare(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s deleted successfully", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Share %s deleted successfully", args[0])
 }
 
 // ACL commands
 
 func ListShareACLs(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var acls []map[string]any
-	if err := httpLib.Client.Get(endpoint+"/acl", &acls); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share ACLs: %s", err)
-		return
-	}
-
-	acls, err = filtersLib.FilterLines(acls, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(acls, shareACLColumnsToDisplay, &flags.OutputFormatConfig)
+	endpoint := fmt.Sprintf("%s/%s/acl", shareV2Endpoint(projectID), url.PathEscape(args[0]))
+	common.ManageListRequestNoExpand(endpoint, shareACLColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetShareACL(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
+	endpoint := fmt.Sprintf("%s/%s/acl/%s", shareV2Endpoint(projectID), url.PathEscape(args[0]), url.PathEscape(args[1]))
 	var acl map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("%s/acl/%s", endpoint, url.PathEscape(args[1])), &acl); err != nil {
+	if err := httpLib.Client.Get(endpoint, &acl); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share ACL: %s", err)
 		return
 	}
@@ -252,14 +249,15 @@ func GetShareACL(_ *cobra.Command, args []string) {
 }
 
 func CreateShareACL(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
+	endpoint := fmt.Sprintf("%s/%s/acl", shareV2Endpoint(projectID), url.PathEscape(args[0]))
 	var response map[string]any
-	if err := httpLib.Client.Post(endpoint+"/acl", ShareACLSpec, &response); err != nil {
+	if err := httpLib.Client.Post(endpoint, ShareACLSpec, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create share ACL: %s", err)
 		return
 	}
@@ -268,13 +266,14 @@ func CreateShareACL(_ *cobra.Command, args []string) {
 }
 
 func DeleteShareACL(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if err := httpLib.Client.Delete(fmt.Sprintf("%s/acl/%s", endpoint, url.PathEscape(args[1])), nil); err != nil {
+	endpoint := fmt.Sprintf("%s/%s/acl/%s", shareV2Endpoint(projectID), url.PathEscape(args[0]), url.PathEscape(args[1]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete share ACL: %s", err)
 		return
 	}
