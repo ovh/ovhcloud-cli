@@ -87,6 +87,8 @@ var (
 		Engine            string   `json:"-"`
 		CLIIPRestrictions []string `json:"-"`
 		CLINodesList      []string `json:"-"`
+		CLINetworkID      string   `json:"-"`
+		CLISubnetID       string   `json:"-"`
 	}
 
 	ManagedDatabaseDatabaseSpec struct {
@@ -236,16 +238,44 @@ func EditManagedDatabase(cmd *cobra.Command, args []string) {
 		ManagedDatabaseSpec.IPRestrictions = append(ManagedDatabaseSpec.IPRestrictions, managedDatabaseIPRestriction{IP: restriction})
 	}
 
-	// Edit resource
-	if err := common.EditResource(
-		cmd,
-		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}", url.PathEscape(databaseService["engine"].(string))),
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
-		ManagedDatabaseSpec,
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
+	// Handle network update separately since networkId/subnetId are filtered
+	// out by the OpenAPI spec filter in EditResource
+	networkChanged := ManagedDatabaseSpec.CLINetworkID != "" || ManagedDatabaseSpec.CLISubnetID != ""
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]))
+
+	// Edit non-network fields through the standard flow
+	if cmd.Flags().NFlag() > 0 && (!networkChanged || cmd.Flags().NFlag() > countNetworkFlags(cmd)) {
+		if err := common.EditResource(
+			cmd,
+			fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}", url.PathEscape(databaseService["engine"].(string))),
+			endpoint,
+			ManagedDatabaseSpec,
+			assets.CloudOpenapiSchema,
+		); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
+			return
+		}
+	}
+
+	// Send network update as a direct PUT
+	if networkChanged {
+		networkBody := map[string]any{}
+		if ManagedDatabaseSpec.CLINetworkID == "none" {
+			networkBody["networkId"] = nil
+		} else if ManagedDatabaseSpec.CLINetworkID != "" {
+			networkBody["networkId"] = ManagedDatabaseSpec.CLINetworkID
+		}
+		if ManagedDatabaseSpec.CLISubnetID == "none" {
+			networkBody["subnetId"] = nil
+		} else if ManagedDatabaseSpec.CLISubnetID != "" {
+			networkBody["subnetId"] = ManagedDatabaseSpec.CLISubnetID
+		}
+		if err := httpLib.Client.Put(endpoint, networkBody, nil); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to update network: %s", err)
+			return
+		}
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Network update triggered successfully")
 	}
 }
 
@@ -276,6 +306,17 @@ func DeleteManagedDatabase(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Managed database deleted successfully")
+}
+
+func countNetworkFlags(cmd *cobra.Command) int {
+	count := 0
+	if cmd.Flags().Changed("network-id") {
+		count++
+	}
+	if cmd.Flags().Changed("subnet-id") {
+		count++
+	}
+	return count
 }
 
 func ListManagedDatabaseDatabases(_ *cobra.Command, args []string) {

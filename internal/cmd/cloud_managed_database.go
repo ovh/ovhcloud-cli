@@ -317,6 +317,21 @@ There are two ways to define the edition parameters:
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
 	ovhcloud cloud managed-database edit <service_id> --editor --description "My database cluster"
+
+Network update:
+
+  You can switch a database service between public and private networks without recreating it.
+
+  To switch from public to private network:
+
+	ovhcloud cloud managed-database edit <service_id> --network-id <private-network-uuid> --subnet-id <subnet-uuid>
+
+  To switch from private to public network:
+
+	ovhcloud cloud managed-database edit <service_id> --network-id none --subnet-id none
+
+  Note: Changing the network triggers a service rebuild. The service will be temporarily unavailable
+  during the transition.
 `,
 		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
 		Run:               cloud.EditManagedDatabase,
@@ -336,6 +351,8 @@ There are two ways to define the edition parameters:
 
 	// Network configuration
 	managedDatabaseEditCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.CLINetworkID, "network-id", "", `Private network ID (use "none" to switch to public network)`)
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.CLISubnetID, "subnet-id", "", `Private subnet ID (use "none" to switch to public network)`)
 
 	// Common flags for other mean to define parameters
 	addInteractiveEditorFlag(managedDatabaseEditCmd)
