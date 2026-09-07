@@ -6,7 +6,8 @@
     "shareType": "STANDARD_1AZ",
     "protocol": "NFS",
     "location": {
-      "region": "GRA1"
+      "region": "EU-WEST-PAR",
+      "availabilityZone": "eu-west-par-a"
     },
     "shareNetwork": {
       "id": "00000000-0000-0000-0000-000000000000"

@@ -199,7 +199,7 @@ func getShareCreateCmd() *cobra.Command {
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Name, "name", "", "Share name")
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.ShareNetwork.Id, "share-network-id", "", "Share network ID")
 	shareCreateCmd.Flags().IntVar(&cloud.ShareSpec.TargetSpec.Size, "size", 0, "Share size in GB")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.SubnetId, "subnetId", "", "Subnet ID")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Location.AvailabilityZone, "availability-zone", "", "Availability zone within the region")
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Protocol, "protocol", "", "Share protocol")
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.ShareType, "share-type", "", "Share type")
 

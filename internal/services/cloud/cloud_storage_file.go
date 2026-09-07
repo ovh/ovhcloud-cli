@@ -62,7 +62,8 @@ var (
 			Protocol  string `json:"protocol,omitempty"`
 			ShareType string `json:"shareType,omitempty"`
 			Location  struct {
-				Region string `json:"region,omitempty"`
+				AvailabilityZone string `json:"availabilityZone,omitempty"`
+				Region           string `json:"region,omitempty"`
 			} `json:"location,omitzero"`
 		} `json:"targetSpec"`
 	}
