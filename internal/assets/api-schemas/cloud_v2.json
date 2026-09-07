@@ -9526,10 +9526,17 @@
             "nullable": true,
             "readOnly": true
           },
-          "shareId": {
-            "type": "string",
-            "description": "ID of the parent file storage share",
-            "format": "uuid",
+          "share": {
+            "type": "object",
+            "description": "Parent file storage share",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "ID of the parent file storage share",
+                "format": "uuid",
+                "readOnly": true
+              }
+            },
             "readOnly": true
           },
           "shareProto": {
@@ -9546,7 +9553,7 @@
             "description": "Size of the parent share in GB at the time of the snapshot",
             "readOnly": true
           },
-          "snapshotSize": {
+          "size": {
             "type": "integer",
             "description": "Size of the snapshot in GB",
             "readOnly": true
@@ -9575,15 +9582,24 @@
             "description": "Desired snapshot name",
             "nullable": true
           },
-          "shareId": {
-            "type": "string",
-            "description": "ID of the parent file storage share",
-            "format": "uuid"
+          "share": {
+            "type": "object",
+            "description": "Parent file storage share",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "ID of the parent file storage share",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "id"
+            ]
           }
         },
         "required": [
           "location",
-          "shareId"
+          "share"
         ]
       },
       "publicCloud.storage.file.FileStorageSnapshotUpdate": {
@@ -27243,7 +27259,9 @@
                         "region": "GRA1"
                       },
                       "name": "my-share-snapshot",
-                      "shareId": "d1e2f3a4-b5c6-7890-abcd-ef1234567890"
+                      "share": {
+                        "id": "d1e2f3a4-b5c6-7890-abcd-ef1234567890"
+                      }
                     }
                   },
                   "summary": "Create a snapshot of a file storage"
@@ -27544,10 +27562,12 @@
                           "region": "GRA1"
                         },
                         "name": "my-share-snapshot",
-                        "shareId": "d1e2f3a4-b5c6-7890-abcd-ef1234567890",
+                        "share": {
+                          "id": "d1e2f3a4-b5c6-7890-abcd-ef1234567890"
+                        },
                         "shareProto": "NFS",
                         "shareSize": 100,
-                        "snapshotSize": 1
+                        "size": 1
                       },
                       "currentTasks": null,
                       "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -27558,7 +27578,9 @@
                           "region": "GRA1"
                         },
                         "name": "my-share-snapshot",
-                        "shareId": "d1e2f3a4-b5c6-7890-abcd-ef1234567890"
+                        "share": {
+                          "id": "d1e2f3a4-b5c6-7890-abcd-ef1234567890"
+                        }
                       },
                       "updatedAt": "2026-02-10T15:05:00Z"
                     },

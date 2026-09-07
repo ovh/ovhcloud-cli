@@ -176,8 +176,8 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.CreateShareSnapshot,
 		Args:  cobra.ExactArgs(1),
 	}
-	snapshotCreateCmd.Flags().StringVar(&cloud.ShareSnapshotSpec.Description, "description", "", "Snapshot description")
-	snapshotCreateCmd.Flags().StringVar(&cloud.ShareSnapshotSpec.Name, "name", "", "Snapshot name")
+	snapshotCreateCmd.Flags().StringVar(&cloud.ShareSnapshotSpec.TargetSpec.Description, "description", "", "Snapshot description")
+	snapshotCreateCmd.Flags().StringVar(&cloud.ShareSnapshotSpec.TargetSpec.Name, "name", "", "Snapshot name")
 	snapshotCmd.AddCommand(snapshotCreateCmd)
 
 	snapshotCmd.AddCommand(&cobra.Command{

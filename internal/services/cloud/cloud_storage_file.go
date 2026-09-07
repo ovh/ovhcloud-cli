@@ -12,7 +12,6 @@ import (
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
-	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
@@ -36,8 +35,14 @@ var (
 		"targetSpec.subnet.id subnetId",
 		"resourceStatus status",
 	}
-	shareSnapshotColumnsToDisplay = []string{"id", "name", "shareId", "size", "status"}
-	shareACLColumnsToDisplay      = []string{
+	shareSnapshotColumnsToDisplay = []string{
+		"id",
+		"targetSpec.name name",
+		"targetSpec.share.id shareId",
+		"targetSpec.location.region region",
+		"resourceStatus status",
+	}
+	shareACLColumnsToDisplay = []string{
 		"id",
 		"currentState.accessLevel accessLevel",
 		"currentState.accessTo accessTo",
@@ -99,8 +104,16 @@ var (
 	}
 
 	ShareSnapshotSpec struct {
-		Description string `json:"description,omitempty"`
-		Name        string `json:"name,omitempty"`
+		TargetSpec struct {
+			Description string `json:"description,omitempty"`
+			Name        string `json:"name,omitempty"`
+			Share       struct {
+				Id string `json:"id,omitempty"`
+			} `json:"share,omitzero"`
+			Location struct {
+				Region string `json:"region,omitempty"`
+			} `json:"location,omitzero"`
+		} `json:"targetSpec"`
 	}
 
 	ShareACLSpec struct {
@@ -311,6 +324,30 @@ func DeleteShare(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Share %s deleted successfully", args[0])
 }
 
+func getShareRegionV2(projectID, shareID string) (string, error) {
+	var share map[string]any
+	endpoint := fmt.Sprintf("%s/%s", shareV2Endpoint(projectID), url.PathEscape(shareID))
+	if err := httpLib.Client.Get(endpoint, &share); err != nil {
+		return "", fmt.Errorf("failed to fetch share %s: %w", shareID, err)
+	}
+
+	for _, state := range []string{"targetSpec", "currentState"} {
+		stateValue, ok := share[state].(map[string]any)
+		if !ok {
+			continue
+		}
+		location, ok := stateValue["location"].(map[string]any)
+		if !ok {
+			continue
+		}
+		if region, ok := location["region"].(string); ok && region != "" {
+			return region, nil
+		}
+	}
+
+	return "", fmt.Errorf("share %s has no region", shareID)
+}
+
 // ACL commands
 
 func ListShareACLs(_ *cobra.Command, args []string) {
@@ -377,36 +414,31 @@ func DeleteShareACL(_ *cobra.Command, args []string) {
 // Snapshot commands
 
 func ListShareSnapshots(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	var snapshots []map[string]any
-	if err := httpLib.Client.Get(endpoint+"/snapshot", &snapshots); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share snapshots: %s", err)
-		return
-	}
-
-	snapshots, err = filtersLib.FilterLines(snapshots, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(snapshots, shareSnapshotColumnsToDisplay, &flags.OutputFormatConfig)
+	filters := append([]string{}, flags.GenericFilters...)
+	filters = append(filters, fmt.Sprintf("targetSpec.share.id==%q", args[0]))
+	common.ManageListRequestNoExpand(
+		fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/snapshot", projectID),
+		shareSnapshotColumnsToDisplay,
+		filters,
+	)
 }
 
 func GetShareSnapshot(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/snapshot/%s", projectID, url.PathEscape(args[1]))
 	var snapshot map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("%s/snapshot/%s", endpoint, url.PathEscape(args[1])), &snapshot); err != nil {
+	if err := httpLib.Client.Get(endpoint, &snapshot); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share snapshot: %s", err)
 		return
 	}
@@ -415,14 +447,22 @@ func GetShareSnapshot(_ *cobra.Command, args []string) {
 }
 
 func CreateShareSnapshot(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
+	region, err := getShareRegionV2(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+	ShareSnapshotSpec.TargetSpec.Share.Id = args[0]
+	ShareSnapshotSpec.TargetSpec.Location.Region = region
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/snapshot", projectID)
 	var response map[string]any
-	if err := httpLib.Client.Post(endpoint+"/snapshot", ShareSnapshotSpec, &response); err != nil {
+	if err := httpLib.Client.Post(endpoint, ShareSnapshotSpec, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create share snapshot: %s", err)
 		return
 	}
@@ -431,13 +471,14 @@ func CreateShareSnapshot(_ *cobra.Command, args []string) {
 }
 
 func DeleteShareSnapshot(_ *cobra.Command, args []string) {
-	endpoint, _, err := findShare(args[0])
+	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if err := httpLib.Client.Delete(fmt.Sprintf("%s/snapshot/%s", endpoint, url.PathEscape(args[1])), nil); err != nil {
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/snapshot/%s", projectID, url.PathEscape(args[1]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete share snapshot: %s", err)
 		return
 	}
