@@ -1,25 +1,15 @@
-## ovhcloud cloud storage file share create
+## ovhcloud cloud storage file network delete
 
-Create a new share
+Delete a share network
 
 ```
-ovhcloud cloud storage file share create <region> [flags]
+ovhcloud cloud storage file network delete <share_network_id> [flags]
 ```
 
 ### Options
 
 ```
-      --description string         Share description
-      --editor                     Use a text editor to define parameters
-      --from-file string           File containing parameters
-  -h, --help                       help for create
-      --init-file string           Create a file with example parameters
-      --name string                Share name
-      --protocol string            Share protocol
-      --replace                    Replace parameters file if it already exists
-      --share-network-id string    Share network ID
-      --share-type string          Share type
-      --size int                   Share size in GB
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -45,5 +35,5 @@ ovhcloud cloud storage file share create <region> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share](ovhcloud_cloud_storage_file_share.md)	 - Manage file storage shares
+* [ovhcloud cloud storage file network](ovhcloud_cloud_storage_file_network.md)	 - Manage file storage share networks
 

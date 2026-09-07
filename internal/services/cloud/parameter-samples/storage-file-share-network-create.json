@@ -1,0 +1,16 @@
+{
+  "targetSpec": {
+    "description": "Share network for production",
+    "location": {
+      "region": "GRA1",
+      "availabilityZone": "eu-west-gra-a"
+    },
+    "name": "my-share-network",
+    "network": {
+      "id": "00000000-0000-0000-0000-000000000000"
+    },
+    "subnet": {
+      "id": "00000000-0000-0000-0000-000000000000"
+    }
+  }
+}

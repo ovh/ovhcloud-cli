@@ -26,6 +26,14 @@ var (
 		"currentState.location.region region",
 		"currentState.protocol type",
 		"currentState.size size",
+"resourceStatus status",
+	}
+	shareNetworkColumnsToDisplay = []string{
+		"id",
+		"targetSpec.name name",
+		"targetSpec.location.region region",
+		"targetSpec.network.id networkId",
+		"targetSpec.subnet.id subnetId",
 		"resourceStatus status",
 	}
 	shareSnapshotColumnsToDisplay = []string{"id", "name", "shareId", "size", "status"}
@@ -40,6 +48,9 @@ var (
 	//go:embed parameter-samples/storage-file-share-create.json
 	ShareCreateExample string
 
+	//go:embed parameter-samples/storage-file-share-network-create.json
+	ShareNetworkCreateExample string
+
 	ShareSpec struct {
 		TargetSpec struct {
 			Description  string `json:"description,omitempty"`
@@ -48,12 +59,28 @@ var (
 				Id string `json:"id,omitempty"`
 			} `json:"shareNetwork,omitzero"`
 			Size      int    `json:"size,omitempty"`
-			SubnetId  string `json:"subnetId,omitempty"`
 			Protocol  string `json:"protocol,omitempty"`
 			ShareType string `json:"shareType,omitempty"`
 			Location  struct {
 				Region string `json:"region,omitempty"`
 			} `json:"location,omitzero"`
+		} `json:"targetSpec"`
+	}
+
+	ShareNetworkSpec struct {
+		TargetSpec struct {
+			Description string `json:"description,omitempty"`
+			Name        string `json:"name,omitempty"`
+			Location    struct {
+				AvailabilityZone string `json:"availabilityZone,omitempty"`
+				Region           string `json:"region,omitempty"`
+			} `json:"location,omitzero"`
+			Network struct {
+				Id string `json:"id,omitempty"`
+			} `json:"network,omitzero"`
+			Subnet struct {
+				Id string `json:"id,omitempty"`
+			} `json:"subnet,omitzero"`
 		} `json:"targetSpec"`
 	}
 
@@ -80,6 +107,10 @@ var (
 
 func shareV2Endpoint(projectID string) string {
 	return fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/share", projectID)
+}
+
+func shareNetworkV2Endpoint(projectID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/storage/file/network", projectID)
 }
 
 // getShareRegions returns a single-element slice if --region is set,
@@ -125,6 +156,67 @@ func ListShares(_ *cobra.Command, _ []string) {
 	}
 
 	common.ManageListRequestNoExpand(shareV2Endpoint(projectID), shareColumnsToDisplay, flags.GenericFilters)
+}
+
+func ListShareNetworks(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageListRequestNoExpand(shareNetworkV2Endpoint(projectID), shareNetworkColumnsToDisplay, flags.GenericFilters)
+}
+
+func GetShareNetwork(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageObjectRequest(shareNetworkV2Endpoint(projectID), args[0], "")
+}
+
+func CreateShareNetwork(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	ShareNetworkSpec.TargetSpec.Location.Region = args[0]
+	resource, err := common.CreateResource(
+		cmd,
+		"/publicCloud/project/{projectId}/storage/file/network",
+		shareNetworkV2Endpoint(projectID),
+		ShareNetworkCreateExample,
+		ShareNetworkSpec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec"},
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, resource, "✅ Share network creation started successfully (id: %s)", resource["id"])
+}
+
+func DeleteShareNetwork(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := fmt.Sprintf("%s/%s", shareNetworkV2Endpoint(projectID), url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete share network: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Share network %s is being deleted", args[0])
 }
 
 func GetShare(_ *cobra.Command, args []string) {

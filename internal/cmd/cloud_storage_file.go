@@ -18,6 +18,50 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 	storageFileCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 	storageFileCmd.PersistentFlags().StringVar(&cloud.ShareRegion, "region", "", "Region (skip region discovery if set)")
 
+	networkCmd := &cobra.Command{
+		Use:   "network",
+		Short: "Manage file storage share networks",
+	}
+	storageFileCmd.AddCommand(networkCmd)
+
+	networkListCmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List share networks",
+		Run:     cloud.ListShareNetworks,
+	}
+	networkCmd.AddCommand(withFilterFlag(networkListCmd))
+
+	networkCmd.AddCommand(&cobra.Command{
+		Use:   "get <share_network_id>",
+		Short: "Get a share network",
+		Run:   cloud.GetShareNetwork,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	networkCreateCmd := &cobra.Command{
+		Use:   "create <region>",
+		Short: "Create a share network",
+		Run:   cloud.CreateShareNetwork,
+		Args:  cobra.ExactArgs(1),
+	}
+	networkCreateCmd.Flags().StringVar(&cloud.ShareNetworkSpec.TargetSpec.Description, "description", "", "Share network description")
+	networkCreateCmd.Flags().StringVar(&cloud.ShareNetworkSpec.TargetSpec.Name, "name", "", "Share network name")
+	networkCreateCmd.Flags().StringVar(&cloud.ShareNetworkSpec.TargetSpec.Location.AvailabilityZone, "availability-zone", "", "Availability zone within the region")
+	networkCreateCmd.Flags().StringVar(&cloud.ShareNetworkSpec.TargetSpec.Network.Id, "network-id", "", "Private network ID")
+	networkCreateCmd.Flags().StringVar(&cloud.ShareNetworkSpec.TargetSpec.Subnet.Id, "subnet-id", "", "Private subnet ID")
+	addParameterFileFlags(networkCreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/storage/file/network", "post", cloud.ShareNetworkCreateExample, nil)
+	addInteractiveEditorFlag(networkCreateCmd)
+	markFlagsMutuallyExclusive(networkCreateCmd, "from-file", "editor")
+	networkCmd.AddCommand(networkCreateCmd)
+
+	networkCmd.AddCommand(&cobra.Command{
+		Use:   "delete <share_network_id>",
+		Short: "Delete a share network",
+		Run:   cloud.DeleteShareNetwork,
+		Args:  cobra.ExactArgs(1),
+	})
+
 	// Share commands
 	shareCmd := &cobra.Command{
 		Use:   "share",
