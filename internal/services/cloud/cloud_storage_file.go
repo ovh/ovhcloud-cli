@@ -22,11 +22,11 @@ import (
 var (
 	shareColumnsToDisplay = []string{
 		"id",
-		"currentState.name name",
-		"currentState.location.region region",
-		"currentState.protocol type",
-		"currentState.size size",
-"resourceStatus status",
+		"targetSpec.name name",
+		"targetSpec.location.region region",
+		"targetSpec.protocol type",
+		"targetSpec.size size",
+		"resourceStatus status",
 	}
 	shareNetworkColumnsToDisplay = []string{
 		"id",
