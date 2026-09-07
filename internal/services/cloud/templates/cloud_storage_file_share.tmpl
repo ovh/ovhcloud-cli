@@ -6,7 +6,7 @@ _{{index .Result "description"}}_
 ## General information
 
 **Name**:              {{index .Result "currentState" "name"}}
-**Region**:             {{index .Result "currentState" "location" "region"}}
+**Region**:            {{index .Result "currentState" "location" "region"}}
 {{if index .Result "currentState" "location" "availabilityZone"}}**Availability zone**:  {{index .Result "currentState" "location" "availabilityZone"}}
 {{end}}
 **Protocol**:          {{index .Result "currentState" "protocol"}}
