@@ -9,7 +9,7 @@ ovhcloud cloud storage file share create <region> [flags]
 ### Options
 
 ```
-      --availability-zone string   Availability zone within the region
+      --availability-zone string   Availability zone (required in 3AZ regions)
       --description string         Share description
       --editor                     Use a text editor to define parameters
       --from-file string           File containing parameters
