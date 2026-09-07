@@ -28,7 +28,7 @@ func (ms *MockSuite) Setup(t *td.T) error {
 		return err
 	}
 
-	httplib.Client = client
+	httplib.Client = httplib.NewAPIClient(client)
 
 	return nil
 }
