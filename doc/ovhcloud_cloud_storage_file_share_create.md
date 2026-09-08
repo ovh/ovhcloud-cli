@@ -16,10 +16,10 @@ ovhcloud cloud storage file share create <region> [flags]
   -h, --help                       help for create
       --init-file string           Create a file with example parameters
       --name string                Share name
-      --protocol string            Share protocol Allowed: NFS (default "NFS")
+      --protocol string            Share protocol (default "NFS")
       --replace                    Replace parameters file if it already exists
       --share-network-id string    Share network ID
-      --share-type string          Share type Allowed: STANDARD_1AZ (default "STANDARD_1AZ")
+      --share-type string          Share type (default "STANDARD_1AZ")
       --size int                   Share size in GB
 ```
 
