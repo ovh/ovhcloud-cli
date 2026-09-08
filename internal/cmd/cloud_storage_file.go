@@ -200,8 +200,8 @@ func getShareCreateCmd() *cobra.Command {
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Name, "name", "", "Share name")
 	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.ShareNetwork.Id, "share-network-id", "", "Share network ID")
 	shareCreateCmd.Flags().IntVar(&cloud.ShareSpec.TargetSpec.Size, "size", 0, "Share size in GB")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Protocol, "protocol", "", "Share protocol")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.ShareType, "share-type", "", "Share type")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Protocol, "protocol", "NFS", "Share protocol")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.ShareType, "share-type", "STANDARD_1AZ", "Share type")
 
 	addParameterFileFlags(shareCreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/storage/file/share", "post", cloud.ShareCreateExample, nil)
 	addInteractiveEditorFlag(shareCreateCmd)
