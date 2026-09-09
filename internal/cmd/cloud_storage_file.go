@@ -136,6 +136,8 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 	}
 	aclCreateCmd.Flags().StringVar(&cloud.ShareACLSpec.TargetSpec.AccessLevel, "access-level", "", "Access level (READ_ONLY, READ_WRITE)")
 	aclCreateCmd.Flags().StringVar(&cloud.ShareACLSpec.TargetSpec.AccessTo, "access-to", "", "Access target (IP address or CIDR)")
+	aclCreateCmd.MarkFlagRequired("access-level")
+	aclCreateCmd.MarkFlagRequired("access-to")
 	aclCmd.AddCommand(aclCreateCmd)
 
 	aclCmd.AddCommand(&cobra.Command{
