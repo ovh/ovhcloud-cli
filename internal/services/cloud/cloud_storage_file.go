@@ -194,7 +194,7 @@ func CreateShareNetwork(cmd *cobra.Command, args []string) {
 		ShareNetworkCreateExample,
 		ShareNetworkSpec,
 		assets.CloudV2OpenapiSchema,
-		[]string{"targetSpec"},
+		[]string{"targetSpec.subnet.id", "targetSpec.network.id", "targetSpec.location.region", "targetSpec.name"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
