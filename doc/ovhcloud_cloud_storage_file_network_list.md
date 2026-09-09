@@ -1,26 +1,22 @@
-## ovhcloud cloud storage file share create
+## ovhcloud cloud storage file network list
 
-Create a new share
+List share networks
 
 ```
-ovhcloud cloud storage file share create <region> [flags]
+ovhcloud cloud storage file network list [flags]
 ```
 
 ### Options
 
 ```
-      --availability-zone string   Availability zone (required in 3AZ regions)
-      --description string         Share description
-      --editor                     Use a text editor to define parameters
-      --from-file string           File containing parameters
-  -h, --help                       help for create
-      --init-file string           Create a file with example parameters
-      --name string                Share name
-      --protocol string            Share protocol (default "NFS")
-      --replace                    Replace parameters file if it already exists
-      --share-network-id string    Share network ID
-      --share-type string          Share type (default "STANDARD_1AZ")
-      --size int                   Share size in GB
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -46,5 +42,5 @@ ovhcloud cloud storage file share create <region> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share](ovhcloud_cloud_storage_file_share.md)	 - Manage file storage shares
+* [ovhcloud cloud storage file network](ovhcloud_cloud_storage_file_network.md)	 - Manage file storage share networks
 

@@ -18,6 +18,50 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 	storageFileCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 	storageFileCmd.PersistentFlags().StringVar(&cloud.ShareRegion, "region", "", "Region (skip region discovery if set)")
 
+	networkCmd := &cobra.Command{
+		Use:   "network",
+		Short: "Manage file storage share networks",
+	}
+	storageFileCmd.AddCommand(networkCmd)
+
+	networkListCmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List share networks",
+		Run:     cloud.ListShareNetworks,
+	}
+	networkCmd.AddCommand(withFilterFlag(networkListCmd))
+
+	networkCmd.AddCommand(&cobra.Command{
+		Use:   "get <share_network_id>",
+		Short: "Get a share network",
+		Run:   cloud.GetShareNetwork,
+		Args:  cobra.ExactArgs(1),
+	})
+
+	networkCreateCmd := &cobra.Command{
+		Use:   "create <region>",
+		Short: "Create a share network",
+		Run:   cloud.CreateShareNetwork,
+		Args:  cobra.ExactArgs(1),
+	}
+	networkCreateCmd.Flags().StringVar(&cloud.ShareNetworkSpec.TargetSpec.Description, "description", "", "Share network description")
+	networkCreateCmd.Flags().StringVar(&cloud.ShareNetworkSpec.TargetSpec.Name, "name", "", "Share network name")
+	networkCreateCmd.Flags().StringVar(&cloud.ShareNetworkSpec.TargetSpec.Location.AvailabilityZone, "availability-zone", "", "Availability zone within the region")
+	networkCreateCmd.Flags().StringVar(&cloud.ShareNetworkSpec.TargetSpec.Network.Id, "network-id", "", "Private network ID")
+	networkCreateCmd.Flags().StringVar(&cloud.ShareNetworkSpec.TargetSpec.Subnet.Id, "subnet-id", "", "Private subnet ID")
+	addParameterFileFlags(networkCreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/storage/file/network", "post", cloud.ShareNetworkCreateExample, nil)
+	addInteractiveEditorFlag(networkCreateCmd)
+	markFlagsMutuallyExclusive(networkCreateCmd, "from-file", "editor")
+	networkCmd.AddCommand(networkCreateCmd)
+
+	networkCmd.AddCommand(&cobra.Command{
+		Use:   "delete <share_network_id>",
+		Short: "Delete a share network",
+		Run:   cloud.DeleteShareNetwork,
+		Args:  cobra.ExactArgs(1),
+	})
+
 	// Share commands
 	shareCmd := &cobra.Command{
 		Use:   "share",
@@ -48,9 +92,9 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.EditShare,
 		Args:  cobra.ExactArgs(1),
 	}
-	shareEditCmd.Flags().StringVar(&cloud.ShareEditSpec.Description, "description", "", "Share description")
-	shareEditCmd.Flags().StringVar(&cloud.ShareEditSpec.Name, "name", "", "Share name")
-	shareEditCmd.Flags().IntVar(&cloud.ShareEditSpec.NewSize, "new-size", 0, "New share size in GB")
+	shareEditCmd.Flags().StringVar(&cloud.ShareEditSpec.TargetSpec.Description, "description", "", "Share description")
+	shareEditCmd.Flags().StringVar(&cloud.ShareEditSpec.TargetSpec.Name, "name", "", "Share name")
+	shareEditCmd.Flags().IntVar(&cloud.ShareEditSpec.TargetSpec.Size, "new-size", 0, "New share size in GB")
 	addInteractiveEditorFlag(shareEditCmd)
 	shareCmd.AddCommand(shareEditCmd)
 
@@ -151,16 +195,15 @@ func getShareCreateCmd() *cobra.Command {
 		Run:   cloud.CreateShare,
 		Args:  cobra.ExactArgs(1),
 	}
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.AvailabilityZone, "availability-zone", "", "Availability zone (required in 3AZ regions)")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Description, "description", "", "Share description")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Name, "name", "", "Share name")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.NetworkId, "network-id", "", "Network ID")
-	shareCreateCmd.Flags().IntVar(&cloud.ShareSpec.Size, "size", 0, "Share size in GB")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.SnapshotId, "snapshot-id", "", "Snapshot ID to create the share from")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.SubnetId, "subnet-id", "", "Subnet ID")
-	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.Type, "type", "", "Share type")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Location.AvailabilityZone, "availability-zone", "", "Availability zone (required in 3AZ regions)")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Description, "description", "", "Share description")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Name, "name", "", "Share name")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.ShareNetwork.Id, "share-network-id", "", "Share network ID")
+	shareCreateCmd.Flags().IntVar(&cloud.ShareSpec.TargetSpec.Size, "size", 0, "Share size in GB")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.Protocol, "protocol", "NFS", "Share protocol")
+	shareCreateCmd.Flags().StringVar(&cloud.ShareSpec.TargetSpec.ShareType, "share-type", "STANDARD_1AZ", "Share type")
 
-	addParameterFileFlags(shareCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/share", "post", cloud.ShareCreateExample, nil)
+	addParameterFileFlags(shareCreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/storage/file/share", "post", cloud.ShareCreateExample, nil)
 	addInteractiveEditorFlag(shareCreateCmd)
 	markFlagsMutuallyExclusive(shareCreateCmd, "from-file", "editor")
 

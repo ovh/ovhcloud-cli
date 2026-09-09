@@ -9071,6 +9071,86 @@
           "publicKey"
         ]
       },
+      "publicCloud.storage.file.FileStorageNetwork": {
+        "type": "object",
+        "description": "A Public Cloud file storage share network",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "$ref": "#/components/schemas/common.ResourceStatusEnum",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkTargetSpec",
+            "readOnly": true
+          },
+          "currentState": {
+            "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkTargetSpec",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.file.FileStorageNetworkCreation": {
+        "type": "object",
+        "properties": {
+          "targetSpec": {
+            "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkTargetSpec"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.storage.file.FileStorageNetworkTargetSpec": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "location": {
+            "$ref": "#/components/schemas/publicCloud.common.Location"
+          },
+          "name": {
+            "type": "string"
+          },
+          "network": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "subnet": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "location",
+          "name",
+          "network",
+          "subnet"
+        ]
+      },
       "publicCloud.storage.file.FileStorage": {
         "type": "object",
         "description": "A Public Cloud file storage (NFS share)",
@@ -9573,10 +9653,19 @@
             "type": "string",
             "description": "Desired file storage name"
           },
-          "networkId": {
-            "type": "string",
-            "description": "Private network ID to attach the file storage to",
-            "format": "uuid"
+          "shareNetwork": {
+            "type": "object",
+            "description": "Share network to attach the file storage to",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Share network ID",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "id"
+            ]
           },
           "protocol": {
             "allOf": [
@@ -9597,21 +9686,15 @@
           "size": {
             "type": "integer",
             "description": "Size of the file storage in GB"
-          },
-          "subnetId": {
-            "type": "string",
-            "description": "Subnet ID within the private network",
-            "format": "uuid"
           }
         },
         "required": [
           "location",
           "name",
-          "networkId",
+          "shareNetwork",
           "protocol",
           "shareType",
-          "size",
-          "subnetId"
+          "size"
         ]
       },
       "publicCloud.storage.file.FileStorageTypeEnum": {
@@ -26231,6 +26314,160 @@
         ]
       }
     },
+    "/publicCloud/project/{projectId}/storage/file/network": {
+      "get": {
+        "summary": "List Public Cloud file storage share networks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetwork"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a Public Cloud file storage share network",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetworkCreation"
+              },
+              "examples": {
+                "Create share network": {
+                  "value": {
+                    "targetSpec": {
+                      "description": "Share network for production",
+                      "location": {
+                        "region": "GRA1"
+                      },
+                      "name": "my-share-network",
+                      "network": {
+                        "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                      },
+                      "subnet": {
+                        "id": "c3d4e5f6-a7b8-9012-cdef-234567890abc"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetwork"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/file/network/{networkId}": {
+      "get": {
+        "summary": "Get a Public Cloud file storage share network",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetwork"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a Public Cloud file storage share network",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "networkId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageNetwork"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/publicCloud/project/{projectId}/storage/file/share": {
       "get": {
         "summary": "List Public Cloud file storages",
@@ -26340,7 +26577,9 @@
                         "region": "GRA1"
                       },
                       "name": "my-share",
-                      "networkId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                      "shareNetwork": {
+                        "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                      },
                       "protocol": "NFS",
                       "shareType": "STANDARD_1AZ",
                       "size": 100,
@@ -26631,7 +26870,9 @@
                           "region": "GRA1"
                         },
                         "name": "my-share",
-                        "networkId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                        "shareNetwork": {
+                          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                        },
                         "protocol": "NFS",
                         "shareType": "STANDARD_1AZ",
                         "size": 100,
@@ -26652,7 +26893,9 @@
                           "region": "GRA1"
                         },
                         "name": "my-share",
-                        "networkId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                        "shareNetwork": {
+                          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                        },
                         "protocol": "NFS",
                         "shareType": "STANDARD_1AZ",
                         "size": 100,

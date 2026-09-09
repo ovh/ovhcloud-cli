@@ -1,26 +1,24 @@
-## ovhcloud cloud storage file share create
+## ovhcloud cloud storage file network create
 
-Create a new share
+Create a share network
 
 ```
-ovhcloud cloud storage file share create <region> [flags]
+ovhcloud cloud storage file network create <region> [flags]
 ```
 
 ### Options
 
 ```
-      --availability-zone string   Availability zone (required in 3AZ regions)
-      --description string         Share description
+      --availability-zone string   Availability zone within the region
+      --description string         Share network description
       --editor                     Use a text editor to define parameters
       --from-file string           File containing parameters
   -h, --help                       help for create
       --init-file string           Create a file with example parameters
-      --name string                Share name
-      --protocol string            Share protocol (default "NFS")
+      --name string                Share network name
+      --network-id string          Private network ID
       --replace                    Replace parameters file if it already exists
-      --share-network-id string    Share network ID
-      --share-type string          Share type (default "STANDARD_1AZ")
-      --size int                   Share size in GB
+      --subnet-id string           Private subnet ID
 ```
 
 ### Options inherited from parent commands
@@ -46,5 +44,5 @@ ovhcloud cloud storage file share create <region> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share](ovhcloud_cloud_storage_file_share.md)	 - Manage file storage shares
+* [ovhcloud cloud storage file network](ovhcloud_cloud_storage_file_network.md)	 - Manage file storage share networks
 
