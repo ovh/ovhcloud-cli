@@ -1,11 +1,27 @@
-## ovhcloud baremetal boot
+## ovhcloud baremetal boot set-disk
 
-Manage boot options for the given baremetal
+Configure the given baremetal to boot on its hard disk
+
+### Synopsis
+
+Restore the hard disk boot entry of the given dedicated server.
+
+This is the counterpart of "baremetal reboot-rescue": a server left with the
+rescue boot entry will come back in rescue mode at its next reboot, whatever
+triggers it. The change applies at the next reboot:
+
+	ovhcloud baremetal boot set-disk ns1234.ip-11.22.33.net
+	ovhcloud baremetal reboot ns1234.ip-11.22.33.net
+
+
+```
+ovhcloud baremetal boot set-disk <service_name> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for boot
+  -h, --help   help for set-disk
 ```
 
 ### Options inherited from parent commands
@@ -29,9 +45,5 @@ Manage boot options for the given baremetal
 
 ### SEE ALSO
 
-* [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
-* [ovhcloud baremetal boot list](ovhcloud_baremetal_boot_list.md)	 - List boot options for the given baremetal
-* [ovhcloud baremetal boot set](ovhcloud_baremetal_boot_set.md)	 - Configure a boot ID on the given baremetal
-* [ovhcloud baremetal boot set-disk](ovhcloud_baremetal_boot_set-disk.md)	 - Configure the given baremetal to boot on its hard disk
-* [ovhcloud baremetal boot set-script](ovhcloud_baremetal_boot_set-script.md)	 - Configure a boot script on the given baremetal
+* [ovhcloud baremetal boot](ovhcloud_baremetal_boot.md)	 - Manage boot options for the given baremetal
 
