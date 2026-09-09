@@ -435,7 +435,7 @@ func ListHostingIncidents(_ *cobra.Command, _ []string) {
 	for _, incident := range incidents {
 		rows = append(rows, map[string]any{"incident": incident})
 	}
-	display.RenderTable(rows, []string{"incident"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"incident"})
 }
 
 func GetAttachedDomain(cmd *cobra.Command, args []string) {
@@ -705,7 +705,7 @@ func ListDatabaseAvailableTypes(_ *cobra.Command, args []string) {
 		rows = append(rows, map[string]any{"type": t})
 	}
 
-	display.RenderTable(rows, []string{"type"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"type"})
 }
 
 func ListDatabaseAvailableVersions(_ *cobra.Command, args []string) {
@@ -746,7 +746,7 @@ func ListDatabaseCreationCapabilities(_ *cobra.Command, args []string) {
 		}
 	}
 
-	display.RenderTable(capabilities, []string{"type", "isolation", "available", "quotaDisplay quota", "enginesDisplay engines"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(capabilities, []string{"type", "isolation", "available", "quotaDisplay quota", "enginesDisplay engines"})
 }
 
 func GetDatabase(_ *cobra.Command, args []string) {
@@ -851,7 +851,7 @@ func ListEmailVolumes(_ *cobra.Command, args []string) {
 		}
 	}
 
-	display.RenderTable(volumes, []string{"date", "volume"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(volumes, []string{"date", "volume"})
 }
 
 func ListEmailOptions(_ *cobra.Command, args []string) {
@@ -867,7 +867,7 @@ func ListEmailOptions(_ *cobra.Command, args []string) {
 		rows = append(rows, map[string]any{"id": fmt.Sprintf("%v", id)})
 	}
 
-	display.RenderTable(rows, []string{"id"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"id"})
 }
 
 func GetEmailOption(_ *cobra.Command, args []string) {
@@ -906,7 +906,7 @@ func ListExtraSqlOptions(_ *cobra.Command, args []string) {
 		rows = append(rows, map[string]any{"id": fmt.Sprintf("%v", value)})
 	}
 
-	display.RenderTable(rows, []string{"id"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"id"})
 }
 
 func GetExtraSqlOption(_ *cobra.Command, args []string) {
@@ -926,7 +926,7 @@ func ListExtraSqlDatabases(_ *cobra.Command, args []string) {
 		rows = append(rows, map[string]any{"database": fmt.Sprintf("%v", value)})
 	}
 
-	display.RenderTable(rows, []string{"database"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"database"})
 }
 
 func GetExtraSqlServiceInfo(_ *cobra.Command, args []string) {
@@ -1198,7 +1198,7 @@ func GetDatabaseStatistics(cmd *cobra.Command, args []string) {
 		rows = append(rows, row)
 	}
 
-	display.RenderTable(rows, []string{"timestamp", "value"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"timestamp", "value"})
 }
 
 func RequestDatabaseDump(cmd *cobra.Command, args []string) {
@@ -1517,7 +1517,7 @@ func ListModuleCatalog(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	display.RenderTable(modules, []string{"id", "name", "branch", "version", "active", "latest"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(modules, []string{"id", "name", "branch", "version", "active", "latest"})
 }
 
 func GetModuleCatalog(_ *cobra.Command, args []string) {
@@ -1554,7 +1554,7 @@ func ListSupportedVcs(_ *cobra.Command, _ []string) {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "ℹ️ No VCS platform returned")
 		return
 	}
-	display.RenderTable(rows, []string{"platform"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"platform"})
 }
 
 func GetAbuseState(_ *cobra.Command, args []string) {
@@ -1874,7 +1874,15 @@ func GetOvhConfigCapabilities(_ *cobra.Command, args []string) {
 		return
 	}
 
-	payload := map[string]any{"entries": capabilities}
+	// Filtered before the wrapping, not after: what --filter selects is an
+	// entry, and once the list is inside an object there are no rows left to
+	// select from.
+	filtered, ok := common.FilteredRows(capabilities)
+	if !ok {
+		return
+	}
+
+	payload := map[string]any{"entries": filtered}
 	display.OutputObject(payload, args[0], ovhConfigCapabilitiesTemplate, &flags.OutputFormatConfig)
 }
 
@@ -2405,7 +2413,12 @@ func ListSSLAttachedDomains(_ *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch SSL certificates: %s", err)
 		return
 	}
-	payload := map[string]any{"certificates": certificates}
+	filtered, ok := common.FilteredRows(certificates)
+	if !ok {
+		return
+	}
+
+	payload := map[string]any{"certificates": filtered}
 	display.OutputObject(payload, args[0], sslResourceCertificatesTemplate, &flags.OutputFormatConfig)
 }
 
@@ -3192,7 +3205,7 @@ func ListLocalSeoAccounts(_ *cobra.Command, args []string) {
 		rows = append(rows, map[string]any{"id": fmt.Sprintf("%v", id)})
 	}
 
-	display.RenderTable(rows, []string{"id"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"id"})
 }
 
 func GetLocalSeoAccount(_ *cobra.Command, args []string) {
@@ -3222,7 +3235,7 @@ func ListLocalSeoLocations(_ *cobra.Command, args []string) {
 		rows = append(rows, map[string]any{"id": fmt.Sprintf("%v", id)})
 	}
 
-	display.RenderTable(rows, []string{"id"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, []string{"id"})
 }
 
 func GetLocalSeoLocation(_ *cobra.Command, args []string) {

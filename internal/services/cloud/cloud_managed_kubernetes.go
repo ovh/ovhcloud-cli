@@ -374,7 +374,7 @@ func ListKubeIPRestrictions(_ *cobra.Command, args []string) {
 		})
 	}
 
-	display.RenderTable(objects, []string{"ip"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(objects, []string{"ip"})
 }
 
 func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {

@@ -788,7 +788,7 @@ func ListManagedAnalyticsPermissions(_ *cobra.Command, args []string) {
 		rows[i] = map[string]any{"name": name}
 	}
 
-	display.RenderTable(rows, cloudprojectManagedAnalyticsPermissionColumnsToDisplay, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(rows, cloudprojectManagedAnalyticsPermissionColumnsToDisplay)
 }
 
 func ListManagedAnalyticsPatterns(_ *cobra.Command, args []string) {

@@ -208,7 +208,7 @@ func ListSavingsPlanOffers(cmd *cobra.Command, _ []string) {
 		}
 	}
 
-	display.RenderTable(offerList, []string{"offerId"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(offerList, []string{"offerId"})
 }
 
 // findMatchingOffer finds the appropriate offer ID based on flavor and deployment type
