@@ -1,90 +1,37 @@
-# OVHcloud CLI (`ovhcloud`) Documentation
+## ovhcloud
 
----
+CLI to manage your OVHcloud services
 
-## Overview
+### Options
 
-`ovhcloud` is a single, unified command‑line interface for managing the full range of OVHcloud products and account resources directly from your terminal. Whether you need to automate provisioning, perform quick look‑ups, or integrate OVHcloud operations into CI/CD pipelines, `ovhcloud` offers fine‑grained commands and consistent output formats (table, JSON, YAML, or custom gval expressions).
-
----
-
-## Quick Start
-
-```bash
-# Display the top‑level help
-ovhcloud --help
-
-# Log in and create API credentials (interactive)
-ovhcloud login
-
-# List your VPS instances as JSON
-ohvcloud vps list -o json
+```
+  -d, --debug            Activate debug mode (will log all HTTP requests details)
+  -h, --help             help for ovhcloud
+  -e, --ignore-errors    Ignore errors in API calls when it is not fatal to the execution
+  -o, --output string    Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
+                         Examples:
+                           --output json
+                           --output yaml
+                           --output interactive
+                           --output 'id' (to extract a single field)
+                           --output 'nested.field.subfield' (to extract a nested field)
+                           --output '[id, "name"]' (to extract multiple fields as an array)
+                           --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
+                           --output 'name+","+type' (to extract and concatenate fields in a string)
+                           --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --profile string   Use a specific profile from the configuration file
 ```
 
-Check out the [authentication page](authentication.md) for further information about the authentication means.
-
-You can manage multiple OVHcloud accounts using [profiles](profiles.md). Create a profile with `ovhcloud login --profile <name>`, switch between them with `ovhcloud config profile switch <name>`, or use `--profile <name>` on any command.
-
-### Generate Shell Completion
-
-```bash
-# Bash
-eval "$(./ovhcloud completion bash)"
-# Zsh
-eval "$(./ovhcloud completion zsh)"
-# Fish
-./ovhcloud completion fish | source
-# PowerShell
-./ovhcloud completion powershell | Out-String | Invoke-Expression
-```
-
-Add the appropriate line to your shell’s startup file (`~/.bashrc`, `~/.zshrc`, etc.) to enable persistent autocompletion.
-
----
-
-## Global Usage
-
-```text
-ovhcloud [command] [flags]
-```
-
-### Global Flags
-
-| Flag               | Description                                          |
-| ------------------ | ---------------------------------------------------- |
-| `--debug`          | Activate debug mode (logs all HTTP‑request details). |
-| `--ignore-errors`  | Ignore errors of API calls made when listing items.  |
-| `--filter <expr>`  | Filter lists output with a [gval] expression.        |
-| `-h`, `--help`     | Display help for `ovhcloud` or a specific command.   |
-| `-o interactive`   | Produce interactive (prompt‑based) output.           |
-| `-o json`          | Output data in JSON format.                          |
-| `-o yaml`          | Output data in YAML format.                          |
-| `-o <expr>`        | Format output with a [gval] expression.              |
-
-[gval]: https://github.com/PaesslerAG/gval
-
-#### Filtering examples
-
-- Strict string equality: `--filter 'name=="something"'`
-- String regexp comparison: `--filter 'name=~"something"'`
-- Number comparison: `--filter 'bootId > 1'`
-
-#### Formatting example
-
-- Extract only one field: `-o 'ip'`
-- Extract an object: `-o '{name: ip}'`
-
----
-
-## Command Reference
-
-Below is the full list of primary sub‑commands available at the time of writing. Each can be explored in depth with `ovhcloud <command> --help`.
+### SEE ALSO
 
 * [ovhcloud account](ovhcloud_account.md)	 - Manage your account
 * [ovhcloud alldom](ovhcloud_alldom.md)	 - Retrieve information and manage your AllDom services
+* [ovhcloud api](ovhcloud_api.md)	 - Call the OVHcloud API directly
 * [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
+* [ovhcloud browser](ovhcloud_browser.md)	 - Launch a TUI for the OVHcloud Manager - Public Cloud universe only [EXPERIMENTAL]
 * [ovhcloud cdn-dedicated](ovhcloud_cdn-dedicated.md)	 - Retrieve information and manage your dedicated CDN services
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
+* [ovhcloud completion](ovhcloud_completion.md)	 - Generate shell completion scripts
 * [ovhcloud config](ovhcloud_config.md)	 - Manage your CLI configuration
 * [ovhcloud dedicated-ceph](ovhcloud_dedicated-ceph.md)	 - Retrieve information and manage your Dedicated Ceph services
 * [ovhcloud dedicated-cloud](ovhcloud_dedicated-cloud.md)	 - Retrieve information and manage your DedicatedCloud services
@@ -113,6 +60,7 @@ Below is the full list of primary sub‑commands available at the time of writin
 * [ovhcloud storage-netapp](ovhcloud_storage-netapp.md)	 - Retrieve information and manage your Storage NetApp services
 * [ovhcloud support-tickets](ovhcloud_support-tickets.md)	 - Retrieve information and manage your support tickets
 * [ovhcloud telephony](ovhcloud_telephony.md)	 - Retrieve information and manage your Telephony services
+* [ovhcloud upgrade](ovhcloud_upgrade.md)	 - Upgrade OVHcloud CLI to the latest version
 * [ovhcloud veeamcloudconnect](ovhcloud_veeamcloudconnect.md)	 - Retrieve information and manage your VeeamCloudConnect services
 * [ovhcloud veeamenterprise](ovhcloud_veeamenterprise.md)	 - Retrieve information and manage your VeeamEnterprise services
 * [ovhcloud version](ovhcloud_version.md)	 - Get OVHcloud CLI version
@@ -124,30 +72,3 @@ Below is the full list of primary sub‑commands available at the time of writin
 * [ovhcloud webhosting](ovhcloud_webhosting.md)	 - Retrieve information and manage your WebHosting services
 * [ovhcloud xdsl](ovhcloud_xdsl.md)	 - Retrieve information and manage your XDSL services
 
-> **Tip**  Use `-o json`, `-o yaml`, or `-o <format>` with a gval expression to integrate `ovhcloud` into scripts and automation pipelines.
-
----
-
-## Examples
-
-| Task                                  | Command                                        |
-| ------------------------------------- | ---------------------------------------------- |
-| Log in and save credentials           | `ovhcloud login`                                |
-| List VPS instances (tabular)          | `ovhcloud vps list`                             |
-| Fetch details of a single VPS in JSON | `ovhcloud vps get <service_id> -o json`          |
-| Reinstall a baremetal interactively   | `ovhcloud baremetal reinstall <id> --editor`    |
-
----
-
-## Troubleshooting
-
-* **Verbose output** — Use `--debug` to inspect raw API calls and responses.
-* **Authentication issues** — Run `ovhcloud login` again to regenerate valid API keys.
-* **Rate limits** — OVHcloud APIs impose rate limits; plan retries or exponential backoff in scripts.
-
----
-
-## Further Reading
-
-* OVHcloud API reference: [https://eu.api.ovh.com/console](https://eu.api.ovh.com/console)
-* OVHcloud community guides and tutorials.

@@ -27,6 +27,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/openapi"
+	"github.com/ovh/ovhcloud-cli/internal/services/apicall"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
@@ -3430,71 +3431,12 @@ func ConfirmTermination(cmd *cobra.Command, args []string) {
 }
 
 // Generic API call for advanced cases
+// CallWebHostingAPI is kept so that `ovhcloud webhosting api call` continues to
+// work. It never restricted the path to /hosting/web, which made it the CLI's
+// only generic escape hatch, filed under a product it had nothing to do with.
+// `ovhcloud api call` is that escape hatch, named for what it does.
 func CallWebHostingAPI(cmd *cobra.Command, args []string) {
-	method := strings.ToUpper(args[0])
-	path := args[1]
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
-	if !strings.HasPrefix(path, "/v1/") {
-		path = "/v1" + path
-	}
-
-	var (
-		body   any
-		result any
-	)
-
-	if method == "POST" || method == "PUT" {
-		// Prepare payload from file or editor, if provided
-		if flags.ParametersFile != "" {
-			content, err := os.ReadFile(flags.ParametersFile)
-			if err != nil {
-				display.OutputError(&flags.OutputFormatConfig, "failed to read parameters file: %s", err)
-				return
-			}
-			if err := json.Unmarshal(content, &body); err != nil {
-				display.OutputError(&flags.OutputFormatConfig, "failed to parse parameters file: %s", err)
-				return
-			}
-		} else if flags.ParametersViaEditor {
-			edited, err := editor.EditValueWithEditor([]byte("{}"))
-			if err != nil {
-				display.OutputError(&flags.OutputFormatConfig, "failed to edit payload: %s", err)
-				return
-			}
-			if err := json.Unmarshal(edited, &body); err != nil {
-				display.OutputError(&flags.OutputFormatConfig, "failed to parse edited payload: %s", err)
-				return
-			}
-		}
-	}
-
-	var err error
-	switch method {
-	case "GET":
-		err = httpLib.Client.Get(path, &result)
-	case "POST":
-		err = httpLib.Client.Post(path, body, &result)
-	case "PUT":
-		err = httpLib.Client.Put(path, body, &result)
-	case "DELETE":
-		err = httpLib.Client.Delete(path, &result)
-	default:
-		display.OutputError(&flags.OutputFormatConfig, "unsupported method %s", method)
-		return
-	}
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "request failed: %s", err)
-		return
-	}
-
-	if result != nil {
-		renderDetails(result)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Request completed")
+	apicall.CallWrappingResult(cmd, args)
 }
 
 var errNothingToEdit = errors.New("nothing to edit")
