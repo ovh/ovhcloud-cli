@@ -1,16 +1,15 @@
 🚀 Share Snapshot {{.ServiceName}}
 =======
+{{$state := index .Result "targetSpec"}}{{with index .Result "currentState"}}{{$state = .}}{{end}}
+{{with index $state "description"}}_{{.}}_
 
-_{{index .Result "description"}}_
+{{end}}## General information
 
-## General information
-
-**Name**:           {{index .Result "currentState" "name"}}
-**Share ID**:       {{index .Result "currentState" "share" "id"}}
-**Share protocol**: {{index .Result "currentState" "shareProto"}}
-**Share size**:     {{index .Result "currentState" "shareSize"}}GB
-**Size**:           {{index .Result "currentState" "snapshotSize"}}GB
-**Status**:         {{index .Result "resourceStatus"}}
-**Created at**:     {{index .Result "createdAt"}}
+{{with index $state "name"}}**Name**:       {{.}}
+{{end}}**Share ID**:   {{index $state "share" "id"}}
+**Status**:     {{index .Result "resourceStatus"}}
+{{with index .Result "currentState"}}**Region**:     {{index . "location" "region"}}
+**Size**:       {{index . "size"}}GB
+{{end}}**Created at**: {{index .Result "createdAt"}}
 
 💡 Use option -o json or -o yaml to get the raw output with all information

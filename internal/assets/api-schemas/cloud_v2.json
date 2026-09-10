@@ -9539,20 +9539,6 @@
             },
             "readOnly": true
           },
-          "shareProto": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageProtocolEnum"
-              }
-            ],
-            "description": "File sharing protocol of the parent share",
-            "readOnly": true
-          },
-          "shareSize": {
-            "type": "integer",
-            "description": "Size of the parent share in GB at the time of the snapshot",
-            "readOnly": true
-          },
           "size": {
             "type": "integer",
             "description": "Size of the snapshot in GB",
@@ -9568,14 +9554,6 @@
             "type": "string",
             "description": "Description of the snapshot",
             "nullable": true
-          },
-          "location": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/publicCloud.common.Location"
-              }
-            ],
-            "description": "Location of the snapshot"
           },
           "name": {
             "type": "string",
@@ -9598,7 +9576,6 @@
           }
         },
         "required": [
-          "location",
           "share"
         ]
       },
@@ -27255,9 +27232,6 @@
                   "value": {
                     "targetSpec": {
                       "description": "Daily backup snapshot",
-                      "location": {
-                        "region": "GRA1"
-                      },
                       "name": "my-share-snapshot",
                       "share": {
                         "id": "d1e2f3a4-b5c6-7890-abcd-ef1234567890"
@@ -27565,8 +27539,6 @@
                         "share": {
                           "id": "d1e2f3a4-b5c6-7890-abcd-ef1234567890"
                         },
-                        "shareProto": "NFS",
-                        "shareSize": 100,
                         "size": 1
                       },
                       "currentTasks": null,
@@ -27574,9 +27546,6 @@
                       "resourceStatus": "READY",
                       "targetSpec": {
                         "description": "Daily backup snapshot",
-                        "location": {
-                          "region": "GRA1"
-                        },
                         "name": "my-share-snapshot",
                         "share": {
                           "id": "d1e2f3a4-b5c6-7890-abcd-ef1234567890"
