@@ -7,7 +7,6 @@ Manage file storage shares in the given cloud project
 ```
       --cloud-project string   Cloud project ID
   -h, --help                   help for file
-      --region string          Region (skip region discovery if set)
 ```
 
 ### Options inherited from parent commands

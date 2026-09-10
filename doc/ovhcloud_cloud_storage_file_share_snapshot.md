@@ -26,7 +26,6 @@ Manage share snapshots
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Region (skip region discovery if set)
 ```
 
 ### SEE ALSO
@@ -34,6 +33,7 @@ Manage share snapshots
 * [ovhcloud cloud storage file share](ovhcloud_cloud_storage_file_share.md)	 - Manage file storage shares
 * [ovhcloud cloud storage file share snapshot create](ovhcloud_cloud_storage_file_share_snapshot_create.md)	 - Create a snapshot of the given share
 * [ovhcloud cloud storage file share snapshot delete](ovhcloud_cloud_storage_file_share_snapshot_delete.md)	 - Delete a snapshot from the given share
+* [ovhcloud cloud storage file share snapshot edit](ovhcloud_cloud_storage_file_share_snapshot_edit.md)	 - Edit a snapshot of the given share
 * [ovhcloud cloud storage file share snapshot get](ovhcloud_cloud_storage_file_share_snapshot_get.md)	 - Get a specific snapshot for the given share
 * [ovhcloud cloud storage file share snapshot list](ovhcloud_cloud_storage_file_share_snapshot_list.md)	 - List snapshots for the given share
 
