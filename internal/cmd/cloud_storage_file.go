@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +17,6 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 		Short: "Manage file storage shares in the given cloud project",
 	}
 	storageFileCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
-	storageFileCmd.PersistentFlags().StringVar(&cloud.ShareRegion, "region", "", "Region (skip region discovery if set)")
 
 	networkCmd := &cobra.Command{
 		Use:   "network",
@@ -176,9 +176,25 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.CreateShareSnapshot,
 		Args:  cobra.ExactArgs(1),
 	}
-	snapshotCreateCmd.Flags().StringVar(&cloud.ShareSnapshotSpec.Description, "description", "", "Snapshot description")
-	snapshotCreateCmd.Flags().StringVar(&cloud.ShareSnapshotSpec.Name, "name", "", "Snapshot name")
+	snapshotCreateCmd.Flags().StringVar(&cloud.ShareSnapshotSpec.TargetSpec.Description, "description", "", "Snapshot description")
+	snapshotCreateCmd.Flags().StringVar(&cloud.ShareSnapshotSpec.TargetSpec.Name, "name", "", "Snapshot name")
+	snapshotCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the snapshot to be ready before exiting")
+	addParameterFileFlags(snapshotCreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/storage/file/snapshot", "post", cloud.ShareSnapshotCreateExample, nil)
+	addInteractiveEditorFlag(snapshotCreateCmd)
+	markFlagsMutuallyExclusive(snapshotCreateCmd, "from-file", "editor")
 	snapshotCmd.AddCommand(snapshotCreateCmd)
+
+	snapshotEditCmd := &cobra.Command{
+		Use:   "edit <share_id> <snapshot_id>",
+		Short: "Edit a snapshot of the given share",
+		Run:   cloud.EditShareSnapshot,
+		Args:  cobra.ExactArgs(2),
+	}
+	snapshotEditCmd.Flags().StringVar(&cloud.ShareSnapshotEditSpec.TargetSpec.Description, "description", "", "Snapshot description")
+	snapshotEditCmd.Flags().StringVar(&cloud.ShareSnapshotEditSpec.TargetSpec.Name, "name", "", "Snapshot name")
+	snapshotEditCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the snapshot to be ready before exiting")
+	addInteractiveEditorFlag(snapshotEditCmd)
+	snapshotCmd.AddCommand(snapshotEditCmd)
 
 	snapshotCmd.AddCommand(&cobra.Command{
 		Use:   "delete <share_id> <snapshot_id>",

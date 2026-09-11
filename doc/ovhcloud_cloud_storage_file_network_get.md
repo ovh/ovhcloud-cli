@@ -30,7 +30,6 @@ ovhcloud cloud storage file network get <share_network_id> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Region (skip region discovery if set)
 ```
 
 ### SEE ALSO
