@@ -30,9 +30,10 @@ Network update:
 
   To switch from private to public network:
 
-	ovhcloud cloud managed-database edit <service_id> --network-id none --subnet-id none
+	ovhcloud cloud managed-database edit <service_id> --public-network
 
-  Note: Changing the network triggers a service rebuild. The service will be temporarily unavailable
+  Note: --public-network is mutually exclusive with --network-id and --subnet-id.
+  Changing the network triggers a service rebuild. The service will be temporarily unavailable
   during the transition.
 
 
@@ -53,9 +54,10 @@ ovhcloud cloud managed-database edit <service_id> [flags]
   -h, --help                      help for edit
       --ip-restrictions strings   IP blocks authorized to access the cluster (CIDR format)
       --maintenance-time string   Time on which maintenances can start every day
-      --network-id string         Private network ID (use "none" to switch to public network)
+      --network-id string         Private network ID
       --plan string               Plan of the cluster
-      --subnet-id string          Private subnet ID (use "none" to switch to public network)
+      --public-network            Switch the service to public network
+      --subnet-id string          Private subnet ID
       --version string            Version of the engine deployed on the cluster
 ```
 
