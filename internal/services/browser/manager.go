@@ -9,6 +9,7 @@ package browser
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -17,19 +18,18 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"math"
 
+	"github.com/NimbleMarkets/ntcharts/linechart/timeserieslinechart"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/NimbleMarkets/ntcharts/linechart/timeserieslinechart"
 	"github.com/ovh/ovhcloud-cli/internal/config"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/services/browser/views"
 	block_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/block_storage"
 	file_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/file_storage"
 	object_storage "github.com/ovh/ovhcloud-cli/internal/services/browser/views/object_storage"
-	"github.com/ovh/ovhcloud-cli/internal/services/browser/views"
 	"github.com/spf13/cobra"
 )
 
@@ -113,14 +113,14 @@ const (
 
 const (
 	// File Storage wizard steps (offset by 400)
-	FileWizardStepName    WizardStep = iota + 400
+	FileWizardStepName WizardStep = iota + 400
 	FileWizardStepRegion
 	FileWizardStepType
 	FileWizardStepSize
 	FileWizardStepNetwork
 	FileWizardStepConfirm
 
-	ObjectWizardStepName        WizardStep = iota + 500
+	ObjectWizardStepName WizardStep = iota + 500
 	ObjectWizardStepType
 	ObjectWizardStepRegion
 	ObjectWizardStepReplication
@@ -149,14 +149,14 @@ const (
 
 const (
 	// Private Network wizard steps (offset by 800)
-	PrivNetWizardStepRegion  WizardStep = iota + 800 // choose location
-	PrivNetWizardStepName                            // network name
-	PrivNetWizardStepVlanID                          // VLAN ID (layer 2 option)
-	PrivNetWizardStepSubnet                          // configure subnet CIDR
-	PrivNetWizardStepDHCP                            // DHCP distribution options
-	PrivNetWizardStepAllocPool                       // IP allocation pool (start/end)
-	PrivNetWizardStepGateway                         // gateway options
-	PrivNetWizardStepConfirm                         // confirm
+	PrivNetWizardStepRegion    WizardStep = iota + 800 // choose location
+	PrivNetWizardStepName                              // network name
+	PrivNetWizardStepVlanID                            // VLAN ID (layer 2 option)
+	PrivNetWizardStepSubnet                            // configure subnet CIDR
+	PrivNetWizardStepDHCP                              // DHCP distribution options
+	PrivNetWizardStepAllocPool                         // IP allocation pool (start/end)
+	PrivNetWizardStepGateway                           // gateway options
+	PrivNetWizardStepConfirm                           // confirm
 )
 
 const (
@@ -169,11 +169,11 @@ const (
 
 const (
 	// Load Balancer wizard steps (offset by 1000)
-	LBWizardStepName   WizardStep = iota + 1000 // enter name
-	LBWizardStepRegion                          // select region
-	LBWizardStepFlavor                          // select size/flavor
-	LBWizardStepNetwork                         // select private network (optional)
-	LBWizardStepConfirm                         // confirm + create
+	LBWizardStepName    WizardStep = iota + 1000 // enter name
+	LBWizardStepRegion                           // select region
+	LBWizardStepFlavor                           // select size/flavor
+	LBWizardStepNetwork                          // select private network (optional)
+	LBWizardStepConfirm                          // confirm + create
 )
 
 const (
@@ -222,35 +222,35 @@ const (
 
 const (
 	// L7 Rule wizard steps (offset by 1600)
-	LBL7RuleWizardStepType       WizardStep = iota + 1600 // select rule type
-	LBL7RuleWizardStepCompare                             // select comparison type
-	LBL7RuleWizardStepKey                                 // enter key (optional)
-	LBL7RuleWizardStepValue                               // enter value
-	LBL7RuleWizardStepInvert                              // toggle invert
-	LBL7RuleWizardStepConfirm                             // confirm + create
+	LBL7RuleWizardStepType    WizardStep = iota + 1600 // select rule type
+	LBL7RuleWizardStepCompare                          // select comparison type
+	LBL7RuleWizardStepKey                              // enter key (optional)
+	LBL7RuleWizardStepValue                            // enter value
+	LBL7RuleWizardStepInvert                           // toggle invert
+	LBL7RuleWizardStepConfirm                          // confirm + create
 )
 
 const (
 	// LB Member wizard steps (offset by 1700)
 	LBMemberWizardStepName    WizardStep = iota + 1700 // enter member name
-	LBMemberWizardStepIP                              // enter IP address
-	LBMemberWizardStepPort                            // enter protocol port
-	LBMemberWizardStepWeight                          // enter weight
-	LBMemberWizardStepConfirm                         // confirm + save
+	LBMemberWizardStepIP                               // enter IP address
+	LBMemberWizardStepPort                             // enter protocol port
+	LBMemberWizardStepWeight                           // enter weight
+	LBMemberWizardStepConfirm                          // confirm + save
 )
 
 const (
 	// LB Health Monitor wizard steps (offset by 1800)
-	LBHMWizardStepName          WizardStep = iota + 1800 // enter name
-	LBHMWizardStepType                                   // select monitor type
-	LBHMWizardStepHttpMethod                             // select HTTP method (http/https only)
-	LBHMWizardStepUrlPath                                // enter URL path (http/https only)
-	LBHMWizardStepExpectedCodes                          // enter expected HTTP codes (http/https only)
-	LBHMWizardStepDelay                                  // enter delay (seconds)
-	LBHMWizardStepMaxRetries                             // enter max retries
-	LBHMWizardStepMaxRetriesDown                         // enter max retries down
-	LBHMWizardStepTimeout                                // enter timeout
-	LBHMWizardStepConfirm                                // confirm + save
+	LBHMWizardStepName           WizardStep = iota + 1800 // enter name
+	LBHMWizardStepType                                    // select monitor type
+	LBHMWizardStepHttpMethod                              // select HTTP method (http/https only)
+	LBHMWizardStepUrlPath                                 // enter URL path (http/https only)
+	LBHMWizardStepExpectedCodes                           // enter expected HTTP codes (http/https only)
+	LBHMWizardStepDelay                                   // enter delay (seconds)
+	LBHMWizardStepMaxRetries                              // enter max retries
+	LBHMWizardStepMaxRetriesDown                          // enter max retries down
+	LBHMWizardStepTimeout                                 // enter timeout
+	LBHMWizardStepConfirm                                 // confirm + save
 )
 
 const (
@@ -302,19 +302,19 @@ const (
 	ProductNetworkGateway // Gateways (sub-nav)
 	ProductNetworkLB      // Load Balancers (sub-nav)
 	ProductProjects
-	ProductCompute         // Compute top-level nav
-	ProductInstanceBackup  // Instance Backup (compute sub-nav)
-	ProductWorkflow        // Workflow (compute sub-nav)
+	ProductCompute        // Compute top-level nav
+	ProductInstanceBackup // Instance Backup (compute sub-nav)
+	ProductWorkflow       // Workflow (compute sub-nav)
 )
 
 // WizardData holds the state for the creation wizard
 type WizardData struct {
 	step               WizardStep
-	regions            []map[string]interface{}
-	flavors            []map[string]interface{}
-	images             []map[string]interface{}
-	sshKeys            []map[string]interface{}
-	privateNetworks    []map[string]interface{}
+	regions            []map[string]any
+	flavors            []map[string]any
+	images             []map[string]any
+	sshKeys            []map[string]any
+	privateNetworks    []map[string]any
 	selectedIndex      int    // Current selection index in the list
 	selectedRegion     string // Selected region code
 	selectedFlavor     string // Selected flavor ID
@@ -348,17 +348,17 @@ type WizardData struct {
 	newNetworkDHCP     bool   // Enable DHCP for the subnet
 	networkCreateField int    // 0 = name, 1 = VLAN ID, 2 = CIDR, 3 = DHCP, 4 = Create/Cancel
 	// Floating IP fields (for private network without public network)
-	floatingIPs               []map[string]interface{} // Available floating IPs
-	selectedFloatingIP        string                   // Selected floating IP ID (empty = none, "__create_new__" = create)
-	selectedFloatingIPAddress string                   // Selected floating IP address for display
-	createdInstanceId         string                   // ID of the created instance (for floating IP attachment)
-	createdInstanceName       string                   // Name of the created instance (for display)
+	floatingIPs               []map[string]any // Available floating IPs
+	selectedFloatingIP        string           // Selected floating IP ID (empty = none, "__create_new__" = create)
+	selectedFloatingIPAddress string           // Selected floating IP address for display
+	createdInstanceId         string           // ID of the created instance (for floating IP attachment)
+	createdInstanceName       string           // Name of the created instance (for display)
 	// Filter for wizard lists
 	filterMode  bool   // Whether filter input mode is active in wizard
 	filterInput string // Current filter input text for wizard lists
 	// Cleanup tracking - IDs of resources created during wizard
-	createdSSHKeyId     string // ID of SSH key created during wizard
-	
+	createdSSHKeyId string // ID of SSH key created during wizard
+
 	createdNetworkId    string // ID of network created during wizard
 	createdSubnetId     string // ID of subnet created during wizard
 	createdGatewayId    string // ID of gateway created during wizard
@@ -367,45 +367,45 @@ type WizardData struct {
 	cleanupPending bool   // Whether we're waiting for cleanup confirmation
 	cleanupError   string // Error message that triggered cleanup prompt
 	// Kubernetes wizard fields
-	kubeRegions             []string                 // Available regions for K8s
-	kubeVersions            []string                 // Available K8s versions
-	kubeNetworks            []map[string]interface{} // Private networks
-	kubeSubnets             []map[string]interface{} // Subnets for selected network
-	kubeLBSubnets           []map[string]interface{} // Subnets for load balancers
-	selectedKubeRegion      string                   // Selected region
-	selectedKubeVersion     string                   // Selected K8s version
-	selectedKubeNetwork     string                   // Selected private network ID
-	selectedKubeNetworkName string                   // Selected private network name
-	selectedNodesSubnet     string                   // Selected nodes subnet ID
-	selectedNodesSubnetCIDR string                   // Selected nodes subnet CIDR
-	selectedLBSubnet        string                   // Selected LB subnet ID (empty = same as nodes)
-	selectedLBSubnetCIDR    string                   // Selected LB subnet CIDR
-	kubeName                string                   // Cluster name
-	kubeNameInput           string                   // Current input buffer for name
-	kubePlan                string                   // "free" or "standard"
-	kubeUpdatePolicy        string                   // Update policy
-	kubeProxyMode           string                   // "iptables" or "ipvs"
-	kubePrivateRouting      bool                     // Use private routing as default
-	kubeGatewayIP           string                   // vRack gateway IP
-	kubeGatewayIPInput      string                   // Current input for gateway IP
-	kubeOptionsFieldIndex   int                      // Current field in options step (0-3: plan, policy, proxy, routing flag, 4: gateway IP, 5: buttons)
-	kubeConfirmButtonIndex  int                      // 0 = Cancel, 1 = Create
-	kubeSubnetMenuIndex     int                      // 0 = nodes subnet, 1 = LB subnet selection
+	kubeRegions             []string         // Available regions for K8s
+	kubeVersions            []string         // Available K8s versions
+	kubeNetworks            []map[string]any // Private networks
+	kubeSubnets             []map[string]any // Subnets for selected network
+	kubeLBSubnets           []map[string]any // Subnets for load balancers
+	selectedKubeRegion      string           // Selected region
+	selectedKubeVersion     string           // Selected K8s version
+	selectedKubeNetwork     string           // Selected private network ID
+	selectedKubeNetworkName string           // Selected private network name
+	selectedNodesSubnet     string           // Selected nodes subnet ID
+	selectedNodesSubnetCIDR string           // Selected nodes subnet CIDR
+	selectedLBSubnet        string           // Selected LB subnet ID (empty = same as nodes)
+	selectedLBSubnetCIDR    string           // Selected LB subnet CIDR
+	kubeName                string           // Cluster name
+	kubeNameInput           string           // Current input buffer for name
+	kubePlan                string           // "free" or "standard"
+	kubeUpdatePolicy        string           // Update policy
+	kubeProxyMode           string           // "iptables" or "ipvs"
+	kubePrivateRouting      bool             // Use private routing as default
+	kubeGatewayIP           string           // vRack gateway IP
+	kubeGatewayIPInput      string           // Current input for gateway IP
+	kubeOptionsFieldIndex   int              // Current field in options step (0-3: plan, policy, proxy, routing flag, 4: gateway IP, 5: buttons)
+	kubeConfirmButtonIndex  int              // 0 = Cancel, 1 = Create
+	kubeSubnetMenuIndex     int              // 0 = nodes subnet, 1 = LB subnet selection
 	// Node pool wizard fields
-	nodePoolClusterId       string                   // Cluster ID to add node pool to
-	nodePoolFlavors         []map[string]interface{} // Available flavors for node pool
-	nodePoolName            string                   // Node pool name
-	nodePoolNameInput       string                   // Input buffer for name
-	nodePoolFlavorName      string                   // Selected flavor name
-	nodePoolDesiredNodes    int                      // Desired number of nodes
-	nodePoolMinNodes        int                      // Minimum nodes (for autoscale)
-	nodePoolMaxNodes        int                      // Maximum nodes (for autoscale)
-	nodePoolAutoscale       bool                     // Enable autoscaling
-	nodePoolAntiAffinity    bool                     // Enable anti-affinity
-	nodePoolMonthlyBilled   bool                     // Monthly billing
-	nodePoolSizeFieldIndex  int                      // 0 = desired, 1 = min, 2 = max
-	nodePoolOptionsFieldIdx int                      // 0 = autoscale, 1 = anti-affinity, 2 = monthly
-	nodePoolConfirmBtnIdx   int                      // 0 = Cancel, 1 = Create
+	nodePoolClusterId       string           // Cluster ID to add node pool to
+	nodePoolFlavors         []map[string]any // Available flavors for node pool
+	nodePoolName            string           // Node pool name
+	nodePoolNameInput       string           // Input buffer for name
+	nodePoolFlavorName      string           // Selected flavor name
+	nodePoolDesiredNodes    int              // Desired number of nodes
+	nodePoolMinNodes        int              // Minimum nodes (for autoscale)
+	nodePoolMaxNodes        int              // Maximum nodes (for autoscale)
+	nodePoolAutoscale       bool             // Enable autoscaling
+	nodePoolAntiAffinity    bool             // Enable anti-affinity
+	nodePoolMonthlyBilled   bool             // Monthly billing
+	nodePoolSizeFieldIndex  int              // 0 = desired, 1 = min, 2 = max
+	nodePoolOptionsFieldIdx int              // 0 = autoscale, 1 = anti-affinity, 2 = monthly
+	nodePoolConfirmBtnIdx   int              // 0 = Cancel, 1 = Create
 	// Kube upgrade wizard fields
 	kubeUpgradeClusterId   string   // Cluster ID for upgrade
 	kubeUpgradeVersions    []string // Available upgrade versions
@@ -437,151 +437,151 @@ type WizardData struct {
 	kubeKubeconfigEntries     []string // Subdirectory names in current dir
 	kubeKubeconfigSelectedIdx int      // 0="..", 1="[Save here]", 2+= entries
 	// Volume (Block Storage) wizard fields
-	volumeTypes             []string            // Available volume types for the selected region
-	volumeRegionTypeMap     map[string][]string // region name -> []type names (pre-loaded)
-	volumeAvailabilityZones []string            // Available availability zones for the region
-	volumeTypeAZMap         map[string][]string      // type name -> available AZs (for selected region)
+	volumeTypes             []string                       // Available volume types for the selected region
+	volumeRegionTypeMap     map[string][]string            // region name -> []type names (pre-loaded)
+	volumeAvailabilityZones []string                       // Available availability zones for the region
+	volumeTypeAZMap         map[string][]string            // type name -> available AZs (for selected region)
 	volumeRegionTypeAZMap   map[string]map[string][]string // region -> type -> AZs (pre-loaded)
-	volumeName              string   // Volume name input
-	volumeNameInput         string   // Input buffer for volume name
-	volumeSize              int      // Volume size in GB
-	volumeSizeInput         string   // Input buffer for volume size
-	volumeType              string   // Selected volume type
-	volumeAvailabilityZone  string   // Selected availability zone
-	volumeEncryptionIdx     int      // 0=none, 1=OVHcloud Managed Key
-	volumeConfirmBtnIdx     int      // 0 = Create, 1 = Cancel
+	volumeName              string                         // Volume name input
+	volumeNameInput         string                         // Input buffer for volume name
+	volumeSize              int                            // Volume size in GB
+	volumeSizeInput         string                         // Input buffer for volume size
+	volumeType              string                         // Selected volume type
+	volumeAvailabilityZone  string                         // Selected availability zone
+	volumeEncryptionIdx     int                            // 0=none, 1=OVHcloud Managed Key
+	volumeConfirmBtnIdx     int                            // 0 = Create, 1 = Cancel
 	// File Storage wizard fields
-	fileShareName          string
-	fileShareNameInput     string
-	fileShareSize          int
-	fileShareSizeInput     string
-	fileShareType          string   // selected type (e.g., "standard-1az")
-	fileShareTypeIdx       int
-	fileShareRegions       []string
-	fileShareNetworks      []map[string]interface{}
-	fileShareSubnets       []map[string]interface{}
-	fileShareNetworkId     string
-	fileShareNetworkName   string
-	fileShareSubnetId      string
-	fileShareSubnetCIDR    string
-	fileShareNetworkMenuIdx int   // 0=network list, 1=subnet list
-	fileShareConfirmBtnIdx  int   // 0=Create, 1=Cancel
+	fileShareName           string
+	fileShareNameInput      string
+	fileShareSize           int
+	fileShareSizeInput      string
+	fileShareType           string // selected type (e.g., "standard-1az")
+	fileShareTypeIdx        int
+	fileShareRegions        []string
+	fileShareNetworks       []map[string]any
+	fileShareSubnets        []map[string]any
+	fileShareNetworkId      string
+	fileShareNetworkName    string
+	fileShareSubnetId       string
+	fileShareSubnetCIDR     string
+	fileShareNetworkMenuIdx int // 0=network list, 1=subnet list
+	fileShareConfirmBtnIdx  int // 0=Create, 1=Cancel
 	// Object Storage wizard fields
-	objectName          string   // Container name
+	objectName          string // Container name
 	objectNameInput     string
-	objectTypeIdx       int      // 0=Standard, 1=High Performance
-	objectRegions       []string // Regions supporting S3
-	objectUsers         []map[string]interface{} // Cloud users
+	objectTypeIdx       int              // 0=Standard, 1=High Performance
+	objectRegions       []string         // Regions supporting S3
+	objectUsers         []map[string]any // Cloud users
 	objectUserIdx       int
-	objectReplication   bool   // Offsite replication enabled
-	objectVersioning    bool   // Versioning enabled
-	objectLock          bool   // Object Lock enabled
-	objectEncryption    bool   // Encryption enabled (AES256)
-	objectConfirmBtnIdx int    // 0=Create, 1=Cancel
-	objectSwiftTypeIdx  int    // 0=Static, 1=Private, 2=Public
+	objectReplication   bool     // Offsite replication enabled
+	objectVersioning    bool     // Versioning enabled
+	objectLock          bool     // Object Lock enabled
+	objectEncryption    bool     // Encryption enabled (AES256)
+	objectConfirmBtnIdx int      // 0=Create, 1=Cancel
+	objectSwiftTypeIdx  int      // 0=Static, 1=Private, 2=Public
 	objectSwiftRegions  []string // Available regions for Swift
-	objectSwiftRegion   string // Selected Swift region
+	objectSwiftRegion   string   // Selected Swift region
 	// S3 User wizard fields
 	s3UserDescInput     string // Description input buffer
 	s3UserDesc          string // Confirmed description
 	s3UserConfirmBtnIdx int    // 0=Create, 1=Cancel
 	// Volume Backup / Snapshot wizard fields
-	backupVolumes      []map[string]interface{} // loaded block storage volumes
-	backupVolumeIdx    int                      // selected volume index
-	backupTypeIdx      int                      // 0=Snapshot, 1=Backup
-	backupName         string                   // confirmed name
-	backupNameInput    string                   // input buffer for name
-	backupConfirmBtnIdx int                      // 0=Create, 1=Cancel
+	backupVolumes       []map[string]any // loaded block storage volumes
+	backupVolumeIdx     int              // selected volume index
+	backupTypeIdx       int              // 0=Snapshot, 1=Backup
+	backupName          string           // confirmed name
+	backupNameInput     string           // input buffer for name
+	backupConfirmBtnIdx int              // 0=Create, 1=Cancel
 	// Private Network wizard fields
-	privNetRegions       []map[string]interface{} // [{name, type}]
-	privNetRegionIdx     int                      // selected region index
-	privNetNameInput     string                   // network name input
-	privNetName          string                   // confirmed name
-	privNetDefineVlan    bool                     // whether user wants to set a VLAN ID
-	privNetVlanInput     string                   // VLAN ID input ("" = auto)
-	privNetVlanID        int                      // confirmed VLAN ID (0 = auto)
-	privNetEnableSubnet  bool                     // whether to configure a subnet
-	privNetCIDRInput     string                   // subnet CIDR input
-	privNetCIDR          string                   // confirmed CIDR
-	privNetEnableDHCP    bool                     // DHCP distribution enabled
-	privNetDHCPFieldIdx  int                      // 0=toggle, 1=Next/Back
-	privNetAllocStart    string                   // allocation pool start IP
-	privNetAllocEnd      string                   // allocation pool end IP
-	privNetAllocField    int                      // 0=start, 1=end
-	privNetGatewayMode   int                      // 0=announce first CIDR IP, 1=assign explicit IP
-	privNetGatewayInput  string                   // gateway IP input (mode 1)
-	privNetGateway       string                   // confirmed gateway IP (mode 1)
-	privNetConfirmBtnIdx int                      // 0=Create, 1=Cancel
-	privNetIsLocalZone   bool                     // true when selected region is a local zone
-	privNetUsedVlanIDs      map[int]bool             // VLAN IDs already in use (to validate before API call)
-	privNetAddSubnetMode    bool                     // true when adding subnet to an existing network
-	privNetTargetNetworkID  string                   // network ID to add subnet to (add-subnet mode)
-	privNetSubnettedRegions map[string]bool          // regions that already have a subnet (add-subnet mode)
+	privNetRegions          []map[string]any // [{name, type}]
+	privNetRegionIdx        int              // selected region index
+	privNetNameInput        string           // network name input
+	privNetName             string           // confirmed name
+	privNetDefineVlan       bool             // whether user wants to set a VLAN ID
+	privNetVlanInput        string           // VLAN ID input ("" = auto)
+	privNetVlanID           int              // confirmed VLAN ID (0 = auto)
+	privNetEnableSubnet     bool             // whether to configure a subnet
+	privNetCIDRInput        string           // subnet CIDR input
+	privNetCIDR             string           // confirmed CIDR
+	privNetEnableDHCP       bool             // DHCP distribution enabled
+	privNetDHCPFieldIdx     int              // 0=toggle, 1=Next/Back
+	privNetAllocStart       string           // allocation pool start IP
+	privNetAllocEnd         string           // allocation pool end IP
+	privNetAllocField       int              // 0=start, 1=end
+	privNetGatewayMode      int              // 0=announce first CIDR IP, 1=assign explicit IP
+	privNetGatewayInput     string           // gateway IP input (mode 1)
+	privNetGateway          string           // confirmed gateway IP (mode 1)
+	privNetConfirmBtnIdx    int              // 0=Create, 1=Cancel
+	privNetIsLocalZone      bool             // true when selected region is a local zone
+	privNetUsedVlanIDs      map[int]bool     // VLAN IDs already in use (to validate before API call)
+	privNetAddSubnetMode    bool             // true when adding subnet to an existing network
+	privNetTargetNetworkID  string           // network ID to add subnet to (add-subnet mode)
+	privNetSubnettedRegions map[string]bool  // regions that already have a subnet (add-subnet mode)
 
 	// Gateway wizard fields
-	gwNetworkID          string
-	gwNetworkName        string
-	gwRegion             string
-	gwSubnetID           string
-	gwModelIdx           int    // index into gatewayModels slice
-	gwNameInput          string
-	gwName               string
-	gwConfirmBtnIdx      int    // 0=Create, 1=Cancel
-	gwAvailableRegions   []string                   // regions fetched from API
-	gwRegionIdx          int                        // selected region index
-	gwAvailableNetworks  []map[string]interface{}   // networks in selected region
-	gwNetworkIdx         int                        // selected network index
+	gwNetworkID         string
+	gwNetworkName       string
+	gwRegion            string
+	gwSubnetID          string
+	gwModelIdx          int // index into gatewayModels slice
+	gwNameInput         string
+	gwName              string
+	gwConfirmBtnIdx     int              // 0=Create, 1=Cancel
+	gwAvailableRegions  []string         // regions fetched from API
+	gwRegionIdx         int              // selected region index
+	gwAvailableNetworks []map[string]any // networks in selected region
+	gwNetworkIdx        int              // selected network index
 	// Attach mode: populated when launched from private network detail
 	// maps region name -> {"openstackId": "...", "subnetId": "..."}
-	gwNetworkRegionMap   map[string]map[string]string
-	gwAttachMode         bool // true when wizard was launched from private network detail view
+	gwNetworkRegionMap map[string]map[string]string
+	gwAttachMode       bool // true when wizard was launched from private network detail view
 
 	// Load Balancer wizard fields
-	lbName              string
-	lbNameInput         string
-	lbRegion            string
-	lbRegionIdx         int
-	lbAvailableRegions  []string
-	lbFlavors           []map[string]interface{}
-	lbFlavorIdx         int
-	lbFlavorId          string
-	lbFlavorName        string
-	lbNetworks          []map[string]interface{}
-	lbNetworkIdx        int    // 0 = Aucun réseau, 1+ = index into lbNetworks
-	lbNetworkId         string
-	lbNetworkName       string
-	lbSubnetId          string
-	lbConfirmBtnIdx     int
+	lbName             string
+	lbNameInput        string
+	lbRegion           string
+	lbRegionIdx        int
+	lbAvailableRegions []string
+	lbFlavors          []map[string]any
+	lbFlavorIdx        int
+	lbFlavorId         string
+	lbFlavorName       string
+	lbNetworks         []map[string]any
+	lbNetworkIdx       int // 0 = Aucun réseau, 1+ = index into lbNetworks
+	lbNetworkId        string
+	lbNetworkName      string
+	lbSubnetId         string
+	lbConfirmBtnIdx    int
 
 	// LB Pool wizard fields
-	lbPoolLBId          string
-	lbPoolLBName        string
-	lbPoolLBRegion      string
-	lbPoolNameInput     string
-	lbPoolName          string
-	lbPoolAlgoIdx       int
-	lbPoolAlgo          string
-	lbPoolProtoIdx      int
-	lbPoolProto         string
-	lbPoolSessionIdx    int    // 0=None, 1=Source IP
-	lbPoolSession       string // "" or "SOURCE_IP"
-	lbPoolConfirmIdx    int
-	lbPoolEditPoolId    string // non-empty = edit mode (pool ID being edited)
+	lbPoolLBId       string
+	lbPoolLBName     string
+	lbPoolLBRegion   string
+	lbPoolNameInput  string
+	lbPoolName       string
+	lbPoolAlgoIdx    int
+	lbPoolAlgo       string
+	lbPoolProtoIdx   int
+	lbPoolProto      string
+	lbPoolSessionIdx int    // 0=None, 1=Source IP
+	lbPoolSession    string // "" or "SOURCE_IP"
+	lbPoolConfirmIdx int
+	lbPoolEditPoolId string // non-empty = edit mode (pool ID being edited)
 
 	// LB Listener wizard fields
-	lbListenerLBId        string
-	lbListenerLBName      string
-	lbListenerLBRegion    string
-	lbListenerNameInput   string
-	lbListenerName        string
-	lbListenerProtoIdx    int
-	lbListenerProto       string
-	lbListenerPortInput   string
-	lbListenerPort        int
-	lbListenerPoolIdx     int // 0 = no pool, 1+ index into lbPools for this LB
-	lbListenerPoolId      string
-	lbListenerConfirmIdx  int
-	lbListenerEditId      string // non-empty = edit mode (listener ID being edited)
+	lbListenerLBId       string
+	lbListenerLBName     string
+	lbListenerLBRegion   string
+	lbListenerNameInput  string
+	lbListenerName       string
+	lbListenerProtoIdx   int
+	lbListenerProto      string
+	lbListenerPortInput  string
+	lbListenerPort       int
+	lbListenerPoolIdx    int // 0 = no pool, 1+ index into lbPools for this LB
+	lbListenerPoolId     string
+	lbListenerConfirmIdx int
+	lbListenerEditId     string // non-empty = edit mode (listener ID being edited)
 
 	// L7 Policy wizard fields
 	l7PolicyListenerId       string
@@ -602,20 +602,20 @@ type WizardData struct {
 	l7PolicyEditId           string // non-empty = edit mode (policy ID being edited)
 
 	// L7 Rule wizard fields
-	l7RulePolicyId    string // policy ID the rule belongs to
-	l7RulePolicyName  string // policy name (display)
-	l7RuleLBRegion    string // region
-	l7RuleTypeIdx     int    // selected index in lbL7RuleTypeOptions
-	l7RuleType        string // e.g. "HEADER", "PATH", "HOST_NAME", ...
-	l7RuleCompareIdx  int    // selected index in compare options for this type
-	l7RuleCompare     string // e.g. "EQUAL_TO", "STARTS_WITH", "REGEX", ...
-	l7RuleKeyInput    string // raw input for key field
-	l7RuleKey         string // key (for HEADER / COOKIE type)
-	l7RuleValueInput  string // raw input for value
-	l7RuleValue       string // value to compare against
-	l7RuleInvert      bool   // whether to invert the rule
-	l7RuleConfirmIdx  int    // 0=Confirm, 1=Cancel
-	l7RuleEditId      string // non-empty = edit mode (rule ID being edited)
+	l7RulePolicyId   string // policy ID the rule belongs to
+	l7RulePolicyName string // policy name (display)
+	l7RuleLBRegion   string // region
+	l7RuleTypeIdx    int    // selected index in lbL7RuleTypeOptions
+	l7RuleType       string // e.g. "HEADER", "PATH", "HOST_NAME", ...
+	l7RuleCompareIdx int    // selected index in compare options for this type
+	l7RuleCompare    string // e.g. "EQUAL_TO", "STARTS_WITH", "REGEX", ...
+	l7RuleKeyInput   string // raw input for key field
+	l7RuleKey        string // key (for HEADER / COOKIE type)
+	l7RuleValueInput string // raw input for value
+	l7RuleValue      string // value to compare against
+	l7RuleInvert     bool   // whether to invert the rule
+	l7RuleConfirmIdx int    // 0=Confirm, 1=Cancel
+	l7RuleEditId     string // non-empty = edit mode (rule ID being edited)
 
 	// LB Member wizard fields
 	lbMemberPoolId      string // pool ID the member belongs to
@@ -632,19 +632,19 @@ type WizardData struct {
 	lbMemberConfirmIdx  int    // 0=Save, 1=Cancel
 
 	// LB Health Monitor wizard fields
-	lbHMPoolId             string // pool ID the monitor belongs to
-	lbHMPoolRegion         string // region
-	lbHMEditId             string // non-empty = edit mode (HM ID being edited)
-	lbHMNameInput          string // raw input for name
-	lbHMName               string // confirmed name
-	lbHMTypeIdx            int    // selected index in lbHMTypeOptions
-	lbHMType               string // e.g. "http", "tcp", ...
-	lbHMDelayInput         string // raw input for delay
-	lbHMDelay              int    // confirmed delay (seconds)
-	lbHMMaxRetriesInput    string // raw input for max retries
-	lbHMMaxRetries         int    // confirmed max retries
+	lbHMPoolId              string // pool ID the monitor belongs to
+	lbHMPoolRegion          string // region
+	lbHMEditId              string // non-empty = edit mode (HM ID being edited)
+	lbHMNameInput           string // raw input for name
+	lbHMName                string // confirmed name
+	lbHMTypeIdx             int    // selected index in lbHMTypeOptions
+	lbHMType                string // e.g. "http", "tcp", ...
+	lbHMDelayInput          string // raw input for delay
+	lbHMDelay               int    // confirmed delay (seconds)
+	lbHMMaxRetriesInput     string // raw input for max retries
+	lbHMMaxRetries          int    // confirmed max retries
 	lbHMMaxRetriesDownInput string // raw input for max retries down
-	lbHMMaxRetriesDown     int    // confirmed max retries down
+	lbHMMaxRetriesDown      int    // confirmed max retries down
 	lbHMTimeoutInput        string // raw input for timeout
 	lbHMTimeout             int    // confirmed timeout (seconds)
 	lbHMHttpMethodIdx       int    // selected index in lbHMHttpMethodOptions
@@ -656,55 +656,55 @@ type WizardData struct {
 	lbHMConfirmIdx          int    // 0=Save, 1=Cancel
 
 	// Floating IP wizard fields
-	fipRegion            string
-	fipRegionIdx         int
-	fipAvailableRegions  []string
-	fipInstances         []map[string]interface{}
-	fipInstanceIdx       int   // 0 = standalone (no instance), 1+ = index into fipInstances
-	fipInstanceId        string
-	fipInstanceName      string
-	fipConfirmBtnIdx     int
+	fipRegion           string
+	fipRegionIdx        int
+	fipAvailableRegions []string
+	fipInstances        []map[string]any
+	fipInstanceIdx      int // 0 = standalone (no instance), 1+ = index into fipInstances
+	fipInstanceId       string
+	fipInstanceName     string
+	fipConfirmBtnIdx    int
 
 	// Workflow wizard fields
-	wfInstances      []map[string]interface{}
-	wfInstanceIdx    int
-	wfInstanceId     string
-	wfInstanceName   string
-	wfRegion         string
-	wfName           string
-	wfNameInput      string
-	wfScheduleIdx    int    // 0=rotation7, 1=rotation14, 2=custom
-	wfCron           string
-	wfCronInput      string
-	wfRotation       int
-	wfConfirmBtnIdx  int
+	wfInstances     []map[string]any
+	wfInstanceIdx   int
+	wfInstanceId    string
+	wfInstanceName  string
+	wfRegion        string
+	wfName          string
+	wfNameInput     string
+	wfScheduleIdx   int // 0=rotation7, 1=rotation14, 2=custom
+	wfCron          string
+	wfCronInput     string
+	wfRotation      int
+	wfConfirmBtnIdx int
 
 	// Managed Database wizard fields
-	dbNameInput    string
-	dbName         string
-	dbEngines      []map[string]interface{} // from capabilities
-	dbEngineIdx    int
-	dbEngine          string
-	dbEngineCategory  string // "operational" or "analysis"
-	dbVersionIdx   int
-	dbVersion      string
-	dbRegionIdx    int
-	dbRegion       string
-	dbPlanIdx      int
-	dbPlan         string
-	dbFlavors      []map[string]interface{} // from capabilities
-	dbFlavorIdx    int
-	dbFlavor       string
-	dbCapPlans     []string                 // fallback plan names from capabilities
-	dbNodesInput   string
-	dbNodes        int
-	dbStorageInput string
-	dbDiskSize     int
-	dbNetworkIdx   int    // 0=public 1=private
-	dbNetworkId    string
-	dbAvailItems   []map[string]interface{} // from /database/availability
-	dbCapsRegions  []string                 // fallback regions from capabilities
-	dbConfirmIdx   int                      // 0=Create 1=Cancel
+	dbNameInput      string
+	dbName           string
+	dbEngines        []map[string]any // from capabilities
+	dbEngineIdx      int
+	dbEngine         string
+	dbEngineCategory string // "operational" or "analysis"
+	dbVersionIdx     int
+	dbVersion        string
+	dbRegionIdx      int
+	dbRegion         string
+	dbPlanIdx        int
+	dbPlan           string
+	dbFlavors        []map[string]any // from capabilities
+	dbFlavorIdx      int
+	dbFlavor         string
+	dbCapPlans       []string // fallback plan names from capabilities
+	dbNodesInput     string
+	dbNodes          int
+	dbStorageInput   string
+	dbDiskSize       int
+	dbNetworkIdx     int // 0=public 1=private
+	dbNetworkId      string
+	dbAvailItems     []map[string]any // from /database/availability
+	dbCapsRegions    []string         // fallback regions from capabilities
+	dbConfirmIdx     int              // 0=Create 1=Cancel
 }
 
 // Model represents the TUI application state
@@ -723,69 +723,69 @@ type Model struct {
 	inComputeSubNav    bool // Whether the keyboard focus is in the compute sub-nav bar
 	inTableFocus       bool // Whether the keyboard focus is in the table content (third navigation level)
 	table              table.Model
-	detailData         map[string]interface{}
-	currentData        []map[string]interface{}
+	detailData         map[string]any
+	currentData        []map[string]any
 	errorMsg           string
 	cloudProject       string
-	cloudProjectName   string                   // Display name of the selected project
-	currentItemName    string                   // Name of the currently viewed item
-	notification       string                   // Temporary notification message
-	notificationExpiry time.Time                // When the notification should disappear
-	projectsList       []map[string]interface{} // Cache of projects for selection
-	wizard             WizardData               // Wizard state for resource creation
-	selectedAction     int                      // Selected action index in detail view (0-5)
-	actionConfirm      bool                     // Whether we're in confirmation mode for an action
+	cloudProjectName   string           // Display name of the selected project
+	currentItemName    string           // Name of the currently viewed item
+	notification       string           // Temporary notification message
+	notificationExpiry time.Time        // When the notification should disappear
+	projectsList       []map[string]any // Cache of projects for selection
+	wizard             WizardData       // Wizard state for resource creation
+	selectedAction     int              // Selected action index in detail view (0-5)
+	actionConfirm      bool             // Whether we're in confirmation mode for an action
 	// Filter mode
 	filterMode  bool   // Whether filter input mode is active
 	filterInput string // Current filter input text
 	// Object Storage tab rendering
 	renderObjectStorageTabs bool
 	// Delete confirmation
-	deleteTarget       map[string]interface{} // Item to be deleted
-	deleteConfirmInput string                 // User input for delete confirmation
+	deleteTarget       map[string]any // Item to be deleted
+	deleteConfirmInput string         // User input for delete confirmation
 	// Debug view
 	debugScrollOffset int // Scroll offset for debug log view
 	// Instance data cache
 	imageMap      map[string]string // imageId -> imageName (for instances)
 	floatingIPMap map[string]string // instanceId -> floatingIP address
 	// Kubernetes data cache
-	kubeNodePools           map[string][]map[string]interface{} // kubeId -> list of node pools
-	nodePoolsSelectedIdx    int                                 // Selected index in node pools view
-	selectedNodePool        map[string]interface{}              // Currently selected node pool for detail view
-	nodePoolDetailActionIdx int                                 // Selected action index in node pool detail view
-	nodePoolDetailConfirm   bool                                // Whether we're in confirmation mode
+	kubeNodePools           map[string][]map[string]any // kubeId -> list of node pools
+	nodePoolsSelectedIdx    int                         // Selected index in node pools view
+	selectedNodePool        map[string]any              // Currently selected node pool for detail view
+	nodePoolDetailActionIdx int                         // Selected action index in node pool detail view
+	nodePoolDetailConfirm   bool                        // Whether we're in confirmation mode
 	// LB pools cache (lbId -> pools)
-	lbPools               map[string][]map[string]interface{}
-	selectedLBPool        map[string]interface{}             // Currently selected pool for detail view
-	lbPoolDetailActionIdx int                               // Selected action in pool detail view (0=Edit, 1=Delete, 2=Members)
-	lbPoolDetailConfirm   bool                              // Whether we're in confirm mode in pool detail
-	lbPoolListIdx         int                               // Highlighted pool row in LB detail (-1 = none)
+	lbPools               map[string][]map[string]any
+	selectedLBPool        map[string]any // Currently selected pool for detail view
+	lbPoolDetailActionIdx int            // Selected action in pool detail view (0=Edit, 1=Delete, 2=Members)
+	lbPoolDetailConfirm   bool           // Whether we're in confirm mode in pool detail
+	lbPoolListIdx         int            // Highlighted pool row in LB detail (-1 = none)
 	// LB pool members cache (poolId -> members)
-	lbPoolMembers         map[string][]map[string]interface{} // poolID → members
-	lbPoolMemberDetailIdx int                               // Currently displayed member index
-	lbPoolMemberConfirm   bool                              // Confirm mode for member deletion
-	lbMembersSection      int                               // 0=actions bar, 1=member pagination
-	lbMembersActionIdx    int                               // Selected action: 0=Create,1=Edit,2=Delete,3=HealthMonitor
+	lbPoolMembers         map[string][]map[string]any // poolID → members
+	lbPoolMemberDetailIdx int                         // Currently displayed member index
+	lbPoolMemberConfirm   bool                        // Confirm mode for member deletion
+	lbMembersSection      int                         // 0=actions bar, 1=member pagination
+	lbMembersActionIdx    int                         // Selected action: 0=Create,1=Edit,2=Delete,3=HealthMonitor
 	// LB health monitors cache (poolId -> health monitor)
-	lbHealthMonitors      map[string]map[string]interface{}  // poolID → health monitor (one per pool)
-	lbHMConfirm           bool                              // Confirm mode for HM deletion
-	lbHMActionIdx         int                               // Selected action button in HM view (0=Create or Edit, 1=Delete)
+	lbHealthMonitors map[string]map[string]any // poolID → health monitor (one per pool)
+	lbHMConfirm      bool                      // Confirm mode for HM deletion
+	lbHMActionIdx    int                       // Selected action button in HM view (0=Create or Edit, 1=Delete)
 	// LB listeners cache (lbId -> listeners)
-	lbListeners       map[string][]map[string]interface{}
-	lbListenerListIdx int // Highlighted listener row in LB detail (-1 = none)
-	selectedLBListener       map[string]interface{} // Currently selected listener for detail view
-	lbListenerDetailActionIdx int                   // Selected action in listener detail view (0=Edit, 1=Delete)
-	lbListenerDetailConfirm   bool                  // Confirm mode in listener detail
-	lbDetailSection           int                   // 0=Listeners block focused, 1=Pools block focused
-	lbL7Policies              map[string][]map[string]interface{} // key = listenerId
-	lbL7Rules                 map[string][]map[string]interface{} // key = policyId
-	lbL7PolicyListIdx         int                                 // Highlighted policy row in listener detail (-1 = none)
-	selectedLBL7Policy        map[string]interface{}              // Currently selected policy for detail view
-	lbL7PolicyDetailActionIdx int                                 // Selected action in policy detail (0=Edit, 1=Delete)
-	lbL7PolicyDetailConfirm   bool                                // Confirm mode in policy detail
-	lbL7RuleDetailIdx         int                                 // Currently displayed rule index in L7 Rules view
-	lbL7RuleActionIdx         int                                 // Selected action button in L7 Rules view (0=Create,1=Edit,2=Delete)
-	lbL7RuleConfirm           bool                                // Confirm mode for rule deletion
+	lbListeners               map[string][]map[string]any
+	lbListenerListIdx         int                         // Highlighted listener row in LB detail (-1 = none)
+	selectedLBListener        map[string]any              // Currently selected listener for detail view
+	lbListenerDetailActionIdx int                         // Selected action in listener detail view (0=Edit, 1=Delete)
+	lbListenerDetailConfirm   bool                        // Confirm mode in listener detail
+	lbDetailSection           int                         // 0=Listeners block focused, 1=Pools block focused
+	lbL7Policies              map[string][]map[string]any // key = listenerId
+	lbL7Rules                 map[string][]map[string]any // key = policyId
+	lbL7PolicyListIdx         int                         // Highlighted policy row in listener detail (-1 = none)
+	selectedLBL7Policy        map[string]any              // Currently selected policy for detail view
+	lbL7PolicyDetailActionIdx int                         // Selected action in policy detail (0=Edit, 1=Delete)
+	lbL7PolicyDetailConfirm   bool                        // Confirm mode in policy detail
+	lbL7RuleDetailIdx         int                         // Currently displayed rule index in L7 Rules view
+	lbL7RuleActionIdx         int                         // Selected action button in L7 Rules view (0=Create,1=Edit,2=Delete)
+	lbL7RuleConfirm           bool                        // Confirm mode for rule deletion
 	// Background detail-view refresh (set by auto-refresh timer, cleared by data handlers)
 	detailRefreshId   string
 	detailRefreshName string
@@ -803,29 +803,29 @@ type Model struct {
 	objectUserDetailView *object_storage.UserDetailView
 	// Object Storage tabs (0=Containers, 1=Users)
 	objectStorageTabIdx int
-	objectStorageUsers  []map[string]interface{}
+	objectStorageUsers  []map[string]any
 	// Managed DB/Analytics detail sub-resources
-	dbDetailUsers     []map[string]interface{}
-	dbDetailBackups   []map[string]interface{}
-	dbDetailDatabases []map[string]interface{}
-	dbDetailPools     []map[string]interface{}
-	dbDetailLoaded    bool // true once fetchDBDetailSubresources has returned
-	dbDetailTab       int  // 0=Service, 1=Users, 2=Backups, 3=Databases, 4=Pools, 5=Logs, 6=ACL
-	dbDetailLogs        []map[string]interface{} // last fetched log entries
-	dbLogsLoaded        bool // true once fetchDBLogs has returned
-	dbLogsUnsupported   bool // true when the engine does not expose a /logs endpoint
-	dbLogsScrollOffset  int  // scroll offset for logs tab (0 = bottom/newest)
-	dbDetailACL         []map[string]interface{} // ACL entries (kafka only)
-	dbACLLoaded         bool // true once fetchDBACL has returned
+	dbDetailUsers      []map[string]any
+	dbDetailBackups    []map[string]any
+	dbDetailDatabases  []map[string]any
+	dbDetailPools      []map[string]any
+	dbDetailLoaded     bool             // true once fetchDBDetailSubresources has returned
+	dbDetailTab        int              // 0=Service, 1=Users, 2=Backups, 3=Databases, 4=Pools, 5=Logs, 6=ACL
+	dbDetailLogs       []map[string]any // last fetched log entries
+	dbLogsLoaded       bool             // true once fetchDBLogs has returned
+	dbLogsUnsupported  bool             // true when the engine does not expose a /logs endpoint
+	dbLogsScrollOffset int              // scroll offset for logs tab (0 = bottom/newest)
+	dbDetailACL        []map[string]any // ACL entries (kafka only)
+	dbACLLoaded        bool             // true once fetchDBACL has returned
 	// ACL creation state (ACL tab) — multi-step inline wizard
-	dbACLCreateStep  int    // -1=inactive, 0=username, 1=topic, 2=permission
+	dbACLCreateStep  int // -1=inactive, 0=username, 1=topic, 2=permission
 	dbACLCreateUser  string
 	dbACLCreateTopic string
-	dbACLCreatePerm  int    // 0=read 1=write 2=admin
-	dbDetailTopics      []map[string]interface{} // Topics (kafka only)
-	dbTopicsLoaded      bool // true once fetchDBTopics has returned
+	dbACLCreatePerm  int              // 0=read 1=write 2=admin
+	dbDetailTopics   []map[string]any // Topics (kafka only)
+	dbTopicsLoaded   bool             // true once fetchDBTopics has returned
 	// Topic creation state (Topics tab) — multi-step inline wizard
-	dbTopicCreateStep         int    // -1=inactive, 0=name..5=retentionHours
+	dbTopicCreateStep         int // -1=inactive, 0=name..5=retentionHours
 	dbTopicCreateName         string
 	dbTopicCreateMinSync      string // minInsyncReplicas
 	dbTopicCreatePartitions   string
@@ -833,45 +833,45 @@ type Model struct {
 	dbTopicCreateRetentionByt string // bytes (-1 = unlimited)
 	dbTopicCreateRetentionHrs string // hours (-1 = unlimited)
 	// Metrics tab (tab 8)
-	dbMetricNames       []string        // list of available metric names
-	dbMetricNamesLoaded bool
-	dbMetricSelectedIdx int             // selected metric in the list
-	dbMetricPeriodIdx   int             // 0=lastHour 1=lastDay
-	dbNodeNames         []string         // ordered node names for legend labels
-	dbMetricSeries      []dbMetricSeries // current chart data (one per API series)
+	dbMetricNames        []string // list of available metric names
+	dbMetricNamesLoaded  bool
+	dbMetricSelectedIdx  int              // selected metric in the list
+	dbMetricPeriodIdx    int              // 0=lastHour 1=lastDay
+	dbNodeNames          []string         // ordered node names for legend labels
+	dbMetricSeries       []dbMetricSeries // current chart data (one per API series)
 	dbMetricLoaded       bool
-	dbMetricLoading      bool             // true while a fetch is in flight
-	dbMetricName         string          // currently displayed metric name
-	dbMetricSeriesHidden map[int]bool    // set of series indices the user has toggled off
-	dbUserCreateMode   bool                   // true when typing a new username
-	dbUserCreateInput  string                 // username being typed
-	dbUserCreatedData  map[string]interface{} // creation result (has password + endpoints)
-	dbUserSelectedIdx  int                    // currently highlighted user row (-1 = none)
-	dbUserDeleteConfirm bool                  // waiting for second Enter to confirm delete
+	dbMetricLoading      bool           // true while a fetch is in flight
+	dbMetricName         string         // currently displayed metric name
+	dbMetricSeriesHidden map[int]bool   // set of series indices the user has toggled off
+	dbUserCreateMode     bool           // true when typing a new username
+	dbUserCreateInput    string         // username being typed
+	dbUserCreatedData    map[string]any // creation result (has password + endpoints)
+	dbUserSelectedIdx    int            // currently highlighted user row (-1 = none)
+	dbUserDeleteConfirm  bool           // waiting for second Enter to confirm delete
 	// DB database state (Databases tab)
 	dbDBCreateMode  bool   // true when typing a new database name
 	dbDBCreateInput string // database name being typed
 	// DB connection pool creation state (Pools tab) — multi-step inline wizard
-	dbPoolCreateStep  int    // 0=name, 1=database, 2=mode, 3=size  (-1 = not active)
+	dbPoolCreateStep  int // 0=name, 1=database, 2=mode, 3=size  (-1 = not active)
 	dbPoolCreateName  string
 	dbPoolCreateDBIdx int    // index into dbDetailDatabases
 	dbPoolCreateMode  int    // 0=session 1=statement 2=transaction
 	dbPoolCreateSize  string // numeric input
 	// Private Networks tabs (0=Régions vRack, 1=Local Zones)
-	privNetTabIdx           int
-	privNetLocalZones       []map[string]interface{}
-	privNetSelectedSubnet   int  // index of subnet selected for deletion in detail view
-	privNetSelectedRegion   int  // index of region selected for deletion in detail view
+	privNetTabIdx         int
+	privNetLocalZones     []map[string]any
+	privNetSelectedSubnet int // index of subnet selected for deletion in detail view
+	privNetSelectedRegion int // index of region selected for deletion in detail view
 	// Public IPs tabs (0=Floating IPs, 1=Additional IPs)
-	publicIPTabIdx     int
-	additionalIPsData  []map[string]interface{}
+	publicIPTabIdx    int
+	additionalIPsData []map[string]any
 	// S3 user creation result (for credentials display)
-	s3CreatedUser        map[string]interface{}
-	s3CreatedCredentials map[string]interface{}
+	s3CreatedUser           map[string]any
+	s3CreatedCredentials    map[string]any
 	s3CredentialsSavedPath  string
 	s3CredentialsSaveError  string
-	s3PendingEnableUser  map[string]interface{} // user being enabled (for credentials display)
-	s3CredentialsFromEnable bool // true if S3CredentialsView opened from enable action
+	s3PendingEnableUser     map[string]any // user being enabled (for credentials display)
+	s3CredentialsFromEnable bool           // true if S3CredentialsView opened from enable action
 }
 
 // Navigation items for the top bar
@@ -952,13 +952,13 @@ var (
 
 // Messages for async operations
 type projectsLoadedMsg struct {
-	projects   []map[string]interface{}
+	projects   []map[string]any
 	err        error
 	forProduct ProductType // The product that requested this data
 }
 
 type instancesLoadedMsg struct {
-	instances     []map[string]interface{}
+	instances     []map[string]any
 	imageMap      map[string]string // imageId -> imageName
 	floatingIPMap map[string]string // instanceId -> floatingIP address
 	err           error
@@ -972,11 +972,11 @@ type instancesEnrichedMsg struct {
 }
 
 type dataLoadedMsg struct {
-	data          []map[string]interface{}
+	data          []map[string]any
 	err           error
-	forProduct    ProductType // The product that requested this data
-	s3Users       []map[string]interface{} // S3 users (for Object Storage)
-	additionalIPs []map[string]interface{} // Failover IPs (for ProductNetworkPublic tab 1)
+	forProduct    ProductType      // The product that requested this data
+	s3Users       []map[string]any // S3 users (for Object Storage)
+	additionalIPs []map[string]any // Failover IPs (for ProductNetworkPublic tab 1)
 }
 
 // setDefaultProjectMsg is returned after setting the default project
@@ -997,48 +997,48 @@ type refreshTickMsg struct{}
 
 // Wizard-related messages
 type regionsLoadedMsg struct {
-	regions []map[string]interface{}
-	images  []map[string]interface{}
+	regions []map[string]any
+	images  []map[string]any
 	err     error
 }
 
 type flavorsLoadedMsg struct {
-	flavors []map[string]interface{}
+	flavors []map[string]any
 	err     error
 }
 
 type imagesLoadedMsg struct {
-	images []map[string]interface{}
+	images []map[string]any
 	err    error
 }
 
 type sshKeysLoadedMsg struct {
-	sshKeys []map[string]interface{}
+	sshKeys []map[string]any
 	err     error
 }
 
 type sshKeyCreatedMsg struct {
-	sshKey map[string]interface{}
+	sshKey map[string]any
 	err    error
 }
 
 type privateNetworksLoadedMsg struct {
-	networks []map[string]interface{}
+	networks []map[string]any
 	err      error
 }
 
 type floatingIPsLoadedMsg struct {
-	floatingIPs []map[string]interface{}
+	floatingIPs []map[string]any
 	err         error
 }
 
 type gatewayCreatedMsg struct {
-	gateway map[string]interface{}
+	gateway map[string]any
 	err     error
 }
 
 type floatingIPCreatedMsg struct {
-	floatingIP map[string]interface{}
+	floatingIP map[string]any
 	err        error
 }
 
@@ -1056,19 +1056,19 @@ type instanceIPReadyMsg struct {
 
 // Network creation step messages
 type networkStepMsg struct {
-	step      string                 // "network_created", "creating_subnet", "subnet_created"
-	networkId string                 // Network ID for subsequent steps
-	network   map[string]interface{} // Network data
+	step      string         // "network_created", "creating_subnet", "subnet_created"
+	networkId string         // Network ID for subsequent steps
+	network   map[string]any // Network data
 	err       error
 }
 
 type networkCreatedMsg struct {
-	network map[string]interface{}
+	network map[string]any
 	err     error
 }
 
 type instanceCreatedMsg struct {
-	instance map[string]interface{}
+	instance map[string]any
 	err      error
 }
 
@@ -1114,31 +1114,31 @@ type kubeVersionsLoadedMsg struct {
 }
 
 type kubeNetworksLoadedMsg struct {
-	networks []map[string]interface{}
+	networks []map[string]any
 	err      error
 }
 
 type kubeSubnetsLoadedMsg struct {
-	subnets []map[string]interface{}
+	subnets []map[string]any
 	err     error
 }
 
 type kubeClusterCreatedMsg struct {
-	cluster map[string]interface{}
+	cluster map[string]any
 	err     error
 }
 
 type kubeNodePoolsLoadedMsg struct {
 	kubeId    string
-	nodePools []map[string]interface{}
+	nodePools []map[string]any
 	err       error
 }
 
 type volumeRegionsLoadedMsg struct {
-	regionNames       []string
-	regionTypeMap     map[string][]string
-	regionTypeAZMap   map[string]map[string][]string // region -> type -> []AZs
-	err               error
+	regionNames     []string
+	regionTypeMap   map[string][]string
+	regionTypeAZMap map[string]map[string][]string // region -> type -> []AZs
+	err             error
 }
 
 type volumeTypesLoadedMsg struct {
@@ -1153,7 +1153,7 @@ type volumeAZLoadedMsg struct {
 }
 
 type volumeCreatedMsg struct {
-	volume map[string]interface{}
+	volume map[string]any
 	err    error
 }
 
@@ -1170,29 +1170,29 @@ type fileShareRegionsLoadedMsg struct {
 }
 
 type fileShareNetworksLoadedMsg struct {
-	networks []map[string]interface{}
+	networks []map[string]any
 	err      error
 }
 
 type fileShareSubnetsLoadedMsg struct {
-	subnets []map[string]interface{}
+	subnets []map[string]any
 	err     error
 }
 
 type fileShareCreatedMsg struct {
-	share map[string]interface{}
+	share map[string]any
 	err   error
 }
 
 type objectStorageInitDataLoadedMsg struct {
-        regions []string
-        users   []map[string]interface{}
-        err     error
+	regions []string
+	users   []map[string]any
+	err     error
 }
 
 type objectContainerCreatedMsg struct {
-        container map[string]interface{}
-        err       error
+	container map[string]any
+	err       error
 }
 
 type objectContainerActionDoneMsg struct {
@@ -1219,13 +1219,13 @@ type s3SecretLoadedMsg struct {
 
 type s3UserActionDoneMsg struct {
 	action        int
-	newCredential map[string]interface{}
+	newCredential map[string]any
 	err           error
 }
 
 type s3UserCreatedMsg struct {
-	user        map[string]interface{}
-	credentials map[string]interface{}
+	user        map[string]any
+	credentials map[string]any
 	err         error
 }
 
@@ -1240,12 +1240,12 @@ type swiftRegionsLoadedMsg struct {
 }
 
 type privNetRegionsLoadedMsg struct {
-	regions []map[string]interface{}
+	regions []map[string]any
 	err     error
 }
 
 type privNetCreatedMsg struct {
-	network map[string]interface{}
+	network map[string]any
 	err     error
 }
 
@@ -1276,7 +1276,7 @@ type privNetDeletedMsg struct {
 }
 
 type gwCreatedMsg struct {
-	gateway map[string]interface{}
+	gateway map[string]any
 	err     error
 }
 
@@ -1286,7 +1286,7 @@ type gwRegionsLoadedMsg struct {
 }
 
 type gwNetworksLoadedMsg struct {
-	networks []map[string]interface{}
+	networks []map[string]any
 	err      error
 }
 
@@ -1301,7 +1301,7 @@ type gwDeletedMsg struct {
 }
 
 type lbCreatedMsg struct {
-	lb  map[string]interface{}
+	lb  map[string]any
 	err error
 }
 
@@ -1311,10 +1311,10 @@ type lbRegionsLoadedMsg struct {
 }
 
 type dbCapabilitiesLoadedMsg struct {
-	engines     []map[string]interface{}
-	flavors     []map[string]interface{}
-	plans       []map[string]interface{}
-	availItems  []map[string]interface{}
+	engines     []map[string]any
+	flavors     []map[string]any
+	plans       []map[string]any
+	availItems  []map[string]any
 	capsRegions []string
 	err         error
 }
@@ -1331,10 +1331,10 @@ type analyticsCreatedMsg struct {
 
 type dbDetailSubresourcesMsg struct {
 	serviceId string
-	users     []map[string]interface{}
-	backups   []map[string]interface{}
-	databases []map[string]interface{}
-	pools     []map[string]interface{}
+	users     []map[string]any
+	backups   []map[string]any
+	databases []map[string]any
+	pools     []map[string]any
 	err       error
 }
 
@@ -1344,18 +1344,18 @@ type dbServiceDeletedMsg struct {
 }
 
 type analyticsEngineAvailLoadedMsg struct {
-	engine    string
-	availItems []map[string]interface{}
-	err       error
+	engine     string
+	availItems []map[string]any
+	err        error
 }
 
 type lbFlavorsLoadedMsg struct {
-	flavors []map[string]interface{}
+	flavors []map[string]any
 	err     error
 }
 
 type lbNetworksLoadedMsg struct {
-	networks []map[string]interface{}
+	networks []map[string]any
 	err      error
 }
 
@@ -1376,7 +1376,7 @@ type lbPoolCreatedMsg struct {
 
 type lbPoolsLoadedMsg struct {
 	lbID  string
-	pools []map[string]interface{}
+	pools []map[string]any
 	err   error
 }
 
@@ -1407,7 +1407,7 @@ type lbListenerUpdatedMsg struct {
 
 type lbListenersLoadedMsg struct {
 	lbID      string
-	listeners []map[string]interface{}
+	listeners []map[string]any
 	err       error
 }
 
@@ -1418,13 +1418,13 @@ type lbL7PolicyCreatedMsg struct {
 
 type lbL7PoliciesLoadedMsg struct {
 	listenerID string
-	policies   []map[string]interface{}
+	policies   []map[string]any
 	err        error
 }
 
 type lbL7RulesLoadedMsg struct {
 	policyID string
-	rules    []map[string]interface{}
+	rules    []map[string]any
 	err      error
 }
 
@@ -1450,7 +1450,7 @@ type lbL7PolicyUpdatedMsg struct {
 
 type lbPoolMembersLoadedMsg struct {
 	poolID  string
-	members []map[string]interface{}
+	members []map[string]any
 	err     error
 }
 
@@ -1466,7 +1466,7 @@ type lbPoolMemberSavedMsg struct {
 
 type lbHMLoadedMsg struct {
 	poolID string
-	hm     map[string]interface{} // nil if not found
+	hm     map[string]any // nil if not found
 	err    error
 }
 
@@ -1486,12 +1486,12 @@ type fipRegionsLoadedMsg struct {
 }
 
 type fipInstancesLoadedMsg struct {
-	instances []map[string]interface{}
+	instances []map[string]any
 	err       error
 }
 
 type fipCreatedMsg struct {
-	floatingIP map[string]interface{}
+	floatingIP map[string]any
 	err        error
 }
 
@@ -1522,7 +1522,7 @@ type subnetsLoadedMsg struct {
 
 type privNetDetailLoadedMsg struct {
 	networkID string
-	regions   []interface{}
+	regions   []any
 }
 
 func getNavItems() []NavItem {
@@ -1750,14 +1750,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.wizard = WizardData{
-				step:               PrivNetWizardStepRegion,
-				privNetEnableDHCP:  true,
+				step:                PrivNetWizardStepRegion,
+				privNetEnableDHCP:   true,
 				privNetEnableSubnet: true,
-				privNetGatewayMode: 0,
-				privNetCIDRInput:   "10.0.0.0/16",
-				privNetUsedVlanIDs: usedVlans,
-				isLoading:      true,
-				loadingMessage: "Loading regions...",
+				privNetGatewayMode:  0,
+				privNetCIDRInput:    "10.0.0.0/16",
+				privNetUsedVlanIDs:  usedVlans,
+				isLoading:           true,
+				loadingMessage:      "Loading regions...",
 			}
 			return m, m.fetchPrivateNetRegionsCmd()
 		} else if msg.product == ProductNetworkGateway {
@@ -1977,7 +1977,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// In add-subnet mode, filter out regions that already have a subnet
 		if m.wizard.privNetAddSubnetMode && len(m.wizard.privNetSubnettedRegions) > 0 {
-			var filtered []map[string]interface{}
+			var filtered []map[string]any
 			for _, r := range msg.regions {
 				name, _ := r["name"].(string)
 				if !m.wizard.privNetSubnettedRegions[name] {
@@ -2286,7 +2286,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbPoolsLoadedMsg:
 		if msg.err == nil {
 			if m.lbPools == nil {
-				m.lbPools = make(map[string][]map[string]interface{})
+				m.lbPools = make(map[string][]map[string]any)
 			}
 			m.lbPools[msg.lbID] = msg.pools
 		}
@@ -2365,7 +2365,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbListenersLoadedMsg:
 		if msg.err == nil {
 			if m.lbListeners == nil {
-				m.lbListeners = make(map[string][]map[string]interface{})
+				m.lbListeners = make(map[string][]map[string]any)
 			}
 			m.lbListeners[msg.lbID] = msg.listeners
 		}
@@ -2444,7 +2444,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbL7PoliciesLoadedMsg:
 		if msg.err == nil {
 			if m.lbL7Policies == nil {
-				m.lbL7Policies = make(map[string][]map[string]interface{})
+				m.lbL7Policies = make(map[string][]map[string]any)
 			}
 			m.lbL7Policies[msg.listenerID] = msg.policies
 		}
@@ -2453,7 +2453,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbL7RulesLoadedMsg:
 		if msg.err == nil {
 			if m.lbL7Rules == nil {
-				m.lbL7Rules = make(map[string][]map[string]interface{})
+				m.lbL7Rules = make(map[string][]map[string]any)
 			}
 			m.lbL7Rules[msg.policyID] = msg.rules
 		}
@@ -2552,7 +2552,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbPoolMembersLoadedMsg:
 		if msg.err == nil {
 			if m.lbPoolMembers == nil {
-				m.lbPoolMembers = make(map[string][]map[string]interface{})
+				m.lbPoolMembers = make(map[string][]map[string]any)
 			}
 			m.lbPoolMembers[msg.poolID] = msg.members
 		}
@@ -2602,7 +2602,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lbHMLoadedMsg:
 		if msg.err == nil {
 			if m.lbHealthMonitors == nil {
-				m.lbHealthMonitors = make(map[string]map[string]interface{})
+				m.lbHealthMonitors = make(map[string]map[string]any)
 			}
 			m.lbHealthMonitors[msg.poolID] = msg.hm // can be nil (no HM)
 		}
@@ -2930,18 +2930,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case dbMetricDataMsg:
-                m.dbMetricLoading = false
-                // Discard stale responses from a previous metric/period selection
-                if msg.name != m.dbMetricName {
-                        return m, nil
-                }
-                m.dbMetricLoaded = true
-                if msg.err != nil {
-                        m.notification = fmt.Sprintf("❌ Metric error: %s", msg.err.Error())
-                        m.notificationExpiry = time.Now().Add(6 * time.Second)
-                        return m, tea.Tick(6*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
-                }
-                m.dbMetricSeries = msg.series
+		m.dbMetricLoading = false
+		// Discard stale responses from a previous metric/period selection
+		if msg.name != m.dbMetricName {
+			return m, nil
+		}
+		m.dbMetricLoaded = true
+		if msg.err != nil {
+			m.notification = fmt.Sprintf("❌ Metric error: %s", msg.err.Error())
+			m.notificationExpiry = time.Now().Add(6 * time.Second)
+			return m, tea.Tick(6*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		}
+		m.dbMetricSeries = msg.series
 
 	case dbCreatedMsg:
 		m.wizard.isLoading = false
@@ -3009,7 +3009,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			"small": 1, "s": 1,
 			"medium": 2, "m": 2,
 			"large": 3, "l": 3,
-			"xl": 4,
+			"xl":  4,
 			"2xl": 5, "xxl": 5,
 			"3xl": 6,
 		}
@@ -3518,7 +3518,7 @@ func (m Model) handleS3UserActionDone(msg s3UserActionDoneMsg) (tea.Model, tea.C
 				username = u
 			}
 		}
-		m.s3CreatedUser = map[string]interface{}{"username": username}
+		m.s3CreatedUser = map[string]any{"username": username}
 		m.s3CreatedCredentials = msg.newCredential
 		m.s3CredentialsSavedPath = ""
 		m.s3CredentialsSaveError = ""
@@ -3616,10 +3616,7 @@ func (m Model) View() string {
 	var content strings.Builder
 
 	// Calculate available width
-	width := m.width
-	if width < 80 {
-		width = 80
-	}
+	width := max(m.width, 80)
 
 	// Header with logo
 	content.WriteString(m.renderHeader())
@@ -4173,14 +4170,8 @@ func (m Model) renderDebugView(width int) string {
 
 		// Calculate visible entries based on scroll offset
 		maxVisible := 15 // Show last 15 entries by default
-		startIdx := len(entries) - maxVisible - m.debugScrollOffset
-		if startIdx < 0 {
-			startIdx = 0
-		}
-		endIdx := startIdx + maxVisible
-		if endIdx > len(entries) {
-			endIdx = len(entries)
-		}
+		startIdx := max(len(entries)-maxVisible-m.debugScrollOffset, 0)
+		endIdx := min(startIdx+maxVisible, len(entries))
 
 		// Show entries in reverse order (newest first)
 		for i := endIdx - 1; i >= startIdx; i-- {
@@ -4194,10 +4185,7 @@ func (m Model) renderDebugView(width int) string {
 
 			// Format URL (truncate if too long)
 			url := entry.URL
-			maxUrlLen := width - 60
-			if maxUrlLen < 20 {
-				maxUrlLen = 20
-			}
+			maxUrlLen := max(width-60, 20)
 			if len(url) > maxUrlLen {
 				url = url[:maxUrlLen-3] + "..."
 			}
@@ -5137,23 +5125,23 @@ func (m Model) renderWizardView(width int) string {
 	case FileWizardStepConfirm:
 		content.WriteString(m.renderFileWizardConfirmStep(width))
 	case ObjectWizardStepName:
-			content.WriteString(m.renderObjectWizardNameStep(width))
+		content.WriteString(m.renderObjectWizardNameStep(width))
 	case ObjectWizardStepType:
-			content.WriteString(m.renderObjectWizardTypeStep(width))
+		content.WriteString(m.renderObjectWizardTypeStep(width))
 	case ObjectWizardStepRegion:
-			content.WriteString(m.renderObjectWizardRegionStep(width))
+		content.WriteString(m.renderObjectWizardRegionStep(width))
 	case ObjectWizardStepReplication:
-			content.WriteString(m.renderObjectWizardReplicationStep(width))
+		content.WriteString(m.renderObjectWizardReplicationStep(width))
 	case ObjectWizardStepVersioning:
-			content.WriteString(m.renderObjectWizardVersioningStep(width))
+		content.WriteString(m.renderObjectWizardVersioningStep(width))
 	case ObjectWizardStepObjectLock:
-			content.WriteString(m.renderObjectWizardObjectLockStep(width))
+		content.WriteString(m.renderObjectWizardObjectLockStep(width))
 	case ObjectWizardStepUser:
-			content.WriteString(m.renderObjectWizardUserStep(width))
+		content.WriteString(m.renderObjectWizardUserStep(width))
 	case ObjectWizardStepEncryption:
-			content.WriteString(m.renderObjectWizardEncryptionStep(width))
+		content.WriteString(m.renderObjectWizardEncryptionStep(width))
 	case ObjectWizardStepConfirm:
-			content.WriteString(m.renderObjectWizardConfirmStep(width))
+		content.WriteString(m.renderObjectWizardConfirmStep(width))
 	case ObjectWizardStepSwiftType:
 		content.WriteString(m.renderObjectWizardSwiftTypeStep(width))
 	case ObjectWizardStepSwiftRegion:
@@ -5377,10 +5365,7 @@ func (m Model) renderWizardRegionStep(width int) string {
 	if m.wizard.selectedIndex >= maxVisible {
 		startIdx = m.wizard.selectedIndex - maxVisible + 1
 	}
-	endIdx := startIdx + maxVisible
-	if endIdx > len(filtered) {
-		endIdx = len(filtered)
-	}
+	endIdx := min(startIdx+maxVisible, len(filtered))
 
 	for i := startIdx; i < endIdx; i++ {
 		region := filtered[i]
@@ -5434,10 +5419,7 @@ func (m Model) renderWizardFlavorStep(width int) string {
 	if m.wizard.selectedIndex >= maxVisible {
 		startIdx = m.wizard.selectedIndex - maxVisible + 1
 	}
-	endIdx := startIdx + maxVisible
-	if endIdx > len(filtered) {
-		endIdx = len(filtered)
-	}
+	endIdx := min(startIdx+maxVisible, len(filtered))
 
 	for i := startIdx; i < endIdx; i++ {
 		flavor := filtered[i]
@@ -5507,10 +5489,7 @@ func (m Model) renderWizardImageStep(width int) string {
 	if m.wizard.selectedIndex >= maxVisible {
 		startIdx = m.wizard.selectedIndex - maxVisible + 1
 	}
-	endIdx := startIdx + maxVisible
-	if endIdx > len(filtered) {
-		endIdx = len(filtered)
-	}
+	endIdx := min(startIdx+maxVisible, len(filtered))
 
 	for i := startIdx; i < endIdx; i++ {
 		image := filtered[i]
@@ -5652,10 +5631,7 @@ func (m Model) renderWizardSSHKeyStep(width int) string {
 	if startIdx < 0 {
 		startIdx = 0
 	}
-	endIdx := startIdx + maxVisible
-	if endIdx > len(filtered) {
-		endIdx = len(filtered)
-	}
+	endIdx := min(startIdx+maxVisible, len(filtered))
 
 	for i := startIdx; i < endIdx; i++ {
 		sshKey := filtered[i]
@@ -5791,10 +5767,7 @@ func (m Model) renderWizardNetworkStep(width int) string {
 		if m.wizard.networkMenuIndex == 1 && m.wizard.selectedIndex >= maxVisible {
 			startIdx = m.wizard.selectedIndex - maxVisible + 1
 		}
-		endIdx := startIdx + maxVisible
-		if endIdx > len(filtered) {
-			endIdx = len(filtered)
-		}
+		endIdx := min(startIdx+maxVisible, len(filtered))
 
 		for i := startIdx; i < endIdx; i++ {
 			network := filtered[i]
@@ -5869,10 +5842,7 @@ func (m Model) renderWizardFloatingIPStep(width int) string {
 	if m.wizard.selectedIndex >= maxVisible {
 		startIdx = m.wizard.selectedIndex - maxVisible + 1
 	}
-	endIdx := startIdx + maxVisible
-	if endIdx > len(filtered) {
-		endIdx = len(filtered)
-	}
+	endIdx := min(startIdx+maxVisible, len(filtered))
 
 	for i := startIdx; i < endIdx; i++ {
 		fip := filtered[i]
@@ -6151,7 +6121,7 @@ func (m Model) renderKubeWizardSubnetStep(width int) string {
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF7F")).Padding(0, 1)
 	listStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 
-	var subnets []map[string]interface{}
+	var subnets []map[string]any
 	var selectedSubnet string
 
 	if m.wizard.kubeSubnetMenuIndex == 0 {
@@ -6367,7 +6337,7 @@ func (m Model) renderNodePoolWizardFlavorStep(width int) string {
 	// Apply filter to flavors
 	flavors := m.wizard.nodePoolFlavors
 	if m.wizard.filterInput != "" {
-		var filtered []map[string]interface{}
+		var filtered []map[string]any
 		for _, flavor := range flavors {
 			name := getString(flavor, "name")
 			if strings.Contains(strings.ToLower(name), strings.ToLower(m.wizard.filterInput)) {
@@ -6395,10 +6365,7 @@ func (m Model) renderNodePoolWizardFlavorStep(width int) string {
 	if m.wizard.selectedIndex >= maxVisible {
 		startIdx = m.wizard.selectedIndex - maxVisible + 1
 	}
-	endIdx := startIdx + maxVisible
-	if endIdx > len(flavors) {
-		endIdx = len(flavors)
-	}
+	endIdx := min(startIdx+maxVisible, len(flavors))
 
 	for i := startIdx; i < endIdx; i++ {
 		flavor := flavors[i]
@@ -7083,11 +7050,11 @@ func (m Model) renderDetailView(width int) string {
 			return m.backupDetailView.Render(width, 0)
 		}
 		return m.renderGenericDetail(width)
-        case ProductStorageFile:
-                if m.fileShareDetailView != nil {
-                        return m.fileShareDetailView.Render(width, 0)
-                }
-                return m.renderGenericDetail(width)
+	case ProductStorageFile:
+		if m.fileShareDetailView != nil {
+			return m.fileShareDetailView.Render(width, 0)
+		}
+		return m.renderGenericDetail(width)
 	case ProductNetworkPrivate:
 		return m.renderPrivateNetworkDetail(width)
 	case ProductManagedDatabases:
@@ -7100,21 +7067,21 @@ func (m Model) renderDetailView(width int) string {
 		return m.renderLBDetail(width)
 	case ProductNetworkPublic:
 		return m.renderFIPDetail(width)
-        case ProductStorageObject:
-                if m.objectUserDetailView != nil {
-                        return m.objectUserDetailView.Render(width, 0)
-                }
-                if m.objectDetailView != nil {
-                        return m.objectDetailView.Render(width, 0)
-                }
-                return m.renderGenericDetail(width)
+	case ProductStorageObject:
+		if m.objectUserDetailView != nil {
+			return m.objectUserDetailView.Render(width, 0)
+		}
+		if m.objectDetailView != nil {
+			return m.objectDetailView.Render(width, 0)
+		}
+		return m.renderGenericDetail(width)
 	case ProductWorkflow:
 		return m.renderWorkflowDetail(width)
 	case ProductInstanceBackup:
 		return m.renderInstanceBackupDetail(width)
-        default:
-                return m.renderGenericDetail(width)
-        }
+	default:
+		return m.renderGenericDetail(width)
+	}
 }
 
 func (m Model) renderWorkflowDetail(width int) string {
@@ -7198,7 +7165,7 @@ func (m Model) renderInstanceBackupDetail(width int) string {
 	}
 	location := getStringValue(m.detailData, "region", "")
 	if location == "" {
-		if regions, ok := m.detailData["regions"].([]interface{}); ok && len(regions) > 0 {
+		if regions, ok := m.detailData["regions"].([]any); ok && len(regions) > 0 {
 			var rnames []string
 			for _, r := range regions {
 				if rs, ok := r.(string); ok {
@@ -7273,7 +7240,7 @@ func (m Model) renderInstanceDetail(width int) string {
 
 	// Get flavor name from nested object or fallback to flavorId
 	flavorName := "N/A"
-	if flavor, ok := m.detailData["flavor"].(map[string]interface{}); ok {
+	if flavor, ok := m.detailData["flavor"].(map[string]any); ok {
 		flavorName = getStringValue(flavor, "name", "N/A")
 	}
 	if flavorName == "N/A" {
@@ -7297,9 +7264,9 @@ func (m Model) renderInstanceDetail(width int) string {
 	ipv4Private := ""
 	ipv6Public := ""
 	floatingIP := ""
-	if addresses, ok := m.detailData["ipAddresses"].([]interface{}); ok {
+	if addresses, ok := m.detailData["ipAddresses"].([]any); ok {
 		for _, addr := range addresses {
-			if addrMap, ok := addr.(map[string]interface{}); ok {
+			if addrMap, ok := addr.(map[string]any); ok {
 				ip := getStringValue(addrMap, "ip", "")
 				version := int(getFloatValue(addrMap, "version", 0))
 				ipType := getStringValue(addrMap, "type", "")
@@ -7332,10 +7299,7 @@ func (m Model) renderInstanceDetail(width int) string {
 	}
 
 	// Build the detail view with boxes
-	boxWidth := (width - 6) / 2
-	if boxWidth < 35 {
-		boxWidth = 35
-	}
+	boxWidth := max((width-6)/2, 35)
 
 	// Left column - Information box
 	infoContent := strings.Builder{}
@@ -7494,8 +7458,8 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		}
 
 		storageStr := "-"
-		if storage, ok := m.detailData["storage"].(map[string]interface{}); ok {
-			if size, ok := storage["size"].(map[string]interface{}); ok {
+		if storage, ok := m.detailData["storage"].(map[string]any); ok {
+			if size, ok := storage["size"].(map[string]any); ok {
 				val := getStringValue(size, "value", "")
 				unit := getStringValue(size, "unit", "")
 				if val != "" {
@@ -7506,10 +7470,10 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 
 		location := "-"
 		nodesCount := 0
-		if nodes, ok := m.detailData["nodes"].([]interface{}); ok {
+		if nodes, ok := m.detailData["nodes"].([]any); ok {
 			nodesCount = len(nodes)
 			if len(nodes) > 0 {
-				if node, ok := nodes[0].(map[string]interface{}); ok {
+				if node, ok := nodes[0].(map[string]any); ok {
 					if r := getStringValue(node, "region", ""); r != "" {
 						location = r
 					}
@@ -7528,10 +7492,7 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF4444"))
 		}
 
-		boxWidth := (width - 6) / 2
-		if boxWidth < 35 {
-			boxWidth = 35
-		}
+		boxWidth := max((width-6)/2, 35)
 
 		var infoContent strings.Builder
 		infoContent.WriteString(fmt.Sprintf("%s %s\n", labelSt.Render("Status"), statusStyle.Render(statusIcon+" "+status)))
@@ -7580,9 +7541,9 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 
 			// Build URIs from the service's endpoints
 			host, port, dbname, scheme, sslMode := "", "", "defaultdb", engineRaw, "require"
-			if endpoints, ok := m.detailData["endpoints"].([]interface{}); ok {
+			if endpoints, ok := m.detailData["endpoints"].([]any); ok {
 				for _, ep := range endpoints {
-					epMap, ok := ep.(map[string]interface{})
+					epMap, ok := ep.(map[string]any)
 					if !ok {
 						continue
 					}
@@ -7681,7 +7642,7 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 					}
 					userStatus := getStringValue(u, "status", "—")
 					var roles []string
-					if rawRoles, ok := u["roles"].([]interface{}); ok {
+					if rawRoles, ok := u["roles"].([]any); ok {
 						for _, r := range rawRoles {
 							if s, ok := r.(string); ok {
 								roles = append(roles, s)
@@ -7919,27 +7880,18 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		} else {
 			timeSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 			hostSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#7B68EE"))
-			msgSt  := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+			msgSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 			indentSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 			// Derive maxVisible from terminal height.
 			// Each entry uses 2 lines (header + message), so halve available lines.
-			maxVisible := (m.height - 27) / 2
-			if maxVisible < 3 {
-				maxVisible = 3
-			}
+			maxVisible := max((m.height-27)/2, 3)
 			// Show entries most-recent first, with scroll window
 			total := len(m.dbDetailLogs)
-			startIdx := m.dbLogsScrollOffset
-			if startIdx > total-1 {
-				startIdx = total - 1
-			}
+			startIdx := min(m.dbLogsScrollOffset, total-1)
 			if startIdx < 0 {
 				startIdx = 0
 			}
-			endIdx := startIdx + maxVisible
-			if endIdx > total {
-				endIdx = total
-			}
+			endIdx := min(startIdx+maxVisible, total)
 			scrollHint := lipgloss.NewStyle().Foreground(lipgloss.Color("#444444")).Render(
 				fmt.Sprintf("  ↑/↓ scroll  (%d-%d / %d)", startIdx+1, endIdx, total))
 			logsContent.WriteString(scrollHint + "\n")
@@ -8045,12 +7997,18 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 			wiz.WriteString(headSt.Width(0).Render(fmt.Sprintf("Step %d/6 — %s", m.dbTopicCreateStep+1, stepLabels[m.dbTopicCreateStep])) + "\n\n")
 			var curVal string
 			switch m.dbTopicCreateStep {
-			case 0: curVal = m.dbTopicCreateName
-			case 1: curVal = m.dbTopicCreateMinSync
-			case 2: curVal = m.dbTopicCreatePartitions
-			case 3: curVal = m.dbTopicCreateReplication
-			case 4: curVal = m.dbTopicCreateRetentionByt
-			case 5: curVal = m.dbTopicCreateRetentionHrs
+			case 0:
+				curVal = m.dbTopicCreateName
+			case 1:
+				curVal = m.dbTopicCreateMinSync
+			case 2:
+				curVal = m.dbTopicCreatePartitions
+			case 3:
+				curVal = m.dbTopicCreateReplication
+			case 4:
+				curVal = m.dbTopicCreateRetentionByt
+			case 5:
+				curVal = m.dbTopicCreateRetentionHrs
 			}
 			wiz.WriteString(inputSt.Render(curVal+"▌") + "\n\n")
 			wiz.WriteString(dimSt.Render("Enter → next   Esc → cancel"))
@@ -8147,20 +8105,11 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 		} else {
 			// Metric list (left column) + chart (right column)
 			listWidth := 28
-			chartWidth := fullWidth - listWidth - 3
-			if chartWidth < 20 {
-				chartWidth = 20
-			}
+			chartWidth := max(fullWidth-listWidth-3, 20)
 			// The chartBox has border (2 chars) + padding (2 chars) = 4 chars overhead.
 			// The chart must be created 4 chars narrower so its lines don't wrap inside the box.
-			chartInnerWidth := chartWidth - 4
-			if chartInnerWidth < 16 {
-				chartInnerWidth = 16
-			}
-			chartHeight := m.height - 26
-			if chartHeight < 10 {
-				chartHeight = 10
-			}
+			chartInnerWidth := max(chartWidth-4, 16)
+			chartHeight := max(m.height-26, 10)
 
 			// Build metric list
 			var listBuf strings.Builder
@@ -8175,9 +8124,9 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 					name = name[:listWidth-2]
 				}
 				if i == m.dbMetricSelectedIdx {
-					listBuf.WriteString(selMetricSt.Render("▶ " + name) + "\n")
+					listBuf.WriteString(selMetricSt.Render("▶ "+name) + "\n")
 				} else {
-					listBuf.WriteString(unselMetricSt.Render("  " + name) + "\n")
+					listBuf.WriteString(unselMetricSt.Render("  "+name) + "\n")
 				}
 			}
 
@@ -8187,148 +8136,145 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 				chartBuf.WriteString(dimSt.Render("Loading...") + "\n")
 			} else if !m.dbMetricLoaded {
 				chartBuf.WriteString(dimSt.Render("Press Enter to load metric") + "\n")
-                        } else if len(m.dbMetricSeries) == 0 {
-                                chartBuf.WriteString(dimSt.Render("No data for this metric/period") + "\n")
-                        } else {
-                                // Palette for multiple series
-                                seriesColors := []string{"#00FFD0", "#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#C77DFF"}
+			} else if len(m.dbMetricSeries) == 0 {
+				chartBuf.WriteString(dimSt.Render("No data for this metric/period") + "\n")
+			} else {
+				// Palette for multiple series
+				seriesColors := []string{"#00FFD0", "#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#C77DFF"}
 
-                                // Compute global time and value ranges across visible series only
-                                var minT, maxT time.Time
-                                var minV, maxV float64
-                                first := true
-                                for si, s := range m.dbMetricSeries {
-                                        if m.dbMetricSeriesHidden[si] {
-                                                continue
-                                        }
-                                        for _, p := range s.Points {
-                                                if first || p.T.Before(minT) {
-                                                        minT = p.T
-                                                }
-                                                if first || p.T.After(maxT) {
-                                                        maxT = p.T
-                                                }
-                                                if first || p.V < minV {
-                                                        minV = p.V
-                                                }
-                                                if first || p.V > maxV {
-                                                        maxV = p.V
-                                                }
-                                                first = false
-                                        }
-                                }
-                                if first {
-                                        // All series hidden
-                                        chartBuf.WriteString(dimSt.Render("All series hidden — press 1-9 to show") + "\n")
-                                        goto renderColumns
-                                }
-                                if maxT.Equal(minT) {
-                                        maxT = minT.Add(time.Second)
-                                }
-                                yPad := (maxV - minV) * 0.1
-                                if yPad == 0 {
-                                        yPad = 0.1
-                                }
-                                minV = math.Max(0, minV-yPad)
-                                maxV = maxV + yPad
+				// Compute global time and value ranges across visible series only
+				var minT, maxT time.Time
+				var minV, maxV float64
+				first := true
+				for si, s := range m.dbMetricSeries {
+					if m.dbMetricSeriesHidden[si] {
+						continue
+					}
+					for _, p := range s.Points {
+						if first || p.T.Before(minT) {
+							minT = p.T
+						}
+						if first || p.T.After(maxT) {
+							maxT = p.T
+						}
+						if first || p.V < minV {
+							minV = p.V
+						}
+						if first || p.V > maxV {
+							maxV = p.V
+						}
+						first = false
+					}
+				}
+				if first {
+					// All series hidden
+					chartBuf.WriteString(dimSt.Render("All series hidden — press 1-9 to show") + "\n")
+					goto renderColumns
+				}
+				if maxT.Equal(minT) {
+					maxT = minT.Add(time.Second)
+				}
+				yPad := (maxV - minV) * 0.1
+				if yPad == 0 {
+					yPad = 0.1
+				}
+				minV = math.Max(0, minV-yPad)
+				maxV = maxV + yPad
 
-                                xFmt := timeserieslinechart.HourTimeLabelFormatter()
+				xFmt := timeserieslinechart.HourTimeLabelFormatter()
 
-                                chart := timeserieslinechart.New(chartInnerWidth, chartHeight,
-                                        timeserieslinechart.WithTimeRange(minT, maxT),
-                                        timeserieslinechart.WithYRange(minV, maxV),
-                                        timeserieslinechart.WithXYSteps(4, 4),
-                                        timeserieslinechart.WithXLabelFormatter(xFmt),
-                                        timeserieslinechart.WithYLabelFormatter(func(_ int, v float64) string {
-                                                if v >= 1000 {
-                                                        return fmt.Sprintf("%.0f", v)
-                                                } else if v >= 10 {
-                                                        return fmt.Sprintf("%.1f", v)
-                                                }
-                                                return fmt.Sprintf("%.2f", v)
-                                        }),
-                                )
-                                chart.AxisStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
-                                chart.LabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+				chart := timeserieslinechart.New(chartInnerWidth, chartHeight,
+					timeserieslinechart.WithTimeRange(minT, maxT),
+					timeserieslinechart.WithYRange(minV, maxV),
+					timeserieslinechart.WithXYSteps(4, 4),
+					timeserieslinechart.WithXLabelFormatter(xFmt),
+					timeserieslinechart.WithYLabelFormatter(func(_ int, v float64) string {
+						if v >= 1000 {
+							return fmt.Sprintf("%.0f", v)
+						} else if v >= 10 {
+							return fmt.Sprintf("%.1f", v)
+						}
+						return fmt.Sprintf("%.2f", v)
+					}),
+				)
+				chart.AxisStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
+				chart.LabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
-                                // Disable auto-range so Push() never alters the scale mid-loop.
-                                chart.AutoMinX = false
-                                chart.AutoMaxX = false
-                                chart.AutoMinY = false
-                                chart.AutoMaxY = false
-                                chart.SetViewTimeAndYRange(minT, maxT, minV, maxV)
+				// Disable auto-range so Push() never alters the scale mid-loop.
+				chart.AutoMinX = false
+				chart.AutoMaxX = false
+				chart.AutoMinY = false
+				chart.AutoMaxY = false
+				chart.SetViewTimeAndYRange(minT, maxT, minV, maxV)
 
-                                graphW := chart.GraphWidth()
-                                if graphW < 1 {
-                                        graphW = chartInnerWidth
-                                }
+				graphW := chart.GraphWidth()
+				if graphW < 1 {
+					graphW = chartInnerWidth
+				}
 
-                                var dsNames []string
-                                for si, s := range m.dbMetricSeries {
-                                        if m.dbMetricSeriesHidden[si] {
-                                                continue
-                                        }
-                                        color := seriesColors[si%len(seriesColors)]
-                                        dsName := s.Name
-                                        chart.SetDataSetStyle(dsName, lipgloss.NewStyle().Foreground(lipgloss.Color(color)))
-                                        dsNames = append(dsNames, dsName)
+				var dsNames []string
+				for si, s := range m.dbMetricSeries {
+					if m.dbMetricSeriesHidden[si] {
+						continue
+					}
+					color := seriesColors[si%len(seriesColors)]
+					dsName := s.Name
+					chart.SetDataSetStyle(dsName, lipgloss.NewStyle().Foreground(lipgloss.Color(color)))
+					dsNames = append(dsNames, dsName)
 
-                                        // Downsample per series so every column has a point
-                                        pts := s.Points
-                                        if len(pts) > graphW {
-                                                bucket := len(pts) / graphW
-                                                sampled := make([]dbMetricPoint, 0, graphW)
-                                                for i := 0; i < len(pts); i += bucket {
-                                                        end := i + bucket
-                                                        if end > len(pts) {
-                                                                end = len(pts)
-                                                        }
-                                                        var sum float64
-                                                        for _, p := range pts[i:end] {
-                                                                sum += p.V
-                                                        }
-                                                        sampled = append(sampled, dbMetricPoint{T: pts[i].T, V: sum / float64(end-i)})
-                                                }
-                                                pts = sampled
-                                        }
-                                        for _, pt := range pts {
-                                                chart.PushDataSet(dsName, timeserieslinechart.TimePoint{Time: pt.T, Value: pt.V})
-                                        }
-                                }
-                                chart.DrawDataSets(dsNames)
+					// Downsample per series so every column has a point
+					pts := s.Points
+					if len(pts) > graphW {
+						bucket := len(pts) / graphW
+						sampled := make([]dbMetricPoint, 0, graphW)
+						for i := 0; i < len(pts); i += bucket {
+							end := min(i+bucket, len(pts))
+							var sum float64
+							for _, p := range pts[i:end] {
+								sum += p.V
+							}
+							sampled = append(sampled, dbMetricPoint{T: pts[i].T, V: sum / float64(end-i)})
+						}
+						pts = sampled
+					}
+					for _, pt := range pts {
+						chart.PushDataSet(dsName, timeserieslinechart.TimePoint{Time: pt.T, Value: pt.V})
+					}
+				}
+				chart.DrawDataSets(dsNames)
 
-                                chartTitle := m.dbMetricName + "  [" + periods[m.dbMetricPeriodIdx] + "]"
-                                chartBuf.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render(chartTitle) + "\n")
-                                chartBuf.WriteString(chart.View())
+				chartTitle := m.dbMetricName + "  [" + periods[m.dbMetricPeriodIdx] + "]"
+				chartBuf.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render(chartTitle) + "\n")
+				chartBuf.WriteString(chart.View())
 
-                                // Legend — use real node names when available, always shown
-                                // Press number key (1-9) to toggle a series on/off
-                                var legend strings.Builder
-                                for si, s := range m.dbMetricSeries {
-                                        color := seriesColors[si%len(seriesColors)]
-                                        label := s.Name
-                                        if si < len(m.dbNodeNames) && m.dbNodeNames[si] != "" {
-                                                label = strings.TrimSuffix(m.dbNodeNames[si], ".cloud.ovh.net")
-                                        }
-                                        numKey := fmt.Sprintf("[%d]", si+1)
-                                        if m.dbMetricSeriesHidden[si] {
-                                                // Dimmed, struck-through style for hidden series
-                                                hiddenSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
-                                                legend.WriteString(hiddenSt.Render(numKey+" ━ "+label) + "  ")
-                                        } else {
-                                                dot := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render("━")
-                                                numSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render(numKey)
-                                                legend.WriteString(numSt + " " + dot + " " + dimSt.Render(label) + "  ")
-                                        }
-                                }
-                                if legend.Len() > 0 {
-                                        chartBuf.WriteString("\n" + legend.String() + "\n")
-                                }
-                        }
+				// Legend — use real node names when available, always shown
+				// Press number key (1-9) to toggle a series on/off
+				var legend strings.Builder
+				for si, s := range m.dbMetricSeries {
+					color := seriesColors[si%len(seriesColors)]
+					label := s.Name
+					if si < len(m.dbNodeNames) && m.dbNodeNames[si] != "" {
+						label = strings.TrimSuffix(m.dbNodeNames[si], ".cloud.ovh.net")
+					}
+					numKey := fmt.Sprintf("[%d]", si+1)
+					if m.dbMetricSeriesHidden[si] {
+						// Dimmed, struck-through style for hidden series
+						hiddenSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#444444"))
+						legend.WriteString(hiddenSt.Render(numKey+" ━ "+label) + "  ")
+					} else {
+						dot := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render("━")
+						numSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Render(numKey)
+						legend.WriteString(numSt + " " + dot + " " + dimSt.Render(label) + "  ")
+					}
+				}
+				if legend.Len() > 0 {
+					chartBuf.WriteString("\n" + legend.String() + "\n")
+				}
+			}
 
-                        renderColumns:
-                        // Join list and chart side by side
-                        listBox := lipgloss.NewStyle().
+		renderColumns:
+			// Join list and chart side by side
+			listBox := lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("#333333")).
 				Width(listWidth).Padding(0, 1).
@@ -8347,7 +8293,6 @@ func (m Model) renderManagedDatabaseDetail(width int) string {
 
 func (m Model) renderGatewayDetail_PLACEHOLDER() string { return "" }
 
-
 func (m Model) renderGatewayDetail(width int) string {
 	var content strings.Builder
 
@@ -8358,9 +8303,9 @@ func (m Model) renderGatewayDetail(width int) string {
 	status := getStringValue(m.detailData, "status", "N/A")
 
 	publicIP := "N/A"
-	if ei, ok := m.detailData["externalInformation"].(map[string]interface{}); ok {
-		if ips, ok := ei["ips"].([]interface{}); ok && len(ips) > 0 {
-			if ipm, ok := ips[0].(map[string]interface{}); ok {
+	if ei, ok := m.detailData["externalInformation"].(map[string]any); ok {
+		if ips, ok := ei["ips"].([]any); ok && len(ips) > 0 {
+			if ipm, ok := ips[0].(map[string]any); ok {
 				if v := getStringValue(ipm, "ip", ""); v != "" {
 					publicIP = v
 				}
@@ -8370,9 +8315,9 @@ func (m Model) renderGatewayDetail(width int) string {
 
 	var privateIPs []string
 	privateNetwork := "N/A"
-	if ifaces, ok := m.detailData["interfaces"].([]interface{}); ok {
+	if ifaces, ok := m.detailData["interfaces"].([]any); ok {
 		for _, iface := range ifaces {
-			if ifm, ok := iface.(map[string]interface{}); ok {
+			if ifm, ok := iface.(map[string]any); ok {
 				if v := getStringValue(ifm, "ip", ""); v != "" {
 					privateIPs = append(privateIPs, v)
 				}
@@ -8398,10 +8343,7 @@ func (m Model) renderGatewayDetail(width int) string {
 
 	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(18)
 	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
-	boxWidth := (width - 6) / 2
-	if boxWidth < 35 {
-		boxWidth = 35
-	}
+	boxWidth := max((width-6)/2, 35)
 
 	// Info box
 	var infoContent strings.Builder
@@ -8467,7 +8409,7 @@ func (m Model) renderLBDetail(width int) string {
 	}
 
 	publicIP := "-"
-	if fi, ok := m.detailData["floatingIp"].(map[string]interface{}); ok {
+	if fi, ok := m.detailData["floatingIp"].(map[string]any); ok {
 		if v := getStringValue(fi, "ip", ""); v != "" {
 			publicIP = v
 		}
@@ -8482,10 +8424,7 @@ func (m Model) renderLBDetail(width int) string {
 
 	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
 	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
-	boxWidth := (width - 6) / 2
-	if boxWidth < 35 {
-		boxWidth = 35
-	}
+	boxWidth := max((width-6)/2, 35)
 
 	// Info box
 	var infoContent strings.Builder
@@ -8659,7 +8598,7 @@ func (m Model) renderLBPoolDetailView(width int) string {
 	region := getStringValue(m.detailData, "region", "N/A")
 
 	sessionType := "-"
-	if sp, ok := m.selectedLBPool["sessionPersistence"].(map[string]interface{}); ok {
+	if sp, ok := m.selectedLBPool["sessionPersistence"].(map[string]any); ok {
 		sessionType = getStringValue(sp, "type", "-")
 	}
 
@@ -9009,10 +8948,7 @@ func (m Model) renderLBL7RulesView(width int) string {
 	}
 
 	// Clamp index
-	idx := m.lbL7RuleDetailIdx
-	if idx < 0 {
-		idx = 0
-	}
+	idx := max(m.lbL7RuleDetailIdx, 0)
 	if idx >= len(rules) {
 		idx = len(rules) - 1
 	}
@@ -9134,10 +9070,7 @@ func (m Model) renderLBPoolMembersView(width int) string {
 	}
 
 	// Clamp member index
-	idx := m.lbPoolMemberDetailIdx
-	if idx < 0 {
-		idx = 0
-	}
+	idx := max(m.lbPoolMemberDetailIdx, 0)
 	if idx >= len(members) {
 		idx = len(members) - 1
 	}
@@ -9189,7 +9122,7 @@ func (m Model) renderFIPDetail(width int) string {
 
 	// Associated entity (instance or LB)
 	associatedTo := "-"
-	if entity, ok := m.detailData["associatedEntity"].(map[string]interface{}); ok {
+	if entity, ok := m.detailData["associatedEntity"].(map[string]any); ok {
 		entityType := getStringValue(entity, "type", "")
 		entityID := getStringValue(entity, "id", "")
 		if entityID != "" {
@@ -9199,10 +9132,7 @@ func (m Model) renderFIPDetail(width int) string {
 
 	labelSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Width(20)
 	valueSt := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
-	boxWidth := (width - 6) / 2
-	if boxWidth < 35 {
-		boxWidth = 35
-	}
+	boxWidth := max((width-6)/2, 35)
 
 	// Status styling
 	statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
@@ -9264,27 +9194,35 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 	fullWidth := width - 4
 
 	// Info box (top-left)
-	rawRegions, _ := m.detailData["regions"].([]interface{})
+	rawRegions, _ := m.detailData["regions"].([]any)
 	var infoContent strings.Builder
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("ID"), valueStyle.Render(truncate(netID, 36))))
 	vlanStr := "automatic"
-	if vlanID > 0 { vlanStr = fmt.Sprintf("%d", vlanID) }
+	if vlanID > 0 {
+		vlanStr = fmt.Sprintf("%d", vlanID)
+	}
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("VLAN ID"), valueStyle.Render(vlanStr)))
 	rTypeLabel := "Region (vRack)"
-	if regionType == "localzone" { rTypeLabel = "Local Zone" }
+	if regionType == "localzone" {
+		rTypeLabel = "Local Zone"
+	}
 	infoContent.WriteString(fmt.Sprintf("%s %s\n", labelStyle.Render("Type"), valueStyle.Render(rTypeLabel)))
 	// Regions list
 	if len(rawRegions) == 0 {
 		infoContent.WriteString(fmt.Sprintf("%s %s", labelStyle.Render("Regions"), lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("none")))
 	} else {
 		for idx, rv := range rawRegions {
-			rm, _ := rv.(map[string]interface{})
+			rm, _ := rv.(map[string]any)
 			rName := getStringValue(rm, "region", "N/A")
 			rStatus := getStringValue(rm, "status", "")
 			label := "Regions"
-			if idx > 0 { label = "" }
+			if idx > 0 {
+				label = ""
+			}
 			line := rName
-			if rStatus != "" { line += "  (" + rStatus + ")" }
+			if rStatus != "" {
+				line += "  (" + rStatus + ")"
+			}
 			// Highlight selected region when Delete Region action is active
 			if m.selectedAction == 4 && idx == m.privNetSelectedRegion {
 				arrow := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B")).Bold(true).Render(" ◄")
@@ -9296,7 +9234,9 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 				line = valueStyle.Render(line)
 			}
 			sep := "\n"
-			if idx == len(rawRegions)-1 { sep = "" }
+			if idx == len(rawRegions)-1 {
+				sep = ""
+			}
 			infoContent.WriteString(fmt.Sprintf("%s %s%s", labelStyle.Render(label), line, sep))
 		}
 	}
@@ -9315,11 +9255,15 @@ func (m Model) renderPrivateNetworkDetail(width int) string {
 			gatewayIP := getStringValue(sub, "gatewayIp", "N/A")
 			dhcpStr := "N/A"
 			if dhcp, ok := sub["dhcpEnabled"].(bool); ok {
-				if dhcp { dhcpStr = "enabled" } else { dhcpStr = "disabled" }
+				if dhcp {
+					dhcpStr = "enabled"
+				} else {
+					dhcpStr = "disabled"
+				}
 			}
 			allocPool := "-"
-			if pools, ok := sub["ipPools"].([]interface{}); ok && len(pools) > 0 {
-				if pool, ok := pools[0].(map[string]interface{}); ok {
+			if pools, ok := sub["ipPools"].([]any); ok && len(pools) > 0 {
+				if pool, ok := pools[0].(map[string]any); ok {
 					start := getString(pool, "start")
 					end := getString(pool, "end")
 					if start != "" && end != "" {
@@ -9403,10 +9347,7 @@ func (m Model) renderKubernetesDetail(width int) string {
 		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
 	}
 
-	boxWidth := (width - 6) / 2
-	if boxWidth < 35 {
-		boxWidth = 35
-	}
+	boxWidth := max((width-6)/2, 35)
 
 	// Cluster info
 	infoContent := strings.Builder{}
@@ -9527,10 +9468,7 @@ func (m Model) renderProjectDetail(width int) string {
 		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
 	}
 
-	boxWidth := (width - 6) / 2
-	if boxWidth < 35 {
-		boxWidth = 35
-	}
+	boxWidth := max((width-6)/2, 35)
 
 	// Project info
 	infoContent := strings.Builder{}
@@ -9596,10 +9534,7 @@ func renderBox(title string, content string, width int) string {
 	var contentLines []string
 	for _, line := range lines {
 		lineWidth := lipgloss.Width(line)
-		padding := width - 4 - lineWidth
-		if padding < 0 {
-			padding = 0
-		}
+		padding := max(width-4-lineWidth, 0)
 		contentLines = append(contentLines, "│ "+line+strings.Repeat(" ", padding)+" │")
 	}
 
@@ -9907,23 +9842,23 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
-        // Delegate to file storage detail view when in DetailView for ProductStorageFile
-        if m.mode == DetailView && m.currentProduct == ProductStorageFile && m.fileShareDetailView != nil {
-                cmd := m.fileShareDetailView.HandleKey(msg)
-                return m, cmd
-        }
+	// Delegate to file storage detail view when in DetailView for ProductStorageFile
+	if m.mode == DetailView && m.currentProduct == ProductStorageFile && m.fileShareDetailView != nil {
+		cmd := m.fileShareDetailView.HandleKey(msg)
+		return m, cmd
+	}
 
-        // Delegate to object storage detail view when in DetailView for ProductStorageObject
-        if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
-                cmd := m.objectDetailView.HandleKey(msg)
-                return m, cmd
-        }
+	// Delegate to object storage detail view when in DetailView for ProductStorageObject
+	if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectDetailView != nil {
+		cmd := m.objectDetailView.HandleKey(msg)
+		return m, cmd
+	}
 
-        // Delegate to object storage user detail view
-        if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectUserDetailView != nil {
-                cmd := m.objectUserDetailView.HandleKey(msg)
-                return m, cmd
-        }
+	// Delegate to object storage user detail view
+	if m.mode == DetailView && m.currentProduct == ProductStorageObject && m.objectUserDetailView != nil {
+		cmd := m.objectUserDetailView.HandleKey(msg)
+		return m, cmd
+	}
 
 	// Intercept all keys when DB user creation text input is active
 	if m.dbUserCreateMode && m.mode == DetailView &&
@@ -10333,8 +10268,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-        switch msg.String() {
-        case "left":
+	switch msg.String() {
+	case "left":
 		// In NodePoolDetailView, navigate actions
 		if m.mode == NodePoolDetailView {
 			if m.nodePoolDetailActionIdx > 0 {
@@ -10747,7 +10682,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.mode == DetailView && m.currentProduct == ProductNetworkPublic {
 			fipAttached := false
 			if m.detailData != nil {
-				if entity, ok := m.detailData["associatedEntity"].(map[string]interface{}); ok {
+				if entity, ok := m.detailData["associatedEntity"].(map[string]any); ok {
 					fipAttached = getStringValue(entity, "id", "") != ""
 				}
 			}
@@ -11012,10 +10947,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			policyName := getStringValue(m.selectedLBL7Policy, "name", "")
 			region := getStringValue(m.detailData, "region", "")
 			rules := m.lbL7Rules[policyID]
-			idx := m.lbL7RuleDetailIdx
-			if idx < 0 {
-				idx = 0
-			}
+			idx := max(m.lbL7RuleDetailIdx, 0)
 			if len(rules) > 0 && idx < len(rules) {
 				r := rules[idx]
 				ruleID := getStringValue(r, "id", "")
@@ -11129,7 +11061,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				hmHttpMethodIdx := 2 // GET is index 2 in lbHMHttpMethodOptions
 				hmUrlPath := "/"
 				hmExpectedCodes := "200"
-				if httpCfg, ok := hm["httpConfiguration"].(map[string]interface{}); ok {
+				if httpCfg, ok := hm["httpConfiguration"].(map[string]any); ok {
 					if method, ok := httpCfg["httpMethod"].(string); ok && method != "" {
 						hmHttpMethod = method
 						for i, opt := range lbHMHttpMethodOptions {
@@ -11260,7 +11192,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 				}
 				sessionVal := ""
-				if sp, ok := m.selectedLBPool["sessionPersistence"].(map[string]interface{}); ok {
+				if sp, ok := m.selectedLBPool["sessionPersistence"].(map[string]any); ok {
 					sessionVal = getStringValue(sp, "type", "")
 				}
 				sessionIdx := 0
@@ -11308,10 +11240,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			poolID := getStringValue(m.selectedLBPool, "id", "")
 			region := getStringValue(m.detailData, "region", "")
 			members := m.lbPoolMembers[poolID]
-			idx := m.lbPoolMemberDetailIdx
-			if idx < 0 {
-				idx = 0
-			}
+			idx := max(m.lbPoolMemberDetailIdx, 0)
 			// Resolve actual action index (when no members, actions are 0=Create, 1=HM)
 			actionIdx := m.lbMembersActionIdx
 			if len(members) == 0 {
@@ -11418,27 +11347,67 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					hmType := getStringValue(hm, "monitorType", "http")
 					hmTypeIdx := 0
 					for i, opt := range lbHMTypeOptions {
-						if opt.value == hmType { hmTypeIdx = i; break }
+						if opt.value == hmType {
+							hmTypeIdx = i
+							break
+						}
 					}
 					hmDelay := 5
-					if v, ok := hm["delay"]; ok { switch d := v.(type) { case float64: hmDelay = int(d); case int: hmDelay = d } }
+					if v, ok := hm["delay"]; ok {
+						switch d := v.(type) {
+						case float64:
+							hmDelay = int(d)
+						case int:
+							hmDelay = d
+						}
+					}
 					hmTimeout := 5
-					if v, ok := hm["timeout"]; ok { switch d := v.(type) { case float64: hmTimeout = int(d); case int: hmTimeout = d } }
+					if v, ok := hm["timeout"]; ok {
+						switch d := v.(type) {
+						case float64:
+							hmTimeout = int(d)
+						case int:
+							hmTimeout = d
+						}
+					}
 					hmMaxRetries := 3
-					if v, ok := hm["maxRetries"]; ok { switch d := v.(type) { case float64: hmMaxRetries = int(d); case int: hmMaxRetries = d } }
+					if v, ok := hm["maxRetries"]; ok {
+						switch d := v.(type) {
+						case float64:
+							hmMaxRetries = int(d)
+						case int:
+							hmMaxRetries = d
+						}
+					}
 					hmMaxRetriesDown := 3
-					if v, ok := hm["maxRetriesDown"]; ok { switch d := v.(type) { case float64: hmMaxRetriesDown = int(d); case int: hmMaxRetriesDown = d } }
+					if v, ok := hm["maxRetriesDown"]; ok {
+						switch d := v.(type) {
+						case float64:
+							hmMaxRetriesDown = int(d)
+						case int:
+							hmMaxRetriesDown = d
+						}
+					}
 					hmHttpMethod := "GET"
 					hmHttpMethodIdx := 2
 					hmUrlPath := "/"
 					hmExpectedCodes := "200"
-					if httpCfg, ok := hm["httpConfiguration"].(map[string]interface{}); ok {
+					if httpCfg, ok := hm["httpConfiguration"].(map[string]any); ok {
 						if method, ok := httpCfg["httpMethod"].(string); ok && method != "" {
 							hmHttpMethod = method
-							for i, opt := range lbHMHttpMethodOptions { if opt == hmHttpMethod { hmHttpMethodIdx = i; break } }
+							for i, opt := range lbHMHttpMethodOptions {
+								if opt == hmHttpMethod {
+									hmHttpMethodIdx = i
+									break
+								}
+							}
 						}
-						if up, ok := httpCfg["urlPath"].(string); ok && up != "" { hmUrlPath = up }
-						if ec, ok := httpCfg["expectedCodes"].(string); ok && ec != "" { hmExpectedCodes = ec }
+						if up, ok := httpCfg["urlPath"].(string); ok && up != "" {
+							hmUrlPath = up
+						}
+						if ec, ok := httpCfg["expectedCodes"].(string); ok && ec != "" {
+							hmExpectedCodes = ec
+						}
 					}
 					m.mode = WizardView
 					m.wizard = WizardData{
@@ -11478,8 +11447,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					l7RuleLBRegion:   region,
 				}
 			case 1: // Edit
-				idx := m.lbL7RuleDetailIdx
-				if idx < 0 { idx = 0 }
+				idx := max(m.lbL7RuleDetailIdx, 0)
 				if len(rules) > 0 && idx < len(rules) {
 					r := rules[idx]
 					ruleID := getStringValue(r, "id", "")
@@ -11488,19 +11456,30 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					ruleKey := getStringValue(r, "key", "")
 					ruleValue := getStringValue(r, "value", "")
 					ruleInvert := false
-					if inv, ok := r["invert"].(bool); ok { ruleInvert = inv }
+					if inv, ok := r["invert"].(bool); ok {
+						ruleInvert = inv
+					}
 					typeIdx := 0
 					for i, opt := range lbL7RuleTypeOptions {
-						if opt.value == ruleType { typeIdx = i; break }
+						if opt.value == ruleType {
+							typeIdx = i
+							break
+						}
 					}
 					compareIdx := 0
 					validOpts := validCompareOptionsForType(ruleType)
 					for i, opt := range validOpts {
-						if opt.value == compareType { compareIdx = i; break }
+						if opt.value == compareType {
+							compareIdx = i
+							break
+						}
 					}
 					prefillKey := ""
 					for _, t := range lbL7RuleTypeOptions {
-						if t.value == ruleType && t.needsKey { prefillKey = ruleKey; break }
+						if t.value == ruleType && t.needsKey {
+							prefillKey = ruleKey
+							break
+						}
 					}
 					m.mode = WizardView
 					m.wizard = WizardData{
@@ -11519,8 +11498,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 				}
 			case 2: // Delete
-				idx := m.lbL7RuleDetailIdx
-				if idx < 0 { idx = 0 }
+				idx := max(m.lbL7RuleDetailIdx, 0)
 				if len(rules) > 0 && idx < len(rules) {
 					if m.lbL7RuleConfirm {
 						m.lbL7RuleConfirm = false
@@ -11569,22 +11547,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				m.mode = WizardView
 				m.wizard = WizardData{
-					step:                    LBL7PolicyWizardStepName,
-					l7PolicyEditId:          getStringValue(m.selectedLBL7Policy, "id", ""),
-					l7PolicyListenerId:      getStringValue(m.selectedLBListener, "id", ""),
-					l7PolicyListenerName:    getStringValue(m.selectedLBListener, "name", ""),
-					l7PolicyLBRegion:        getStringValue(m.detailData, "region", ""),
-					l7PolicyLBId:            getStringValue(m.detailData, "id", ""),
-					l7PolicyNameInput:       policyName,
-					l7PolicyName:            policyName,
-					l7PolicyPositionInput:   fmt.Sprintf("%d", policyPosition),
-					l7PolicyPosition:        policyPosition,
-					l7PolicyActionIdx:       actionIdx,
-					l7PolicyAction:          policyAction,
-					l7PolicyRedirectPoolIdx: redirectPoolIdx,
-					l7PolicyRedirectPoolId:  redirectPoolId,
+					step:                     LBL7PolicyWizardStepName,
+					l7PolicyEditId:           getStringValue(m.selectedLBL7Policy, "id", ""),
+					l7PolicyListenerId:       getStringValue(m.selectedLBListener, "id", ""),
+					l7PolicyListenerName:     getStringValue(m.selectedLBListener, "name", ""),
+					l7PolicyLBRegion:         getStringValue(m.detailData, "region", ""),
+					l7PolicyLBId:             getStringValue(m.detailData, "id", ""),
+					l7PolicyNameInput:        policyName,
+					l7PolicyName:             policyName,
+					l7PolicyPositionInput:    fmt.Sprintf("%d", policyPosition),
+					l7PolicyPosition:         policyPosition,
+					l7PolicyActionIdx:        actionIdx,
+					l7PolicyAction:           policyAction,
+					l7PolicyRedirectPoolIdx:  redirectPoolIdx,
+					l7PolicyRedirectPoolId:   redirectPoolId,
 					l7PolicyRedirectUrlInput: redirectUrl,
-					l7PolicyRedirectUrl:     redirectUrl,
+					l7PolicyRedirectUrl:      redirectUrl,
 				}
 				return m, nil
 			case 1: // Delete
@@ -11640,11 +11618,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				m.mode = WizardView
 				m.wizard = WizardData{
-					step:               LBListenerWizardStepName,
-					lbListenerEditId:   getStringValue(m.selectedLBListener, "id", ""),
-					lbListenerLBId:     getStringValue(m.detailData, "id", ""),
-					lbListenerLBName:   getStringValue(m.detailData, "name", ""),
-					lbListenerLBRegion: getStringValue(m.detailData, "region", ""),
+					step:                LBListenerWizardStepName,
+					lbListenerEditId:    getStringValue(m.selectedLBListener, "id", ""),
+					lbListenerLBId:      getStringValue(m.detailData, "id", ""),
+					lbListenerLBName:    getStringValue(m.detailData, "name", ""),
+					lbListenerLBRegion:  getStringValue(m.detailData, "region", ""),
 					lbListenerNameInput: listenerName,
 					lbListenerName:      listenerName,
 					lbListenerProtoIdx:  protoIdx,
@@ -11662,12 +11640,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			case 2: // L7 Policies — launch L7 policy creation wizard
 				m.mode = WizardView
 				m.wizard = WizardData{
-					step:                 LBL7PolicyWizardStepName,
-					l7PolicyListenerId:   getStringValue(m.selectedLBListener, "id", ""),
-					l7PolicyListenerName: getStringValue(m.selectedLBListener, "name", ""),
-					l7PolicyLBRegion:     getStringValue(m.detailData, "region", ""),
-					l7PolicyLBId:         getStringValue(m.detailData, "id", ""),
-					l7PolicyPosition:     1,
+					step:                  LBL7PolicyWizardStepName,
+					l7PolicyListenerId:    getStringValue(m.selectedLBListener, "id", ""),
+					l7PolicyListenerName:  getStringValue(m.selectedLBListener, "name", ""),
+					l7PolicyLBRegion:      getStringValue(m.detailData, "region", ""),
+					l7PolicyLBId:          getStringValue(m.detailData, "id", ""),
+					l7PolicyPosition:      1,
 					l7PolicyPositionInput: "1",
 				}
 				return m, nil
@@ -11805,9 +11783,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.mode = WizardView
 				pools := m.lbPools[getStringValue(m.detailData, "id", "")]
 				m.wizard = WizardData{
-					step:             LBListenerWizardStepName,
-					lbListenerLBId:   getStringValue(m.detailData, "id", ""),
-					lbListenerLBName: getStringValue(m.detailData, "name", ""),
+					step:               LBListenerWizardStepName,
+					lbListenerLBId:     getStringValue(m.detailData, "id", ""),
+					lbListenerLBName:   getStringValue(m.detailData, "name", ""),
 					lbListenerLBRegion: getStringValue(m.detailData, "region", ""),
 				}
 				// pre-load pools list into wizard for pool selection step
@@ -11840,7 +11818,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.actionConfirm = true
 			}
 			return m, nil
-	} else if m.mode == DetailView && m.currentProduct == ProductWorkflow {
+		} else if m.mode == DetailView && m.currentProduct == ProductWorkflow {
 			switch m.selectedAction {
 			case 0: // Supprimer
 				if m.actionConfirm {
@@ -11874,9 +11852,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				// Build region list from the network's available regions
 				var regionNames []string
 				regionMap := make(map[string]map[string]string)
-				if regions, ok := m.detailData["regions"].([]interface{}); ok {
+				if regions, ok := m.detailData["regions"].([]any); ok {
 					for _, rv := range regions {
-						rm, ok := rv.(map[string]interface{})
+						rm, ok := rv.(map[string]any)
 						if !ok {
 							continue
 						}
@@ -11988,7 +11966,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				m.actionConfirm = true
 			case 4: // Delete Region
-				regions, _ := m.detailData["regions"].([]interface{})
+				regions, _ := m.detailData["regions"].([]any)
 				if len(regions) == 0 {
 					return m, nil
 				}
@@ -12040,7 +12018,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// Open detail view from table (replaces former 'v' key)
 		if m.mode == TableView {
-				isSubNavProd := (m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB)
+			isSubNavProd := (m.currentProduct >= ProductStorageBlock && m.currentProduct <= ProductNetworkLB)
 			if !isSubNavProd || m.inTableFocus {
 				selectedRow := m.table.Cursor()
 				if selectedRow >= 0 && selectedRow < len(m.currentData) {
@@ -12165,10 +12143,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.dbDetailTab == 5 && m.dbLogsLoaded {
 			total := len(m.dbDetailLogs)
 			maxVisible := 20
-			maxOffset := total - maxVisible
-			if maxOffset < 0 {
-				maxOffset = 0
-			}
+			maxOffset := max(total-maxVisible, 0)
 			if key == "up" || key == "k" {
 				if m.dbLogsScrollOffset < maxOffset {
 					m.dbLogsScrollOffset++
@@ -12375,7 +12350,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// Private network detail: ↑/↓ to select region when Delete Region action is active
 		if m.mode == DetailView && m.currentProduct == ProductNetworkPrivate && m.selectedAction == 4 {
-			regions, _ := m.detailData["regions"].([]interface{})
+			regions, _ := m.detailData["regions"].([]any)
 			if len(regions) > 0 {
 				if key == "down" || key == "j" {
 					if m.privNetSelectedRegion < len(regions)-1 {
@@ -12410,7 +12385,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mode = LoadingView
 
 			// Store a flag to return to detail view after loading
-			m.detailData = map[string]interface{}{
+			m.detailData = map[string]any{
 				"_refreshItemId":   itemId,
 				"_refreshItemName": itemName,
 			}
@@ -12455,10 +12430,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			policyID := getStringValue(m.selectedLBL7Policy, "id", "")
 			rules := m.lbL7Rules[policyID]
 			if len(rules) > 0 {
-				idx := m.lbL7RuleDetailIdx
-				if idx < 0 {
-					idx = 0
-				}
+				idx := max(m.lbL7RuleDetailIdx, 0)
 				if idx < len(rules) {
 					if m.lbL7RuleConfirm {
 						// Second press: execute delete
@@ -12490,7 +12462,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		// In Projects selection view: set selected project as default
 		if m.mode == ProjectSelectView || m.currentProduct == ProductProjects {
-			var project map[string]interface{}
+			var project map[string]any
 
 			if m.mode == ProjectSelectView {
 				// Use the selected row in project selection view
@@ -12565,10 +12537,7 @@ func (m Model) handleDebugKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Scroll up (show older entries)
 		entries := httpLib.BrowserDebugLogger.GetEntries()
 		maxVisible := 15
-		maxOffset := len(entries) - maxVisible
-		if maxOffset < 0 {
-			maxOffset = 0
-		}
+		maxOffset := max(len(entries)-maxVisible, 0)
 		if m.debugScrollOffset < maxOffset {
 			m.debugScrollOffset++
 		}
@@ -12699,7 +12668,7 @@ func (m *Model) applyTableFilter() {
 
 	switch m.currentProduct {
 	case ProductInstances:
-		var filtered []map[string]interface{}
+		var filtered []map[string]any
 		for _, item := range m.currentData {
 			name := strings.ToLower(getStringValue(item, "name", ""))
 			status := strings.ToLower(getStringValue(item, "status", ""))
@@ -12710,7 +12679,7 @@ func (m *Model) applyTableFilter() {
 		}
 		m.table = createInstancesTable(filtered, m.imageMap, m.floatingIPMap, m.width, m.height)
 	case ProductKubernetes:
-		var filtered []map[string]interface{}
+		var filtered []map[string]any
 		for _, item := range m.currentData {
 			name := strings.ToLower(getStringValue(item, "name", ""))
 			status := strings.ToLower(getStringValue(item, "status", ""))
@@ -12722,7 +12691,7 @@ func (m *Model) applyTableFilter() {
 		}
 		m.table = createKubernetesTable(filtered, m.width, m.height)
 	case ProductStorageObject:
-		var filtered []map[string]interface{}
+		var filtered []map[string]any
 		for _, item := range m.currentData {
 			name := strings.ToLower(getStringValue(item, "name", ""))
 			region := strings.ToLower(getStringValue(item, "region", ""))
@@ -12987,11 +12956,11 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleFileWizardConfirmKeys(key)
 	// Object Storage wizard steps
 	case ObjectWizardStepName:
-			return m.handleObjectWizardNameKeys(msg)
+		return m.handleObjectWizardNameKeys(msg)
 	case ObjectWizardStepType:
-			return m.handleObjectWizardTypeKeys(key)
+		return m.handleObjectWizardTypeKeys(key)
 	case ObjectWizardStepRegion:
-			return m.handleObjectWizardRegionKeys(key)
+		return m.handleObjectWizardRegionKeys(key)
 	case ObjectWizardStepReplication:
 		switch key {
 		case "left", "h", "y":
@@ -13029,7 +12998,7 @@ func (m Model) handleWizardKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case ObjectWizardStepUser:
-			return m.handleObjectWizardUserKeys(key)
+		return m.handleObjectWizardUserKeys(key)
 	case ObjectWizardStepEncryption:
 		switch key {
 		case "up", "k":
@@ -13280,12 +13249,12 @@ func (m Model) handleCleanupConfirmKeys(key string) (tea.Model, tea.Cmd) {
 }
 
 // getFilteredWizardRegions returns filtered regions based on wizard filter input
-func (m Model) getFilteredWizardRegions() []map[string]interface{} {
+func (m Model) getFilteredWizardRegions() []map[string]any {
 	if m.wizard.filterInput == "" {
 		return m.wizard.regions
 	}
 	filter := strings.ToLower(m.wizard.filterInput)
-	var filtered []map[string]interface{}
+	var filtered []map[string]any
 	for _, region := range m.wizard.regions {
 		name := strings.ToLower(getString(region, "name"))
 		location := strings.ToLower(getString(region, "datacenterLocation"))
@@ -13298,12 +13267,12 @@ func (m Model) getFilteredWizardRegions() []map[string]interface{} {
 }
 
 // getFilteredWizardFlavors returns filtered flavors based on wizard filter input
-func (m Model) getFilteredWizardFlavors() []map[string]interface{} {
+func (m Model) getFilteredWizardFlavors() []map[string]any {
 	if m.wizard.filterInput == "" {
 		return m.wizard.flavors
 	}
 	filter := strings.ToLower(m.wizard.filterInput)
-	var filtered []map[string]interface{}
+	var filtered []map[string]any
 	for _, flavor := range m.wizard.flavors {
 		name := strings.ToLower(getString(flavor, "name"))
 		flavorType := strings.ToLower(getString(flavor, "type"))
@@ -13315,12 +13284,12 @@ func (m Model) getFilteredWizardFlavors() []map[string]interface{} {
 }
 
 // getFilteredWizardImages returns filtered images based on wizard filter input
-func (m Model) getFilteredWizardImages() []map[string]interface{} {
+func (m Model) getFilteredWizardImages() []map[string]any {
 	if m.wizard.filterInput == "" {
 		return m.wizard.images
 	}
 	filter := strings.ToLower(m.wizard.filterInput)
-	var filtered []map[string]interface{}
+	var filtered []map[string]any
 	for _, image := range m.wizard.images {
 		name := strings.ToLower(getString(image, "name"))
 		if strings.Contains(name, filter) {
@@ -13331,12 +13300,12 @@ func (m Model) getFilteredWizardImages() []map[string]interface{} {
 }
 
 // getFilteredWizardSSHKeys returns filtered SSH keys based on wizard filter input
-func (m Model) getFilteredWizardSSHKeys() []map[string]interface{} {
+func (m Model) getFilteredWizardSSHKeys() []map[string]any {
 	if m.wizard.filterInput == "" {
 		return m.wizard.sshKeys
 	}
 	filter := strings.ToLower(m.wizard.filterInput)
-	var filtered []map[string]interface{}
+	var filtered []map[string]any
 	for _, key := range m.wizard.sshKeys {
 		name := strings.ToLower(getString(key, "name"))
 		// Always include "(No SSH Key)" option
@@ -13348,12 +13317,12 @@ func (m Model) getFilteredWizardSSHKeys() []map[string]interface{} {
 }
 
 // getFilteredWizardNetworks returns filtered private networks based on wizard filter input
-func (m Model) getFilteredWizardNetworks() []map[string]interface{} {
+func (m Model) getFilteredWizardNetworks() []map[string]any {
 	if m.wizard.filterInput == "" {
 		return m.wizard.privateNetworks
 	}
 	filter := strings.ToLower(m.wizard.filterInput)
-	var filtered []map[string]interface{}
+	var filtered []map[string]any
 	for _, network := range m.wizard.privateNetworks {
 		name := strings.ToLower(getString(network, "name"))
 		id := getString(network, "id")
@@ -13366,12 +13335,12 @@ func (m Model) getFilteredWizardNetworks() []map[string]interface{} {
 }
 
 // getFilteredWizardFloatingIPs returns filtered floating IPs based on wizard filter input
-func (m Model) getFilteredWizardFloatingIPs() []map[string]interface{} {
+func (m Model) getFilteredWizardFloatingIPs() []map[string]any {
 	if m.wizard.filterInput == "" {
 		return m.wizard.floatingIPs
 	}
 	filter := strings.ToLower(m.wizard.filterInput)
-	var filtered []map[string]interface{}
+	var filtered []map[string]any
 	for _, fip := range m.wizard.floatingIPs {
 		name := strings.ToLower(getString(fip, "name"))
 		ip := strings.ToLower(getString(fip, "ip"))
@@ -13880,10 +13849,10 @@ func (m Model) handleWizardNetworkKeys(key string, msg tea.KeyMsg) (tea.Model, t
 				m.wizard.selectedPrivateNetworkName = getString(network, "name")
 				// Store subnet ID if available - handle both []interface{} and []map[string]interface{}
 				m.wizard.selectedSubnetId = ""
-				if subnets, ok := network["subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
+				if subnets, ok := network["subnets"].([]map[string]any); ok && len(subnets) > 0 {
 					m.wizard.selectedSubnetId = getString(subnets[0], "id")
-				} else if subnets, ok := network["subnets"].([]interface{}); ok && len(subnets) > 0 {
-					if subnet, ok := subnets[0].(map[string]interface{}); ok {
+				} else if subnets, ok := network["subnets"].([]any); ok && len(subnets) > 0 {
+					if subnet, ok := subnets[0].(map[string]any); ok {
 						m.wizard.selectedSubnetId = getString(subnet, "id")
 					}
 				}
@@ -14504,7 +14473,7 @@ func (m Model) handleKubeWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 // createKubeClusterWrapper wraps the cluster creation with proper data formatting
 func (m Model) createKubeClusterWrapper() tea.Cmd {
 	// Build the creation payload
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"name":    m.wizard.kubeName,
 		"region":  m.wizard.selectedKubeRegion,
 		"version": m.wizard.selectedKubeVersion,
@@ -14662,7 +14631,7 @@ func (m Model) loadComputeSubProduct() (Model, tea.Cmd) {
 }
 
 // Helper functions
-func getStringValue(data map[string]interface{}, key string, defaultVal string) string {
+func getStringValue(data map[string]any, key string, defaultVal string) string {
 	if val, ok := data[key]; ok {
 		if str, ok := val.(string); ok {
 			return str
@@ -14672,7 +14641,7 @@ func getStringValue(data map[string]interface{}, key string, defaultVal string) 
 	return defaultVal
 }
 
-func getFloatValue(data map[string]interface{}, key string, defaultVal float64) float64 {
+func getFloatValue(data map[string]any, key string, defaultVal float64) float64 {
 	if val, ok := data[key]; ok {
 		if f, ok := val.(float64); ok {
 			return f
@@ -14681,7 +14650,7 @@ func getFloatValue(data map[string]interface{}, key string, defaultVal float64) 
 	return defaultVal
 }
 
-func getBoolValue(data map[string]interface{}, key string, defaultVal bool) bool {
+func getBoolValue(data map[string]any, key string, defaultVal bool) bool {
 	if val, ok := data[key]; ok {
 		if b, ok := val.(bool); ok {
 			return b
@@ -14691,7 +14660,7 @@ func getBoolValue(data map[string]interface{}, key string, defaultVal bool) bool
 }
 
 // getIntOrFloatValue extracts a numeric value that could be int or float64 in JSON
-func getIntOrFloatValue(data map[string]interface{}, key string, defaultVal float64) float64 {
+func getIntOrFloatValue(data map[string]any, key string, defaultVal float64) float64 {
 	if val, ok := data[key]; ok {
 		switch v := val.(type) {
 		case float64:
@@ -15084,7 +15053,7 @@ func (m Model) handleVolumeWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 }
 
 // getNumericValue extracts a numeric value from a map, handling json.Number type
-func getNumericValue(data map[string]interface{}, key string) float64 {
+func getNumericValue(data map[string]any, key string) float64 {
 	if val, ok := data[key]; ok {
 		switch v := val.(type) {
 		case json.Number:
@@ -15406,4 +15375,3 @@ func (m Model) handleNodePoolDeleteConfirmKeyPress(msg tea.KeyMsg) (tea.Model, t
 		return m, nil
 	}
 }
-

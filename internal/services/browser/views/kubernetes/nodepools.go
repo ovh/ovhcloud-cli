@@ -19,14 +19,14 @@ import (
 type NodePoolsView struct {
 	views.BaseView
 	table       table.Model
-	cluster     map[string]interface{}
-	nodePools   []map[string]interface{}
+	cluster     map[string]any
+	nodePools   []map[string]any
 	filterInput string
 	filtering   bool
 }
 
 // NewNodePoolsView creates a new node pools list view.
-func NewNodePoolsView(ctx *views.Context, cluster map[string]interface{}, nodePools []map[string]interface{}) *NodePoolsView {
+func NewNodePoolsView(ctx *views.Context, cluster map[string]any, nodePools []map[string]any) *NodePoolsView {
 	v := &NodePoolsView{
 		BaseView:  views.NewBaseView(ctx),
 		cluster:   cluster,
@@ -176,7 +176,7 @@ func (v *NodePoolsView) applyFilter() {
 	}
 
 	filter := strings.ToLower(v.filterInput)
-	filtered := make([]map[string]interface{}, 0)
+	filtered := make([]map[string]any, 0)
 	for _, pool := range v.nodePools {
 		name := strings.ToLower(getString(pool, "name"))
 		flavor := strings.ToLower(getString(pool, "flavor"))
@@ -206,25 +206,25 @@ func (v *NodePoolsView) HelpText() string {
 
 // ShowNodePoolDetailMsg signals to show node pool details.
 type ShowNodePoolDetailMsg struct {
-	Cluster  map[string]interface{}
+	Cluster  map[string]any
 	PoolName string
 }
 
 // CreateNodePoolMsg signals to create a new node pool.
 type CreateNodePoolMsg struct {
-	Cluster map[string]interface{}
+	Cluster map[string]any
 }
 
 // RefreshNodePoolsMsg signals to refresh the node pools list.
 type RefreshNodePoolsMsg struct {
-	Cluster map[string]interface{}
+	Cluster map[string]any
 }
 
 // NodePoolDetailView displays details for a single node pool.
 type NodePoolDetailView struct {
 	views.BaseView
-	cluster        map[string]interface{}
-	nodePool       map[string]interface{}
+	cluster        map[string]any
+	nodePool       map[string]any
 	selectedAction int
 	confirmMode    bool
 }
@@ -238,7 +238,7 @@ const (
 var nodePoolActionLabels = []string{"Scale", "Delete"}
 
 // NewNodePoolDetailView creates a new node pool detail view.
-func NewNodePoolDetailView(ctx *views.Context, cluster, nodePool map[string]interface{}) *NodePoolDetailView {
+func NewNodePoolDetailView(ctx *views.Context, cluster, nodePool map[string]any) *NodePoolDetailView {
 	return &NodePoolDetailView{
 		BaseView:       views.NewBaseView(ctx),
 		cluster:        cluster,
@@ -379,12 +379,12 @@ func (v *NodePoolDetailView) HelpText() string {
 
 // ExecuteNodePoolActionMsg signals to execute an action on a node pool.
 type ExecuteNodePoolActionMsg struct {
-	Cluster  map[string]interface{}
-	NodePool map[string]interface{}
+	Cluster  map[string]any
+	NodePool map[string]any
 	Action   int
 }
 
-func getBool(m map[string]interface{}, key string) bool {
+func getBool(m map[string]any, key string) bool {
 	if v, ok := m[key]; ok {
 		if b, ok := v.(bool); ok {
 			return b
@@ -403,8 +403,8 @@ func boolToStr(b bool) string {
 // NodePoolScaleView displays the scale form for a node pool.
 type NodePoolScaleView struct {
 	views.BaseView
-	cluster       map[string]interface{}
-	nodePool      map[string]interface{}
+	cluster       map[string]any
+	nodePool      map[string]any
 	fields        []ScaleField
 	selectedField int
 	errorMsg      string
@@ -419,7 +419,7 @@ type ScaleField struct {
 }
 
 // NewNodePoolScaleView creates a new node pool scale view.
-func NewNodePoolScaleView(ctx *views.Context, cluster, nodePool map[string]interface{}) *NodePoolScaleView {
+func NewNodePoolScaleView(ctx *views.Context, cluster, nodePool map[string]any) *NodePoolScaleView {
 	desired := getIntValue(nodePool, "desiredNodes")
 	minNodes := getIntValue(nodePool, "minNodes")
 	maxNodes := getIntValue(nodePool, "maxNodes")
@@ -547,8 +547,8 @@ func (v *NodePoolScaleView) HelpText() string {
 
 // SubmitNodePoolScaleMsg signals to submit the node pool scale.
 type SubmitNodePoolScaleMsg struct {
-	Cluster      map[string]interface{}
-	NodePool     map[string]interface{}
+	Cluster      map[string]any
+	NodePool     map[string]any
 	DesiredNodes int
 	MinNodes     int
 	MaxNodes     int
@@ -557,7 +557,7 @@ type SubmitNodePoolScaleMsg struct {
 // UpdatePolicyView displays the update policy selection.
 type UpdatePolicyView struct {
 	views.BaseView
-	cluster        map[string]interface{}
+	cluster        map[string]any
 	policies       []string
 	selectedPolicy int
 }
@@ -565,7 +565,7 @@ type UpdatePolicyView struct {
 var updatePolicies = []string{"ALWAYS_UPDATE", "MINIMAL_DOWNTIME", "NEVER_UPDATE"}
 
 // NewUpdatePolicyView creates a new update policy view.
-func NewUpdatePolicyView(ctx *views.Context, cluster map[string]interface{}) *UpdatePolicyView {
+func NewUpdatePolicyView(ctx *views.Context, cluster map[string]any) *UpdatePolicyView {
 	currentPolicy := getString(cluster, "updatePolicy")
 	selected := 0
 	for i, p := range updatePolicies {
@@ -658,20 +658,20 @@ func (v *UpdatePolicyView) HelpText() string {
 
 // SubmitUpdatePolicyMsg signals to submit the update policy change.
 type SubmitUpdatePolicyMsg struct {
-	Cluster map[string]interface{}
+	Cluster map[string]any
 	Policy  string
 }
 
 // UpgradeView displays the version upgrade selection.
 type UpgradeView struct {
 	views.BaseView
-	cluster         map[string]interface{}
+	cluster         map[string]any
 	versions        []string
 	selectedVersion int
 }
 
 // NewUpgradeView creates a new upgrade view.
-func NewUpgradeView(ctx *views.Context, cluster map[string]interface{}, versions []string) *UpgradeView {
+func NewUpgradeView(ctx *views.Context, cluster map[string]any, versions []string) *UpgradeView {
 	return &UpgradeView{
 		BaseView:        views.NewBaseView(ctx),
 		cluster:         cluster,
@@ -765,20 +765,20 @@ func (v *UpgradeView) HelpText() string {
 
 // SubmitUpgradeMsg signals to submit the cluster upgrade.
 type SubmitUpgradeMsg struct {
-	Cluster map[string]interface{}
+	Cluster map[string]any
 	Version string
 }
 
 // DeleteConfirmView displays a delete confirmation dialog.
 type DeleteConfirmView struct {
 	views.BaseView
-	cluster   map[string]interface{}
-	nodePool  map[string]interface{} // nil for cluster delete
+	cluster   map[string]any
+	nodePool  map[string]any // nil for cluster delete
 	confirmed bool
 }
 
 // NewDeleteConfirmView creates a new delete confirmation view.
-func NewDeleteConfirmView(ctx *views.Context, cluster, nodePool map[string]interface{}) *DeleteConfirmView {
+func NewDeleteConfirmView(ctx *views.Context, cluster, nodePool map[string]any) *DeleteConfirmView {
 	return &DeleteConfirmView{
 		BaseView:  views.NewBaseView(ctx),
 		cluster:   cluster,
@@ -860,6 +860,6 @@ func (v *DeleteConfirmView) HelpText() string {
 
 // ConfirmDeleteMsg signals deletion was confirmed.
 type ConfirmDeleteMsg struct {
-	Cluster  map[string]interface{}
-	NodePool map[string]interface{}
+	Cluster  map[string]any
+	NodePool map[string]any
 }

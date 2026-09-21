@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build:
-    runs-on: library/go-1-26
+    runs-on: library/go-1-27
     steps:
     - uses: actions/checkout
     - run: |-

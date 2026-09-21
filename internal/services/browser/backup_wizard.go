@@ -57,10 +57,7 @@ func (m Model) renderBackupWizardVolumeStep(width int) string {
 		if m.wizard.backupVolumeIdx >= maxVisible {
 			startIdx = m.wizard.backupVolumeIdx - maxVisible + 1
 		}
-		endIdx := startIdx + maxVisible
-		if endIdx > len(m.wizard.backupVolumes) {
-			endIdx = len(m.wizard.backupVolumes)
-		}
+		endIdx := min(startIdx+maxVisible, len(m.wizard.backupVolumes))
 		if startIdx > 0 {
 			content.WriteString(dimStyle.Render(fmt.Sprintf("  (...%d above)", startIdx)) + "\n")
 		}

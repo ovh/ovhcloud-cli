@@ -44,7 +44,7 @@ func (m Model) fetchFileShareRegions() tea.Cmd {
 			go func(regionName string) {
 				probe := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share",
 					m.cloudProject, url.PathEscape(regionName))
-				var result []map[string]interface{}
+				var result []map[string]any
 				err := httpLib.Client.Get(probe, &result)
 				ch <- probeResult{region: regionName, supported: err == nil}
 			}(name)
@@ -74,16 +74,16 @@ func (m Model) fetchFileShareNetworks() tea.Cmd {
 		if m.cloudProject == "" {
 			return fileShareNetworksLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
-		var networks []map[string]interface{}
+		var networks []map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
 		if err := httpLib.Client.Get(endpoint, &networks); err != nil {
 			return fileShareNetworksLoadedMsg{err: fmt.Errorf("failed to fetch networks: %w", err)}
 		}
 		for i, net := range networks {
 			openstackId := ""
-			if regions, ok := net["regions"].([]interface{}); ok {
+			if regions, ok := net["regions"].([]any); ok {
 				for _, r := range regions {
-					if rm, ok := r.(map[string]interface{}); ok {
+					if rm, ok := r.(map[string]any); ok {
 						if rm["region"] == region {
 							openstackId, _ = rm["openstackId"].(string)
 							break
@@ -95,7 +95,7 @@ func (m Model) fetchFileShareNetworks() tea.Cmd {
 				networks[i]["_openstackId"] = openstackId
 			}
 		}
-		var filtered []map[string]interface{}
+		var filtered []map[string]any
 		for _, net := range networks {
 			if _, ok := net["_openstackId"]; ok {
 				filtered = append(filtered, net)
@@ -116,7 +116,7 @@ func (m Model) fetchFileShareSubnets(networkID string) tea.Cmd {
 		if m.cloudProject == "" {
 			return fileShareSubnetsLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
-		var subnets []map[string]interface{}
+		var subnets []map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", m.cloudProject, networkID)
 		if err := httpLib.Client.Get(endpoint, &subnets); err != nil {
 			return fileShareSubnetsLoadedMsg{err: fmt.Errorf("failed to fetch subnets: %w", err)}
@@ -136,14 +136,14 @@ func (m Model) createFileShare() tea.Cmd {
 		if m.cloudProject == "" {
 			return fileShareCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name":      m.wizard.fileShareName,
 			"type":      m.wizard.fileShareType,
 			"size":      m.wizard.fileShareSize,
 			"networkId": m.wizard.fileShareNetworkId,
 			"subnetId":  m.wizard.fileShareSubnetId,
 		}
-		var share map[string]interface{}
+		var share map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share",
 			m.cloudProject, url.PathEscape(m.wizard.selectedRegion))
 		if err := httpLib.Client.Post(endpoint, body, &share); err != nil {
@@ -174,9 +174,9 @@ func (m Model) fetchShareRegions() ([]string, error) {
 			continue
 		}
 		name := allNames[i]
-		if services, ok := r["services"].([]interface{}); ok {
+		if services, ok := r["services"].([]any); ok {
 			for _, svc := range services {
-				if sm, ok := svc.(map[string]interface{}); ok {
+				if sm, ok := svc.(map[string]any); ok {
 					if sm["name"] == "share" && sm["status"] == "UP" {
 						result = append(result, name)
 						break
@@ -202,13 +202,13 @@ func (m Model) fetchFileStorageData() dataLoadedMsg {
 		return dataLoadedMsg{data: nil}
 	}
 
-	type regionResult struct{ shares []map[string]interface{} }
+	type regionResult struct{ shares []map[string]any }
 	ch := make(chan regionResult, len(regionNames))
 	for _, name := range regionNames {
 		go func(regionName string) {
 			probe := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share",
 				m.cloudProject, url.PathEscape(regionName))
-			var shares []map[string]interface{}
+			var shares []map[string]any
 			if err := httpLib.Client.Get(probe, &shares); err != nil {
 				ch <- regionResult{}
 				return
@@ -220,7 +220,7 @@ func (m Model) fetchFileStorageData() dataLoadedMsg {
 		}(name)
 	}
 
-	var allShares []map[string]interface{}
+	var allShares []map[string]any
 	for range regionNames {
 		r := <-ch
 		allShares = append(allShares, r.shares...)
@@ -234,7 +234,7 @@ func (m Model) fetchFileStorageData() dataLoadedMsg {
 }
 
 // createFileStorageTable builds the table model for file shares.
-func createFileStorageTable(data []map[string]interface{}, width, height int) table.Model {
+func createFileStorageTable(data []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Name", Width: 25},
 		{Title: "ID", Width: 20},
@@ -268,10 +268,7 @@ func createFileStorageTable(data []map[string]interface{}, width, height int) ta
 		rows = append(rows, table.Row{name, id, region, shareType, sizeStr, status})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -381,7 +378,7 @@ func (m Model) renameFileShare(shareId, region, newName string) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(shareId))
-		body := map[string]interface{}{"name": newName}
+		body := map[string]any{"name": newName}
 		err := httpLib.Client.Put(endpoint, body, nil)
 		return fileShareActionDoneMsg{action: file_storage.FileShareActionRename, err: err}
 	}
@@ -391,7 +388,7 @@ func (m Model) extendFileShare(shareId, region string, newSizeGB int) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/share/%s",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(shareId))
-		body := map[string]interface{}{"newSize": newSizeGB}
+		body := map[string]any{"newSize": newSizeGB}
 		err := httpLib.Client.Put(endpoint, body, nil)
 		return fileShareActionDoneMsg{action: file_storage.FileShareActionExtend, err: err}
 	}
@@ -414,7 +411,7 @@ func (m Model) handleExecuteFileShareAction(msg file_storage.ExecuteFileShareAct
 	case file_storage.FileShareActionExtend:
 		newSize, err := strconv.Atoi(msg.Param)
 		if err != nil || newSize < 1 {
-				m.notification = "❌ Invalid size"
+			m.notification = "❌ Invalid size"
 			m.notificationExpiry = time.Now().Add(5 * time.Second)
 			return m, nil
 		}

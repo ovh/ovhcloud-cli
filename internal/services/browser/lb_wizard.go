@@ -37,9 +37,9 @@ func (m Model) fetchLBRegions() tea.Cmd {
 			if r == nil {
 				continue
 			}
-			if services, ok := r["services"].([]interface{}); ok {
+			if services, ok := r["services"].([]any); ok {
 				for _, svc := range services {
-					if sm, ok := svc.(map[string]interface{}); ok {
+					if sm, ok := svc.(map[string]any); ok {
 						if sm["name"] == "octavialoadbalancer" && sm["status"] == "UP" {
 							regions = append(regions, allNames[i])
 							break
@@ -59,7 +59,7 @@ func (m Model) fetchLBFlavors() tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/flavor",
 			m.cloudProject, url.PathEscape(region))
-		var flavors []map[string]interface{}
+		var flavors []map[string]any
 		if err := httpLib.Client.Get(endpoint, &flavors); err != nil {
 			return lbFlavorsLoadedMsg{err: err}
 		}
@@ -73,11 +73,11 @@ func (m Model) fetchLBNetworks() tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network",
 			m.cloudProject, url.PathEscape(region))
-		var nets []map[string]interface{}
+		var nets []map[string]any
 		if err := httpLib.Client.Get(endpoint, &nets); err != nil {
 			return lbNetworksLoadedMsg{err: err}
 		}
-		var filtered []map[string]interface{}
+		var filtered []map[string]any
 		for _, n := range nets {
 			if getStringValue(n, "visibility", "") == "private" {
 				filtered = append(filtered, n)
@@ -93,7 +93,7 @@ func (m Model) fetchLBSubnet(networkID string) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(networkID))
-		var subnets []map[string]interface{}
+		var subnets []map[string]any
 		if err := httpLib.Client.Get(endpoint, &subnets); err != nil || len(subnets) == 0 {
 			return lbSubnetLoadedMsg{subnetID: ""}
 		}
@@ -111,12 +111,12 @@ func (m Model) createLBFromWizard() tea.Cmd {
 		if m.wizard.lbNetworkId == "" || m.wizard.lbSubnetId == "" {
 			return lbCreatedMsg{err: fmt.Errorf("a private network with a subnet is required to create a load balancer")}
 		}
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name":     m.wizard.lbName,
 			"flavorId": m.wizard.lbFlavorId,
-			"network": map[string]interface{}{
-				"private": map[string]interface{}{
-					"network": map[string]interface{}{
+			"network": map[string]any{
+				"private": map[string]any{
+					"network": map[string]any{
 						"id":       m.wizard.lbNetworkId,
 						"subnetId": m.wizard.lbSubnetId,
 					},
@@ -125,7 +125,7 @@ func (m Model) createLBFromWizard() tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/loadbalancer",
 			m.cloudProject, url.PathEscape(m.wizard.lbRegion))
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return lbCreatedMsg{err: fmt.Errorf("failed to create load balancer: %w", err)}
 		}
@@ -186,10 +186,7 @@ func (m Model) renderLBWizardRegionStep(width int) string {
 		if m.wizard.lbRegionIdx >= maxVisible {
 			startIdx = m.wizard.lbRegionIdx - maxVisible + 1
 		}
-		endIdx := startIdx + maxVisible
-		if endIdx > len(m.wizard.lbAvailableRegions) {
-			endIdx = len(m.wizard.lbAvailableRegions)
-		}
+		endIdx := min(startIdx+maxVisible, len(m.wizard.lbAvailableRegions))
 		for i := startIdx; i < endIdx; i++ {
 			r := m.wizard.lbAvailableRegions[i]
 			if i == m.wizard.lbRegionIdx {
@@ -200,7 +197,7 @@ func (m Model) renderLBWizardRegionStep(width int) string {
 		}
 		if len(m.wizard.lbAvailableRegions) > maxVisible {
 			content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).
-					Render(fmt.Sprintf("\n  %d / %d regions", m.wizard.lbRegionIdx+1, len(m.wizard.lbAvailableRegions))))
+				Render(fmt.Sprintf("\n  %d / %d regions", m.wizard.lbRegionIdx+1, len(m.wizard.lbAvailableRegions))))
 		}
 	}
 
@@ -442,11 +439,11 @@ func (m Model) handleLBWizardNetworkKeys(key string) (tea.Model, tea.Cmd) {
 		m.wizard.lbNetworkName = getStringValue(net, "name", getStringValue(net, "id", "unknown"))
 		// Try to find subnet ID embedded in network data
 		subnetID := ""
-		if subnets, ok := net["subnets"].([]interface{}); ok && len(subnets) > 0 {
+		if subnets, ok := net["subnets"].([]any); ok && len(subnets) > 0 {
 			switch v := subnets[0].(type) {
 			case string:
 				subnetID = v
-			case map[string]interface{}:
+			case map[string]any:
 				subnetID = getStringValue(v, "id", "")
 			}
 		}

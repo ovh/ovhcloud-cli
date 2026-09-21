@@ -66,10 +66,7 @@ func (m Model) renderWorkflowWizardInstanceStep(width int) string {
 		if m.wizard.wfInstanceIdx >= maxVisible {
 			start = m.wizard.wfInstanceIdx - maxVisible + 1
 		}
-		end := start + maxVisible
-		if end > len(m.wizard.wfInstances) {
-			end = len(m.wizard.wfInstances)
-		}
+		end := min(start+maxVisible, len(m.wizard.wfInstances))
 		for i := start; i < end; i++ {
 			inst := m.wizard.wfInstances[i]
 			label := getStringValue(inst, "name", getStringValue(inst, "id", "unknown"))
@@ -160,7 +157,7 @@ func (m Model) renderWorkflowWizardConfirmStep(width int) string {
 	b.WriteString(labelStyle.Render("  Rotation :") + valStyle.Render(fmt.Sprintf("%d backups", m.wizard.wfRotation)) + "\n\n")
 
 	if m.wizard.isLoading {
-			b.WriteString(loadingStyle.Render("⏳ Creating..."))
+		b.WriteString(loadingStyle.Render("⏳ Creating..."))
 		return b.String()
 	}
 	if m.wizard.errorMsg != "" {
@@ -310,7 +307,7 @@ func (m Model) handleWorkflowWizardConfirmKeys(key string) (tea.Model, tea.Cmd) 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
 type workflowInstancesLoadedMsg struct {
-	instances []map[string]interface{}
+	instances []map[string]any
 	err       error
 }
 
@@ -324,7 +321,7 @@ func (m Model) fetchWorkflowInstances() tea.Cmd {
 		if m.cloudProject == "" {
 			return workflowInstancesLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
-		var instances []map[string]interface{}
+		var instances []map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance", m.cloudProject)
 		if err := httpLib.Client.Get(endpoint, &instances); err != nil {
 			return workflowInstancesLoadedMsg{err: err}
@@ -340,13 +337,13 @@ func (m Model) createWorkflow() tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup",
 			m.cloudProject, url.PathEscape(m.wizard.wfRegion))
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name":       m.wizard.wfName,
 			"instanceId": m.wizard.wfInstanceId,
 			"cron":       m.wizard.wfCron,
 			"rotation":   m.wizard.wfRotation,
 		}
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return workflowCreatedMsg{err: err}
 		}

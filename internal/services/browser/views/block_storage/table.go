@@ -20,13 +20,13 @@ import (
 type TableView struct {
 	views.BaseView
 	table        table.Model
-	data         []map[string]interface{}
+	data         []map[string]any
 	filterMode   bool
 	filterInput  string
-	filteredData []map[string]interface{}
+	filteredData []map[string]any
 }
 
-func NewTableView(ctx *views.Context, data []map[string]interface{}) *TableView {
+func NewTableView(ctx *views.Context, data []map[string]any) *TableView {
 	v := &TableView{
 		BaseView:     views.NewBaseView(ctx),
 		data:         data,
@@ -57,10 +57,7 @@ func (v *TableView) createTable() table.Model {
 	}
 
 	ctx := v.Context()
-	height := ctx.Height - 15
-	if height < 5 {
-		height = 5
-	}
+	height := max(ctx.Height-15, 5)
 	if height > 20 {
 		height = 20
 	}
@@ -174,7 +171,7 @@ func (v *TableView) HelpText() string {
 	return "↑↓: Navigate • /: Filter • v: Details • d: Debug • p: Projects • q: Quit"
 }
 
-func (v *TableView) GetSelectedVolume() map[string]interface{} {
+func (v *TableView) GetSelectedVolume() map[string]any {
 	idx := v.table.Cursor()
 	if idx >= 0 && idx < len(v.filteredData) {
 		return v.filteredData[idx]
@@ -183,7 +180,7 @@ func (v *TableView) GetSelectedVolume() map[string]interface{} {
 }
 
 // UpdateData updates the table with new data.
-func (v *TableView) UpdateData(data []map[string]interface{}) {
+func (v *TableView) UpdateData(data []map[string]any) {
 	cursor := v.table.Cursor()
 	v.data = data
 	v.applyFilter()
@@ -193,17 +190,17 @@ func (v *TableView) UpdateData(data []map[string]interface{}) {
 }
 
 type ShowVolumeDetailMsg struct {
-	Volume map[string]interface{}
+	Volume map[string]any
 }
 
-func getString(m map[string]interface{}, key string) string {
+func getString(m map[string]any, key string) string {
 	if v, ok := m[key].(string); ok {
 		return v
 	}
 	return ""
 }
 
-func getSizeStr(volume map[string]interface{}) string {
+func getSizeStr(volume map[string]any) string {
 	switch v := volume["size"].(type) {
 	case float64:
 		return fmt.Sprintf("%d", int(v))

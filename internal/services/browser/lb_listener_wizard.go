@@ -9,6 +9,7 @@ package browser
 import (
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -116,12 +117,7 @@ func lbPoolCompatible(poolProto, listenerProto string) bool {
 	if compatible == nil {
 		return true
 	}
-	for _, p := range compatible {
-		if p == poolProto {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(compatible, poolProto)
 }
 
 func (m Model) renderLBListenerWizardPoolStep(width int) string {
@@ -136,7 +132,7 @@ func (m Model) renderLBListenerWizardPoolStep(width int) string {
 	compatProtos := lbCompatiblePoolProtos(m.wizard.lbListenerProto)
 	compatNote := ""
 	if len(compatProtos) > 0 {
-		compatNote = "Compatible protocols with "+m.wizard.lbListenerProto+": "+strings.Join(compatProtos, ", ")
+		compatNote = "Compatible protocols with " + m.wizard.lbListenerProto + ": " + strings.Join(compatProtos, ", ")
 	}
 	b.WriteString(descStyle.Render("Attach an existing pool to this listener, or skip this step.") + "\n")
 	if compatNote != "" {
@@ -146,7 +142,7 @@ func (m Model) renderLBListenerWizardPoolStep(width int) string {
 
 	allPools := m.lbPools[m.wizard.lbListenerLBId]
 	// Filter to compatible pools only
-	var pools []map[string]interface{}
+	var pools []map[string]any
 	for _, p := range allPools {
 		if lbPoolCompatible(getStringValue(p, "protocol", ""), m.wizard.lbListenerProto) {
 			pools = append(pools, p)
@@ -327,7 +323,7 @@ func (m Model) handleLBListenerWizardPortKeys(key string) (tea.Model, tea.Cmd) {
 
 func (m Model) handleLBListenerWizardPoolKeys(key string) (tea.Model, tea.Cmd) {
 	allPools := m.lbPools[m.wizard.lbListenerLBId]
-	var pools []map[string]interface{}
+	var pools []map[string]any
 	for _, p := range allPools {
 		if lbPoolCompatible(getStringValue(p, "protocol", ""), m.wizard.lbListenerProto) {
 			pools = append(pools, p)
@@ -400,7 +396,7 @@ func (m Model) createLBListener() tea.Cmd {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener",
 			m.cloudProject, url.PathEscape(m.wizard.lbListenerLBRegion))
 
-		body := map[string]interface{}{
+		body := map[string]any{
 			"loadbalancerId": m.wizard.lbListenerLBId,
 			"name":           m.wizard.lbListenerName,
 			"protocol":       m.wizard.lbListenerProto,
@@ -410,7 +406,7 @@ func (m Model) createLBListener() tea.Cmd {
 			body["defaultPoolId"] = m.wizard.lbListenerPoolId
 		}
 
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return lbListenerCreatedMsg{listenerName: m.wizard.lbListenerName, err: fmt.Errorf("creation failed: %w", err)}
 		}

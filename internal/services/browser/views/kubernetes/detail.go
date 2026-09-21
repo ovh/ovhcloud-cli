@@ -31,14 +31,14 @@ var clusterActionLabels = []string{"Kubeconfig", "K9s", "Pools", "Upgrade", "Pol
 // DetailView displays Kubernetes cluster details with actions.
 type DetailView struct {
 	views.BaseView
-	cluster        map[string]interface{}
-	nodePools      []map[string]interface{}
+	cluster        map[string]any
+	nodePools      []map[string]any
 	selectedAction int
 	confirmMode    bool
 }
 
 // NewDetailView creates a new cluster detail view.
-func NewDetailView(ctx *views.Context, cluster map[string]interface{}, nodePools []map[string]interface{}) *DetailView {
+func NewDetailView(ctx *views.Context, cluster map[string]any, nodePools []map[string]any) *DetailView {
 	return &DetailView{
 		BaseView:       views.NewBaseView(ctx),
 		cluster:        cluster,
@@ -193,17 +193,17 @@ func (v *DetailView) HelpText() string {
 }
 
 // UpdateNodePools updates the node pools list.
-func (v *DetailView) UpdateNodePools(nodePools []map[string]interface{}) {
+func (v *DetailView) UpdateNodePools(nodePools []map[string]any) {
 	v.nodePools = nodePools
 }
 
 // ExecuteClusterActionMsg signals to execute an action on a cluster.
 type ExecuteClusterActionMsg struct {
-	Cluster map[string]interface{}
+	Cluster map[string]any
 	Action  int
 }
 
-func getIntValue(m map[string]interface{}, key string) int {
+func getIntValue(m map[string]any, key string) int {
 	if v, ok := m[key]; ok {
 		switch val := v.(type) {
 		case int:

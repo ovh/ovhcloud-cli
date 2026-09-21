@@ -95,7 +95,6 @@ func confirmLogout(section string) bool {
 // isInvalidCredentialError reports whether err is an OVHcloud API error caused
 // by credentials that are already invalid or revoked (HTTP 401/403).
 func isInvalidCredentialError(err error) bool {
-	var apiErr *ovh.APIError
-	return errors.As(err, &apiErr) &&
-		(apiErr.Code == http.StatusUnauthorized || apiErr.Code == http.StatusForbidden)
+	apiErr, ok := errors.AsType[*ovh.APIError](err)
+	return ok && (apiErr.Code == http.StatusForbidden || apiErr.Code == http.StatusUnauthorized)
 }

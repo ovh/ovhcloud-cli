@@ -77,7 +77,8 @@ func getRequestBodyFromSpec(spec []byte, path, method string) (*openapi3.MediaTy
 	if err != nil {
 		return nil, fmt.Errorf("failed to load spec: %w", err)
 	}
-	if err = doc.Validate(context.Background()); err != nil {
+	// Remove AllowExtraSiblings when all OVH APIs are > 3.0 to allow extra fields with $ref
+	if err = doc.Validate(context.Background(), openapi3.AllowExtraSiblingFields("description")); err != nil {
 		return nil, fmt.Errorf("failed to validate spec: %w", err)
 	}
 

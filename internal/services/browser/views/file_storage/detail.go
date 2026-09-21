@@ -28,7 +28,7 @@ var fileShareActionLabels = []string{"Delete", "Rename", "Extend"}
 // DetailView displays file storage share details with actions.
 type DetailView struct {
 	views.BaseView
-	share          map[string]interface{}
+	share          map[string]any
 	selectedAction int
 	confirmMode    bool
 	renameMode     bool
@@ -38,7 +38,7 @@ type DetailView struct {
 }
 
 // NewDetailView creates a detail view for a file share.
-func NewDetailView(ctx *views.Context, share map[string]interface{}) *DetailView {
+func NewDetailView(ctx *views.Context, share map[string]any) *DetailView {
 	return &DetailView{
 		BaseView:       views.NewBaseView(ctx),
 		share:          share,
@@ -95,7 +95,7 @@ func (v *DetailView) renderActions() string {
 			Width(40)
 		return views.StyleStatusWarning.Render("New name:") + "\n" +
 			inputStyle.Render(v.renameInput+"▌") + "\n\n" +
-					views.StyleFooter.Render("Enter: Confirm • Esc: Cancel")
+			views.StyleFooter.Render("Enter: Confirm • Esc: Cancel")
 	}
 
 	if v.extendMode {
@@ -106,10 +106,10 @@ func (v *DetailView) renderActions() string {
 			Padding(0, 1).
 			Width(20)
 		return views.StyleStatusWarning.Render(
-				fmt.Sprintf("New size in GB (current: %s GB, minimum: %s GB, must be larger):", currentSize, currentSize),
-			) + "\n" +
-				inputStyle.Render(v.extendInput+"▌") + "\n\n" +
-				views.StyleFooter.Render("Enter: Confirm • Esc: Cancel")
+			fmt.Sprintf("New size in GB (current: %s GB, minimum: %s GB, must be larger):", currentSize, currentSize),
+		) + "\n" +
+			inputStyle.Render(v.extendInput+"▌") + "\n\n" +
+			views.StyleFooter.Render("Enter: Confirm • Esc: Cancel")
 	}
 
 	var parts []string
@@ -263,7 +263,7 @@ func (v *DetailView) Title() string {
 // HelpText returns the footer help text.
 func (v *DetailView) HelpText() string {
 	if v.renameMode || v.extendMode {
-			return "Type value • Enter: Confirm • Esc: Cancel"
+		return "Type value • Enter: Confirm • Esc: Cancel"
 	}
 	if v.confirmMode {
 		return "Enter: Confirm action • Esc: Cancel"
@@ -273,19 +273,19 @@ func (v *DetailView) HelpText() string {
 
 // ExecuteFileShareActionMsg is dispatched when the user confirms an action.
 type ExecuteFileShareActionMsg struct {
-	Share  map[string]interface{}
+	Share  map[string]any
 	Action int
 	Param  string
 }
 
-func getString(m map[string]interface{}, key string) string {
+func getString(m map[string]any, key string) string {
 	if v, ok := m[key].(string); ok {
 		return v
 	}
 	return ""
 }
 
-func getSizeStr(share map[string]interface{}) string {
+func getSizeStr(share map[string]any) string {
 	switch v := share["size"].(type) {
 	case float64:
 		return fmt.Sprintf("%d", int(v))

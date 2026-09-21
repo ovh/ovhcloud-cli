@@ -45,7 +45,7 @@ func (m Model) fetchGwSubnet(networkID string) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(networkID))
-		var subnets []map[string]interface{}
+		var subnets []map[string]any
 		if err := httpLib.Client.Get(endpoint, &subnets); err != nil || len(subnets) == 0 {
 			// No subnet exists yet — network selected but not ready for gateway
 			return gwSubnetLoadedMsg{subnetID: "", err: fmt.Errorf("this network has no compatible subnet (noGateway=true). First create a subnet using the 'OVH Gateway' option.")}
@@ -59,12 +59,12 @@ func (m Model) fetchGwNetworks() tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network",
 			m.cloudProject, url.PathEscape(region))
-		var nets []map[string]interface{}
+		var nets []map[string]any
 		if err := httpLib.Client.Get(endpoint, &nets); err != nil {
 			return gwNetworksLoadedMsg{err: err}
 		}
 		// Exclude the external/public network
-		var filtered []map[string]interface{}
+		var filtered []map[string]any
 		for _, n := range nets {
 			name := getStringValue(n, "name", "")
 			if name != "" && name != "Ext-Net" {
@@ -91,7 +91,7 @@ func (m Model) createGatewayFromWizard() tea.Cmd {
 			}
 			return "s"
 		}()
-		body := map[string]interface{}{
+		body := map[string]any{
 			"model": model,
 			"name":  m.wizard.gwName,
 		}
@@ -112,7 +112,7 @@ func (m Model) createGatewayFromWizard() tea.Cmd {
 				m.cloudProject, url.PathEscape(m.wizard.gwRegion))
 		}
 
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			errMsg := err.Error()
 			if strings.Contains(errMsg, "gateway IP must not be used by a port") ||
@@ -414,11 +414,11 @@ func (m Model) handleGwWizardNetworkKeys(key string) (tea.Model, tea.Cmd) {
 			m.wizard.gwNetworkName = getStringValue(net, "name", getStringValue(net, "id", "unknown"))
 			// Regional network API returns subnets as a list of ID strings — extract the first one
 			subnetID := ""
-			if subnets, ok := net["subnets"].([]interface{}); ok && len(subnets) > 0 {
+			if subnets, ok := net["subnets"].([]any); ok && len(subnets) > 0 {
 				switch v := subnets[0].(type) {
 				case string:
 					subnetID = v
-				case map[string]interface{}:
+				case map[string]any:
 					subnetID = getStringValue(v, "id", "")
 				}
 			}
@@ -460,4 +460,3 @@ func (m Model) handleGwWizardConfirmKeys(key string) (tea.Model, tea.Cmd) {
 	}
 	return m, nil
 }
-

@@ -97,10 +97,7 @@ func (m Model) renderObjectWizardRegionStep(width int) string {
 		if m.wizard.selectedIndex >= maxVisible {
 			startIdx = m.wizard.selectedIndex - maxVisible + 1
 		}
-		endIdx := startIdx + maxVisible
-		if endIdx > len(m.wizard.objectRegions) {
-			endIdx = len(m.wizard.objectRegions)
-		}
+		endIdx := min(startIdx+maxVisible, len(m.wizard.objectRegions))
 		if startIdx > 0 {
 			content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render("  ↑ more") + "\n")
 		}
@@ -702,10 +699,7 @@ func (m Model) renderObjectWizardSwiftRegionStep(width int) string {
 		if m.wizard.selectedIndex >= maxVisible {
 			startIdx = m.wizard.selectedIndex - maxVisible + 1
 		}
-		endIdx := startIdx + maxVisible
-		if endIdx > len(m.wizard.objectSwiftRegions) {
-			endIdx = len(m.wizard.objectSwiftRegions)
-		}
+		endIdx := min(startIdx+maxVisible, len(m.wizard.objectSwiftRegions))
 
 		if startIdx > 0 {
 			content.WriteString(itemStyle.Render(fmt.Sprintf("  (...%d more above)", startIdx)) + "\n")
@@ -800,4 +794,3 @@ func (m Model) handleS3CredentialsViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 	}
 	return m, nil
 }
-

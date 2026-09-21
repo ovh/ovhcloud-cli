@@ -28,17 +28,17 @@ func (m Model) fetchAnalyticsCapabilities() tea.Cmd {
 		capEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", m.cloudProject)
 		availEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/availability", m.cloudProject)
 
-		var caps map[string]interface{}
+		var caps map[string]any
 		if err := httpLib.Client.Get(capEndpoint, &caps); err != nil {
 			return dbCapabilitiesLoadedMsg{err: err}
 		}
 
-		var availItems []map[string]interface{}
+		var availItems []map[string]any
 		_ = httpLib.Client.Get(availEndpoint, &availItems)
 
 		// Fallback regions from capabilities top-level list
 		var capsRegions []string
-		if raws, ok := caps["regions"].([]interface{}); ok {
+		if raws, ok := caps["regions"].([]any); ok {
 			for _, r := range raws {
 				if s, ok := r.(string); ok {
 					capsRegions = append(capsRegions, s)
@@ -48,10 +48,10 @@ func (m Model) fetchAnalyticsCapabilities() tea.Cmd {
 		}
 
 		// Only keep analytics engines (category == "analysis")
-		engines, _ := caps["engines"].([]interface{})
-		var engMaps []map[string]interface{}
+		engines, _ := caps["engines"].([]any)
+		var engMaps []map[string]any
 		for _, e := range engines {
-			if em, ok := e.(map[string]interface{}); ok {
+			if em, ok := e.(map[string]any); ok {
 				if strings.ToLower(getStringValue(em, "category", "")) == "analysis" {
 					engMaps = append(engMaps, em)
 				}
@@ -61,10 +61,10 @@ func (m Model) fetchAnalyticsCapabilities() tea.Cmd {
 			return getStringValue(engMaps[i], "name", "") < getStringValue(engMaps[j], "name", "")
 		})
 
-		flavors, _ := caps["flavors"].([]interface{})
-		var flavMaps []map[string]interface{}
+		flavors, _ := caps["flavors"].([]any)
+		var flavMaps []map[string]any
 		for _, f := range flavors {
-			if fm, ok := f.(map[string]interface{}); ok {
+			if fm, ok := f.(map[string]any); ok {
 				flavMaps = append(flavMaps, fm)
 			}
 		}
@@ -77,10 +77,10 @@ func (m Model) fetchAnalyticsCapabilities() tea.Cmd {
 			return getStringValue(flavMaps[i], "name", "") < getStringValue(flavMaps[j], "name", "")
 		})
 
-		plans, _ := caps["plans"].([]interface{})
-		var planMaps []map[string]interface{}
+		plans, _ := caps["plans"].([]any)
+		var planMaps []map[string]any
 		for _, p := range plans {
-			if pm, ok := p.(map[string]interface{}); ok {
+			if pm, ok := p.(map[string]any); ok {
 				planMaps = append(planMaps, pm)
 			}
 		}
@@ -107,7 +107,7 @@ func (m Model) fetchAnalyticsEngineAvail(engineName string) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/availability",
 			m.cloudProject, url.PathEscape(engineName))
-		var items []map[string]interface{}
+		var items []map[string]any
 		if err := httpLib.Client.Get(endpoint, &items); err != nil {
 			return analyticsEngineAvailLoadedMsg{engine: engineName, err: err}
 		}
@@ -128,11 +128,11 @@ func (m Model) createAnalyticsFromWizard() tea.Cmd {
 		if engine == "" {
 			return analyticsCreatedMsg{err: fmt.Errorf("no engine selected")}
 		}
-		body := map[string]interface{}{
+		body := map[string]any{
 			"description": m.wizard.dbName,
 			"version":     m.wizard.dbVersion,
 			"plan":        m.wizard.dbPlan,
-			"nodesPattern": map[string]interface{}{
+			"nodesPattern": map[string]any{
 				"flavor": m.wizard.dbFlavor,
 				"region": m.wizard.dbRegion,
 				"number": m.wizard.dbNodes,
@@ -142,12 +142,12 @@ func (m Model) createAnalyticsFromWizard() tea.Cmd {
 			body["networkId"] = m.wizard.dbNetworkId
 		}
 		if m.wizard.dbDiskSize > 0 {
-			body["disk"] = map[string]interface{}{"size": m.wizard.dbDiskSize}
+			body["disk"] = map[string]any{"size": m.wizard.dbDiskSize}
 		}
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s",
 			m.cloudProject, url.PathEscape(engine))
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return analyticsCreatedMsg{err: fmt.Errorf("failed to create analytics service: %w", err)}
 		}
@@ -264,10 +264,7 @@ func (m Model) renderAnalyticsWizardRegionStep(_ int) string {
 		if m.wizard.dbRegionIdx >= maxVisible {
 			startIdx = m.wizard.dbRegionIdx - maxVisible + 1
 		}
-		endIdx := startIdx + maxVisible
-		if endIdx > len(regions) {
-			endIdx = len(regions)
-		}
+		endIdx := min(startIdx+maxVisible, len(regions))
 		for i := startIdx; i < endIdx; i++ {
 			r := regions[i]
 			if i == m.wizard.dbRegionIdx {
@@ -653,16 +650,16 @@ func (m Model) handleAnalyticsWizardFlavorKeys(key string) (tea.Model, tea.Cmd) 
 		// We do NOT use min or step since deprecated fields can be stale/wrong.
 		diskSize := 0
 		if avail := m.dbActiveAvail(); avail != nil {
-			if specs, ok := avail["specifications"].(map[string]interface{}); ok {
-				if storage, ok := specs["storage"].(map[string]interface{}); ok {
-					if maxS, ok := storage["maximum"].(map[string]interface{}); ok {
+			if specs, ok := avail["specifications"].(map[string]any); ok {
+				if storage, ok := specs["storage"].(map[string]any); ok {
+					if maxS, ok := storage["maximum"].(map[string]any); ok {
 						if v, ok := toFloat64(maxS["value"]); ok && v > 0 {
 							diskSize = int(v)
 						}
 					}
 					// If maximum is absent or zero, fall back to minimum
 					if diskSize == 0 {
-						if minS, ok := storage["minimum"].(map[string]interface{}); ok {
+						if minS, ok := storage["minimum"].(map[string]any); ok {
 							if v, ok := toFloat64(minS["value"]); ok && v > 0 {
 								diskSize = int(v)
 							}

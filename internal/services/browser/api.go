@@ -171,9 +171,9 @@ func (m Model) fetchProjectsData() projectsLoadedMsg {
 	}
 
 	// Now fetch details for each project
-	var projects []map[string]interface{}
+	var projects []map[string]any
 	for _, id := range projectIDs {
-		var project map[string]interface{}
+		var project map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s", id)
 		if err := httpLib.Client.Get(endpoint, &project); err == nil {
 			projects = append(projects, project)
@@ -194,7 +194,7 @@ func (m Model) fetchInstancesData() instancesLoadedMsg {
 		}
 	}
 
-	var instances []map[string]interface{}
+	var instances []map[string]any
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance", m.cloudProject)
 	err := httpLib.Client.Get(endpoint, &instances)
 	if err != nil {
@@ -211,11 +211,11 @@ func (m Model) fetchInstancesData() instancesLoadedMsg {
 }
 
 // fetchInstancesEnrichedData fetches images and floating IPs in parallel
-func (m Model) fetchInstancesEnrichedData(instances []map[string]interface{}) tea.Cmd {
+func (m Model) fetchInstancesEnrichedData(instances []map[string]any) tea.Cmd {
 	return func() tea.Msg {
 		// Fetch images to build imageId -> imageName map
 		imageMap := make(map[string]string)
-		var images []map[string]interface{}
+		var images []map[string]any
 		imagesEndpoint := fmt.Sprintf("/v1/cloud/project/%s/image", m.cloudProject)
 		if imgErr := httpLib.Client.Get(imagesEndpoint, &images); imgErr == nil {
 			for _, img := range images {
@@ -238,12 +238,12 @@ func (m Model) fetchInstancesEnrichedData(instances []map[string]interface{}) te
 		}
 		// Fetch floating IPs for each region
 		for region := range regionSet {
-			var floatingIPs []map[string]interface{}
+			var floatingIPs []map[string]any
 			fipEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip", m.cloudProject, region)
 			if fipErr := httpLib.Client.Get(fipEndpoint, &floatingIPs); fipErr == nil {
 				for _, fip := range floatingIPs {
 					// Check if floating IP is associated to an instance
-					if associatedEntity, ok := fip["associatedEntity"].(map[string]interface{}); ok {
+					if associatedEntity, ok := fip["associatedEntity"].(map[string]any); ok {
 						if instanceId, ok := associatedEntity["id"].(string); ok && instanceId != "" {
 							if ip, ok := fip["ip"].(string); ok {
 								floatingIPMap[instanceId] = ip
@@ -281,9 +281,9 @@ func (m Model) fetchKubernetesData() dataLoadedMsg {
 	}
 
 	// Now fetch details for each cluster
-	var clusters []map[string]interface{}
+	var clusters []map[string]any
 	for _, id := range clusterIDs {
-		var cluster map[string]interface{}
+		var cluster map[string]any
 		detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", m.cloudProject, id)
 		if err := httpLib.Client.Get(detailEndpoint, &cluster); err == nil {
 			clusters = append(clusters, cluster)
@@ -307,14 +307,14 @@ func (m Model) fetchKubeNodePools(kubeId string) tea.Cmd {
 		}
 
 		// Fetch node pools for the cluster
-		var nodePools []map[string]interface{}
+		var nodePools []map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool", m.cloudProject, kubeId)
 		err := httpLib.Client.Get(endpoint, &nodePools)
 		if err != nil {
 			// If node pools fail to load, don't treat it as a fatal error
 			return kubeNodePoolsLoadedMsg{
 				kubeId:    kubeId,
-				nodePools: []map[string]interface{}{},
+				nodePools: []map[string]any{},
 				err:       nil,
 			}
 		}
@@ -365,7 +365,7 @@ func (m Model) fetchKubeRegions() tea.Cmd {
 func compareVersions(a, b string) int {
 	parsePart := func(s string) []int {
 		var parts []int
-		for _, seg := range strings.Split(s, ".") {
+		for seg := range strings.SplitSeq(s, ".") {
 			n := 0
 			fmt.Sscanf(seg, "%d", &n)
 			parts = append(parts, n)
@@ -440,7 +440,7 @@ func (m Model) fetchKubeNetworks() tea.Cmd {
 			}
 		}
 
-		var networks []map[string]interface{}
+		var networks []map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
 		err := httpLib.Client.Get(endpoint, &networks)
 		if err != nil {
@@ -472,7 +472,7 @@ func (m Model) fetchKubeSubnets(networkID string) tea.Cmd {
 			}
 		}
 
-		var subnets []map[string]interface{}
+		var subnets []map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet", m.cloudProject, networkID)
 		err := httpLib.Client.Get(endpoint, &subnets)
 		if err != nil {
@@ -496,7 +496,7 @@ func (m Model) fetchKubeSubnets(networkID string) tea.Cmd {
 }
 
 // createKubeCluster creates a new Kubernetes cluster
-func (m Model) createKubeCluster(config map[string]interface{}) tea.Cmd {
+func (m Model) createKubeCluster(config map[string]any) tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
 			return kubeClusterCreatedMsg{
@@ -504,7 +504,7 @@ func (m Model) createKubeCluster(config map[string]interface{}) tea.Cmd {
 			}
 		}
 
-		var cluster map[string]interface{}
+		var cluster map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube", m.cloudProject)
 		err := httpLib.Client.Post(endpoint, config, &cluster)
 		if err != nil {
@@ -614,7 +614,7 @@ func (m Model) handleKubeNodePoolsLoaded(msg kubeNodePoolsLoadedMsg) (tea.Model,
 
 	// Store in cache
 	if m.kubeNodePools == nil {
-		m.kubeNodePools = make(map[string][]map[string]interface{})
+		m.kubeNodePools = make(map[string][]map[string]any)
 	}
 	m.kubeNodePools[msg.kubeId] = msg.nodePools
 
@@ -686,9 +686,9 @@ func (m Model) fetchDatabasesData(category string) dataLoadedMsg {
 	}
 
 	// Now fetch details for each database service
-	var databases []map[string]interface{}
+	var databases []map[string]any
 	for _, id := range serviceIDs {
-		var db map[string]interface{}
+		var db map[string]any
 		detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", m.cloudProject, id)
 		if err := httpLib.Client.Get(detailEndpoint, &db); err == nil {
 			databases = append(databases, db)
@@ -721,17 +721,17 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 	}
 
 	// Fetch details for each region to check if it has S3 storage feature
-	var allContainers []map[string]interface{}
+	var allContainers []map[string]any
 	for _, regionName := range regionNames {
 		// Get region details to check for S3 feature
-		var region map[string]interface{}
+		var region map[string]any
 		regionDetailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s", m.cloudProject, regionName)
 		if err := httpLib.Client.Get(regionDetailEndpoint, &region); err != nil {
 			continue
 		}
 
 		// Check if region has S3 storage feature
-		services, ok := region["services"].([]interface{})
+		services, ok := region["services"].([]any)
 		if !ok {
 			continue
 		}
@@ -739,7 +739,7 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 		hasS3 := false
 		s3Offer := "Standard"
 		for _, svc := range services {
-			if svcMap, ok := svc.(map[string]interface{}); ok {
+			if svcMap, ok := svc.(map[string]any); ok {
 				if name, ok := svcMap["name"].(string); ok {
 					if name == "storage-s3-high-perf" {
 						hasS3 = true
@@ -762,13 +762,13 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 			deployMode = "Local Zone"
 		}
 
-		var rawResponse []interface{}
+		var rawResponse []any
 		storageEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage", m.cloudProject, regionName)
 		if err := httpLib.Client.Get(storageEndpoint, &rawResponse); err == nil {
 			for _, item := range rawResponse {
 				if containerName, ok := item.(string); ok {
 					// It's a container name, fetch details
-					var container map[string]interface{}
+					var container map[string]any
 					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s", m.cloudProject, regionName, containerName)
 					if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
 						container["_offer"] = s3Offer
@@ -776,7 +776,7 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 						container["_type"] = "S3"
 						allContainers = append(allContainers, container)
 					}
-				} else if containerObj, ok := item.(map[string]interface{}); ok {
+				} else if containerObj, ok := item.(map[string]any); ok {
 					containerObj["_offer"] = s3Offer
 					containerObj["_deployMode"] = deployMode
 					containerObj["_type"] = "S3"
@@ -787,12 +787,12 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 	}
 
 	// Fetch cloud users with their S3 credentials
-	var s3Users []map[string]interface{}
-	var cloudUsers []map[string]interface{}
+	var s3Users []map[string]any
+	var cloudUsers []map[string]any
 	userEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user", m.cloudProject)
 	if err := httpLib.Client.Get(userEndpoint, &cloudUsers); err == nil {
 		for _, user := range cloudUsers {
-			userEntry := make(map[string]interface{})
+			userEntry := make(map[string]any)
 			userEntry["_username"] = user["username"]
 			userEntry["_userDescription"] = user["description"]
 			userEntry["_userId"] = user["id"]
@@ -817,7 +817,7 @@ func (m Model) fetchS3StorageData() dataLoadedMsg {
 				continue
 			}
 
-			var s3Creds []map[string]interface{}
+			var s3Creds []map[string]any
 			s3Endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials", m.cloudProject, userId)
 			if err := httpLib.Client.Get(s3Endpoint, &s3Creds); err == nil && len(s3Creds) > 0 {
 				cred := s3Creds[0]
@@ -850,7 +850,7 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 	}
 
 	// includeType=true makes the API return the containerType field (private/public/static)
-	var rawResponse []interface{}
+	var rawResponse []any
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage?includeType=true", m.cloudProject)
 	err := httpLib.Client.Get(endpoint, &rawResponse)
 	if err != nil {
@@ -860,12 +860,12 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 		}
 	}
 
-	var containers []map[string]interface{}
+	var containers []map[string]any
 	if len(rawResponse) > 0 {
 		if _, ok := rawResponse[0].(string); ok {
 			for _, item := range rawResponse {
 				if containerID, ok := item.(string); ok {
-					var container map[string]interface{}
+					var container map[string]any
 					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s?includeType=true", m.cloudProject, containerID)
 					if err := httpLib.Client.Get(detailEndpoint, &container); err == nil {
 						container["_type"] = "Swift"
@@ -876,7 +876,7 @@ func (m Model) fetchSwiftStorageData() dataLoadedMsg {
 		} else {
 			// Response contains full objects
 			for _, item := range rawResponse {
-				if obj, ok := item.(map[string]interface{}); ok {
+				if obj, ok := item.(map[string]any); ok {
 					obj["_type"] = "Swift"
 					containers = append(containers, obj)
 				}
@@ -899,7 +899,7 @@ func (m Model) fetchBlockStorageData() dataLoadedMsg {
 	}
 
 	// Try to fetch as array of interfaces first (could be strings or objects)
-	var rawResponse []interface{}
+	var rawResponse []any
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume", m.cloudProject)
 	err := httpLib.Client.Get(endpoint, &rawResponse)
 	if err != nil {
@@ -910,13 +910,13 @@ func (m Model) fetchBlockStorageData() dataLoadedMsg {
 	}
 
 	// Check if response contains strings (IDs) or objects
-	var volumes []map[string]interface{}
+	var volumes []map[string]any
 	if len(rawResponse) > 0 {
 		if _, ok := rawResponse[0].(string); ok {
 			// Response contains string IDs, fetch details for each
 			for _, item := range rawResponse {
 				if volumeID, ok := item.(string); ok {
-					var volume map[string]interface{}
+					var volume map[string]any
 					detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, volumeID)
 					if err := httpLib.Client.Get(detailEndpoint, &volume); err == nil {
 						volumes = append(volumes, volume)
@@ -926,14 +926,14 @@ func (m Model) fetchBlockStorageData() dataLoadedMsg {
 		} else {
 			// Response contains full objects
 			for _, item := range rawResponse {
-				if obj, ok := item.(map[string]interface{}); ok {
+				if obj, ok := item.(map[string]any); ok {
 					volumes = append(volumes, obj)
 				}
 			}
 		}
 	}
 
-	var filtered []map[string]interface{}
+	var filtered []map[string]any
 	for _, v := range volumes {
 		status := getString(v, "status")
 		if status != "deleting" && status != "deleted" {
@@ -971,7 +971,7 @@ func (m Model) fetchVolumeRegions() tea.Cmd {
 			go func(regionName string) {
 				typesEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeType",
 					m.cloudProject, url.PathEscape(regionName))
-				var rawTypes []map[string]interface{}
+				var rawTypes []map[string]any
 				if err := httpLib.Client.Get(typesEndpoint, &rawTypes); err != nil {
 					ch <- probeResult{region: regionName}
 					return
@@ -984,7 +984,7 @@ func (m Model) fetchVolumeRegions() tea.Cmd {
 						continue
 					}
 					types = append(types, n)
-					if azRaw, ok := t["availabilityZones"].([]interface{}); ok {
+					if azRaw, ok := t["availabilityZones"].([]any); ok {
 						var azs []string
 						for _, az := range azRaw {
 							if s, ok := az.(string); ok && s != "" {
@@ -1030,7 +1030,7 @@ func (m Model) fetchVolumeTypes(region string) tea.Cmd {
 			return volumeTypesLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeType", m.cloudProject, url.PathEscape(region))
-		var rawTypes []map[string]interface{}
+		var rawTypes []map[string]any
 		if err := httpLib.Client.Get(endpoint, &rawTypes); err != nil {
 			return volumeTypesLoadedMsg{err: fmt.Errorf("failed to fetch volume types: %w", err)}
 		}
@@ -1042,7 +1042,7 @@ func (m Model) fetchVolumeTypes(region string) tea.Cmd {
 				continue
 			}
 			types = append(types, n)
-			if azRaw, ok := t["availabilityZones"].([]interface{}); ok {
+			if azRaw, ok := t["availabilityZones"].([]any); ok {
 				var azs []string
 				for _, az := range azRaw {
 					if s, ok := az.(string); ok && s != "" {
@@ -1064,12 +1064,12 @@ func (m Model) fetchVolumeAvailabilityZones(region string) tea.Cmd {
 			return volumeAZLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s", m.cloudProject, url.PathEscape(region))
-		var regionDetail map[string]interface{}
+		var regionDetail map[string]any
 		if err := httpLib.Client.Get(endpoint, &regionDetail); err != nil {
 			return volumeAZLoadedMsg{err: fmt.Errorf("failed to fetch region details: %w", err)}
 		}
 		var azs []string
-		if raw, ok := regionDetail["availabilityZones"].([]interface{}); ok {
+		if raw, ok := regionDetail["availabilityZones"].([]any); ok {
 			for _, az := range raw {
 				if s, ok := az.(string); ok && s != "" && s != "nova" {
 					azs = append(azs, s)
@@ -1090,7 +1090,7 @@ func (m Model) createVolume() tea.Cmd {
 		if m.wizard.volumeEncryptionIdx == 1 && !strings.HasSuffix(effectiveType, "-luks") {
 			effectiveType += "-luks"
 		}
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name": m.wizard.volumeName,
 			"size": m.wizard.volumeSize,
 			"type": effectiveType,
@@ -1099,7 +1099,7 @@ func (m Model) createVolume() tea.Cmd {
 			body["availabilityZone"] = m.wizard.volumeAvailabilityZone
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volume", m.cloudProject, url.PathEscape(m.wizard.selectedRegion))
-		var volume map[string]interface{}
+		var volume map[string]any
 		err := httpLib.Client.Post(endpoint, body, &volume)
 		return volumeCreatedMsg{volume: volume, err: err}
 	}
@@ -1109,7 +1109,7 @@ func (m Model) deleteVolume(volumeId string) tea.Cmd {
 	return func() tea.Msg {
 		// Check for snapshots first — the API rejects delete if any exist
 		snapshotsEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/snapshot", m.cloudProject)
-		var snapshots []map[string]interface{}
+		var snapshots []map[string]any
 		if err := httpLib.Client.Get(snapshotsEndpoint, &snapshots); err == nil {
 			var blocking []string
 			for _, s := range snapshots {
@@ -1133,7 +1133,7 @@ func (m Model) deleteVolume(volumeId string) tea.Cmd {
 func (m Model) renameVolume(volumeId, newName string) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, url.PathEscape(volumeId))
-		body := map[string]interface{}{"name": newName}
+		body := map[string]any{"name": newName}
 		err := httpLib.Client.Put(endpoint, body, nil)
 		return volumeActionDoneMsg{action: 1, err: err}
 	}
@@ -1142,7 +1142,7 @@ func (m Model) renameVolume(volumeId, newName string) tea.Cmd {
 func (m Model) extendVolume(volumeId string, newSizeGB int) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s/upsize", m.cloudProject, url.PathEscape(volumeId))
-		body := map[string]interface{}{"size": newSizeGB}
+		body := map[string]any{"size": newSizeGB}
 		err := httpLib.Client.Post(endpoint, body, nil)
 		return volumeActionDoneMsg{action: 2, err: err}
 	}
@@ -1159,7 +1159,7 @@ func (m Model) handleVolumeRegionsLoaded(msg volumeRegionsLoadedMsg) (tea.Model,
 	}
 	m.wizard.regions = nil
 	for _, name := range msg.regionNames {
-		m.wizard.regions = append(m.wizard.regions, map[string]interface{}{"name": name})
+		m.wizard.regions = append(m.wizard.regions, map[string]any{"name": name})
 	}
 	m.wizard.volumeRegionTypeMap = msg.regionTypeMap
 	m.wizard.volumeRegionTypeAZMap = msg.regionTypeAZMap
@@ -1318,7 +1318,7 @@ func (m Model) fetchLBPools(lbID, region string) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool?loadbalancerId=%s",
 			m.cloudProject, url.PathEscape(region), url.QueryEscape(lbID))
-		var pools []map[string]interface{}
+		var pools []map[string]any
 		if err := httpLib.Client.Get(endpoint, &pools); err != nil {
 			return lbPoolsLoadedMsg{lbID: lbID, err: err}
 		}
@@ -1334,12 +1334,12 @@ func (m Model) fetchLBListeners(lbID, region string) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener",
 			m.cloudProject, url.PathEscape(region))
-		var all []map[string]interface{}
+		var all []map[string]any
 		if err := httpLib.Client.Get(endpoint, &all); err != nil {
 			return lbListenersLoadedMsg{lbID: lbID, err: err}
 		}
 		// Filter client-side: handle both singular "loadbalancerId" and list "loadBalancerIds"
-		var listeners []map[string]interface{}
+		var listeners []map[string]any
 		for _, l := range all {
 			// Case 1: singular string field "loadbalancerId"
 			if v, ok := l["loadbalancerId"].(string); ok && v == lbID {
@@ -1347,7 +1347,7 @@ func (m Model) fetchLBListeners(lbID, region string) tea.Cmd {
 				continue
 			}
 			// Case 2: list field "loadBalancerIds"
-			if ids, ok := l["loadBalancerIds"].([]interface{}); ok {
+			if ids, ok := l["loadBalancerIds"].([]any); ok {
 				for _, id := range ids {
 					if fmt.Sprintf("%v", id) == lbID {
 						listeners = append(listeners, l)
@@ -1400,17 +1400,17 @@ func (m Model) updateLBPool() tea.Cmd {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s",
 			m.cloudProject, url.PathEscape(m.wizard.lbPoolLBRegion), url.PathEscape(m.wizard.lbPoolEditPoolId))
 
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name":      m.wizard.lbPoolName,
 			"algorithm": m.wizard.lbPoolAlgo,
 		}
 		if m.wizard.lbPoolSession != "" && m.wizard.lbPoolSession != "disabled" {
-			body["sessionPersistence"] = map[string]interface{}{
+			body["sessionPersistence"] = map[string]any{
 				"type": m.wizard.lbPoolSession,
 			}
 		}
 
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
 			return lbPoolUpdatedMsg{poolName: m.wizard.lbPoolName, err: fmt.Errorf("update failed: %w", err)}
 		}
@@ -1454,14 +1454,14 @@ func (m Model) updateLBListener() tea.Cmd {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener/%s",
 			m.cloudProject, url.PathEscape(m.wizard.lbListenerLBRegion), url.PathEscape(m.wizard.lbListenerEditId))
 
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name": m.wizard.lbListenerName,
 		}
 		if m.wizard.lbListenerPoolId != "" {
 			body["defaultPoolId"] = m.wizard.lbListenerPoolId
 		}
 
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
 			return lbListenerUpdatedMsg{listenerName: m.wizard.lbListenerName, err: fmt.Errorf("update failed: %w", err)}
 		}
@@ -1552,14 +1552,14 @@ func (m Model) executePrivNetworkDelete() tea.Cmd {
 
 		// The region-based API uses openstackId, not the vRack pn-XXXXX_N id.
 		// Each network has regions[].{region, openstackId} — delete from all regions.
-		regions, ok := m.detailData["regions"].([]interface{})
+		regions, ok := m.detailData["regions"].([]any)
 		if !ok || len(regions) == 0 {
 			return privNetDeletedMsg{networkName: networkName, err: fmt.Errorf("no region found for this network")}
 		}
 
 		var lastErr error
 		for _, r := range regions {
-			rm, ok := r.(map[string]interface{})
+			rm, ok := r.(map[string]any)
 			if !ok {
 				continue
 			}
@@ -1598,7 +1598,7 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 		}
 	}
 
-	var networks []map[string]interface{}
+	var networks []map[string]any
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private", m.cloudProject)
 	if err := httpLib.Client.Get(endpoint, &networks); err != nil {
 		return dataLoadedMsg{err: err}
@@ -1622,8 +1622,8 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 		}
 		// Embed _regionType on each network based on its first region
 		for i, n := range networks {
-			if regions, ok := n["regions"].([]interface{}); ok && len(regions) > 0 {
-				if rm, ok := regions[0].(map[string]interface{}); ok {
+			if regions, ok := n["regions"].([]any); ok && len(regions) > 0 {
+				if rm, ok := regions[0].(map[string]any); ok {
 					if reg := getString(rm, "region"); reg != "" {
 						networks[i]["_regionType"] = regionTypeMap[reg]
 					}
@@ -1649,9 +1649,9 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 	// Collect all unique region names used by these networks.
 	regionSet := map[string]bool{}
 	for _, n := range networks {
-		if regions, ok := n["regions"].([]interface{}); ok {
+		if regions, ok := n["regions"].([]any); ok {
 			for _, rv := range regions {
-				if rm, ok := rv.(map[string]interface{}); ok {
+				if rm, ok := rv.(map[string]any); ok {
 					if r := getString(rm, "region"); r != "" {
 						regionSet[r] = true
 					}
@@ -1671,9 +1671,9 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 		for _, regionGWs := range allRegionGateways {
 			for _, gw := range regionGWs {
 				gwName := getString(gw, "name")
-				if interfaces, ok := gw["interfaces"].([]interface{}); ok {
+				if interfaces, ok := gw["interfaces"].([]any); ok {
 					for _, iface := range interfaces {
-						if ifaceMap, ok := iface.(map[string]interface{}); ok {
+						if ifaceMap, ok := iface.(map[string]any); ok {
 							if netID := getString(ifaceMap, "networkId"); netID != "" {
 								openstackToGateway[netID] = gwName
 							}
@@ -1684,9 +1684,9 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 		}
 		// Match each network's openstackId against the map
 		for i, n := range networks {
-			if regions, ok := n["regions"].([]interface{}); ok {
+			if regions, ok := n["regions"].([]any); ok {
 				for _, rv := range regions {
-					if rm, ok := rv.(map[string]interface{}); ok {
+					if rm, ok := rv.(map[string]any); ok {
 						opID := getString(rm, "openstackId")
 						if gwName, found := openstackToGateway[opID]; found && gwName != "" {
 							networks[i]["_gatewayName"] = gwName
@@ -1705,7 +1705,7 @@ func (m Model) fetchPrivateNetworksData() dataLoadedMsg {
 }
 
 // fetchPrivateNetRegions returns regions suitable for private network creation with their type.
-func (m Model) fetchPrivateNetRegions() ([]map[string]interface{}, error) {
+func (m Model) fetchPrivateNetRegions() ([]map[string]any, error) {
 	regionEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region", m.cloudProject)
 	var allNames []string
 	if err := httpLib.Client.Get(regionEndpoint, &allNames); err != nil {
@@ -1716,7 +1716,7 @@ func (m Model) fetchPrivateNetRegions() ([]map[string]interface{}, error) {
 		ids[i] = n
 	}
 	details, _ := httpLib.FetchObjectsParallel[map[string]any](regionEndpoint+"/%s", ids, true)
-	var result []map[string]interface{}
+	var result []map[string]any
 	for i, d := range details {
 		if d == nil {
 			continue
@@ -1725,9 +1725,9 @@ func (m Model) fetchPrivateNetRegions() ([]map[string]interface{}, error) {
 		rtype, _ := d["type"].(string)
 		// Only include regions that support vrack / network
 		hasNetwork := false
-		if services, ok := d["services"].([]interface{}); ok {
+		if services, ok := d["services"].([]any); ok {
 			for _, svc := range services {
-				if sm, ok := svc.(map[string]interface{}); ok {
+				if sm, ok := svc.(map[string]any); ok {
 					if sm["name"] == "network" && sm["status"] == "UP" {
 						hasNetwork = true
 						break
@@ -1736,7 +1736,7 @@ func (m Model) fetchPrivateNetRegions() ([]map[string]interface{}, error) {
 			}
 		}
 		if hasNetwork {
-			result = append(result, map[string]interface{}{
+			result = append(result, map[string]any{
 				"name": name,
 				"type": rtype,
 			})
@@ -1753,7 +1753,7 @@ func (m Model) fetchPublicNetworksData() dataLoadedMsg {
 		}
 	}
 
-	var networks []map[string]interface{}
+	var networks []map[string]any
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/public", m.cloudProject)
 	err := httpLib.Client.Get(endpoint, &networks)
 
@@ -1786,9 +1786,9 @@ func (m Model) fetchNetworkRegions() ([]string, error) {
 			continue
 		}
 		name := allNames[i]
-		if services, ok := r["services"].([]interface{}); ok {
+		if services, ok := r["services"].([]any); ok {
 			for _, svc := range services {
-				if sm, ok := svc.(map[string]interface{}); ok {
+				if sm, ok := svc.(map[string]any); ok {
 					if sm["name"] == "network" && sm["status"] == "UP" {
 						result = append(result, name)
 						break
@@ -1822,7 +1822,7 @@ func (m Model) fetchFloatingIPsData() dataLoadedMsg {
 
 	allRegionIPs, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/floatingip", regions, true)
 
-	var floatingIPs []map[string]interface{}
+	var floatingIPs []map[string]any
 	for i, ips := range allRegionIPs {
 		for _, ip := range ips {
 			if r, _ := ip["region"].(string); r == "" {
@@ -1833,7 +1833,7 @@ func (m Model) fetchFloatingIPsData() dataLoadedMsg {
 	}
 
 	// Also fetch failover IPs (Additional IPs)
-	var failoverIPs []map[string]interface{}
+	var failoverIPs []map[string]any
 	failEndpoint := fmt.Sprintf("/v1/cloud/project/%s/ip/failover", m.cloudProject)
 	httpLib.Client.Get(failEndpoint, &failoverIPs) // ignore error — not all projects have failover IPs
 
@@ -1858,7 +1858,7 @@ func (m Model) fetchFIPInstances() tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance?region=%s",
 			m.cloudProject, url.QueryEscape(region))
-		var instances []map[string]interface{}
+		var instances []map[string]any
 		if err := httpLib.Client.Get(endpoint, &instances); err != nil {
 			return fipInstancesLoadedMsg{err: err}
 		}
@@ -1880,9 +1880,9 @@ func (m Model) createStandaloneFloatingIP() tea.Cmd {
 		var privateIP string
 		for _, inst := range m.wizard.fipInstances {
 			if id, _ := inst["id"].(string); id == m.wizard.fipInstanceId {
-				if addrs, ok := inst["ipAddresses"].([]interface{}); ok {
+				if addrs, ok := inst["ipAddresses"].([]any); ok {
 					for _, a := range addrs {
-						addrMap, ok := a.(map[string]interface{})
+						addrMap, ok := a.(map[string]any)
 						if !ok {
 							continue
 						}
@@ -1906,13 +1906,13 @@ func (m Model) createStandaloneFloatingIP() tea.Cmd {
 			m.cloudProject, url.PathEscape(m.wizard.fipRegion), url.PathEscape(m.wizard.fipInstanceId))
 
 		// First attempt: without gateway (subnet already has one)
-		var result map[string]interface{}
-		err := httpLib.Client.Post(endpoint, map[string]interface{}{"ip": privateIP}, &result)
+		var result map[string]any
+		err := httpLib.Client.Post(endpoint, map[string]any{"ip": privateIP}, &result)
 		if err != nil && strings.Contains(err.Error(), "subnet require to have router") {
 			// Subnet has no gateway yet — auto-create one and retry
-			bodyWithGW := map[string]interface{}{
+			bodyWithGW := map[string]any{
 				"ip": privateIP,
-				"gateway": map[string]interface{}{
+				"gateway": map[string]any{
 					"model": "s",
 					"name":  "gw-" + m.wizard.fipInstanceName,
 				},
@@ -1940,11 +1940,11 @@ func (m Model) fetchNetworkSubnets(networkID string) tea.Cmd {
 func (m Model) fetchPrivateNetworkDetail(networkID string) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", m.cloudProject, url.PathEscape(networkID))
-		var netData map[string]interface{}
+		var netData map[string]any
 		if err := httpLib.Client.Get(endpoint, &netData); err != nil {
 			return privNetDetailLoadedMsg{networkID: networkID}
 		}
-		regions, _ := netData["regions"].([]interface{})
+		regions, _ := netData["regions"].([]any)
 		return privNetDetailLoadedMsg{networkID: networkID, regions: regions}
 	}
 }
@@ -1955,11 +1955,11 @@ func (m Model) executeRegionDelete() tea.Cmd {
 		if netID == "" {
 			return regionDeletedMsg{err: fmt.Errorf("network ID missing")}
 		}
-		regions, _ := m.detailData["regions"].([]interface{})
+		regions, _ := m.detailData["regions"].([]any)
 		if m.privNetSelectedRegion >= len(regions) {
 			return regionDeletedMsg{networkID: netID, err: fmt.Errorf("no region selected")}
 		}
-		rm, _ := regions[m.privNetSelectedRegion].(map[string]interface{})
+		rm, _ := regions[m.privNetSelectedRegion].(map[string]any)
 		regionName := getString(rm, "region")
 		if regionName == "" {
 			return regionDeletedMsg{networkID: netID, err: fmt.Errorf("region name missing")}
@@ -1985,21 +1985,21 @@ func (m Model) executeGatewayDetachFromNetwork() tea.Cmd {
 		if netID == "" {
 			return gatewayDetachedMsg{err: fmt.Errorf("network ID missing")}
 		}
-		regions, _ := m.detailData["regions"].([]interface{})
+		regions, _ := m.detailData["regions"].([]any)
 		if len(regions) == 0 {
 			return gatewayDetachedMsg{networkID: netID, err: fmt.Errorf("no regions found on this network")}
 		}
 
 		detached := 0
 		for _, rv := range regions {
-			rm, _ := rv.(map[string]interface{})
+			rm, _ := rv.(map[string]any)
 			regionName := getString(rm, "region")
 			openstackID := getString(rm, "openstackId")
 			if regionName == "" || openstackID == "" {
 				continue
 			}
 			gwEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway", m.cloudProject, url.PathEscape(regionName))
-			var gateways []map[string]interface{}
+			var gateways []map[string]any
 			if err := httpLib.Client.Get(gwEndpoint, &gateways); err != nil {
 				continue
 			}
@@ -2008,9 +2008,9 @@ func (m Model) executeGatewayDetachFromNetwork() tea.Cmd {
 				if gwID == "" {
 					continue
 				}
-				interfaces, _ := gw["interfaces"].([]interface{})
+				interfaces, _ := gw["interfaces"].([]any)
 				for _, iface := range interfaces {
-					ifaceMap, _ := iface.(map[string]interface{})
+					ifaceMap, _ := iface.(map[string]any)
 					if getString(ifaceMap, "networkId") != openstackID {
 						continue
 					}
@@ -2051,9 +2051,9 @@ func (m Model) executeSubnetDelete() tea.Cmd {
 		// Fast path: subnet has networkId (returned by new regional endpoint).
 		// Fallback: query each region's subnet list to find where this subnet lives.
 		region := ""
-		if regions, ok := m.detailData["regions"].([]interface{}); ok {
+		if regions, ok := m.detailData["regions"].([]any); ok {
 			for _, rv := range regions {
-				if rm, ok := rv.(map[string]interface{}); ok {
+				if rm, ok := rv.(map[string]any); ok {
 					if getString(rm, "openstackId") == openstackNetID {
 						region = getString(rm, "region")
 						break
@@ -2062,7 +2062,7 @@ func (m Model) executeSubnetDelete() tea.Cmd {
 			}
 			if region == "" {
 				for _, rv := range regions {
-					if rm, ok := rv.(map[string]interface{}); ok {
+					if rm, ok := rv.(map[string]any); ok {
 						rName := getString(rm, "region")
 						opID := getString(rm, "openstackId")
 						if rName == "" || opID == "" {
@@ -2070,7 +2070,7 @@ func (m Model) executeSubnetDelete() tea.Cmd {
 						}
 						searchEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
 							m.cloudProject, url.PathEscape(rName), url.PathEscape(opID))
-						var regionSubnets []map[string]interface{}
+						var regionSubnets []map[string]any
 						if err := httpLib.Client.Get(searchEndpoint, &regionSubnets); err == nil {
 							for _, rs := range regionSubnets {
 								if getString(rs, "id") == subID {
@@ -2184,9 +2184,9 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 		if r == nil {
 			continue
 		}
-		if services, ok := r["services"].([]interface{}); ok {
+		if services, ok := r["services"].([]any); ok {
 			for _, svc := range services {
-				if sm, ok := svc.(map[string]interface{}); ok {
+				if sm, ok := svc.(map[string]any); ok {
 					if sm["name"] == "octavialoadbalancer" && sm["status"] == "UP" {
 						regions = append(regions, allNames[i])
 						regionNames = append(regionNames, allNames[i])
@@ -2216,7 +2216,7 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 		}
 	}
 
-	var lbs []map[string]interface{}
+	var lbs []map[string]any
 	for i, regionLBs := range allRegionLBs {
 		for _, lb := range regionLBs {
 			if r, _ := lb["region"].(string); r == "" {
@@ -2257,7 +2257,7 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 	lbFIPMap := make(map[string]string) // lbID -> floatingIP address
 	for _, fips := range allRegionFIPs {
 		for _, fip := range fips {
-			if entity, ok := fip["associatedEntity"].(map[string]interface{}); ok {
+			if entity, ok := fip["associatedEntity"].(map[string]any); ok {
 				if getStringValue(entity, "type", "") == "loadbalancer" {
 					lbID := getStringValue(entity, "id", "")
 					if lbID != "" {
@@ -2272,7 +2272,7 @@ func (m Model) fetchLoadBalancersData() dataLoadedMsg {
 	for _, lb := range lbs {
 		if lbID, ok := lb["id"].(string); ok {
 			if ip, found := lbFIPMap[lbID]; found {
-				lb["floatingIp"] = map[string]interface{}{"ip": ip}
+				lb["floatingIp"] = map[string]any{"ip": ip}
 			}
 		}
 	}
@@ -2302,7 +2302,7 @@ func (m Model) fetchGatewaysData() dataLoadedMsg {
 
 	allRegionGateways, _ := httpLib.FetchObjectsParallel[[]map[string]any](regionEndpoint+"/%s/gateway", regions, true)
 
-	var gateways []map[string]interface{}
+	var gateways []map[string]any
 	for i, regionGateways := range allRegionGateways {
 		for _, gw := range regionGateways {
 			if r, _ := gw["region"].(string); r == "" {
@@ -2567,7 +2567,7 @@ func (m Model) handleDataLoaded(msg dataLoadedMsg) (tea.Model, tea.Cmd) {
 }
 
 // createProjectsTable creates a table for displaying projects
-func createProjectsTable(projects []map[string]interface{}, height int) table.Model {
+func createProjectsTable(projects []map[string]any, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Project ID", Width: 40},
 		{Title: "Name", Width: 40},
@@ -2585,10 +2585,7 @@ func createProjectsTable(projects []map[string]interface{}, height int) table.Mo
 	}
 
 	// Calculate table height: leave room for header(2) + nav(3) + title(3) + footer(3) + borders(4)
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -2616,7 +2613,7 @@ func createProjectsTable(projects []map[string]interface{}, height int) table.Mo
 }
 
 // createInstancesTable creates a table for displaying instances (like OVHcloud web UI)
-func createInstancesTable(instances []map[string]interface{}, imageMap map[string]string, floatingIPMap map[string]string, width, height int) table.Model {
+func createInstancesTable(instances []map[string]any, imageMap map[string]string, floatingIPMap map[string]string, width, height int) table.Model {
 	// Sort instances by name for stable ordering
 	sort.Slice(instances, func(i, j int) bool {
 		nameI := getString(instances[i], "name")
@@ -2637,9 +2634,9 @@ func createInstancesTable(instances []map[string]interface{}, imageMap map[strin
 	for _, instance := range instances {
 		// Extract public IP from ipAddresses array
 		publicIP := ""
-		if addresses, ok := instance["ipAddresses"].([]interface{}); ok {
+		if addresses, ok := instance["ipAddresses"].([]any); ok {
 			for _, addr := range addresses {
-				if addrMap, ok := addr.(map[string]interface{}); ok {
+				if addrMap, ok := addr.(map[string]any); ok {
 					ipType := getString(addrMap, "type")
 					if ipType == "public" {
 						version := getNumericValue(addrMap, "version")
@@ -2681,7 +2678,7 @@ func createInstancesTable(instances []map[string]interface{}, imageMap map[strin
 
 		// Extract flavor name from planCode (e.g., "b2-7.consumption" -> "b2-7")
 		flavorName := ""
-		if flavor, ok := instance["flavor"].(map[string]interface{}); ok {
+		if flavor, ok := instance["flavor"].(map[string]any); ok {
 			flavorName = getString(flavor, "name")
 		}
 		if flavorName == "" {
@@ -2721,10 +2718,7 @@ func createInstancesTable(instances []map[string]interface{}, imageMap map[strin
 	}
 
 	// Calculate table height: leave room for header(2) + nav(3) + title(3) + footer(3) + borders(4)
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -2753,7 +2747,7 @@ func createInstancesTable(instances []map[string]interface{}, imageMap map[strin
 
 // createInstanceBackupsTable creates a table for instance backups (snapshots).
 // Columns: Name, Region, Model (flavorType), Size, Status, Created
-func createInstanceBackupsTable(data []map[string]interface{}, width, height int) table.Model {
+func createInstanceBackupsTable(data []map[string]any, width, height int) table.Model {
 	sort.Slice(data, func(i, j int) bool {
 		return getString(data[i], "name") < getString(data[j], "name")
 	})
@@ -2778,7 +2772,7 @@ func createInstanceBackupsTable(data []map[string]interface{}, width, height int
 		// Location: snapshots expose "regions" as []interface{} or "region" as string
 		location := getString(s, "region")
 		if location == "" {
-			if regions, ok := s["regions"].([]interface{}); ok && len(regions) > 0 {
+			if regions, ok := s["regions"].([]any); ok && len(regions) > 0 {
 				var regionNames []string
 				for _, r := range regions {
 					if rs, ok := r.(string); ok {
@@ -2817,10 +2811,7 @@ func createInstanceBackupsTable(data []map[string]interface{}, width, height int
 		rows = append(rows, table.Row{name, id, location, sizeStr, created, status})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -2847,7 +2838,7 @@ func createInstanceBackupsTable(data []map[string]interface{}, width, height int
 
 // createWorkflowsTable creates a table for backup workflows.
 // Columns: Name, ID, Backup, Location, Workflow (cron), Targeted Resource, Rotation, Last Execution, Last State
-func createWorkflowsTable(data []map[string]interface{}, width, height int) table.Model {
+func createWorkflowsTable(data []map[string]any, width, height int) table.Model {
 	sort.Slice(data, func(i, j int) bool {
 		return getString(data[i], "name") < getString(data[j], "name")
 	})
@@ -2897,10 +2888,7 @@ func createWorkflowsTable(data []map[string]interface{}, width, height int) tabl
 		rows = append(rows, table.Row{name, id, backup, location, workflowStr, instanceId, Scheduling})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -2926,7 +2914,7 @@ func createWorkflowsTable(data []map[string]interface{}, width, height int) tabl
 }
 
 // createKubernetesTable creates a table for Kubernetes clusters
-func createKubernetesTable(clusters []map[string]interface{}, width, height int) table.Model {
+func createKubernetesTable(clusters []map[string]any, width, height int) table.Model {
 	// Sort clusters by name for stable ordering
 	sort.Slice(clusters, func(i, j int) bool {
 		nameI := getString(clusters[i], "name")
@@ -2970,10 +2958,7 @@ func createKubernetesTable(clusters []map[string]interface{}, width, height int)
 	}
 
 	// Calculate table height: leave room for header(2) + nav(3) + title(3) + footer(3) + borders(4)
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -3001,7 +2986,7 @@ func createKubernetesTable(clusters []map[string]interface{}, width, height int)
 }
 
 // createGenericTable creates a generic table for any data
-func createGenericTable(data []map[string]interface{}, width, height int) table.Model {
+func createGenericTable(data []map[string]any, width, height int) table.Model {
 	if len(data) == 0 {
 		return table.Model{}
 	}
@@ -3013,10 +2998,7 @@ func createGenericTable(data []map[string]interface{}, width, height int) table.
 	}
 
 	columns := make([]table.Column, 0, len(keys))
-	colWidth := width / len(keys)
-	if colWidth < 15 {
-		colWidth = 15
-	}
+	colWidth := max(width/len(keys), 15)
 	if colWidth > 40 {
 		colWidth = 40
 	}
@@ -3038,10 +3020,7 @@ func createGenericTable(data []map[string]interface{}, width, height int) table.
 	}
 
 	// Calculate table height: leave room for header(2) + nav(3) + title(3) + footer(3) + borders(4)
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -3069,7 +3048,7 @@ func createGenericTable(data []map[string]interface{}, width, height int) table.
 }
 
 // createPrivateNetworksTable creates a table for private networks (one tab's worth of data).
-func createPrivateNetworksTable(data []map[string]interface{}, width, height int) table.Model {
+func createPrivateNetworksTable(data []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "VLAN ID", Width: 8},
 		{Title: "Name", Width: 22},
@@ -3096,9 +3075,9 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		}
 		name := getString(net, "name")
 		var locationParts []string
-		if regions, ok := net["regions"].([]interface{}); ok {
+		if regions, ok := net["regions"].([]any); ok {
 			for _, r := range regions {
-				if rm, ok := r.(map[string]interface{}); ok {
+				if rm, ok := r.(map[string]any); ok {
 					if reg := getString(rm, "region"); reg != "" {
 						locationParts = append(locationParts, reg)
 					}
@@ -3113,7 +3092,7 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		gateway := "-"
 		dhcp := "-"
 		allocPool := "-"
-		if subnets, ok := net["_subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
+		if subnets, ok := net["_subnets"].([]map[string]any); ok && len(subnets) > 0 {
 			sub := subnets[0]
 			if v := getString(sub, "cidr"); v != "" {
 				cidr = v
@@ -3128,8 +3107,8 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 					dhcp = "✗"
 				}
 			}
-			if pools, ok := sub["ipPools"].([]interface{}); ok && len(pools) > 0 {
-				if pool, ok := pools[0].(map[string]interface{}); ok {
+			if pools, ok := sub["ipPools"].([]any); ok && len(pools) > 0 {
+				if pool, ok := pools[0].(map[string]any); ok {
 					start := getString(pool, "start")
 					end := getString(pool, "end")
 					if start != "" && end != "" {
@@ -3145,10 +3124,7 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 		rows = append(rows, table.Row{vlanId, name, location, cidr, gateway, dhcp, allocPool, gwName})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 25 {
 		tableHeight = 25
 	}
@@ -3174,7 +3150,7 @@ func createPrivateNetworksTable(data []map[string]interface{}, width, height int
 }
 
 // createLoadBalancersTable creates a table for load balancers.
-func createLoadBalancersTable(data []map[string]interface{}, width, height int) table.Model {
+func createLoadBalancersTable(data []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Name", Width: 22},
 		{Title: "Region", Width: 16},
@@ -3203,7 +3179,7 @@ func createLoadBalancersTable(data []map[string]interface{}, width, height int) 
 		status := getString(lb, "operatingStatus")
 
 		publicIP := "-"
-		if fi, ok := lb["floatingIp"].(map[string]interface{}); ok {
+		if fi, ok := lb["floatingIp"].(map[string]any); ok {
 			if v := getString(fi, "ip"); v != "" {
 				publicIP = v
 			}
@@ -3218,10 +3194,7 @@ func createLoadBalancersTable(data []map[string]interface{}, width, height int) 
 		rows = append(rows, table.Row{name, region, size, privateNetwork, publicIP, privateIP, provisioning, status})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -3249,7 +3222,7 @@ func createLoadBalancersTable(data []map[string]interface{}, width, height int) 
 }
 
 // createManagedDatabasesTable creates a table for managed database services.
-func createManagedDatabasesTable(data []map[string]interface{}, width, height int) table.Model {
+func createManagedDatabasesTable(data []map[string]any, width, height int) table.Model {
 	sort.Slice(data, func(i, j int) bool {
 		return getString(data[i], "description") < getString(data[j], "description")
 	})
@@ -3281,8 +3254,8 @@ func createManagedDatabasesTable(data []map[string]interface{}, width, height in
 		flavor := getString(db, "flavor")
 
 		storageStr := "-"
-		if storage, ok := db["storage"].(map[string]interface{}); ok {
-			if size, ok := storage["size"].(map[string]interface{}); ok {
+		if storage, ok := db["storage"].(map[string]any); ok {
+			if size, ok := storage["size"].(map[string]any); ok {
 				val := getString(size, "value")
 				unit := getString(size, "unit")
 				if val != "" {
@@ -3293,10 +3266,10 @@ func createManagedDatabasesTable(data []map[string]interface{}, width, height in
 
 		location := "-"
 		nodesCount := 0
-		if nodes, ok := db["nodes"].([]interface{}); ok {
+		if nodes, ok := db["nodes"].([]any); ok {
 			nodesCount = len(nodes)
 			if len(nodes) > 0 {
-				if node, ok := nodes[0].(map[string]interface{}); ok {
+				if node, ok := nodes[0].(map[string]any); ok {
 					if r, ok := node["region"].(string); ok && r != "" {
 						location = r
 					}
@@ -3324,10 +3297,7 @@ func createManagedDatabasesTable(data []map[string]interface{}, width, height in
 		})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 25 {
 		tableHeight = 25
 	}
@@ -3353,7 +3323,7 @@ func createManagedDatabasesTable(data []map[string]interface{}, width, height in
 }
 
 // createGatewaysTable creates a table for gateways.
-func createGatewaysTable(data []map[string]interface{}, width, height int) table.Model {
+func createGatewaysTable(data []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Name", Width: 22},
 		{Title: "Region", Width: 16},
@@ -3372,9 +3342,9 @@ func createGatewaysTable(data []map[string]interface{}, width, height int) table
 		status := getString(gw, "status")
 
 		publicIP := "-"
-		if ei, ok := gw["externalInformation"].(map[string]interface{}); ok {
-			if ips, ok := ei["ips"].([]interface{}); ok && len(ips) > 0 {
-				if ipm, ok := ips[0].(map[string]interface{}); ok {
+		if ei, ok := gw["externalInformation"].(map[string]any); ok {
+			if ips, ok := ei["ips"].([]any); ok && len(ips) > 0 {
+				if ipm, ok := ips[0].(map[string]any); ok {
 					if v := getString(ipm, "ip"); v != "" {
 						publicIP = v
 					}
@@ -3384,9 +3354,9 @@ func createGatewaysTable(data []map[string]interface{}, width, height int) table
 
 		privateNetwork := "-"
 		var privateIPs []string
-		if ifaces, ok := gw["interfaces"].([]interface{}); ok && len(ifaces) > 0 {
+		if ifaces, ok := gw["interfaces"].([]any); ok && len(ifaces) > 0 {
 			for _, iface := range ifaces {
-				if ifm, ok := iface.(map[string]interface{}); ok {
+				if ifm, ok := iface.(map[string]any); ok {
 					if v := getString(ifm, "ip"); v != "" {
 						privateIPs = append(privateIPs, v)
 					}
@@ -3406,10 +3376,7 @@ func createGatewaysTable(data []map[string]interface{}, width, height int) table
 		rows = append(rows, table.Row{name, region, size, privateNetwork, publicIP, privateIP, status})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -3437,7 +3404,7 @@ func createGatewaysTable(data []map[string]interface{}, width, height int) table
 }
 
 // createFloatingIPsTable creates a table for floating/public IPs.
-func createFloatingIPsTable(data []map[string]interface{}, width, height int) table.Model {
+func createFloatingIPsTable(data []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "IP Address", Width: 18},
 		{Title: "Region", Width: 18},
@@ -3456,7 +3423,7 @@ func createFloatingIPsTable(data []map[string]interface{}, width, height int) ta
 		}
 
 		endpoint := "-"
-		if ae, ok := fip["associatedEntity"].(map[string]interface{}); ok {
+		if ae, ok := fip["associatedEntity"].(map[string]any); ok {
 			atype := getString(ae, "type")
 			aip := getString(ae, "ip")
 			switch {
@@ -3472,10 +3439,7 @@ func createFloatingIPsTable(data []map[string]interface{}, width, height int) ta
 		rows = append(rows, table.Row{ip, region, endpoint})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -3503,7 +3467,7 @@ func createFloatingIPsTable(data []map[string]interface{}, width, height int) ta
 }
 
 // createAdditionalIPsTable creates a table for failover/additional IPs.
-func createAdditionalIPsTable(data []map[string]interface{}, width, height int) table.Model {
+func createAdditionalIPsTable(data []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "IP Address", Width: 20},
 		{Title: "Block", Width: 20},
@@ -3538,10 +3502,7 @@ func createAdditionalIPsTable(data []map[string]interface{}, width, height int) 
 		}
 		rows = append(rows, table.Row{addr, block, routedTo, geoloc, status})
 	}
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -3559,7 +3520,7 @@ func createAdditionalIPsTable(data []map[string]interface{}, width, height int) 
 }
 
 // createBlockStorageTable creates a nicely formatted table for block storage volumes.
-func createBlockStorageTable(data []map[string]interface{}, width, height int) table.Model {
+func createBlockStorageTable(data []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Name", Width: 24},
 		{Title: "ID", Width: 36},
@@ -3589,7 +3550,7 @@ func createBlockStorageTable(data []map[string]interface{}, width, height int) t
 			}
 		}
 		instance := "-"
-		if raw, ok := vol["attachedTo"].([]interface{}); ok && len(raw) > 0 {
+		if raw, ok := vol["attachedTo"].([]any); ok && len(raw) > 0 {
 			if id, ok := raw[0].(string); ok {
 				if len(id) > 18 {
 					instance = id[:18] + "…"
@@ -3606,10 +3567,7 @@ func createBlockStorageTable(data []map[string]interface{}, width, height int) t
 		rows = append(rows, table.Row{name, id, region, vType, size, instance, encryption, status})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -3637,7 +3595,7 @@ func createBlockStorageTable(data []map[string]interface{}, width, height int) t
 }
 
 // getString safely extracts a string value from a map
-func getString(m map[string]interface{}, key string) string {
+func getString(m map[string]any, key string) string {
 	if val, ok := m[key]; ok {
 		return fmt.Sprintf("%v", val)
 	}
@@ -3701,7 +3659,7 @@ func (m Model) fetchRegions() tea.Cmd {
 		}
 
 		// Fetch all images to determine available regions
-		var allImages []map[string]interface{}
+		var allImages []map[string]any
 		imageEndpoint := fmt.Sprintf("/v1/cloud/project/%s/image", m.cloudProject)
 		err := httpLib.Client.Get(imageEndpoint, &allImages)
 		if err != nil {
@@ -3710,12 +3668,12 @@ func (m Model) fetchRegions() tea.Cmd {
 
 		// Extract unique regions from images
 		regionMap := make(map[string]bool)
-		var instanceRegions []map[string]interface{}
+		var instanceRegions []map[string]any
 		for _, image := range allImages {
 			regionStr := getString(image, "region")
 			if regionStr != "" && !regionMap[regionStr] {
 				regionMap[regionStr] = true
-				region := map[string]interface{}{
+				region := map[string]any{
 					"name": regionStr,
 					"id":   regionStr,
 				}
@@ -3738,13 +3696,13 @@ func (m Model) fetchFlavors(region string) tea.Cmd {
 			return flavorsLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
-		var flavors []map[string]interface{}
+		var flavors []map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/flavor?region=%s", m.cloudProject, region)
 		err := httpLib.Client.Get(endpoint, &flavors)
 
 		// Filter out unavailable flavors
 		if err == nil {
-			var availableFlavors []map[string]interface{}
+			var availableFlavors []map[string]any
 			for _, flavor := range flavors {
 				available, _ := flavor["available"].(bool)
 				if available {
@@ -3768,7 +3726,7 @@ func (m Model) fetchImages(region string) tea.Cmd {
 			return imagesLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
-		var images []map[string]interface{}
+		var images []map[string]any
 
 		// Check if we have cached images from region fetch
 		if len(m.wizard.images) > 0 {
@@ -3793,7 +3751,7 @@ func (m Model) fetchImages(region string) tea.Cmd {
 			}
 
 			// Filter for common/usable images (exclude snapshots, etc.)
-			var publicImages []map[string]interface{}
+			var publicImages []map[string]any
 			for _, image := range images {
 				visibility, _ := image["visibility"].(string)
 				status, _ := image["status"].(string)
@@ -3838,7 +3796,7 @@ func (m Model) createInstanceWithNetworking() tea.Cmd {
 		}
 
 		// Build request body for v1 API
-		requestBody := map[string]interface{}{
+		requestBody := map[string]any{
 			"flavorId": m.wizard.selectedFlavor,
 			"imageId":  m.wizard.selectedImage,
 			"name":     m.wizard.instanceName,
@@ -3858,7 +3816,7 @@ func (m Model) createInstanceWithNetworking() tea.Cmd {
 
 		if m.wizard.selectedPrivateNetwork != "" {
 			// Private network selected - add it to networks array
-			networks := []map[string]interface{}{
+			networks := []map[string]any{
 				{"networkId": m.wizard.selectedPrivateNetwork},
 			}
 			requestBody["networks"] = networks
@@ -3866,7 +3824,7 @@ func (m Model) createInstanceWithNetworking() tea.Cmd {
 		// If only public network (no private network selected), don't add "networks" key
 		// The API will use public network by default
 
-		var instance map[string]interface{}
+		var instance map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance", m.cloudProject)
 		err := httpLib.Client.Post(endpoint, requestBody, &instance)
 
@@ -3937,7 +3895,7 @@ func (m Model) fetchSSHKeys() tea.Cmd {
 			return sshKeysLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
-		var sshKeys []map[string]interface{}
+		var sshKeys []map[string]any
 		// Query SSH keys filtered by the selected region
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/sshkey?region=%s", m.cloudProject, m.wizard.selectedRegion)
 		err := httpLib.Client.Get(endpoint, &sshKeys)
@@ -3972,12 +3930,12 @@ func (m Model) createSSHKey() tea.Cmd {
 			return sshKeyCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
-		requestBody := map[string]interface{}{
+		requestBody := map[string]any{
 			"name":      m.wizard.newSSHKeyName,
 			"publicKey": m.wizard.newSSHKeyPublicKey,
 		}
 
-		var sshKey map[string]interface{}
+		var sshKey map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/sshkey", m.cloudProject)
 		err := httpLib.Client.Post(endpoint, requestBody, &sshKey)
 
@@ -4037,7 +3995,7 @@ func (m Model) fetchPrivateNetworks() tea.Cmd {
 			return privateNetworksLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
-		var networks []map[string]interface{}
+		var networks []map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network", m.cloudProject, m.wizard.selectedRegion)
 		err := httpLib.Client.Get(endpoint, &networks)
 
@@ -4049,7 +4007,7 @@ func (m Model) fetchPrivateNetworks() tea.Cmd {
 		}
 
 		// Filter to private networks only
-		var privateNetworks []map[string]interface{}
+		var privateNetworks []map[string]any
 		for _, network := range networks {
 			if v, ok := network["visibility"]; ok && v == "private" {
 				privateNetworks = append(privateNetworks, network)
@@ -4077,15 +4035,15 @@ func (m Model) handlePrivateNetworksLoaded(msg privateNetworksLoadedMsg) (tea.Mo
 	availableNetworks := msg.networks
 
 	// Build the list: No Network, Create New, then existing networks
-	noNetworkOption := map[string]interface{}{
+	noNetworkOption := map[string]any{
 		"id":   "",
 		"name": "(No Private Network)",
 	}
-	createNetworkOption := map[string]interface{}{
+	createNetworkOption := map[string]any{
 		"id":   "__create_new__",
 		"name": "+ Create new private network",
 	}
-	m.wizard.privateNetworks = []map[string]interface{}{noNetworkOption, createNetworkOption}
+	m.wizard.privateNetworks = []map[string]any{noNetworkOption, createNetworkOption}
 	m.wizard.privateNetworks = append(m.wizard.privateNetworks, availableNetworks...)
 	m.wizard.selectedIndex = 0
 	m.wizard.usePublicNetwork = true // Default to public network enabled
@@ -4179,8 +4137,8 @@ func (m Model) waitForInstanceIP(instanceId, instanceName string) tea.Cmd {
 	return func() tea.Msg {
 		// Poll for up to 60 seconds
 		maxAttempts := 12
-		for attempt := 0; attempt < maxAttempts; attempt++ {
-			var instance map[string]interface{}
+		for range maxAttempts {
+			var instance map[string]any
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", m.cloudProject, instanceId)
 			err := httpLib.Client.Get(endpoint, &instance)
 			if err != nil {
@@ -4192,9 +4150,9 @@ func (m Model) waitForInstanceIP(instanceId, instanceName string) tea.Cmd {
 			}
 
 			// Look for private IP in ipAddresses array
-			if ipAddresses, ok := instance["ipAddresses"].([]interface{}); ok {
+			if ipAddresses, ok := instance["ipAddresses"].([]any); ok {
 				for _, ipAddr := range ipAddresses {
-					if ipMap, ok := ipAddr.(map[string]interface{}); ok {
+					if ipMap, ok := ipAddr.(map[string]any); ok {
 						ipType := getString(ipMap, "type")
 						ip := getString(ipMap, "ip")
 						if ipType == "private" && ip != "" {
@@ -4255,17 +4213,17 @@ func (m Model) handleInstanceIPReady(msg instanceIPReadyMsg) (tea.Model, tea.Cmd
 func (m Model) attachFloatingIP(instanceId, instanceName, privateIP string) tea.Cmd {
 	return func() tea.Msg {
 		// Build request body
-		requestBody := map[string]interface{}{
+		requestBody := map[string]any{
 			"ip": privateIP,
 		}
 
 		// Add gateway creation if needed (small gateway)
-		requestBody["gateway"] = map[string]interface{}{
+		requestBody["gateway"] = map[string]any{
 			"model": "s",
 			"name":  fmt.Sprintf("gw-%s", instanceName),
 		}
 
-		var result map[string]interface{}
+		var result map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/floatingIp",
 			m.cloudProject, m.wizard.selectedRegion, instanceId)
 		err := httpLib.Client.Post(endpoint, requestBody, &result)
@@ -4425,7 +4383,7 @@ func (m Model) fetchFloatingIPs() tea.Cmd {
 			return floatingIPsLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
-		var floatingIPs []map[string]interface{}
+		var floatingIPs []map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip", m.cloudProject, m.wizard.selectedRegion)
 		err := httpLib.Client.Get(endpoint, &floatingIPs)
 
@@ -4443,7 +4401,7 @@ func (m Model) handleFloatingIPsLoaded(msg floatingIPsLoadedMsg) (tea.Model, tea
 
 	if msg.err != nil {
 		// If region doesn't support floating IPs, just show create option
-		m.wizard.floatingIPs = []map[string]interface{}{
+		m.wizard.floatingIPs = []map[string]any{
 			{"id": "__none__", "name": "(No Floating IP - no external access)"},
 			{"id": "__create_new__", "name": "+ Create new Floating IP"},
 		}
@@ -4452,7 +4410,7 @@ func (m Model) handleFloatingIPsLoaded(msg floatingIPsLoadedMsg) (tea.Model, tea
 	}
 
 	// Filter floating IPs that are not associated (available)
-	var availableFloatingIPs []map[string]interface{}
+	var availableFloatingIPs []map[string]any
 	for _, fip := range msg.floatingIPs {
 		// Check if floating IP is not associated to an instance
 		associatedEntity := getString(fip, "associatedEntity")
@@ -4462,15 +4420,15 @@ func (m Model) handleFloatingIPsLoaded(msg floatingIPsLoadedMsg) (tea.Model, tea
 	}
 
 	// Build the list: No floating IP, Create New, then available IPs
-	noFIPOption := map[string]interface{}{
+	noFIPOption := map[string]any{
 		"id":   "__none__",
 		"name": "(No Floating IP - no external access)",
 	}
-	createFIPOption := map[string]interface{}{
+	createFIPOption := map[string]any{
 		"id":   "__create_new__",
 		"name": "+ Create new Floating IP",
 	}
-	m.wizard.floatingIPs = []map[string]interface{}{noFIPOption, createFIPOption}
+	m.wizard.floatingIPs = []map[string]any{noFIPOption, createFIPOption}
 	m.wizard.floatingIPs = append(m.wizard.floatingIPs, availableFloatingIPs...)
 	m.wizard.selectedIndex = 0
 	return m, nil
@@ -4484,15 +4442,15 @@ func (m Model) createGatewayIfNeeded() tea.Cmd {
 		}
 
 		// First, check if there's already a gateway in the region
-		var gateways []map[string]interface{}
+		var gateways []map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway", m.cloudProject, m.wizard.selectedRegion)
 		err := httpLib.Client.Get(endpoint, &gateways)
 		if err == nil && len(gateways) > 0 {
 			// Gateway exists, check if it's attached to our network
 			for _, gw := range gateways {
-				if interfaces, ok := gw["interfaces"].([]interface{}); ok {
+				if interfaces, ok := gw["interfaces"].([]any); ok {
 					for _, iface := range interfaces {
-						if ifaceMap, ok := iface.(map[string]interface{}); ok {
+						if ifaceMap, ok := iface.(map[string]any); ok {
 							networkId := getString(ifaceMap, "networkId")
 							if networkId == m.wizard.selectedPrivateNetwork {
 								// Gateway already exists for this network
@@ -4505,16 +4463,16 @@ func (m Model) createGatewayIfNeeded() tea.Cmd {
 		}
 
 		// Need to create a gateway - create S size by default
-		gatewayBody := map[string]interface{}{
+		gatewayBody := map[string]any{
 			"name":  fmt.Sprintf("gw-%s", m.wizard.instanceName),
 			"model": "s",
-			"network": map[string]interface{}{
+			"network": map[string]any{
 				"id": m.wizard.selectedPrivateNetwork,
 			},
 		}
 
 		bodyBytes, _ := json.Marshal(gatewayBody)
-		var gateway map[string]interface{}
+		var gateway map[string]any
 		err = httpLib.Client.Post(endpoint, string(bodyBytes), &gateway)
 
 		return gatewayCreatedMsg{
@@ -4544,12 +4502,12 @@ func (m Model) createFloatingIP(instanceId string) tea.Cmd {
 		}
 
 		// Create the floating IP
-		fipBody := map[string]interface{}{
+		fipBody := map[string]any{
 			"description": fmt.Sprintf("FIP for %s", m.wizard.instanceName),
 		}
 
 		bodyBytes, _ := json.Marshal(fipBody)
-		var floatingIP map[string]interface{}
+		var floatingIP map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/floatingip", m.cloudProject, m.wizard.selectedRegion)
 		err := httpLib.Client.Post(endpoint, string(bodyBytes), &floatingIP)
 
@@ -4560,7 +4518,7 @@ func (m Model) createFloatingIP(instanceId string) tea.Cmd {
 		// Now associate it with the instance
 		fipId := getString(floatingIP, "id")
 		if fipId != "" && instanceId != "" {
-			associateBody := map[string]interface{}{
+			associateBody := map[string]any{
 				"instanceId": instanceId,
 			}
 			bodyBytes, _ = json.Marshal(associateBody)
@@ -4620,21 +4578,21 @@ func (m Model) ensureGatewayAndCreateFloatingIP(instanceId string) tea.Cmd {
 		// Step 1: Check if gateway exists for this subnet
 		gwCheckEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/gateway?subnetId=%s",
 			m.cloudProject, m.wizard.selectedRegion, m.wizard.selectedSubnetId)
-		var gateways []map[string]interface{}
+		var gateways []map[string]any
 		err := httpLib.Client.Get(gwCheckEndpoint, &gateways)
 
 		hasGateway := err == nil && len(gateways) > 0
 
 		// Step 2: Wait for instance to have a private IP
 		var privateIP string
-		for retry := 0; retry < 20; retry++ {
-			var instance map[string]interface{}
+		for range 20 {
+			var instance map[string]any
 			instanceEndpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", m.cloudProject, instanceId)
 			if err := httpLib.Client.Get(instanceEndpoint, &instance); err == nil {
 				// Look for private IP in ipAddresses
-				if ipAddresses, ok := instance["ipAddresses"].([]interface{}); ok {
+				if ipAddresses, ok := instance["ipAddresses"].([]any); ok {
 					for _, ipAddr := range ipAddresses {
-						if ipMap, ok := ipAddr.(map[string]interface{}); ok {
+						if ipMap, ok := ipAddr.(map[string]any); ok {
 							ipType := getString(ipMap, "type")
 							if ipType == "private" {
 								privateIP = getString(ipMap, "ip")
@@ -4655,20 +4613,20 @@ func (m Model) ensureGatewayAndCreateFloatingIP(instanceId string) tea.Cmd {
 		}
 
 		// Step 3: Create floating IP with gateway info if needed
-		fipBody := map[string]interface{}{
+		fipBody := map[string]any{
 			"ip": privateIP,
 		}
 
 		// If no gateway exists, include gateway creation parameters
 		if !hasGateway {
-			fipBody["gateway"] = map[string]interface{}{
+			fipBody["gateway"] = map[string]any{
 				"model": "s",
 				"name":  fmt.Sprintf("gw-%s", m.wizard.instanceName),
 			}
 		}
 
 		bodyBytes, _ := json.Marshal(fipBody)
-		var floatingIPResult map[string]interface{}
+		var floatingIPResult map[string]any
 		fipEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/floatingIp",
 			m.cloudProject, m.wizard.selectedRegion, instanceId)
 		err = httpLib.Client.Post(fipEndpoint, string(bodyBytes), &floatingIPResult)
@@ -4690,7 +4648,7 @@ func waitForOperation(projectID, operationID string, timeout time.Duration) erro
 	deadline := time.Now().Add(timeout)
 
 	for time.Now().Before(deadline) {
-		var operation map[string]interface{}
+		var operation map[string]any
 		if err := httpLib.Client.Get(endpoint, &operation); err != nil {
 			return fmt.Errorf("error fetching operation: %w", err)
 		}
@@ -4737,9 +4695,9 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 		case "ssh":
 			// Get public IP from instance
 			publicIP := ""
-			if addresses, ok := m.detailData["ipAddresses"].([]interface{}); ok {
+			if addresses, ok := m.detailData["ipAddresses"].([]any); ok {
 				for _, addr := range addresses {
-					if addrMap, ok := addr.(map[string]interface{}); ok {
+					if addrMap, ok := addr.(map[string]any); ok {
 						ipType := getString(addrMap, "type")
 						if ipType == "public" {
 							version := getNumericValue(addrMap, "version")
@@ -4832,7 +4790,7 @@ func (m Model) executeInstanceAction(actionIndex int) tea.Cmd {
 		case "vnc":
 			// POST /cloud/project/{serviceName}/instance/{instanceId}/vnc
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/vnc", m.cloudProject, instanceId)
-			var result map[string]interface{}
+			var result map[string]any
 			err = httpLib.Client.Post(endpoint, nil, &result)
 			if err == nil {
 				// Get the VNC URL from response
@@ -4963,12 +4921,12 @@ func (m Model) createPrivateNetwork() tea.Cmd {
 		}
 
 		// Step 1: Create the private network using the regional API
-		networkBody := map[string]interface{}{
+		networkBody := map[string]any{
 			"name":   m.wizard.newNetworkName,
 			"vlanId": m.wizard.newNetworkVlanId,
 		}
 
-		var operation map[string]interface{}
+		var operation map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network", m.cloudProject, m.wizard.selectedRegion)
 		err := httpLib.Client.Post(endpoint, networkBody, &operation)
 		if err != nil {
@@ -4985,7 +4943,7 @@ func (m Model) createPrivateNetwork() tea.Cmd {
 			return networkCreatedMsg{err: fmt.Errorf("network created but ID not returned")}
 		}
 
-		network := map[string]interface{}{
+		network := map[string]any{
 			"id":   resourceId,
 			"name": m.wizard.newNetworkName,
 		}
@@ -5024,7 +4982,7 @@ func (m Model) handleNetworkStep(msg networkStepMsg) (tea.Model, tea.Cmd) {
 }
 
 // createSubnet creates a subnet for the network (Step 2)
-func (m Model) createSubnet(networkId string, network map[string]interface{}) tea.Cmd {
+func (m Model) createSubnet(networkId string, network map[string]any) tea.Cmd {
 	return func() tea.Msg {
 		cidr := m.wizard.newNetworkCIDR
 		if cidr == "" {
@@ -5047,7 +5005,7 @@ func (m Model) createSubnet(networkId string, network map[string]interface{}) te
 		dhcpStart := baseIP + ".2"
 		dhcpEnd := baseIP + ".254"
 
-		subnetBody := map[string]interface{}{
+		subnetBody := map[string]any{
 			"name":            m.wizard.newNetworkName + "-subnet",
 			"cidr":            cidr,
 			"ipVersion":       4,
@@ -5067,10 +5025,10 @@ func (m Model) createSubnet(networkId string, network map[string]interface{}) te
 			m.cloudProject, m.wizard.selectedRegion, networkId)
 
 		// Retry creating subnet with exponential backoff (network needs to activate)
-		var subnet map[string]interface{}
+		var subnet map[string]any
 		var subnetErr error
 		maxRetries := 10
-		for retry := 0; retry < maxRetries; retry++ {
+		for retry := range maxRetries {
 			subnetErr = httpLib.Client.Post(subnetEndpoint, subnetBody, &subnet)
 			if subnetErr == nil {
 				break
@@ -5100,7 +5058,7 @@ func (m Model) createSubnet(networkId string, network map[string]interface{}) te
 		network["subnet"] = cidr
 		// Store subnet ID in a subnets array (to match the structure from fetchPrivateNetworks)
 		if subnet != nil {
-			network["subnets"] = []map[string]interface{}{subnet}
+			network["subnets"] = []map[string]any{subnet}
 		}
 
 		return networkStepMsg{
@@ -5134,16 +5092,16 @@ func (m Model) handleNetworkCreated(msg networkCreatedMsg) (tea.Model, tea.Cmd) 
 
 	// Extract subnet ID if available
 	m.wizard.selectedSubnetId = ""
-	if subnets, ok := msg.network["subnets"].([]map[string]interface{}); ok && len(subnets) > 0 {
+	if subnets, ok := msg.network["subnets"].([]map[string]any); ok && len(subnets) > 0 {
 		m.wizard.selectedSubnetId = getString(subnets[0], "id")
-	} else if subnets, ok := msg.network["subnets"].([]interface{}); ok && len(subnets) > 0 {
-		if subnet, ok := subnets[0].(map[string]interface{}); ok {
+	} else if subnets, ok := msg.network["subnets"].([]any); ok && len(subnets) > 0 {
+		if subnet, ok := subnets[0].(map[string]any); ok {
 			m.wizard.selectedSubnetId = getString(subnet, "id")
 		}
 	}
 
 	// Add the new network to the list (after "No Network" and "Create New")
-	newNetworkEntry := map[string]interface{}{
+	newNetworkEntry := map[string]any{
 		"id":      networkId,
 		"name":    networkName + " (new)",
 		"subnets": msg.network["subnets"],
@@ -5153,7 +5111,7 @@ func (m Model) handleNetworkCreated(msg networkCreatedMsg) (tea.Model, tea.Cmd) 
 	if len(m.wizard.privateNetworks) >= 2 {
 		m.wizard.privateNetworks = append(
 			m.wizard.privateNetworks[:2],
-			append([]map[string]interface{}{newNetworkEntry}, m.wizard.privateNetworks[2:]...)...,
+			append([]map[string]any{newNetworkEntry}, m.wizard.privateNetworks[2:]...)...,
 		)
 		m.wizard.selectedIndex = 2 // Select the newly created network
 	} else {
@@ -5316,7 +5274,6 @@ func (m Model) executeKubeAction(actionIndex int) tea.Cmd {
 	}
 }
 
-
 // kubeconfigReadyForK9sMsg signals that the kubeconfig has been downloaded and k9s can be launched.
 type kubeconfigReadyForK9sMsg struct {
 	kubeconfigPath string
@@ -5386,7 +5343,7 @@ func (m Model) handleStartNodePoolWizard(msg startNodePoolWizardMsg) (tea.Model,
 func (m Model) loadNodePoolFlavors(clusterId, region string) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/flavors", m.cloudProject, clusterId)
-		var flavors []map[string]interface{}
+		var flavors []map[string]any
 		if err := httpLib.Client.Get(endpoint, &flavors); err != nil {
 			return nodePoolFlavorsLoadedMsg{err: err}
 		}
@@ -5396,7 +5353,7 @@ func (m Model) loadNodePoolFlavors(clusterId, region string) tea.Cmd {
 
 // nodePoolFlavorsLoadedMsg is sent after flavors are loaded
 type nodePoolFlavorsLoadedMsg struct {
-	flavors []map[string]interface{}
+	flavors []map[string]any
 	err     error
 }
 
@@ -5409,7 +5366,7 @@ func (m Model) handleNodePoolFlavorsLoaded(msg nodePoolFlavorsLoadedMsg) (tea.Mo
 	}
 
 	// Filter flavors to only show available ones
-	var availableFlavors []map[string]interface{}
+	var availableFlavors []map[string]any
 	for _, flavor := range msg.flavors {
 		// Check if flavor is available (default to true if field doesn't exist)
 		available := true
@@ -5439,7 +5396,7 @@ func (m Model) handleNodePoolFlavorsLoaded(msg nodePoolFlavorsLoadedMsg) (tea.Mo
 // createNodePool creates a new node pool
 func (m Model) createNodePool() tea.Cmd {
 	return func() tea.Msg {
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"name":          m.wizard.nodePoolName,
 			"flavorName":    m.wizard.nodePoolFlavorName,
 			"desiredNodes":  m.wizard.nodePoolDesiredNodes,
@@ -5451,7 +5408,7 @@ func (m Model) createNodePool() tea.Cmd {
 		}
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool", m.cloudProject, m.wizard.nodePoolClusterId)
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, payload, &result); err != nil {
 			return nodePoolCreatedMsg{err: err}
 		}
@@ -5504,7 +5461,7 @@ func (m Model) fetchKubeUpgradeVersions(clusterId string) tea.Cmd {
 		}
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", m.cloudProject, clusterId)
-		var cluster map[string]interface{}
+		var cluster map[string]any
 		err := httpLib.Client.Get(endpoint, &cluster)
 		if err != nil {
 			return kubeUpgradeVersionsLoadedMsg{err: fmt.Errorf("failed to fetch cluster: %w", err)}
@@ -5512,7 +5469,7 @@ func (m Model) fetchKubeUpgradeVersions(clusterId string) tea.Cmd {
 
 		// Get available versions from the cluster info
 		var versions []string
-		if nextVersions, ok := cluster["nextUpgradeVersions"].([]interface{}); ok {
+		if nextVersions, ok := cluster["nextUpgradeVersions"].([]any); ok {
 			for _, v := range nextVersions {
 				if vs, ok := v.(string); ok {
 					versions = append(versions, vs)
@@ -5532,7 +5489,7 @@ func (m Model) upgradeKubeCluster(clusterId, targetVersion string) tea.Cmd {
 		}
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/update", m.cloudProject, clusterId)
-		body := map[string]interface{}{
+		body := map[string]any{
 			"strategy": "LATEST_PATCH",
 			"version":  targetVersion,
 		}
@@ -5620,7 +5577,7 @@ func (m Model) updateKubePolicy(clusterId, policy string) tea.Cmd {
 		}
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", m.cloudProject, clusterId)
-		body := map[string]interface{}{
+		body := map[string]any{
 			"updatePolicy": policy,
 		}
 
@@ -5840,7 +5797,7 @@ func (m Model) scaleNodePool(clusterId, nodePoolId string, desiredNodes, minNode
 		}
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool/%s", m.cloudProject, clusterId, nodePoolId)
-		body := map[string]interface{}{
+		body := map[string]any{
 			"desiredNodes": desiredNodes,
 			"minNodes":     minNodes,
 			"maxNodes":     maxNodes,
@@ -5917,13 +5874,13 @@ func (m Model) fetchInstanceBackupsData() dataLoadedMsg {
 		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 	}
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot", m.cloudProject)
-	var raw []interface{}
+	var raw []any
 	if err := httpLib.Client.Get(endpoint, &raw); err != nil {
 		return dataLoadedMsg{err: err}
 	}
-	var snapshots []map[string]interface{}
+	var snapshots []map[string]any
 	for _, item := range raw {
-		if obj, ok := item.(map[string]interface{}); ok {
+		if obj, ok := item.(map[string]any); ok {
 			snapshots = append(snapshots, obj)
 		}
 	}
@@ -5941,10 +5898,10 @@ func (m Model) fetchWorkflowsData() dataLoadedMsg {
 	if err := httpLib.Client.Get(regionsEndpoint, &regionNames); err != nil {
 		return dataLoadedMsg{err: fmt.Errorf("failed to fetch regions: %w", err)}
 	}
-	var workflows []map[string]interface{}
+	var workflows []map[string]any
 	for _, region := range regionNames {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup", m.cloudProject, url.PathEscape(region))
-		var raw []map[string]interface{}
+		var raw []map[string]any
 		if err := httpLib.Client.Get(endpoint, &raw); err != nil {
 			continue
 		}
@@ -5956,7 +5913,7 @@ func (m Model) fetchWorkflowsData() dataLoadedMsg {
 			if wfID, ok := obj["id"].(string); ok && wfID != "" {
 				detailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup/%s",
 					m.cloudProject, url.PathEscape(region), url.PathEscape(wfID))
-				var detail map[string]interface{}
+				var detail map[string]any
 				if err := httpLib.Client.Get(detailEndpoint, &detail); err == nil {
 					if v, ok := detail["lastExecution"]; ok {
 						obj["lastExecution"] = v
@@ -5978,13 +5935,13 @@ func (m Model) fetchVolumeSnapshotsData() dataLoadedMsg {
 		return dataLoadedMsg{err: fmt.Errorf("no cloud project selected")}
 	}
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/snapshot", m.cloudProject)
-	var raw []interface{}
+	var raw []any
 	if err := httpLib.Client.Get(endpoint, &raw); err != nil {
 		return dataLoadedMsg{err: err}
 	}
-	var snapshots []map[string]interface{}
+	var snapshots []map[string]any
 	for _, item := range raw {
-		if obj, ok := item.(map[string]interface{}); ok {
+		if obj, ok := item.(map[string]any); ok {
 			snapshots = append(snapshots, obj)
 		}
 	}
@@ -6001,16 +5958,16 @@ func (m Model) fetchVolumeBackupsData() dataLoadedMsg {
 	if err := httpLib.Client.Get(regEndpoint, &regionNames); err != nil {
 		return dataLoadedMsg{err: err}
 	}
-	var backups []map[string]interface{}
+	var backups []map[string]any
 	for _, region := range regionNames {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup",
 			m.cloudProject, url.PathEscape(region))
-		var raw []interface{}
+		var raw []any
 		if err := httpLib.Client.Get(endpoint, &raw); err != nil {
 			continue // skip regions without backup support
 		}
 		for _, item := range raw {
-			if obj, ok := item.(map[string]interface{}); ok {
+			if obj, ok := item.(map[string]any); ok {
 				backups = append(backups, obj)
 			}
 		}
@@ -6018,7 +5975,7 @@ func (m Model) fetchVolumeBackupsData() dataLoadedMsg {
 	return dataLoadedMsg{data: backups}
 }
 
-func createVolumeSnapshotsTable(data []map[string]interface{}, width, height int) table.Model {
+func createVolumeSnapshotsTable(data []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Nom", Width: 24},
 		{Title: "ID", Width: 36},
@@ -6050,10 +6007,7 @@ func createVolumeSnapshotsTable(data []map[string]interface{}, width, height int
 		}
 		rows = append(rows, table.Row{name, id, region, volumeId, size, status, created})
 	}
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -6070,7 +6024,7 @@ func createVolumeSnapshotsTable(data []map[string]interface{}, width, height int
 	return t
 }
 
-func createVolumeBackupsTable(data []map[string]interface{}, width, height int) table.Model {
+func createVolumeBackupsTable(data []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Nom", Width: 24},
 		{Title: "ID", Width: 36},
@@ -6102,10 +6056,7 @@ func createVolumeBackupsTable(data []map[string]interface{}, width, height int) 
 		}
 		rows = append(rows, table.Row{name, id, region, volumeId, size, status, created})
 	}
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -6122,7 +6073,6 @@ func createVolumeBackupsTable(data []map[string]interface{}, width, height int) 
 	return t
 }
 
-
 // fetchLBMembers fetches the list of members for a given pool.
 func (m Model) fetchLBMembers(poolID, region string) tea.Cmd {
 	return func() tea.Msg {
@@ -6130,8 +6080,8 @@ func (m Model) fetchLBMembers(poolID, region string) tea.Cmd {
 			return lbPoolMembersLoadedMsg{poolID: poolID, err: fmt.Errorf("no cloud project selected")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member",
-m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
-		var members []map[string]interface{}
+			m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
+		var members []map[string]any
 		if err := httpLib.Client.Get(endpoint, &members); err != nil {
 			return lbPoolMembersLoadedMsg{poolID: poolID, err: err}
 		}
@@ -6149,7 +6099,7 @@ func (m Model) executeDeleteLBMember(poolID, memberID, region string) tea.Cmd {
 			return lbPoolMemberDeletedMsg{poolID: poolID, err: fmt.Errorf("pool ID, member ID or region missing")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member/%s",
-m.cloudProject, url.PathEscape(region), url.PathEscape(poolID), url.PathEscape(memberID))
+			m.cloudProject, url.PathEscape(region), url.PathEscape(poolID), url.PathEscape(memberID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 			return lbPoolMemberDeletedMsg{poolID: poolID, err: fmt.Errorf("deletion failed: %w", err)}
 		}
@@ -6170,20 +6120,20 @@ func (m Model) saveLBMember() tea.Cmd {
 		}
 		if m.wizard.lbMemberEditId != "" {
 			// Edit: PUT — only name and weight are mutable; address and protocolPort are immutable
-			putBody := map[string]interface{}{
+			putBody := map[string]any{
 				"name":   m.wizard.lbMemberName,
 				"weight": m.wizard.lbMemberWeight,
 			}
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member/%s",
 				m.cloudProject, url.PathEscape(region), url.PathEscape(poolID), url.PathEscape(m.wizard.lbMemberEditId))
-			var result map[string]interface{}
+			var result map[string]any
 			if err := httpLib.Client.Put(endpoint, putBody, &result); err != nil {
 				return lbPoolMemberSavedMsg{poolID: poolID, err: fmt.Errorf("update failed: %w", err)}
 			}
 		} else {
 			// Create: POST — body is {"members": [...]}
-			postBody := map[string]interface{}{
-				"members": []map[string]interface{}{
+			postBody := map[string]any{
+				"members": []map[string]any{
 					{
 						"name":         m.wizard.lbMemberName,
 						"address":      m.wizard.lbMemberIP,
@@ -6194,7 +6144,7 @@ func (m Model) saveLBMember() tea.Cmd {
 			}
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member",
 				m.cloudProject, url.PathEscape(region), url.PathEscape(poolID))
-			var result []map[string]interface{}
+			var result []map[string]any
 			if err := httpLib.Client.Post(endpoint, postBody, &result); err != nil {
 				return lbPoolMemberSavedMsg{poolID: poolID, err: fmt.Errorf("creation failed: %w", err)}
 			}
@@ -6210,8 +6160,8 @@ func (m Model) fetchLBHealthMonitor(poolID, region string) tea.Cmd {
 			return lbHMLoadedMsg{poolID: poolID, err: fmt.Errorf("no cloud project selected")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor?poolId=%s",
-m.cloudProject, url.PathEscape(region), url.QueryEscape(poolID))
-		var monitors []map[string]interface{}
+			m.cloudProject, url.PathEscape(region), url.QueryEscape(poolID))
+		var monitors []map[string]any
 		if err := httpLib.Client.Get(endpoint, &monitors); err != nil {
 			return lbHMLoadedMsg{poolID: poolID, err: err}
 		}
@@ -6235,7 +6185,7 @@ func (m Model) saveHealthMonitor() tea.Cmd {
 		}
 		if m.wizard.lbHMEditId != "" {
 			// Update: PUT — monitorType and poolId are immutable
-			putBody := map[string]interface{}{
+			putBody := map[string]any{
 				"name":           m.wizard.lbHMName,
 				"delay":          m.wizard.lbHMDelay,
 				"maxRetries":     m.wizard.lbHMMaxRetries,
@@ -6243,21 +6193,21 @@ func (m Model) saveHealthMonitor() tea.Cmd {
 				"timeout":        m.wizard.lbHMTimeout,
 			}
 			if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) {
-				putBody["httpConfiguration"] = map[string]interface{}{
+				putBody["httpConfiguration"] = map[string]any{
 					"httpMethod":    m.wizard.lbHMHttpMethod,
 					"urlPath":       m.wizard.lbHMUrlPath,
 					"expectedCodes": m.wizard.lbHMExpectedCodes,
 				}
 			}
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor/%s",
-m.cloudProject, url.PathEscape(region), url.PathEscape(m.wizard.lbHMEditId))
-			var result map[string]interface{}
+				m.cloudProject, url.PathEscape(region), url.PathEscape(m.wizard.lbHMEditId))
+			var result map[string]any
 			if err := httpLib.Client.Put(endpoint, putBody, &result); err != nil {
 				return lbHMSavedMsg{poolID: poolID, err: fmt.Errorf("update failed: %w", err)}
 			}
 		} else {
 			// Create: POST
-			postBody := map[string]interface{}{
+			postBody := map[string]any{
 				"name":           m.wizard.lbHMName,
 				"monitorType":    m.wizard.lbHMType,
 				"poolId":         poolID,
@@ -6267,15 +6217,15 @@ m.cloudProject, url.PathEscape(region), url.PathEscape(m.wizard.lbHMEditId))
 				"timeout":        m.wizard.lbHMTimeout,
 			}
 			if lbHMTypeNeedsHttpConfig(m.wizard.lbHMType) {
-				postBody["httpConfiguration"] = map[string]interface{}{
+				postBody["httpConfiguration"] = map[string]any{
 					"httpMethod":    m.wizard.lbHMHttpMethod,
 					"urlPath":       m.wizard.lbHMUrlPath,
 					"expectedCodes": m.wizard.lbHMExpectedCodes,
 				}
 			}
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor",
-m.cloudProject, url.PathEscape(region))
-			var result map[string]interface{}
+				m.cloudProject, url.PathEscape(region))
+			var result map[string]any
 			if err := httpLib.Client.Post(endpoint, postBody, &result); err != nil {
 				return lbHMSavedMsg{poolID: poolID, err: fmt.Errorf("creation failed: %w", err)}
 			}
@@ -6294,7 +6244,7 @@ func (m Model) deleteHealthMonitor(hmID, poolID, region string) tea.Cmd {
 			return lbHMDeletedMsg{poolID: poolID, err: fmt.Errorf("health monitor ID or region missing")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor/%s",
-m.cloudProject, url.PathEscape(region), url.PathEscape(hmID))
+			m.cloudProject, url.PathEscape(region), url.PathEscape(hmID))
 		if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 			return lbHMDeletedMsg{poolID: poolID, err: fmt.Errorf("deletion failed: %w", err)}
 		}
