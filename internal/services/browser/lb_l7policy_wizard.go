@@ -275,10 +275,7 @@ func (m Model) handleLBL7PolicyWizardActionKeys(key string) (tea.Model, tea.Cmd)
 
 func (m Model) handleLBL7PolicyWizardRedirectPoolKeys(key string) (tea.Model, tea.Cmd) {
 	pools := m.lbPools[m.wizard.l7PolicyLBId]
-	maxIdx := len(pools) - 1
-	if maxIdx < 0 {
-		maxIdx = 0
-	}
+	maxIdx := max(len(pools)-1, 0)
 	switch key {
 	case "up", "k":
 		if m.wizard.l7PolicyRedirectPoolIdx > 0 {
@@ -364,7 +361,7 @@ func (m Model) createLBL7Policy() tea.Cmd {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy",
 			m.cloudProject, url.PathEscape(m.wizard.l7PolicyLBRegion))
 
-		body := map[string]interface{}{
+		body := map[string]any{
 			"listenerId": m.wizard.l7PolicyListenerId,
 			"name":       m.wizard.l7PolicyName,
 			"position":   m.wizard.l7PolicyPosition,
@@ -380,7 +377,7 @@ func (m Model) createLBL7Policy() tea.Cmd {
 			body["redirectPrefix"] = m.wizard.l7PolicyRedirectUrl
 		}
 
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return lbL7PolicyCreatedMsg{policyName: m.wizard.l7PolicyName, err: fmt.Errorf("creation failed: %w", err)}
 		}
@@ -395,12 +392,12 @@ func (m Model) fetchLBL7Policies(listenerID, region string) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy",
 			m.cloudProject, url.PathEscape(region))
-		var all []map[string]interface{}
+		var all []map[string]any
 		if err := httpLib.Client.Get(endpoint, &all); err != nil {
 			return lbL7PoliciesLoadedMsg{listenerID: listenerID, err: err}
 		}
 		// Filter by listenerId
-		var policies []map[string]interface{}
+		var policies []map[string]any
 		for _, p := range all {
 			if getStringValue(p, "listenerId", "") == listenerID {
 				policies = append(policies, p)
@@ -443,7 +440,7 @@ func (m Model) updateLBL7Policy() tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s",
 			m.cloudProject, url.PathEscape(m.wizard.l7PolicyLBRegion), url.PathEscape(m.wizard.l7PolicyEditId))
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name":     m.wizard.l7PolicyName,
 			"position": m.wizard.l7PolicyPosition,
 			"action":   m.wizard.l7PolicyAction,
@@ -457,7 +454,7 @@ func (m Model) updateLBL7Policy() tea.Cmd {
 		if m.wizard.l7PolicyAction == "redirectPrefix" {
 			body["redirectPrefix"] = m.wizard.l7PolicyRedirectUrl
 		}
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
 			return lbL7PolicyUpdatedMsg{policyName: m.wizard.l7PolicyName, err: fmt.Errorf("update failed: %w", err)}
 		}
@@ -472,7 +469,7 @@ func (m Model) fetchLBL7Rules(policyID, region string) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s/l7Rule",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(policyID))
-		var rules []map[string]interface{}
+		var rules []map[string]any
 		if err := httpLib.Client.Get(endpoint, &rules); err != nil {
 			return lbL7RulesLoadedMsg{policyID: policyID, err: err}
 		}

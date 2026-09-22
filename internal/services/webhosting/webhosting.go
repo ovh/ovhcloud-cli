@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"net/url"
 	"os"
 	"sort"
@@ -3518,9 +3519,7 @@ func updateResource(cmd *cobra.Command, pathSpec, endpoint string, params map[st
 		if err := httpLib.Client.Get(endpoint, &current); err != nil {
 			return fmt.Errorf("error fetching %s: %w", endpoint, err)
 		}
-		for k, v := range cleaned {
-			current[k] = v
-		}
+		maps.Copy(current, cleaned)
 		source = current
 	}
 

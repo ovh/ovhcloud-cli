@@ -25,7 +25,7 @@ func TestIsInvalidCredentialError(t *testing.T) {
 		{"unauthorized (401)", &ovh.APIError{Code: http.StatusUnauthorized}, true},
 		{"other API error (500)", &ovh.APIError{Code: http.StatusInternalServerError}, false},
 		{"not found (404)", &ovh.APIError{Code: http.StatusNotFound}, false},
-		{"wrapped forbidden", fmt.Errorf("revoke failed: %w", &ovh.APIError{Code: http.StatusForbidden}), true},
+		{"wrapped forbidden", fmt.Errorf("revoke failed: %w", error(&ovh.APIError{Code: http.StatusForbidden})), true}, // go vet reads static type
 		{"plain error", errors.New("network unreachable"), false},
 	}
 

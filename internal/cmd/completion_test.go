@@ -61,7 +61,7 @@ func TestCompletionInstall_Idempotent(t *testing.T) {
 	home := setupHome(t)
 	t.Setenv("SHELL", "/bin/bash")
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		if err := runCompletionInstall(nil, nil); err != nil {
 			t.Fatalf("call %d: unexpected error: %v", i, err)
 		}

@@ -26,7 +26,7 @@ const (
 // UserDetailView displays S3 user details with activate/deactivate and secret key actions.
 type UserDetailView struct {
 	views.BaseView
-	user           map[string]interface{}
+	user           map[string]any
 	selectedAction int
 	confirmMode    bool
 	secretKey      string // populated after Show Secret action
@@ -34,7 +34,7 @@ type UserDetailView struct {
 }
 
 // NewUserDetailView creates a detail view for an S3 user.
-func NewUserDetailView(ctx *views.Context, user map[string]interface{}) *UserDetailView {
+func NewUserDetailView(ctx *views.Context, user map[string]any) *UserDetailView {
 	return &UserDetailView{
 		BaseView: views.NewBaseView(ctx),
 		user:     user,
@@ -230,6 +230,6 @@ func (v *UserDetailView) HelpText() string {
 
 // ExecuteUserActionMsg is dispatched when the user confirms an action.
 type ExecuteUserActionMsg struct {
-	User   map[string]interface{}
+	User   map[string]any
 	Action int
 }

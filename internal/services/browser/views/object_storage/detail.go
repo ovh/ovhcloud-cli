@@ -17,16 +17,16 @@ import (
 
 // Action identifiers for object storage container detail view.
 const (
-	ContainerActionDelete     = iota 
-	ContainerActionChangeType        
-	ContainerActionAddPolicy       
+	ContainerActionDelete = iota
+	ContainerActionChangeType
+	ContainerActionAddPolicy
 )
 
 const (
 	subMenuNone       = 0
 	subMenuChangeType = 1
-	subMenuAddPolicy  = 2 
-	subMenuPickRole   = 3 
+	subMenuAddPolicy  = 2
+	subMenuPickRole   = 3
 )
 
 var swiftTypeOptions = []string{"Private", "Public", "Static"}
@@ -41,8 +41,8 @@ type containerAction struct {
 // DetailView displays object storage container details with actions.
 type DetailView struct {
 	views.BaseView
-	container      map[string]interface{}
-	users          []map[string]interface{} // cloud users
+	container      map[string]any
+	users          []map[string]any // cloud users
 	selectedAction int
 	confirmMode    bool
 	subMenu        int
@@ -51,7 +51,7 @@ type DetailView struct {
 }
 
 // NewDetailView creates a detail view for a container.
-func NewDetailView(ctx *views.Context, container map[string]interface{}, users []map[string]interface{}) *DetailView {
+func NewDetailView(ctx *views.Context, container map[string]any, users []map[string]any) *DetailView {
 	return &DetailView{
 		BaseView:  views.NewBaseView(ctx),
 		container: container,
@@ -124,7 +124,7 @@ func (v *DetailView) renderInfo() string {
 	} else {
 		// Versioning
 		versioningStatus := "-"
-		if vers, ok := v.container["versioning"].(map[string]interface{}); ok {
+		if vers, ok := v.container["versioning"].(map[string]any); ok {
 			if s, ok := vers["status"].(string); ok {
 				versioningStatus = s
 			}
@@ -133,7 +133,7 @@ func (v *DetailView) renderInfo() string {
 		// Encryption
 		encryptionStatus := "No encryption"
 		encryptionStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
-		if enc, ok := v.container["encryption"].(map[string]interface{}); ok {
+		if enc, ok := v.container["encryption"].(map[string]any); ok {
 			if alg, _ := enc["sseAlgorithm"].(string); alg != "" {
 				encryptionStatus = "SSE-OMK (OVHcloud-managed keys)"
 				encryptionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF7F"))
@@ -142,7 +142,7 @@ func (v *DetailView) renderInfo() string {
 
 		// Object lock
 		objectLockStatus := "-"
-		if ol, ok := v.container["objectLock"].(map[string]interface{}); ok {
+		if ol, ok := v.container["objectLock"].(map[string]any); ok {
 			if s, _ := ol["status"].(string); s != "" {
 				objectLockStatus = s
 			}
@@ -221,9 +221,9 @@ func (v *DetailView) renderChangeTypeMenu(width int) string {
 	return views.RenderBox("Change container type", content.String(), width-4)
 }
 
-func (v *DetailView) policyUserCandidates() []map[string]interface{} {
+func (v *DetailView) policyUserCandidates() []map[string]any {
 	seen := map[string]bool{}
-	var result []map[string]interface{}
+	var result []map[string]any
 	for _, u := range v.users {
 		uid := fmt.Sprintf("%v", u["_userId"])
 		if uid == "" || uid == "0" || uid == "<nil>" {
@@ -392,7 +392,7 @@ func (v *DetailView) handlePickRoleKey(key string) tea.Cmd {
 			return ExecuteContainerActionMsg{
 				Container: container,
 				Action:    ContainerActionAddPolicy,
-				ExtraData: map[string]interface{}{
+				ExtraData: map[string]any{
 					"userId":   selectedUser["_userId"],
 					"roleName": roleName,
 				},
@@ -423,7 +423,7 @@ func (v *DetailView) handleSubMenuKey(key string) tea.Cmd {
 			return ExecuteContainerActionMsg{
 				Container: container,
 				Action:    ContainerActionChangeType,
-				ExtraData: map[string]interface{}{"containerType": newType},
+				ExtraData: map[string]any{"containerType": newType},
 			}
 		}
 	case "esc":
@@ -431,7 +431,6 @@ func (v *DetailView) handleSubMenuKey(key string) tea.Cmd {
 	}
 	return nil
 }
-
 
 // ─── Metadata ────────────────────────────────────────────────────────────────
 
@@ -457,21 +456,21 @@ func (v *DetailView) HelpText() string {
 
 // ExecuteContainerActionMsg is dispatched when the user confirms an action.
 type ExecuteContainerActionMsg struct {
-	Container map[string]interface{}
+	Container map[string]any
 	Action    int
-	ExtraData map[string]interface{}
+	ExtraData map[string]any
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-func getString(m map[string]interface{}, key string) string {
+func getString(m map[string]any, key string) string {
 	if v, ok := m[key].(string); ok {
 		return v
 	}
 	return ""
 }
 
-func getCountStr(m map[string]interface{}, fields ...string) string {
+func getCountStr(m map[string]any, fields ...string) string {
 	for _, f := range fields {
 		if v, ok := m[f]; ok {
 			if n, ok := v.(float64); ok {
@@ -482,7 +481,7 @@ func getCountStr(m map[string]interface{}, fields ...string) string {
 	return "-"
 }
 
-func getSizeStr(m map[string]interface{}, fields ...string) string {
+func getSizeStr(m map[string]any, fields ...string) string {
 	for _, f := range fields {
 		if v, ok := m[f]; ok {
 			if n, ok := v.(float64); ok {
@@ -499,4 +498,3 @@ func getSizeStr(m map[string]interface{}, fields ...string) string {
 	}
 	return "-"
 }
-

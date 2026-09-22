@@ -46,15 +46,15 @@ func (m Model) fetchObjectStorageInitData() tea.Cmd {
 		ch := make(chan probeResult, len(regionNames))
 		for _, name := range regionNames {
 			go func(r string) {
-				var region map[string]interface{}
+				var region map[string]any
 				ep := fmt.Sprintf("/v1/cloud/project/%s/region/%s", m.cloudProject, url.PathEscape(r))
 				if err := httpLib.Client.Get(ep, &region); err != nil {
 					ch <- probeResult{region: r, supported: false}
 					return
 				}
-				services, _ := region["services"].([]interface{})
+				services, _ := region["services"].([]any)
 				for _, svc := range services {
-					if sm, ok := svc.(map[string]interface{}); ok {
+					if sm, ok := svc.(map[string]any); ok {
 						if n, _ := sm["name"].(string); n == "storage-s3-high-perf" || n == "storage-s3-standard" {
 							ch <- probeResult{region: r, supported: true}
 							return
@@ -75,7 +75,7 @@ func (m Model) fetchObjectStorageInitData() tea.Cmd {
 		sort.Strings(supportedRegions)
 
 		// Fetch cloud users
-		var users []map[string]interface{}
+		var users []map[string]any
 		userEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user", m.cloudProject)
 		if err := httpLib.Client.Get(userEndpoint, &users); err != nil {
 			// Non-fatal: continue without users
@@ -112,15 +112,15 @@ func (m Model) fetchSwiftRegions() tea.Cmd {
 		ch := make(chan probeResult, len(regionNames))
 		for _, name := range regionNames {
 			go func(r string) {
-				var region map[string]interface{}
+				var region map[string]any
 				ep := fmt.Sprintf("/v1/cloud/project/%s/region/%s", m.cloudProject, url.PathEscape(r))
 				if err := httpLib.Client.Get(ep, &region); err != nil {
 					ch <- probeResult{region: r, supported: false}
 					return
 				}
-				services, _ := region["services"].([]interface{})
+				services, _ := region["services"].([]any)
 				for _, svc := range services {
-					if sm, ok := svc.(map[string]interface{}); ok {
+					if sm, ok := svc.(map[string]any); ok {
 						if n, _ := sm["name"].(string); n == "storage" || n == "storage-object" {
 							ch <- probeResult{region: r, supported: true}
 							return
@@ -150,25 +150,25 @@ func (m Model) createObjectContainer() tea.Cmd {
 		}
 
 		if m.wizard.objectTypeIdx == 1 {
-			body := map[string]interface{}{
+			body := map[string]any{
 				"containerName": m.wizard.objectName,
 				"region":        m.wizard.objectSwiftRegion,
 			}
 			body["archive"] = (m.wizard.objectSwiftTypeIdx == 1)
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage", m.cloudProject)
-			var container map[string]interface{}
+			var container map[string]any
 			if err := httpLib.Client.Post(endpoint, body, &container); err != nil {
 				return objectContainerCreatedMsg{err: fmt.Errorf("failed to create Swift container: %w", err)}
 			}
 			return objectContainerCreatedMsg{container: container}
 		}
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name": m.wizard.objectName,
 		}
 
 		// Encryption
 		if m.wizard.objectEncryption {
-			body["encryption"] = map[string]interface{}{
+			body["encryption"] = map[string]any{
 				"sseAlgorithm": "AES256",
 			}
 		}
@@ -178,14 +178,14 @@ func (m Model) createObjectContainer() tea.Cmd {
 
 		// Versioning
 		if enableVersioning {
-			body["versioning"] = map[string]interface{}{
+			body["versioning"] = map[string]any{
 				"status": "enabled",
 			}
 		}
 
 		// Object Lock (requires versioning)
 		if m.wizard.objectLock {
-			body["objectLock"] = map[string]interface{}{
+			body["objectLock"] = map[string]any{
 				"status": "enabled",
 			}
 		}
@@ -207,7 +207,7 @@ func (m Model) createObjectContainer() tea.Cmd {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage",
 			m.cloudProject, url.PathEscape(region))
 
-		var container map[string]interface{}
+		var container map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &container); err != nil {
 			return objectContainerCreatedMsg{err: fmt.Errorf("failed to create container: %w", err)}
 		}
@@ -226,7 +226,7 @@ func (m Model) updateSwiftContainerType(containerID, newType string) tea.Cmd {
 			// Enable static website hosting
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s/static",
 				m.cloudProject, url.PathEscape(containerID))
-			var result map[string]interface{}
+			var result map[string]any
 			if err := httpLib.Client.Post(endpoint, nil, &result); err != nil {
 				return swiftContainerUpdatedMsg{containerName: containerID, err: fmt.Errorf("failed to enable static: %w", err)}
 			}
@@ -237,7 +237,7 @@ func (m Model) updateSwiftContainerType(containerID, newType string) tea.Cmd {
 			_ = httpLib.Client.Delete(staticEp, nil) // ignore error if wasn't static
 
 			// Update container ACL via containerType field
-			body := map[string]interface{}{"containerType": newType}
+			body := map[string]any{"containerType": newType}
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/storage/%s",
 				m.cloudProject, url.PathEscape(containerID))
 			if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
@@ -268,7 +268,7 @@ func (m Model) addS3ContainerPolicy(containerName, region string, userID int64, 
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage/%s/policy/%d",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(containerName), userID)
-		body := map[string]interface{}{"roleName": roleName}
+		body := map[string]any{"roleName": roleName}
 		if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
 			return containerPolicyAddedMsg{containerName: containerName, err: fmt.Errorf("failed to add policy: %w", err)}
 		}
@@ -283,7 +283,7 @@ func (m Model) getS3Secret(userID int64, access string) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials/%s/secret",
 			m.cloudProject, userID, url.PathEscape(access))
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, nil, &result); err != nil {
 			return s3SecretLoadedMsg{err: fmt.Errorf("failed to retrieve secret: %w", err)}
 		}
@@ -298,7 +298,7 @@ func (m Model) enableS3User(userID int64) tea.Cmd {
 			return s3UserActionDoneMsg{action: object_storage.UserActionEnable, err: fmt.Errorf("no cloud project selected")}
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials", m.cloudProject, userID)
-		var cred map[string]interface{}
+		var cred map[string]any
 		if err := httpLib.Client.Post(endpoint, nil, &cred); err != nil {
 			return s3UserActionDoneMsg{action: object_storage.UserActionEnable, err: fmt.Errorf("failed to create credentials: %w", err)}
 		}
@@ -343,11 +343,11 @@ func (m Model) createS3User() tea.Cmd {
 			return s3UserCreatedMsg{err: fmt.Errorf("no cloud project selected")}
 		}
 
-		body := map[string]interface{}{
+		body := map[string]any{
 			"description": m.wizard.s3UserDesc,
 			"role":        "objectstore_operator",
 		}
-		var user map[string]interface{}
+		var user map[string]any
 		userEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user", m.cloudProject)
 		if err := httpLib.Client.Post(userEndpoint, body, &user); err != nil {
 			return s3UserCreatedMsg{err: fmt.Errorf("failed to create user: %w", err)}
@@ -371,8 +371,8 @@ func (m Model) createS3User() tea.Cmd {
 
 		// Poll until user status is "ok" (max ~30s)
 		userGetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d", m.cloudProject, userId)
-		for i := 0; i < 30; i++ {
-			var u map[string]interface{}
+		for range 30 {
+			var u map[string]any
 			if err := httpLib.Client.Get(userGetEndpoint, &u); err == nil {
 				if status, _ := u["status"].(string); status == "ok" {
 					user = u
@@ -383,7 +383,7 @@ func (m Model) createS3User() tea.Cmd {
 		}
 
 		// Create S3 credentials for the user
-		var credentials map[string]interface{}
+		var credentials map[string]any
 		credsEndpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%d/s3Credentials", m.cloudProject, userId)
 		if err := httpLib.Client.Post(credsEndpoint, nil, &credentials); err != nil {
 			return s3UserCreatedMsg{user: user, err: fmt.Errorf("user created but S3 credentials failed: %w", err)}
@@ -534,7 +534,7 @@ func (m Model) handleS3CredentialsSaved(msg s3CredentialsSavedMsg) (tea.Model, t
 }
 
 // createObjectStorageTable builds the table for S3 containers.
-func createObjectStorageTable(data []map[string]interface{}, width, height int) table.Model {
+func createObjectStorageTable(data []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Name", Width: 28},
 		{Title: "Location", Width: 12},
@@ -617,10 +617,7 @@ func createObjectStorageTable(data []map[string]interface{}, width, height int) 
 		rows = append(rows, table.Row{name, region, deployMode, offer, objectsCount, sizeStr, containerType})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}
@@ -646,7 +643,7 @@ func createObjectStorageTable(data []map[string]interface{}, width, height int) 
 }
 
 // createObjectStorageUsersTable creates a table to display S3 users/credentials.
-func createObjectStorageUsersTable(users []map[string]interface{}, width, height int) table.Model {
+func createObjectStorageUsersTable(users []map[string]any, width, height int) table.Model {
 	columns := []table.Column{
 		{Title: "Name", Width: 30},
 		{Title: "Description", Width: 40},
@@ -683,10 +680,7 @@ func createObjectStorageUsersTable(users []map[string]interface{}, width, height
 		rows = append(rows, table.Row{name, description, accessKey, s3User})
 	}
 
-	tableHeight := height - 15
-	if tableHeight < 5 {
-		tableHeight = 5
-	}
+	tableHeight := max(height-15, 5)
 	if tableHeight > 20 {
 		tableHeight = 20
 	}

@@ -32,7 +32,7 @@ const (
 
 // ExecuteBackupActionMsg is dispatched when a backup action is confirmed.
 type ExecuteBackupActionMsg struct {
-	Backup     map[string]interface{}
+	Backup     map[string]any
 	Action     int
 	VolumeID   string // for Restore action
 	VolumeName string // for CreateVolume action
@@ -41,23 +41,23 @@ type ExecuteBackupActionMsg struct {
 
 // BackupVolumesLoadedMsg is sent by the manager after loading volumes for restore picker.
 type BackupVolumesLoadedMsg struct {
-	Volumes []map[string]interface{}
+	Volumes []map[string]any
 }
 
 // BackupDetailView displays a volume backup with Delete, Restore and Create Volume actions.
 type BackupDetailView struct {
 	views.BaseView
-	backup         map[string]interface{}
+	backup         map[string]any
 	selectedAction int
 	confirmMode    bool
 	subMenu        int
-	restoreVolumes []map[string]interface{}
+	restoreVolumes []map[string]any
 	restoreIdx     int
 	nameInput      string
 	sizeInput      string
 }
 
-func NewBackupDetailView(ctx *views.Context, backup map[string]interface{}) *BackupDetailView {
+func NewBackupDetailView(ctx *views.Context, backup map[string]any) *BackupDetailView {
 	return &BackupDetailView{
 		BaseView: views.NewBaseView(ctx),
 		backup:   backup,
@@ -65,7 +65,7 @@ func NewBackupDetailView(ctx *views.Context, backup map[string]interface{}) *Bac
 }
 
 // SetRestoreVolumes is called by the manager after volumes are loaded.
-func (v *BackupDetailView) SetRestoreVolumes(volumes []map[string]interface{}) {
+func (v *BackupDetailView) SetRestoreVolumes(volumes []map[string]any) {
 	v.restoreVolumes = volumes
 	v.restoreIdx = 0
 }
@@ -134,10 +134,7 @@ func (v *BackupDetailView) renderActions() string {
 		if v.restoreIdx >= maxVisible {
 			startIdx = v.restoreIdx - maxVisible + 1
 		}
-		endIdx := startIdx + maxVisible
-		if endIdx > len(v.restoreVolumes) {
-			endIdx = len(v.restoreVolumes)
-		}
+		endIdx := min(startIdx+maxVisible, len(v.restoreVolumes))
 		if startIdx > 0 {
 			sb.WriteString(dimStyle.Render(fmt.Sprintf("  (...%d above)", startIdx)) + "\n")
 		}
@@ -320,7 +317,7 @@ func (v *BackupDetailView) HandleKey(msg tea.KeyMsg) tea.Cmd {
 
 // LoadBackupRestoreVolumesMsg asks the manager to fetch volumes for the restore picker.
 type LoadBackupRestoreVolumesMsg struct {
-	Backup map[string]interface{}
+	Backup map[string]any
 }
 
 func (v *BackupDetailView) Title() string {

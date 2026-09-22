@@ -42,10 +42,7 @@ func (m Model) renderFIPWizardRegionStep(width int) string {
 		if m.wizard.fipRegionIdx >= maxVisible {
 			startIdx = m.wizard.fipRegionIdx - maxVisible + 1
 		}
-		endIdx := startIdx + maxVisible
-		if endIdx > len(m.wizard.fipAvailableRegions) {
-			endIdx = len(m.wizard.fipAvailableRegions)
-		}
+		endIdx := min(startIdx+maxVisible, len(m.wizard.fipAvailableRegions))
 		for i := startIdx; i < endIdx; i++ {
 			r := m.wizard.fipAvailableRegions[i]
 			if i == m.wizard.fipRegionIdx {
@@ -96,10 +93,7 @@ func (m Model) renderFIPWizardInstanceStep(width int) string {
 	if m.wizard.fipInstanceIdx >= maxVisible {
 		startIdx = m.wizard.fipInstanceIdx - maxVisible + 1
 	}
-	endIdx := startIdx + maxVisible
-	if endIdx > len(entries) {
-		endIdx = len(entries)
-	}
+	endIdx := min(startIdx+maxVisible, len(entries))
 	for i := startIdx; i < endIdx; i++ {
 		if i == m.wizard.fipInstanceIdx {
 			content.WriteString(selectedStyle.Render("▶ "+entries[i]) + "\n")

@@ -28,18 +28,17 @@ func (m Model) fetchDBCapabilities() tea.Cmd {
 		capEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", m.cloudProject)
 		availEndpoint := fmt.Sprintf("/v1/cloud/project/%s/database/availability", m.cloudProject)
 
-
-		var caps map[string]interface{}
+		var caps map[string]any
 		if err := httpLib.Client.Get(capEndpoint, &caps); err != nil {
 			return dbCapabilitiesLoadedMsg{err: err}
 		}
 
-		var availItems []map[string]interface{}
+		var availItems []map[string]any
 		_ = httpLib.Client.Get(availEndpoint, &availItems)
 
 		// Fallback regions from capabilities top-level list
 		var capsRegions []string
-		if raws, ok := caps["regions"].([]interface{}); ok {
+		if raws, ok := caps["regions"].([]any); ok {
 			for _, r := range raws {
 				if s, ok := r.(string); ok {
 					capsRegions = append(capsRegions, s)
@@ -48,10 +47,10 @@ func (m Model) fetchDBCapabilities() tea.Cmd {
 			sort.Strings(capsRegions)
 		}
 
-		engines, _ := caps["engines"].([]interface{})
-		var engMaps []map[string]interface{}
+		engines, _ := caps["engines"].([]any)
+		var engMaps []map[string]any
 		for _, e := range engines {
-			if em, ok := e.(map[string]interface{}); ok {
+			if em, ok := e.(map[string]any); ok {
 				// Exclude analytics engines — those belong to the Managed Analytics wizard
 				if strings.ToLower(getStringValue(em, "category", "")) != "analysis" {
 					engMaps = append(engMaps, em)
@@ -62,10 +61,10 @@ func (m Model) fetchDBCapabilities() tea.Cmd {
 			return getStringValue(engMaps[i], "name", "") < getStringValue(engMaps[j], "name", "")
 		})
 
-		flavors, _ := caps["flavors"].([]interface{})
-		var flavMaps []map[string]interface{}
+		flavors, _ := caps["flavors"].([]any)
+		var flavMaps []map[string]any
 		for _, f := range flavors {
-			if fm, ok := f.(map[string]interface{}); ok {
+			if fm, ok := f.(map[string]any); ok {
 				flavMaps = append(flavMaps, fm)
 			}
 		}
@@ -78,10 +77,10 @@ func (m Model) fetchDBCapabilities() tea.Cmd {
 			return getStringValue(flavMaps[i], "name", "") < getStringValue(flavMaps[j], "name", "")
 		})
 
-		plans, _ := caps["plans"].([]interface{})
-		var planMaps []map[string]interface{}
+		plans, _ := caps["plans"].([]any)
+		var planMaps []map[string]any
 		for _, p := range plans {
-			if pm, ok := p.(map[string]interface{}); ok {
+			if pm, ok := p.(map[string]any); ok {
 				planMaps = append(planMaps, pm)
 			}
 		}
@@ -107,14 +106,14 @@ func (m Model) fetchDBDetailSubresources(engine, serviceId string) tea.Cmd {
 		base := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s",
 			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
 
-		fetchList := func(suffix string) []map[string]interface{} {
+		fetchList := func(suffix string) []map[string]any {
 			var ids []string
 			if err := httpLib.Client.Get(base+suffix, &ids); err != nil {
 				return nil
 			}
-			var items []map[string]interface{}
+			var items []map[string]any
 			for _, id := range ids {
-				var item map[string]interface{}
+				var item map[string]any
 				if err := httpLib.Client.Get(base+suffix+"/"+url.PathEscape(id), &item); err == nil {
 					items = append(items, item)
 				}
@@ -123,7 +122,7 @@ func (m Model) fetchDBDetailSubresources(engine, serviceId string) tea.Cmd {
 		}
 
 		// Connection pools are only supported by PostgreSQL
-		var pools []map[string]interface{}
+		var pools []map[string]any
 		if strings.EqualFold(engine, "postgresql") {
 			pools = fetchList("/connectionPool")
 		}
@@ -152,19 +151,19 @@ type dbPoolCreatedMsg struct {
 
 // dbLogsMsg is sent after fetching service log entries.
 type dbLogsMsg struct {
-	logs []map[string]interface{}
+	logs []map[string]any
 	err  error
 }
 
 // dbACLMsg is sent after fetching ACL entries for an analytics service.
 type dbACLMsg struct {
-	acl []map[string]interface{}
+	acl []map[string]any
 	err error
 }
 
 // dbTopicsMsg is sent after fetching Kafka topic list.
 type dbTopicsMsg struct {
-	topics []map[string]interface{}
+	topics []map[string]any
 	err    error
 }
 
@@ -182,9 +181,9 @@ func (m Model) fetchDBTopics() tea.Cmd {
 		if err := httpLib.Client.Get(base, &ids); err != nil {
 			return dbTopicsMsg{err: err}
 		}
-		var topics []map[string]interface{}
+		var topics []map[string]any
 		for _, id := range ids {
-			var entry map[string]interface{}
+			var entry map[string]any
 			if err := httpLib.Client.Get(base+"/"+url.PathEscape(id), &entry); err == nil {
 				topics = append(topics, entry)
 			}
@@ -208,12 +207,12 @@ func (m Model) createDBACL(username, topic, permission string) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/acl",
 			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
-		body := map[string]interface{}{
+		body := map[string]any{
 			"username":   username,
 			"topic":      topic,
 			"permission": permission,
 		}
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return dbACLCreatedMsg{err: err}
 		}
@@ -236,7 +235,7 @@ func (m Model) createDBTopic(name string, minInsyncReplicas, partitions, replica
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/topic",
 			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name":              name,
 			"minInsyncReplicas": minInsyncReplicas,
 			"partitions":        partitions,
@@ -244,7 +243,7 @@ func (m Model) createDBTopic(name string, minInsyncReplicas, partitions, replica
 			"retentionBytes":    retentionBytes,
 			"retentionHours":    retentionHours,
 		}
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return dbTopicCreatedMsg{err: err}
 		}
@@ -299,40 +298,40 @@ func (m Model) fetchDBMetricNames() tea.Cmd {
 
 // dbNodeNamesMsg carries the ordered list of node names for the current service.
 type dbNodeNamesMsg struct {
-        names []string
-        err   error
+	names []string
+	err   error
 }
 
 // fetchDBNodeNames fetches the node list and returns names sorted alphabetically.
 func (m Model) fetchDBNodeNames() tea.Cmd {
-        return func() tea.Msg {
-                engine := getStringValue(m.detailData, "engine", "")
-                serviceId := getStringValue(m.detailData, "id", "")
-                if engine == "" || serviceId == "" {
-                        return dbNodeNamesMsg{err: fmt.Errorf("missing engine or service ID")}
-                }
-                endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/node",
-                        m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
-                var ids []string
-                if err := httpLib.Client.Get(endpoint, &ids); err != nil {
-                        return dbNodeNamesMsg{err: err}
-                }
-                type nodeDetail struct {
-                        Name string `json:"name"`
-                }
-                var names []string
-                for _, id := range ids {
-                        var nd nodeDetail
-                        detailEp := fmt.Sprintf("%s/%s", endpoint, url.PathEscape(id))
-                        if err := httpLib.Client.Get(detailEp, &nd); err == nil && nd.Name != "" {
-                                names = append(names, nd.Name)
-                        } else {
-                                names = append(names, id)
-                        }
-                }
-                sort.Strings(names)
-                return dbNodeNamesMsg{names: names}
-        }
+	return func() tea.Msg {
+		engine := getStringValue(m.detailData, "engine", "")
+		serviceId := getStringValue(m.detailData, "id", "")
+		if engine == "" || serviceId == "" {
+			return dbNodeNamesMsg{err: fmt.Errorf("missing engine or service ID")}
+		}
+		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/node",
+			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
+		var ids []string
+		if err := httpLib.Client.Get(endpoint, &ids); err != nil {
+			return dbNodeNamesMsg{err: err}
+		}
+		type nodeDetail struct {
+			Name string `json:"name"`
+		}
+		var names []string
+		for _, id := range ids {
+			var nd nodeDetail
+			detailEp := fmt.Sprintf("%s/%s", endpoint, url.PathEscape(id))
+			if err := httpLib.Client.Get(detailEp, &nd); err == nil && nd.Name != "" {
+				names = append(names, nd.Name)
+			} else {
+				names = append(names, id)
+			}
+		}
+		sort.Strings(names)
+		return dbNodeNamesMsg{names: names}
+	}
 }
 
 // fetchDBMetric fetches metric data for the given metric name and period.
@@ -427,9 +426,9 @@ func (m Model) fetchDBACL() tea.Cmd {
 		if err := httpLib.Client.Get(base, &ids); err != nil {
 			return dbACLMsg{err: err}
 		}
-		var acl []map[string]interface{}
+		var acl []map[string]any
 		for _, id := range ids {
-			var entry map[string]interface{}
+			var entry map[string]any
 			if err := httpLib.Client.Get(base+"/"+url.PathEscape(id), &entry); err == nil {
 				acl = append(acl, entry)
 			}
@@ -447,7 +446,7 @@ func (m Model) fetchDBLogs() tea.Cmd {
 		if serviceId == "" {
 			return dbLogsMsg{err: fmt.Errorf("missing service ID")}
 		}
-		var logs []map[string]interface{}
+		var logs []map[string]any
 
 		// Try engine-specific endpoint first (works for postgresql, mysql, etc.)
 		if engine != "" {
@@ -488,8 +487,8 @@ func (m Model) createDBDatabase(name string) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/database",
 			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
-		body := map[string]interface{}{"name": name}
-		var result map[string]interface{}
+		body := map[string]any{"name": name}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return dbDatabaseCreatedMsg{name: name, err: err}
 		}
@@ -507,13 +506,13 @@ func (m Model) createDBPool(name, databaseId, mode string, size int) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/connectionPool",
 			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name":       name,
 			"databaseId": databaseId,
 			"mode":       mode,
 			"size":       size,
 		}
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return dbPoolCreatedMsg{name: name, err: err}
 		}
@@ -523,7 +522,7 @@ func (m Model) createDBPool(name, databaseId, mode string, size int) tea.Cmd {
 
 // dbUserCreatedMsg is sent after a DB user creation attempt.
 type dbUserCreatedMsg struct {
-	user map[string]interface{}
+	user map[string]any
 	err  error
 }
 
@@ -543,8 +542,8 @@ func (m Model) createDBUser(username string) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user",
 			m.cloudProject, url.PathEscape(engine), url.PathEscape(serviceId))
-		body := map[string]interface{}{"name": username}
-		var result map[string]interface{}
+		body := map[string]any{"name": username}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return dbUserCreatedMsg{err: err}
 		}
@@ -593,11 +592,11 @@ func (m Model) createManagedDBFromWizard() tea.Cmd {
 		if engine == "" {
 			return dbCreatedMsg{err: fmt.Errorf("no engine selected")}
 		}
-		body := map[string]interface{}{
+		body := map[string]any{
 			"description": m.wizard.dbName,
 			"version":     m.wizard.dbVersion,
 			"plan":        m.wizard.dbPlan,
-			"nodesPattern": map[string]interface{}{
+			"nodesPattern": map[string]any{
 				"flavor": m.wizard.dbFlavor,
 				"region": m.wizard.dbRegion,
 				"number": m.wizard.dbNodes,
@@ -607,12 +606,12 @@ func (m Model) createManagedDBFromWizard() tea.Cmd {
 			body["networkId"] = m.wizard.dbNetworkId
 		}
 		if m.wizard.dbDiskSize > 0 {
-			body["disk"] = map[string]interface{}{"size": m.wizard.dbDiskSize}
+			body["disk"] = map[string]any{"size": m.wizard.dbDiskSize}
 		}
 
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s",
 			m.cloudProject, url.PathEscape(engine))
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return dbCreatedMsg{err: fmt.Errorf("failed to create database: %w", err)}
 		}
@@ -628,11 +627,11 @@ func (m Model) createManagedDBFromWizard() tea.Cmd {
 
 // getAvailFlavor returns the flavor name from an availability item,
 // checking the deprecated top-level field first, then specifications.flavor (new format).
-func getAvailFlavor(a map[string]interface{}) string {
+func getAvailFlavor(a map[string]any) string {
 	if f := getStringValue(a, "flavor", ""); f != "" {
 		return f
 	}
-	if specs, ok := a["specifications"].(map[string]interface{}); ok {
+	if specs, ok := a["specifications"].(map[string]any); ok {
 		return getStringValue(specs, "flavor", "")
 	}
 	return ""
@@ -640,7 +639,7 @@ func getAvailFlavor(a map[string]interface{}) string {
 
 // toFloat64 converts a JSON value to float64, handling both float64 and json.Number
 // (go-ovh uses UseNumber() so all numbers come as json.Number).
-func toFloat64(v interface{}) (float64, bool) {
+func toFloat64(v any) (float64, bool) {
 	switch n := v.(type) {
 	case float64:
 		return n, true
@@ -660,7 +659,7 @@ func (m Model) dbFilteredVersions() []string {
 	engLower := strings.ToLower(m.wizard.dbEngine)
 	for _, e := range m.wizard.dbEngines {
 		if strings.ToLower(getStringValue(e, "name", "")) == engLower {
-			if versions, ok := e["versions"].([]interface{}); ok {
+			if versions, ok := e["versions"].([]any); ok {
 				var vs []string
 				for _, v := range versions {
 					if s, ok := v.(string); ok {
@@ -794,7 +793,7 @@ func (m Model) dbFilteredFlavors() []string {
 // dbActiveAvail returns the availability entry matching current engine+version+region+plan+flavor.
 // It tries progressively relaxed matches to handle analytics per-engine items
 // where some top-level deprecated fields may be absent or formatted differently.
-func (m Model) dbActiveAvail() map[string]interface{} {
+func (m Model) dbActiveAvail() map[string]any {
 	engLower := strings.ToLower(m.wizard.dbEngine)
 
 	// Pass 1: strict — all 5 fields
@@ -851,7 +850,7 @@ func (m Model) dbActiveAvail() map[string]interface{} {
 }
 
 // dbFlavorInfo returns the capabilities.flavor entry for the specified flavor name.
-func (m Model) dbFlavorInfo(flavorName string) map[string]interface{} {
+func (m Model) dbFlavorInfo(flavorName string) map[string]any {
 	for _, f := range m.wizard.dbFlavors {
 		if strings.EqualFold(getStringValue(f, "name", ""), flavorName) {
 			return f
@@ -879,8 +878,8 @@ func (m Model) dbNodesConstraints() (int, int) {
 	min := 0
 	max := 0
 	// Prefer specifications.nodes (new format) over deprecated top-level fields
-	if specs, ok := avail["specifications"].(map[string]interface{}); ok {
-		if nodes, ok := specs["nodes"].(map[string]interface{}); ok {
+	if specs, ok := avail["specifications"].(map[string]any); ok {
+		if nodes, ok := specs["nodes"].(map[string]any); ok {
 			if v, ok := toFloat64(nodes["minimum"]); ok && v > 0 {
 				min = int(v)
 			}
@@ -916,19 +915,19 @@ func (m Model) dbStorageConstraints() (int, int, int) {
 	min, max, step := 0, 0, 0
 	if avail != nil {
 		// Prefer specifications.storage (new format) over deprecated top-level fields
-		if specs, ok := avail["specifications"].(map[string]interface{}); ok {
-			if storage, ok := specs["storage"].(map[string]interface{}); ok {
-				if minS, ok := storage["minimum"].(map[string]interface{}); ok {
+		if specs, ok := avail["specifications"].(map[string]any); ok {
+			if storage, ok := specs["storage"].(map[string]any); ok {
+				if minS, ok := storage["minimum"].(map[string]any); ok {
 					if v, ok := toFloat64(minS["value"]); ok && v > 0 {
 						min = int(v)
 					}
 				}
-				if maxS, ok := storage["maximum"].(map[string]interface{}); ok {
+				if maxS, ok := storage["maximum"].(map[string]any); ok {
 					if v, ok := toFloat64(maxS["value"]); ok && v > 0 {
 						max = int(v)
 					}
 				}
-				if stepS, ok := storage["step"].(map[string]interface{}); ok {
+				if stepS, ok := storage["step"].(map[string]any); ok {
 					if v, ok := toFloat64(stepS["value"]); ok && v > 0 {
 						step = int(v)
 					}
@@ -1100,10 +1099,7 @@ func (m Model) renderDBWizardRegionStep(_ int) string {
 		if m.wizard.dbRegionIdx >= maxVisible {
 			startIdx = m.wizard.dbRegionIdx - maxVisible + 1
 		}
-		endIdx := startIdx + maxVisible
-		if endIdx > len(regions) {
-			endIdx = len(regions)
-		}
+		endIdx := min(startIdx+maxVisible, len(regions))
 		for i := startIdx; i < endIdx; i++ {
 			r := regions[i]
 			if i == m.wizard.dbRegionIdx {

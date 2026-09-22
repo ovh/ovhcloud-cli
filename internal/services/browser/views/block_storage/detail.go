@@ -27,16 +27,16 @@ var volumeActionLabels = []string{"Delete", "Rename", "Extend"}
 // DetailView displays block storage volume details with actions.
 type DetailView struct {
 	views.BaseView
-	volume         map[string]interface{}
+	volume         map[string]any
 	selectedAction int
 	confirmMode    bool
-	renameMode  bool
-	renameInput string
-	extendMode  bool
-	extendInput string
+	renameMode     bool
+	renameInput    string
+	extendMode     bool
+	extendInput    string
 }
 
-func NewDetailView(ctx *views.Context, volume map[string]interface{}) *DetailView {
+func NewDetailView(ctx *views.Context, volume map[string]any) *DetailView {
 	return &DetailView{
 		BaseView:       views.NewBaseView(ctx),
 		volume:         volume,
@@ -284,12 +284,12 @@ func (v *DetailView) HelpText() string {
 }
 
 type ExecuteVolumeActionMsg struct {
-	Volume map[string]interface{}
+	Volume map[string]any
 	Action int
 	Param  string
 }
 
-func getBootable(volume map[string]interface{}) string {
+func getBootable(volume map[string]any) string {
 	if b, ok := volume["bootable"].(bool); ok {
 		if b {
 			return "Yes"
@@ -299,9 +299,9 @@ func getBootable(volume map[string]interface{}) string {
 	return "-"
 }
 
-func getAttachedTo(volume map[string]interface{}) []string {
+func getAttachedTo(volume map[string]any) []string {
 	var result []string
-	if raw, ok := volume["attachedTo"].([]interface{}); ok {
+	if raw, ok := volume["attachedTo"].([]any); ok {
 		for _, item := range raw {
 			if id, ok := item.(string); ok {
 				result = append(result, id)

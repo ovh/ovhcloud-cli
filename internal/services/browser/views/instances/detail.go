@@ -30,7 +30,7 @@ var actionLabels = []string{"Start", "Stop", "Soft Reboot", "Reboot", "SSH", "De
 // DetailView displays instance details with actions.
 type DetailView struct {
 	views.BaseView
-	instance       map[string]interface{}
+	instance       map[string]any
 	imageName      string
 	floatingIP     string
 	selectedAction int
@@ -38,7 +38,7 @@ type DetailView struct {
 }
 
 // NewDetailView creates a new instance detail view.
-func NewDetailView(ctx *views.Context, instance map[string]interface{}, imageName, floatingIP string) *DetailView {
+func NewDetailView(ctx *views.Context, instance map[string]any, imageName, floatingIP string) *DetailView {
 	return &DetailView{
 		BaseView:       views.NewBaseView(ctx),
 		instance:       instance,
@@ -69,9 +69,9 @@ func (v *DetailView) Render(width, height int) string {
 
 	// Get IP addresses
 	var publicIPs, privateIPs []string
-	if addresses, ok := v.instance["ipAddresses"].([]interface{}); ok {
+	if addresses, ok := v.instance["ipAddresses"].([]any); ok {
 		for _, addr := range addresses {
-			if addrMap, ok := addr.(map[string]interface{}); ok {
+			if addrMap, ok := addr.(map[string]any); ok {
 				ip := getString(addrMap, "ip")
 				version := getString(addrMap, "version")
 				ipType := getString(addrMap, "type")
@@ -201,7 +201,7 @@ func (v *DetailView) HelpText() string {
 }
 
 func (v *DetailView) getFlavorName() string {
-	if flavor, ok := v.instance["flavor"].(map[string]interface{}); ok {
+	if flavor, ok := v.instance["flavor"].(map[string]any); ok {
 		if name, ok := flavor["name"].(string); ok {
 			return name
 		}
@@ -211,6 +211,6 @@ func (v *DetailView) getFlavorName() string {
 
 // ExecuteInstanceActionMsg signals to execute an action on an instance.
 type ExecuteInstanceActionMsg struct {
-	Instance map[string]interface{}
+	Instance map[string]any
 	Action   int
 }

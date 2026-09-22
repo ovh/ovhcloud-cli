@@ -20,16 +20,16 @@ import (
 type TableView struct {
 	views.BaseView
 	table         table.Model
-	data          []map[string]interface{}
+	data          []map[string]any
 	imageMap      map[string]string // imageId -> imageName
 	floatingIPMap map[string]string // instanceId -> floatingIP
 	filterMode    bool
 	filterInput   string
-	filteredData  []map[string]interface{}
+	filteredData  []map[string]any
 }
 
 // NewTableView creates a new instance table view.
-func NewTableView(ctx *views.Context, data []map[string]interface{}, imageMap, floatingIPMap map[string]string) *TableView {
+func NewTableView(ctx *views.Context, data []map[string]any, imageMap, floatingIPMap map[string]string) *TableView {
 	v := &TableView{
 		BaseView:      views.NewBaseView(ctx),
 		data:          data,
@@ -81,10 +81,7 @@ func (v *TableView) createTable() table.Model {
 	}
 
 	ctx := v.Context()
-	height := ctx.Height - 15
-	if height < 5 {
-		height = 5
-	}
+	height := max(ctx.Height-15, 5)
 	if height > 20 {
 		height = 20
 	}
@@ -209,7 +206,7 @@ func (v *TableView) HelpText() string {
 }
 
 // GetSelectedInstance returns the currently selected instance.
-func (v *TableView) GetSelectedInstance() map[string]interface{} {
+func (v *TableView) GetSelectedInstance() map[string]any {
 	idx := v.table.Cursor()
 	if idx >= 0 && idx < len(v.filteredData) {
 		return v.filteredData[idx]
@@ -218,7 +215,7 @@ func (v *TableView) GetSelectedInstance() map[string]interface{} {
 }
 
 // UpdateData updates the table with new data.
-func (v *TableView) UpdateData(data []map[string]interface{}, imageMap, floatingIPMap map[string]string) {
+func (v *TableView) UpdateData(data []map[string]any, imageMap, floatingIPMap map[string]string) {
 	cursor := v.table.Cursor()
 	v.data = data
 	v.imageMap = imageMap
@@ -231,21 +228,21 @@ func (v *TableView) UpdateData(data []map[string]interface{}, imageMap, floating
 
 // ShowInstanceDetailMsg signals to show instance detail.
 type ShowInstanceDetailMsg struct {
-	Instance map[string]interface{}
+	Instance map[string]any
 }
 
 // Helper functions
-func getString(m map[string]interface{}, key string) string {
+func getString(m map[string]any, key string) string {
 	if v, ok := m[key].(string); ok {
 		return v
 	}
 	return ""
 }
 
-func getFirstIP(instance map[string]interface{}) string {
-	if addresses, ok := instance["ipAddresses"].([]interface{}); ok {
+func getFirstIP(instance map[string]any) string {
+	if addresses, ok := instance["ipAddresses"].([]any); ok {
 		for _, addr := range addresses {
-			if addrMap, ok := addr.(map[string]interface{}); ok {
+			if addrMap, ok := addr.(map[string]any); ok {
 				if ip, ok := addrMap["ip"].(string); ok {
 					return ip
 				}

@@ -167,7 +167,7 @@ func (m Model) renderLBPoolWizardConfirmStep(width int) string {
 	b.WriteString(labelStyle.Render("  Session:") + valStyle.Render(sessionLabel) + "\n\n")
 
 	if m.wizard.isLoading {
-		b.WriteString(loadingStyle.Render("⏳ "+m.wizard.loadingMessage))
+		b.WriteString(loadingStyle.Render("⏳ " + m.wizard.loadingMessage))
 		return b.String()
 	}
 	if m.wizard.errorMsg != "" {
@@ -347,7 +347,7 @@ func (m Model) createLBPool() tea.Cmd {
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool",
 			m.cloudProject, url.PathEscape(m.wizard.lbPoolLBRegion))
 
-		body := map[string]interface{}{
+		body := map[string]any{
 			"loadbalancerId": m.wizard.lbPoolLBId,
 			"name":           m.wizard.lbPoolName,
 			"algorithm":      m.wizard.lbPoolAlgo,
@@ -355,12 +355,12 @@ func (m Model) createLBPool() tea.Cmd {
 		}
 
 		if m.wizard.lbPoolSession != "" && m.wizard.lbPoolSession != "disabled" {
-			body["sessionPersistence"] = map[string]interface{}{
+			body["sessionPersistence"] = map[string]any{
 				"type": m.wizard.lbPoolSession,
 			}
 		}
 
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return lbPoolCreatedMsg{poolName: m.wizard.lbPoolName, err: fmt.Errorf("creation failed: %w", err)}
 		}

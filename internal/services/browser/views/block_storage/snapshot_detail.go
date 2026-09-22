@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	SnapshotActionDelete       = iota
+	SnapshotActionDelete = iota
 	SnapshotActionCreateVolume
 )
 
@@ -30,7 +30,7 @@ const (
 
 // ExecuteSnapshotActionMsg is dispatched when snapshot action is confirmed.
 type ExecuteSnapshotActionMsg struct {
-	Snapshot   map[string]interface{}
+	Snapshot   map[string]any
 	Action     int
 	VolumeName string
 	VolumeSize string // GB as string
@@ -39,7 +39,7 @@ type ExecuteSnapshotActionMsg struct {
 // SnapshotDetailView displays a volume snapshot with Delete and Create Volume actions.
 type SnapshotDetailView struct {
 	views.BaseView
-	snapshot       map[string]interface{}
+	snapshot       map[string]any
 	selectedAction int
 	confirmMode    bool
 	subMenu        int
@@ -47,7 +47,7 @@ type SnapshotDetailView struct {
 	sizeInput      string
 }
 
-func NewSnapshotDetailView(ctx *views.Context, snapshot map[string]interface{}) *SnapshotDetailView {
+func NewSnapshotDetailView(ctx *views.Context, snapshot map[string]any) *SnapshotDetailView {
 	return &SnapshotDetailView{
 		BaseView: views.NewBaseView(ctx),
 		snapshot: snapshot,

@@ -19,7 +19,7 @@ import (
 
 type volumeBackupCreatedMsg struct {
 	name       string
-	backupType string 
+	backupType string
 	err        error
 }
 
@@ -38,8 +38,8 @@ func (m Model) createVolumeSnapshot(volumeID, name string) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s/snapshot",
 			m.cloudProject, url.PathEscape(volumeID))
-		body := map[string]interface{}{"name": name}
-		var result map[string]interface{}
+		body := map[string]any{"name": name}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return volumeBackupCreatedMsg{name: name, backupType: "snapshot", err: fmt.Errorf("failed to create snapshot: %w", err)}
 		}
@@ -54,11 +54,11 @@ func (m Model) createVolumeBackup(volumeID, region, name string) tea.Cmd {
 		}
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup",
 			m.cloudProject, url.PathEscape(region))
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name":     name,
 			"volumeId": volumeID,
 		}
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return volumeBackupCreatedMsg{name: name, backupType: "backup", err: fmt.Errorf("failed to create backup: %w", err)}
 		}
@@ -75,7 +75,7 @@ func (m Model) fetchBackupVolumes() tea.Cmd {
 }
 
 type backupVolumesLoadedMsg struct {
-	volumes []map[string]interface{}
+	volumes []map[string]any
 	err     error
 }
 
@@ -97,7 +97,7 @@ func (m Model) executeSnapshotAction(msg block_storage.ExecuteSnapshotActionMsg)
 	return nil
 }
 
-func (m Model) deleteSnapshot(snapshot map[string]interface{}) tea.Cmd {
+func (m Model) deleteSnapshot(snapshot map[string]any) tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
 			return snapshotActionDoneMsg{action: block_storage.SnapshotActionDelete, err: fmt.Errorf("no cloud project selected")}
@@ -112,7 +112,7 @@ func (m Model) deleteSnapshot(snapshot map[string]interface{}) tea.Cmd {
 	}
 }
 
-func (m Model) createVolumeFromSnapshot(snapshot map[string]interface{}, volName, volSize string) tea.Cmd {
+func (m Model) createVolumeFromSnapshot(snapshot map[string]any, volName, volSize string) tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
 			return snapshotActionDoneMsg{action: block_storage.SnapshotActionCreateVolume, err: fmt.Errorf("no cloud project selected")}
@@ -127,7 +127,7 @@ func (m Model) createVolumeFromSnapshot(snapshot map[string]interface{}, volName
 		// Fetch source volume type so we use the correct type
 		volType := "classic"
 		if sourceVolumeID != "" && sourceVolumeID != "<nil>" {
-			var sourceVol map[string]interface{}
+			var sourceVol map[string]any
 			srcEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, url.PathEscape(sourceVolumeID))
 			if err := httpLib.Client.Get(srcEndpoint, &sourceVol); err == nil {
 				if t, ok := sourceVol["type"].(string); ok && t != "" {
@@ -135,14 +135,14 @@ func (m Model) createVolumeFromSnapshot(snapshot map[string]interface{}, volName
 				}
 			}
 		}
-		body := map[string]interface{}{
+		body := map[string]any{
 			"name":       volName,
 			"region":     region,
 			"size":       sizeInt,
 			"type":       volType,
 			"snapshotId": snapshotID,
 		}
-		var result map[string]interface{}
+		var result map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/volume", m.cloudProject)
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return snapshotActionDoneMsg{action: block_storage.SnapshotActionCreateVolume, err: err}
@@ -171,7 +171,7 @@ func (m Model) executeBackupAction(msg block_storage.ExecuteBackupActionMsg) tea
 	return nil
 }
 
-func (m Model) deleteBackup(backup map[string]interface{}) tea.Cmd {
+func (m Model) deleteBackup(backup map[string]any) tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
 			return backupActionDoneMsg{action: block_storage.BackupActionDelete, err: fmt.Errorf("no cloud project selected")}
@@ -188,7 +188,7 @@ func (m Model) deleteBackup(backup map[string]interface{}) tea.Cmd {
 	}
 }
 
-func (m Model) restoreBackup(backup map[string]interface{}, volumeID string) tea.Cmd {
+func (m Model) restoreBackup(backup map[string]any, volumeID string) tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
 			return backupActionDoneMsg{action: block_storage.BackupActionRestore, err: fmt.Errorf("no cloud project selected")}
@@ -197,8 +197,8 @@ func (m Model) restoreBackup(backup map[string]interface{}, volumeID string) tea
 		region := fmt.Sprintf("%v", backup["region"])
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup/%s/restore",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(id))
-		body := map[string]interface{}{"volumeId": volumeID}
-		var result map[string]interface{}
+		body := map[string]any{"volumeId": volumeID}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return backupActionDoneMsg{action: block_storage.BackupActionRestore, err: err}
 		}
@@ -207,7 +207,7 @@ func (m Model) restoreBackup(backup map[string]interface{}, volumeID string) tea
 	}
 }
 
-func (m Model) createVolumeFromBackup(backup map[string]interface{}, volName, volSize string) tea.Cmd {
+func (m Model) createVolumeFromBackup(backup map[string]any, volName, volSize string) tea.Cmd {
 	return func() tea.Msg {
 		if m.cloudProject == "" {
 			return backupActionDoneMsg{action: block_storage.BackupActionCreateVolume, err: fmt.Errorf("no cloud project selected")}
@@ -222,7 +222,7 @@ func (m Model) createVolumeFromBackup(backup map[string]interface{}, volName, vo
 		// Fetch source volume type to preserve it
 		volType := "classic"
 		if sourceVolumeID != "" && sourceVolumeID != "<nil>" {
-			var sourceVol map[string]interface{}
+			var sourceVol map[string]any
 			srcEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, url.PathEscape(sourceVolumeID))
 			if err := httpLib.Client.Get(srcEndpoint, &sourceVol); err == nil {
 				if t, ok := sourceVol["type"].(string); ok && t != "" {
@@ -231,13 +231,13 @@ func (m Model) createVolumeFromBackup(backup map[string]interface{}, volName, vo
 			}
 		}
 		// Step 1: create a new empty volume
-		volBody := map[string]interface{}{
+		volBody := map[string]any{
 			"name":   volName,
 			"region": region,
 			"size":   sizeInt,
 			"type":   volType,
 		}
-		var newVol map[string]interface{}
+		var newVol map[string]any
 		volEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume", m.cloudProject)
 		if err := httpLib.Client.Post(volEndpoint, volBody, &newVol); err != nil {
 			return backupActionDoneMsg{action: block_storage.BackupActionCreateVolume, err: fmt.Errorf("failed to create volume: %w", err)}
@@ -245,9 +245,9 @@ func (m Model) createVolumeFromBackup(backup map[string]interface{}, volName, vo
 		newVolID := fmt.Sprintf("%v", newVol["id"])
 		// Wait for the new volume to become available before restoring
 		volDetailEndpoint := fmt.Sprintf("/v1/cloud/project/%s/volume/%s", m.cloudProject, url.PathEscape(newVolID))
-		for i := 0; i < 60; i++ {
+		for range 60 {
 			time.Sleep(3 * time.Second)
-			var volStatus map[string]interface{}
+			var volStatus map[string]any
 			if err := httpLib.Client.Get(volDetailEndpoint, &volStatus); err == nil {
 				if status, _ := volStatus["status"].(string); status == "available" {
 					break
@@ -257,8 +257,8 @@ func (m Model) createVolumeFromBackup(backup map[string]interface{}, volName, vo
 		// Step 2: restore backup onto the new volume
 		restoreEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/volumeBackup/%s/restore",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(id))
-		restoreBody := map[string]interface{}{"volumeId": newVolID}
-		var restoreResult map[string]interface{}
+		restoreBody := map[string]any{"volumeId": newVolID}
+		var restoreResult map[string]any
 		if err := httpLib.Client.Post(restoreEndpoint, restoreBody, &restoreResult); err != nil {
 			return backupActionDoneMsg{action: block_storage.BackupActionCreateVolume, err: fmt.Errorf("volume created but restore failed: %w", err)}
 		}
@@ -274,7 +274,7 @@ func (m Model) fetchVolumesForRegion(region string) tea.Cmd {
 			return block_storage.BackupVolumesLoadedMsg{Volumes: nil}
 		}
 		// Filter to same region
-		var filtered []map[string]interface{}
+		var filtered []map[string]any
 		for _, v := range msg.data {
 			if fmt.Sprintf("%v", v["region"]) == region {
 				filtered = append(filtered, v)

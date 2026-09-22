@@ -39,11 +39,11 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 		// Build region list from selected region
 		region := m.wizard.selectedRegion
 
-		var network map[string]interface{}
+		var network map[string]any
 
 		if m.wizard.privNetIsLocalZone {
 			// Local zones use the regional network API (isolated, not vRack-based)
-			body := map[string]interface{}{
+			body := map[string]any{
 				"name": m.wizard.privNetName,
 			}
 			if m.wizard.privNetVlanID > 0 {
@@ -51,7 +51,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 			}
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network",
 				m.cloudProject, url.PathEscape(region))
-			var op map[string]interface{}
+			var op map[string]any
 			if err := httpLib.Client.Post(endpoint, body, &op); err != nil {
 				return privNetCreatedMsg{err: fmt.Errorf("failed to create network: %w", err)}
 			}
@@ -63,7 +63,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 			if netID == "" {
 				return privNetCreatedMsg{err: fmt.Errorf("network created but ID missing in response")}
 			}
-			network = map[string]interface{}{"id": netID, "name": m.wizard.privNetName}
+			network = map[string]any{"id": netID, "name": m.wizard.privNetName}
 
 			// Optionally create a subnet using the regional subnet API
 			if m.wizard.privNetEnableSubnet && m.wizard.privNetCIDR != "" {
@@ -73,7 +73,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 				if len(ipParts) == 4 {
 					gatewayIP = ipParts[0] + "." + ipParts[1] + "." + ipParts[2] + ".1"
 				}
-				subnetBody := map[string]interface{}{
+				subnetBody := map[string]any{
 					"name":            m.wizard.privNetName + "-subnet",
 					"cidr":            m.wizard.privNetCIDR,
 					"ipVersion":       4,
@@ -85,10 +85,10 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 				}
 				subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
 					m.cloudProject, url.PathEscape(region), url.PathEscape(netID))
-				var subnet map[string]interface{}
+				var subnet map[string]any
 				// Retry briefly to let the network activate
 				var subnetErr error
-				for i := 0; i < 10; i++ {
+				for range 10 {
 					subnetErr = httpLib.Client.Post(subnetEndpoint, subnetBody, &subnet)
 					if subnetErr == nil {
 						break
@@ -104,7 +104,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 			}
 		} else {
 			// Standard vRack regions use the legacy global private network API
-			body := map[string]interface{}{
+			body := map[string]any{
 				"name":    m.wizard.privNetName,
 				"regions": []string{region},
 			}
@@ -128,12 +128,12 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 					m.cloudProject, url.PathEscape(netID))
 				const maxAttempts = 15
 				regionActive := false
-				for i := 0; i < maxAttempts; i++ {
-					var netData map[string]interface{}
+				for range maxAttempts {
+					var netData map[string]any
 					if err := httpLib.Client.Get(networkEndpoint, &netData); err == nil {
-						if regions, ok := netData["regions"].([]interface{}); ok {
+						if regions, ok := netData["regions"].([]any); ok {
 							for _, r := range regions {
-								if rMap, ok := r.(map[string]interface{}); ok {
+								if rMap, ok := r.(map[string]any); ok {
 									if rMap["region"] == region {
 										if rMap["status"] == "ACTIVE" {
 											regionActive = true
@@ -157,7 +157,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 
 				noGateway := m.wizard.privNetGatewayMode == 1 // mode 1 = will attach OVH Gateway service
 
-				subnetBody := map[string]interface{}{
+				subnetBody := map[string]any{
 					"dhcp":      m.wizard.privNetEnableDHCP,
 					"network":   m.wizard.privNetCIDR,
 					"noGateway": noGateway,
@@ -165,7 +165,7 @@ func (m Model) createPrivateNetworkFromWizard() tea.Cmd {
 					"start":     m.wizard.privNetAllocStart,
 					"end":       m.wizard.privNetAllocEnd,
 				}
-				var subnet map[string]interface{}
+				var subnet map[string]any
 				subnetEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/subnet",
 					m.cloudProject, url.PathEscape(netID))
 				if err := httpLib.Client.Post(subnetEndpoint, subnetBody, &subnet); err != nil {
@@ -228,9 +228,9 @@ func (m Model) renderPrivNetWizardRegionStep(width int) string {
 		}
 		label := e.name
 		if i == m.wizard.privNetRegionIdx {
-			content.WriteString(selectedStyle.Render("▶ " + label) + "\n")
+			content.WriteString(selectedStyle.Render("▶ "+label) + "\n")
 		} else {
-			content.WriteString(dimStyle.Render("  " + label) + "\n")
+			content.WriteString(dimStyle.Render("  "+label) + "\n")
 		}
 	}
 
@@ -869,13 +869,13 @@ func (m Model) createSubnetForNetwork() tea.Cmd {
 
 		// Check if region is already activated on the network; if not, activate it first
 		networkEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s", m.cloudProject, url.PathEscape(netID))
-		var netData map[string]interface{}
+		var netData map[string]any
 		regionActive := false
 		openstackID := ""
 		if err := httpLib.Client.Get(networkEndpoint, &netData); err == nil {
-			if regions, ok := netData["regions"].([]interface{}); ok {
+			if regions, ok := netData["regions"].([]any); ok {
 				for _, rv := range regions {
-					if rm, ok := rv.(map[string]interface{}); ok {
+					if rm, ok := rv.(map[string]any); ok {
 						if rm["region"] == region {
 							regionActive = true
 							openstackID, _ = rm["openstackId"].(string)
@@ -887,18 +887,18 @@ func (m Model) createSubnetForNetwork() tea.Cmd {
 		if !regionActive {
 			// Activate the region on the network first
 			activateEndpoint := fmt.Sprintf("/v1/cloud/project/%s/network/private/%s/region", m.cloudProject, url.PathEscape(netID))
-			var op map[string]interface{}
-			if err := httpLib.Client.Post(activateEndpoint, map[string]interface{}{"region": region}, &op); err != nil {
+			var op map[string]any
+			if err := httpLib.Client.Post(activateEndpoint, map[string]any{"region": region}, &op); err != nil {
 				return subnetAddedMsg{networkID: netID, err: fmt.Errorf("failed to activate region %s on network: %w", region, err)}
 			}
 			// Poll until ACTIVE and capture the openstackId
-			for i := 0; i < 20; i++ {
+			for range 20 {
 				time.Sleep(3 * time.Second)
-				var nd map[string]interface{}
+				var nd map[string]any
 				if err := httpLib.Client.Get(networkEndpoint, &nd); err == nil {
-					if regs, ok := nd["regions"].([]interface{}); ok {
+					if regs, ok := nd["regions"].([]any); ok {
 						for _, rv := range regs {
-							if rm, ok := rv.(map[string]interface{}); ok {
+							if rm, ok := rv.(map[string]any); ok {
 								if rm["region"] == region && rm["status"] == "ACTIVE" {
 									regionActive = true
 									openstackID, _ = rm["openstackId"].(string)
@@ -928,18 +928,18 @@ func (m Model) createSubnetForNetwork() tea.Cmd {
 
 		enableGateway := m.wizard.privNetGatewayMode != 1 // mode 1 = noGateway
 
-		subnetBody := map[string]interface{}{
+		subnetBody := map[string]any{
 			"cidr":            m.wizard.privNetCIDR,
 			"enableDhcp":      m.wizard.privNetEnableDHCP,
 			"enableGatewayIp": enableGateway,
 			"ipVersion":       ipVersion,
 			"name":            fmt.Sprintf("%s-%s", m.wizard.privNetName, region),
-			"allocationPools": []map[string]interface{}{
+			"allocationPools": []map[string]any{
 				{"start": m.wizard.privNetAllocStart, "end": m.wizard.privNetAllocEnd},
 			},
 		}
 
-		var subnet map[string]interface{}
+		var subnet map[string]any
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/network/%s/subnet",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(openstackID))
 		if err := httpLib.Client.Post(endpoint, subnetBody, &subnet); err != nil {

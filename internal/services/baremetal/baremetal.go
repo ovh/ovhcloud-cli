@@ -244,7 +244,7 @@ func waitForDedicatedServerTask(serviceName string, taskID any) error {
 		lastDescription = fmt.Sprintf("%v", taskID)
 	)
 
-	for retry := 0; retry < taskPollAttempts; retry++ {
+	for range taskPollAttempts {
 		var task map[string]any
 
 		if err := httpLib.Client.Get(endpoint, &task); err != nil {

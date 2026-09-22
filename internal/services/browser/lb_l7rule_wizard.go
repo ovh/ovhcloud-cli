@@ -410,7 +410,7 @@ func (m Model) createLBL7Rule() tea.Cmd {
 				break
 			}
 		}
-		body := map[string]interface{}{
+		body := map[string]any{
 			"ruleType":    m.wizard.l7RuleType,
 			"compareType": m.wizard.l7RuleCompare,
 			"value":       m.wizard.l7RuleValue,
@@ -427,7 +427,7 @@ func (m Model) createLBL7Rule() tea.Cmd {
 			// Edit mode: PUT
 			endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s/l7Rule/%s",
 				m.cloudProject, url.PathEscape(region), url.PathEscape(policyID), url.PathEscape(m.wizard.l7RuleEditId))
-			var result map[string]interface{}
+			var result map[string]any
 			if err := httpLib.Client.Put(endpoint, body, &result); err != nil {
 				return lbL7RuleCreatedMsg{policyID: policyID, err: fmt.Errorf("update failed: %w", err)}
 			}
@@ -437,7 +437,7 @@ func (m Model) createLBL7Rule() tea.Cmd {
 		// Create mode: POST
 		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s/l7Rule",
 			m.cloudProject, url.PathEscape(region), url.PathEscape(policyID))
-		var result map[string]interface{}
+		var result map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
 			return lbL7RuleCreatedMsg{policyID: policyID, err: fmt.Errorf("creation failed: %w", err)}
 		}
