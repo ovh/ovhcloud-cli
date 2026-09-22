@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/ovh/go-ovh/ovh"
 	"github.com/ovh/ovhcloud-cli/internal/config"
@@ -22,8 +23,70 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+// APIClient wraps a *ovh.Client to work around a go-ovh convenience (see
+// getTarget in ovh-go's ovh.go): a request path starting with "/v1/" (this
+// CLI never issues "/v2/" paths outside genuine cloud/IAM-style products) is
+// aliased to the endpoint's bare domain root instead of being appended under
+// its "/1.0" base. That aliasing only holds on the official ovh-eu/ovh-ca/
+// ovh-us gateways. Every other endpoint (Kimsufi, SoYouStart, or a custom
+// URL) only serves the API under "/1.0", so on those endpoints the "/v1/"
+// path must be rewritten before go-ovh builds and signs the request.
+type APIClient struct {
+	*ovh.Client
+	rewriteV1Paths bool
+}
+
+// NewAPIClient wraps an already-configured *ovh.Client.
+func NewAPIClient(raw *ovh.Client) *APIClient {
+	return &APIClient{Client: raw, rewriteV1Paths: !isOfficialEndpoint(raw.Endpoint())}
+}
+
+// isOfficialEndpoint returns true for the 3 endpoints where go-ovh's "/v1"
+// and "/v2" root-aliasing is known to be valid.
+func isOfficialEndpoint(endpoint string) bool {
+	switch endpoint {
+	case ovh.OvhEU, ovh.OvhCA, ovh.OvhUS:
+		return true
+	}
+	return false
+}
+
+// fixPath undoes go-ovh's "/v1" root-aliasing when it doesn't apply to the
+// active endpoint. Dropping the "/v1" segment lets the path append under the
+// endpoint's own "/1.0" base (the only prefix these endpoints actually
+// serve) instead of being routed to the bare domain root.
+func (c *APIClient) fixPath(path string) string {
+	if !c.rewriteV1Paths {
+		return path
+	}
+	if rest, ok := strings.CutPrefix(path, "/v1/"); ok {
+		return "/" + rest
+	}
+	return path
+}
+
+func (c *APIClient) Get(path string, resType interface{}) error {
+	return c.Client.Get(c.fixPath(path), resType)
+}
+
+func (c *APIClient) Post(path string, reqBody, resType interface{}) error {
+	return c.Client.Post(c.fixPath(path), reqBody, resType)
+}
+
+func (c *APIClient) Put(path string, reqBody, resType interface{}) error {
+	return c.Client.Put(c.fixPath(path), reqBody, resType)
+}
+
+func (c *APIClient) Delete(path string, resType interface{}) error {
+	return c.Client.Delete(c.fixPath(path), resType)
+}
+
+func (c *APIClient) NewRequest(method, path string, reqBody interface{}, needAuth bool) (*http.Request, error) {
+	return c.Client.NewRequest(method, c.fixPath(path), reqBody, needAuth)
+}
+
 // OVH API client
-var Client *ovh.Client
+var Client *APIClient
 
 func InitClient() {
 	InitClientWithProfile(nil, "")
@@ -32,15 +95,16 @@ func InitClient() {
 func InitClientWithProfile(cfg *ini.File, profileOverride string) {
 	var err error
 	var headers map[string]string
+	var rawClient *ovh.Client
 
 	// Init API client
 	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
 		// In WASM mode, we use an unauthenticated client
-		Client = &ovh.Client{
+		rawClient = &ovh.Client{
 			Client: &http.Client{},
 		}
-		Client.UserAgent = os.Getenv("OVH_USER_AGENT")
-		Client.SetEndpoint(os.Getenv("OVH_ENDPOINT"))
+		rawClient.UserAgent = os.Getenv("OVH_USER_AGENT")
+		rawClient.SetEndpoint(os.Getenv("OVH_ENDPOINT"))
 	} else {
 		profileName := config.GetActiveProfileName(cfg, profileOverride)
 		if profileName != "" && !config.IsDefaultProfile(profileName) {
@@ -48,30 +112,32 @@ func InitClientWithProfile(cfg *ini.File, profileOverride string) {
 			var endpoint, appKey, appSecret, consumerKey string
 			endpoint, appKey, appSecret, consumerKey, err = config.GetProfileCredentials(cfg, profileName)
 			if err == nil {
-				Client, err = ovh.NewClient(endpoint, appKey, appSecret, consumerKey)
+				rawClient, err = ovh.NewClient(endpoint, appKey, appSecret, consumerKey)
 				headers = config.GetProfileCustomHeaders(cfg, profileName)
 			}
 		} else {
 			// Legacy mode: let go-ovh read from env/config files
-			Client, err = ovh.NewDefaultClient()
+			rawClient, err = ovh.NewDefaultClient()
 			if err == nil && cfg != nil {
 				if endpoint, _ := config.GetConfigValue(cfg, "default", "endpoint"); endpoint != "" {
 					headers = config.GetCustomHeaders(cfg, endpoint)
 				}
 			}
 		}
-		if Client != nil {
-			Client.UserAgent = "ovh-cli/" + version.Version
+		if rawClient != nil {
+			rawClient.UserAgent = "ovh-cli/" + version.Version
 		}
 	}
 	if err != nil {
 		log.Printf(`OVHcloud API client not initialized, please run "ovhcloud login" to authenticate (%s)`, err)
-	} else if Client != nil {
+	} else if rawClient != nil {
 		// Chain transports: customHeaders (injects user-configured headers) → schemasVersion
 		// (adds X-Schemas-Version for /v2/ paths) → debug logging (logs request/response)
 		// → default transport (sends over the wire).
-		Client.Client.Transport = newCustomHeadersTransport(
+		rawClient.Client.Transport = newCustomHeadersTransport(
 			newSchemasVersionTransport(NewTransport("OVH", http.DefaultTransport)), headers)
+
+		Client = NewAPIClient(rawClient)
 	}
 }
 
