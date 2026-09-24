@@ -1,15 +1,19 @@
-## ovhcloud cloud storage file share delete
+## ovhcloud cloud storage file share snapshot edit
 
-Delete the given share
+Edit a snapshot of the given share
 
 ```
-ovhcloud cloud storage file share delete <share_id> [flags]
+ovhcloud cloud storage file share snapshot edit <share_id> <snapshot_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+      --description string   Snapshot description
+      --editor               Use a text editor to define parameters
+  -h, --help                 help for edit
+      --name string          Snapshot name
+      --wait                 Wait for the snapshot to be ready before exiting
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +38,5 @@ ovhcloud cloud storage file share delete <share_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share](ovhcloud_cloud_storage_file_share.md)	 - Manage file storage shares
+* [ovhcloud cloud storage file share snapshot](ovhcloud_cloud_storage_file_share_snapshot.md)	 - Manage share snapshots
 
