@@ -20,6 +20,22 @@ There are two ways to define the edition parameters:
 
 	ovhcloud cloud managed-database edit <service_id> --editor --description "My database cluster"
 
+Network update:
+
+  You can switch a database service between public and private networks without recreating it.
+
+  To switch from public to private network:
+
+	ovhcloud cloud managed-database edit <service_id> --network-id <private-network-uuid> --subnet-id <subnet-uuid>
+
+  To switch from private to public network:
+
+	ovhcloud cloud managed-database edit <service_id> --public-network
+
+  Note: --public-network is mutually exclusive with --network-id and --subnet-id.
+  Changing the network triggers a service rebuild. The service will be temporarily unavailable
+  during the transition.
+
 
 ```
 ovhcloud cloud managed-database edit <service_id> [flags]
@@ -38,7 +54,10 @@ ovhcloud cloud managed-database edit <service_id> [flags]
   -h, --help                      help for edit
       --ip-restrictions strings   IP blocks authorized to access the cluster (CIDR format)
       --maintenance-time string   Time on which maintenances can start every day
+      --network-id string         Private network ID
       --plan string               Plan of the cluster
+      --public-network            Switch the service to public network
+      --subnet-id string          Private subnet ID
       --version string            Version of the engine deployed on the cluster
 ```
 

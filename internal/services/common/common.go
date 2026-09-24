@@ -221,7 +221,7 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 	return createdResource, nil
 }
 
-func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte) error {
+func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte, extraFields ...map[string]any) error {
 	if cmd.Flags().NFlag() == 0 {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
 		return nil
@@ -280,6 +280,13 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 	)
 	if err != nil {
 		return fmt.Errorf("failed to extract writable properties: %w", err)
+	}
+
+	// Inject extra fields that bypass the OpenAPI filter
+	for _, extra := range extraFields {
+		for k, v := range extra {
+			editableBody[k] = v
+		}
 	}
 
 	// If editor not needed, update the resource directly

@@ -87,6 +87,9 @@ var (
 		Engine            string   `json:"-"`
 		CLIIPRestrictions []string `json:"-"`
 		CLINodesList      []string `json:"-"`
+		CLINetworkID    string `json:"-"`
+		CLISubnetID     string `json:"-"`
+		CLIPublicNetwork bool  `json:"-"`
 	}
 
 	ManagedDatabaseDatabaseSpec struct {
@@ -236,13 +239,29 @@ func EditManagedDatabase(cmd *cobra.Command, args []string) {
 		ManagedDatabaseSpec.IPRestrictions = append(ManagedDatabaseSpec.IPRestrictions, managedDatabaseIPRestriction{IP: restriction})
 	}
 
-	// Edit resource
+	// Build extra network fields that bypass the OpenAPI filter
+	var networkFields map[string]any
+	if ManagedDatabaseSpec.CLIPublicNetwork {
+		networkFields = map[string]any{
+			"networkId": nil,
+			"subnetId":  nil,
+		}
+	} else if ManagedDatabaseSpec.CLINetworkID != "" {
+		networkFields = map[string]any{
+			"networkId": ManagedDatabaseSpec.CLINetworkID,
+			"subnetId":  ManagedDatabaseSpec.CLISubnetID,
+		}
+	}
+
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]))
+
 	if err := common.EditResource(
 		cmd,
 		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}", url.PathEscape(databaseService["engine"].(string))),
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
+		endpoint,
 		ManagedDatabaseSpec,
 		assets.CloudOpenapiSchema,
+		networkFields,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
