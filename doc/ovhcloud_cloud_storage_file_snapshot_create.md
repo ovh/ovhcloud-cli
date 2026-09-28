@@ -1,17 +1,22 @@
-## ovhcloud cloud storage file share snapshot create
+## ovhcloud cloud storage file snapshot create
 
 Create a snapshot of the given share
 
 ```
-ovhcloud cloud storage file share snapshot create <share_id> [flags]
+ovhcloud cloud storage file snapshot create <share_id> [flags]
 ```
 
 ### Options
 
 ```
       --description string   Snapshot description
+      --editor               Use a text editor to define parameters
+      --from-file string     File containing parameters
   -h, --help                 help for create
+      --init-file string     Create a file with example parameters
       --name string          Snapshot name
+      --replace              Replace parameters file if it already exists
+      --wait                 Wait for the snapshot to be ready before exiting
 ```
 
 ### Options inherited from parent commands
@@ -32,10 +37,9 @@ ovhcloud cloud storage file share snapshot create <share_id> [flags]
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Region (skip region discovery if set)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share snapshot](ovhcloud_cloud_storage_file_share_snapshot.md)	 - Manage share snapshots
+* [ovhcloud cloud storage file snapshot](ovhcloud_cloud_storage_file_snapshot.md)	 - Manage share snapshots
 

@@ -1,4 +1,4 @@
-## ovhcloud cloud storage file share snapshot
+## ovhcloud cloud storage file snapshot
 
 Manage share snapshots
 
@@ -26,14 +26,14 @@ Manage share snapshots
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Region (skip region discovery if set)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share](ovhcloud_cloud_storage_file_share.md)	 - Manage file storage shares
-* [ovhcloud cloud storage file share snapshot create](ovhcloud_cloud_storage_file_share_snapshot_create.md)	 - Create a snapshot of the given share
-* [ovhcloud cloud storage file share snapshot delete](ovhcloud_cloud_storage_file_share_snapshot_delete.md)	 - Delete a snapshot from the given share
-* [ovhcloud cloud storage file share snapshot get](ovhcloud_cloud_storage_file_share_snapshot_get.md)	 - Get a specific snapshot for the given share
-* [ovhcloud cloud storage file share snapshot list](ovhcloud_cloud_storage_file_share_snapshot_list.md)	 - List snapshots for the given share
+* [ovhcloud cloud storage file](ovhcloud_cloud_storage_file.md)	 - Manage file storage shares in the given cloud project
+* [ovhcloud cloud storage file snapshot create](ovhcloud_cloud_storage_file_snapshot_create.md)	 - Create a snapshot of the given share
+* [ovhcloud cloud storage file snapshot delete](ovhcloud_cloud_storage_file_snapshot_delete.md)	 - Delete a share snapshot
+* [ovhcloud cloud storage file snapshot edit](ovhcloud_cloud_storage_file_snapshot_edit.md)	 - Edit a share snapshot
+* [ovhcloud cloud storage file snapshot get](ovhcloud_cloud_storage_file_snapshot_get.md)	 - Get a specific share snapshot
+* [ovhcloud cloud storage file snapshot list](ovhcloud_cloud_storage_file_snapshot_list.md)	 - List share snapshots
 

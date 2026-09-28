@@ -1,15 +1,15 @@
-## ovhcloud cloud storage file share snapshot delete
+## ovhcloud cloud storage file snapshot get
 
-Delete a snapshot from the given share
+Get a specific share snapshot
 
 ```
-ovhcloud cloud storage file share snapshot delete <share_id> <snapshot_id> [flags]
+ovhcloud cloud storage file snapshot get <snapshot_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -30,10 +30,9 @@ ovhcloud cloud storage file share snapshot delete <share_id> <snapshot_id> [flag
                                  --output 'name+","+type' (to extract and concatenate fields in a string)
                                  --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
       --profile string         Use a specific profile from the configuration file
-      --region string          Region (skip region discovery if set)
 ```
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share snapshot](ovhcloud_cloud_storage_file_share_snapshot.md)	 - Manage share snapshots
+* [ovhcloud cloud storage file snapshot](ovhcloud_cloud_storage_file_snapshot.md)	 - Manage share snapshots
 

@@ -1,9 +1,9 @@
-## ovhcloud cloud storage file share delete
+## ovhcloud cloud storage file snapshot delete
 
-Delete the given share
+Delete a share snapshot
 
 ```
-ovhcloud cloud storage file share delete <share_id> [flags]
+ovhcloud cloud storage file snapshot delete <snapshot_id> [flags]
 ```
 
 ### Options
@@ -34,5 +34,5 @@ ovhcloud cloud storage file share delete <share_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share](ovhcloud_cloud_storage_file_share.md)	 - Manage file storage shares
+* [ovhcloud cloud storage file snapshot](ovhcloud_cloud_storage_file_snapshot.md)	 - Manage share snapshots
 
