@@ -37,5 +37,4 @@ Manage file storage shares
 * [ovhcloud cloud storage file share edit](ovhcloud_cloud_storage_file_share_edit.md)	 - Edit the given share
 * [ovhcloud cloud storage file share get](ovhcloud_cloud_storage_file_share_get.md)	 - Get a specific share
 * [ovhcloud cloud storage file share list](ovhcloud_cloud_storage_file_share_list.md)	 - List shares
-* [ovhcloud cloud storage file share snapshot](ovhcloud_cloud_storage_file_share_snapshot.md)	 - Manage share snapshots
 

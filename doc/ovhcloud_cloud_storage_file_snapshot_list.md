@@ -1,9 +1,9 @@
-## ovhcloud cloud storage file share snapshot list
+## ovhcloud cloud storage file snapshot list
 
-List snapshots for the given share
+List share snapshots
 
 ```
-ovhcloud cloud storage file share snapshot list <share_id> [flags]
+ovhcloud cloud storage file snapshot list [flags]
 ```
 
 ### Options
@@ -17,6 +17,7 @@ ovhcloud cloud storage file share snapshot list <share_id> [flags]
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
   -h, --help                 help for list
+      --share-id string      Share ID to filter snapshots by
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +42,5 @@ ovhcloud cloud storage file share snapshot list <share_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share snapshot](ovhcloud_cloud_storage_file_share_snapshot.md)	 - Manage share snapshots
+* [ovhcloud cloud storage file snapshot](ovhcloud_cloud_storage_file_snapshot.md)	 - Manage share snapshots
 

@@ -1,15 +1,22 @@
-## ovhcloud cloud storage file share snapshot delete
+## ovhcloud cloud storage file snapshot create
 
-Delete a snapshot from the given share
+Create a snapshot of the given share
 
 ```
-ovhcloud cloud storage file share snapshot delete <share_id> <snapshot_id> [flags]
+ovhcloud cloud storage file snapshot create <share_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for delete
+      --description string   Snapshot description
+      --editor               Use a text editor to define parameters
+      --from-file string     File containing parameters
+  -h, --help                 help for create
+      --init-file string     Create a file with example parameters
+      --name string          Snapshot name
+      --replace              Replace parameters file if it already exists
+      --wait                 Wait for the snapshot to be ready before exiting
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +41,5 @@ ovhcloud cloud storage file share snapshot delete <share_id> <snapshot_id> [flag
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share snapshot](ovhcloud_cloud_storage_file_share_snapshot.md)	 - Manage share snapshots
+* [ovhcloud cloud storage file snapshot](ovhcloud_cloud_storage_file_snapshot.md)	 - Manage share snapshots
 

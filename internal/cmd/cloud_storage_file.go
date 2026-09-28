@@ -152,22 +152,23 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 		Use:   "snapshot",
 		Short: "Manage share snapshots",
 	}
-	shareCmd.AddCommand(snapshotCmd)
+	storageFileCmd.AddCommand(snapshotCmd)
 
 	snapshotListCmd := &cobra.Command{
-		Use:     "list <share_id>",
+		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List snapshots for the given share",
+		Short:   "List share snapshots",
 		Run:     cloud.ListShareSnapshots,
-		Args:    cobra.ExactArgs(1),
+		Args:    cobra.NoArgs,
 	}
+	snapshotListCmd.Flags().String("share-id", "", "Share ID to filter snapshots by")
 	snapshotCmd.AddCommand(withFilterFlag(snapshotListCmd))
 
 	snapshotCmd.AddCommand(&cobra.Command{
-		Use:   "get <share_id> <snapshot_id>",
-		Short: "Get a specific snapshot for the given share",
+		Use:   "get <snapshot_id>",
+		Short: "Get a specific share snapshot",
 		Run:   cloud.GetShareSnapshot,
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(1),
 	})
 
 	snapshotCreateCmd := &cobra.Command{
@@ -185,10 +186,10 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 	snapshotCmd.AddCommand(snapshotCreateCmd)
 
 	snapshotEditCmd := &cobra.Command{
-		Use:   "edit <share_id> <snapshot_id>",
-		Short: "Edit a snapshot of the given share",
+		Use:   "edit <snapshot_id>",
+		Short: "Edit a share snapshot",
 		Run:   cloud.EditShareSnapshot,
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(1),
 	}
 	snapshotEditCmd.Flags().StringVar(&cloud.ShareSnapshotEditSpec.TargetSpec.Description, "description", "", "Snapshot description")
 	snapshotEditCmd.Flags().StringVar(&cloud.ShareSnapshotEditSpec.TargetSpec.Name, "name", "", "Snapshot name")
@@ -197,10 +198,10 @@ func initCloudStorageFileCommand(cloudCmd *cobra.Command) {
 	snapshotCmd.AddCommand(snapshotEditCmd)
 
 	snapshotCmd.AddCommand(&cobra.Command{
-		Use:   "delete <share_id> <snapshot_id>",
-		Short: "Delete a snapshot from the given share",
+		Use:   "delete <snapshot_id>",
+		Short: "Delete a share snapshot",
 		Run:   cloud.DeleteShareSnapshot,
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(1),
 	})
 
 	cloudCmd.AddCommand(storageFileCmd)

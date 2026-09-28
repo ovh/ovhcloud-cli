@@ -1,15 +1,19 @@
-## ovhcloud cloud storage file share snapshot get
+## ovhcloud cloud storage file snapshot edit
 
-Get a specific snapshot for the given share
+Edit a share snapshot
 
 ```
-ovhcloud cloud storage file share snapshot get <share_id> <snapshot_id> [flags]
+ovhcloud cloud storage file snapshot edit <snapshot_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --description string   Snapshot description
+      --editor               Use a text editor to define parameters
+  -h, --help                 help for edit
+      --name string          Snapshot name
+      --wait                 Wait for the snapshot to be ready before exiting
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +38,5 @@ ovhcloud cloud storage file share snapshot get <share_id> <snapshot_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage file share snapshot](ovhcloud_cloud_storage_file_share_snapshot.md)	 - Manage share snapshots
+* [ovhcloud cloud storage file snapshot](ovhcloud_cloud_storage_file_snapshot.md)	 - Manage share snapshots
 

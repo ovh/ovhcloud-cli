@@ -33,4 +33,5 @@ Manage file storage shares in the given cloud project
 * [ovhcloud cloud storage](ovhcloud_cloud_storage.md)	 - Manage storage services in the given cloud project
 * [ovhcloud cloud storage file network](ovhcloud_cloud_storage_file_network.md)	 - Manage file storage share networks
 * [ovhcloud cloud storage file share](ovhcloud_cloud_storage_file_share.md)	 - Manage file storage shares
+* [ovhcloud cloud storage file snapshot](ovhcloud_cloud_storage_file_snapshot.md)	 - Manage share snapshots
 

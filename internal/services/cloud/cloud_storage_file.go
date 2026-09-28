@@ -362,58 +362,23 @@ func DeleteShareACL(_ *cobra.Command, args []string) {
 
 // Snapshot commands
 
-// shareSnapshotParentID returns the identifier of the share a snapshot was
-// taken from. The parent share is set at creation and never changes, so
-// targetSpec is authoritative and is also the only one available while the
-// snapshot is still being created.
-func shareSnapshotParentID(snapshot map[string]any) string {
-	for _, state := range []string{"targetSpec", "currentState"} {
-		stateValue, ok := snapshot[state].(map[string]any)
-		if !ok {
-			continue
-		}
-		share, ok := stateValue["share"].(map[string]any)
-		if !ok {
-			continue
-		}
-		if id, ok := share["id"].(string); ok && id != "" {
-			return id
-		}
-	}
-
-	return ""
-}
-
-// fetchShareSnapshot fetches a snapshot and checks that it really belongs to
-// the given share. Snapshot routes are project scoped in the v2 API, so
-// without this check any snapshot of the project would be reachable (and
-// deletable) through any share ID.
-func fetchShareSnapshot(projectID, shareID, snapshotID string) (map[string]any, error) {
-	var snapshot map[string]any
-	endpoint := fmt.Sprintf("%s/%s", shareSnapshotV2Endpoint(projectID), url.PathEscape(snapshotID))
-	if err := httpLib.Client.Get(endpoint, &snapshot); err != nil {
-		return nil, fmt.Errorf("failed to fetch share snapshot: %w", err)
-	}
-
-	switch parent := shareSnapshotParentID(snapshot); parent {
-	case shareID:
-		return snapshot, nil
-	case "":
-		return nil, fmt.Errorf("failed to determine the parent share of snapshot %s", snapshotID)
-	default:
-		return nil, fmt.Errorf("snapshot %s belongs to share %s, not to share %s", snapshotID, parent, shareID)
-	}
-}
-
-func ListShareSnapshots(_ *cobra.Command, args []string) {
+func ListShareSnapshots(cmd *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
+	shareID, err := cmd.Flags().GetString("share-id")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
 	filters := append([]string{}, flags.GenericFilters...)
-	filters = append(filters, fmt.Sprintf("targetSpec.share.id==%q", args[0]))
+	if shareID != "" {
+		filters = append(filters, fmt.Sprintf("targetSpec.share.id==%q", shareID))
+	}
 	common.ManageListRequestNoExpand(shareSnapshotV2Endpoint(projectID), shareSnapshotColumnsToDisplay, filters)
 }
 
@@ -424,13 +389,14 @@ func GetShareSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	snapshot, err := fetchShareSnapshot(projectID, args[0], args[1])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+	var snapshot map[string]any
+	endpoint := fmt.Sprintf("%s/%s", shareSnapshotV2Endpoint(projectID), url.PathEscape(args[0]))
+	if err := httpLib.Client.Get(endpoint, &snapshot); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch share snapshot: %s", err)
 		return
 	}
 
-	display.OutputObject(snapshot, args[1], shareSnapshotTemplate, &flags.OutputFormatConfig)
+	display.OutputObject(snapshot, args[0], shareSnapshotTemplate, &flags.OutputFormatConfig)
 }
 
 func CreateShareSnapshot(cmd *cobra.Command, args []string) {
@@ -479,12 +445,7 @@ func EditShareSnapshot(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if _, err := fetchShareSnapshot(projectID, args[0], args[1]); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("%s/%s", shareSnapshotV2Endpoint(projectID), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("%s/%s", shareSnapshotV2Endpoint(projectID), url.PathEscape(args[0]))
 	if err := common.EditResource(
 		cmd,
 		"/publicCloud/project/{projectId}/storage/file/snapshot/{snapshotId}",
@@ -506,7 +467,7 @@ func EditShareSnapshot(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Snapshot %s is now ready", args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Snapshot %s is now ready", args[0])
 }
 
 func DeleteShareSnapshot(_ *cobra.Command, args []string) {
@@ -516,16 +477,11 @@ func DeleteShareSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if _, err := fetchShareSnapshot(projectID, args[0], args[1]); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("%s/%s", shareSnapshotV2Endpoint(projectID), url.PathEscape(args[1]))
+	endpoint := fmt.Sprintf("%s/%s", shareSnapshotV2Endpoint(projectID), url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete share snapshot: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot %s of share %s is being deleted", args[1], args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot %s is being deleted", args[0])
 }
