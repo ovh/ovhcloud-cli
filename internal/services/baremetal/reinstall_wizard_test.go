@@ -24,7 +24,7 @@ func withMockedAPI(t *testing.T) {
 	origClient := httpLib.Client
 	client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", "consumer_key")
 	td.Require(t).CmpNoError(err)
-	httpLib.Client = client
+	httpLib.Client = httpLib.NewAPIClient(client)
 
 	t.Cleanup(func() {
 		httpLib.Client = origClient
