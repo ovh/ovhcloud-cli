@@ -362,6 +362,18 @@ func BaremetalGetIPMIAccess(_ *cobra.Command, args []string) {
 func BaremetalResetIPMISessions(_ *cobra.Command, args []string) {
 	path := fmt.Sprintf("/v1/dedicated/server/%s/features/ipmi/resetSessions", url.PathEscape(args[0]))
 
+	// Nothing is lost, but whoever is on the remote console of this server right
+	// now is cut off: disruptive, not destructive.
+	if !common.ConfirmAction(common.Disruptive, args[0], fmt.Sprintf(
+		"Resetting the IPMI sessions of %s disconnects anyone using its remote console right now.", args[0])) {
+		display.OutputError(&flags.OutputFormatConfig, "reset of the IPMI sessions of %s cancelled", args[0])
+		return
+	}
+
+	if common.ReportDryRun(common.Call{Method: "POST", Endpoint: path}) {
+		return
+	}
+
 	if err := httpLib.Client.Post(path, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to reset IPMI sessions for %s: %s", args[0], err)
 		return

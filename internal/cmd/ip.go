@@ -78,6 +78,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/ip"),
 		Run:               ip.IpDeleteReverse,
 	}
+	addConfirmationFlags(ipReverseDeleteCmd, "Print the call that would be made without making it")
 	ipReverseCmd.AddCommand(ipReverseDeleteCmd)
 
 	// Firewall commands
@@ -128,13 +129,15 @@ func init() {
 		Run:               ip.DisableFirewall,
 	})
 
-	ipFirewallCmd.AddCommand(&cobra.Command{
+	ipFirewallDeleteCmd := &cobra.Command{
 		Use:               "delete <ip_block> <ip>",
 		Short:             "Remove IP and all rules from firewall",
 		Args:              cobra.ExactArgs(2),
 		ValidArgsFunction: completion.ServiceList("/v1/ip"),
 		Run:               ip.DeleteFirewall,
-	})
+	}
+	addConfirmationFlags(ipFirewallDeleteCmd, "Print the call that would be made without making it")
+	ipFirewallCmd.AddCommand(ipFirewallDeleteCmd)
 
 	// Firewall rule sub-commands
 	ipFirewallRuleCmd := &cobra.Command{
@@ -204,13 +207,15 @@ There are three ways to define the creation parameters:
 	markFlagsMutuallyExclusive(ipFirewallRuleCreateCmd, "from-file", "editor")
 	ipFirewallRuleCmd.AddCommand(ipFirewallRuleCreateCmd)
 
-	ipFirewallRuleCmd.AddCommand(&cobra.Command{
+	ipFirewallRuleDeleteCmd := &cobra.Command{
 		Use:               "delete <ip_block> <ip> <sequence>",
 		Short:             "Delete a firewall rule",
 		Args:              cobra.ExactArgs(3),
 		ValidArgsFunction: completion.ServiceList("/v1/ip"),
 		Run:               ip.DeleteFirewallRule,
-	})
+	}
+	addConfirmationFlags(ipFirewallRuleDeleteCmd, "Print the call that would be made without making it")
+	ipFirewallRuleCmd.AddCommand(ipFirewallRuleDeleteCmd)
 
 	rootCmd.AddCommand(ipCmd)
 }

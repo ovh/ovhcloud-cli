@@ -15,7 +15,7 @@ func (ms *MockSuite) TestBaremetalIPMIResetSessionsCmd(assert, require *td.T) {
 		httpmock.NewStringResponder(200, `{}`),
 	)
 
-	out, err := cmd.Execute("baremetal", "ipmi", "reset-sessions", "fakeBaremetal")
+	out, err := cmd.Execute("baremetal", "ipmi", "reset-sessions", "fakeBaremetal", "--yes")
 
 	require.CmpNoError(err)
 	assert.Contains(out, "IPMI sessions reset")
