@@ -324,13 +324,15 @@ be sent without sending them.
 	baremetalIPMIGetAccessCmd.Flags().StringVar(&baremetal.BaremetalIpmiSshKey, "ssh-key", "", "Public SSH key for Serial Over Lan SSH access")
 	baremetalIPMICmd.AddCommand(baremetalIPMIGetAccessCmd)
 
-	baremetalIPMICmd.AddCommand(&cobra.Command{
+	baremetalIPMIResetSessionsCmd := &cobra.Command{
 		Use:               "reset-sessions <service_name>",
 		Short:             "Reset IPMI sessions on a baremetal server",
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.BaremetalResetIPMISessions,
-	})
+	}
+	addConfirmationFlags(baremetalIPMIResetSessionsCmd, "Print the call that would be made without making it")
+	baremetalIPMICmd.AddCommand(baremetalIPMIResetSessionsCmd)
 
 	rootCmd.AddCommand(baremetalCmd)
 }

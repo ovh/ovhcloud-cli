@@ -9,7 +9,9 @@ ovhcloud iam user token delete <user_login> <token_name> [flags]
 ### Options
 
 ```
-  -h, --help   help for delete
+      --dry-run   Print the call that would be made without making it
+  -h, --help      help for delete
+  -y, --yes       Skip the confirmation prompt (required for unattended runs)
 ```
 
 ### Options inherited from parent commands
