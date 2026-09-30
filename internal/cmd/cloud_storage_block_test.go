@@ -289,3 +289,15 @@ func (ms *MockSuite) TestCloudStorageBlockCreateKmsRequiresBothCmd(assert, requi
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("kms-service-key-id"))
 }
+
+func (ms *MockSuite) TestCloudStorageBlockCreateKmsRequiresEncryptedCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "storage", "block", "volume", "create", "GRA9",
+		"--cloud-project", "fakeProjectID",
+		"--name", "v1", "--size", "50", "--type", "CLASSIC",
+		"--kms-domain-id", "domain-uuid",
+		"--kms-service-key-id", "key-uuid")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), "--kms-domain-id and --kms-service-key-id require --encrypted")
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
