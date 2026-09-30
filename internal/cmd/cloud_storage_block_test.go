@@ -200,3 +200,92 @@ func (ms *MockSuite) TestCloudStorageBlockBackupListCmd(assert, require *td.T) {
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("backup-1"))
 }
+
+func (ms *MockSuite) TestCloudStorageBlockCreatePlainCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/storage/block/volume",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"name": "v1",
+					"size": 50,
+					"volumeType": "CLASSIC",
+					"location": {"region": "GRA9"}
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, `{"id":"vol-plain"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "create", "GRA9",
+		"--cloud-project", "fakeProjectID",
+		"--name", "v1", "--size", "50", "--type", "CLASSIC")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("vol-plain"))
+}
+
+func (ms *MockSuite) TestCloudStorageBlockCreateOMKCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/storage/block/volume",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"name": "v1",
+					"size": 50,
+					"volumeType": "CLASSIC",
+					"location": {"region": "GRA9"},
+					"encryption": {"enabled": true}
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, `{"id":"vol-omk"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "create", "GRA9",
+		"--cloud-project", "fakeProjectID",
+		"--name", "v1", "--size", "50", "--type", "CLASSIC",
+		"--encrypted")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("vol-omk"))
+}
+
+func (ms *MockSuite) TestCloudStorageBlockCreateCMKCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/storage/block/volume",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"name": "v1",
+					"size": 50,
+					"volumeType": "CLASSIC",
+					"location": {"region": "GRA9"},
+					"encryption": {
+						"enabled": true,
+						"kms": {"domainId": "domain-uuid", "serviceKeyId": "key-uuid"}
+					}
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, `{"id":"vol-cmk"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "create", "GRA9",
+		"--cloud-project", "fakeProjectID",
+		"--name", "v1", "--size", "50", "--type", "CLASSIC",
+		"--encrypted",
+		"--kms-domain-id", "domain-uuid",
+		"--kms-service-key-id", "key-uuid")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("vol-cmk"))
+}
+
+func (ms *MockSuite) TestCloudStorageBlockCreateKmsRequiresBothCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "storage", "block", "volume", "create", "GRA9",
+		"--cloud-project", "fakeProjectID",
+		"--name", "v1", "--size", "50", "--type", "CLASSIC",
+		"--encrypted",
+		"--kms-domain-id", "domain-uuid")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("kms-service-key-id"))
+}
