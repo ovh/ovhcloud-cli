@@ -66,9 +66,9 @@ func TestFetchObjectsParallel_IgnoredErrorLogging(t *testing.T) {
 		"ignored errors must be logged when debug is enabled")
 }
 
-// The index alignment of FetchObjectsParallel is a contract that seven call sites
-// in internal/services/browser depend on: they pair objects[i] with a name held
-// in a parallel slice, so a result compacted to drop failures would attach one
+// The index alignment of FetchObjectsParallel is a contract that call sites in
+// internal/services/browser depend on: they pair objects[i] with a name held in
+// a parallel slice, so a result compacted to drop failures would attach one
 // region's details to another region's name.
 //
 // The padding reads like a bug — a slice with nil holes in it — which is exactly
