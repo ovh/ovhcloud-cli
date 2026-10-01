@@ -6,6 +6,7 @@ package cmd_test
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
@@ -109,4 +110,50 @@ func (ms *MockSuite) TestIAMPolicyCreateCmd(assert, require *td.T) {
 	)
 	require.CmpNoError(err)
 	assert.String(out, `✅ IAM policy policy-1234 created successfully`)
+}
+
+// `--tag env=` est la tentative naturelle pour retirer un tag, et c est le
+// pire resultat possible : l API l accepte, stocke `{"env": ""}`, et le tag a
+// l air parti alors qu une politique ecrite sur sa CLE le trouve toujours.
+//
+// Ce que ce test tient, c est qu il n atteint pas l API du tout : le refus doit
+// tomber avant le GET que l edition fait pour fusionner.
+func (ms *MockSuite) TestIAMResourceEditRefusesAnEmptyTagValue(assert, require *td.T) {
+	urn := "urn:v1:eu:resource:dedicatedServer:ns1.example"
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/iam/resource/"+urn,
+		httpmock.NewStringResponder(200, `{"urn":"`+urn+`","tags":{"env":"prod"}}`),
+	)
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/v2/iam/resource/"+urn,
+		httpmock.NewStringResponder(200, `null`),
+	)
+
+	_, err := cmd.Execute("iam", "resource", "edit", urn, "--tag", "env=")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("iam resource tag remove"), "il dit par quoi remplacer")
+	assert.Cmp(httpmock.GetTotalCallCount(), 0, "et rien n atteint l API")
+}
+
+// Le controle negatif : une valeur non vide passe, sinon la garde interdirait
+// de poser un tag.
+func (ms *MockSuite) TestIAMResourceEditAcceptsARealTagValue(assert, require *td.T) {
+	urn := "urn:v1:eu:resource:dedicatedServer:ns1.example"
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/iam/resource/"+urn,
+		httpmock.NewStringResponder(200, `{"urn":"`+urn+`","tags":{"env":"prod"}}`),
+	)
+	httpmock.RegisterMatcherResponder("PUT", "https://eu.api.ovh.com/v2/iam/resource/"+urn,
+		tdhttpmock.JSONBody(td.JSONPointer("/tags/env", "staging")),
+		httpmock.NewStringResponder(200, `null`),
+	)
+
+	_, err := cmd.Execute("iam", "resource", "edit", urn, "--tag", "env=staging")
+
+	require.CmpNoError(err)
+	puts := 0
+	for endpoint, count := range httpmock.GetCallCountInfo() {
+		if strings.HasPrefix(endpoint, "PUT ") {
+			puts += count
+		}
+	}
+	assert.Cmp(puts, 1, "l edition va bien jusqu au bout")
 }
