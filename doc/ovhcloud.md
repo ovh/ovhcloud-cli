@@ -82,6 +82,7 @@ Below is the full list of primary sub‑commands available at the time of writin
 
 * [ovhcloud account](ovhcloud_account.md)	 - Manage your account
 * [ovhcloud alldom](ovhcloud_alldom.md)	 - Retrieve information and manage your AllDom services
+* [ovhcloud api](ovhcloud_api.md)	 - Call the OVHcloud API directly
 * [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
 * [ovhcloud cdn-dedicated](ovhcloud_cdn-dedicated.md)	 - Retrieve information and manage your dedicated CDN services
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
