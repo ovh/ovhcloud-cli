@@ -126,3 +126,32 @@ func TestLogoutRemovesTheKeyEvenWhenRevocationFails(t *testing.T) {
 		})
 	}
 }
+
+// The third unhappy path: no API client at all, so no revocation is even
+// attempted. The table above covers the other two — 401 and 403 take the same
+// invalid-credential branch, 500 the generic one. This one ran the same
+// OutputWarning, and so stopped the command before the key left the disk.
+func TestLogoutRemovesTheKeyWithoutAnAPIClient(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "ovh.conf")
+	td.Require(t).CmpNoError(os.WriteFile(path, []byte(
+		"[default]\nendpoint=ovh-eu\n\n[ovh-eu]\napplication_key=k\napplication_secret=s\nconsumer_key=SENTINEL\n"), 0o600))
+
+	cfg, err := ini.Load(path)
+	td.Require(t).CmpNoError(err)
+
+	savedClient, savedCfg, savedPath, savedYes := httpLib.Client, flags.CliConfig, flags.CliConfigPath, LogoutAssumeYes
+	httpLib.Client, flags.CliConfig, flags.CliConfigPath, LogoutAssumeYes = nil, cfg, path, true
+	t.Cleanup(func() {
+		httpLib.Client, flags.CliConfig, flags.CliConfigPath, LogoutAssumeYes = savedClient, savedCfg, savedPath, savedYes
+	})
+
+	stopped := runLogoutWithRealExit(t)
+
+	td.Cmp(t, stopped, false, "the command must not stop before removing the key")
+
+	after, err := os.ReadFile(path)
+	td.Require(t).CmpNoError(err)
+	td.Cmp(t, strings.Contains(string(after), "SENTINEL"), false,
+		"the credential is still on disk: %s", after)
+}
