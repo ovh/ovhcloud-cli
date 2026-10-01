@@ -293,7 +293,11 @@ func getOperationFromSpec(spec []byte, path, method string) (*openapi3.Operation
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to load spec: %w", err)
 	}
-	if err = doc.Validate(context.Background()); err != nil {
+	// OVHcloud schemas are OpenAPI 3.0 and put a description next to a $ref,
+	// which 3.0 forbids. kin-openapi refuses it on operations from v0.149 on,
+	// and every enum read through here would then fail. These are the sibling
+	// fields main's request-body loader allows for the same reason.
+	if err = doc.Validate(context.Background(), openapi3.AllowExtraSiblingFields("description", "nullable", "readOnly")); err != nil {
 		return nil, nil, fmt.Errorf("failed to validate spec: %w", err)
 	}
 
