@@ -1,0 +1,18 @@
+🧾 Order {{index .Result "orderId"}}
+=======
+
+| | |
+| --- | --- |
+| Placed | {{index .Result "date"}} |
+| Status | {{index .Result "status"}} |
+| Price | {{index .Result "priceWithoutTax"}} excl. tax — {{index .Result "priceWithTax"}} incl. tax |
+| Retraction period | {{index .Result "retraction"}} |
+| Expires | {{index .Result "expiration"}} |
+
+## Order form
+
+```
+{{index .Result "url"}}
+```
+
+⚠️  This link carries the order's access token: whoever holds it can read the order.
