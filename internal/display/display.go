@@ -44,11 +44,15 @@ func renderCustomFormat(value any, format string) error {
 		return fmt.Errorf("invalid format given: %w", err)
 	}
 
-	switch reflect.TypeOf(value).Kind() {
+	// reflect.ValueOf rather than a type assertion: the table commands hand
+	// over []map[string]any, but a value relayed from the API (api call) is
+	// decoded JSON, so an array arrives as []any, possibly of plain strings.
+	// The assertion panicked on it.
+	switch rv := reflect.ValueOf(value); rv.Kind() {
 	case reflect.Slice:
 		var output strings.Builder
-		for _, val := range value.([]map[string]any) {
-			out, err := ev(context.Background(), val)
+		for i := range rv.Len() {
+			out, err := ev(context.Background(), rv.Index(i).Interface())
 			if err != nil {
 				return fmt.Errorf("couldn't extract data according to given format: %w", err)
 			}

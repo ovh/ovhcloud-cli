@@ -148,3 +148,32 @@ func (ms *MockSuite) TestAPICallRefusesTwoWaysOfGivingTheBody(assert, require *t
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("editor"))
 }
+
+// A collection comes back as a JSON array, which decodes to []any. The custom
+// format renderer asserted []map[string]any — the shape the table commands
+// hand it — and panicked: `api call GET /dedicated/server/x/task -o taskId`
+// crashed the CLI instead of printing the identifiers.
+func (ms *MockSuite) TestAPICallCustomFormatOnAnArrayOfObjects(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server/fakeBaremetal/task",
+		httpmock.NewStringResponder(200, `[{"taskId": 1}, {"taskId": 2}]`),
+	)
+
+	out, err := cmd.Execute("api", "call", "GET", "/dedicated/server/fakeBaremetal/task", "-o", "taskId")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, "1\n2\n", "one line per element, as for the table commands")
+}
+
+// Most listing endpoints return bare identifiers. A field selector has nothing
+// to select in a string: that is the user's mistake, and it must be reported as
+// one, not as a crash.
+func (ms *MockSuite) TestAPICallCustomFormatOnAnArrayOfStringsIsAnError(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/dedicated/server",
+		httpmock.NewStringResponder(200, `["ns3168421.ip-51-77-12.eu"]`),
+	)
+
+	_, err := cmd.Execute("api", "call", "GET", "/dedicated/server", "-o", "id")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("couldn't extract data according to given format"))
+}
