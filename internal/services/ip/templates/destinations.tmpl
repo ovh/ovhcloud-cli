@@ -1,0 +1,9 @@
+🎯 {{.ServiceName}} can be moved to
+=======
+
+**{{index .Result "summary"}}**
+
+| Family | Service | Next hop |
+| --- | --- | --- |
+{{range index .Result "destinations"}}| {{index . "family"}} | {{index . "service"}} | {{index . "nexthop"}} |
+{{end}}
