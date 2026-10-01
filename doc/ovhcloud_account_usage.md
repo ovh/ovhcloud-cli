@@ -1,11 +1,30 @@
-## ovhcloud account
+## ovhcloud account usage
 
-Manage your account
+Show what is running against your next invoice
+
+### Synopsis
+
+Show what is running against your next invoice.
+
+Dedicated servers do not appear here: they are billed at a flat rate, not
+per usage. What a machine costs is answered by: ovhcloud baremetal cost <server>
+
+```
+ovhcloud account usage [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for account
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+      --forecast             Show the forecast for the period instead of the usage so far
+  -h, --help                 help for usage
 ```
 
 ### Options inherited from parent commands
@@ -29,11 +48,5 @@ Manage your account
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud account api](ovhcloud_account_api.md)	 - Manage your API credentials
-* [ovhcloud account bill](ovhcloud_account_bill.md)	 - Read your invoices
-* [ovhcloud account get](ovhcloud_account_get.md)	 - Retrieve basic personal information
-* [ovhcloud account refund](ovhcloud_account_refund.md)	 - Read your refunds
-* [ovhcloud account ssh-key](ovhcloud_account_ssh-key.md)	 - Manage your SSH keys
-* [ovhcloud account usage](ovhcloud_account_usage.md)	 - Show what is running against your next invoice
+* [ovhcloud account](ovhcloud_account.md)	 - Manage your account
 

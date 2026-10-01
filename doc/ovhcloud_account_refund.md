@@ -1,11 +1,11 @@
-## ovhcloud account
+## ovhcloud account refund
 
-Manage your account
+Read your refunds
 
 ### Options
 
 ```
-  -h, --help   help for account
+  -h, --help   help for refund
 ```
 
 ### Options inherited from parent commands
@@ -29,11 +29,7 @@ Manage your account
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud account api](ovhcloud_account_api.md)	 - Manage your API credentials
-* [ovhcloud account bill](ovhcloud_account_bill.md)	 - Read your invoices
-* [ovhcloud account get](ovhcloud_account_get.md)	 - Retrieve basic personal information
-* [ovhcloud account refund](ovhcloud_account_refund.md)	 - Read your refunds
-* [ovhcloud account ssh-key](ovhcloud_account_ssh-key.md)	 - Manage your SSH keys
-* [ovhcloud account usage](ovhcloud_account_usage.md)	 - Show what is running against your next invoice
+* [ovhcloud account](ovhcloud_account.md)	 - Manage your account
+* [ovhcloud account refund get](ovhcloud_account_refund_get.md)	 - Get one refund
+* [ovhcloud account refund list](ovhcloud_account_refund_list.md)	 - List your refunds
 
