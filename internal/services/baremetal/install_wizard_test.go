@@ -52,7 +52,7 @@ func withWizardAPI(t *testing.T, answers ...string) (*asked, *bytes.Buffer) {
 	operator := &asked{answers: answers}
 	var logs bytes.Buffer
 
-	origClient, origPicker, origFlags := httpLib.Client, choicePicker, log.Flags()
+	origClient, origPicker, origFlags, origOutput := httpLib.Client, choicePicker, log.Flags(), log.Writer()
 	origInteractive := interactive
 	httpLib.Client = client
 	choicePicker = operator.pick
@@ -65,7 +65,7 @@ func withWizardAPI(t *testing.T, answers ...string) (*asked, *bytes.Buffer) {
 		httpLib.Client = origClient
 		choicePicker = origPicker
 		interactive = origInteractive
-		log.SetOutput(nil)
+		log.SetOutput(origOutput)
 		log.SetFlags(origFlags)
 	})
 
