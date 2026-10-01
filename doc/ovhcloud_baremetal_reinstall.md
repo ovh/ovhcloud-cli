@@ -5,7 +5,7 @@ Reinstall the given baremetal
 ### Synopsis
 
 Use this command to reinstall the given dedicated server.
-There are four ways to define the installation parameters:
+There are five ways to define the installation parameters:
 
 1. Using only CLI flags:
 
@@ -33,7 +33,21 @@ There are four ways to define the installation parameters:
 
 	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --from-file ./install.json --hostname new-hostname
 
-3. Using your default text editor:
+3. Letting the CLI ask, when you do not know what the machine will take:
+
+	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --guided
+
+  It lists the templates this server can actually be installed with, then the
+  partitioning schemes that template allows, then says what the machine will
+  accept in a hardwareRaid block. Each list is fetched for the answer just
+  given, because the API makes them depend on each other. The usual
+  confirmation still applies, and --dry-run still prints the request instead of
+  sending it.
+
+  A guided run needs somebody at the keyboard: a piped or unattended run refuses
+  rather than waiting for an answer that cannot come.
+
+4. Using your default text editor:
 
 	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --editor
 
@@ -44,7 +58,7 @@ There are four ways to define the installation parameters:
 
 	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --editor --os debian12_64
 
-4. Using an interactive wizard:
+5. Using an interactive wizard:
 
 	ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --wizard
 
@@ -77,6 +91,7 @@ ovhcloud baremetal reinstall <service_name> [flags]
       --editor                                      Use a text editor to define parameters
       --efi-bootloader-path string                  Path of the EFI bootloader from the OS installed on the server
       --from-file string                            File containing parameters
+      --guided                                      Ask which OS and partitioning scheme to use, listing only what this server accepts
   -h, --help                                        help for reinstall
       --hostname string                             Custom hostname
       --http-headers stringToString                 Image HTTP headers (default [])
