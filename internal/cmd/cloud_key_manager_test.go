@@ -40,8 +40,7 @@ func (ms *MockSuite) TestCloudKeyManagerSecretListCmd(assert, require *td.T) {
 │    id    │   name    │ region │  type  │ resourceStatus │
 ├──────────┼───────────┼────────┼────────┼────────────────┤
 │ secret-1 │ my-secret │ GRA    │ OPAQUE │ READY          │
-└──────────┴───────────┴────────┴────────┴────────────────┘
-💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+└──────────┴───────────┴────────┴────────┴────────────────┘`[1:])
 }
 
 func (ms *MockSuite) TestCloudKeyManagerSecretGetCmd(assert, require *td.T) {

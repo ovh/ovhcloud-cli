@@ -82,8 +82,7 @@ func (ms *MockSuite) TestBaremetalListCompatibleOSCmd(assert, require *td.T) {
 │ alma9_64               │ AlmaLinux 9                        │ basic      │ linux  │ alma      │ 2032-06-01   │
 │ byoi_64                │ Bring Your Own Image               │ customer   │ custom │ byoi      │ 2999-12-31   │
 │ byolinux_64            │ Bring Your Own Linux               │ customer   │ custom │ byolinux  │ 2999-12-31   │
-└────────────────────────┴────────────────────────────────────┴────────────┴────────┴───────────┴──────────────┘
-💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+└────────────────────────┴────────────────────────────────────┴────────────┴────────┴───────────┴──────────────┘`[1:])
 }
 
 // -o name only needs the OS names: it must not trigger the extra
@@ -143,8 +142,7 @@ func (ms *MockSuite) TestBaremetalListOsCmd(assert, require *td.T) {
 │ byoi_64                │ Bring Your Own Image               │ customer   │ custom │ byoi      │ 2999-12-31   │
 │ byolinux_64            │ Bring Your Own Linux               │ customer   │ custom │ byolinux  │ 2999-12-31   │
 │ debian12_64            │ Debian 12 (Bookworm)               │ basic      │ linux  │ debian    │ 2028-07-04   │
-└────────────────────────┴────────────────────────────────────┴────────────┴────────┴───────────┴──────────────┘
-💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+└────────────────────────┴────────────────────────────────────┴────────────┴────────┴───────────┴──────────────┘`[1:])
 }
 
 // -o name only needs the OS names: it must use the cheap
