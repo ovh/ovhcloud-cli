@@ -497,6 +497,11 @@ func ResetBaremetalOLAAggregation(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ All interfaces reset to default configuration")
 }
 
+// reinstallWizard is runReinstallWizard behind a variable, so that a test can
+// stand in for the interactive wizard and check what the command does with
+// its answers.
+var reinstallWizard = runReinstallWizard
+
 func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	// No server ID given, print usage and exit
 	if len(args) == 0 {
@@ -506,7 +511,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	}
 
 	if ReinstallWizard {
-		body, launch, savedPath, err := runReinstallWizard(args[0])
+		body, launch, savedPath, err := reinstallWizard(args[0])
 		if err != nil {
 			display.OutputError(&flags.OutputFormatConfig, "OS reinstallation wizard failed: %s", err)
 			return
@@ -524,6 +529,17 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		}
 
 		endpoint := fmt.Sprintf("/v1/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
+
+		// The wizard posts its body itself, outside CreateResource, so it does
+		// not get CreateResource's --dry-run stop for free. Without this, the
+		// wizard's own "yes" was enough to wipe the server of an operator who
+		// had asked for a preview.
+		if flags.DryRun {
+			if err := common.OutputDryRun(endpoint, body); err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "OS reinstallation on server %s failed: %s", args[0], err)
+			}
+			return
+		}
 
 		var task map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &task); err != nil {
