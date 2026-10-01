@@ -41,7 +41,7 @@ func EditLdp(cmd *cobra.Command, args []string) {
 		cmd,
 		"/dbaas/logs/{serviceName}",
 		fmt.Sprintf("/v1/dbaas/logs/%s", url.PathEscape(args[0])),
-		LdpSpec,
+		&LdpSpec,
 		assets.LdpOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
