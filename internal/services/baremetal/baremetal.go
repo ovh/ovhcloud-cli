@@ -216,7 +216,7 @@ func RebootRescueBaremetal(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := waitForDedicatedServerTask(args[0], task["taskId"]); err != nil {
+	if err := waitForDedicatedServerTask(args[0], task["taskId"], nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for server to be rebooted: %s", err)
 		return
 	}
@@ -263,7 +263,15 @@ func taskFailureReason(task map[string]any) string {
 	return ""
 }
 
-func waitForDedicatedServerTask(serviceName string, taskID any) error {
+// waitForDedicatedServerTask follows a task until it ends.
+//
+// note, when given, is asked for one extra line on every poll. The task API
+// says whether the work is finished and nothing else, so a reinstall that
+// takes half an hour printed the same sentence sixty times; the caller that
+// has a second source of progress passes it here. It is decoration: a note
+// that cannot be produced is an empty string, never an error, because failing
+// to describe an installation must not fail the wait for it.
+func waitForDedicatedServerTask(serviceName string, taskID any, note func() string) error {
 	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/task/%s", url.PathEscape(serviceName), taskID)
 	followUp := fmt.Sprintf("follow it with: ovhcloud baremetal list-tasks %s", serviceName)
 
@@ -287,6 +295,14 @@ func waitForDedicatedServerTask(serviceName string, taskID any) error {
 			return nil
 
 		case "todo", "init", "doing":
+			if note != nil {
+				if progress := note(); progress != "" {
+					log.Printf("%s — %s", progress, describeTask(taskID, task))
+					time.Sleep(taskPollInterval)
+					continue
+				}
+			}
+
 			log.Printf("Still waiting for task %s to complete (status=%v)…",
 				describeTask(taskID, task), task["status"])
 			time.Sleep(taskPollInterval)
@@ -338,7 +354,7 @@ func BaremetalGetIPMIAccess(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := waitForDedicatedServerTask(args[0], task["taskId"]); err != nil {
+	if err := waitForDedicatedServerTask(args[0], task["taskId"], nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed waiting for task: %s", err)
 		return
 	}
@@ -641,12 +657,20 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 func finishReinstall(cmd *cobra.Command, serviceName string, task map[string]any) {
 	log.Printf("⚡️ OS reinstallation starting on server %s…", serviceName)
 
+	// The wait times itself from here. install/status reports an elapsedTime,
+	// but it answered -1935 seconds on the reinstall this was measured
+	// against, counting up correctly from an origin about half an hour ahead:
+	// its differences are true and its absolute value is not.
+	startedAt := time.Now()
+
 	if !flags.WaitForTask {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ OS reinstallation is starting on server %s…", serviceName)
 		return
 	}
 
-	if err := waitForDedicatedServerTask(serviceName, task["taskId"]); err != nil {
+	if err := waitForDedicatedServerTask(serviceName, task["taskId"], func() string {
+		return installProgressNote(serviceName, startedAt)
+	}); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for OS to be reinstalled on server %s: %s", serviceName, err)
 		return
 	}

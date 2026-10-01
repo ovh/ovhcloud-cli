@@ -35,6 +35,7 @@ Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal confirm-termination](ovhcloud_baremetal_confirm-termination.md)	 - Confirm the termination of the given baremetal
 * [ovhcloud baremetal edit](ovhcloud_baremetal_edit.md)	 - Update the given baremetal
 * [ovhcloud baremetal get](ovhcloud_baremetal_get.md)	 - Retrieve information of a specific baremetal
+* [ovhcloud baremetal install-status](ovhcloud_baremetal_install-status.md)	 - Show how far the running installation of this baremetal has got
 * [ovhcloud baremetal ipmi](ovhcloud_baremetal_ipmi.md)	 - Manage IPMI on your baremetal
 * [ovhcloud baremetal list](ovhcloud_baremetal_list.md)	 - List your Baremetal services
 * [ovhcloud baremetal list-compatible-os](ovhcloud_baremetal_list-compatible-os.md)	 - Retrieve OSes that can be installed on this baremetal
