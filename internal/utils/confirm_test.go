@@ -7,6 +7,7 @@
 package utils
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -18,12 +19,27 @@ import (
 func withInteractiveInput(t *testing.T, answer string, f func()) {
 	t.Helper()
 
-	origInput, origInteractive := confirmInput, confirmInteractive
+	withInteractiveIO(t, answer, f)
+}
+
+// withInteractiveIO does the same and hands back everything the guard printed,
+// so a test can read the question the way the operator does.
+func withInteractiveIO(t *testing.T, answer string, f func()) string {
+	t.Helper()
+
+	var printed bytes.Buffer
+
+	origInput, origOutput, origInteractive := confirmInput, confirmOutput, confirmInteractive
 	confirmInput = strings.NewReader(answer)
+	confirmOutput = &printed
 	confirmInteractive = func() bool { return true }
-	defer func() { confirmInput, confirmInteractive = origInput, origInteractive }()
+	defer func() {
+		confirmInput, confirmOutput, confirmInteractive = origInput, origOutput, origInteractive
+	}()
 
 	f()
+
+	return printed.String()
 }
 
 // The exact name is the guard between a typo and an erased disk, so the
@@ -108,4 +124,63 @@ func TestConfirmYesNo_RefusesWhenNotInteractive(t *testing.T) {
 	defer func() { confirmInteractive = origInteractive }()
 
 	td.Cmp(t, ConfirmYesNo("this reboots the server"), false)
+}
+
+// Ctrl-D after typing is still an answer. bufio reports end of file alongside
+// the text it did read, and treating that as a failure threw away an answer
+// the operator had plainly given, then declined without saying why.
+func TestConfirmYesNo_HonoursAnAnswerEndedByEOF(t *testing.T) {
+	var confirmed bool
+	withInteractiveInput(t, "y", func() {
+		confirmed = ConfirmYesNo("this reboots the server")
+	})
+
+	td.Cmp(t, confirmed, true)
+}
+
+func TestConfirmByName_HonoursAnAnswerEndedByEOF(t *testing.T) {
+	var confirmed bool
+	withInteractiveInput(t, "ns3168421.ip-51-77-12.eu", func() {
+		confirmed = ConfirmByName("ns3168421.ip-51-77-12.eu", "this wipes both disks")
+	})
+
+	td.Cmp(t, confirmed, true)
+}
+
+// Reaching the end of the stream with nothing typed is not a decline anybody
+// made, and the operator saw a prompt they could not answer. Say so.
+func TestConfirmYesNo_SaysSoWhenNothingCouldBeRead(t *testing.T) {
+	var confirmed bool
+	printed := withInteractiveIO(t, "", func() {
+		confirmed = ConfirmYesNo("this reboots the server")
+	})
+
+	td.Cmp(t, confirmed, false)
+	td.Cmp(t, strings.Contains(printed, "No answer could be read"), true,
+		"the operator has to be told, got %q", printed)
+}
+
+// The wording is the guard. It names the risk before the question, and it is
+// the one part a test could not reach while only the reader was injectable.
+func TestConfirmYesNo_AsksBeforeItReads(t *testing.T) {
+	printed := withInteractiveIO(t, "n\n", func() {
+		ConfirmYesNo("this reboots ns3168421.ip-51-77-12.eu")
+	})
+
+	td.Cmp(t, strings.Contains(printed, "this reboots ns3168421.ip-51-77-12.eu"), true,
+		"the warning has to reach the operator, got %q", printed)
+	td.Cmp(t, strings.Contains(printed, "[y/N]"), true,
+		"the default has to be visible, got %q", printed)
+	td.Cmp(t, strings.HasSuffix(printed, "› "), true,
+		"the prompt must not end with a newline, or the answer lands on the next line: %q", printed)
+}
+
+// ConfirmByName asks for the name itself, and shows which one.
+func TestConfirmByName_AsksForTheExactName(t *testing.T) {
+	printed := withInteractiveIO(t, "\n", func() {
+		ConfirmByName("ns3168421.ip-51-77-12.eu", "this wipes both disks")
+	})
+
+	td.Cmp(t, strings.Contains(printed, `Type "ns3168421.ip-51-77-12.eu" to confirm`), true,
+		"the operator has to be told what to type, got %q", printed)
 }
