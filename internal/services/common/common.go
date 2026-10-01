@@ -81,6 +81,14 @@ func RenderFilteredTable(rows []map[string]any, columnsToDisplay []string) {
 // filter has to run before the wrapping. Returning false means the failure has
 // already been reported.
 func FilteredRows(rows []map[string]any) ([]map[string]any, bool) {
+	// No filter, no change: FilterLines builds its result from a nil slice, so
+	// an empty list would come back nil and render as null rather than [].
+	// These commands did not filter before, and a run without --filter must
+	// print exactly what they printed then.
+	if len(flags.GenericFilters) == 0 {
+		return rows, true
+	}
+
 	filtered, err := filtersLib.FilterLines(rows, flags.GenericFilters)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
