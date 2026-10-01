@@ -1,11 +1,20 @@
-## ovhcloud vrack
+## ovhcloud baremetal vrack attach
 
-Retrieve information and manage your vRack services
+Attach the given baremetal to a vRack
+
+```
+ovhcloud baremetal vrack attach <service_name> <vrack> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for vrack
+      --dry-run            Print the call that would be made without making it
+  -h, --help               help for attach
+      --interface string   Interface to attach, when the server has several
+      --timeout duration   How long --wait waits (default 10m0s)
+      --wait               Wait until the vRack reports the change before exiting
+  -y, --yes                Skip the confirmation prompt (required for unattended runs)
 ```
 
 ### Options inherited from parent commands
@@ -29,10 +38,5 @@ Retrieve information and manage your vRack services
 
 ### SEE ALSO
 
-* [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
-* [ovhcloud vrack attach](ovhcloud_vrack_attach.md)	 - Attach a dedicated server to the given vRack
-* [ovhcloud vrack detach](ovhcloud_vrack_detach.md)	 - Detach a dedicated server from the given vRack
-* [ovhcloud vrack edit](ovhcloud_vrack_edit.md)	 - Edit the given vRack
-* [ovhcloud vrack get](ovhcloud_vrack_get.md)	 - Retrieve information of a specific vRack
-* [ovhcloud vrack list](ovhcloud_vrack_list.md)	 - List your vRackservices
+* [ovhcloud baremetal vrack](ovhcloud_baremetal_vrack.md)	 - Attach the given baremetal to a vRack, or detach it
 

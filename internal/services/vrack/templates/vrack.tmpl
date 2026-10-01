@@ -1,11 +1,29 @@
-🚀 vRack {{.ServiceName}}
+🚀 vRack {{.ServiceName}}{{if index .Result "name"}} — {{index .Result "name"}}{{end}}
 =======
-
-## General information
-
-**Name**:        {{index .Result "name"}}
-**Description**: {{index .Result "description"}}
-
+{{if index .Result "description"}}
+{{index .Result "description"}}
+{{end}}
+**{{index .Result "summary"}}**
+{{if index .Result "serversError"}}
+🟠 {{index .Result "serversError"}}
+{{end}}
+{{if index .Result "servers"}}
+## Dedicated servers
+{{if index .Result "anyServerNamed"}}
+| Name | Server | Interface |
+| --- | --- | --- |
+{{range index .Result "servers"}}| {{index . "name"}} | {{index . "server"}} | {{index . "interface"}} |
+{{end}}{{else}}
+| Server | Interface |
+| --- | --- |
+{{range index .Result "servers"}}| {{index . "server"}} | {{index . "interface"}} |
+{{end}}{{end}}
+{{end}}{{range index .Result "otherContents"}}
+## {{index . "label"}}
+{{range index . "ids"}}
+- {{.}}
+{{- end}}
+{{end}}
 ## IAM information
 
 **URN**: {{index .Result "iam" "urn"}}
