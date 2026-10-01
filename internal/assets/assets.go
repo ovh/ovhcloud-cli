@@ -23,6 +23,9 @@ var (
 	//go:embed api-schemas/baremetal.json
 	BaremetalOpenapiSchema []byte
 
+	//go:embed api-schemas/baremetal_v2.json
+	BaremetalV2OpenapiSchema []byte
+
 	//go:embed api-schemas/dedicatedceph.json
 	DedicatedcephOpenapiSchema []byte
 
