@@ -21,6 +21,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/openapi"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
 )
 
@@ -77,11 +78,11 @@ var (
 )
 
 func CompleteCatalogDatacenter(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return completeEnum(availabilityDatacenters)
+	return common.CompleteEnum(availabilityDatacenters)
 }
 
 func CompleteCatalogCountry(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return completeEnum(catalogCountries)
+	return common.CompleteEnum(catalogCountries)
 }
 
 func CompleteCatalogCommitment(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
@@ -364,7 +365,7 @@ func checkSubsidiary(value string) error {
 
 func checkEnumValues(name string, values []string, read func() ([]string, error)) error {
 	for _, value := range values {
-		if err := checkEnumFlag(name, value, read); err != nil {
+		if err := common.CheckEnumFlag(name, value, read); err != nil {
 			return err
 		}
 	}
@@ -456,7 +457,7 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 			PlanCode string `json:"planCode"`
 			// Le nom commercial, celui que porte la facture.
 			InvoiceName string `json:"invoiceName"`
-			Pricings []struct {
+			Pricings    []struct {
 				Mode         string   `json:"mode"`
 				Price        float64  `json:"price"`
 				Interval     int      `json:"interval"`
