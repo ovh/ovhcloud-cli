@@ -9,8 +9,10 @@ ovhcloud baremetal reboot-rescue <service_name> [flags]
 ### Options
 
 ```
-  -h, --help   help for reboot-rescue
-      --wait   Wait for reboot to be done before exiting
+      --dry-run   Print the call that would be made without making it
+  -h, --help      help for reboot-rescue
+      --wait      Wait for reboot to be done before exiting
+  -y, --yes       Skip the confirmation prompt (required for unattended runs)
 ```
 
 ### Options inherited from parent commands
