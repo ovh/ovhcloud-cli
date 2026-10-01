@@ -25,21 +25,16 @@ import (
 var schemaFiles embed.FS
 
 // knownInvalidSchemas are the specifications the API publishes in a state the
-// OpenAPI validator rejects. They are named here rather than skipped silently,
-// and the test below insists they still fail: the day one is fixed upstream,
-// this list goes red and asks to be shortened.
+// OpenAPI validator rejects, with the reason. They are named here rather than
+// skipped silently, and the test below insists they still fail: the day one is
+// fixed upstream, or the validator stops minding, this list goes red and asks
+// to be shortened.
 //
-// telephony.json: two POST operations, on
-// /telephony/{billingAccount}/easyHunting/{serviceName}/hunting/queue/{queueId}/agent
-// and its ovhPabx twin, declare billingAccount and serviceName as path
-// parameters and not queueId, which the specification requires. The validator
-// reports the first one it meets, so fixing one alone changes nothing. The
-// whole document is unusable as a result, and `ovhcloud telephony edit` fails
-// at the schema-filtering step for every account — see
-// internal/services/telephony. Reported upstream.
-var knownInvalidSchemas = map[string]string{
-	"telephony.json": "two POST .../hunting/queue/{queueId}/agent do not declare queueId",
-}
+// telephony.json was listed until kin-openapi v0.149: two POST operations on
+// .../hunting/queue/{queueId}/agent do not declare queueId as a path
+// parameter. The schema still does not, but the validator no longer reports
+// it, so nothing in the CLI trips on it any more.
+var knownInvalidSchemas = map[string]string{}
 
 // TestEmbeddedSchemasAreSchemas reads every embedded specification the way the
 // CLI reads it.
@@ -98,9 +93,11 @@ func TestEmbeddedSchemasAreSchemas(t *testing.T) {
 			}
 
 			// The validation internal/openapi runs before it can read anything
-			// out of a schema. One document fails it today, upstream, and that
-			// is recorded rather than hidden.
-			err = doc.Validate(context.Background())
+			// out of a schema, with the sibling fields it allows next to a $ref.
+			// Without them every OVHcloud schema fails, which says nothing
+			// about the schema. A document that fails it anyway is recorded in
+			// knownInvalidSchemas rather than hidden.
+			err = doc.Validate(context.Background(), openapi3.AllowExtraSiblingFields("description", "nullable", "readOnly"))
 			reason, known := knownInvalidSchemas[entry.Name()]
 
 			switch {
