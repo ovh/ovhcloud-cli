@@ -5,6 +5,8 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
@@ -181,10 +183,24 @@ func getVolumeCreateCmd() *cobra.Command {
 	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.TargetSpec.CreateFrom.SnapshotId, "snapshot-id", "", "Snapshot ID to create the volume from")
 	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.TargetSpec.VolumeType, "type", "", "Volume type (CLASSIC, HIGH_SPEED, HIGH_SPEED_GEN2)")
 
+	volumeCreateCmd.Flags().BoolVar(&cloud.VolumeSpec.TargetSpec.Encryption.Enabled, "encrypted", false, "Create the volume encrypted (auto-derives a LUKS volume type)")
+	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.TargetSpec.Encryption.Kms.DomainID, "kms-domain-id", "", "OKMS domain ID for a customer-managed key (requires --encrypted and --kms-service-key-id)")
+	volumeCreateCmd.Flags().StringVar(&cloud.VolumeSpec.TargetSpec.Encryption.Kms.ServiceKeyID, "kms-service-key-id", "", "OKMS service key ID for a customer-managed key (requires --encrypted and --kms-domain-id)")
+	volumeCreateCmd.MarkFlagsRequiredTogether("kms-domain-id", "kms-service-key-id")
+	volumeCreateCmd.PreRunE = rejectKmsFlagsWithoutEncrypted
+
 	addParameterFileFlags(volumeCreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/storage/block/volume", "post", cloud.VolumeCreateExample, nil)
 	addInteractiveEditorFlag(volumeCreateCmd)
 	volumeCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for volume creation to be done before exiting")
 	markFlagsMutuallyExclusive(volumeCreateCmd, "from-file", "editor")
 
 	return volumeCreateCmd
+}
+
+func rejectKmsFlagsWithoutEncrypted(cmd *cobra.Command, _ []string) error {
+	kmsFlagIsSet := cmd.Flags().Changed("kms-domain-id") || cmd.Flags().Changed("kms-service-key-id")
+	if kmsFlagIsSet && !cloud.VolumeSpec.TargetSpec.Encryption.Enabled {
+		return errors.New("--kms-domain-id and --kms-service-key-id require --encrypted")
+	}
+	return nil
 }
