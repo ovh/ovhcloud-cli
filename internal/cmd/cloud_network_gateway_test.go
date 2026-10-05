@@ -44,6 +44,37 @@ func (ms *MockSuite) TestCloudGatewayV2ListCmd(assert, require *td.T) {
 	]`))
 }
 
+func (ms *MockSuite) __PK_ENTROPY_7d6c25fcc380__(assert, require *td.T) {
+	httpmock.RegisterResponderWithQuery(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/gateway",
+		"region=GRA11",
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "gw-12345",
+				"resourceStatus": "READY",
+				"currentState": {
+					"name": "my-gateway",
+					"location": {"region": "GRA11"},
+					"status": "ACTIVE"
+				}
+			}
+		]`))
+
+	out, err := cmd.Execute("cloud", "network", "gateway", "list", "--cloud-project", "fakeProjectID", "--region", "GRA11", "-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[
+		{
+			"id": "gw-12345",
+			"resourceStatus": "READY",
+			"currentState": {
+				"name": "my-gateway",
+				"location": {"region": "GRA11"},
+				"status": "ACTIVE"
+			}
+		}
+	]`))
+}
+
 func (ms *MockSuite) TestCloudGatewayV2GetCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
 		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/gateway/gw-12345",

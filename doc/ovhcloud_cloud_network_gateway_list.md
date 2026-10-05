@@ -17,6 +17,7 @@ ovhcloud cloud network gateway list [flags]
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
   -h, --help                 help for list
+      --region string        Region to filter gateways (e.g., GRA11, BHS5)
 ```
 
 ### Options inherited from parent commands

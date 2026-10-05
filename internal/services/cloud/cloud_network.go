@@ -49,6 +49,8 @@ var (
 	// CloudNetworkRegionFilter is used to filter networks by region
 	CloudNetworkRegionFilter string
 
+	CloudGatewayRegionFilter string
+
 	//go:embed parameter-samples/private-network-create.json
 	PrivateNetworkCreationExample string
 
@@ -620,8 +622,13 @@ func ListGateways(_ *cobra.Command, _ []string) {
 		return
 	}
 
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/gateway", projectID)
+	if CloudGatewayRegionFilter != "" {
+		endpoint += "?region=" + url.QueryEscape(CloudGatewayRegionFilter)
+	}
+
 	common.ManageListRequestNoExpand(
-		fmt.Sprintf("/v2/publicCloud/project/%s/gateway", projectID),
+		endpoint,
 		cloudprojectGatewayColumnsToDisplay,
 		flags.GenericFilters,
 	)
