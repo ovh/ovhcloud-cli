@@ -1,22 +1,23 @@
 ## ovhcloud cloud storage object bucket edit
 
-Edit the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+Edit the given S3™* compatible bucket (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 
 ```
-ovhcloud cloud storage object bucket edit <container_name> [flags]
+ovhcloud cloud storage object bucket edit <bucket_id> [flags]
 ```
 
 ### Options
 
 ```
-      --editor                            Use a text editor to define parameters
-      --encryption-sse-algorithm string   Encryption SSE Algorithm (AES256, plaintext)
-  -h, --help                              help for edit
-      --object-lock-rule-mode string      Object lock mode (compliance, governance)
-      --object-lock-rule-period string    Object lock period (e.g., P3Y6M4DT12H30M5S)
-      --object-lock-status string         Object lock status (disabled, enabled)
-      --tag stringToString                Container tags as key=value pairs (default [])
-      --versioning-status string          Versioning status (disabled, enabled, suspended)
+      --editor                           Use a text editor to define parameters
+      --encryption-algorithm string      Server-side encryption algorithm (AES256, PLAINTEXT)
+  -h, --help                             help for edit
+      --object-lock-mode string          Object lock retention mode (COMPLIANCE, GOVERNANCE)
+      --object-lock-retention-days int   Number of days to retain objects
+      --owner-user-id string             Owner user ID of the bucket
+      --tag stringToString               Bucket tags as key=value pairs (default [])
+      --versioning-status string         Versioning status (DISABLED, ENABLED, SUSPENDED)
+      --wait                             Wait for the bucket to be ready before exiting
 ```
 
 ### Options inherited from parent commands

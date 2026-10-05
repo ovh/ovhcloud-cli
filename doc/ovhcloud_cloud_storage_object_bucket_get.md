@@ -1,9 +1,9 @@
 ## ovhcloud cloud storage object bucket get
 
-Get a specific S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+Get a specific S3™* compatible bucket (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 
 ```
-ovhcloud cloud storage object bucket get <container_name> [flags]
+ovhcloud cloud storage object bucket get <bucket_id> [flags]
 ```
 
 ### Options

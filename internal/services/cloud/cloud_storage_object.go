@@ -13,10 +13,10 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
-	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
@@ -24,7 +24,13 @@ import (
 )
 
 var (
-	cloudprojectStorageS3ColumnsToDisplay = []string{"name", "region", "createdAt"}
+	cloudprojectStorageS3ColumnsToDisplay = []string{
+		"id",
+		"targetSpec.name name",
+		"targetSpec.location.region region",
+		"resourceStatus status",
+		"createdAt",
+	}
 
 	//go:embed templates/cloud_storage_object.tmpl
 	cloudStorageS3Template string
@@ -79,40 +85,42 @@ var (
 		QuotaBytes int64 `json:"quotaBytes"`
 	}
 
-	StorageS3Spec struct {
-		Name       string `json:"name,omitempty"`
-		OwnerId    int    `json:"ownerId,omitempty"`
-		Encryption struct {
-			SSEAlgorithm string `json:"sseAlgorithm,omitempty"`
-		} `json:"encryption,omitzero"`
-		ObjectLock struct {
-			Rule struct {
-				Mode   string `json:"mode,omitempty"`
-				Period string `json:"period,omitempty"`
-			} `json:"rule,omitzero"`
-			Status string `json:"status,omitempty"`
-		} `json:"objectLock,omitzero"`
-		Replication struct {
-			Rules []struct {
-				DeleteMarkerReplication string `json:"deleteMarkerReplication,omitempty"`
-				Destination             struct {
-					Name         string `json:"name,omitempty"`
-					Region       string `json:"region,omitempty"`
-					StorageClass string `json:"storageClass,omitempty"`
-				} `json:"destination,omitzero"`
-				Filter struct {
-					Prefix string            `json:"prefix,omitempty"`
-					Tags   map[string]string `json:"tags,omitempty"`
-				} `json:"filter,omitzero"`
-				ID       string `json:"id,omitempty"`
-				Priority int    `json:"priority,omitempty"`
-				Status   string `json:"status,omitempty"`
-			} `json:"rules,omitempty"`
-		} `json:"replication,omitzero"`
-		Tags       map[string]string `json:"tags,omitempty"`
-		Versioning struct {
-			Status string `json:"status,omitempty"`
-		} `json:"versioning,omitzero"`
+	BucketSpec struct {
+		TargetSpec struct {
+			Name     string `json:"name,omitempty"`
+			Location struct {
+				Region string `json:"region,omitempty"`
+			} `json:"location,omitzero"`
+			Encryption struct {
+				Algorithm string `json:"algorithm,omitempty"`
+			} `json:"encryption,omitzero"`
+			ObjectLock struct {
+				Mode          string `json:"mode,omitempty"`
+				RetentionDays int    `json:"retentionDays,omitempty"`
+			} `json:"objectLock,omitzero"`
+			OwnerUserId string            `json:"ownerUserId,omitempty"`
+			Tags        map[string]string `json:"tags,omitempty"`
+			Versioning  struct {
+				Status string `json:"status,omitempty"`
+			} `json:"versioning,omitzero"`
+		} `json:"targetSpec"`
+	}
+
+	BucketEditSpec struct {
+		TargetSpec struct {
+			Encryption struct {
+				Algorithm string `json:"algorithm,omitempty"`
+			} `json:"encryption,omitzero"`
+			ObjectLock struct {
+				Mode          string `json:"mode,omitempty"`
+				RetentionDays int    `json:"retentionDays,omitempty"`
+			} `json:"objectLock,omitzero"`
+			OwnerUserId string            `json:"ownerUserId,omitempty"`
+			Tags        map[string]string `json:"tags,omitempty"`
+			Versioning  struct {
+				Status string `json:"status,omitempty"`
+			} `json:"versioning,omitzero"`
+		} `json:"targetSpec,omitzero"`
 	}
 
 	StorageS3ObjectsToDelete  []string
@@ -165,6 +173,10 @@ func locateStorageS3Container(projectID, containerName string) (string, map[stri
 	return "", nil, fmt.Errorf("no storage container found with name %s", containerName)
 }
 
+func bucketV2Endpoint(projectID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/storage/object/bucket", projectID)
+}
+
 func ListCloudStorageS3(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -172,35 +184,7 @@ func ListCloudStorageS3(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	// Fetch regions with storage feature available
-	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "storage-s3-high-perf", "storage-s3-standard")
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch regions with storage feature available: %s", err)
-		return
-	}
-
-	// Fetch containers in all regions
-	url := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
-	containers, err := httpLib.FetchObjectsParallel[[]map[string]any](url+"/%s/storage", regions, true)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch storage containers: %s", err)
-		return
-	}
-
-	// Flatten containers in a single array
-	var allContainers []map[string]any
-	for _, regionContainers := range containers {
-		allContainers = append(allContainers, regionContainers...)
-	}
-
-	// Filter results
-	allContainers, err = filtersLib.FilterLines(allContainers, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(allContainers, cloudprojectStorageS3ColumnsToDisplay, &flags.OutputFormatConfig)
+	common.ManageListRequestNoExpand(bucketV2Endpoint(projectID), cloudprojectStorageS3ColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetStorageS3(_ *cobra.Command, args []string) {
@@ -210,21 +194,26 @@ func GetStorageS3(_ *cobra.Command, args []string) {
 		return
 	}
 
-	_, foundContainer, err := locateStorageS3Container(projectID, args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+	var bucket map[string]any
+	endpoint := fmt.Sprintf("%s/%s", bucketV2Endpoint(projectID), url.PathEscape(args[0]))
+	if err := httpLib.Client.Get(endpoint, &bucket); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch bucket: %s", err)
 		return
 	}
 
 	// Convert used space to float
-	usedFloat, err := foundContainer["objectsSize"].(json.Number).Float64()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error parsing used storage: %s", err)
-		return
+	if state, ok := bucket["currentState"].(map[string]any); ok {
+		if size, ok := state["objectsSize"].(json.Number); ok {
+			sizeFloat, err := size.Float64()
+			if err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "error parsing used storage: %s", err)
+				return
+			}
+			state["objectsSize"] = sizeFloat
+		}
 	}
-	foundContainer["objectsSize"] = usedFloat
 
-	display.OutputObject(foundContainer, args[0], cloudStorageS3Template, &flags.OutputFormatConfig)
+	display.OutputObject(bucket, args[0], cloudStorageS3Template, &flags.OutputFormatConfig)
 }
 
 func EditStorageS3(cmd *cobra.Command, args []string) {
@@ -234,22 +223,29 @@ func EditStorageS3(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	foundURL, _, err := locateStorageS3Container(projectID, args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
+	endpoint := fmt.Sprintf("%s/%s", bucketV2Endpoint(projectID), url.PathEscape(args[0]))
 	if err := common.EditResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/storage/{name}",
-		foundURL,
-		StorageS3Spec,
-		assets.CloudOpenapiSchema,
+		"/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}",
+		endpoint,
+		BucketEditSpec,
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
+
+	if !flags.WaitForTask {
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(endpoint, 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for bucket to be ready: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Bucket %s is now ready", args[0])
 }
 
 func CreateStorageS3(cmd *cobra.Command, args []string) {
@@ -264,21 +260,36 @@ func CreateStorageS3(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/storage", projectID, url.PathEscape(args[0]))
-	container, err := common.CreateResource(
+	BucketSpec.TargetSpec.Location.Region = args[0]
+	endpoint := bucketV2Endpoint(projectID)
+	bucket, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/storage",
+		"/publicCloud/project/{projectId}/storage/object/bucket",
 		endpoint,
 		CloudStorageS3CreationExample,
-		StorageS3Spec,
-		assets.CloudOpenapiSchema,
-		[]string{"name"})
+		BucketSpec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec.name"},
+	)
 	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to create s3 storage container: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "failed to create bucket: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, container, "✅ Container %s created successfully", container["name"])
+	bucketID, _ := bucket["id"].(string)
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, bucket, "✅ Bucket %s creation started successfully", bucketID)
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(bucketID)), 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for bucket creation: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Bucket %s created successfully", bucketID)
 }
 
 func DeleteStorageS3(_ *cobra.Command, args []string) {
@@ -288,18 +299,13 @@ func DeleteStorageS3(_ *cobra.Command, args []string) {
 		return
 	}
 
-	foundURL, _, err := locateStorageS3Container(projectID, args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+	endpoint := fmt.Sprintf("%s/%s", bucketV2Endpoint(projectID), url.PathEscape(args[0]))
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete bucket: %s", err)
 		return
 	}
 
-	if err := httpLib.Client.Delete(foundURL, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete storage container: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Storage container %s deleted successfully", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Bucket %s is being deleted", args[0])
 }
 
 func StorageS3BulkDeleteObjects(_ *cobra.Command, args []string) {
