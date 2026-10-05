@@ -410,7 +410,7 @@ func EditPrivateNetwork(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/network/{networkId}",
 		endpoint,
-		CloudNetworkEditSpec,
+		&CloudNetworkEditSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -563,7 +563,7 @@ func EditPrivateNetworkSubnet(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/network/{networkId}/subnet/{subnetId}",
 		endpoint,
-		CloudNetworkSubnetEditSpec,
+		&CloudNetworkSubnetEditSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -687,7 +687,7 @@ func EditGateway(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/gateway/{gatewayId}",
 		fmt.Sprintf("/v2/publicCloud/project/%s/gateway/%s", projectID, url.PathEscape(args[0])),
-		CloudGatewaySpec,
+		&CloudGatewaySpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

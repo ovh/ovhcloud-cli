@@ -46,7 +46,7 @@ func EditSslGateway(cmd *cobra.Command, args []string) {
 		cmd,
 		"/sslGateway/{serviceName}",
 		fmt.Sprintf("/v1/sslGateway/%s", url.PathEscape(args[0])),
-		SSLGatewaySpec,
+		&SSLGatewaySpec,
 		assets.SslgatewayOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

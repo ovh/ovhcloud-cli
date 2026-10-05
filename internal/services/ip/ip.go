@@ -41,7 +41,7 @@ func EditIp(cmd *cobra.Command, args []string) {
 		cmd,
 		"/ip/{ip}",
 		fmt.Sprintf("/v1/ip/%s", url.PathEscape(args[0])),
-		IPSpec,
+		&IPSpec,
 		assets.IpOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
