@@ -1,22 +1,15 @@
-## ovhcloud webhosting local-seo location service-info update
+## ovhcloud baremetal service-info get
 
-Update Local SEO location service info
+Get service information of the given baremetal
 
 ```
-ovhcloud webhosting local-seo location service-info update <service_name> <id> [flags]
+ovhcloud baremetal service-info get <service_name> [flags]
 ```
 
 ### Options
 
 ```
-      --editor                       Use a text editor to define parameters
-      --from-file string             File containing parameters
-  -h, --help                         help for update
-      --renew-automatic              Renew the service automatically
-      --renew-delete-at-expiration   Delete the service when it expires
-      --renew-forced                 Force the renewal
-      --renew-manual-payment         Pay the renewal manually
-      --renew-period int             Renewal period, in months
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +33,5 @@ ovhcloud webhosting local-seo location service-info update <service_name> <id> [
 
 ### SEE ALSO
 
-* [ovhcloud webhosting local-seo location service-info](ovhcloud_webhosting_local-seo_location_service-info.md)	 - Manage Local SEO location service info
+* [ovhcloud baremetal service-info](ovhcloud_baremetal_service-info.md)	 - Manage service information of the given baremetal
 
