@@ -18,6 +18,7 @@ import (
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -146,6 +147,17 @@ func DisableFirewall(_ *cobra.Command, args []string) {
 // API: DELETE /v1/ip/{ip}/firewall/{ipOnFirewall}
 func DeleteFirewall(_ *cobra.Command, args []string) {
 	apiURL := fmt.Sprintf("/v1/ip/%s/firewall/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+
+	if !common.ConfirmAction(common.Destructive, args[1], fmt.Sprintf(
+		"Removing %s from the firewall deletes all of its rules. This cannot be undone.", args[1])) {
+		display.OutputError(&flags.OutputFormatConfig, "removal of %s from the firewall cancelled", args[1])
+		return
+	}
+
+	if common.ReportDryRun(common.Call{Method: "DELETE", Endpoint: apiURL}) {
+		return
+	}
+
 	if err := httpLib.Client.Delete(apiURL, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -383,6 +395,19 @@ func CreateFirewallRule(cmd *cobra.Command, args []string) error {
 func DeleteFirewallRule(_ *cobra.Command, args []string) {
 	apiURL := fmt.Sprintf("/v1/ip/%s/firewall/%s/rule/%s",
 		url.PathEscape(args[0]), url.PathEscape(args[1]), args[2])
+
+	// One rule, rewritten by hand if needed: a yes is proportionate. Asking to
+	// type an address for each rule of a cleanup would teach --yes instead.
+	if !common.ConfirmAction(common.Disruptive, args[1], fmt.Sprintf(
+		"Deleting firewall rule #%s of %s takes effect immediately.", args[2], args[1])) {
+		display.OutputError(&flags.OutputFormatConfig, "deletion of rule #%s cancelled", args[2])
+		return
+	}
+
+	if common.ReportDryRun(common.Call{Method: "DELETE", Endpoint: apiURL}) {
+		return
+	}
+
 	if err := httpLib.Client.Delete(apiURL, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
