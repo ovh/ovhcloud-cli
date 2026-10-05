@@ -100,11 +100,29 @@ type transport struct {
 	transport http.RoundTripper
 }
 
+// secretCarryingPaths are the endpoints whose payload is a credential. Their
+// bodies are never written to the debug log: --debug is a diagnostic switch,
+// not a way around the masking that --reveal governs.
+var secretCarryingPaths = []string{
+	"/authenticationSecret",
+	"/secret/retrieve",
+}
+
+func carriesSecret(path string) bool {
+	for _, suffix := range secretCarryingPaths {
+		if strings.HasSuffix(path, suffix) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	startTime := time.Now()
 
 	if flags.Debug {
-		reqData, err := httputil.DumpRequestOut(req, true)
+		reqData, err := httputil.DumpRequestOut(req, !carriesSecret(req.URL.Path))
 		if err == nil {
 			log.Printf("[DEBUG] "+logReqMsg, t.name, prettyPrintJsonLines(reqData))
 		} else {
@@ -137,7 +155,10 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	BrowserDebugLogger.AddEntry(entry)
 
 	if flags.Debug {
-		respData, err := httputil.DumpResponse(resp, true)
+		// Some endpoints answer with credentials. Dumping their body would
+		// print the secret whatever the command decided about masking, so the
+		// body is left out and only the headers are kept.
+		respData, err := httputil.DumpResponse(resp, !carriesSecret(req.URL.Path))
 		if err == nil {
 			log.Printf("[DEBUG] "+logRespMsg, t.name, prettyPrintJsonLines(respData))
 		} else {
