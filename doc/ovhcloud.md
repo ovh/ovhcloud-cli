@@ -102,6 +102,7 @@ Below is the full list of primary sub‑commands available at the time of writin
 * [ovhcloud ldp](ovhcloud_ldp.md)	 - Retrieve information and manage your LDP (Logs Data Platform) services
 * [ovhcloud location](ovhcloud_location.md)	 - Retrieve information and manage your Location services
 * [ovhcloud login](ovhcloud_login.md)	 - Login to your OVHcloud account to create API credentials
+* [ovhcloud logout](ovhcloud_logout.md)	 - Revoke your API credentials and remove them from the configuration
 * [ovhcloud nutanix](ovhcloud_nutanix.md)	 - Retrieve information and manage your Nutanix services
 * [ovhcloud okms](ovhcloud_okms.md)	 - Retrieve information and manage your OKMS (Key Management Services)
 * [ovhcloud overthebox](ovhcloud_overthebox.md)	 - Retrieve information and manage your OverTheBox services
