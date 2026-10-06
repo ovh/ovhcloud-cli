@@ -1,15 +1,23 @@
-## ovhcloud cloud managed-kubernetes private-network-configuration get
+## ovhcloud cloud managed-kubernetes plan list
 
-Get the private network configuration for the given Kubernetes cluster
+List the plans available for Kubernetes cluster creation
 
 ```
-ovhcloud cloud managed-kubernetes private-network-configuration get <cluster_id> [flags]
+ovhcloud cloud managed-kubernetes plan list [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
+      --region string        Region to list the plans for (required)
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +42,5 @@ ovhcloud cloud managed-kubernetes private-network-configuration get <cluster_id>
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes private-network-configuration](ovhcloud_cloud_managed-kubernetes_private-network-configuration.md)	 - Manage private network configuration for Kubernetes clusters
+* [ovhcloud cloud managed-kubernetes plan](ovhcloud_cloud_managed-kubernetes_plan.md)	 - Explore the Kubernetes cluster plans
 

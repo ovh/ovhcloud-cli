@@ -6,447 +6,591 @@ package cloud
 
 import (
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 
+	"dario.cat/mergo"
+
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
-	"github.com/ovh/ovhcloud-cli/internal/editor"
+	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
+	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
 )
 
-var (
-	cloudprojectKubeColumnsToDisplay = []string{"id", "name", "region", "plan", "version", "status"}
-
-	//go:embed templates/cloud_managed_kubernetes.tmpl
-	cloudKubeTemplate string
-
-	//go:embed templates/cloud_managed_kubernetes_customization.tmpl
-	cloudKubeCustomizationTemplate string
-
-	//go:embed templates/cloud_managed_kubernetes_node.tmpl
-	cloudKubeNodeTemplate string
-
-	//go:embed templates/cloud_managed_kubernetes_nodepool.tmpl
-	cloudKubeNodepoolTemplate string
-
-	//go:embed templates/cloud_managed_kubernetes_oidc.tmpl
-	cloudKubeOIDCTemplate string
-
-	//go:embed parameter-samples/managed-kubernetes-create.json
-	CloudKubeCreationExample string
-
-	//go:embed parameter-samples/managed-kubernetes-reset.json
-	CloudKubeResetExample string
-
-	//go:embed parameter-samples/managed-kubernetes-nodepool-create.json
-	CloudKubeNodePoolCreationExample string
-
-	//go:embed parameter-samples/managed-kubernetes-oidc-create.json
-	CloudKubeOIDCCreationExample string
-
-	// KubeSpec defines the structure for a Kubernetes cluster specification
-	KubeSpec struct {
-		Customization struct {
-			APIServer struct {
-				AdmissionPlugins struct {
-					Disabled []string `json:"disabled,omitempty"`
-					Enabled  []string `json:"enabled,omitempty"`
-				} `json:"admissionPlugins,omitzero"`
-			} `json:"apiServer,omitzero"`
-			KubeProxy struct {
-				IPTables struct {
-					MinSyncPeriod string `json:"minSyncPeriod,omitempty"`
-					SyncPeriod    string `json:"syncPeriod,omitempty"`
-				} `json:"iptables,omitzero"`
-				IPVS struct {
-					MinSyncPeriod string `json:"minSyncPeriod,omitempty"`
-					Scheduler     string `json:"scheduler,omitempty"`
-					SyncPeriod    string `json:"syncPeriod,omitempty"`
-					TCPFinTimeout string `json:"tcpFinTimeout,omitempty"`
-					TCPTimeout    string `json:"tcpTimeout,omitempty"`
-					UDPTimeout    string `json:"udpTimeout,omitempty"`
-				} `json:"ipvs,omitzero"`
-			} `json:"kubeProxy,omitzero"`
-			Cilium Cilium `json:"cilium,omitzero"`
-		} `json:"customization,omitzero"`
-		KubeProxyMode               string `json:"kubeProxyMode,omitempty"`
-		LoadBalancersSubnetId       string `json:"loadBalancersSubnetId,omitempty"`
-		Name                        string `json:"name,omitempty"`
-		NodesSubnetId               string `json:"nodesSubnetId,omitempty"`
-		PrivateNetworkConfiguration struct {
-			DefaultVrackGateway            string `json:"defaultVrackGateway,omitempty"`
-			PrivateNetworkRoutingAsDefault bool   `json:"privateNetworkRoutingAsDefault,omitempty"`
-		} `json:"privateNetworkConfiguration,omitzero"`
-		PrivateNetworkId   string             `json:"privateNetworkId,omitempty"`
-		Region             string             `json:"region,omitempty"`
-		UpdatePolicy       string             `json:"updatePolicy,omitempty"`
-		Version            string             `json:"version,omitempty"`
-		WorkerNodesPolicy  string             `json:"workerNodesPolicy,omitempty"`
-		Plan               string             `json:"plan,omitempty"`
-		IPAllocationPolicy IPAllocationPolicy `json:"ipAllocationPolicy,omitzero"`
-	}
-
-	// KubeNodepoolSpec defines the structure for a Kubernetes node pool specification
-	KubeNodepoolSpec kubeNodepoolSpec
-
-	// KubeOIDCConfig defines the structure for OpenID Connect configuration in Kubernetes
-	KubeOIDCConfig struct {
-		CaContent         string   `json:"caContent,omitempty"`
-		ClientId          string   `json:"clientId,omitempty"`
-		GroupsClaim       []string `json:"groupsClaim,omitempty"`
-		GroupsPrefix      string   `json:"groupsPrefix,omitempty"`
-		IssuerUrl         string   `json:"issuerUrl,omitempty"`
-		RequiredClaim     []string `json:"requiredClaim,omitempty"`
-		SigningAlgorithms []string `json:"signingAlgorithms,omitempty"`
-		UsernameClaim     string   `json:"usernameClaim,omitempty"`
-		UsernamePrefix    string   `json:"usernamePrefix,omitempty"`
-	}
-
-	// KubeForceAction indicates whether to force an action
-	// It is set by a command line flag
-	KubeForceAction bool
-
-	// KubeUpdateStrategy defines the strategy for updating Kubernetes clusters
-	// It is set by a command line flag
-	KubeUpdateStrategy string
-
-	// KubeIPRestrictions defines the IP restrictions for Kubernetes clusters
-	// It is set by a command line flag
-	KubeIPRestrictions []string
+// Paths of the API v2 cluster operations in the OpenAPI schema.
+const (
+	ManagedKubernetesV2SchemaPath          = "/publicCloud/project/{projectId}/managedKubernetes"
+	ManagedKubernetesV2ClusterSchemaPath   = ManagedKubernetesV2SchemaPath + "/{managedKubernetesId}"
+	ManagedKubernetesV2NodepoolsSchemaPath = ManagedKubernetesV2ClusterSchemaPath + "/nodepool"
+	ManagedKubernetesV2NodepoolSchemaPath  = ManagedKubernetesV2NodepoolsSchemaPath + "/{nodePoolId}"
 )
 
-type IPAllocationPolicy struct {
-	PodsIPv4CIDR     string `json:"podsIpv4Cidr,omitempty"`
-	ServicesIPv4CIDR string `json:"servicesIpv4Cidr,omitempty"`
-}
+var (
+	managedKubernetesColumnsToDisplay = []string{
+		"id ID",
+		"currentState.name name",
+		"currentState.region region",
+		"currentState.plan plan",
+		"currentState.version version",
+		"resourceStatus status",
+		"createdAt created at",
+	}
 
-type Cilium struct {
-	ClusterID   *uint8      `json:"clusterId,omitempty"`
-	Hubble      Hubble      `json:"hubble,omitzero"`
-	ClusterMesh ClusterMesh `json:"clusterMesh,omitzero"`
-}
+	managedKubernetesNodepoolColumnsToDisplay = []string{
+		"id ID",
+		"currentState.name name",
+		"currentState.nodeConfig.flavor flavor",
+		"currentState.desiredNodes desired nodes",
+		"currentState.status.currentNodes current nodes",
+		"currentState.status.upToDateNodes up-to-date nodes",
+		"resourceStatus status",
+		"createdAt created at",
+	}
 
-type ClusterMesh struct {
-	Enabled   *bool                `json:"enabled,omitempty"`
-	APIServer ClusterMeshAPIServer `json:"apiServer,omitzero"`
-}
+	managedKubernetesNodeColumnsToDisplay = []string{
+		"id ID",
+		"currentState.name name",
+		"currentState.flavor flavor",
+		"currentState.version version",
+		"currentState.upToDate up-to-date",
+		"resourceStatus status",
+		"currentState.deployedAt deployed at",
+	}
 
-type ClusterMeshAPIServer struct {
-	ServiceType string `json:"serviceType,omitempty"`
-	NodePort    uint16 `json:"nodePort,omitempty"`
-}
+	managedKubernetesTaskColumnsToDisplay = []string{
+		"id ID",
+		"type",
+		"status",
+		"createdAt created at",
+		"finishedAt finished at",
+	}
 
-type Hubble struct {
-	Enabled *bool       `json:"enabled,omitempty"`
-	Relay   HubbleRelay `json:"relay,omitzero"`
-	UI      HubbleUI    `json:"ui,omitzero"`
-}
+	managedKubernetesEventColumnsToDisplay = []string{"createdAt created at", "type", "kind", "taskId task ID", "message"}
 
-type HubbleRelay struct {
-	Enabled *bool `json:"enabled,omitempty"`
-}
+	managedKubernetesPlanColumnsToDisplay = []string{
+		"name",
+		"status",
+		"limits.maxNodes max nodes",
+		"controlPlane.etcd.dedicated dedicated etcd",
+	}
 
-type HubbleUI struct {
-	Enabled           *bool                `json:"enabled,omitempty"`
-	FrontendResources ResourceRequirements `json:"frontendResources,omitzero"`
-	BackendResources  ResourceRequirements `json:"backendResources,omitzero"`
-}
+	managedKubernetesRegionColumnsToDisplay = []string{
+		"name",
+		"availablePlans available plans",
+		"availabilityZones availability zones",
+	}
 
-type ResourceRequirements struct {
-	Requests ResourceList `json:"requests,omitzero"`
-	Limits   ResourceList `json:"limits,omitzero"`
-}
+	managedKubernetesFlavorColumnsToDisplay = []string{
+		"name",
+		"category",
+		"resources.vcpus vCPUs",
+		"resources.memoryGiB memory (GiB)",
+		"resources.gpus GPUs",
+		"status",
+	}
 
-type ResourceList struct {
-	Cpu    string `json:"cpu,omitempty"`
-	Memory string `json:"memory,omitempty"`
-}
+	managedKubernetesVersionColumnsToDisplay = []string{"version", "status", "default"}
 
-type kubeNodepoolSpec struct {
-	AntiAffinity bool `json:"antiAffinity,omitempty"`
-	Autoscale    bool `json:"autoscale,omitempty"`
-	Autoscaling  struct {
-		ScaleDownUnneededTimeSeconds  int     `json:"scaleDownUnneededTimeSeconds,omitempty"`
-		ScaleDownUnreadyTimeSeconds   int     `json:"scaleDownUnreadyTimeSeconds,omitempty"`
-		ScaleDownUtilizationThreshold float64 `json:"scaleDownUtilizationThreshold,omitempty"`
-	} `json:"autoscaling,omitzero"`
-	AvailabilityZones []string `json:"availabilityZones,omitempty"`
-	AttachFloatingIps struct {
+	// managedKubernetesPlanCNI maps a plan to the CNI it imposes: the API requires CANAL on
+	// the FREE plan and CILIUM on the STANDARD one, and rejects any other combination.
+	managedKubernetesPlanCNI = map[string]string{
+		"FREE":     "CANAL",
+		"STANDARD": "CILIUM",
+	}
+
+	//go:embed templates/cloud_managed_kubernetes.tmpl
+	managedKubernetesTemplate string
+
+	//go:embed templates/cloud_managed_kubernetes_node.tmpl
+	managedKubernetesNodeTemplate string
+
+	//go:embed templates/cloud_managed_kubernetes_nodepool.tmpl
+	managedKubernetesNodepoolTemplate string
+
+	//go:embed templates/cloud_managed_kubernetes_task.tmpl
+	managedKubernetesTaskTemplate string
+
+	//go:embed templates/cloud_managed_kubernetes_etcd_usage.tmpl
+	managedKubernetesEtcdUsageTemplate string
+
+	//go:embed templates/cloud_managed_kubernetes_version_capabilities.tmpl
+	managedKubernetesVersionCapabilitiesTemplate string
+
+	// ManagedKubernetesSpec is the cluster payload sent to the API v2 create and update endpoints.
+	ManagedKubernetesSpec ManagedKubernetesClusterSpec
+
+	// ManagedKubernetesNodepoolSpec is the node pool payload sent to the API v2 create and update endpoints.
+	ManagedKubernetesNodepoolSpec struct {
+		TargetSpec ManagedKubernetesNodepoolTargetSpec `json:"targetSpec,omitzero"`
+	}
+
+	// ManagedKubernetesForceAction indicates whether to force an action
+	// It is set by a command line flag
+	ManagedKubernetesForceAction bool
+
+	// Filters of the node listing, set by command line flags.
+	ManagedKubernetesNodeIncludeDeleted bool
+	ManagedKubernetesNodeResourceStatus string
+
+	// ManagedKubernetesEventTaskID restricts the event listing to the given task.
+	ManagedKubernetesEventTaskID string
+
+	// ManagedKubernetesReferenceRegion is the region to list the plans and flavors for.
+	ManagedKubernetesReferenceRegion string
+)
+
+type (
+	// ManagedKubernetesClusterSpec is the cluster payload of the API v2 create and update endpoints.
+	ManagedKubernetesClusterSpec struct {
+		TargetSpec ManagedKubernetesTargetSpec `json:"targetSpec,omitzero"`
+	}
+
+	// ManagedKubernetesFlavor is a node pool flavor of the MKS reference catalog.
+	ManagedKubernetesFlavor struct {
+		Name      string `json:"name"`
+		Status    string `json:"status"`
+		Resources struct {
+			Vcpus     int `json:"vcpus"`
+			MemoryGiB int `json:"memoryGiB"`
+			Gpus      int `json:"gpus"`
+		} `json:"resources"`
+	}
+
+	// ManagedKubernetesVersionCatalog is the version catalog of the MKS reference.
+	// Versions stay maps so they can be flagged, filtered and rendered as is.
+	ManagedKubernetesVersionCatalog struct {
+		AvailableVersions []map[string]any `json:"availableVersions"`
+		DefaultVersion    string           `json:"defaultVersion"`
+	}
+
+	// ManagedKubernetesTargetSpec is the desired state of a cluster. Fields not accepted on update
+	// (region, plan, network and CNI variants, ipAllocationPolicy) are pruned from the
+	// body by the OpenAPI filter, so the same structure serves create and edit.
+	ManagedKubernetesTargetSpec struct {
+		ApiServer          ManagedKubernetesAPIServer          `json:"apiServer,omitzero"`
+		Authentication     ManagedKubernetesAuthentication     `json:"authentication,omitzero"`
+		AutoUpgrade        ManagedKubernetesAutoUpgrade        `json:"autoUpgrade,omitzero"`
+		Cni                ManagedKubernetesCni                `json:"cni,omitzero"`
+		IPAllocationPolicy ManagedKubernetesIPAllocationPolicy `json:"ipAllocationPolicy,omitzero"`
+		Name               string                              `json:"name,omitempty"`
+		Network            ManagedKubernetesNetwork            `json:"network,omitzero"`
+		Plan               string                              `json:"plan,omitempty"`
+		Region             string                              `json:"region,omitempty"`
+		Version            string                              `json:"version,omitempty"`
+	}
+
+	// ManagedKubernetesAPIServer configures the cluster API server.
+	ManagedKubernetesAPIServer struct {
+		Access           ManagedKubernetesAPIServerAccess            `json:"access,omitzero"`
+		AdmissionPlugins map[string]ManagedKubernetesAdmissionPlugin `json:"admissionPlugins,omitempty"`
+	}
+
+	// ManagedKubernetesAPIServerAccess restricts the network access to the API server.
+	ManagedKubernetesAPIServerAccess struct {
+		AuthorizedIps ManagedKubernetesAuthorizedIps `json:"authorizedIps,omitzero"`
+	}
+
+	// ManagedKubernetesAuthorizedIps lists the rules allowed to reach the API server.
+	ManagedKubernetesAuthorizedIps struct {
+		Rules []ManagedKubernetesAuthorizedIpRule `json:"rules,omitempty"`
+	}
+
+	// ManagedKubernetesAuthorizedIpRule allows a CIDR to reach the API server.
+	ManagedKubernetesAuthorizedIpRule struct {
+		Cidr string `json:"cidr"`
+	}
+
+	// ManagedKubernetesAdmissionPlugin toggles an API server admission plugin.
+	ManagedKubernetesAdmissionPlugin struct {
+		Enabled bool `json:"enabled"`
+	}
+
+	// ManagedKubernetesAuthentication configures how users authenticate against the cluster.
+	ManagedKubernetesAuthentication struct {
+		Oidc ManagedKubernetesOidc `json:"oidc,omitzero"`
+		Type string                `json:"type,omitempty"`
+	}
+
+	// ManagedKubernetesOidc configures the OIDC provider used to authenticate users.
+	ManagedKubernetesOidc struct {
+		CaContent      string   `json:"caContent,omitempty"`
+		ClientId       string   `json:"clientId,omitempty"`
+		GroupsClaim    []string `json:"groupsClaim,omitempty"`
+		GroupsPrefix   string   `json:"groupsPrefix,omitempty"`
+		IssuerUrl      string   `json:"issuerUrl,omitempty"`
+		RequiredClaim  []string `json:"requiredClaim,omitempty"`
+		SigningAlgs    []string `json:"signingAlgs,omitempty"`
+		UsernameClaim  string   `json:"usernameClaim,omitempty"`
+		UsernamePrefix string   `json:"usernamePrefix,omitempty"`
+	}
+
+	// ManagedKubernetesAutoUpgrade configures the automatic upgrades of the cluster.
+	ManagedKubernetesAutoUpgrade struct {
+		Patch ManagedKubernetesAutoUpgradeTrack `json:"patch,omitzero"`
+	}
+
+	// ManagedKubernetesAutoUpgradeTrack toggles the automatic upgrades of a version track.
+	ManagedKubernetesAutoUpgradeTrack struct {
 		Enabled *bool `json:"enabled,omitempty"`
-	} `json:"attachFloatingIps,omitzero"`
-	DesiredNodes  *int   `json:"desiredNodes,omitempty"`
-	FlavorName    string `json:"flavorName,omitempty"`
-	MaxNodes      *int   `json:"maxNodes,omitempty"`
-	MinNodes      *int   `json:"minNodes,omitempty"`
-	MonthlyBilled bool   `json:"monthlyBilled,omitempty"`
-	Name          string `json:"name,omitempty"`
-	Template      struct {
-		Metadata struct {
-			Annotations map[string]string `json:"annotations,omitempty"`
-			Finalizers  []string          `json:"finalizers,omitempty"`
-			Labels      map[string]string `json:"labels,omitempty"`
-		} `json:"metadata,omitzero"`
-		Spec struct {
-			Taints            []kubeNodepoolSpecTaintType `json:"taints,omitempty"`
-			CommandLineTaints []string                    `json:"-"`
-			Unschedulable     bool                        `json:"unschedulable,omitempty"`
-		} `json:"spec,omitzero"`
-	} `json:"template,omitzero"`
+	}
 
-	// Only used when updating a node pool
-	NodesToRemove []string `json:"nodesToRemove,omitempty"`
+	// ManagedKubernetesCni configures the cluster CNI.
+	ManagedKubernetesCni struct {
+		Canal  ManagedKubernetesCniCanal `json:"canal,omitzero"`
+		Cilium Cilium                    `json:"cilium,omitzero"`
+		Type   string                    `json:"type,omitempty"`
+	}
+
+	// ManagedKubernetesCniCanal configures the Canal CNI.
+	ManagedKubernetesCniCanal struct {
+		KubeProxy KubeProxy `json:"kubeProxy,omitzero"`
+	}
+
+	// KubeProxy configures kube-proxy and its proxy mode.
+	KubeProxy struct {
+		IPTables KubeProxyIPTables `json:"iptables,omitzero"`
+		IPVS     KubeProxyIPVS     `json:"ipvs,omitzero"`
+		Mode     string            `json:"mode,omitempty"`
+	}
+
+	// KubeProxyIPTables configures kube-proxy in iptables mode.
+	KubeProxyIPTables struct {
+		MinSyncPeriod string `json:"minSyncPeriod,omitempty"`
+		SyncPeriod    string `json:"syncPeriod,omitempty"`
+	}
+
+	// KubeProxyIPVS configures kube-proxy in IPVS mode.
+	KubeProxyIPVS struct {
+		MinSyncPeriod string `json:"minSyncPeriod,omitempty"`
+		Scheduler     string `json:"scheduler,omitempty"`
+		SyncPeriod    string `json:"syncPeriod,omitempty"`
+		TCPFinTimeout string `json:"tcpFinTimeout,omitempty"`
+		TCPTimeout    string `json:"tcpTimeout,omitempty"`
+		UDPTimeout    string `json:"udpTimeout,omitempty"`
+	}
+
+	// ManagedKubernetesIPAllocationPolicy sets the CIDRs of the pods and services.
+	ManagedKubernetesIPAllocationPolicy struct {
+		Pods     string `json:"pods,omitempty"`
+		Services string `json:"services,omitempty"`
+	}
+
+	// ManagedKubernetesNetwork configures the network the cluster is attached to.
+	ManagedKubernetesNetwork struct {
+		Type  string                        `json:"type,omitempty"`
+		Vrack ManagedKubernetesNetworkVrack `json:"vrack,omitzero"`
+	}
+
+	// ManagedKubernetesNetworkVrack attaches the cluster to a vRack private network.
+	ManagedKubernetesNetworkVrack struct {
+		DefaultEgress        ManagedKubernetesDefaultEgress `json:"defaultEgress,omitzero"`
+		LoadBalancerSubnetId string                         `json:"loadBalancerSubnetId,omitempty"`
+		PrivateNetworkId     string                         `json:"privateNetworkId,omitempty"`
+		SubnetId             string                         `json:"subnetId,omitempty"`
+	}
+
+	// ManagedKubernetesDefaultEgress configures the default egress of the vRack network.
+	ManagedKubernetesDefaultEgress struct {
+		Type        string                       `json:"type,omitempty"`
+		UserGateway ManagedKubernetesUserGateway `json:"userGateway,omitzero"`
+	}
+
+	// ManagedKubernetesUserGateway is the user-managed gateway used as default egress.
+	ManagedKubernetesUserGateway struct {
+		IP string `json:"ip,omitempty"`
+	}
+
+	// Cilium configures the Cilium CNI.
+	Cilium struct {
+		ClusterID   *uint8      `json:"clusterId,omitempty"`
+		ClusterMesh ClusterMesh `json:"clusterMesh,omitzero"`
+		Hubble      Hubble      `json:"hubble,omitzero"`
+	}
+
+	// ClusterMesh configures the Cilium Cluster Mesh.
+	ClusterMesh struct {
+		APIServer ClusterMeshAPIServer `json:"apiServer,omitzero"`
+		Enabled   *bool                `json:"enabled,omitempty"`
+	}
+
+	// ClusterMeshAPIServer configures how the Cluster Mesh API server is exposed.
+	ClusterMeshAPIServer struct {
+		NodePort    uint16 `json:"nodePort,omitempty"`
+		ServiceType string `json:"serviceType,omitempty"`
+	}
+
+	// Hubble configures the Hubble observability layer of Cilium.
+	Hubble struct {
+		Enabled *bool       `json:"enabled,omitempty"`
+		Relay   HubbleRelay `json:"relay,omitzero"`
+		UI      HubbleUI    `json:"ui,omitzero"`
+	}
+
+	// HubbleRelay toggles the Hubble relay.
+	HubbleRelay struct {
+		Enabled *bool `json:"enabled,omitempty"`
+	}
+
+	// HubbleUI configures the Hubble UI.
+	HubbleUI struct {
+		BackendResources  ResourceRequirements `json:"backendResources,omitzero"`
+		Enabled           *bool                `json:"enabled,omitempty"`
+		FrontendResources ResourceRequirements `json:"frontendResources,omitzero"`
+	}
+
+	// ResourceRequirements sets the resource limits and requests of a component.
+	ResourceRequirements struct {
+		Limits   ResourceList `json:"limits,omitzero"`
+		Requests ResourceList `json:"requests,omitzero"`
+	}
+
+	// ResourceList is a CPU and memory resource quantity.
+	ResourceList struct {
+		Cpu    string `json:"cpu,omitempty"`
+		Memory string `json:"memory,omitempty"`
+	}
+
+	// ManagedKubernetesNodepoolTargetSpec is the desired state of a node pool. Fields not accepted
+	// on update are pruned from the body by the OpenAPI filter, so it serves create and edit.
+	ManagedKubernetesNodepoolTargetSpec struct {
+		AntiAffinity     ManagedKubernetesAntiAffinity `json:"antiAffinity,omitzero"`
+		Autoscaler       ManagedKubernetesAutoscaler   `json:"autoscaler,omitzero"`
+		AvailabilityZone string                        `json:"availabilityZone,omitempty"`
+		BillingType      string                        `json:"billingType,omitempty"`
+		DesiredNodes     *int                          `json:"desiredNodes,omitempty"`
+		Name             string                        `json:"name,omitempty"`
+		NodeConfig       ManagedKubernetesNodeConfig   `json:"nodeConfig,omitzero"`
+		Template         ManagedKubernetesNodeTemplate `json:"template,omitzero"`
+	}
+
+	// ManagedKubernetesAntiAffinity spreads the node pool nodes across hypervisors.
+	ManagedKubernetesAntiAffinity struct {
+		Enabled *bool `json:"enabled,omitempty"`
+	}
+
+	// ManagedKubernetesAutoscaler configures the node pool autoscaling.
+	ManagedKubernetesAutoscaler struct {
+		Enabled   *bool                                `json:"enabled,omitempty"`
+		MaxNodes  *int                                 `json:"maxNodes,omitempty"`
+		MinNodes  *int                                 `json:"minNodes,omitempty"`
+		ScaleDown ManagedKubernetesAutoscalerScaleDown `json:"scaleDown,omitzero"`
+	}
+
+	// ManagedKubernetesAutoscalerScaleDown tunes when the autoscaler removes nodes.
+	ManagedKubernetesAutoscalerScaleDown struct {
+		UnneededTimeSeconds  int     `json:"unneededTimeSeconds,omitempty"`
+		UnreadyTimeSeconds   int     `json:"unreadyTimeSeconds,omitempty"`
+		UtilizationThreshold float64 `json:"utilizationThreshold,omitempty"`
+	}
+
+	// ManagedKubernetesNodeConfig configures the instances backing the nodes.
+	ManagedKubernetesNodeConfig struct {
+		AttachFloatingIp ManagedKubernetesAttachFloatingIp `json:"attachFloatingIp,omitzero"`
+		Flavor           string                            `json:"flavor,omitempty"`
+	}
+
+	// ManagedKubernetesAttachFloatingIp toggles a floating IP on each node.
+	ManagedKubernetesAttachFloatingIp struct {
+		Enabled *bool `json:"enabled,omitempty"`
+	}
+
+	// ManagedKubernetesNodeTemplate is the template applied to the node pool nodes.
+	ManagedKubernetesNodeTemplate struct {
+		Metadata ManagedKubernetesNodeTemplateMetadata `json:"metadata,omitzero"`
+		Spec     ManagedKubernetesNodeTemplateSpec     `json:"spec,omitzero"`
+	}
+
+	// ManagedKubernetesNodeTemplateMetadata is the metadata applied to the node pool nodes.
+	ManagedKubernetesNodeTemplateMetadata struct {
+		Annotations map[string]string `json:"annotations,omitempty"`
+		Finalizers  []string          `json:"finalizers,omitempty"`
+		Labels      map[string]string `json:"labels,omitempty"`
+	}
+
+	// ManagedKubernetesNodeTemplateSpec is the spec applied to the node pool nodes.
+	ManagedKubernetesNodeTemplateSpec struct {
+		Taints        []ManagedKubernetesTaint `json:"taints,omitempty"`
+		Unschedulable *bool                    `json:"unschedulable,omitempty"`
+	}
+
+	// ManagedKubernetesTaint is a taint applied to the node pool nodes.
+	ManagedKubernetesTaint struct {
+		Effect string `json:"effect"`
+		Key    string `json:"key"`
+		Value  string `json:"value"`
+	}
+)
+
+// API v2 endpoints, formatted with the project ID then the IDs of the resources along the path.
+const (
+	ManagedKubernetesV2EndpointFormat            = "/v2/publicCloud/project/%s/managedKubernetes"
+	managedKubernetesClusterEndpointFormat       = ManagedKubernetesV2EndpointFormat + "/%s"
+	ManagedKubernetesTasksEndpointFormat         = managedKubernetesClusterEndpointFormat + "/task"
+	ManagedKubernetesNodepoolsEndpointFormat     = managedKubernetesClusterEndpointFormat + "/nodepool"
+	managedKubernetesNodepoolEndpointFormat      = ManagedKubernetesNodepoolsEndpointFormat + "/%s"
+	ManagedKubernetesNodepoolTasksEndpointFormat = managedKubernetesNodepoolEndpointFormat + "/task"
+	ManagedKubernetesNodesEndpointFormat         = managedKubernetesNodepoolEndpointFormat + "/node"
+)
+
+// managedKubernetesEndpoint fills the given endpoint format with the path-escaped IDs.
+func managedKubernetesEndpoint(format string, ids ...string) string {
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = url.PathEscape(id)
+	}
+	return fmt.Sprintf(format, args...)
 }
 
-type kubeNodepoolSpecTaintType struct {
-	Effect string `json:"effect,omitempty"`
-	Key    string `json:"key,omitempty"`
-	Value  string `json:"value,omitempty"`
+// managedKubernetesReferenceEndpoint returns the API v2 managed Kubernetes reference endpoint for the given project.
+func managedKubernetesReferenceEndpoint(projectID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/reference/managedKubernetes", projectID)
 }
 
-func ListKubes(_ *cobra.Command, _ []string) {
+// managedKubernetesFlavorEndpoint returns the API v2 endpoint of the flavors available in the given region.
+func managedKubernetesFlavorEndpoint(projectID, region string) string {
+	return managedKubernetesReferenceEndpoint(projectID) + "/flavor?region=" + url.QueryEscape(region)
+}
+
+// ListManagedKubernetes lists the clusters of the project.
+func ListManagedKubernetes(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	common.ManageListRequest(fmt.Sprintf("/v1/cloud/project/%s/kube", projectID), "", cloudprojectKubeColumnsToDisplay, flags.GenericFilters)
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesV2EndpointFormat, projectID)
+
+	common.ManageListRequestNoExpand(endpoint, managedKubernetesColumnsToDisplay, flags.GenericFilters)
 }
 
-func GetKube(_ *cobra.Command, args []string) {
+// GetManagedKubernetes displays the given cluster.
+func GetManagedKubernetes(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesV2EndpointFormat, projectID)
 
-	var object map[string]any
-	if err := httpLib.Client.Get(endpoint, &object); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", endpoint, err)
-		return
+	common.ManageObjectRequest(endpoint, args[0], managedKubernetesTemplate)
+}
+
+// managedKubernetesCreationSpec completes the CLI values with the CNI and network type implied
+// by the plan and vRack flags, so they also override stale values of a file or an editor example.
+func managedKubernetesCreationSpec() ManagedKubernetesClusterSpec {
+	// Works on a copy so derived values, backed by no flag, don't leak into the next run.
+	spec := ManagedKubernetesSpec
+
+	// An unknown plan is left alone, so that a plan added later is not given a wrong CNI.
+	if spec.TargetSpec.Cni.Type == "" {
+		spec.TargetSpec.Cni.Type = managedKubernetesPlanCNI[spec.TargetSpec.Plan]
 	}
 
-	// Fetch etcd usage, ignore potential errors
-	var etcdUsage map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("%s/metrics/etcdUsage", endpoint), &etcdUsage); err != nil {
-		log.Printf("failed to fetch etcd usage: %s", err)
-	} else {
-		etcdUsage["usage"], err = etcdUsage["usage"].(json.Number).Float64()
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to parse etcd usage 'usage' value: %s", err)
-			return
+	if spec.TargetSpec.Network.Type == "" {
+		switch {
+		// Any vRack flag means the cluster goes in a vRack.
+		case spec.TargetSpec.Network.Vrack != (ManagedKubernetesNetworkVrack{}):
+			spec.TargetSpec.Network.Type = "VRACK"
+		// Defaults to PUBLIC only without file, editor or pipe, so the type they set is kept.
+		case !flags.ParametersViaEditor && flags.ParametersFile == "" && !utils.IsInputFromPipe():
+			spec.TargetSpec.Network.Type = "PUBLIC"
 		}
-		etcdUsage["quota"], err = etcdUsage["quota"].(json.Number).Float64()
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to parse etcd usage 'quota' value: %s", err)
-			return
-		}
-		object["etcdUsage"] = etcdUsage
 	}
 
-	display.OutputObject(object, args[0], cloudKubeTemplate, &flags.OutputFormatConfig)
+	return spec
 }
 
-func CreateKube(cmd *cobra.Command, args []string) {
+// CreateManagedKubernetes creates a cluster from the flags, a file or the editor.
+func CreateManagedKubernetes(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube", projectID)
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesV2EndpointFormat, projectID)
+
 	cluster, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/kube",
+		ManagedKubernetesV2SchemaPath,
 		endpoint,
-		CloudKubeCreationExample,
-		KubeSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"region"})
+		"", // Examples come from the OpenAPI spec
+		managedKubernetesCreationSpec(),
+		assets.CloudV2OpenapiSchema,
+		[]string{
+			"targetSpec.name",
+			"targetSpec.region",
+			"targetSpec.plan",
+		})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create Kubernetes cluster: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, cluster, "✅ Cluster %s created successfully (id: %s)", cluster["name"], cluster["id"])
+	display.OutputInfo(&flags.OutputFormatConfig, cluster, "✅ Cluster created successfully (id: %s)", cluster["id"])
 }
 
-func EditKube(cmd *cobra.Command, args []string) {
+// EditManagedKubernetes updates the given cluster.
+func EditManagedKubernetes(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if err := common.EditResource(
+	endpoint := managedKubernetesEndpoint(managedKubernetesClusterEndpointFormat, projectID, args[0])
+
+	// The checksum read from the fetched cluster is kept by the PUT filter (optimistic locking).
+	if err := common.EditResourceWithMergeOpts(
 		cmd,
-		"/cloud/project/{serviceName}/kube/{kubeId}",
-		fmt.Sprintf("/v1/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0])),
-		KubeSpec,
-		assets.CloudOpenapiSchema,
+		ManagedKubernetesV2ClusterSchemaPath,
+		endpoint,
+		ManagedKubernetesSpec,
+		assets.CloudV2OpenapiSchema,
+		[]func(*mergo.Config){utils.ReplaceSlices},
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 }
 
-func DeleteKube(_ *cobra.Command, args []string) {
+// DeleteManagedKubernetes deletes the given cluster.
+func DeleteManagedKubernetes(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0]))
+	endpoint := managedKubernetesEndpoint(managedKubernetesClusterEndpointFormat, projectID, args[0])
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete MKS cluster: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ MKS cluster is being deleted…")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Cluster deleted successfully")
 }
 
-func GetKubeCustomization(cmd *cobra.Command, args []string) {
+// GenerateKubeConfig prints the kubeconfig of the given cluster.
+func GenerateKubeConfig(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0]))
-	var customization map[string]any
-	if err := httpLib.Client.Get(endpoint, &customization); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch MKS cluster customization: %s", err)
-		return
-	}
-
-	display.OutputObject(customization, args[0], cloudKubeCustomizationTemplate, &flags.OutputFormatConfig)
-}
-
-func EditKubeCustomization(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	if err := common.EditResource(
-		cmd,
-		"/cloud/project/{serviceName}/kube/{kubeId}/customization",
-		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0])),
-		KubeSpec.Customization,
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-}
-
-func ListKubeIPRestrictions(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", projectID, url.PathEscape(args[0]))
-
-	body, err := httpLib.FetchArray(endpoint, "")
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch IP restrictions: %s", err)
-		return
-	}
-
-	objects := make([]map[string]any, 0, len(body))
-	for _, ip := range body {
-		objects = append(objects, map[string]any{
-			"ip": ip,
-		})
-	}
-
-	display.RenderTable(objects, []string{"ip"}, &flags.OutputFormatConfig)
-}
-
-func EditKubeIPRestrictions(cmd *cobra.Command, args []string) {
-	if cmd.Flags().NFlag() == 0 {
-		display.OutputWarning(&flags.OutputFormatConfig, "No parameters given, nothing to edit")
-		return
-	}
-
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/ipRestrictions", projectID, url.PathEscape(args[0]))
-
-	if flags.ParametersViaEditor {
-		// Fetch resource
-		var ips []string
-		if err := httpLib.Client.Get(endpoint, &ips); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "error fetching resource %s", err)
-			return
-		}
-
-		// Format editable body
-		editableOutput, err := json.MarshalIndent(map[string]any{
-			"ips": ips,
-		}, "", "  ")
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to marshal writable body: %s", err)
-			return
-		}
-
-		// Edit value
-		updatedBody, err := editor.EditValueWithEditor(editableOutput)
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to edit properties: %s", err)
-			return
-		}
-
-		// Update API call
-		if err := httpLib.Client.Put(endpoint, json.RawMessage(updatedBody), nil); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to update resource: %s", err)
-			return
-		}
-
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ IP restrictions updated successfully…")
-		return
-	}
-
-	// Update API call with IPS set via flags
-	if err := httpLib.Client.Put(endpoint, map[string]any{
-		"ips": KubeIPRestrictions,
-	}, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to update IP restrictions: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ IP restrictions updated successfully…")
-}
-
-func GenerateKubeConfig(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig", projectID, url.PathEscape(args[0]))
+	endpoint := managedKubernetesEndpoint(managedKubernetesClusterEndpointFormat, projectID, args[0]) + "/kubeconfig"
 
 	var kubeConfig map[string]any
-	if err := httpLib.Client.Post(endpoint, nil, &kubeConfig); err != nil {
+	if err := httpLib.Client.Get(endpoint, &kubeConfig); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to generate kube config: %s", err)
 		return
 	}
@@ -454,14 +598,15 @@ func GenerateKubeConfig(cmd *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "%s", kubeConfig["content"])
 }
 
-func ResetKubeConfig(cmd *cobra.Command, args []string) {
+// ResetKubeConfig resets the kubeconfig of the given cluster, invalidating the previous one.
+func ResetKubeConfig(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/kubeconfig/reset", projectID, url.PathEscape(args[0]))
+	endpoint := managedKubernetesEndpoint(managedKubernetesClusterEndpointFormat, projectID, args[0]) + "/kubeconfig/reset"
 
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to reset kube config: %s", err)
@@ -471,356 +616,17 @@ func ResetKubeConfig(cmd *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Kube config reset successfully")
 }
 
-func ListKubeNodes(_ *cobra.Command, args []string) {
+// RestartManagedKubernetes restarts the control plane of the given cluster.
+func RestartManagedKubernetes(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/node", projectID, url.PathEscape(args[0]))
-
-	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "flavor", "version", "status"}, flags.GenericFilters)
-}
-
-func GetKubeNode(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/node", projectID, url.PathEscape(args[0]))
-
-	common.ManageObjectRequest(endpoint, args[1], cloudKubeNodeTemplate)
-}
-
-func DeleteKubeNode(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/node/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete MKS node: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ MKS node deleted successfully")
-}
-
-func ListKubeNodepools(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
-
-	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "flavor", "currentNodes", "status"}, flags.GenericFilters)
-}
-
-func GetKubeNodepool(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
-
-	common.ManageObjectRequest(endpoint, args[1], cloudKubeNodepoolTemplate)
-}
-
-func EditKubeNodepool(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	// The --attach-floating-ips flag hasn't been set by the user.
-	if !cmd.Flags().Changed("attach-floating-ips") {
-		KubeNodepoolSpec.AttachFloatingIps.Enabled = nil
-	}
-
-	if err := common.EditResource(
-		cmd,
-		"/cloud/project/{serviceName}/kube/{kubeId}/nodepool/{nodepoolId}",
-		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1])),
-		KubeNodepoolSpec,
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-}
-
-func DeleteKubeNodepool(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete MKS node pool: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ MKS node pool deleted successfully")
-}
-
-func CreateKubeNodepool(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		display.OutputError(&flags.OutputFormatConfig, "create command requires the MKS cluster ID as the first argument.\nUsage:\n%s", cmd.UsageString())
-		return
-	}
-
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	// Transform spec taints into a format suitable for the API
-	for _, taint := range KubeNodepoolSpec.Template.Spec.CommandLineTaints {
-		parts := strings.Split(taint, ":")
-		if len(parts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "invalid taint format: %q, expected format is key=value:effect", taint)
-			return
-		}
-
-		kvParts := strings.Split(parts[0], "=")
-		if len(kvParts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "invalid taint format: %q, expected format is key=value:effect", taint)
-			return
-		}
-
-		KubeNodepoolSpec.Template.Spec.Taints = append(KubeNodepoolSpec.Template.Spec.Taints,
-			kubeNodepoolSpecTaintType{
-				Key:    kvParts[0],
-				Value:  kvParts[1],
-				Effect: parts[1],
-			},
-		)
-	}
-
-	// Run interactive flavor selector if the flag is set
-	flavor, err := GetKubeFlavorInteractiveSelector(cmd, args)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to get flavor from interactive selector: %s", err)
-		return
-	}
-	if flavor != nil {
-		KubeNodepoolSpec.FlavorName = flavor["flavorName"].(string)
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool", projectID, url.PathEscape(args[0]))
-	nodepool, err := common.CreateResource(
-		cmd,
-		"/cloud/project/{serviceName}/kube/{kubeId}/nodepool",
-		endpoint,
-		CloudKubeNodePoolCreationExample,
-		KubeNodepoolSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"flavorName"})
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to create Kubernetes node pool: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nodepool, "✅ Node pool %s created successfully", nodepool["id"])
-}
-
-func GetKubeFlavorInteractiveSelector(cmd *cobra.Command, args []string) (map[string]any, error) {
-	if len(args) == 0 {
-		return nil, fmt.Errorf("create command requires the MKS cluster as the first argument.\nUsage:\n%s", cmd.UsageString())
-	}
-
-	if !InstanceFlavorViaInteractiveSelector {
-		return nil, nil
-	}
-
-	clusterID := args[0]
-
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		return nil, err
-	}
-
-	// Fetch MKS cluster to extract its region
-	var clusterDetails map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/kube/%s", projectID, url.PathEscape(clusterID)), &clusterDetails); err != nil {
-		return nil, fmt.Errorf("failed to fetch MKS cluster details: %w", err)
-	}
-	region := clusterDetails["region"].(string)
-
-	selectedFlavor, _, err := runFlavorSelector(projectID, region)
-	if err != nil {
-		return nil, fmt.Errorf("failed to select a flavor: %w", err)
-	}
-
-	if selectedFlavor == "" {
-		return nil, errors.New("no flavor selected, exiting")
-	}
-
-	return map[string]any{
-		"flavorName": selectedFlavor,
-	}, nil
-}
-
-func GetKubeOIDCIntegration(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
-
-	var oidcConfig map[string]any
-	if err := httpLib.Client.Get(endpoint, &oidcConfig); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch OIDC configuration: %s", err)
-		return
-	}
-
-	display.OutputObject(oidcConfig, args[0], cloudKubeOIDCTemplate, &flags.OutputFormatConfig)
-}
-
-func EditKubeOIDCIntegration(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	if err := common.EditResource(
-		cmd,
-		"/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect",
-		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0])),
-		KubeOIDCConfig,
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-}
-
-func CreateKubeOIDCIntegration(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
-	if _, err := common.CreateResource(
-		cmd,
-		"/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect",
-		endpoint,
-		CloudKubeOIDCCreationExample,
-		KubeOIDCConfig,
-		assets.CloudOpenapiSchema,
-		[]string{"clientId", "issuerUrl"}); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to create OIDC integration: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ OIDC integration created successfully")
-}
-
-func DeleteKubeOIDCIntegration(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0]))
-
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete OIDC integration: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ OIDC integration deleted successfully")
-}
-
-func GetKubePrivateNetworkConfiguration(_cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/privateNetworkConfiguration", projectID, url.PathEscape(args[0]))
-
-	var privateNetworkConfig map[string]any
-	if err := httpLib.Client.Get(endpoint, &privateNetworkConfig); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch private network configuration: %s", err)
-		return
-	}
-
-	display.RenderTable([]map[string]any{privateNetworkConfig}, []string{"defaultVrackGateway", "privateNetworkRoutingAsDefault"}, &flags.OutputFormatConfig)
-}
-
-func EditKubePrivateNetworkConfiguration(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	if err := common.EditResource(
-		cmd,
-		"/cloud/project/{serviceName}/kube/{kubeId}/privateNetworkConfiguration",
-		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/privateNetworkConfiguration", projectID, url.PathEscape(args[0])),
-		KubeSpec.PrivateNetworkConfiguration,
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-}
-
-func ResetKubeCluster(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/reset", projectID, url.PathEscape(args[0]))
-	_, err = common.CreateResource(
-		cmd,
-		"/cloud/project/{serviceName}/kube/{kubeId}/reset",
-		endpoint,
-		CloudKubeResetExample,
-		KubeSpec,
-		assets.CloudOpenapiSchema,
-		nil)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to reset Kubernetes cluster: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Kubernetes cluster is being reset…")
-}
-
-func RestartKubeCluster(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	if err := httpLib.Client.Post(fmt.Sprintf("/v1/cloud/project/%s/kube/%s/restart", projectID, url.PathEscape(args[0])), map[string]any{
-		"force": KubeForceAction,
+	endpoint := managedKubernetesEndpoint(managedKubernetesClusterEndpointFormat, projectID, args[0]) + "/restart"
+	if err := httpLib.Client.Post(endpoint, map[string]any{
+		"force": ManagedKubernetesForceAction,
 	}, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to restart Kubernetes cluster: %s", err)
 		return
@@ -829,46 +635,431 @@ func RestartKubeCluster(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Kubernetes cluster restarting…")
 }
 
-func UpdateKubeCluster(_ *cobra.Command, args []string) {
+// ListManagedKubernetesNodes lists the nodes of the given node pool.
+func ListManagedKubernetesNodes(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/update", projectID, url.PathEscape(args[0]))
-
-	body := map[string]any{
-		"force": KubeForceAction,
+	query := url.Values{}
+	if ManagedKubernetesNodeIncludeDeleted {
+		query.Set("includeDeleted", "true")
 	}
-	if KubeUpdateStrategy != "" {
-		body["strategy"] = KubeUpdateStrategy
-	}
-
-	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to update Kubernetes cluster: %s", err)
-		return
+	if ManagedKubernetesNodeResourceStatus != "" {
+		query.Set("resourceStatus", ManagedKubernetesNodeResourceStatus)
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Kubernetes cluster update in progress…")
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesNodesEndpointFormat, projectID, args[0], args[1])
+	if encoded := query.Encode(); encoded != "" {
+		endpoint += "?" + encoded
+	}
+
+	common.ManageListRequestNoExpand(endpoint, managedKubernetesNodeColumnsToDisplay, flags.GenericFilters)
 }
 
-func UpdateKubeLoadBalancersSubnet(_ *cobra.Command, args []string) {
+// GetManagedKubernetesNode displays the given node.
+func GetManagedKubernetesNode(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/kube/%s/updateLoadBalancersSubnetId", projectID, url.PathEscape(args[0]))
-	body := map[string]any{
-		"loadBalancersSubnetId": args[1],
-	}
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesNodesEndpointFormat, projectID, args[0], args[1])
 
-	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to update load balancers subnet: %s", err)
+	common.ManageObjectRequest(
+		endpoint,
+		args[2],
+		managedKubernetesNodeTemplate)
+}
+
+// ListManagedKubernetesNodepools lists the node pools of the given cluster.
+func ListManagedKubernetesNodepools(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Load balancers subnet updated successfully")
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesNodepoolsEndpointFormat, projectID, args[0])
+
+	common.ManageListRequestNoExpand(endpoint, managedKubernetesNodepoolColumnsToDisplay, flags.GenericFilters)
+}
+
+// GetManagedKubernetesNodepool displays the given node pool.
+func GetManagedKubernetesNodepool(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesNodepoolsEndpointFormat, projectID, args[0])
+
+	common.ManageObjectRequest(endpoint, args[1], managedKubernetesNodepoolTemplate)
+}
+
+// EditManagedKubernetesNodepool updates the given node pool.
+func EditManagedKubernetesNodepool(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(managedKubernetesNodepoolEndpointFormat, projectID, args[0], args[1])
+
+	// The checksum read from the fetched node pool is kept by the PUT filter (optimistic locking).
+	if err := common.EditResourceWithMergeOpts(
+		cmd,
+		ManagedKubernetesV2NodepoolSchemaPath,
+		endpoint,
+		ManagedKubernetesNodepoolSpec,
+		assets.CloudV2OpenapiSchema,
+		[]func(*mergo.Config){utils.ReplaceSlices},
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+}
+
+// DeleteManagedKubernetesNodepool deletes the given node pool.
+func DeleteManagedKubernetesNodepool(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(managedKubernetesNodepoolEndpointFormat, projectID, args[0], args[1])
+	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to delete MKS node pool: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Node pool deleted successfully")
+}
+
+// CreateManagedKubernetesNodepool creates a node pool in the given cluster.
+func CreateManagedKubernetesNodepool(cmd *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	// Works on a copy so the selected flavor, backed by no flag, doesn't leak into the next run.
+	spec := ManagedKubernetesNodepoolSpec
+	if InstanceFlavorViaInteractiveSelector {
+		flavor, err := selectManagedKubernetesFlavor(args[0])
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "failed to get flavor from interactive selector: %s", err)
+			return
+		}
+		spec.TargetSpec.NodeConfig.Flavor = flavor
+	}
+
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesNodepoolsEndpointFormat, projectID, args[0])
+
+	nodepool, err := common.CreateResource(
+		cmd,
+		ManagedKubernetesV2NodepoolsSchemaPath,
+		endpoint,
+		"", // Examples come from the OpenAPI spec
+		spec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec.nodeConfig.flavor"})
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create Kubernetes node pool: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nodepool, "✅ Node pool created successfully (id: %s)", nodepool["id"])
+}
+
+// GetManagedKubernetesFlavorInteractiveSelector returns the flavor picked with the interactive
+// selector, shaped as the node pool creation payload, or nil when the selector is not requested.
+func GetManagedKubernetesFlavorInteractiveSelector(_ *cobra.Command, args []string) (map[string]any, error) {
+	if !InstanceFlavorViaInteractiveSelector {
+		return nil, nil
+	}
+
+	flavor, err := selectManagedKubernetesFlavor(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]any{
+		"targetSpec": map[string]any{
+			"nodeConfig": map[string]any{"flavor": flavor},
+		},
+	}, nil
+}
+
+// selectManagedKubernetesFlavor runs the flavor selector on the region of the given cluster.
+func selectManagedKubernetesFlavor(clusterID string) (string, error) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		return "", err
+	}
+
+	region, err := managedKubernetesRegion(projectID, clusterID)
+	if err != nil {
+		return "", err
+	}
+
+	// Picks from the MKS catalog: the instance one lists flavors node pools don't support.
+	var flavors []ManagedKubernetesFlavor
+	endpoint := managedKubernetesFlavorEndpoint(projectID, region)
+	if err := httpLib.Client.Get(endpoint, &flavors); err != nil {
+		return "", fmt.Errorf("failed to fetch available flavors: %w", err)
+	}
+
+	choices := make(map[string]string, len(flavors))
+	for _, flavor := range flavors {
+		if flavor.Status != "AVAILABLE" {
+			continue
+		}
+		label := fmt.Sprintf("%s (%d vCPUs, %d GiB", flavor.Name, flavor.Resources.Vcpus, flavor.Resources.MemoryGiB)
+		if flavor.Resources.Gpus > 0 {
+			label += fmt.Sprintf(", %d GPUs", flavor.Resources.Gpus)
+		}
+		choices[label+")"] = flavor.Name
+	}
+	if len(choices) == 0 {
+		return "", fmt.Errorf("no flavor available in region %s", region)
+	}
+
+	_, selectedFlavor, err := display.RunGenericChoicePicker("Please select a flavor", choices, 30)
+	if err != nil {
+		return "", fmt.Errorf("failed to select a flavor: %w", err)
+	}
+
+	if selectedFlavor == "" {
+		return "", errors.New("no flavor selected, exiting")
+	}
+
+	return selectedFlavor, nil
+}
+
+// managedKubernetesRegion returns the region the given cluster is deployed in.
+func managedKubernetesRegion(projectID, clusterID string) (string, error) {
+	// The region is immutable, so the target spec holds the deployed one.
+	var cluster ManagedKubernetesClusterSpec
+	endpoint := managedKubernetesEndpoint(managedKubernetesClusterEndpointFormat, projectID, clusterID)
+	if err := httpLib.Client.Get(endpoint, &cluster); err != nil {
+		return "", fmt.Errorf("failed to fetch MKS cluster details: %w", err)
+	}
+	if cluster.TargetSpec.Region == "" {
+		return "", errors.New("failed to read MKS cluster region")
+	}
+
+	return cluster.TargetSpec.Region, nil
+}
+
+// listManagedKubernetesEvents lists the events of the given cluster or node pool endpoint.
+func listManagedKubernetesEvents(endpoint string) {
+	endpoint += "/event"
+	if ManagedKubernetesEventTaskID != "" {
+		endpoint += "?taskId=" + url.QueryEscape(ManagedKubernetesEventTaskID)
+	}
+
+	body, err := httpLib.FetchArray(endpoint, "")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch results: %s", err)
+		return
+	}
+
+	// Exposes the task ID carried by the event link, so it can be passed to "task get".
+	events := make([]map[string]any, 0, len(body))
+	for _, object := range body {
+		event := object.(map[string]any)
+		if link, ok := event["link"].(string); ok {
+			if _, taskID, found := strings.Cut(link, "/task/"); found {
+				event["taskId"] = taskID
+			}
+		}
+		events = append(events, event)
+	}
+
+	events, err = filtersLib.FilterLines(events, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(events, managedKubernetesEventColumnsToDisplay, &flags.OutputFormatConfig)
+}
+
+// ListManagedKubernetesTasks lists the tasks of the given cluster.
+func ListManagedKubernetesTasks(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesTasksEndpointFormat, projectID, args[0])
+
+	common.ManageListRequestNoExpand(endpoint, managedKubernetesTaskColumnsToDisplay, flags.GenericFilters)
+}
+
+// GetManagedKubernetesTask displays the given cluster task.
+func GetManagedKubernetesTask(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesTasksEndpointFormat, projectID, args[0])
+
+	common.ManageObjectRequest(endpoint, args[1], managedKubernetesTaskTemplate)
+}
+
+// ListManagedKubernetesEvents lists the events of the given cluster.
+func ListManagedKubernetesEvents(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(managedKubernetesClusterEndpointFormat, projectID, args[0])
+
+	listManagedKubernetesEvents(endpoint)
+}
+
+// ListManagedKubernetesNodepoolTasks lists the tasks of the given node pool.
+func ListManagedKubernetesNodepoolTasks(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesNodepoolTasksEndpointFormat, projectID, args[0], args[1])
+
+	common.ManageListRequestNoExpand(endpoint, managedKubernetesTaskColumnsToDisplay, flags.GenericFilters)
+}
+
+// GetManagedKubernetesNodepoolTask displays the given node pool task.
+func GetManagedKubernetesNodepoolTask(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(ManagedKubernetesNodepoolTasksEndpointFormat, projectID, args[0], args[1])
+
+	common.ManageObjectRequest(endpoint, args[2], managedKubernetesTaskTemplate)
+}
+
+// ListManagedKubernetesNodepoolEvents lists the events of the given node pool.
+func ListManagedKubernetesNodepoolEvents(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(managedKubernetesNodepoolEndpointFormat, projectID, args[0], args[1])
+
+	listManagedKubernetesEvents(endpoint)
+}
+
+// GetManagedKubernetesEtcdUsage displays the etcd storage usage of the given cluster.
+func GetManagedKubernetesEtcdUsage(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(managedKubernetesClusterEndpointFormat, projectID, args[0]) + "/usage"
+
+	common.ManageObjectRequest(endpoint, "etcd", managedKubernetesEtcdUsageTemplate)
+}
+
+// GetManagedKubernetesVersionCapabilities displays the versions the given cluster can be updated (patch) or upgraded (minor) to.
+func GetManagedKubernetesVersionCapabilities(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesEndpoint(managedKubernetesClusterEndpointFormat, projectID, args[0]) + "/capabilities"
+
+	common.ManageObjectRequest(endpoint, "version", managedKubernetesVersionCapabilitiesTemplate)
+}
+
+// ListManagedKubernetesPlans lists the plans available in the reference region.
+func ListManagedKubernetesPlans(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesReferenceEndpoint(projectID) + "/plan?region=" + url.QueryEscape(ManagedKubernetesReferenceRegion)
+
+	common.ManageListRequestNoExpand(endpoint, managedKubernetesPlanColumnsToDisplay, flags.GenericFilters)
+}
+
+// ListManagedKubernetesRegions lists the regions where clusters can be created.
+func ListManagedKubernetesRegions(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesReferenceEndpoint(projectID) + "/region"
+
+	common.ManageListRequestNoExpand(endpoint, managedKubernetesRegionColumnsToDisplay, flags.GenericFilters)
+}
+
+// ListManagedKubernetesVersions lists the versions available for cluster creation, flagging the default one.
+func ListManagedKubernetesVersions(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	var catalog ManagedKubernetesVersionCatalog
+	endpoint := managedKubernetesReferenceEndpoint(projectID) + "/version"
+	if err := httpLib.Client.Get(endpoint, &catalog); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch Kubernetes versions: %s", err)
+		return
+	}
+
+	for _, version := range catalog.AvailableVersions {
+		version["default"] = version["version"] == catalog.DefaultVersion
+	}
+
+	versions, err := filtersLib.FilterLines(catalog.AvailableVersions, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(versions, managedKubernetesVersionColumnsToDisplay, &flags.OutputFormatConfig)
+}
+
+// ListManagedKubernetesFlavors lists the node pool flavors available in the reference region.
+func ListManagedKubernetesFlavors(_ *cobra.Command, _ []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	endpoint := managedKubernetesFlavorEndpoint(projectID, ManagedKubernetesReferenceRegion)
+
+	common.ManageListRequestNoExpand(endpoint, managedKubernetesFlavorColumnsToDisplay, flags.GenericFilters)
 }

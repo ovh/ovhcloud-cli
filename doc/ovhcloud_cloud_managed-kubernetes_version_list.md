@@ -1,11 +1,22 @@
-## ovhcloud cloud managed-kubernetes customization
+## ovhcloud cloud managed-kubernetes version list
 
-Manage Kubernetes cluster customizations
+List the versions available for Kubernetes cluster creation
+
+```
+ovhcloud cloud managed-kubernetes version list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for customization
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,7 +41,5 @@ Manage Kubernetes cluster customizations
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes](ovhcloud_cloud_managed-kubernetes.md)	 - Manage Kubernetes clusters in the given cloud project
-* [ovhcloud cloud managed-kubernetes customization edit](ovhcloud_cloud_managed-kubernetes_customization_edit.md)	 - Edit the customization of the given Kubernetes cluster
-* [ovhcloud cloud managed-kubernetes customization get](ovhcloud_cloud_managed-kubernetes_customization_get.md)	 - Get the customization of the given Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes version](ovhcloud_cloud_managed-kubernetes_version.md)	 - Explore the Kubernetes versions
 

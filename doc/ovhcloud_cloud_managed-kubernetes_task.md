@@ -1,11 +1,11 @@
-## ovhcloud cloud managed-kubernetes private-network-configuration
+## ovhcloud cloud managed-kubernetes task
 
-Manage private network configuration for Kubernetes clusters
+Inspect the asynchronous tasks of a Kubernetes cluster
 
 ### Options
 
 ```
-  -h, --help   help for private-network-configuration
+  -h, --help   help for task
 ```
 
 ### Options inherited from parent commands
@@ -31,6 +31,6 @@ Manage private network configuration for Kubernetes clusters
 ### SEE ALSO
 
 * [ovhcloud cloud managed-kubernetes](ovhcloud_cloud_managed-kubernetes.md)	 - Manage Kubernetes clusters in the given cloud project
-* [ovhcloud cloud managed-kubernetes private-network-configuration edit](ovhcloud_cloud_managed-kubernetes_private-network-configuration_edit.md)	 - Edit the private network configuration for the given Kubernetes cluster
-* [ovhcloud cloud managed-kubernetes private-network-configuration get](ovhcloud_cloud_managed-kubernetes_private-network-configuration_get.md)	 - Get the private network configuration for the given Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes task get](ovhcloud_cloud_managed-kubernetes_task_get.md)	 - Get the given Kubernetes cluster task
+* [ovhcloud cloud managed-kubernetes task list](ovhcloud_cloud_managed-kubernetes_task_list.md)	 - List the tasks of the given Kubernetes cluster
 

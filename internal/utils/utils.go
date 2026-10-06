@@ -12,12 +12,18 @@ import (
 	"dario.cat/mergo"
 )
 
-func MergeMaps(left, right map[string]any) error {
-	if err := mergo.Merge(&left, right, mergo.WithOverride, mergo.WithAppendSlice); err != nil {
+func MergeMaps(left, right map[string]any, opts ...func(*mergo.Config)) error {
+	opts = append([]func(*mergo.Config){mergo.WithOverride, mergo.WithAppendSlice}, opts...)
+	if err := mergo.Merge(&left, right, opts...); err != nil {
 		return fmt.Errorf("error merging maps: %w", err)
 	}
 
 	return nil
+}
+
+// ReplaceSlices is a MergeMaps option making a slice of right replace the one of left.
+func ReplaceSlices(config *mergo.Config) {
+	config.AppendSlice = false
 }
 
 func IsInputFromPipe() bool {

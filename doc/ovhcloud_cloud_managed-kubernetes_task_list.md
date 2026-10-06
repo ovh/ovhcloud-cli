@@ -1,17 +1,22 @@
-## ovhcloud cloud managed-kubernetes update
+## ovhcloud cloud managed-kubernetes task list
 
-Update the given Kubernetes cluster
+List the tasks of the given Kubernetes cluster
 
 ```
-ovhcloud cloud managed-kubernetes update <cluster_id> [flags]
+ovhcloud cloud managed-kubernetes task list <cluster_id> [flags]
 ```
 
 ### Options
 
 ```
-      --force             Force redeploying the control plane / reinstalling the nodes regardless of their current version
-  -h, --help              help for update
-      --strategy string   Update strategy to apply on your service (LATEST_PATCH, NEXT_MINOR)
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -36,5 +41,5 @@ ovhcloud cloud managed-kubernetes update <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes](ovhcloud_cloud_managed-kubernetes.md)	 - Manage Kubernetes clusters in the given cloud project
+* [ovhcloud cloud managed-kubernetes task](ovhcloud_cloud_managed-kubernetes_task.md)	 - Inspect the asynchronous tasks of a Kubernetes cluster
 
