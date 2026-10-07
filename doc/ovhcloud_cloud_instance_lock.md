@@ -1,16 +1,16 @@
-## ovhcloud cloud instance stop
+## ovhcloud cloud instance lock
 
-Stop the given instance
+Lock the given instance to prevent accidental actions and modifications
 
 ```
-ovhcloud cloud instance stop <instance_id> [flags]
+ovhcloud cloud instance lock <instance_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for stop
-      --wait   Wait for the instance to be stopped before exiting
+  -h, --help   help for lock
+      --wait   Wait for the instance to be locked before exiting
 ```
 
 ### Options inherited from parent commands

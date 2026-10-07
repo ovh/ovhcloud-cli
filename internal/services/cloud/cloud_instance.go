@@ -175,28 +175,18 @@ func GetInstance(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest(instanceV2Endpoint(projectID), args[0], cloudInstanceTemplate)
 }
 
-func SetInstanceName(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
+func updateInstanceTargetSpec(projectID, instanceID string, change func(targetSpec map[string]any)) (map[string]any, error) {
+	endpoint := fmt.Sprintf("%s/%s", instanceV2Endpoint(projectID), url.PathEscape(instanceID))
 
-	endpoint := fmt.Sprintf("%s/%s", instanceV2Endpoint(projectID), url.PathEscape(args[0]))
-
-	// The v2 update is declarative: send back the whole editable targetSpec
-	// (and the checksum) with only the name changed.
 	var instance map[string]any
 	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error fetching instance %q: %s", args[0], err)
-		return
+		return nil, fmt.Errorf("error fetching instance %q: %w", instanceID, err)
 	}
 	targetSpec, ok := instance["targetSpec"].(map[string]any)
 	if !ok {
-		display.OutputError(&flags.OutputFormatConfig, "instance %q has no targetSpec", args[0])
-		return
+		return nil, fmt.Errorf("instance %q has no targetSpec", instanceID)
 	}
-	targetSpec["name"] = args[1]
+	change(targetSpec)
 
 	body, err := openapi.FilterEditableFields(
 		assets.CloudV2OpenapiSchema,
@@ -205,112 +195,121 @@ func SetInstanceName(_ *cobra.Command, args []string) {
 		instance,
 	)
 	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to extract writable properties: %s", err)
-		return
+		return nil, fmt.Errorf("failed to extract writable properties: %w", err)
 	}
 
 	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error renaming instance %q: %s", args[0], err)
-		return
+		return nil, fmt.Errorf("error updating instance %q: %w", instanceID, err)
 	}
 
+	return waitForInstanceIfRequested(endpoint)
+}
+
+// runInstanceAction triggers an imperative action (reboot, rescue, lock…) on
+// the instance. When --wait is set, it returns the instance once ready.
+func runInstanceAction(projectID, instanceID, actionType string, parameters map[string]any) (map[string]any, error) {
+	endpoint := fmt.Sprintf("%s/%s", instanceV2Endpoint(projectID), url.PathEscape(instanceID))
+
+	body := map[string]any{"type": actionType}
+	if len(parameters) > 0 {
+		body["parameters"] = parameters
+	}
+
+	if err := httpLib.Client.Post(endpoint+"/action", body, nil); err != nil {
+		return nil, fmt.Errorf("error running action %s on instance %q: %w", actionType, instanceID, err)
+	}
+
+	return waitForInstanceIfRequested(endpoint)
+}
+
+func waitForInstanceIfRequested(endpoint string) (map[string]any, error) {
 	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance %s renamed to %s", args[0], args[1])
-		return
+		return nil, nil
 	}
 
 	ready, err := waitForCloudResourceReady(endpoint, 10*time.Minute)
 	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to be ready: %s", err)
+		return nil, fmt.Errorf("failed to wait for instance to be ready: %w", err)
+	}
+
+	return ready, nil
+}
+
+// outputInstanceResult prints the message matching the --wait mode.
+func outputInstanceResult(ready map[string]any, startedMessage, doneMessage string, args ...any) {
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, startedMessage, args...)
+		return
+	}
+	display.OutputInfo(&flags.OutputFormatConfig, ready, doneMessage, args...)
+}
+
+func SetInstanceName(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Instance %s renamed to %s", args[0], args[1])
+	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) {
+		targetSpec["name"] = args[1]
+	})
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	outputInstanceResult(ready, "✅ Instance %s renamed to %s", "✅ Instance %s renamed to %s", args[0], args[1])
+}
+
+func setInstancePowerState(args []string, powerState, startedMessage, doneMessage string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) {
+		targetSpec["powerState"] = powerState
+	})
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	outputInstanceResult(ready, startedMessage, doneMessage, args[0])
 }
 
 func StartInstance(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/start", projectID, url.PathEscape(args[0]))
-
-	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error starting instance %q: %s", args[0], err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance starting…")
+	setInstancePowerState(args, "ACTIVE", "⚡️ Instance starting…", "✅ Instance %s started")
 }
 
 func StopInstance(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/stop", projectID, url.PathEscape(args[0]))
-
-	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error stopping instance %q: %s", args[0], err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance stopping…")
+	setInstancePowerState(args, "SHUTOFF", "⚡️ Instance stopping…", "✅ Instance %s stopped")
 }
 
 func ShelveInstance(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/shelve", projectID, url.PathEscape(args[0]))
-
-	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error shelving instance %q: %s", args[0], err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is being shelved…")
+	setInstancePowerState(args, "SHELVED", "⚡️ Instance is being shelved…", "✅ Instance %s shelved")
 }
 
 func UnshelveInstance(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/unshelve", projectID, url.PathEscape(args[0]))
-
-	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error unshelving instance %q: %s", args[0], err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is being unshelved…")
+	setInstancePowerState(args, "ACTIVE", "⚡️ Instance is being unshelved…", "✅ Instance %s unshelved")
 }
 
-func ResumeInstance(_ *cobra.Command, args []string) {
+func instanceAction(args []string, actionType string, parameters map[string]any, startedMessage, doneMessage string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/resume", projectID, url.PathEscape(args[0]))
-
-	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error resuming instance %q: %s", args[0], err)
+	ready, err := runInstanceAction(projectID, args[0], actionType, parameters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is being resumed…")
+	outputInstanceResult(ready, startedMessage, doneMessage, args[0])
 }
 
 func RebootInstance(_ *cobra.Command, args []string) {
@@ -319,23 +318,16 @@ func RebootInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
+	instanceAction(args, "REBOOT", map[string]any{"hard": InstanceRebootType == "hard"},
+		"⚡️ Instance is rebooting…", "✅ Instance %s rebooted")
+}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/reboot", projectID, url.PathEscape(args[0]))
-	body := map[string]any{
-		"type": InstanceRebootType,
-	}
+func LockInstance(_ *cobra.Command, args []string) {
+	instanceAction(args, "LOCK", nil, "⚡️ Instance is being locked…", "✅ Instance %s locked")
+}
 
-	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error rebooting instance %q: %s", args[0], err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is rebooting…")
+func UnlockInstance(_ *cobra.Command, args []string) {
+	instanceAction(args, "UNLOCK", nil, "⚡️ Instance is being unlocked…", "✅ Instance %s unlocked")
 }
 
 func CreateInstance(cmd *cobra.Command, args []string) {
@@ -743,71 +735,17 @@ func DeleteInstanceInterface(_ *cobra.Command, args []string) {
 }
 
 func EnableInstanceInRescueMode(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/rescueMode", projectID, url.PathEscape(args[0]))
-	body := map[string]any{
-		"rescue": true,
-	}
-
+	var parameters map[string]any
 	if InstanceImageID != "" {
-		body["imageId"] = InstanceImageID
+		parameters = map[string]any{"imageId": InstanceImageID}
 	}
 
-	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error setting instance %q in rescue mode: %s", args[0], err)
-		return
-	}
-
-	log.Println("⚡️ Instance is being rebooted in rescue mode…")
-
-	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is being rebooted in rescue mode…")
-		return
-	}
-
-	if err := waitForInstanceStatus(projectID, args[0], "RESCUE"); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to be in rescue mode %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance is now in rescue mode")
+	instanceAction(args, "RESCUE", parameters,
+		"⚡️ Instance is being rebooted in rescue mode…", "✅ Instance %s is now in rescue mode")
 }
 
 func DisableInstanceRescueMode(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/rescueMode", projectID, url.PathEscape(args[0]))
-	body := map[string]any{
-		"rescue": false,
-	}
-
-	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error unsetting instance %q from rescue mode: %s", args[0], err)
-		return
-	}
-
-	log.Println("⚡️ Instance is exiting rescue mode…")
-
-	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance is exiting rescue mode…")
-		return
-	}
-
-	if err := waitForInstanceStatus(projectID, args[0], "ACTIVE"); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to exit rescue mode %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance is no longer in rescue mode")
+	instanceAction(args, "UNRESCUE", nil, "⚡️ Instance is exiting rescue mode…", "✅ Instance %s is no longer in rescue mode")
 }
 
 func SetInstanceFlavor(_ *cobra.Command, args []string) {
