@@ -1,15 +1,16 @@
-## ovhcloud cloud instance resume
+## ovhcloud cloud instance unlock
 
-Resume the given suspended instance
+Unlock the given instance
 
 ```
-ovhcloud cloud instance resume <instance_id> [flags]
+ovhcloud cloud instance unlock <instance_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for resume
+  -h, --help   help for unlock
+      --wait   Wait for the instance to be unlocked before exiting
 ```
 
 ### Options inherited from parent commands

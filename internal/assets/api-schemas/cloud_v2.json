@@ -2334,27 +2334,28 @@
       },
       "publicCloud.instance.InstanceActionParameters": {
         "type": "object",
-        "description": "Optional parameters for an instance action",
+        "description": "Instance action parameters\n\nOptional parameters refining an imperative instance action. Each field applies only to a specific action type (see InstanceActionTypeEnum) and is ignored for other actions.",
         "properties": {
           "hard": {
             "type": "boolean",
-            "description": "Whether to perform a hard reboot (only for REBOOT action)",
+            "description": "Hard reboot\n\nApplies only to the REBOOT action. When true, performs a hard reboot (power cycle) instead of a graceful, soft reboot. Defaults to a soft reboot when omitted.",
             "nullable": true
           },
           "imageId": {
             "type": "string",
-            "description": "Rescue image ID (only for RESCUE action)",
+            "description": "Rescue image\n\nApplies only to the RESCUE action. Identifier of the image to boot the instance from while in rescue mode. When omitted, the backend selects a default rescue image.",
             "nullable": true
           }
         }
       },
       "publicCloud.instance.InstanceActionRequest": {
         "type": "object",
-        "description": "Payload to perform an imperative action on an instance",
+        "description": "Instance action request\n\nPayload for triggering an imperative action on an instance (for example lock, reboot or rescue). Unlike the declarative PUT update, an action directly commands an administrative or operational state change.\n\nThe checksum from the last GET may be supplied to opt in to optimistic concurrency control; omitting it forces the action.",
         "properties": {
           "checksum": {
             "type": "string",
-            "description": "Current resource checksum for optimistic concurrency control"
+            "description": "Concurrency-control checksum\n\nOptional checksum obtained from the last GET of the instance. When supplied, it must still match the instance's current checksum or the action is rejected with a 409 checksum-mismatch conflict, protecting against a concurrent modification. When omitted or empty, the concurrency check is skipped and the action is forced (last-write-wins).",
+            "nullable": true
           },
           "parameters": {
             "allOf": [
@@ -2362,7 +2363,7 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceActionParameters"
               }
             ],
-            "description": "Optional parameters for the action",
+            "description": "Parameters\n\nOptional parameters refining the requested action (see InstanceActionParameters). Only relevant for actions that accept options, such as a hard REBOOT or a RESCUE with a specific image; omit for actions that take none.",
             "nullable": true
           },
           "type": {
@@ -2371,17 +2372,16 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceActionTypeEnum"
               }
             ],
-            "description": "The action to perform"
+            "description": "Action type\n\nThe imperative action to perform on the instance (see InstanceActionTypeEnum: LOCK, UNLOCK, REBOOT, RESCUE, UNRESCUE)."
           }
         },
         "required": [
-          "checksum",
           "type"
         ]
       },
       "publicCloud.instance.InstanceActionTypeEnum": {
         "type": "string",
-        "description": "Supported imperative action types for an instance",
+        "description": "Instance action type\n\nImperative action that can be triggered on an instance to change its administrative or operational state.\n\nValues\nLOCK — Lock the instance to prevent further actions on it, protecting it from accidental or unauthorized operations.\nUNLOCK — Remove a previously set lock, re-enabling actions on the instance.\nREBOOT — Restart the instance.\nRESCUE — Boot the instance into rescue mode from a rescue image so its root disk can be inspected or repaired.\nUNRESCUE — Return the instance from rescue mode to normal operation.",
         "enum": [
           "LOCK",
           "REBOOT",
@@ -13601,6 +13601,7 @@
     "/publicCloud/project/{projectId}/compute/instance/{instanceId}/action": {
       "post": {
         "summary": "Perform an action on a Public Cloud instance (reboot, rescue, unrescue)",
+        "description": "### Perform an instance action\n\nImperative endpoint for **power and lifecycle actions** on an instance. This is the **one place** such imperative operations live — distinct from the declarative `PUT` on the instance, which reconciles desired state from a `targetSpec` diff. Actions are **asynchronous**: the instance transitions through the relevant transient state and the response echoes the instance; poll `GET .../instance/{instanceId}` until `resourceStatus` is `READY` and `currentTasks` is empty.\n\n### Action `type`\nThe `type` field selects the operation:\n* `REBOOT` — reboot the instance (`parameters.hard` chooses a hard vs. soft reboot).\n* `START` / `STOP` — power the instance on / off.\n* `SHELVE` / `UNSHELVE` — shelve the instance (freeing hypervisor resources) and restore it.\n* `RESCUE` / `UNRESCUE` — boot into rescue mode (optionally from `parameters.imageId`) and return to normal boot.\n* `LOCK` / `UNLOCK` — lock the instance against accidental actions / modifications, and unlock it.\n\n### Optimistic concurrency (`checksum`)\nThe `checksum` is **optional**. When you send it, it must match the current server-side value or the action is rejected with a checksum-mismatch error — re-`GET` and retry. When you omit it (or send an empty string), the check is skipped and the action is forced (last-write-wins). An action requested while the instance is in an incompatible state is rejected with `ResourceInInvalidState`.",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -13777,8 +13778,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
