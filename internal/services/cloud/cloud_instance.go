@@ -281,19 +281,19 @@ func setInstancePowerState(args []string, powerState, startedMessage, doneMessag
 }
 
 func StartInstance(_ *cobra.Command, args []string) {
-	setInstancePowerState(args, "ACTIVE", "⚡️ Instance starting…", "✅ Instance %s started")
+	setInstancePowerState(args, "ACTIVE", "⚡️ Instance %s starting…", "✅ Instance %s started")
 }
 
 func StopInstance(_ *cobra.Command, args []string) {
-	setInstancePowerState(args, "SHUTOFF", "⚡️ Instance stopping…", "✅ Instance %s stopped")
+	setInstancePowerState(args, "SHUTOFF", "⚡️ Instance %s stopping…", "✅ Instance %s stopped")
 }
 
 func ShelveInstance(_ *cobra.Command, args []string) {
-	setInstancePowerState(args, "SHELVED", "⚡️ Instance is being shelved…", "✅ Instance %s shelved")
+	setInstancePowerState(args, "SHELVED", "⚡️ Instance %s is being shelved…", "✅ Instance %s shelved")
 }
 
 func UnshelveInstance(_ *cobra.Command, args []string) {
-	setInstancePowerState(args, "ACTIVE", "⚡️ Instance is being unshelved…", "✅ Instance %s unshelved")
+	setInstancePowerState(args, "ACTIVE", "⚡️ Instance %s is being unshelved…", "✅ Instance %s unshelved")
 }
 
 func instanceAction(args []string, actionType string, parameters map[string]any, startedMessage, doneMessage string) {
@@ -319,15 +319,15 @@ func RebootInstance(_ *cobra.Command, args []string) {
 	}
 
 	instanceAction(args, "REBOOT", map[string]any{"hard": InstanceRebootType == "hard"},
-		"⚡️ Instance is rebooting…", "✅ Instance %s rebooted")
+		"⚡️ Instance %s is rebooting…", "✅ Instance %s rebooted")
 }
 
 func LockInstance(_ *cobra.Command, args []string) {
-	instanceAction(args, "LOCK", nil, "⚡️ Instance is being locked…", "✅ Instance %s locked")
+	instanceAction(args, "LOCK", nil, "⚡️ Instance %s is being locked…", "✅ Instance %s locked")
 }
 
 func UnlockInstance(_ *cobra.Command, args []string) {
-	instanceAction(args, "UNLOCK", nil, "⚡️ Instance is being unlocked…", "✅ Instance %s unlocked")
+	instanceAction(args, "UNLOCK", nil, "⚡️ Instance %s is being unlocked…", "✅ Instance %s unlocked")
 }
 
 func CreateInstance(cmd *cobra.Command, args []string) {
@@ -741,11 +741,11 @@ func EnableInstanceInRescueMode(_ *cobra.Command, args []string) {
 	}
 
 	instanceAction(args, "RESCUE", parameters,
-		"⚡️ Instance is being rebooted in rescue mode…", "✅ Instance %s is now in rescue mode")
+		"⚡️ Instance %s is being rebooted in rescue mode…", "✅ Instance %s is now in rescue mode")
 }
 
 func DisableInstanceRescueMode(_ *cobra.Command, args []string) {
-	instanceAction(args, "UNRESCUE", nil, "⚡️ Instance is exiting rescue mode…", "✅ Instance %s is no longer in rescue mode")
+	instanceAction(args, "UNRESCUE", nil, "⚡️ Instance %s is exiting rescue mode…", "✅ Instance %s is no longer in rescue mode")
 }
 
 func SetInstanceFlavor(_ *cobra.Command, args []string) {
