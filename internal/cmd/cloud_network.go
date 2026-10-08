@@ -146,6 +146,7 @@ func initCloudNetworkCommand(cloudCmd *cobra.Command) {
 		Short:   "List your gateways",
 		Run:     cloud.ListGateways,
 	}
+	gatewayListCmd.Flags().StringVar(&cloud.CloudGatewayRegionFilter, "region", "", "Region to filter gateways (e.g., GRA11, BHS5)")
 	gatewayCmd.AddCommand(withFilterFlag(gatewayListCmd))
 
 	gatewayCmd.AddCommand(&cobra.Command{
