@@ -44,7 +44,7 @@ func (ms *MockSuite) TestCloudGatewayV2ListCmd(assert, require *td.T) {
 	]`))
 }
 
-func (ms *MockSuite) __PK_ENTROPY_7d6c25fcc380__(assert, require *td.T) {
+func (ms *MockSuite) TestCloudGatewayV2ListWithRegionCmd(assert, require *td.T) {
 	httpmock.RegisterResponderWithQuery(http.MethodGet,
 		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/gateway",
 		"region=GRA11",
