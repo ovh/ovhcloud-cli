@@ -1,6 +1,6 @@
 ## ovhcloud cloud storage object bucket list
 
-List S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+List S3™* compatible buckets (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 
 ```
 ovhcloud cloud storage object bucket list [flags]

@@ -1,15 +1,16 @@
 ## ovhcloud cloud storage object bucket create
 
-Create a new S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+Create a new S3™* compatible bucket (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 
 ### Synopsis
 
-Use this command to create a S3™* compatible storage container in the given cloud project.
+Use this command to create a S3™* compatible bucket in the given cloud project.
+The region is always taken from the <region> argument.
 There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud storage object bucket create BHS --name mynewContainer
+	ovhcloud cloud storage object bucket create BHS --name my-new-bucket
 
 2. Using a configuration file:
 
@@ -28,7 +29,7 @@ There are three ways to define the creation parameters:
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovhcloud cloud storage object bucket create GRA --from-file ./params.json --name nameoverriden
+	ovhcloud cloud storage object bucket create GRA --from-file ./params.json --name name-overridden
 
 3. Using your default text editor:
 
@@ -39,7 +40,7 @@ There are three ways to define the creation parameters:
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud storage object bucket create GRA --editor --name nameoverriden
+	ovhcloud cloud storage object bucket create GRA --editor --name name-overridden
 
 *S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.
 
@@ -51,19 +52,19 @@ ovhcloud cloud storage object bucket create <region> [flags]
 ### Options
 
 ```
-      --editor                            Use a text editor to define parameters
-      --encryption-sse-algorithm string   Encryption SSE Algorithm (AES256, plaintext)
-      --from-file string                  File containing parameters
-  -h, --help                              help for create
-      --init-file string                  Create a file with example parameters
-      --name string                       Name of the storage container
-      --object-lock-rule-mode string      Object lock mode (compliance, governance)
-      --object-lock-rule-period string    Object lock period (e.g., P3Y6M4DT12H30M5S)
-      --object-lock-status string         Object lock status (disabled, enabled)
-      --owner-id int                      Owner ID of the storage container
-      --replace                           Replace parameters file if it already exists
-      --tag stringToString                Container tags as key=value pairs (default [])
-      --versioning-status string          Versioning status (disabled, enabled, suspended)
+      --editor                           Use a text editor to define parameters
+      --encryption-algorithm string      Server-side encryption algorithm (AES256, PLAINTEXT)
+      --from-file string                 File containing parameters
+  -h, --help                             help for create
+      --init-file string                 Create a file with example parameters
+      --name string                      Name of the bucket (must be globally unique and DNS-compatible)
+      --object-lock-mode string          Object lock retention mode (COMPLIANCE, GOVERNANCE), requires versioning to be enabled
+      --object-lock-retention-days int   Number of days to retain objects
+      --owner-user-id string             Owner user ID of the bucket
+      --replace                          Replace parameters file if it already exists
+      --tag stringToString               Bucket tags as key=value pairs (default [])
+      --versioning-status string         Versioning status (DISABLED, ENABLED, SUSPENDED)
+      --wait                             Wait for the bucket to be ready before exiting
 ```
 
 ### Options inherited from parent commands

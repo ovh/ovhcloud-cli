@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 	"github.com/spf13/cobra"
 )
@@ -27,39 +28,40 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	storageS3ListCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+		Short:   "List S3™* compatible buckets (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 		Run:     cloud.ListCloudStorageS3,
 	}
 	bucketCmd.AddCommand(withFilterFlag(storageS3ListCmd))
 
 	// Container commands
 	bucketCmd.AddCommand(&cobra.Command{
-		Use:   "get <container_name>",
-		Short: "Get a specific S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+		Use:   "get <bucket_id>",
+		Short: "Get a specific S3™* compatible bucket (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 		Run:   cloud.GetStorageS3,
 		Args:  cobra.ExactArgs(1),
 	})
 
 	editStorageS3Cmd := &cobra.Command{
-		Use:   "edit <container_name>",
-		Short: "Edit the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+		Use:   "edit <bucket_id>",
+		Short: "Edit the given S3™* compatible bucket (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 		Run:   cloud.EditStorageS3,
 		Args:  cobra.ExactArgs(1),
 	}
-	editStorageS3Cmd.Flags().StringVar(&cloud.StorageS3Spec.Encryption.SSEAlgorithm, "encryption-sse-algorithm", "", "Encryption SSE Algorithm (AES256, plaintext)")
-	editStorageS3Cmd.Flags().StringVar(&cloud.StorageS3Spec.ObjectLock.Rule.Mode, "object-lock-rule-mode", "", "Object lock mode (compliance, governance)")
-	editStorageS3Cmd.Flags().StringVar(&cloud.StorageS3Spec.ObjectLock.Rule.Period, "object-lock-rule-period", "", "Object lock period (e.g., P3Y6M4DT12H30M5S)")
-	editStorageS3Cmd.Flags().StringVar(&cloud.StorageS3Spec.ObjectLock.Status, "object-lock-status", "", "Object lock status (disabled, enabled)")
-	editStorageS3Cmd.Flags().StringToStringVar(&cloud.StorageS3Spec.Tags, "tag", nil, "Container tags as key=value pairs")
-	editStorageS3Cmd.Flags().StringVar(&cloud.StorageS3Spec.Versioning.Status, "versioning-status", "", "Versioning status (disabled, enabled, suspended)")
+	editStorageS3Cmd.Flags().StringVar(&cloud.BucketEditSpec.TargetSpec.Encryption.Algorithm, "encryption-algorithm", "", "Server-side encryption algorithm (AES256, PLAINTEXT)")
+	editStorageS3Cmd.Flags().StringVar(&cloud.BucketEditSpec.TargetSpec.ObjectLock.Mode, "object-lock-mode", "", "Object lock retention mode (COMPLIANCE, GOVERNANCE)")
+	editStorageS3Cmd.Flags().IntVar(&cloud.BucketEditSpec.TargetSpec.ObjectLock.RetentionDays, "object-lock-retention-days", 0, "Number of days to retain objects")
+	editStorageS3Cmd.Flags().StringVar(&cloud.BucketEditSpec.TargetSpec.OwnerUserId, "owner-user-id", "", "Owner user ID of the bucket")
+	editStorageS3Cmd.Flags().StringToStringVar(&cloud.BucketEditSpec.TargetSpec.Tags, "tag", nil, "Bucket tags as key=value pairs")
+	editStorageS3Cmd.Flags().StringVar(&cloud.BucketEditSpec.TargetSpec.Versioning.Status, "versioning-status", "", "Versioning status (DISABLED, ENABLED, SUSPENDED)")
+	editStorageS3Cmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the bucket to be ready before exiting")
 	addInteractiveEditorFlag(editStorageS3Cmd)
 	bucketCmd.AddCommand(editStorageS3Cmd)
 
 	bucketCmd.AddCommand(getCloudStorageS3CreateCmd())
 
 	bucketCmd.AddCommand(&cobra.Command{
-		Use:   "delete <container_name>",
-		Short: "Delete the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+		Use:   "delete <bucket_id>",
+		Short: "Delete the given S3™* compatible bucket (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
 		Run:   cloud.DeleteStorageS3,
 		Args:  cobra.ExactArgs(1),
 	})
@@ -360,13 +362,14 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 func getCloudStorageS3CreateCmd() *cobra.Command {
 	s3CreateCmd := &cobra.Command{
 		Use:   "create <region>",
-		Short: "Create a new S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
-		Long: `Use this command to create a S3™* compatible storage container in the given cloud project.
+		Short: "Create a new S3™* compatible bucket (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)",
+		Long: `Use this command to create a S3™* compatible bucket in the given cloud project.
+The region is always taken from the <region> argument.
 There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud storage object bucket create BHS --name mynewContainer
+	ovhcloud cloud storage object bucket create BHS --name my-new-bucket
 
 2. Using a configuration file:
 
@@ -385,7 +388,7 @@ There are three ways to define the creation parameters:
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
-	ovhcloud cloud storage object bucket create GRA --from-file ./params.json --name nameoverriden
+	ovhcloud cloud storage object bucket create GRA --from-file ./params.json --name name-overridden
 
 3. Using your default text editor:
 
@@ -396,7 +399,7 @@ There are three ways to define the creation parameters:
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud storage object bucket create GRA --editor --name nameoverriden
+	ovhcloud cloud storage object bucket create GRA --editor --name name-overridden
 
 *S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.
 `,
@@ -404,17 +407,17 @@ There are three ways to define the creation parameters:
 		Args: cobra.MaximumNArgs(1),
 	}
 
-	s3CreateCmd.Flags().StringVar(&cloud.StorageS3Spec.Name, "name", "", "Name of the storage container")
-	s3CreateCmd.Flags().IntVar(&cloud.StorageS3Spec.OwnerId, "owner-id", 0, "Owner ID of the storage container")
-	s3CreateCmd.Flags().StringVar(&cloud.StorageS3Spec.Encryption.SSEAlgorithm, "encryption-sse-algorithm", "", "Encryption SSE Algorithm (AES256, plaintext)")
-	s3CreateCmd.Flags().StringVar(&cloud.StorageS3Spec.ObjectLock.Rule.Mode, "object-lock-rule-mode", "", "Object lock mode (compliance, governance)")
-	s3CreateCmd.Flags().StringVar(&cloud.StorageS3Spec.ObjectLock.Rule.Period, "object-lock-rule-period", "", "Object lock period (e.g., P3Y6M4DT12H30M5S)")
-	s3CreateCmd.Flags().StringVar(&cloud.StorageS3Spec.ObjectLock.Status, "object-lock-status", "", "Object lock status (disabled, enabled)")
-	s3CreateCmd.Flags().StringToStringVar(&cloud.StorageS3Spec.Tags, "tag", nil, "Container tags as key=value pairs")
-	s3CreateCmd.Flags().StringVar(&cloud.StorageS3Spec.Versioning.Status, "versioning-status", "", "Versioning status (disabled, enabled, suspended)")
+	s3CreateCmd.Flags().StringVar(&cloud.BucketSpec.TargetSpec.Name, "name", "", "Name of the bucket (must be globally unique and DNS-compatible)")
+	s3CreateCmd.Flags().StringVar(&cloud.BucketSpec.TargetSpec.OwnerUserId, "owner-user-id", "", "Owner user ID of the bucket")
+	s3CreateCmd.Flags().StringVar(&cloud.BucketSpec.TargetSpec.Encryption.Algorithm, "encryption-algorithm", "", "Server-side encryption algorithm (AES256, PLAINTEXT)")
+	s3CreateCmd.Flags().StringVar(&cloud.BucketSpec.TargetSpec.ObjectLock.Mode, "object-lock-mode", "", "Object lock retention mode (COMPLIANCE, GOVERNANCE), requires versioning to be enabled")
+	s3CreateCmd.Flags().IntVar(&cloud.BucketSpec.TargetSpec.ObjectLock.RetentionDays, "object-lock-retention-days", 0, "Number of days to retain objects")
+	s3CreateCmd.Flags().StringToStringVar(&cloud.BucketSpec.TargetSpec.Tags, "tag", nil, "Bucket tags as key=value pairs")
+	s3CreateCmd.Flags().StringVar(&cloud.BucketSpec.TargetSpec.Versioning.Status, "versioning-status", "", "Versioning status (DISABLED, ENABLED, SUSPENDED)")
+	s3CreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the bucket to be ready before exiting")
 
 	// Common flags for other means to define parameters
-	addParameterFileFlags(s3CreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/storage", "post", cloud.CloudStorageS3CreationExample, nil)
+	addParameterFileFlags(s3CreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/storage/object/bucket", "post", cloud.CloudStorageS3CreationExample, nil)
 	addInteractiveEditorFlag(s3CreateCmd)
 	markFlagsMutuallyExclusive(s3CreateCmd, "from-file", "editor")
 

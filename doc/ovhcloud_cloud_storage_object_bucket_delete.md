@@ -1,9 +1,9 @@
 ## ovhcloud cloud storage object bucket delete
 
-Delete the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+Delete the given S3™* compatible bucket (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 
 ```
-ovhcloud cloud storage object bucket delete <container_name> [flags]
+ovhcloud cloud storage object bucket delete <bucket_id> [flags]
 ```
 
 ### Options
