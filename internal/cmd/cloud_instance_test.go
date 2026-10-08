@@ -5,6 +5,7 @@
 package cmd_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -488,10 +489,10 @@ func (ms *MockSuite) TestCloudInstancePowerStateCmds(assert, require *td.T) {
 		targetPower  string
 		message      string
 	}{
-		{"start", "SHUTOFF", "ACTIVE", "⚡️ Instance starting…"},
-		{"stop", "ACTIVE", "SHUTOFF", "⚡️ Instance stopping…"},
-		{"shelve", "ACTIVE", "SHELVED", "⚡️ Instance is being shelved…"},
-		{"unshelve", "SHELVED", "ACTIVE", "⚡️ Instance is being unshelved…"},
+		{"start", "SHUTOFF", "ACTIVE", "⚡️ Instance fakeInstanceID starting…"},
+		{"stop", "ACTIVE", "SHUTOFF", "⚡️ Instance fakeInstanceID stopping…"},
+		{"shelve", "ACTIVE", "SHELVED", "⚡️ Instance fakeInstanceID is being shelved…"},
+		{"unshelve", "SHELVED", "ACTIVE", "⚡️ Instance fakeInstanceID is being unshelved…"},
 	} {
 		assert.RunAssertRequire(tc.command, func(assert, require *td.T) {
 			defer cmd.PostExecute()
@@ -502,10 +503,11 @@ func (ms *MockSuite) TestCloudInstancePowerStateCmds(assert, require *td.T) {
 				tdhttpmock.JSONBody(expectedInstancePutBody(tc.targetPower)),
 				httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
 
-			out, err := cmd.Execute("cloud", "instance", tc.command, "fakeInstanceID", "--cloud-project", "fakeProjectID")
+			out, err := cmd.Execute("cloud", "instance", tc.command, "fakeInstanceID", "--cloud-project", "fakeProjectID", "-o", "json")
 
 			require.CmpNoError(err)
-			assert.Cmp(out, td.Contains(tc.message))
+			// Exact match: the message must not carry unused format arguments.
+			assert.Cmp(json.RawMessage(out), td.JSON(`{"message": $1}`, tc.message))
 		})
 	}
 }
@@ -542,13 +544,13 @@ func (ms *MockSuite) TestCloudInstanceActionCmds(assert, require *td.T) {
 		body    string
 		message string
 	}{
-		{"reboot soft", []string{"reboot", "fakeInstanceID"}, `{"type": "REBOOT", "parameters": {"hard": false}}`, "⚡️ Instance is rebooting…"},
-		{"reboot hard", []string{"reboot", "fakeInstanceID", "--type", "hard"}, `{"type": "REBOOT", "parameters": {"hard": true}}`, "⚡️ Instance is rebooting…"},
-		{"rescue", []string{"reboot-rescue", "fakeInstanceID"}, `{"type": "RESCUE"}`, "⚡️ Instance is being rebooted in rescue mode…"},
-		{"rescue with image", []string{"reboot-rescue", "fakeInstanceID", "--image", "rescue-image-id"}, `{"type": "RESCUE", "parameters": {"imageId": "rescue-image-id"}}`, "⚡️ Instance is being rebooted in rescue mode…"},
-		{"exit rescue", []string{"exit-rescue", "fakeInstanceID"}, `{"type": "UNRESCUE"}`, "⚡️ Instance is exiting rescue mode…"},
-		{"lock", []string{"lock", "fakeInstanceID"}, `{"type": "LOCK"}`, "⚡️ Instance is being locked…"},
-		{"unlock", []string{"unlock", "fakeInstanceID"}, `{"type": "UNLOCK"}`, "⚡️ Instance is being unlocked…"},
+		{"reboot soft", []string{"reboot", "fakeInstanceID"}, `{"type": "REBOOT", "parameters": {"hard": false}}`, "⚡️ Instance fakeInstanceID is rebooting…"},
+		{"reboot hard", []string{"reboot", "fakeInstanceID", "--type", "hard"}, `{"type": "REBOOT", "parameters": {"hard": true}}`, "⚡️ Instance fakeInstanceID is rebooting…"},
+		{"rescue", []string{"reboot-rescue", "fakeInstanceID"}, `{"type": "RESCUE"}`, "⚡️ Instance fakeInstanceID is being rebooted in rescue mode…"},
+		{"rescue with image", []string{"reboot-rescue", "fakeInstanceID", "--image", "rescue-image-id"}, `{"type": "RESCUE", "parameters": {"imageId": "rescue-image-id"}}`, "⚡️ Instance fakeInstanceID is being rebooted in rescue mode…"},
+		{"exit rescue", []string{"exit-rescue", "fakeInstanceID"}, `{"type": "UNRESCUE"}`, "⚡️ Instance fakeInstanceID is exiting rescue mode…"},
+		{"lock", []string{"lock", "fakeInstanceID"}, `{"type": "LOCK"}`, "⚡️ Instance fakeInstanceID is being locked…"},
+		{"unlock", []string{"unlock", "fakeInstanceID"}, `{"type": "UNLOCK"}`, "⚡️ Instance fakeInstanceID is being unlocked…"},
 	} {
 		assert.RunAssertRequire(tc.name, func(assert, require *td.T) {
 			defer cmd.PostExecute()
@@ -558,10 +560,11 @@ func (ms *MockSuite) TestCloudInstanceActionCmds(assert, require *td.T) {
 				httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
 
 			args := append([]string{"cloud", "instance"}, tc.args...)
-			out, err := cmd.Execute(append(args, "--cloud-project", "fakeProjectID")...)
+			out, err := cmd.Execute(append(args, "--cloud-project", "fakeProjectID", "-o", "json")...)
 
 			require.CmpNoError(err)
-			assert.Cmp(out, td.Contains(tc.message))
+			// Exact match: the message must not carry unused format arguments.
+			assert.Cmp(json.RawMessage(out), td.JSON(`{"message": $1}`, tc.message))
 		})
 	}
 }
