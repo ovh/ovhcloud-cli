@@ -206,13 +206,6 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		}
 	}
 
-	out, err := json.MarshalIndent(parameters, "", " ")
-	if err != nil {
-		return nil, fmt.Errorf("parameters cannot be marshalled: %w", err)
-	}
-
-	log.Println("Final parameters: \n" + string(out))
-
 	var createdResource map[string]any
 	if err := httpLib.Client.Post(endpoint, parameters, &createdResource); err != nil {
 		return nil, fmt.Errorf("error creating resource: %w", err)
