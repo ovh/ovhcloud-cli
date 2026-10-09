@@ -44,14 +44,15 @@ Manage instances in the given cloud project
 * [ovhcloud cloud instance image](ovhcloud_cloud_instance_image.md)	 - List available images in the given cloud project
 * [ovhcloud cloud instance interface](ovhcloud_cloud_instance_interface.md)	 - Manage interfaces of the given instance
 * [ovhcloud cloud instance list](ovhcloud_cloud_instance_list.md)	 - List your instances
+* [ovhcloud cloud instance lock](ovhcloud_cloud_instance_lock.md)	 - Lock the given instance to prevent accidental actions and modifications
 * [ovhcloud cloud instance reboot](ovhcloud_cloud_instance_reboot.md)	 - Reboot the given instance
 * [ovhcloud cloud instance reboot-rescue](ovhcloud_cloud_instance_reboot-rescue.md)	 - Reboot the given instance in rescue mode
 * [ovhcloud cloud instance reinstall](ovhcloud_cloud_instance_reinstall.md)	 - Reinstall the given instance
-* [ovhcloud cloud instance resume](ovhcloud_cloud_instance_resume.md)	 - Resume the given suspended instance
 * [ovhcloud cloud instance set-flavor](ovhcloud_cloud_instance_set-flavor.md)	 - Migrate the given instance to the specified flavor
 * [ovhcloud cloud instance set-name](ovhcloud_cloud_instance_set-name.md)	 - Set the name of the given instance
 * [ovhcloud cloud instance shelve](ovhcloud_cloud_instance_shelve.md)	 - Shelve the given instance
 * [ovhcloud cloud instance start](ovhcloud_cloud_instance_start.md)	 - Start the given instance
 * [ovhcloud cloud instance stop](ovhcloud_cloud_instance_stop.md)	 - Stop the given instance
+* [ovhcloud cloud instance unlock](ovhcloud_cloud_instance_unlock.md)	 - Unlock the given instance
 * [ovhcloud cloud instance unshelve](ovhcloud_cloud_instance_unshelve.md)	 - Unshelve the given instance
 

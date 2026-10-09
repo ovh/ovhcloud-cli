@@ -11,6 +11,7 @@ ovhcloud cloud instance reboot <instance_id> [flags]
 ```
   -h, --help          help for reboot
   -t, --type string   Reboot type: hard or soft (default is soft) (default "soft")
+      --wait          Wait for the instance to be rebooted before exiting
 ```
 
 ### Options inherited from parent commands

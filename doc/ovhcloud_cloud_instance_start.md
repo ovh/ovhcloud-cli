@@ -10,6 +10,7 @@ ovhcloud cloud instance start <instance_id> [flags]
 
 ```
   -h, --help   help for start
+      --wait   Wait for the instance to be started before exiting
 ```
 
 ### Options inherited from parent commands

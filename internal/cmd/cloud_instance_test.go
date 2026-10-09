@@ -5,7 +5,9 @@
 package cmd_test
 
 import (
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
@@ -450,4 +452,127 @@ func (ms *MockSuite) TestCloudInstanceSetNameWaitCmd(assert, require *td.T) {
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("renamed to renamed-instance"))
 	assert.Cmp(httpmock.GetCallCountInfo()["GET https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID"], 2)
+}
+
+const instanceV2Endpoint = "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID"
+
+// instanceV2ResponseWithPowerState returns instanceV2Response with both the
+// target and current power states set to the given value.
+func instanceV2ResponseWithPowerState(powerState string) string {
+	return strings.ReplaceAll(instanceV2Response, `"powerState": "ACTIVE"`, `"powerState": "`+powerState+`"`)
+}
+
+// expectedInstancePutBody is the PUT body expected when only the power state
+// of instanceV2Response changes.
+func expectedInstancePutBody(powerState string) td.TestDeep {
+	return td.JSON(`{
+		"checksum": "abc123",
+		"targetSpec": {
+			"name": "my-instance",
+			"flavor": { "id": "flavor-d2-2" },
+			"image": { "id": "image-debian-12" },
+			"networks": [
+				{ "autoAssignPublicIp": true },
+				{ "id": "private-net-id", "subnetId": "private-subnet-id", "ip": "10.1.2.155" }
+			],
+			"powerState": $1,
+			"securityGroups": [ { "id": "sg-default" } ],
+			"volumes": [ { "id": "volume-1" } ]
+		}
+	}`, powerState)
+}
+
+func (ms *MockSuite) TestCloudInstancePowerStateCmds(assert, require *td.T) {
+	for _, tc := range []struct {
+		command      string
+		currentPower string
+		targetPower  string
+		message      string
+	}{
+		{"start", "SHUTOFF", "ACTIVE", "⚡️ Instance fakeInstanceID starting…"},
+		{"stop", "ACTIVE", "SHUTOFF", "⚡️ Instance fakeInstanceID stopping…"},
+		{"shelve", "ACTIVE", "SHELVED", "⚡️ Instance fakeInstanceID is being shelved…"},
+		{"unshelve", "SHELVED", "ACTIVE", "⚡️ Instance fakeInstanceID is being unshelved…"},
+	} {
+		assert.RunAssertRequire(tc.command, func(assert, require *td.T) {
+			defer cmd.PostExecute()
+
+			httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+				httpmock.NewStringResponder(200, instanceV2ResponseWithPowerState(tc.currentPower)))
+			httpmock.RegisterMatcherResponder(http.MethodPut, instanceV2Endpoint,
+				tdhttpmock.JSONBody(expectedInstancePutBody(tc.targetPower)),
+				httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+			out, err := cmd.Execute("cloud", "instance", tc.command, "fakeInstanceID", "--cloud-project", "fakeProjectID", "-o", "json")
+
+			require.CmpNoError(err)
+			// Exact match: the message must not carry unused format arguments.
+			assert.Cmp(json.RawMessage(out), td.JSON(`{"message": $1}`, tc.message))
+		})
+	}
+}
+
+func (ms *MockSuite) TestCloudInstanceStartWaitCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterResponder(http.MethodPut, instanceV2Endpoint,
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "instance", "start", "fakeInstanceID", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("✅ Instance fakeInstanceID started"))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceV2Endpoint], 2)
+}
+
+func (ms *MockSuite) TestCloudInstanceStopLockedCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterResponder(http.MethodPut, instanceV2Endpoint,
+		httpmock.NewStringResponder(409, `{"class": "Client::Conflict", "message": "instance is locked — unlock it before making changes: resource in invalid state"}`))
+
+	_, err := cmd.Execute("cloud", "instance", "stop", "fakeInstanceID", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("instance is locked"))
+}
+
+func (ms *MockSuite) TestCloudInstanceActionCmds(assert, require *td.T) {
+	for _, tc := range []struct {
+		name    string
+		args    []string
+		body    string
+		message string
+	}{
+		{"reboot soft", []string{"reboot", "fakeInstanceID"}, `{"type": "REBOOT", "parameters": {"hard": false}}`, "⚡️ Instance fakeInstanceID is rebooting…"},
+		{"reboot hard", []string{"reboot", "fakeInstanceID", "--type", "hard"}, `{"type": "REBOOT", "parameters": {"hard": true}}`, "⚡️ Instance fakeInstanceID is rebooting…"},
+		{"rescue", []string{"reboot-rescue", "fakeInstanceID"}, `{"type": "RESCUE"}`, "⚡️ Instance fakeInstanceID is being rebooted in rescue mode…"},
+		{"rescue with image", []string{"reboot-rescue", "fakeInstanceID", "--image", "rescue-image-id"}, `{"type": "RESCUE", "parameters": {"imageId": "rescue-image-id"}}`, "⚡️ Instance fakeInstanceID is being rebooted in rescue mode…"},
+		{"exit rescue", []string{"exit-rescue", "fakeInstanceID"}, `{"type": "UNRESCUE"}`, "⚡️ Instance fakeInstanceID is exiting rescue mode…"},
+		{"lock", []string{"lock", "fakeInstanceID"}, `{"type": "LOCK"}`, "⚡️ Instance fakeInstanceID is being locked…"},
+		{"unlock", []string{"unlock", "fakeInstanceID"}, `{"type": "UNLOCK"}`, "⚡️ Instance fakeInstanceID is being unlocked…"},
+	} {
+		assert.RunAssertRequire(tc.name, func(assert, require *td.T) {
+			defer cmd.PostExecute()
+
+			httpmock.RegisterMatcherResponder(http.MethodPost, instanceV2Endpoint+"/action",
+				tdhttpmock.JSONBody(td.JSON(tc.body)),
+				httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+			args := append([]string{"cloud", "instance"}, tc.args...)
+			out, err := cmd.Execute(append(args, "--cloud-project", "fakeProjectID", "-o", "json")...)
+
+			require.CmpNoError(err)
+			// Exact match: the message must not carry unused format arguments.
+			assert.Cmp(json.RawMessage(out), td.JSON(`{"message": $1}`, tc.message))
+		})
+	}
+}
+
+func (ms *MockSuite) TestCloudInstanceRebootInvalidTypeCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "instance", "reboot", "fakeInstanceID", "--type", "warm", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`invalid reboot type: "warm"`))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
 }
