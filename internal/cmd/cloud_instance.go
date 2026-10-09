@@ -265,9 +265,10 @@ Instance billing will get back to normal and the snapshot used to store the inst
 	reinstallCmd := &cobra.Command{
 		Use:   "reinstall <instance_id>",
 		Short: "Reinstall the given instance",
-		Long: `Use this command to reinstall the given instance.
+		Long: `Use this command to reinstall the given instance with another image.
+All data on the instance root disk will be lost.
 
-There are three ways to define the installation parameters:
+There are two ways to choose the image:
 (the following examples assume that you have already configured your default cloud project using "ovhcloud config set default_cloud_project <project_id>")
 
 1. Using only CLI flags:
@@ -278,48 +279,18 @@ There are three ways to define the installation parameters:
 
 	ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --image-selector
 
-3. Using a configuration file:
-
-  First you can generate an example of installation file using the following command:
-
-	ovhcloud cloud instance reinstall --init-file ./install.json
-
-  You will be able to choose from several installation examples. Once an example has been selected, the content is written in the given file.
-  After editing the file to set the correct installation parameters, run:
-
-	ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --from-file ./install.json
-
-  Note that you can also pipe the content of the file to reinstall, like the following:
-
-	cat ./install.json | ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122
-
-  In both cases, you can override the parameters in the given file using command line flags, for example:
-
-	ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --from-file ./install.json --image <image_id>
-
-4. Using your default text editor:
-
-	ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --editor
-
-  You will be able to choose from several installation examples. Once an example has been selected, the CLI will open your
-  default text editor to update the parameters. When saving the file, the reinstallation will be run.
-
-  Note that it is also possible to override values in the presented examples using command line flags like the following:
-
-	ovhcloud cloud instance reinstall c7e272d4-4c11-11f0-bf07-0050568ce122 --editor --image <image_id>
+The image must differ from the one the instance currently runs.
 `,
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.ReinstallInstance,
-		Args:              cobra.MaximumNArgs(1),
+		Args:              cobra.ExactArgs(1),
 	}
-	addParameterFileFlags(reinstallCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", nil)
-	addInteractiveEditorFlag(reinstallCmd)
 	reinstallCmd.Flags().StringVar(&cloud.InstanceImageID, "image", "", "Image to use for reinstallation")
 	reinstallCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
-		reinstallCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector to define installation parameters")
+		reinstallCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector to choose the image")
 	}
-	markFlagsMutuallyExclusive(reinstallCmd, "from-file", "editor", "image-selector")
+	markFlagsMutuallyExclusive(reinstallCmd, "image", "image-selector")
 	instanceCmd.AddCommand(reinstallCmd)
 
 	instanceCmd.AddCommand(&cobra.Command{
