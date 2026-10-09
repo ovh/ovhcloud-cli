@@ -10,6 +10,7 @@ ovhcloud cloud instance set-name <instance_id> <new_name> [flags]
 
 ```
   -h, --help   help for set-name
+      --wait   Wait for the instance to be ready before exiting
 ```
 
 ### Options inherited from parent commands
