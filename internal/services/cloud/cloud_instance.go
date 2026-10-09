@@ -561,14 +561,6 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	out, err := json.MarshalIndent(parameters, "", " ")
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "installation parameters cannot be marshalled: %s", err)
-		return
-	}
-
-	log.Println("Installation parameters: \n" + string(out))
-
 	var task map[string]any
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/reinstall", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, parameters, &task); err != nil {
