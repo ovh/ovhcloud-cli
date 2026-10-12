@@ -9,6 +9,7 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
+	"github.com/maxatome/tdhttpmock"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
 )
 
@@ -230,115 +231,223 @@ func (ms *MockSuite) TestCloudInstanceAutobackupCreateCmd(assert, require *td.T)
 	assert.Contains(out, "backup-new-id")
 }
 
-func (ms *MockSuite) TestCloudInstanceNullImageCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/instance/fakeInstanceID",
-		httpmock.NewStringResponder(200, `
+// instanceV2Response is a v2 instance as returned by the API (shape taken from
+// a real GET /v2/publicCloud/project/{projectId}/compute/instance/{instanceId}).
+const instanceV2Response = `{
+	"id": "fakeInstanceID",
+	"checksum": "abc123",
+	"createdAt": "2026-10-05T13:54:47Z",
+	"updatedAt": "2026-10-05T14:00:00Z",
+	"resourceStatus": "READY",
+	"currentTasks": [],
+	"targetSpec": {
+		"name": "my-instance",
+		"flavor": { "id": "flavor-d2-2" },
+		"image": { "id": "image-debian-12" },
+		"location": { "region": "GRA11" },
+		"networks": [
+			{ "autoAssignPublicIp": true },
+			{ "id": "private-net-id", "subnetId": "private-subnet-id", "ip": "10.1.2.155" }
+		],
+		"powerState": "ACTIVE",
+		"securityGroups": [ { "id": "sg-default" } ],
+		"sshKeyName": "my-key",
+		"volumes": [ { "id": "volume-1" } ]
+	},
+	"currentState": {
+		"name": "my-instance",
+		"flavor": {
+			"id": "flavor-d2-2",
+			"name": "d2-2",
+			"vcpus": 1,
+			"ram": 2000,
+			"disk": 25,
+			"gpus": 0,
+			"bandwidth": { "private": 4000, "publicInbound": 100, "publicOutbound": 100 }
+		},
+		"image": { "id": "image-debian-12", "name": "Debian 12", "defaultUser": "debian", "status": "ACTIVE" },
+		"location": { "region": "GRA11" },
+		"locked": false,
+		"networks": [
 			{
-				"id": "fakeInstanceID",
-				"name": "TestInstance",
-				"ipAddresses": [
-					{
-						"ip": "1.2.3.4",
-						"type": "public",
-						"version": 4,
-						"networkId": "bc63b98d13fbba642b2653711cc9d156ca7b404f009f7227172d37b5280a6",
-						"gatewayIp": "1.2.3.4"
-					},
-					{
-						"ip": "2001:db8::1",
-						"type": "public",
-						"version": 6,
-						"networkId": "bc63b98d13fbba642b2653711cc9d156ca7b404f009f7227172d37b5280a6",
-						"gatewayIp": "2001:db8::ff"
-					}
-				],
-				"status": "ACTIVE",
-				"created": "2025-09-24T17:21:31Z",
-				"region": "GRA9",
-				"flavor": {
-					"id": "906e8259-0340-4856-95b5-4ea2d26fe377",
-					"name": "b2-7",
-					"region": "GRA9",
-					"ram": 7,
-					"disk": 50,
-					"vcpus": 2,
-					"type": "ovh.ssd.eg",
-					"osType": "linux",
-					"inboundBandwidth": 250,
-					"outboundBandwidth": 250,
-					"available": true,
-					"planCodes": {
-						"monthly": "b2-7.monthly.postpaid",
-						"hourly": "b2-7.consumption",
-						"license": null
-					},
-					"capabilities": [
-						{
-							"name": "resize",
-							"enabled": true
-						},
-						{
-							"name": "snapshot",
-							"enabled": true
-						},
-						{
-							"name": "volume",
-							"enabled": true
-						},
-						{
-							"name": "failoverip",
-							"enabled": true
-						}
-					],
-					"quota": 791
+				"addresses": [
+					{ "ip": "51.210.167.194", "mac": "fa:16:3e:02:2d:c8", "type": "FIXED", "version": 4 },
+					{ "ip": "2001:41d0:304:300::66cf", "mac": "fa:16:3e:02:2d:c8", "type": "FIXED", "version": 6 }
+				]
+			},
+			{
+				"id": "private-net-id",
+				"subnetId": "private-subnet-id",
+				"addresses": [
+					{ "ip": "10.1.2.155", "mac": "fa:16:3e:12:77:cf", "type": "FIXED", "version": 4 }
+				]
+			}
+		],
+		"powerState": "ACTIVE",
+		"securityGroups": [ { "id": "sg-default" } ],
+		"sshKeyName": "my-key",
+		"volumes": [ { "id": "volume-1", "name": "", "size": 0 } ]
+	}
+}`
+
+func (ms *MockSuite) TestCloudInstanceListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance",
+		httpmock.NewStringResponder(200, `[
+			`+instanceV2Response+`,
+			{
+				"id": "creatingInstanceID",
+				"resourceStatus": "CREATING",
+				"targetSpec": {
+					"name": "new-instance",
+					"flavor": { "id": "flavor-d2-2" },
+					"location": { "region": "SBG5" },
+					"powerState": "ACTIVE"
 				},
-				"image": null,
-				"sshKey": null,
-				"monthlyBilling": null,
-				"planCode": "b2-7.consumption",
-				"licensePlanCode": null,
-				"operationIds": [],
-				"currentMonthOutgoingTraffic": null,
-				"rescuePassword": null,
-				"availabilityZone": null
-			}`,
-		),
-	)
+				"currentState": null
+			}
+		]`))
+
+	out, err := cmd.Execute("cloud", "instance", "list", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("fakeInstanceID"))
+	assert.Cmp(out, td.Contains("my-instance"))
+	assert.Cmp(out, td.Contains("GRA11"))
+	assert.Cmp(out, td.Contains("creatingInstanceID"))
+	assert.Cmp(out, td.Contains("new-instance"))
+	assert.Cmp(out, td.Contains("SBG5"))
+	assert.Cmp(out, td.Contains("CREATING"))
+}
+
+func (ms *MockSuite) TestCloudInstanceGetCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		httpmock.NewStringResponder(200, instanceV2Response))
 
 	out, err := cmd.Execute("cloud", "instance", "get", "fakeInstanceID", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(cleanWhitespacesHelper(out), `
-  # 🚀 Instance fakeInstanceID
+	assert.Cmp(out, td.Contains("my-instance"))
+	assert.Cmp(out, td.Re(`Status\**:\s+READY`))
+	assert.Cmp(out, td.Re(`Power state\**:\s+ACTIVE`))
+	assert.Cmp(out, td.Contains("GRA11"))
+	assert.Cmp(out, td.Contains("d2-2"))
+	assert.Cmp(out, td.Contains("Debian 12"))
+	assert.Cmp(out, td.Contains("51.210.167.194"))
+	assert.Cmp(out, td.Contains("2001:41d0:304:300::66cf"))
+	assert.Cmp(out, td.Contains("10.1.2.155"))
+	assert.Cmp(out, td.Contains("private-net-id"))
+	assert.Cmp(out, td.Contains("volume-1"))
+	assert.Cmp(out, td.Contains("sg-default"))
+	assert.Cmp(out, td.Contains("my-key"))
+	assert.Cmp(out, td.Not(td.Contains("<no value>")))
+}
 
-  *TestInstance*
+func (ms *MockSuite) TestCloudInstanceGetNotFoundCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/missingInstanceID",
+		httpmock.NewStringResponder(404, `{"class":"Client::NotFound::InstanceDoesNotExist","message":"Instance not found"}`))
 
-  ## General information
+	_, err := cmd.Execute("cloud", "instance", "get", "missingInstanceID", "--cloud-project", "fakeProjectID")
 
-  **Region**:            GRA9
-  **Availability zone**:
-  **Status**:            ACTIVE
-  **Creation date**:     2025-09-24T17:21:31Z
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("Client::NotFound::InstanceDoesNotExist"))
+}
 
-  IP addresses:
+func (ms *MockSuite) TestCloudInstanceNullImageCmd(assert, require *td.T) {
+	// A boot-from-volume instance has no image: the image section must be
+	// skipped instead of rendering empty values.
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		httpmock.NewStringResponder(200, `{
+			"id": "fakeInstanceID",
+			"resourceStatus": "READY",
+			"createdAt": "2025-09-24T17:21:31Z",
+			"targetSpec": {
+				"name": "TestInstance",
+				"flavor": { "id": "flavor-b2-7" },
+				"location": { "region": "GRA9" },
+				"powerState": "ACTIVE",
+				"volumes": [ { "id": "boot-volume" } ]
+			},
+			"currentState": {
+				"name": "TestInstance",
+				"flavor": { "id": "flavor-b2-7", "name": "b2-7", "vcpus": 2, "ram": 7000, "disk": 50 },
+				"location": { "region": "GRA9" },
+				"powerState": "ACTIVE",
+				"networks": [
+					{ "addresses": [ { "ip": "1.2.3.4", "type": "FIXED", "version": 4 } ] }
+				],
+				"volumes": [ { "id": "boot-volume" } ]
+			}
+		}`))
 
-   IP                     | Type                   | Gateway IP
-  ------------------------|------------------------|------------------------
-   1.2.3.4                | public                 | 1.2.3.4
-   2001:db8::1            | public                 | 2001:db8::ff
+	out, err := cmd.Execute("cloud", "instance", "get", "fakeInstanceID", "--cloud-project", "fakeProjectID")
 
-  ## Flavor details
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("TestInstance"))
+	assert.Cmp(out, td.Contains("b2-7"))
+	assert.Cmp(out, td.Contains("1.2.3.4"))
+	assert.Cmp(out, td.Not(td.Contains("Image")))
+	assert.Cmp(out, td.Not(td.Contains("<no value>")))
+}
 
-  **Name**:                   b2-7
-  **Operating system**:       linux
-  **Storage**:                50 GB
-  **RAM**:                    7 GB
-  **vCPUs**:                  2
-  **Max inbound bandwidth**:  250 Mbit/s
-  **Max outbound bandwidth**: 250 Mbit/s
+func (ms *MockSuite) TestCloudInstanceDeleteCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodDelete,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "DELETING"}`))
 
-  💡 Use option -o json or -o yaml to get the raw output with all information
+	out, err := cmd.Execute("cloud", "instance", "delete", "fakeInstanceID", "--cloud-project", "fakeProjectID")
 
-`)
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("Instance fakeInstanceID is being deleted"))
+}
+
+func (ms *MockSuite) TestCloudInstanceSetNameCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		httpmock.NewStringResponder(200, instanceV2Response))
+
+	// The PUT must keep the checksum (optimistic locking) and send back the
+	// whole editable targetSpec with the new name; create-only fields
+	// (location, sshKeyName, group) are not part of the update.
+	httpmock.RegisterMatcherResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc123",
+			"targetSpec": {
+				"name": "renamed-instance",
+				"flavor": { "id": "flavor-d2-2" },
+				"image": { "id": "image-debian-12" },
+				"networks": [
+					{ "autoAssignPublicIp": true },
+					{ "id": "private-net-id", "subnetId": "private-subnet-id", "ip": "10.1.2.155" }
+				],
+				"powerState": "ACTIVE",
+				"securityGroups": [ { "id": "sg-default" } ],
+				"volumes": [ { "id": "volume-1" } ]
+			}
+		}`)),
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "instance", "set-name", "fakeInstanceID", "renamed-instance", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("renamed to renamed-instance"))
+}
+
+func (ms *MockSuite) TestCloudInstanceSetNameWaitCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "instance", "set-name", "fakeInstanceID", "renamed-instance", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("renamed to renamed-instance"))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID"], 2)
 }

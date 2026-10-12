@@ -28,7 +28,13 @@ import (
 )
 
 var (
-	cloudprojectInstanceColumnsToDisplay = []string{"id", "name", "region", "flavor.name", "status"}
+	cloudprojectInstanceColumnsToDisplay = []string{
+		"id",
+		"targetSpec.name name",
+		"targetSpec.location.region region",
+		"targetSpec.powerState powerState",
+		"resourceStatus status",
+	}
 
 	//go:embed templates/cloud_instance.tmpl
 	cloudInstanceTemplate string
@@ -147,13 +153,17 @@ var (
 	}
 )
 
+func instanceV2Endpoint(projectID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/compute/instance", projectID)
+}
+
 func ListInstances(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	common.ManageListRequest(fmt.Sprintf("/v1/cloud/project/%s/instance", projectID), "id", cloudprojectInstanceColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequestNoExpand(instanceV2Endpoint(projectID), cloudprojectInstanceColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetInstance(_ *cobra.Command, args []string) {
@@ -162,7 +172,7 @@ func GetInstance(_ *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/instance", projectID), args[0], cloudInstanceTemplate)
+	common.ManageObjectRequest(instanceV2Endpoint(projectID), args[0], cloudInstanceTemplate)
 }
 
 func SetInstanceName(_ *cobra.Command, args []string) {
@@ -172,16 +182,50 @@ func SetInstanceName(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
-	body := map[string]any{
-		"instanceName": args[1],
+	endpoint := fmt.Sprintf("%s/%s", instanceV2Endpoint(projectID), url.PathEscape(args[0]))
+
+	// The v2 update is declarative: send back the whole editable targetSpec
+	// (and the checksum) with only the name changed.
+	var instance map[string]any
+	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error fetching instance %q: %s", args[0], err)
+		return
 	}
+	targetSpec, ok := instance["targetSpec"].(map[string]any)
+	if !ok {
+		display.OutputError(&flags.OutputFormatConfig, "instance %q has no targetSpec", args[0])
+		return
+	}
+	targetSpec["name"] = args[1]
+
+	body, err := openapi.FilterEditableFields(
+		assets.CloudV2OpenapiSchema,
+		"/publicCloud/project/{projectId}/compute/instance/{instanceId}",
+		"put",
+		instance,
+	)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to extract writable properties: %s", err)
+		return
+	}
+
 	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error renaming instance %q: %s", args[0], err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance %s renamed to %s", args[0], args[1])
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance %s renamed to %s", args[0], args[1])
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(endpoint, 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to be ready: %s", err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Instance %s renamed to %s", args[0], args[1])
 }
 
 func StartInstance(_ *cobra.Command, args []string) {
@@ -364,14 +408,14 @@ func DeleteInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("%s/%s", instanceV2Endpoint(projectID), url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting instance %q: %s", args[0], err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance successfully deleted")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance %s is being deleted", args[0])
 }
 
 func GetInstanceFlavorAndImageInteractiveSelector(cmd *cobra.Command, args []string) (map[string]any, error) {

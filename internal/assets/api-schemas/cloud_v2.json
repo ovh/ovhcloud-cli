@@ -26,7 +26,7 @@
         "properties": {
           "errors": {
             "type": "array",
-            "description": "Errors that occured on the task",
+            "description": "Errors that occurred on the task",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/common.TaskError"
@@ -121,9 +121,10 @@
       },
       "common.ResourceStatusEnum": {
         "type": "string",
-        "description": "ResourceStatusEnum",
+        "description": "Current status of a resource",
         "enum": [
           "CREATING",
+          "CREATION_PLANNED",
           "DELETING",
           "ERROR",
           "OUT_OF_SYNC",
@@ -214,7 +215,7 @@
       },
       "common.TaskError": {
         "type": "object",
-        "description": "Errors that occured on the task",
+        "description": "Errors that occurred on the task",
         "properties": {
           "message": {
             "type": "string",
@@ -400,9 +401,9 @@
       },
       "macAddress": {
         "type": "string",
-        "description": "MAC address (e.g., 2001:4860:4860::8844)",
+        "description": "MAC address (e.g., 00:00:5e:00:53:01)",
         "format": "mac-address",
-        "example": "2001:4860:4860::8888. 2001:4860:4860::8844"
+        "example": "00:00:5e:00:53:01"
       },
       "phoneNumber": {
         "type": "string",
@@ -2217,9 +2218,33 @@
           }
         }
       },
+      "publicCloud.instance.FlavorBandwidth": {
+        "type": "object",
+        "description": "Network bandwidth of a flavor\n\nThe bandwidth an instance of the flavor gets, in Mbit/s.",
+        "properties": {
+          "private": {
+            "type": "integer",
+            "description": "Bandwidth on private networks (vRack), in Mbit/s. Null when the flavor does not declare it.",
+            "nullable": true,
+            "readOnly": true
+          },
+          "publicInbound": {
+            "type": "integer",
+            "description": "Inbound bandwidth on the public network, in Mbit/s. Null when the flavor does not declare it.",
+            "nullable": true,
+            "readOnly": true
+          },
+          "publicOutbound": {
+            "type": "integer",
+            "description": "Outbound bandwidth on the public network, in Mbit/s. Null when the flavor does not declare it.",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
       "publicCloud.instance.ImageStatusEnum": {
         "type": "string",
-        "description": "Possible statuses for an instance image",
+        "description": "OpenStack image status\n\nLifecycle status of an instance image as reported by OpenStack Glance. It describes where the image is in its upload and availability lifecycle.\n\nValues\nQUEUED — The image identifier has been reserved in the image registry, but no image data has been uploaded yet.\nSAVING — The raw image data is currently being uploaded to the image store.\nIMPORTING — The uploaded image data is being imported and processed through the Glance import workflow.\nACTIVE — The image is fully available and can be used to boot instances.\nDEACTIVATED — Access to the image has been disabled by an administrator; the data is preserved but the image cannot be used to launch instances until reactivated.\nKILLED — An error occurred during upload or import and the image data is not usable.\nPENDING_DELETE — The image has been marked for deletion but its data has not been removed yet; it may still be restorable during the retention delay.\nDELETED — The image has been deleted and its data is scheduled for removal.",
         "enum": [
           "ACTIVE",
           "DEACTIVATED",
@@ -2243,16 +2268,16 @@
       },
       "publicCloud.instance.Instance": {
         "type": "object",
-        "description": "A Public Cloud compute instance",
+        "description": "Compute instance\n\nA Public Cloud compute instance: a virtual machine provisioned from a flavor and an image, connected to one or more networks and backed by block volumes.\n\nThe resource follows the standard desired-state / observed-state model:\ntargetSpec holds the specification you asked for.\ncurrentState reflects what the compute backend actually reports.\nresourceStatus and currentTasks describe the reconciliation between the two.\n\nUpdates are performed by sending a new targetSpec on the PUT route; the requested operations (rename, resize, power change, volume attach/detach, share attach/detach) are derived from the diff.",
         "properties": {
           "checksum": {
             "type": "string",
-            "description": "Computed hash representing the current target specification value",
+            "description": "Concurrency-control checksum\n\nComputed hash representing the current targetSpec value. It enables optional optimistic concurrency control: the value returned by a GET may be sent back in the PUT and action payloads, and the request is then rejected with a 409 checksum-mismatch conflict if it no longer matches server-side (because another request modified the instance in the meantime). Sending no checksum skips that check and forces the write (last-write-wins).",
             "readOnly": true
           },
           "createdAt": {
             "type": "string",
-            "description": "Creation date of the instance",
+            "description": "Creation date of the instance, as an ISO 8601 / RFC 3339 timestamp.",
             "format": "date-time",
             "readOnly": true
           },
@@ -2262,13 +2287,13 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceCurrentState"
               }
             ],
-            "description": "Current state of the instance",
+            "description": "Observed state\n\nCurrent observed state of the instance as reported by the compute backend (name, flavor, image, location, power state, networks, attached volumes, attached shares, security groups).\n\nIt is null while the instance is still being created and no backend state is available yet.",
             "nullable": true,
             "readOnly": true
           },
           "currentTasks": {
             "type": "array",
-            "description": "Ongoing asynchronous tasks related to the instance",
+            "description": "In-progress operations\n\nOngoing asynchronous tasks reconciling currentState toward targetSpec (for example a create, resize, reboot, volume attach or share attach). Poll the instance until this list is empty and resourceStatus is READY to know the requested change has been applied.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/common.CurrentTask"
@@ -2277,7 +2302,7 @@
           },
           "id": {
             "type": "string",
-            "description": "Unique identifier of the instance",
+            "description": "Unique identifier of the instance.",
             "format": "uuid",
             "readOnly": true
           },
@@ -2287,21 +2312,21 @@
                 "$ref": "#/components/schemas/common.ResourceStatusEnum"
               }
             ],
-            "description": "Instance readiness in the system",
+            "description": "Resource lifecycle status\n\nHigh-level readiness of the instance in the system (for example CREATING, READY, UPDATING, DELETING, ERROR).\n\nThis is distinct from currentState.powerState, which carries the lower-level OpenStack administrative power state of the virtual machine.",
             "readOnly": true
           },
           "targetSpec": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.instance.InstanceTargetSpec"
+                "$ref": "#/components/schemas/publicCloud.instance.InstanceReadTargetSpec"
               }
             ],
-            "description": "Last target specification of the instance",
+            "description": "Desired specification\n\nLast target specification requested for the instance. On update, the difference between the previous and the new targetSpec determines the operations performed (rename, resize, power change, and declarative volume/share attach-detach).",
             "readOnly": true
           },
           "updatedAt": {
             "type": "string",
-            "description": "Last update date of the instance",
+            "description": "Last modification date of the instance, as an ISO 8601 / RFC 3339 timestamp.",
             "format": "date-time",
             "readOnly": true
           }
@@ -2367,7 +2392,7 @@
       },
       "publicCloud.instance.InstanceCreation": {
         "type": "object",
-        "description": "Payload to create a Public Cloud instance",
+        "description": "Instance creation payload\n\nRequest body for creating a Public Cloud instance (POST). It wraps the desired InstanceTargetSpec, which carries every settable field including those that become immutable once the instance exists (location, sshKeyName, placement group). userData (cloud-init) is write-only — never echoed back on GET/LIST — and, unlike those fields, remains mutable after creation via PUT, though any change to it reinstalls the instance.",
         "properties": {
           "targetSpec": {
             "allOf": [
@@ -2375,7 +2400,7 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceTargetSpec"
               }
             ],
-            "description": "Desired target specification for the instance to create"
+            "description": "Desired specification\n\nFull target specification of the instance to create. See InstanceTargetSpec for the per-field creation rules and immutability constraints."
           }
         },
         "required": [
@@ -2384,7 +2409,7 @@
       },
       "publicCloud.instance.InstanceCurrentState": {
         "type": "object",
-        "description": "Current state details of an instance",
+        "description": "Observed instance state\n\nCurrent observed state of the instance as reported by the compute backend (OpenStack/Nova). It is read-only and reflects what actually exists, as opposed to targetSpec which holds what was requested.\n\nSome collections (notably shares) are only populated on a GET of a single instance and are omitted from the LIST response.",
         "properties": {
           "flavor": {
             "allOf": [
@@ -2392,7 +2417,7 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceFlavor"
               }
             ],
-            "description": "Flavor details",
+            "description": "Flavor\n\nObserved flavor of the instance with full details (name, vCPUs, RAM, local disk). See InstanceFlavor.",
             "readOnly": true
           },
           "group": {
@@ -2401,13 +2426,13 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceGroupRef"
               }
             ],
-            "description": "Instance group this instance belongs to",
+            "description": "Placement group\n\nReference to the instance (placement) group the instance belongs to, or null when it is not part of any group. Set at creation and immutable thereafter.",
             "nullable": true,
             "readOnly": true
           },
           "hostId": {
             "type": "string",
-            "description": "Host identifier",
+            "description": "Opaque identifier of the physical host the instance is running on, as exposed by OpenStack. Null when not available.",
             "nullable": true,
             "readOnly": true
           },
@@ -2417,7 +2442,8 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceImage"
               }
             ],
-            "description": "Image details",
+            "description": "Image\n\nObserved image the instance was booted from, with full details (name, size, status). Null for boot-from-volume instances, which have no image. See InstanceImage.",
+            "nullable": true,
             "readOnly": true
           },
           "location": {
@@ -2426,22 +2452,22 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceLocation"
               }
             ],
-            "description": "Location details",
+            "description": "Location\n\nObserved region and availability zone where the instance is provisioned. See InstanceLocation.",
             "readOnly": true
           },
           "locked": {
             "type": "boolean",
-            "description": "Whether the instance is locked against modifications",
+            "description": "Lock state\n\nWhether the instance is locked against modifications. When locked, mutating actions are refused until it is unlocked (see the LOCK/UNLOCK actions in InstanceActionTypeEnum).",
             "readOnly": true
           },
           "name": {
             "type": "string",
-            "description": "Instance name",
+            "description": "Observed display name of the instance.",
             "readOnly": true
           },
           "networks": {
             "type": "array",
-            "description": "List of instance networks",
+            "description": "Networks\n\nObserved network interfaces of the instance, with full details (network, subnet, gateway and per-interface addresses). One entry per network, plus at most one entry without an id for the public (Ext-Net) interface. Every address of the instance is reported through the entry's addresses list, each address typed FIXED, FLOATING or ADDITIONAL — there is no separate scalar address field. See InstanceNetwork.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/publicCloud.instance.InstanceNetwork"
@@ -2454,37 +2480,46 @@
                 "$ref": "#/components/schemas/publicCloud.instance.PowerStateEnum"
               }
             ],
-            "description": "Actual power state as reported by OpenStack",
+            "description": "Power state\n\nActual administrative power state of the instance as reported by OpenStack (see PowerStateEnum). This may transiently differ from targetSpec.powerState while a power transition is in progress.",
             "readOnly": true
           },
           "projectId": {
             "type": "string",
-            "description": "Project identifier",
+            "description": "Identifier of the Public Cloud project the instance belongs to.",
             "readOnly": true
           },
           "securityGroups": {
             "type": "array",
-            "description": "Security group references attached to the instance",
+            "description": "Security groups\n\nReferences to the security groups currently attached to the instance's ports.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/publicCloud.securityGroup.SecurityGroupRef"
             },
             "readOnly": true
           },
+          "shares": {
+            "type": "array",
+            "description": "Shares\n\nObserved instance-side share attachments. Only populated on a GET of a single instance (never in list responses).\n\nMixing per-share access rules (managed directly on the share resource) with instance-side attach on the same share is unsupported and will show the share OUT_OF_SYNC. See InstanceShare.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.instance.InstanceShare"
+            },
+            "readOnly": true
+          },
           "sshKeyName": {
             "type": "string",
-            "description": "Associated SSH key name",
+            "description": "Name of the SSH key pair injected into the instance at boot, or null when none was provided.",
             "nullable": true,
             "readOnly": true
           },
           "userId": {
             "type": "string",
-            "description": "User identifier",
+            "description": "Identifier of the OpenStack user that owns the instance.",
             "readOnly": true
           },
           "volumes": {
             "type": "array",
-            "description": "Attached block volumes",
+            "description": "Volumes\n\nObserved block volumes attached to the instance, with details (name, size). See InstanceVolume.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/publicCloud.instance.InstanceVolume"
@@ -2495,43 +2530,58 @@
       },
       "publicCloud.instance.InstanceFlavor": {
         "type": "object",
-        "description": "Flavor details of an instance",
+        "description": "Instance flavor details\n\nObserved flavor of an instance, carrying the full sizing details as reported by the backend. Used in currentState; the creation/update side references a flavor by id through InstanceFlavorRef.",
         "properties": {
+          "bandwidth": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.instance.FlavorBandwidth"
+              }
+            ],
+            "description": "Network bandwidth of the flavor, in Mbit/s. Null when the flavor is not in the catalog.",
+            "nullable": true,
+            "readOnly": true
+          },
           "disk": {
             "type": "integer",
-            "description": "Local disk size in GB",
+            "description": "Size of the flavor's local root disk, in GB.",
+            "readOnly": true
+          },
+          "gpus": {
+            "type": "integer",
+            "description": "Number of physical GPUs provided by the flavor, 0 for flavors without GPU.",
             "readOnly": true
           },
           "id": {
             "type": "string",
-            "description": "Flavor identifier",
+            "description": "Unique identifier of the flavor.",
             "format": "uuid",
             "readOnly": true
           },
           "name": {
             "type": "string",
-            "description": "Flavor name",
+            "description": "Human-readable flavor name (for example the commercial flavor label).",
             "readOnly": true
           },
           "ram": {
             "type": "integer",
-            "description": "RAM in MB",
+            "description": "Amount of RAM provided by the flavor, in MB.",
             "readOnly": true
           },
           "vcpus": {
             "type": "integer",
-            "description": "Number of vCPUs",
+            "description": "Number of virtual CPUs provided by the flavor.",
             "readOnly": true
           }
         }
       },
       "publicCloud.instance.InstanceFlavorRef": {
         "type": "object",
-        "description": "Reference to a flavor for instance target spec",
+        "description": "Instance flavor reference\n\nUser-controlled reference to the flavor that sizes the instance, used in targetSpec. It carries only the flavor id; the full observed sizing is exposed in currentState through InstanceFlavor.",
         "properties": {
           "id": {
             "type": "string",
-            "description": "Flavor identifier",
+            "description": "Identifier of the flavor to size the instance with. Changing it on update triggers a resize.",
             "format": "uuid"
           }
         },
@@ -2541,11 +2591,11 @@
       },
       "publicCloud.instance.InstanceGroupRef": {
         "type": "object",
-        "description": "Reference to an instance group",
+        "description": "Instance group reference\n\nReference to the instance (placement) group the instance belongs to, controlling affinity/anti-affinity placement. Used in targetSpec to place the instance at creation and echoed in currentState.\n\nThe group is set only at creation time and is immutable afterward — OpenStack/Nova server groups cannot be changed, so membership cannot be modified on a running instance.",
         "properties": {
           "id": {
             "type": "string",
-            "description": "Instance group identifier",
+            "description": "Identifier of the instance group. Honored only at creation time; the group cannot be changed afterward.",
             "format": "uuid"
           }
         },
@@ -2555,28 +2605,34 @@
       },
       "publicCloud.instance.InstanceImage": {
         "type": "object",
-        "description": "Image details of an instance",
+        "description": "Instance image details\n\nObserved image an instance was booted from, carrying the full details as reported by OpenStack Glance. Used in currentState; the creation/update side references an image by id through InstanceImageRef.",
         "properties": {
+          "defaultUser": {
+            "type": "string",
+            "description": "Default login user of the image, as set by its publisher, for example almalinux or ubuntu. Null when the image declares none.",
+            "nullable": true,
+            "readOnly": true
+          },
           "deprecated": {
             "type": "boolean",
-            "description": "Whether the image is deprecated",
+            "description": "Whether the image is flagged as deprecated. A deprecated image can still boot existing instances but is no longer recommended for new ones.",
             "readOnly": true
           },
           "id": {
             "type": "string",
-            "description": "Image identifier",
+            "description": "Unique identifier of the image.",
             "format": "uuid",
             "readOnly": true
           },
           "name": {
             "type": "string",
-            "description": "Image name",
+            "description": "Human-readable image name, or null when not reported by the backend.",
             "nullable": true,
             "readOnly": true
           },
           "size": {
             "type": "integer",
-            "description": "Image size in bytes",
+            "description": "Size of the image, in bytes. Null when the backend does not report it.",
             "nullable": true,
             "readOnly": true
           },
@@ -2586,7 +2642,7 @@
                 "$ref": "#/components/schemas/publicCloud.instance.ImageStatusEnum"
               }
             ],
-            "description": "Image status",
+            "description": "Lifecycle status of the image as reported by Glance (see ImageStatusEnum). Null when not reported.",
             "nullable": true,
             "readOnly": true
           }
@@ -2594,11 +2650,11 @@
       },
       "publicCloud.instance.InstanceImageRef": {
         "type": "object",
-        "description": "Reference to an image for instance target spec",
+        "description": "Instance image reference\n\nUser-controlled reference to the image the instance boots from, used in targetSpec. It carries only the image id; the full observed image is exposed in currentState through InstanceImage.",
         "properties": {
           "id": {
             "type": "string",
-            "description": "Image identifier",
+            "description": "Identifier of the image to boot from. Changing it on update triggers a rebuild of the instance.",
             "format": "uuid"
           }
         },
@@ -2608,16 +2664,16 @@
       },
       "publicCloud.instance.InstanceLocation": {
         "type": "object",
-        "description": "Instance location",
+        "description": "Instance location\n\nGeographic placement of an instance: the region and, optionally, the availability zone within that region. In targetSpec it is the desired placement (immutable after creation); in currentState it is the observed placement.",
         "properties": {
           "availabilityZone": {
             "type": "string",
-            "description": "Availability zone within the region",
+            "description": "Availability zone\n\nAvailability zone within the region where the instance is placed. Optional: when omitted at creation the backend selects a zone automatically. Immutable after creation.",
             "nullable": true
           },
           "region": {
             "type": "string",
-            "description": "Region code"
+            "description": "Region\n\nCode of the region where the instance is provisioned (for example GRA11, BHS5). Immutable after creation — an instance cannot be moved to another region."
           }
         },
         "required": [
@@ -2626,45 +2682,34 @@
       },
       "publicCloud.instance.InstanceNetwork": {
         "type": "object",
-        "description": "Network attached to the instance",
+        "description": "Instance network interface (observed)\n\nObserved network interface attached to an instance, with full details as reported by the backend. Used in currentState; the creation/update side declares interfaces through InstanceNetworkRef.",
         "properties": {
           "addresses": {
             "type": "array",
-            "description": "IP addresses",
+            "description": "Addresses\n\nEvery IP address through which the instance is reachable on this interface, each with its type, IP version and MAC address. It carries the interface's fixed addresses and, where applicable, the floating IP associated with it and any additional IPs routed to it. This is the single source of truth for the instance's observed addresses. Null or empty only while no address has been assigned yet. See InstanceNetworkAddress.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/publicCloud.instance.InstanceNetworkAddress"
             },
             "readOnly": true
           },
-          "floatingIpId": {
-            "type": "string",
-            "description": "Associated floating IP identifier",
-            "nullable": true,
-            "format": "uuid",
-            "readOnly": true
-          },
           "gatewayId": {
             "type": "string",
-            "description": "Associated gateway identifier",
+            "description": "Identifier of the gateway providing egress for this interface, or null when none applies.",
             "nullable": true,
             "format": "uuid",
             "readOnly": true
           },
           "id": {
             "type": "string",
-            "description": "Network identifier",
+            "description": "Identifier of the network this interface is attached to, or null for the public (Ext-Net) interface. There is at most one entry without an id: additional IPs are reported as ADDITIONAL addresses of that public entry instead of forming their own entry.",
+            "nullable": true,
             "format": "uuid",
-            "readOnly": true
-          },
-          "public": {
-            "type": "boolean",
-            "description": "True if the network is public, false if private",
             "readOnly": true
           },
           "subnetId": {
             "type": "string",
-            "description": "Subnet identifier",
+            "description": "Identifier of the subnet this interface draws its fixed address from, or null for an entry without a network id.",
             "nullable": true,
             "format": "uuid",
             "readOnly": true
@@ -2673,7 +2718,7 @@
       },
       "publicCloud.instance.InstanceNetworkAddress": {
         "type": "object",
-        "description": "An IP address of an instance network interface",
+        "description": "Instance network address\n\nA single IP address bound to an instance network interface, with its associated MAC address, IP version and address type.",
         "properties": {
           "ip": {
             "allOf": [
@@ -2681,7 +2726,7 @@
                 "$ref": "#/components/schemas/ip"
               }
             ],
-            "description": "IP address",
+            "description": "IP address assigned to the interface (IPv4 or IPv6).",
             "readOnly": true
           },
           "mac": {
@@ -2690,55 +2735,70 @@
                 "$ref": "#/components/schemas/macAddress"
               }
             ],
-            "description": "MAC address",
+            "description": "MAC address of the interface this IP is bound to. Null when the backend reports no interface for the address, which happens for an additional IP routed to an instance whose public interface has no visible Ext-Net address yet.",
+            "nullable": true,
             "readOnly": true
           },
           "type": {
-            "type": "string",
-            "description": "Address type (fixed, floating, ... )",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.instance.InstanceNetworkAddressTypeEnum"
+              }
+            ],
+            "description": "Address type\n\nHow this address reaches the instance: FIXED for an address assigned to the interface itself, FLOATING for a floating IP NAT'd onto it, ADDITIONAL for an additional IP routed to the public interface. See InstanceNetworkAddressTypeEnum.",
             "readOnly": true
           },
           "version": {
             "type": "integer",
-            "description": "IP version",
+            "description": "IP version of the address (4 for IPv4, 6 for IPv6).",
             "readOnly": true
           }
         }
       },
+      "publicCloud.instance.InstanceNetworkAddressTypeEnum": {
+        "type": "string",
+        "description": "Instance network address type\n\nNature of an IP address observed on an instance network interface, telling how the address reaches the instance.\n\nValues\nFIXED — An address assigned to the interface itself: the fixed address of a private interface (whether assigned by IPAM or pinned), or the platform-assigned or pinned Ext-Net address of the public interface.\nFLOATING — A floating IP NAT'd onto this interface: the address is not configured on the interface, the network translates it to the interface's fixed address.\nADDITIONAL — An additional IP (also known as a failover IP, implemented as an ipalias) routed to the instance's public interface.",
+        "enum": [
+          "ADDITIONAL",
+          "FIXED",
+          "FLOATING"
+        ]
+      },
       "publicCloud.instance.InstanceNetworkRef": {
         "type": "object",
-        "description": "Reference to a network for instance target spec",
+        "description": "Instance network reference (desired)\n\nUser-controlled entry declaring one network interface to attach to the instance in targetSpec. Which fields are set determines the meaning of the entry:\n* autoAssignPublicIp alone — a public (Ext-Net) interface with a platform-assigned public IP. At most one entry of the list may set it.\n* ip alone, without an id — a public IP the project already owns: either an additional IP, or an Ext-Net IP of the project in the instance's region. Any other address is rejected. Such an entry implicitly attaches the public (Ext-Net) interface. Several of them are allowed, and they may coexist with an autoAssignPublicIp entry.\n* id and subnetId — a private interface whose fixed address is assigned by IPAM.\n* id, subnetId and ip — a private interface where ip pins the fixed address when it falls inside the subnet CIDR, and otherwise designates an EXISTING floating IP to associate with that interface.\n\nThe enclosing networks list is declarative: adding or removing an entry attaches or detaches the corresponding interface on update.",
         "properties": {
-          "floatingIpId": {
-            "type": "string",
-            "description": "Associated floating IP identifier",
-            "nullable": true,
-            "format": "uuid"
+          "autoAssignPublicIp": {
+            "type": "boolean",
+            "description": "Auto-assign public IP\n\nWhether to attach a public (Ext-Net) interface with a public IP assigned by the platform. Only allowed on an entry that has neither an id nor an ip, and at most one entry of the networks list may set it. Requires the optional instance/usePublicIP IAM action.",
+            "nullable": true
           },
           "id": {
             "type": "string",
-            "description": "Network identifier",
+            "description": "Network\n\nIdentifier of the private network to attach to. Required, together with subnetId, for a private interface; omit it on an entry declaring public connectivity through autoAssignPublicIp or ip.",
             "nullable": true,
             "format": "uuid"
           },
-          "public": {
-            "type": "boolean",
-            "description": "True if the network is public, false if private"
+          "ip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ip"
+              }
+            ],
+            "description": "IP address\n\nAddress of this interface, whose meaning depends on the sibling fields. Without an id: a public IP the project already owns — an additional IP, or an Ext-Net IP of the project in the instance's region; any other address is rejected, and the entry implicitly attaches the public (Ext-Net) interface. On a private entry (id and subnetId): pins the interface's fixed address when the address falls inside the subnet CIDR, and otherwise designates an EXISTING floating IP to associate with that interface. A public address requires the optional instance/usePublicIP IAM action.",
+            "nullable": true
           },
           "subnetId": {
             "type": "string",
-            "description": "Subnet identifier (required for private networks)",
+            "description": "Subnet\n\nIdentifier of the subnet the interface draws its fixed address from. Required, together with id, for a private interface; leave unset on an entry declaring public connectivity.",
             "nullable": true,
             "format": "uuid"
           }
-        },
-        "required": [
-          "public"
-        ]
+        }
       },
-      "publicCloud.instance.InstanceTargetSpec": {
+      "publicCloud.instance.InstanceReadTargetSpec": {
         "type": "object",
-        "description": "Target specification for an instance",
+        "description": "Desired instance specification as returned on read\n\nLast target specification requested for the instance, as returned on read (GET/LIST). It mirrors InstanceTargetSpec but relaxes the create-only constraints: fields that are mandatory at creation are not required here, and image is nullable because boot-from-volume instances have no image.",
         "properties": {
           "flavor": {
             "allOf": [
@@ -2746,7 +2806,8 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceFlavorRef"
               }
             ],
-            "description": "Flavor reference"
+            "description": "Flavor\n\nReference to the flavor that sizes the instance (vCPUs, RAM, local disk). Carries only the flavor id.\n\nMutable: changing the referenced flavor on PUT triggers a resize of the instance.",
+            "readOnly": true
           },
           "group": {
             "allOf": [
@@ -2754,8 +2815,9 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceGroupRef"
               }
             ],
-            "description": "Instance group reference (placement policy, immutable after creation)",
-            "nullable": true
+            "description": "Placement group\n\nOptional reference to the instance (placement) group the instance is created into, controlling affinity/anti-affinity placement.\n\nImmutable: the group is set only at creation time. OpenStack/Nova server groups are immutable — there is no group change on PUT and membership cannot be changed after the instance exists.",
+            "nullable": true,
+            "readOnly": true
           },
           "image": {
             "allOf": [
@@ -2763,7 +2825,9 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceImageRef"
               }
             ],
-            "description": "Image reference"
+            "description": "Image\n\nReference to the image the instance boots from. Carries only the image id.\n\nMutable: changing the referenced image on PUT triggers a rebuild of the instance from the new image.\n\nNull for boot-from-volume instances, which have no backing image.",
+            "nullable": true,
+            "readOnly": true
           },
           "location": {
             "allOf": [
@@ -2771,19 +2835,22 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceLocation"
               }
             ],
-            "description": "Target location"
+            "description": "Target location\n\nRegion (and optional availability zone) where the instance is provisioned.\n\nImmutable after creation — an instance cannot be moved to another region/zone, which is why location is absent from InstanceUpdateTargetSpec.",
+            "readOnly": true
           },
           "name": {
             "type": "string",
-            "description": "Desired instance name"
+            "description": "Name\n\nDesired display name of the instance. Mutable: changing it on PUT triggers a rename.",
+            "readOnly": true
           },
           "networks": {
             "type": "array",
-            "description": "Network references",
+            "description": "Networks\n\nDeclarative list of network interfaces the instance is attached to. An entry with id and subnetId is a private interface, optionally carrying an ip to pin its fixed address or to associate an existing floating IP; an entry with autoAssignPublicIp alone requests a public (Ext-Net) interface with a platform-assigned public IP; an entry with ip alone attaches a public IP the project already owns, either an additional IP or an Ext-Net IP of the project in the instance's region. See InstanceNetworkRef.\n\nThe list drives the desired network topology: adding or removing an entry attaches or detaches the corresponding interface on update.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/publicCloud.instance.InstanceNetworkRef"
-            }
+            },
+            "readOnly": true
           },
           "powerState": {
             "allOf": [
@@ -2791,65 +2858,107 @@
                 "$ref": "#/components/schemas/publicCloud.instance.PowerStateEnum"
               }
             ],
-            "description": "Desired power state (defaults to ACTIVE if omitted)",
-            "nullable": true
+            "description": "Power state\n\nDesired administrative power state of the instance (see PowerStateEnum: ACTIVE, RESCUE, SHELVED, SHUTOFF).\n\nDefaults to ACTIVE when omitted.\nMutable: changing it on PUT drives the corresponding power transition (start, stop, shelve, rescue).",
+            "nullable": true,
+            "readOnly": true
           },
           "securityGroups": {
             "type": "array",
-            "description": "Security group references to apply to all instance ports",
+            "description": "Security groups\n\nOptional list of references to the security groups applied to all of the instance's ports. Each entry carries the security group id.\n\nMutable: changing this list on PUT re-applies the resulting set of security groups to every instance port.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/publicCloud.securityGroup.SecurityGroupRef"
-            }
+            },
+            "readOnly": true
+          },
+          "shares": {
+            "type": "array",
+            "description": "Shares\n\nDeclarative list of file storage (shares) attached to the instance, managed exactly like volumes: the diff of this list on PUT drives attach/detach.\n\nAttaching a share creates a Manila IP access rule for the instance's interface on the share's network — the instance MUST have an interface on that network or the operation errors. Detaching (removing an entry from this list) deletes the matching access rule and is idempotent. Each entry's accessLevel defaults to READ_WRITE when omitted (see InstanceShareRef).",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.instance.InstanceShareRef"
+            },
+            "readOnly": true
           },
           "sshKeyName": {
             "type": "string",
-            "description": "Associated SSH key name",
-            "nullable": true
+            "description": "SSH key name\n\nName of the SSH key pair injected into the instance at boot for initial access.\n\nImmutable / create-only: the key is injected once during provisioning and cannot be changed afterward, which is why sshKeyName is absent from InstanceUpdateTargetSpec.",
+            "nullable": true,
+            "readOnly": true
           },
           "volumes": {
             "type": "array",
-            "description": "Volume references",
+            "description": "Volumes\n\nDeclarative list of block volumes attached to the instance, each referencing a volume by id (see InstanceVolumeRef).\n\nAttach/detach is driven by diffing this list on PUT — there is no imperative attach/detach sub-route. Adding a volume reference attaches that volume; removing one detaches it.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/publicCloud.instance.InstanceVolumeRef"
-            }
+            },
+            "readOnly": true
           }
-        },
-        "required": [
-          "flavor",
-          "image",
-          "location",
-          "name",
-          "networks",
-          "volumes"
-        ]
+        }
       },
-      "publicCloud.instance.InstanceUpdate": {
+      "publicCloud.instance.InstanceShare": {
         "type": "object",
-        "description": "Payload to update a Public Cloud instance",
+        "description": "Instance share attachment (observed)\n\nObserved instance-side share attachment, describing the Manila IP access rule that grants the instance access to a file storage (share).\n\nIMPORTANT: this list is only populated on a GET of a single instance — it is never returned in the LIST response. Mixing per-share access rules managed directly on the share resource with instance-side attach on the SAME share is unsupported and will make the share report OUT_OF_SYNC.",
         "properties": {
-          "checksum": {
-            "type": "string",
-            "description": "Computed hash controlling concurrent modifications; represents the current target specification value"
-          },
-          "targetSpec": {
+          "accessLevel": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.instance.InstanceUpdateTargetSpec"
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageAccessLevelEnum"
               }
             ],
-            "description": "Desired target specification for the instance"
+            "description": "Access level\n\nObserved access level of the access rule for this instance (see FileStorageAccessLevelEnum: READ_ONLY, READ_WRITE).",
+            "readOnly": true
+          },
+          "accessTo": {
+            "type": "string",
+            "description": "Access target\n\nThe instance IP address the Manila access rule targets — the instance's fixed IPv4 address on the share's network.",
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Share\n\nIdentifier of the attached file storage (share).",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageAccessRuleStateEnum"
+              }
+            ],
+            "description": "Access rule state\n\nObserved state of the underlying access rule (see FileStorageAccessRuleStateEnum: ACTIVE, APPLYING, DENYING, ERROR). Null while no state has been reported yet.",
+            "nullable": true,
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.instance.InstanceShareRef": {
+        "type": "object",
+        "description": "Share attachment reference (desired)\n\nUser-controlled reference declaring a file storage (share) to attach to the instance, used within the declarative shares list of targetSpec. It carries the share id and the desired access level for the attachment.\n\nAttaching creates a Manila IP access rule for the instance's interface on the share's network; the enclosing shares list is diffed on update to drive attach/detach, exactly like volumes.",
+        "properties": {
+          "accessLevel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageAccessLevelEnum"
+              }
+            ],
+            "description": "Access level\n\nDesired access level granted to the instance for this share (see FileStorageAccessLevelEnum: READ_ONLY, READ_WRITE). Optional: defaults to READ_WRITE when omitted.",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Share\n\nIdentifier of the file storage (share) to attach. Adding this reference attaches the share to the instance; removing it from the shares list detaches it.",
+            "format": "uuid"
           }
         },
         "required": [
-          "checksum",
-          "targetSpec"
+          "id"
         ]
       },
-      "publicCloud.instance.InstanceUpdateTargetSpec": {
+      "publicCloud.instance.InstanceTargetSpec": {
         "type": "object",
-        "description": "Target specification for updating an instance (location cannot be changed after creation)",
+        "description": "Desired instance specification (creation)\n\nUser-controlled specification of a compute instance, as supplied on creation (POST). It carries every settable field, including fields that become immutable once the instance exists (location, sshKeyName, group).\n\nNetworks, volumes and shares are declarative lists: on update, the requested topology is reconciled by diffing these lists against the current attachments. The PUT route uses a reduced InstanceUpdateTargetSpec that only exposes the mutable fields.",
         "properties": {
           "flavor": {
             "allOf": [
@@ -2857,7 +2966,16 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceFlavorRef"
               }
             ],
-            "description": "Flavor reference"
+            "description": "Flavor\n\nReference to the flavor that sizes the instance (vCPUs, RAM, local disk). Carries only the flavor id.\n\nMutable: changing the referenced flavor on PUT triggers a resize of the instance."
+          },
+          "group": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.instance.InstanceGroupRef"
+              }
+            ],
+            "description": "Placement group\n\nOptional reference to the instance (placement) group the instance is created into, controlling affinity/anti-affinity placement.\n\nImmutable: the group is set only at creation time. OpenStack/Nova server groups are immutable — there is no group change on PUT and membership cannot be changed after the instance exists.",
+            "nullable": true
           },
           "image": {
             "allOf": [
@@ -2865,15 +2983,24 @@
                 "$ref": "#/components/schemas/publicCloud.instance.InstanceImageRef"
               }
             ],
-            "description": "Image reference"
+            "description": "Image\n\nReference to the image the instance boots from. Carries only the image id.\n\nMutable: changing the referenced image on PUT triggers a rebuild of the instance from the new image.",
+            "nullable": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.instance.InstanceLocation"
+              }
+            ],
+            "description": "Target location\n\nRegion (and optional availability zone) where the instance is provisioned.\n\nImmutable after creation — an instance cannot be moved to another region/zone, which is why location is absent from InstanceUpdateTargetSpec."
           },
           "name": {
             "type": "string",
-            "description": "Desired instance name"
+            "description": "Name\n\nDesired display name of the instance. Mutable: changing it on PUT triggers a rename."
           },
           "networks": {
             "type": "array",
-            "description": "Network references",
+            "description": "Networks\n\nDeclarative list of network interfaces the instance is attached to. An entry with id and subnetId is a private interface, optionally carrying an ip to pin its fixed address or to associate an existing floating IP; an entry with autoAssignPublicIp alone requests a public (Ext-Net) interface with a platform-assigned public IP; an entry with ip alone attaches a public IP the project already owns, either an additional IP or an Ext-Net IP of the project in the instance's region. See InstanceNetworkRef.\n\nThe list drives the desired network topology: adding or removing an entry attaches or detaches the corresponding interface on update.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/publicCloud.instance.InstanceNetworkRef"
@@ -2885,20 +3012,38 @@
                 "$ref": "#/components/schemas/publicCloud.instance.PowerStateEnum"
               }
             ],
-            "description": "Desired power state (defaults to ACTIVE if omitted)",
+            "description": "Power state\n\nDesired administrative power state of the instance (see PowerStateEnum: ACTIVE, RESCUE, SHELVED, SHUTOFF).\n\nDefaults to ACTIVE when omitted.\nMutable: changing it on PUT drives the corresponding power transition (start, stop, shelve, rescue).",
             "nullable": true
           },
           "securityGroups": {
             "type": "array",
-            "description": "Security group references to apply to all instance ports",
+            "description": "Security groups\n\nOptional list of references to the security groups applied to all of the instance's ports. Each entry carries the security group id.\n\nMutable: changing this list on PUT re-applies the resulting set of security groups to every instance port.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/publicCloud.securityGroup.SecurityGroupRef"
             }
           },
+          "shares": {
+            "type": "array",
+            "description": "Shares\n\nDeclarative list of file storage (shares) attached to the instance, managed exactly like volumes: the diff of this list on PUT drives attach/detach.\n\nAttaching a share creates a Manila IP access rule for the instance's interface on the share's network — the instance MUST have an interface on that network or the operation errors. Detaching (removing an entry from this list) deletes the matching access rule and is idempotent. Each entry's accessLevel defaults to READ_WRITE when omitted (see InstanceShareRef).",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.instance.InstanceShareRef"
+            }
+          },
+          "sshKeyName": {
+            "type": "string",
+            "description": "SSH key name\n\nName of the SSH key pair injected into the instance at boot for initial access.\n\nImmutable / create-only: the key is injected once during provisioning and cannot be changed afterward, which is why sshKeyName is absent from InstanceUpdateTargetSpec.",
+            "nullable": true
+          },
+          "userData": {
+            "type": "string",
+            "description": "User data (cloud-init)\n\nBase64-encoded (strict standard encoding) cloud-init payload handed to the instance at boot through the OpenStack metadata service / config drive, and interpreted by cloud-init inside the guest image. The submitted string itself must be at most 65535 bytes once base64-encoded.\n\nWrite-only: never returned by GET/LIST — deliberately absent from InstanceReadTargetSpec and InstanceCurrentState. Not persisted or stored by the Public Cloud API: the payload is handed to the compute service, which makes it available to the instance via the metadata service; only a non-reversible fingerprint of the value is retained, for change detection.\n\nMutable, but destructively: changing userData on PUT REINSTALLS the instance (a Nova rebuild on the current image), wiping the root disk and all data on it. See InstanceUpdateTargetSpec for the tri-state update semantics.",
+            "nullable": true
+          },
           "volumes": {
             "type": "array",
-            "description": "Volume references",
+            "description": "Volumes\n\nDeclarative list of block volumes attached to the instance, each referencing a volume by id (see InstanceVolumeRef).\n\nAttach/detach is driven by diffing this list on PUT — there is no imperative attach/detach sub-route. Adding a volume reference attaches that volume; removing one detaches it.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/publicCloud.instance.InstanceVolumeRef"
@@ -2907,41 +3052,138 @@
         },
         "required": [
           "flavor",
-          "image",
-          "name",
-          "networks",
-          "volumes"
+          "location",
+          "name"
+        ]
+      },
+      "publicCloud.instance.InstanceUpdate": {
+        "type": "object",
+        "description": "Instance update payload\n\nRequest body for updating a Public Cloud instance (PUT). It wraps the reduced InstanceUpdateTargetSpec (mutable fields only) together with an optional checksum for optimistic concurrency control. The operation actually performed (rename, resize, power change, volume/share attach-detach) is derived from the diff against the current targetSpec.",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Concurrency-control checksum\n\nOptional checksum obtained from the last GET of the instance. When supplied, it must still match the instance's current checksum or the update is rejected with a 409 checksum-mismatch conflict, protecting against a concurrent modification. When omitted or empty, the concurrency check is skipped and the update is forced (last-write-wins).",
+            "nullable": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.instance.InstanceUpdateTargetSpec"
+              }
+            ],
+            "description": "Desired specification (mutable fields)\n\nUpdated target specification restricted to the fields that can change after creation. Immutable fields (location, sshKeyName, placement group) are intentionally absent — see InstanceUpdateTargetSpec. userData is write-only (never echoed back) and follows tri-state semantics; changing it (clearing or replacing) reinstalls the instance."
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.instance.InstanceUpdateTargetSpec": {
+        "type": "object",
+        "description": "Desired instance specification (update)\n\nReduced target specification used on the PUT route, exposing only the fields that can change after creation. Immutable, create-only fields are intentionally absent: location, sshKeyName and the placement group cannot be changed once the instance exists.\n\nNetworks, volumes and shares remain declarative: the requested topology is reconciled by diffing these lists against the current attachments.",
+        "properties": {
+          "flavor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.instance.InstanceFlavorRef"
+              }
+            ],
+            "description": "Flavor\n\nReference to the desired flavor (vCPUs, RAM, local disk). Carries only the flavor id.\n\nMutable: sending a different flavor triggers a resize of the instance."
+          },
+          "image": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.instance.InstanceImageRef"
+              }
+            ],
+            "description": "Image\n\nReference to the desired image. Carries only the image id.\n\nMutable: sending a different image triggers a rebuild of the instance from the new image.",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name\n\nDesired display name of the instance. Mutable: changing it triggers a rename."
+          },
+          "networks": {
+            "type": "array",
+            "description": "Networks\n\nDeclarative list of network interfaces the instance is attached to (see InstanceNetworkRef). The list drives the desired network topology: adding or removing an entry attaches or detaches the corresponding interface.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.instance.InstanceNetworkRef"
+            }
+          },
+          "powerState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.instance.PowerStateEnum"
+              }
+            ],
+            "description": "Power state\n\nDesired administrative power state (see PowerStateEnum: ACTIVE, RESCUE, SHELVED, SHUTOFF).\n\nDefaults to ACTIVE when omitted.\nMutable: changing it drives the corresponding power transition (start, stop, shelve, rescue).",
+            "nullable": true
+          },
+          "securityGroups": {
+            "type": "array",
+            "description": "Security groups\n\nOptional list of references to the security groups applied to all of the instance's ports. Mutable: changing this list re-applies the resulting set of security groups to every instance port.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.securityGroup.SecurityGroupRef"
+            }
+          },
+          "shares": {
+            "type": "array",
+            "description": "Shares\n\nDeclarative list of file storage (shares) attached to the instance, managed exactly like volumes: the diff of this list drives attach/detach.\n\nAttaching a share creates a Manila IP access rule for the instance's interface on the share's network — the instance MUST have an interface on that network or the operation errors. Detaching (removing an entry from this list) deletes the matching access rule and is idempotent. Each entry's accessLevel defaults to READ_WRITE when omitted (see InstanceShareRef).",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.instance.InstanceShareRef"
+            }
+          },
+          "userData": {
+            "type": "string",
+            "description": "User data (cloud-init)\n\nBase64-encoded (strict standard encoding) cloud-init payload, at most 65535 bytes once base64-encoded. Write-only: never returned by GET/LIST. Not persisted or stored by the Public Cloud API: the payload is handed to the compute service, which makes it available to the instance via the metadata service on boot/rebuild; only a non-reversible fingerprint of the value is retained, for change detection.\n\nTri-state: omitted or null keeps the current value unchanged; an empty string clears it; a non-empty value replaces it.\n\nDestructive: any change (clear or replace) REINSTALLS the instance — a Nova rebuild on the current image — wiping the root disk and all data on it.",
+            "nullable": true
+          },
+          "volumes": {
+            "type": "array",
+            "description": "Volumes\n\nDeclarative list of block volumes attached to the instance (see InstanceVolumeRef). Attach/detach is driven by diffing this list — adding a reference attaches the volume, removing one detaches it. There is no imperative attach/detach sub-route.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.instance.InstanceVolumeRef"
+            }
+          }
+        },
+        "required": [
+          "flavor",
+          "name"
         ]
       },
       "publicCloud.instance.InstanceVolume": {
         "type": "object",
-        "description": "Volume attached to the instance",
+        "description": "Instance volume details\n\nObserved block volume attached to an instance, carrying the details reported by the backend. Used in currentState; the creation/update side references a volume by id through InstanceVolumeRef.",
         "properties": {
           "id": {
             "type": "string",
-            "description": "Volume identifier",
+            "description": "Unique identifier of the attached volume.",
             "format": "uuid",
             "readOnly": true
           },
           "name": {
             "type": "string",
-            "description": "Volume name",
+            "description": "Display name of the attached volume.",
             "readOnly": true
           },
           "size": {
             "type": "integer",
-            "description": "Volume size in GB",
+            "description": "Size of the attached volume, in GB.",
             "readOnly": true
           }
         }
       },
       "publicCloud.instance.InstanceVolumeRef": {
         "type": "object",
-        "description": "Reference to a volume for instance target spec",
+        "description": "Instance volume reference\n\nUser-controlled reference to a block volume attached to the instance, used within the declarative volumes list of targetSpec. It carries only the volume id; the full observed volume is exposed in currentState through InstanceVolume.",
         "properties": {
           "id": {
             "type": "string",
-            "description": "Volume identifier",
+            "description": "Identifier of the volume to attach. Adding this reference attaches the volume; removing it from the volumes list detaches it.",
             "format": "uuid"
           }
         },
@@ -2951,7 +3193,7 @@
       },
       "publicCloud.instance.PowerStateEnum": {
         "type": "string",
-        "description": "Desired power state for an instance",
+        "description": "Instance power state\n\nPower state of an instance as reported by OpenStack Nova, also used to express the desired power state when driving the instance.\n\nValues\nACTIVE — The instance is running and powered on.\nSHUTOFF — The instance is powered off (stopped) but its resources remain allocated.\nSHELVED — The instance is shelved: it is powered off and its compute resources are released, so it can be unshelved later to resume it.\nRESCUE — The instance is booted in rescue mode from a rescue image.",
         "enum": [
           "ACTIVE",
           "RESCUE",
@@ -12587,6 +12829,7 @@
     "/publicCloud/project/{projectId}/compute/instance": {
       "get": {
         "summary": "List Public Cloud instances",
+        "description": "### List instances\n\nLists all instances in the project. Each item is a full instance envelope with the same shape as the `GET` route (desired `targetSpec` and observed `currentState`).\n\n### Filesystem attachments\nFor performance, `currentState.shares` is **not** populated in list responses. To see the filesystems attached to a given instance, call `GET .../instance/{instanceId}` on it.",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -12639,8 +12882,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -12654,6 +12897,7 @@
       },
       "post": {
         "summary": "Create a new Public Cloud instance",
+        "description": "### Create an instance\n\nProvisions a new instance from the supplied `targetSpec`. Creation is **asynchronous**: the resource starts in `CREATING` and becomes `READY` once the backend has booted it. Poll `GET .../instance/{instanceId}` until `resourceStatus` is `READY` and `currentTasks` is empty.\n\n### Create-time-only fields (immutable afterward)\nSeveral fields can be set **only at creation** and can never be changed later:\n* `location` — the region (and optional availability zone) the instance is deployed in.\n* `sshKeyName` — the SSH key injected into the instance at boot.\n* `group` — **placement / instance-group membership**. It binds the instance to an existing instance group (Nova server group) for `AFFINITY` / `ANTI_AFFINITY` scheduling. Server-group membership is fixed by OpenStack at boot and cannot be added, removed, or changed afterward — there is no group `PUT`.\n\n### User data (cloud-init)\n`targetSpec.userData` is a base64-encoded (strict standard encoding) cloud-init payload handed to the instance at boot through the OpenStack metadata service / config drive, and interpreted by cloud-init inside the guest image. The encoded string must be at most 65535 bytes. It is **write-only**: the value is never returned by `GET`/`LIST`. It is also not persisted or stored by the Public Cloud API: the payload is handed to the compute service, which makes it available to the instance via the metadata service; only a non-reversible fingerprint of the value is retained, for change detection. Unlike the create-time-only fields above, `userData` can be changed later via `PUT` — see the `PUT` route for the destructive semantics of doing so.\n\n### Declarative `volumes`\n`targetSpec.volumes` is a **declarative list** of block-volume references attached to the instance. Supply the volumes to attach at boot; on a subsequent `PUT` the list is diffed to attach or detach volumes (see the `PUT` route). There is no imperative attach/detach endpoint.\n\n### Declarative `shares`\n`targetSpec.shares` is a **declarative list** of filesystem (Manila share) attachments. Each entry references a share plus an optional per-entry `accessLevel` (defaults to `READ_WRITE`). At creation, each attach creates a Manila IP access rule for the instance's interface on the share's network — the instance must have an interface on that network. As with volumes, the list is reconciled by diffing on `PUT`.\n\n### Declarative `networks` and public IPs\n`targetSpec.networks` is a **declarative list** of network interfaces. Each entry is `{id?, subnetId?, ip?, autoAssignPublicIp?}`, and the fields you set decide what it means:\n* `{\"autoAssignPublicIp\": true}` — a public (Ext-Net) interface with a **platform-assigned** public IP. **At most one** entry may set it.\n* `{\"ip\": \"...\"}` **without** a network `id` — a public IP the project **already owns**: either an **existing additional IP** (also known as a failover IP), or an **Ext-Net IP of the project** in the instance's region. Any other address is rejected. Such an entry implicitly attaches the public (Ext-Net) interface. **Several** are allowed, and they may coexist with an `autoAssignPublicIp` entry.\n* `{\"id\": \"...\", \"subnetId\": \"...\"}` — a private interface whose fixed address is assigned by IPAM.\n* `{\"id\": \"...\", \"subnetId\": \"...\", \"ip\": \"...\"}` — a private interface where `ip` **pins the fixed address** when it falls inside the subnet CIDR, and otherwise designates an **existing floating IP** to associate with that interface (the floating IP must already exist).\n\nAny entry that sets `autoAssignPublicIp` or carries a public `ip` requires the optional `instance/usePublicIP` IAM action, including floating IP associations.\n\nIn `currentState.networks` the shape is different: there is one entry per network plus at most one id-less entry for the public (Ext-Net) interface, and **every** address is reported through that entry's `addresses` list — there is no scalar `ip`. Each address carries a `type`: `FIXED` for an address configured on the interface itself (a private fixed address, whether IPAM-assigned or pinned, and the Ext-Net address), `FLOATING` for a floating IP associated with the interface, and `ADDITIONAL` for an additional IP routed to the public interface (additional IPs no longer form their own entry). `autoAssignPublicIp` is never echoed back, because the backend cannot distinguish a platform-assigned address from a pinned one.",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -12693,16 +12937,16 @@
                       "name": "b2-7-gra1",
                       "networks": [
                         {
-                          "public": true
+                          "autoAssignPublicIp": true
                         },
                         {
-                          "floatingIpId": "2a5d5f2f-f9b8-4e9e-b3c2-4f7c9e3d0a11",
                           "id": "07e9dc62-8879-4a84-afc9-aae07640f4d9",
-                          "public": false,
+                          "ip": "141.94.203.10",
                           "subnetId": "de04e8aa-f187-11f0-8eac-0050568ce122"
                         }
                       ],
                       "sshKeyName": "example-key",
+                      "userData": "I2Nsb3VkLWNvbmZpZwpwYWNrYWdlX3VwZGF0ZTogdHJ1ZQ==",
                       "volumes": [
                         {
                           "id": "3809b388-066f-4c79-9d77-881a7cd19629"
@@ -12797,8 +13041,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -12808,7 +13052,7 @@
           },
           {
             "name": "publicCloudProject:apiovh:instance/usePublicIP",
-            "description": "Required when configuring a public network",
+            "description": "Required when any networks entry sets autoAssignPublicIp or carries a public ip, including floating IP associations",
             "required": false
           }
         ]
@@ -12817,6 +13061,7 @@
     "/publicCloud/project/{projectId}/compute/instance/{instanceId}": {
       "delete": {
         "summary": "Delete a Public Cloud instance",
+        "description": "### Delete an instance\n\nPermanently deletes a Public Cloud instance. Deletion is **asynchronous**: the resource transitions to `DELETING`, the response echoes the instance, and the backend then removes it. Poll `GET .../instance/{instanceId}` until it returns `InstanceDoesNotExist` (`404`) to confirm removal.\n\n**Behavior**\n* Independent **block volumes** attached to the instance are **detached**, not deleted — they are separate resources and survive.\n* **Filesystem (share) attachments** are released as part of the teardown.\n\nA delete already in progress is reported as `ResourceAlreadyBeingDeleted`; an instance in a transient or otherwise invalid state may be rejected with `ResourceInInvalidState`.",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -12924,8 +13169,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -12937,6 +13182,7 @@
       },
       "get": {
         "summary": "Get a Public Cloud instance",
+        "description": "### Get an instance\n\nReturns a single Public Cloud instance, including its desired `targetSpec` and observed `currentState`.\n\n### Optimistic concurrency\nThe `checksum` returned here is the hash of the current `targetSpec`. Keep it and send it back on any subsequent `PUT` or imperative `action` call on the instance to guard against lost updates — it is optional, but omitting it forces the write (see the `PUT` route).\n\n### Filesystem attachments\n`currentState.shares` — the list of filesystems (Manila shares) attached to the instance — is populated **only on this single-instance `GET`**. It is deliberately **not** returned by the `LIST` route for performance reasons; fetch the individual instance when you need it.",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -12978,7 +13224,13 @@
                       "createdAt": "2026-01-13T07:44:09Z",
                       "currentState": {
                         "flavor": {
+                          "bandwidth": {
+                            "private": 250,
+                            "publicInbound": 250,
+                            "publicOutbound": 250
+                          },
                           "disk": 50,
+                          "gpus": 0,
                           "id": "068a57cf-b1b4-428f-9b17-4f32a526390c",
                           "name": "b2-7",
                           "ram": 7000,
@@ -12986,6 +13238,7 @@
                         },
                         "hostId": "ca6b3b32604b9708149fbc88929730102eddedc04d4bcf1ee897ac96",
                         "image": {
+                          "defaultUser": "rocky",
                           "deprecated": false,
                           "id": "8d75e170-1ef9-4e25-8fc8-d231929e56e8",
                           "name": "Rocky Linux 9",
@@ -13003,32 +13256,40 @@
                               {
                                 "ip": "1.2.3.4",
                                 "mac": "fa:16:3e:f6:a9:76",
-                                "type": "fixed",
+                                "type": "FIXED",
                                 "version": 4
                               },
                               {
                                 "ip": "2001:41d0:394:610::284",
                                 "mac": "fa:16:3e:f6:a9:76",
-                                "type": "fixed",
+                                "type": "FIXED",
                                 "version": 6
+                              },
+                              {
+                                "ip": "57.130.10.4",
+                                "mac": "fa:16:3e:f6:a9:76",
+                                "type": "ADDITIONAL",
+                                "version": 4
                               }
-                            ],
-                            "id": "fbdf6240-8b56-4626-b57c-25e4af487606",
-                            "public": true
+                            ]
                           },
                           {
                             "addresses": [
                               {
                                 "ip": "10.1.1.99",
                                 "mac": "fa:16:3e:7c:19:c6",
-                                "type": "fixed",
+                                "type": "FIXED",
+                                "version": 4
+                              },
+                              {
+                                "ip": "141.94.203.10",
+                                "mac": "fa:16:3e:7c:19:c6",
+                                "type": "FLOATING",
                                 "version": 4
                               }
                             ],
-                            "floatingIpId": "2a5d5f2f-f9b8-4e9e-b3c2-4f7c9e3d0a11",
                             "gatewayId": "5b6f6d9a-0d34-4db0-bf4d-1c5c1234abcd",
                             "id": "07e9dc62-8879-4a84-afc9-aae07640f4d9",
-                            "public": false,
                             "subnetId": "de04e8aa-f187-11f0-8eac-0050568ce122"
                           }
                         ],
@@ -13065,12 +13326,14 @@
                         "name": "b2-7-gra1",
                         "networks": [
                           {
-                            "public": true
+                            "autoAssignPublicIp": true
                           },
                           {
-                            "floatingIpId": "2a5d5f2f-f9b8-4e9e-b3c2-4f7c9e3d0a11",
+                            "ip": "57.130.10.4"
+                          },
+                          {
                             "id": "07e9dc62-8879-4a84-afc9-aae07640f4d9",
-                            "public": false,
+                            "ip": "141.94.203.10",
                             "subnetId": "de04e8aa-f187-11f0-8eac-0050568ce122"
                           }
                         ],
@@ -13125,8 +13388,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -13139,6 +13402,7 @@
       },
       "put": {
         "summary": "Update an existing Public Cloud instance",
+        "description": "### Update an instance\n\nThis is the **single, declarative** route for changing an instance. You do not call verb-specific endpoints; instead you submit a new desired `targetSpec` and the API derives the operations to perform from the **diff** against the current specification. (Imperative power/lifecycle operations such as reboot, start, stop, and rescue live on the separate `.../instance/{instanceId}/action` route.)\n\n### Asynchronous, desired-state model\n1. You send the new `targetSpec`, optionally together with the `checksum` from your last `GET`.\n2. If accepted, you immediately get back the instance with the updated `targetSpec` and a new `checksum`; `resourceStatus` becomes `UPDATING`.\n3. One or more **asynchronous** tasks reconcile `currentState` toward `targetSpec`. Poll `GET .../instance/{instanceId}` until `resourceStatus` is `READY` and `currentTasks` is empty to know the change has been applied.\n\n### Operations derived from the diff\n* **Rename** — changing `name` renames the instance.\n* **Resize (flavor)** — changing `flavor` migrates the instance to the new flavor.\n* **Volume attach / detach** — done **declaratively by diffing the `volumes` list**: adding a volume reference attaches that volume, removing one detaches it. There is **no imperative attach/detach endpoint** — the diff is the only mechanism.\n* **Network attach / detach** — done **declaratively by diffing the `networks` list**, whose entries are `{id?, subnetId?, ip?, autoAssignPublicIp?}`: a platform-assigned Ext-Net IP (`{\"autoAssignPublicIp\": true}`, at most one entry), a public IP the project already owns — additional IP or project Ext-Net IP in the instance's region — (`{\"ip\"}`, no network `id`), a private interface with an IPAM address (`{\"id\", \"subnetId\"}`), or a private interface with `ip` either **pinning its fixed address** (address inside the subnet CIDR) or associating an **existing floating IP** (address outside it). Any entry that sets `autoAssignPublicIp` or carries a public `ip` requires the optional `instance/usePublicIP` IAM action.\n* **Filesystem (share) attach / detach** — done **declaratively by diffing the `shares` list**. Adding an entry attaches the share: it creates a Manila IP access rule for the instance's interface on the share's network, so **the instance must already have an interface on that network** or the attach errors. Removing an entry detaches the share: the matching access rule is removed, and the detach is **idempotent**. Each entry's `accessLevel` defaults to `READ_WRITE`. **Caveat:** managing per-share access rules directly on the share resource *and* attaching the same share instance-side here is **unsupported** — the share will report `OUT_OF_SYNC`.\n\n### Immutable fields (excluded from update)\n`location`, `sshKeyName`, and `group` are set only at creation and are **not** part of the update. In particular, placement-group (`group`) membership cannot change post-create — OpenStack/Nova server groups are immutable and there is deliberately no group `PUT`.\n\n### Destructive update (`userData`)\nChanging `targetSpec.userData` **reinstalls** the instance — a Nova rebuild on its current image — which **wipes the root disk and all data on it**. Semantics are tri-state: omitting the field (or sending `null`) **keeps** the current value unchanged, an empty string `\"\"` **clears** it, and any other value **replaces** it; both the clear and the replace trigger the reinstall. An instance with no `image` (boot-from-volume) has nothing to rebuild onto, so a `userData` change on it is rejected with a `400 InvalidParameter`.\n\n### Optimistic concurrency (`checksum`)\nThe `checksum` guards against lost updates and is **optional**. When you send it, it must match the server-side value: if another request modified the instance since your last `GET`, the checksum no longer matches and the request is rejected with a checksum-mismatch error (`ChecksumMismatch`) — re-`GET` the instance and retry against the fresh state. When you omit it (or send an empty string), the check is skipped and the update is forced (last-write-wins).",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -13186,12 +13450,11 @@
                       "name": "b2-7-gra1",
                       "networks": [
                         {
-                          "public": true
+                          "autoAssignPublicIp": true
                         },
                         {
-                          "floatingIpId": "2a5d5f2f-f9b8-4e9e-b3c2-4f7c9e3d0a11",
                           "id": "07e9dc62-8879-4a84-afc9-aae07640f4d9",
-                          "public": false,
+                          "ip": "141.94.203.10",
                           "subnetId": "de04e8aa-f187-11f0-8eac-0050568ce122"
                         }
                       ],
@@ -13318,8 +13581,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -13329,7 +13592,7 @@
           },
           {
             "name": "publicCloudProject:apiovh:instance/usePublicIP",
-            "description": "Required when configuring a public network",
+            "description": "Required when any networks entry sets autoAssignPublicIp or carries a public ip, including floating IP associations",
             "required": false
           }
         ]

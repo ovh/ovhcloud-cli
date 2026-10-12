@@ -1,40 +1,52 @@
 🚀 Instance {{.ServiceName}}
 =======
-
-_{{index .Result "name"}}_
+{{$spec := index .Result "targetSpec"}}
+_{{index $spec "name"}}_
 
 ## General information
 
-**Region**:            {{index .Result "region"}}
-**Availability zone**: {{index .Result "availabilityZone"}}
-**Status**:            {{index .Result "status"}}
-**Creation date**:     {{index .Result "created"}}
+**Status**:            {{index .Result "resourceStatus"}}
+**Power state**:       {{index $spec "powerState"}}
+**Region**:            {{index $spec "location" "region"}}
+{{with index $spec "location" "availabilityZone"}}**Availability zone**: {{.}}
+{{end}}**Creation date**:     {{index .Result "createdAt"}}
+{{with index $spec "sshKeyName"}}**SSH key**:           {{.}}
+{{end}}{{with index .Result "currentState"}}{{if index . "locked"}}**Locked**:            yes
+{{end}}{{end}}
+{{with index .Result "currentState"}}{{with index . "networks"}}
+## IP addresses
 
-IP addresses:
-| IP | Type | Gateway IP |
-| --- | --- | --- |
-{{ range index .Result "ipAddresses" }}| {{.ip}} | {{.type}} | {{.gatewayIp}} |
-{{end}}
-
+| IP | Type | Version | Network |
+| --- | --- | --- | --- |
+{{range .}}{{$network := or (index . "id") "public"}}{{range index . "addresses"}}| {{index . "ip"}} | {{index . "type"}} | {{index . "version"}} | {{$network}} |
+{{end}}{{end}}
+{{end}}{{with index . "flavor"}}
 ## Flavor details
 
-**Name**:                   {{index .Result "flavor" "name"}}
-**Operating system**:       {{index .Result "flavor" "osType"}}
-**Storage**:                {{index .Result "flavor" "disk"}} GB
-**RAM**:                    {{index .Result "flavor" "ram"}} GB
-**vCPUs**:                  {{index .Result "flavor" "vcpus"}}
-**Max inbound bandwidth**:  {{index .Result "flavor" "inboundBandwidth"}} Mbit/s
-**Max outbound bandwidth**: {{index .Result "flavor" "outboundBandwidth"}} Mbit/s
-
-{{if index .Result "image" -}}
+**Name**:    {{index . "name"}}
+**vCPUs**:   {{index . "vcpus"}}
+**RAM**:     {{index . "ram"}} MB
+**Storage**: {{index . "disk"}} GB
+{{with index . "bandwidth"}}**Bandwidth (public in / out, private)**: {{index . "publicInbound"}} / {{index . "publicOutbound"}}, {{index . "private"}} Mbit/s
+{{end}}{{end}}{{with index . "image"}}
 ## Image details
 
-**Name**:                   {{index .Result "image" "name"}}
-**Type**:                   {{index .Result "image" "type"}}
-**Minimum disks required**: {{index .Result "image" "minDisk"}}
-**Minimum RAM required**:   {{index .Result "image" "minRam"}}
-**Size**:                   {{index .Result "image" "size"}}Gib
-**Status**:                 {{index .Result "image" "status"}}
-{{- end}}
+**Name**:         {{index . "name"}}
+{{with index . "defaultUser"}}**Default user**: {{.}}
+{{end}}{{end}}{{end}}
+{{with index $spec "volumes"}}
+## Volumes
 
+{{range .}}- {{index . "id"}}
+{{end}}{{end}}{{with index $spec "securityGroups"}}
+## Security groups
+
+{{range .}}- {{index . "id"}}
+{{end}}{{end}}{{with index .Result "currentTasks"}}
+## Current tasks
+
+| ID | Type | Status |
+| --- | --- | --- |
+{{range .}}| {{.id}} | {{.type}} | {{.status}} |
+{{end}}{{end}}
 💡 Use option -o json or -o yaml to get the raw output with all information
