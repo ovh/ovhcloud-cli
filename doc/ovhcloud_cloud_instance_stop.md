@@ -10,6 +10,7 @@ ovhcloud cloud instance stop <instance_id> [flags]
 
 ```
   -h, --help   help for stop
+      --wait   Wait for the instance to be stopped before exiting
 ```
 
 ### Options inherited from parent commands

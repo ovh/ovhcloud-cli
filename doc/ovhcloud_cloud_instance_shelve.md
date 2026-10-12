@@ -17,6 +17,7 @@ ovhcloud cloud instance shelve <instance_id> [flags]
 
 ```
   -h, --help   help for shelve
+      --wait   Wait for the instance to be shelved before exiting
 ```
 
 ### Options inherited from parent commands

@@ -184,23 +184,27 @@ func initInstanceCommand(cloudCmd *cobra.Command) {
 	setNameCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the instance to be ready before exiting")
 	instanceCmd.AddCommand(setNameCmd)
 
-	instanceCmd.AddCommand(&cobra.Command{
+	startCmd := &cobra.Command{
 		Use:               "start <instance_id>",
 		Short:             "Start the given instance",
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.StartInstance,
 		Args:              cobra.ExactArgs(1),
-	})
+	}
+	startCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the instance to be started before exiting")
+	instanceCmd.AddCommand(startCmd)
 
-	instanceCmd.AddCommand(&cobra.Command{
+	stopCmd := &cobra.Command{
 		Use:               "stop <instance_id>",
 		Short:             "Stop the given instance",
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.StopInstance,
 		Args:              cobra.ExactArgs(1),
-	})
+	}
+	stopCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the instance to be stopped before exiting")
+	instanceCmd.AddCommand(stopCmd)
 
-	instanceCmd.AddCommand(&cobra.Command{
+	shelveCmd := &cobra.Command{
 		Use:   "shelve <instance_id>",
 		Short: "Shelve the given instance",
 		Long: `The resources dedicated to the Public Cloud instance are released.
@@ -210,9 +214,11 @@ The Snapshot Storage used to store the instance's data will be billed.`,
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.ShelveInstance,
 		Args:              cobra.ExactArgs(1),
-	})
+	}
+	shelveCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the instance to be shelved before exiting")
+	instanceCmd.AddCommand(shelveCmd)
 
-	instanceCmd.AddCommand(&cobra.Command{
+	unshelveCmd := &cobra.Command{
 		Use:   "unshelve <instance_id>",
 		Short: "Unshelve the given instance",
 		Long: `The resources dedicated to the Public Cloud instance are restored.
@@ -221,15 +227,9 @@ Instance billing will get back to normal and the snapshot used to store the inst
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.UnshelveInstance,
 		Args:              cobra.ExactArgs(1),
-	})
-
-	instanceCmd.AddCommand(&cobra.Command{
-		Use:               "resume <instance_id>",
-		Short:             "Resume the given suspended instance",
-		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
-		Run:               cloud.ResumeInstance,
-		Args:              cobra.ExactArgs(1),
-	})
+	}
+	unshelveCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the instance to be unshelved before exiting")
+	instanceCmd.AddCommand(unshelveCmd)
 
 	rebootCmd := &cobra.Command{
 		Use:               "reboot <instance_id>",
@@ -239,7 +239,28 @@ Instance billing will get back to normal and the snapshot used to store the inst
 		Args:              cobra.ExactArgs(1),
 	}
 	rebootCmd.Flags().StringVarP(&cloud.InstanceRebootType, "type", "t", "soft", "Reboot type: hard or soft (default is soft)")
+	rebootCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the instance to be rebooted before exiting")
 	instanceCmd.AddCommand(rebootCmd)
+
+	lockCmd := &cobra.Command{
+		Use:               "lock <instance_id>",
+		Short:             "Lock the given instance to prevent accidental actions and modifications",
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
+		Run:               cloud.LockInstance,
+		Args:              cobra.ExactArgs(1),
+	}
+	lockCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the instance to be locked before exiting")
+	instanceCmd.AddCommand(lockCmd)
+
+	unlockCmd := &cobra.Command{
+		Use:               "unlock <instance_id>",
+		Short:             "Unlock the given instance",
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
+		Run:               cloud.UnlockInstance,
+		Args:              cobra.ExactArgs(1),
+	}
+	unlockCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the instance to be unlocked before exiting")
+	instanceCmd.AddCommand(unlockCmd)
 
 	reinstallCmd := &cobra.Command{
 		Use:   "reinstall <instance_id>",

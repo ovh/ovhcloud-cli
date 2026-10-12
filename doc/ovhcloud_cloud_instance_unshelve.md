@@ -16,6 +16,7 @@ ovhcloud cloud instance unshelve <instance_id> [flags]
 
 ```
   -h, --help   help for unshelve
+      --wait   Wait for the instance to be unshelved before exiting
 ```
 
 ### Options inherited from parent commands
