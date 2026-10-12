@@ -576,3 +576,117 @@ func (ms *MockSuite) TestCloudInstanceRebootInvalidTypeCmd(assert, require *td.T
 	assert.Cmp(err.Error(), td.Contains(`invalid reboot type: "warm"`))
 	assert.Cmp(httpmock.GetTotalCallCount(), 0)
 }
+
+// expectedInstanceSpecPutBody is the PUT body expected when only the flavor or
+// the image of instanceV2Response changes.
+func expectedInstanceSpecPutBody(flavorID, imageID string) td.TestDeep {
+	return td.JSON(`{
+		"checksum": "abc123",
+		"targetSpec": {
+			"name": "my-instance",
+			"flavor": { "id": $1 },
+			"image": { "id": $2 },
+			"networks": [
+				{ "autoAssignPublicIp": true },
+				{ "id": "private-net-id", "subnetId": "private-subnet-id", "ip": "10.1.2.155" }
+			],
+			"powerState": "ACTIVE",
+			"securityGroups": [ { "id": "sg-default" } ],
+			"volumes": [ { "id": "volume-1" } ]
+		}
+	}`, flavorID, imageID)
+}
+
+func (ms *MockSuite) TestCloudInstanceSetFlavorCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterMatcherResponder(http.MethodPut, instanceV2Endpoint,
+		tdhttpmock.JSONBody(expectedInstanceSpecPutBody("flavor-d2-4", "image-debian-12")),
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "instance", "set-flavor", "fakeInstanceID", "flavor-d2-4", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID migration to flavor flavor-d2-4 started…"}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceSetFlavorWaitCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterResponder(http.MethodPut, instanceV2Endpoint,
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "instance", "set-flavor", "fakeInstanceID", "flavor-d2-4", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("✅ Instance fakeInstanceID migrated to flavor flavor-d2-4"))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceV2Endpoint], 2)
+}
+
+func (ms *MockSuite) TestCloudInstanceSetFlavorSameFlavorCmd(assert, require *td.T) {
+	// Asking for the current flavor would be a no-op update: the command must
+	// refuse it instead of sending a PUT.
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+
+	_, err := cmd.Execute("cloud", "instance", "set-flavor", "fakeInstanceID", "flavor-d2-2", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("already running flavor flavor-d2-2"))
+	assert.Cmp(httpmock.GetCallCountInfo()["PUT "+instanceV2Endpoint], 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceSetFlavorMissingFlavorCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "instance", "set-flavor", "fakeInstanceID", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("Flavor ID is required"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceReinstallCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterMatcherResponder(http.MethodPut, instanceV2Endpoint,
+		tdhttpmock.JSONBody(expectedInstanceSpecPutBody("flavor-d2-2", "image-debian-13")),
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "instance", "reinstall", "fakeInstanceID", "--image", "image-debian-13", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID reinstallation with image image-debian-13 started…"}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceReinstallWaitCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterResponder(http.MethodPut, instanceV2Endpoint,
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "instance", "reinstall", "fakeInstanceID", "--image", "image-debian-13", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("✅ Instance fakeInstanceID reinstalled with image image-debian-13"))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceV2Endpoint], 2)
+}
+
+func (ms *MockSuite) TestCloudInstanceReinstallSameImageCmd(assert, require *td.T) {
+	// API v2 reinstalls by diffing targetSpec.image: the current image would be
+	// a no-op update, so the command must refuse it instead of sending a PUT.
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+
+	_, err := cmd.Execute("cloud", "instance", "reinstall", "fakeInstanceID", "--image", "image-debian-12", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("already running image image-debian-12"))
+	assert.Cmp(httpmock.GetCallCountInfo()["PUT "+instanceV2Endpoint], 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceReinstallMissingImageCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "instance", "reinstall", "fakeInstanceID", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("image ID is required"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}

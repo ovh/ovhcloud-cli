@@ -5,25 +5,20 @@
 package cloud
 
 import (
-	"bufio"
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
-	"github.com/ovh/ovhcloud-cli/internal/editor"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/openapi"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
-	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -175,7 +170,7 @@ func GetInstance(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest(instanceV2Endpoint(projectID), args[0], cloudInstanceTemplate)
 }
 
-func updateInstanceTargetSpec(projectID, instanceID string, change func(targetSpec map[string]any)) (map[string]any, error) {
+func updateInstanceTargetSpec(projectID, instanceID string, change func(targetSpec map[string]any) error) (map[string]any, error) {
 	endpoint := fmt.Sprintf("%s/%s", instanceV2Endpoint(projectID), url.PathEscape(instanceID))
 
 	var instance map[string]any
@@ -186,7 +181,9 @@ func updateInstanceTargetSpec(projectID, instanceID string, change func(targetSp
 	if !ok {
 		return nil, fmt.Errorf("instance %q has no targetSpec", instanceID)
 	}
-	change(targetSpec)
+	if err := change(targetSpec); err != nil {
+		return nil, err
+	}
 
 	body, err := openapi.FilterEditableFields(
 		assets.CloudV2OpenapiSchema,
@@ -251,8 +248,9 @@ func SetInstanceName(_ *cobra.Command, args []string) {
 		return
 	}
 
-	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) {
+	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) error {
 		targetSpec["name"] = args[1]
+		return nil
 	})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -269,8 +267,9 @@ func setInstancePowerState(args []string, powerState, startedMessage, doneMessag
 		return
 	}
 
-	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) {
+	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) error {
 		targetSpec["powerState"] = powerState
+		return nil
 	})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -458,65 +457,21 @@ func GetInstanceFlavorAndImageInteractiveSelector(cmd *cobra.Command, args []str
 	return params, nil
 }
 
-func ReinstallInstance(cmd *cobra.Command, args []string) {
-	// No instance ID given, print usage and exit
-	if len(args) == 0 {
-		cmd.Help()
-		display.OutputError(&flags.OutputFormatConfig, "reinstall command requires an instance ID as the first argument.\nUsage:\n%s", cmd.UsageString())
-		return
-	}
-
-	// Get cloud project ID
+func ReinstallInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	// Create object from parameters given on command line
-	jsonCliParameters, err := json.Marshal(struct {
-		ImageID string `json:"imageId,omitempty"`
-	}{
-		ImageID: InstanceImageID,
-	})
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to prepare arguments from command line: %s", err)
-		return
-	}
-	var cliParameters map[string]any
-	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to parse arguments from command line: %s", err)
-		return
-	}
+	imageID := InstanceImageID
 
-	parameters := make(map[string]any)
-
-	if utils.IsInputFromPipe() { // Install data given through a pipe
-		var stdin []byte
-		scanner := bufio.NewScanner(os.Stdin)
-		for scanner.Scan() {
-			stdin = append(stdin, scanner.Bytes()...)
-		}
-		if err := scanner.Err(); err != nil {
+	if InstanceImageViaInteractiveSelector {
+		region, err := instanceRegion(projectID, args[0])
+		if err != nil {
 			display.OutputError(&flags.OutputFormatConfig, "%s", err)
 			return
 		}
-
-		if err := json.Unmarshal(stdin, &parameters); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to parse given installation data: %s", err)
-			return
-		}
-	} else if InstanceImageViaInteractiveSelector { // Install data given through an interactive image selector
-		log.Print("Flag --image-selector used, all other flags will be ignored")
-
-		// Fetch instance details to get its region
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
-		var instance map[string]any
-		if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
-			return
-		}
-		region := instance["region"].(string)
 
 		// Run interactive image selector
 		selectedImage, selectedID, err := runImageSelector(projectID, region)
@@ -530,125 +485,28 @@ func ReinstallInstance(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		parameters = map[string]any{
-			"imageId": selectedID,
-		}
-
 		log.Printf("Selected image %s with ID: %s", selectedImage, selectedID)
-	} else if flags.ParametersViaEditor { // Install data given through an editor
-		log.Print("Flag --editor used, all other flags will override the example values")
-
-		examples, err := openapi.GetOperationRequestExamples(assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance/{instanceId}/reinstall", "post", "", cliParameters)
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to fetch API call examples: %s", err)
-			return
-		}
-
-		_, choice, err := display.RunGenericChoicePicker("Please select an installation example", examples, 0)
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "%s", err)
-			return
-		}
-
-		if choice == "" {
-			display.OutputWarning(&flags.OutputFormatConfig, "No installation example selected, exiting…")
-			return
-		}
-
-		newValue, err := editor.EditValueWithEditor([]byte(choice))
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to edit installation parameters using editor: %s", err)
-			return
-		}
-
-		if err := json.Unmarshal(newValue, &parameters); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to parse given installation parameters: %s", err)
-			return
-		}
-	} else if flags.ParametersFile != "" { // Install data given in a file
-		log.Print("Flag --from-file used, all other flags will override the file values")
-
-		fd, err := os.Open(flags.ParametersFile)
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to open given file: %s", err)
-			return
-		}
-		defer fd.Close()
-
-		if err := json.NewDecoder(fd).Decode(&parameters); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to parse given installation file: %s", err)
-			return
-		}
+		imageID = selectedID
 	}
 
-	// Only merge CLI parameters with other ones if not in --editor mode.
-	// In this case, the CLI parameters have already been merged with the
-	// request examples coming from API schemas.
-	if !flags.ParametersViaEditor {
-		if err := utils.MergeMaps(parameters, cliParameters); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to merge replace values into example: %s", err)
-			return
-		}
-	}
-
-	// Check if at least an image ID was provided as it is mandatory
-	if imageID, ok := parameters["imageId"]; !ok || imageID == "" {
-		display.OutputError(&flags.OutputFormatConfig, "image ID parameter is mandatory to trigger a reinstallation")
+	if imageID == "" {
+		display.OutputError(&flags.OutputFormatConfig, "image ID is required to reinstall an instance: use --image or --image-selector")
 		return
 	}
 
-	out, err := json.MarshalIndent(parameters, "", " ")
+	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) error {
+		if currentImage, ok := targetSpec["image"].(map[string]any); ok && currentImage["id"] == imageID {
+			return fmt.Errorf("instance %q is already running image %s, nothing to reinstall", args[0], imageID)
+		}
+		targetSpec["image"] = map[string]any{"id": imageID}
+		return nil
+	})
 	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "installation parameters cannot be marshalled: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	log.Println("Installation parameters: \n" + string(out))
-
-	var task map[string]any
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/reinstall", projectID, url.PathEscape(args[0]))
-	if err := httpLib.Client.Post(endpoint, parameters, &task); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error reinstalling instance %q: %s", args[0], err)
-		return
-	}
-
-	log.Println("⚡️ Reinstallation started…")
-
-	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Reinstallation started…")
-		return
-	}
-
-	if err := waitForInstanceStatus(projectID, args[0], "ACTIVE"); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to be reinstalled: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Reinstallation done")
-}
-
-func waitForInstanceStatus(cloudProject, instanceID, targetStatus string) error {
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", cloudProject, url.PathEscape(instanceID))
-
-	for range 100 {
-		var instance map[string]any
-
-		if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-			return fmt.Errorf("failed to fetch instance: %w", err)
-		}
-
-		switch instance["status"] {
-		case targetStatus:
-			return nil
-		case "ERROR":
-			return fmt.Errorf("invalid state for instance: %s", instance["status"])
-		default:
-			log.Printf("Still waiting for instance to be in state 'ACTIVE' (status=%s)…", instance["status"])
-			time.Sleep(30 * time.Second)
-		}
-	}
-
-	return fmt.Errorf("timeout waiting for instance %s to be in state 'ACTIVE'", instanceID)
+	outputInstanceResult(ready, "⚡️ Instance %s reinstallation with image %s started…", "✅ Instance %s reinstalled with image %s", args[0], imageID)
 }
 
 func ActivateMonthlyBilling(_ *cobra.Command, args []string) {
@@ -748,6 +606,24 @@ func DisableInstanceRescueMode(_ *cobra.Command, args []string) {
 	instanceAction(args, "UNRESCUE", nil, "⚡️ Instance %s is exiting rescue mode…", "✅ Instance %s is no longer in rescue mode")
 }
 
+// instanceRegion returns the region of the given instance.
+func instanceRegion(projectID, instanceID string) (string, error) {
+	var instance map[string]any
+	endpoint := fmt.Sprintf("%s/%s", instanceV2Endpoint(projectID), url.PathEscape(instanceID))
+	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
+		return "", fmt.Errorf("failed to fetch instance details: %w", err)
+	}
+
+	targetSpec, _ := instance["targetSpec"].(map[string]any)
+	location, _ := targetSpec["location"].(map[string]any)
+	region, _ := location["region"].(string)
+	if region == "" {
+		return "", fmt.Errorf("no region found for instance %q", instanceID)
+	}
+
+	return region, nil
+}
+
 func SetInstanceFlavor(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -760,14 +636,11 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 	if InstanceFlavorViaInteractiveSelector {
 		log.Print("Flag --flavor-selector used, all other flags will be ignored")
 
-		// Fetch instance details to get its region
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
-		var instance map[string]any
-		if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
+		region, err := instanceRegion(projectID, args[0])
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
 			return
 		}
-		region := instance["region"].(string)
 
 		// Run interactive flavor selector
 		selectedFlavor, selectedID, err := runFlavorSelector(projectID, region)
@@ -791,29 +664,19 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 
 	log.Printf("Selected flavor %s", flavor)
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/resize", projectID, url.PathEscape(args[0]))
-	body := map[string]any{
-		"flavorId": flavor,
-	}
-
-	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error setting flavor for instance %q: %s", args[0], err)
+	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) error {
+		if currentFlavor, ok := targetSpec["flavor"].(map[string]any); ok && currentFlavor["id"] == flavor {
+			return fmt.Errorf("instance %q is already running flavor %s, nothing to change", args[0], flavor)
+		}
+		targetSpec["flavor"] = map[string]any{"id": flavor}
+		return nil
+	})
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	log.Println("⚡️ Migrating instance to the desired flavor…")
-
-	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance migration to the desired flavor started…")
-		return
-	}
-
-	if err := waitForInstanceStatus(projectID, args[0], "ACTIVE"); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to migrate to the desired flavor: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance correctly migrated to the desired flavor")
+	outputInstanceResult(ready, "⚡️ Instance %s migration to flavor %s started…", "✅ Instance %s migrated to flavor %s", args[0], flavor)
 }
 
 func CreateInstanceBackup(_ *cobra.Command, args []string) {
