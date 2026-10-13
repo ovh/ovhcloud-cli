@@ -1422,15 +1422,6 @@ func init() {
 		Run:               webhosting.DeleteUser,
 	}
 	userCmd.AddCommand(userDeleteCmd)
-	userChangePwdCmd := &cobra.Command{
-		Use:               "change-password <service_name> <login>",
-		Short:             "Change FTP/SSH user password",
-		Args:              cobra.ExactArgs(2),
-		ValidArgsFunction: completion.ServiceList("/v1/hosting/web"),
-		Run:               webhosting.ChangeUserPassword,
-	}
-	userChangePwdCmd.Flags().StringVar(&webhosting.UserPassword, "password", "", "New FTP/SSH password")
-	userCmd.AddCommand(userChangePwdCmd)
 	webhostingCmd.AddCommand(userCmd)
 
 	sshKeyCmd := &cobra.Command{Use: "ssh-key", Short: "Manage SSH keys"}

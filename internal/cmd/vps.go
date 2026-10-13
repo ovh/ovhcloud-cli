@@ -437,17 +437,6 @@ func init() {
 		Run:               vps.DeleteVpsSecondaryDNSDomain,
 	})
 
-	// Set password command
-	vpsSetPasswordCmd := &cobra.Command{
-		Use:               "set-password <service_name>",
-		Short:             "Start the process in order to set the root password of the given VPS",
-		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: completion.ServiceList("/v1/vps"),
-		Run:               vps.ChangeVpsPassword,
-	}
-	vpsSetPasswordCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the task to complete before exiting")
-	vpsCmd.AddCommand(vpsSetPasswordCmd)
-
 	// Tasks command
 	vpsCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:               "list-tasks <service_name>",
