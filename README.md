@@ -18,6 +18,7 @@
     - [Binary download](#binary-download)
     - [Run with Docker](#run-with-docker)
     - [Install using HomeBrew](#install-using-homebrew)
+    - [Install on Arch Linux](#install-on-arch-linux)
     - [Install from the source](#install-from-the-source)
 - [Usage](#usage)
     - [Authenticating the CLI](#authenticating-the-cli)
@@ -59,6 +60,17 @@ docker run -it --rm -v ovhcloud-cli-config-files:/config ovhcom/ovhcloud-cli log
 
 ```sh
 brew install --cask ovh/tap/ovhcloud-cli
+```
+
+## Install on Arch Linux
+
+The binary is available in the [Arch User Repository](https://aur.archlinux.org) for Arch Linux:
+
+```sh
+git clone https://aur.archlinux.org/ovhcloud-cli-bin.git
+cd ovhcloud-cli-bin/
+makepkg -sri
+
 ```
 
 ## Install from the source
