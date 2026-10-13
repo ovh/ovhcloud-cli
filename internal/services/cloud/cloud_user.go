@@ -204,14 +204,6 @@ func CreateUserS3Policy(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	out, err := json.MarshalIndent(parameters, "", " ")
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "parameters cannot be marshalled: %s", err)
-		return
-	}
-
-	log.Println("Final parameters: \n" + string(out))
-
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/user/%s/policy", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, parameters, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error creating resource: %s", err)
