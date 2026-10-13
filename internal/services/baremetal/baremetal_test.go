@@ -26,7 +26,7 @@ func withTaskAPI(t *testing.T, attempts int, task string) {
 	origInterval, origAttempts := taskPollInterval, taskPollAttempts
 	client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", "consumer_key")
 	td.Require(t).CmpNoError(err)
-	httpLib.Client = client
+	httpLib.Client = httpLib.NewAPIClient(client)
 	taskPollInterval, taskPollAttempts = time.Millisecond, attempts
 
 	t.Cleanup(func() {
