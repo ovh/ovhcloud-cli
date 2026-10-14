@@ -50,6 +50,27 @@ func init() {
 	addInteractiveEditorFlag(iploadbalancingEditCmd)
 	iploadbalancingCmd.AddCommand(iploadbalancingEditCmd)
 
+	// Command to list pending changes of an IpLoadbalancing
+	iploadbalancingPendingChangesCmd := &cobra.Command{
+		Use:               "pending-changes <service_name>",
+		Short:             "List pending changes per zone",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ipLoadbalancing"),
+		Run:               iploadbalancing.ListIpLoadbalancingPendingChanges,
+	}
+	iploadbalancingCmd.AddCommand(withFilterFlag(iploadbalancingPendingChangesCmd))
+
+	// Command to apply the pending configuration changes of an IpLoadbalancing
+	iploadbalancingRefreshCmd := &cobra.Command{
+		Use:               "refresh <service_name>",
+		Short:             "Apply the pending configuration changes of the given IpLoadbalancing",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/ipLoadbalancing"),
+		Run:               iploadbalancing.RefreshIpLoadbalancing,
+	}
+	iploadbalancingRefreshCmd.Flags().StringVar(&iploadbalancing.IPLoadbalancingRefreshZone, "zone", "", "Zone to apply the configuration to (all zones if not set)")
+	iploadbalancingCmd.AddCommand(iploadbalancingRefreshCmd)
+
 	// SSL commands
 	iploadbalancingSSLCmd := &cobra.Command{
 		Use:   "ssl",

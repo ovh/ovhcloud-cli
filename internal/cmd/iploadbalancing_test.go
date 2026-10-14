@@ -205,6 +205,102 @@ func (ms *MockSuite) TestIpLoadbalancingSSLCreateCmdMissingArg(assert, require *
 	assert.String(err, "accepts 1 arg(s), received 0")
 }
 
+func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/ipLoadbalancing/loadbalancer-12345/pendingChanges",
+		httpmock.NewStringResponder(200, `[
+			{"zone": "gra", "number": 2},
+			{"zone": "rbx", "number": 0}
+		]`).Once())
+
+	out, err := cmd.Execute("iploadbalancing", "pending-changes", "loadbalancer-12345", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[
+		{"zone": "gra", "number": 2},
+		{"zone": "rbx", "number": 0}
+	]`))
+}
+
+func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmdFilter(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/ipLoadbalancing/loadbalancer-12345/pendingChanges",
+		httpmock.NewStringResponder(200, `[
+			{"zone": "gra", "number": 2},
+			{"zone": "rbx", "number": 0}
+		]`).Once())
+
+	out, err := cmd.Execute("iploadbalancing", "pending-changes", "loadbalancer-12345", "--filter", "number > 0", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[{"zone": "gra", "number": 2}]`))
+}
+
+func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmdAPIError(assert, require *td.T) {
+	httpmock.RegisterResponder("GET",
+		"https://eu.api.ovh.com/v1/ipLoadbalancing/loadbalancer-12345/pendingChanges",
+		httpmock.NewStringResponder(404, `{"message": "Service not found"}`).Once())
+
+	out, err := cmd.Execute("iploadbalancing", "pending-changes", "loadbalancer-12345")
+
+	assert.CmpError(err)
+	assert.Cmp(out, td.Contains("failed to fetch results"))
+}
+
+func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmdMissingArg(assert, require *td.T) {
+	_, err := cmd.Execute("iploadbalancing", "pending-changes")
+
+	assert.String(err, "accepts 1 arg(s), received 0")
+}
+
+func (ms *MockSuite) TestIpLoadbalancingRefreshCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder("POST",
+		"https://eu.api.ovh.com/v1/ipLoadbalancing/loadbalancer-12345/refresh",
+		tdhttpmock.JSONBody(td.JSON(`{}`)),
+		httpmock.NewStringResponder(200, `{"id": 789, "action": "refreshIplb", "status": "todo", "zones": ["gra", "rbx"]}`),
+	)
+
+	out, err := cmd.Execute("iploadbalancing", "refresh", "loadbalancer-12345")
+
+	require.CmpNoError(err)
+	assert.String(out, "✅ Configuration refresh started for IpLoadbalancing loadbalancer-12345 (task ID: 789)")
+}
+
+func (ms *MockSuite) TestIpLoadbalancingRefreshCmdZone(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder("POST",
+		"https://eu.api.ovh.com/v1/ipLoadbalancing/loadbalancer-12345/refresh",
+		tdhttpmock.JSONBody(td.JSON(`{"zone": "gra"}`)),
+		httpmock.NewStringResponder(200, `{"id": 790, "action": "refreshIplb", "status": "todo", "zones": ["gra"]}`),
+	)
+
+	out, err := cmd.Execute("iploadbalancing", "refresh", "loadbalancer-12345", "--zone", "gra", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Configuration refresh started for IpLoadbalancing loadbalancer-12345 (task ID: 790)",
+		"details": {"id": 790, "action": "refreshIplb", "status": "todo", "zones": ["gra"]}
+	}`))
+}
+
+func (ms *MockSuite) TestIpLoadbalancingRefreshCmdAPIError(assert, require *td.T) {
+	httpmock.RegisterResponder("POST",
+		"https://eu.api.ovh.com/v1/ipLoadbalancing/loadbalancer-12345/refresh",
+		httpmock.NewStringResponder(400, `{"message": "No pending changes"}`),
+	)
+
+	out, err := cmd.Execute("iploadbalancing", "refresh", "loadbalancer-12345")
+
+	assert.CmpError(err)
+	assert.Cmp(out, td.Contains("failed to refresh IpLoadbalancing loadbalancer-12345"))
+	assert.Cmp(out, td.Contains("No pending changes"))
+}
+
+func (ms *MockSuite) TestIpLoadbalancingRefreshCmdMissingArg(assert, require *td.T) {
+	_, err := cmd.Execute("iploadbalancing", "refresh")
+
+	assert.String(err, "accepts 1 arg(s), received 0")
+}
+
 func (ms *MockSuite) TestIpLoadbalancingSSLDeleteCmd(assert, require *td.T) {
 	httpmock.RegisterResponder("DELETE",
 		"https://eu.api.ovh.com/v1/ipLoadbalancing/loadbalancer-12345/ssl/42",
