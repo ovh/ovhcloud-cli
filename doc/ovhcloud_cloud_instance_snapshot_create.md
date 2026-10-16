@@ -1,15 +1,17 @@
-## ovhcloud cloud instance backup get
+## ovhcloud cloud instance snapshot create
 
-Get a specific instance backup in the current cloud project
+Create a snapshot of the given instance
 
 ```
-ovhcloud cloud instance backup get <backup_id> [flags]
+ovhcloud cloud instance snapshot create <instance_id> <snapshot_name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+      --distant-region-name string     Name of the distant region (for cross region snapshot)
+      --distant-snapshot-name string   Name of the snapshot in the distant region (for cross region snapshot)
+  -h, --help                           help for create
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +36,5 @@ ovhcloud cloud instance backup get <backup_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud instance backup](ovhcloud_cloud_instance_backup.md)	 - Manage backups of the given instance
+* [ovhcloud cloud instance snapshot](ovhcloud_cloud_instance_snapshot.md)	 - Manage snapshots of the given instance
 

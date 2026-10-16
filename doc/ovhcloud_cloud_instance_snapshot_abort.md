@@ -1,22 +1,15 @@
-## ovhcloud cloud instance backup list
+## ovhcloud cloud instance snapshot abort
 
-List all instance backups in the current cloud project
+Abort the snapshot creation of the given instance
 
 ```
-ovhcloud cloud instance backup list [flags]
+ovhcloud cloud instance snapshot abort <instance_id> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help   help for abort
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +34,5 @@ ovhcloud cloud instance backup list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud instance backup](ovhcloud_cloud_instance_backup.md)	 - Manage backups of the given instance
+* [ovhcloud cloud instance snapshot](ovhcloud_cloud_instance_snapshot.md)	 - Manage snapshots of the given instance
 
