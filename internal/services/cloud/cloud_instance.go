@@ -146,7 +146,7 @@ var (
 		UserData string `json:"userData,omitempty"`
 	}{}
 
-	InstanceBackupSpec struct {
+	InstanceSnapshotSpec struct {
 		SnapshotName        string `json:"snapshotName,omitempty"`
 		DistantSnapshotName string `json:"distantSnapshotName,omitempty"`
 		DistantRegionName   string `json:"distantRegionName,omitempty"`
@@ -808,7 +808,7 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance correctly migrated to the desired flavor")
 }
 
-func CreateInstanceBackup(_ *cobra.Command, args []string) {
+func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -824,19 +824,19 @@ func CreateInstanceBackup(_ *cobra.Command, args []string) {
 	}
 	region := instance["region"].(string)
 
-	InstanceBackupSpec.SnapshotName = args[1]
+	InstanceSnapshotSpec.SnapshotName = args[1]
 
 	endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/snapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
 	var response map[string]any
-	if err := httpLib.Client.Post(endpoint, InstanceBackupSpec, &response); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error creating backup for instance %q: %s", args[0], err)
+	if err := httpLib.Client.Post(endpoint, InstanceSnapshotSpec, &response); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error creating snapshot for instance %q: %s", args[0], err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Backup created successfully with ID: %s", response["imageId"])
+	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot created successfully with ID: %s", response["imageId"])
 }
 
-func AbortInstanceBackup(_ *cobra.Command, args []string) {
+func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -852,17 +852,17 @@ func AbortInstanceBackup(_ *cobra.Command, args []string) {
 	}
 	region := instance["region"].(string)
 
-	// Abort the backup
+	// Abort the snapshot
 	endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/abortSnapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error aborting backup for instance %q: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error aborting snapshot for instance %q: %s", args[0], err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Backup aborted successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot aborted successfully")
 }
 
-func ListInstanceBackups(_ *cobra.Command, _ []string) {
+func ListInstanceSnapshots(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -872,7 +872,7 @@ func ListInstanceBackups(_ *cobra.Command, _ []string) {
 	common.ManageListRequestNoExpand(fmt.Sprintf("/v1/cloud/project/%s/snapshot", projectID), []string{"id", "name", "type", "status", "region"}, flags.GenericFilters)
 }
 
-func GetInstanceBackup(_ *cobra.Command, args []string) {
+func GetInstanceSnapshot(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -882,7 +882,7 @@ func GetInstanceBackup(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/snapshot", projectID), args[0], "")
 }
 
-func DeleteInstanceBackup(_ *cobra.Command, args []string) {
+func DeleteInstanceSnapshot(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -892,11 +892,11 @@ func DeleteInstanceBackup(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot/%s", projectID, url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error deleting backup %q: %s", args[0], err)
+		display.OutputError(&flags.OutputFormatConfig, "error deleting snapshot %q: %s", args[0], err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Backup successfully deleted")
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot successfully deleted")
 }
 
 // Application Access

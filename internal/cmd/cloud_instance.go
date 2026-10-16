@@ -76,7 +76,7 @@ There are three ways to define the creation parameters:
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Name, "name", "", "Instance name")
 
 	// Boot options
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.ImageID, "boot-from.image", "", "Image ID to boot from (you can use 'ovhcloud cloud reference list-images' to get the image ID or 'ovhcloud cloud instance backup ls' to get the backups)")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.ImageID, "boot-from.image", "", "Image ID to boot from (you can use 'ovhcloud cloud reference list-images' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)")
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.VolumeID, "boot-from.volume", "", "Volume ID to boot from")
 	markFlagsMutuallyExclusive(instanceCreateCmd, "boot-from.image", "boot-from.volume")
 
@@ -401,51 +401,51 @@ There are three ways to define the installation parameters:
 	setFlavorCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
 	instanceCmd.AddCommand(setFlavorCmd)
 
-	backupCmd := &cobra.Command{
-		Use:   "backup",
-		Short: "Manage backups of the given instance",
+	snapshotCmd := &cobra.Command{
+		Use:   "snapshot",
+		Short: "Manage snapshots of the given instance",
 	}
-	instanceCmd.AddCommand(backupCmd)
+	instanceCmd.AddCommand(snapshotCmd)
 
-	backupCreateCmd := &cobra.Command{
-		Use:               "create <instance_id> <backup_name>",
-		Short:             "Create a backup of the given instance",
+	snapshotCreateCmd := &cobra.Command{
+		Use:               "create <instance_id> <snapshot_name>",
+		Short:             "Create a snapshot of the given instance",
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
-		Run:               cloud.CreateInstanceBackup,
+		Run:               cloud.CreateInstanceSnapshot,
 		Args:              cobra.ExactArgs(2),
 	}
-	backupCreateCmd.Flags().StringVar(&cloud.InstanceBackupSpec.DistantSnapshotName, "distant-backup-name", "", "Name of the backup in the distant region (for cross region backup)")
-	backupCreateCmd.Flags().StringVar(&cloud.InstanceBackupSpec.DistantRegionName, "distant-region-name", "", "Name of the distant region (for cross region backup)")
-	backupCreateCmd.MarkFlagsRequiredTogether("distant-backup-name", "distant-region-name")
-	backupCmd.AddCommand(backupCreateCmd)
+	snapshotCreateCmd.Flags().StringVar(&cloud.InstanceSnapshotSpec.DistantSnapshotName, "distant-snapshot-name", "", "Name of the snapshot in the distant region (for cross region snapshot)")
+	snapshotCreateCmd.Flags().StringVar(&cloud.InstanceSnapshotSpec.DistantRegionName, "distant-region-name", "", "Name of the distant region (for cross region snapshot)")
+	snapshotCreateCmd.MarkFlagsRequiredTogether("distant-snapshot-name", "distant-region-name")
+	snapshotCmd.AddCommand(snapshotCreateCmd)
 
-	backupCmd.AddCommand(&cobra.Command{
+	snapshotCmd.AddCommand(&cobra.Command{
 		Use:               "abort <instance_id>",
-		Short:             "Abort the backup creation of the given instance",
+		Short:             "Abort the snapshot creation of the given instance",
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
-		Run:               cloud.AbortInstanceBackup,
+		Run:               cloud.AbortInstanceSnapshot,
 		Args:              cobra.ExactArgs(1),
 	})
 
-	backupCmd.AddCommand(withFilterFlag(&cobra.Command{
+	snapshotCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List all instance backups in the current cloud project",
-		Run:     cloud.ListInstanceBackups,
+		Short:   "List all instance snapshots in the current cloud project",
+		Run:     cloud.ListInstanceSnapshots,
 		Args:    cobra.NoArgs,
 	}))
 
-	backupCmd.AddCommand(&cobra.Command{
-		Use:   "get <backup_id>",
-		Short: "Get a specific instance backup in the current cloud project",
-		Run:   cloud.GetInstanceBackup,
+	snapshotCmd.AddCommand(&cobra.Command{
+		Use:   "get <snapshot_id>",
+		Short: "Get a specific instance snapshot in the current cloud project",
+		Run:   cloud.GetInstanceSnapshot,
 		Args:  cobra.ExactArgs(1),
 	})
 
-	backupCmd.AddCommand(&cobra.Command{
-		Use:   "delete <backup_id>",
-		Short: "Delete a specific instance backup in the current cloud project",
-		Run:   cloud.DeleteInstanceBackup,
+	snapshotCmd.AddCommand(&cobra.Command{
+		Use:   "delete <snapshot_id>",
+		Short: "Delete a specific instance snapshot in the current cloud project",
+		Run:   cloud.DeleteInstanceSnapshot,
 		Args:  cobra.ExactArgs(1),
 	})
 
