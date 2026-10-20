@@ -29,10 +29,9 @@ func TestCommercialName(t *testing.T) {
 		// Un nom sans barre verticale : un seul plan du catalogue est dans ce
 		// cas, et il ne doit pas perdre son nom pour autant.
 		{"24sk102", "KS-1", "KS-1 2024"},
-		// 145 des 244 plans annonces par /availabilities ne sont pas au
-		// catalogue public : Scale, High Grade, HCI, SAP. Sans nom, on rend ""
-		// et l appelant garde le plan code. Inventer serait pire.
-		{"23scaleamd01-v3", "", ""},
+		// A plan code no public catalogue lists has no invoiceName: "" comes
+		// back and the caller keeps the plan code. Inventing would be worse.
+		{"27risele01-v1", "", ""},
 		// Un plan code sans prefixe d annee garde le nom, sans annee inventee.
 		{"legacy-plan", "SOMETHING | CPU", "SOMETHING"},
 	}
@@ -44,18 +43,18 @@ func TestCommercialName(t *testing.T) {
 	}
 }
 
-// countUnnamed sert la ligne qui explique les plans sans nom commercial. La
-// colonne du nom montre leur plan code a la place d un tiret, donc c est le
-// drapeau `named` pose par buildCatalogRows qui les distingue ; une ligne qui
-// ne le porte pas ne vient pas de la table et n est pas comptee.
-func TestCountUnnamed(t *testing.T) {
+// countUncatalogued serves the line that explains the rows no public catalogue
+// lists. It counts the `catalogue` field buildCatalogRows sets, empty for none;
+// a row that does not carry the field did not come from the table.
+func TestCountUncatalogued(t *testing.T) {
 	rows := []map[string]any{
-		{"name": "ADVANCE-3 2024", "named": true},
-		{"name": "23scaleamd01-v3", "named": false},
-		{"name": "26adv01-v7", "named": false},
+		{"name": "ADVANCE-3 2024", "catalogue": "eco"},
+		{"name": "ADVANCE-1 2026", "catalogue": "baremetalServers"},
+		{"name": "27risele01-v1", "catalogue": ""},
+		{"name": "26scaleamd09-v2", "catalogue": ""},
 		{"name": "-"},
 	}
-	if got := countUnnamed(rows); got != 2 {
-		t.Errorf("countUnnamed = %d, attendu 2", got)
+	if got := countUncatalogued(rows); got != 2 {
+		t.Errorf("countUncatalogued = %d, want 2", got)
 	}
 }

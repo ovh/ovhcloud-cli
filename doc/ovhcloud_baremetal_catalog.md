@@ -14,11 +14,12 @@ soonest first.
 By default the table shows one row per range, in its default configuration:
 processor, memory, storage, included public and private bandwidth, delivery and
 monthly price. Narrowing with --memory, --storage, --gpu or --plan-code shows
-every configuration, with its plan code and the amount due at order.
+every configuration, with its plan code, datacenter and the amount due at order.
 
-Scale, High Grade and SAP servers appear with their availability but no price:
-their prices are in the public baremetalServers catalogue, which this command
-does not read yet.
+Ranges are described and priced from the two public catalogues, Eco and
+baremetalServers. A plan code that neither lists is shown with its availability
+but no price, and with a processor only when a catalogue knows its machine; the
+table says how many such rows there are.
 
 ```
 ovhcloud baremetal catalog [flags]

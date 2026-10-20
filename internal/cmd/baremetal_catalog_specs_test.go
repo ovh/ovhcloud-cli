@@ -32,9 +32,23 @@ func registerSpecsCatalog(t *td.T) {
 		httpmock.NewStringResponder(200, `{"ovhSubsidiary": "FR"}`))
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/eco?ovhSubsidiary=FR",
 		httpmock.NewStringResponder(200, specsCatalog))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/baremetalServers?ovhSubsidiary=FR",
+		httpmock.NewStringResponder(200, emptyCatalog))
 	httpmock.RegisterResponder("GET", `=~^https://eu\.api\.ovh\.com/v1/dedicated/server/datacenter/availabilities`,
 		httpmock.NewStringResponder(200, specsAvailabilities))
 }
+
+// The baremetalServers catalogue as the API gave it on 20 October 2026, trimmed
+// to three plans' worth: ADVANCE-1 2026, which only this catalogue lists;
+// ADVANCE-2 2024, which Eco lists too, at 124.99 where this one says 154.99;
+// and the 26scaleamd09 machine, whose plan the availabilities offer as -v2
+// while the catalogue sells -v3. Beside them, as the availabilities listed
+// them that day: the default configuration of ADVANCE-2, one configuration of
+// each of the others, and 27risele01-v1, which no public catalogue lists.
+const (
+	serversCatalog        = `{"locale": {"currencyCode": "EUR"}, "plans": [{"planCode": "26adv01-v7", "invoiceName": "ADVANCE-1 | AMD EPYC 4245P", "product": "26adv01", "addonFamilies": [{"name": "vrack", "default": "vrack-bandwidth-25000-adv-gen4"}, {"name": "bandwidth", "default": "bandwidth-3000-adv-gen4"}, {"name": "storage", "default": "softraid-2x960nvme-pcie-gen5-26adv01-v7"}, {"name": "memory", "default": "ram-32g-ddr5-on-die-ecc-5600-26adv01-v7"}], "pricings": [{"mode": "default", "price": 15999000000, "interval": 0, "intervalUnit": "none", "capacities": ["installation"], "promotions": []}, {"mode": "default", "price": 15999000000, "interval": 1, "intervalUnit": "month", "capacities": ["renew"], "promotions": []}]}, {"planCode": "24adv02-v3", "invoiceName": "ADVANCE-2 | AMD EPYC 4344P", "product": "24adv02", "addonFamilies": [{"name": "storage", "default": "softraid-2x960nvme-pcie-gen4-24adv02-v3"}, {"name": "bandwidth", "default": "bandwidth-3000-adv-gen3"}, {"name": "vrack", "default": "vrack-bandwidth-25000-adv-gen3"}, {"name": "memory", "default": "ram-64g-on-die-ecc-5200-24adv02-v3"}], "pricings": [{"mode": "default", "price": 15499000000, "interval": 0, "intervalUnit": "none", "capacities": ["installation"], "promotions": []}, {"mode": "default", "price": 15499000000, "interval": 1, "intervalUnit": "month", "capacities": ["renew"], "promotions": []}]}], "products": [{"name": "24adv02", "blobs": {"technical": {"server": {"cpu": {"brand": "AMD", "model": "EPYC 4344P", "cores": 8, "number": 1, "threads": 16}}}}}, {"name": "26adv01", "blobs": {"technical": {"server": {"cpu": {"brand": "AMD", "model": "EPYC 4245P", "cores": 6, "number": 1, "threads": 12}}}}}, {"name": "26scaleamd09", "blobs": {"technical": {"server": {"cpu": {"brand": "AMD", "model": "EPYC TURIN 9965", "cores": 192, "number": 2, "threads": 384}}}}}, {"name": "bandwidth-3000", "blobs": {"technical": {"bandwidth": {"level": 3000, "guaranteed": true}}}}, {"name": "ram-32g-ddr5-on-die-ecc-5600", "blobs": {"technical": {"memory": {"ramType": "DDR5", "size": 32}}}}, {"name": "ram-64g-on-die-ecc-5200", "blobs": {"technical": {"memory": {"ramType": "DDR5", "size": 64}}}}, {"name": "softraid-2x960nvme-pcie-gen4", "blobs": {"technical": {}}}, {"name": "softraid-2x960nvme-pcie-gen5", "blobs": {"technical": {}}}, {"name": "vrack-bandwidth-25000", "blobs": {"technical": {"vrack": {"level": 25000, "guaranteed": false}}}}], "addons": [{"planCode": "vrack-bandwidth-25000-adv-gen4", "product": "vrack-bandwidth-25000"}, {"planCode": "bandwidth-3000-adv-gen4", "product": "bandwidth-3000"}, {"planCode": "softraid-2x960nvme-pcie-gen5-26adv01-v7", "product": "softraid-2x960nvme-pcie-gen5"}, {"planCode": "ram-32g-ddr5-on-die-ecc-5600-26adv01-v7", "product": "ram-32g-ddr5-on-die-ecc-5600"}, {"planCode": "softraid-2x960nvme-pcie-gen4-24adv02-v3", "product": "softraid-2x960nvme-pcie-gen4"}, {"planCode": "bandwidth-3000-adv-gen3", "product": "bandwidth-3000"}, {"planCode": "vrack-bandwidth-25000-adv-gen3", "product": "vrack-bandwidth-25000"}, {"planCode": "ram-64g-on-die-ecc-5200-24adv02-v3", "product": "ram-64g-on-die-ecc-5200"}]}`
+	serversAvailabilities = `[{"fqn": "24adv02-v3.ram-64g-on-die-ecc-5200.softraid-2x960nvme-pcie-gen4", "planCode": "24adv02-v3", "server": "24adv02", "memory": "ram-64g-on-die-ecc-5200", "storage": "softraid-2x960nvme-pcie-gen4", "datacenters": [{"availability": "72H", "datacenter": "bhs"}, {"availability": "72H", "datacenter": "fra"}, {"availability": "unavailable", "datacenter": "gra"}, {"availability": "72H", "datacenter": "lon"}, {"availability": "unavailable", "datacenter": "rbx"}, {"availability": "unavailable", "datacenter": "sbg"}, {"availability": "1H-low", "datacenter": "waw"}]}, {"fqn": "26adv01-v7.ram-32g-ddr5-on-die-ecc-5600.hybridsoftraid-2x960nvme-pcie-gen5-2x15360nvme-pcie-gen5", "planCode": "26adv01-v7", "server": "26adv01", "memory": "ram-32g-ddr5-on-die-ecc-5600", "storage": "hybridsoftraid-2x960nvme-pcie-gen5-2x15360nvme-pcie-gen5", "datacenters": [{"availability": "72H", "datacenter": "bhs"}, {"availability": "72H", "datacenter": "fra"}, {"availability": "72H", "datacenter": "gra"}]}, {"fqn": "26scaleamd09-v2.ram-1024g-ecc-5600.noraid-0.softraid-2x1920nvme-pcie-gen5-system", "planCode": "26scaleamd09-v2", "server": "26scaleamd09", "memory": "ram-1024g-ecc-5600", "storage": "noraid-0", "datacenters": [{"availability": "72H", "datacenter": "gra"}]}, {"fqn": "27risele01-v1.ram-32g-ddr4-ecc-2666.softraid-2x960nvme", "planCode": "27risele01-v1", "server": "27risele01", "memory": "ram-32g-ddr4-ecc-2666", "storage": "softraid-2x960nvme", "datacenters": [{"availability": "1H-high", "datacenter": "bhs"}, {"availability": "1H-high", "datacenter": "fra"}, {"availability": "1H-low", "datacenter": "rbx"}]}]`
+)
 
 // A range is recognised by its processor before its plan code: the commercial
 // page leads with it, and two ranges at the same price differ by nothing else.
@@ -79,7 +93,8 @@ func (ms *MockSuite) TestBaremetalCatalogNamesThePCIeGeneration(assert, require 
 }
 
 // The public and private bandwidth of the default configuration, in Gbps,
-// public first. A range with no vRack option has no private bandwidth to show.
+// public first. A range with no vRack option has no private bandwidth, which
+// is a fact about the range: "none", not the dash of a missing value.
 func (ms *MockSuite) TestBaremetalCatalogShowsTheIncludedBandwidth(assert, require *td.T) {
 	registerSpecsCatalog(assert)
 
@@ -87,7 +102,7 @@ func (ms *MockSuite) TestBaremetalCatalogShowsTheIncludedBandwidth(assert, requi
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains(`"bandwidth": "3 / 25"`), "ADVANCE-2: 3 Gbps public, 25 Gbps private")
-	assert.Cmp(out, td.Contains(`"bandwidth": "0.3 / -"`), "KS-GAME has no private bandwidth")
+	assert.Cmp(out, td.Contains(`"bandwidth": "0.3 / none"`), "KS-GAME has no vRack, and says so")
 	assert.Cmp(out, td.Contains(`"publicBandwidthMbps": 3000`), "the raw figure stays for scripts")
 }
 
@@ -135,4 +150,99 @@ func (ms *MockSuite) TestBaremetalCatalogDoesNotReadTheCacheOfTheEarlierShape(as
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("EPYC 4344P 8c"), "the specs come from a fresh download")
+}
+
+func registerServersCatalog(t *td.T) {
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/me",
+		httpmock.NewStringResponder(200, `{"ovhSubsidiary": "FR"}`))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/eco?ovhSubsidiary=FR",
+		httpmock.NewStringResponder(200, specsCatalog))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/baremetalServers?ovhSubsidiary=FR",
+		httpmock.NewStringResponder(200, serversCatalog))
+	httpmock.RegisterResponder("GET", `=~^https://eu\.api\.ovh\.com/v1/dedicated/server/datacenter/availabilities`,
+		httpmock.NewStringResponder(200, serversAvailabilities))
+}
+
+// Scale, High Grade, HCI, SAP, SDS and the 2026 Advance and Game ranges are
+// described and priced in baremetalServers. Reading Eco alone left 52 of the
+// 115 ranges on FR without processor, bandwidth or price.
+func (ms *MockSuite) TestBaremetalCatalogReadsTheBaremetalServersCatalogue(assert, require *td.T) {
+	registerServersCatalog(assert)
+
+	out, err := cmd.Execute("baremetal", "catalog", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains(`"name": "ADVANCE-1 2026"`), "the range is named")
+	assert.Cmp(out, td.Contains(`"cpu": "EPYC 4245P 6c"`), "its processor is shown")
+	assert.Cmp(out, td.Contains(`"monthly": "159.99 EUR"`), "and its price")
+	assert.Cmp(out, td.Contains(`"catalogue": "baremetalServers"`), "the source is given to scripts")
+}
+
+// ADVANCE-2 2024 is in both catalogues, at 124.99 in Eco and 154.99 in
+// baremetalServers. Eco is read first and keeps it: the price this command
+// showed before, until the catalogue says which one is the public price.
+func (ms *MockSuite) TestBaremetalCatalogKeepsTheEcoPriceOfAPlanInBoth(assert, require *td.T) {
+	registerServersCatalog(assert)
+
+	out, err := cmd.Execute("baremetal", "catalog", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains(`"monthly": "124.99 EUR"`), "the Eco price is kept")
+	assert.Cmp(out, td.Not(td.Contains("154.99")), "the baremetalServers one is not")
+	assert.Cmp(out, td.Contains(`"catalogue": "eco"`))
+}
+
+// The availabilities offer 26scaleamd09-v2 while the catalogue sells
+// 26scaleamd09-v3. The plan has no price anywhere, but the machine is the same,
+// so its processor is known. 27risele01-v1 is in no catalogue at all: no
+// processor is invented for it.
+func (ms *MockSuite) TestBaremetalCatalogDescribesTheMachineOfAnUncataloguedPlan(assert, require *td.T) {
+	registerServersCatalog(assert)
+
+	out, err := cmd.Execute("baremetal", "catalog", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains(`"cpu": "2x EPYC TURIN 9965 384c"`), "the machine's processor, both sockets")
+	assert.Cmp(out, td.Contains(`"priceNote": "in no public catalogue for this subsidiary"`))
+	assert.Cmp(out, td.Contains(`"ram": "32 GB DDR4 ECC"`), "the memory type the code spells out")
+	assert.Cmp(strings.Count(out, `"cpu": "-"`), 3, "27risele01-v1 has no processor in any of its three locations")
+}
+
+// A catalogue that cannot be read must not take the command down with it: Eco
+// still prices a hundred plans. But the partial table is not cached, or the
+// gap would last a day after the catalogue came back.
+func (ms *MockSuite) TestBaremetalCatalogShowsEcoWhenBaremetalServersFails(assert, require *td.T) {
+	registerServersCatalog(assert)
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/baremetalServers?ovhSubsidiary=FR",
+		httpmock.NewStringResponder(503, `{"message": "Service Unavailable"}`))
+
+	out, err := cmd.Execute("baremetal", "catalog", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains(`"monthly": "124.99 EUR"`), "Eco is still priced")
+	assert.Cmp(out, td.Contains(`"priceNote": "not in the catalogues that could be read"`),
+		"and a plan it lacks is not claimed to be in no catalogue")
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/baremetalServers?ovhSubsidiary=FR",
+		httpmock.NewStringResponder(200, serversCatalog))
+
+	out, err = cmd.Execute("baremetal", "catalog", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains(`"monthly": "159.99 EUR"`), "the next run reads the catalogue again")
+}
+
+// "none" is a statement about the range: it has no vRack option. A plan the
+// catalogue lists without saying anything about its bandwidth is not a range
+// without bandwidth, and the first version of this said "none / none" of it.
+func (ms *MockSuite) TestBaremetalCatalogClaimsNoBandwidthItWasNotTold(assert, require *td.T) {
+	registerCatalog(assert)
+
+	out, err := cmd.Execute("baremetal", "catalog", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("none / none")))
+	assert.Cmp(out, td.Contains(`"bandwidth": "-"`), "what the catalogue does not say stays a dash")
 }

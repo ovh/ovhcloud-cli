@@ -40,9 +40,15 @@ func registerCatalog(t *td.T) {
 		httpmock.NewStringResponder(200, `{"ovhSubsidiary": "FR"}`))
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/eco?ovhSubsidiary=FR",
 		httpmock.NewStringResponder(200, realCatalog))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/order/catalog/public/baremetalServers?ovhSubsidiary=FR",
+		httpmock.NewStringResponder(200, emptyCatalog))
 	httpmock.RegisterResponder("GET", `=~^https://eu\.api\.ovh\.com/v1/dedicated/server/datacenter/availabilities`,
 		httpmock.NewStringResponder(200, realAvailabilities))
 }
+
+// emptyCatalog is a public catalogue that lists nothing, so a plan absent from
+// the other one is in no catalogue at all.
+const emptyCatalog = `{"locale": {"currencyCode": "EUR"}, "plans": [], "products": [], "addons": []}`
 
 // registerPromotedCatalog wires the same two endpoints to the RISE-1 answers.
 func registerPromotedCatalog(t *td.T) {
@@ -93,10 +99,9 @@ func (ms *MockSuite) TestBaremetalCatalogJoinsPriceToAvailability(assert, requir
 	assert.Cmp(out, td.Not(td.Contains(`"dueAtOrder": "89.99 EUR"`)), "the setup charge is not the first month")
 }
 
-// Scale, High Grade and SAP are not in the Eco catalogue this command prices
-// from. They are not sold on quotation either: their prices are public, in the
-// baremetalServers catalogue. So the row says where its price is not, rather
-// than claiming the range has none.
+// A plan code the availabilities offer and neither public catalogue lists has
+// no price anywhere this command can read. The row says that, rather than
+// claiming the range is sold on quotation.
 func (ms *MockSuite) TestBaremetalCatalogSaysWhyAPlanHasNoPrice(assert, require *td.T) {
 	registerCatalog(assert)
 
@@ -104,7 +109,7 @@ func (ms *MockSuite) TestBaremetalCatalogSaysWhyAPlanHasNoPrice(assert, require 
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("23scaleamd01-v3"), "the plan is listed")
-	assert.Cmp(out, td.Contains("not in the Eco catalogue"), "and its missing price is explained")
+	assert.Cmp(out, td.Contains("in no public catalogue for this subsidiary"), "and its missing price is explained")
 	assert.Cmp(out, td.Not(td.Contains("on quotation")), "without claiming the range has no public price")
 }
 
@@ -165,11 +170,17 @@ func (ms *MockSuite) TestBaremetalCatalogFitsATerminal(assert, require *td.T) {
 func (ms *MockSuite) TestBaremetalCatalogAvailableOnlyDropsTheUnavailable(assert, require *td.T) {
 	registerCatalog(assert)
 
-	out, err := cmd.Execute("baremetal", "catalog", "--available-only")
+	// In -o json, every location is a row: the range view keeps the
+	// deliverable one of a range anyway, so it could not tell the flag worked.
+	all, err := cmd.Execute("baremetal", "catalog", "-o", "json")
+	require.CmpNoError(err)
+	require.Cmp(all, td.Contains(`"eta": "no stock"`), "the fixture does hold undeliverable rows")
+
+	out, err := cmd.Execute("baremetal", "catalog", "--available-only", "-o", "json")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Not(td.Contains("unavailable")), "nothing undeliverable is listed")
-	assert.Cmp(out, td.Contains("< 1 h"), "and what is deliverable stays")
+	assert.Cmp(out, td.Not(td.Contains(`"eta": "no stock"`)), "nothing undeliverable is listed")
+	assert.Cmp(out, td.Contains(`"availability": "1H-high"`), "and what is deliverable stays")
 }
 
 // A value the API would reject is named here, with the accepted ones, rather

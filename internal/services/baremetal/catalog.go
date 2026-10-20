@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -42,24 +43,36 @@ var (
 const (
 	datacenterAvailabilitiesPath = "/dedicated/server/datacenter/availabilities"
 
-	// The public catalogue is fetched whole — it takes no filter — and weighs
-	// about twelve megabytes for a hundred plans. What is kept here is the
-	// distilled price table, a few kilobytes, so a repeat call reads that
+	// A public catalogue is fetched whole — it takes no filter — and the two
+	// read here weigh about twelve and twenty-three megabytes. What is kept is
+	// the distilled price table, a few kilobytes, so a repeat call reads that
 	// instead of the download. Prices move about once a month; stock moves by
 	// the hour, which is why availability is never cached.
 	catalogCacheNamespace = "catalog"
 	catalogCacheTTL       = 24 * time.Hour
 
-	// The public catalogue of the Eco ranges. It is not just the entry range
-	// despite the name: Rise, Advance, Kimsufi and So you Start are all in it.
-	// Scale, High Grade and SAP are not: they are priced in a second public
-	// catalogue, baremetalServers, which this command does not read yet.
-	baremetalCatalogProduct = "eco"
+	// The two public catalogues that describe and price dedicated servers.
+	// Eco is not just the entry range despite the name: Rise, Advance 2024,
+	// Kimsufi and So you Start are in it. baremetalServers holds Scale, High
+	// Grade, HCI, SAP, SDS and the 2026 Advance and Game generations.
+	//
+	// The six ADVANCE 2024 plans are in both, at different prices: measured on
+	// FR on 20 October 2026, ADVANCE-1 is 89.99 a month in Eco and 114.99 in
+	// baremetalServers, with no promotion on either side. Eco is read first and
+	// keeps those plans, as this command has always shown them; which of the
+	// two is the public price is a question for the catalogue, not for a table.
+	ecoCatalogue              = "eco"
+	baremetalServersCatalogue = "baremetalServers"
 
 	// Bumped whenever catalogPrices changes shape. 4: processor, memory type,
-	// default configuration and bandwidth per plan.
-	catalogCacheVersion = 4
+	// default configuration and bandwidth per plan. 5: both catalogues, the
+	// catalogue each plan comes from, and the processor of every server.
+	catalogCacheVersion = 5
 )
+
+// publicCatalogues is the reading order, and so the order of precedence when a
+// plan is in both.
+var publicCatalogues = []string{ecoCatalogue, baremetalServersCatalogue}
 
 // commitmentModes maps what an operator asks for to what the catalogue calls it.
 var commitmentModes = map[string]string{
@@ -122,8 +135,21 @@ type catalogPrices struct {
 	// with it.
 	Specs map[string]planSpecs `json:"specs"`
 	// The memory type per memory option code ("DDR5"). The code says how much
-	// memory there is and whether it is ECC, never which generation.
+	// memory there is and whether it is ECC, rarely which generation.
 	RAMTypes map[string]string `json:"ramTypes"`
+	// The catalogue each plan was read from, eco or baremetalServers. A plan
+	// in neither has no entry: the availabilities offer it, no public
+	// catalogue describes or prices it.
+	Sources map[string]string `json:"sources"`
+	// The processor of every server product, under the name the
+	// availabilities give it (`server`). It describes a plan the catalogues
+	// list under another code: 26scaleamd09-v2 is offered while the catalogue
+	// sells 26scaleamd09-v3, and the machine is the same.
+	Servers map[string]planSpecs `json:"servers"`
+
+	// The catalogues that could not be read, with why. A table missing one is
+	// still shown, but never cached: it would hide the gap for a day.
+	Unread map[string]string `json:"-"`
 }
 
 // planSpecs is the part of a plan's description the range view shows.
@@ -181,10 +207,9 @@ type catalogTechnical struct {
 //
 // L annee vient des deux premiers chiffres du plan code (24adv03-v3 -> 2024).
 // Elle desambigue : RISE-1 existe en 2024 et en 2025, sous deux codes.
-// Mesure du 25/08 : 99 des 244 plans annonces par /availabilities portent un
-// `invoiceName` -- le catalogue public eco ne couvre ni Scale, ni High Grade,
-// ni SAP. Pour les 145 autres cette fonction rend "" et la colonne garde le
-// plan code : inventer un nom serait pire que montrer le code.
+// A plan code no public catalogue lists has no `invoiceName`: this function
+// returns "" and the column keeps the plan code, because inventing a name
+// would be worse than showing the code.
 func commercialName(planCode, invoiceName string) string {
 	name := strings.TrimSpace(strings.SplitN(invoiceName, "|", 2)[0])
 	if name == "" {
@@ -252,6 +277,15 @@ func GetBaremetalCatalog(_ *cobra.Command, _ []string) {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch the %s catalogue: %s", country, err)
 		return
 	}
+	// On stderr, so -o json stays one document: the ranges of a catalogue
+	// that could not be read are still listed, without processor or price,
+	// and that must not read as ranges that have none.
+	for _, name := range publicCatalogues {
+		if reason, unread := prices.Unread[name]; unread {
+			fmt.Fprintf(os.Stderr, "🟠 the %s catalogue could not be read (%s): its ranges are listed "+
+				"without processor or price\n", name, reason)
+		}
+	}
 
 	rows := buildCatalogRows(offers, prices, commitmentModes[CatalogCommitment])
 
@@ -287,25 +321,31 @@ func GetBaremetalCatalog(_ *cobra.Command, _ []string) {
 			"and the amount due at order.")
 	}
 
-	// Six columns, not eight, and the two widest in readable form: the table
-	// was 225 characters across, so any terminal narrower than that wrapped
-	// every line and the borders stopped lining up — which is exactly what
-	// "les | font deriver l affichage" describes. `server` went because it is
-	// the plan code minus its suffix, and `location` because the cheapest
-	// configuration of a range says nothing about where the range is sold.
-	// Both remain one -o json away.
-	// A range without a name is not a range without importance: Scale, High
-	// Grade, HCI and SAP are missing from the Eco catalogue this command reads,
-	// not from sale. Their prices are public, in the baremetalServers
-	// catalogue. Saying so stops the plan code from reading as a display defect.
-	if unnamed := countUnnamed(filtered); unnamed > 0 && !format.IsJson() &&
+	// A row with neither name nor processor nor price reads as a display
+	// defect. It is not one: the availabilities offer plan codes that neither
+	// public catalogue lists — on FR on 20 October 2026, twelve 2027 RISE, KS
+	// and SYS ranges, and 26scaleamd09-v2 while the catalogue sells -v3.
+	// Saying so is the only honest thing the table can do about them — and
+	// only once both catalogues have been read.
+	if missing := countUncatalogued(filtered); missing > 0 && len(prices.Unread) == 0 && !format.IsJson() &&
 		!format.IsYaml() && format.CustomFormat() == "" && !format.IsInteractive() {
-		fmt.Printf("💡 %d of these rows are outside the Eco catalogue this command prices "+
-			"from (Scale, High Grade, SAP): their prices are in the baremetalServers catalogue.\n", unnamed)
+		fmt.Printf("💡 %d of these rows are in no public catalogue for %s: the API offers them, "+
+			"but neither the Eco nor the baremetalServers catalogue prices them.\n",
+			missing, strings.ToUpper(country))
 	}
 
-	columns := []string{"name range", "planCode", "ram memory", "disks storage", "eta delivery",
-		"monthly", "dueAtOrder"}
+	// The two widest columns in readable form, and `server` left out because
+	// it is the plan code minus its suffix: the table was 225 characters
+	// across, so any terminal narrower than that wrapped every line and the
+	// borders stopped lining up — which is exactly what "les | font deriver
+	// l affichage" describes. -o json keeps every field.
+	//
+	// The narrowed view lists every configuration in every location, so two
+	// of its rows can differ by nothing but their datacenter: on 20 October
+	// 2026, ADVANCE-2 had 168 configurations, up to seven of them identical
+	// once the datacenter was left out.
+	columns := []string{"name range", "planCode", "location dc", "ram memory", "disks storage",
+		"eta delivery", "monthly", "dueAtOrder"}
 	if rangeView {
 		// What the commercial page shows for a range (processor, memory,
 		// storage, bandwidth, price) plus the delivery this command exists to
@@ -320,11 +360,12 @@ func GetBaremetalCatalog(_ *cobra.Command, _ []string) {
 	display.RenderTable(filtered, columns, &flags.OutputFormatConfig)
 }
 
-// countUnnamed compte les lignes que le catalogue public ne nomme pas.
-func countUnnamed(rows []map[string]any) int {
+// countUncatalogued counts the rows no public catalogue lists. A row that does
+// not carry the field was not built by buildCatalogRows and is not counted.
+func countUncatalogued(rows []map[string]any) int {
 	n := 0
 	for _, row := range rows {
-		if named, marked := row["named"].(bool); marked && !named {
+		if source, marked := row["catalogue"].(string); marked && source == "" {
 			n++
 		}
 	}
@@ -333,8 +374,8 @@ func countUnnamed(rows []map[string]any) int {
 
 // defaultConfigPerRange keeps one row per range ("server"): its default
 // configuration when the catalogue names one and it is offered, otherwise its
-// cheapest priced configuration, or the first seen when none is priced (Scale,
-// High Grade and SAP are not in the catalogue this command reads). That is the first thing a PM needs —
+// cheapest priced configuration, or the first seen when none is priced (a plan
+// code no public catalogue lists). That is the first thing a PM needs —
 // which ranges exist and what they start at — before narrowing to the RAM,
 // storage or GPU options each one takes.
 func defaultConfigPerRange(rows []map[string]any) []map[string]any {
@@ -518,7 +559,7 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 	// The version travels in the name: an entry written by an older build has a
 	// different shape, and one that still unmarshals into the current struct
 	// would be read as fresh while missing half its fields.
-	key := fmt.Sprintf("eco-%s-v%d.json", strings.ToLower(country), catalogCacheVersion)
+	key := fmt.Sprintf("catalogue-%s-v%d.json", strings.ToLower(country), catalogCacheVersion)
 
 	if CatalogRefresh {
 		cache.Write(catalogCacheNamespace, key, nil, 0)
@@ -531,58 +572,107 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 		// version of this command: fall through and fetch.
 	}
 
-	var raw struct {
-		Locale struct {
-			CurrencyCode string `json:"currencyCode"`
-		} `json:"locale"`
-		Plans []struct {
-			PlanCode string `json:"planCode"`
-			// Le nom commercial, celui que porte la facture.
-			InvoiceName string `json:"invoiceName"`
-			// The product the plan sells, whose technical description names
-			// its processor, and the option each family comes with.
-			Product       string        `json:"product"`
-			AddonFamilies []addonFamily `json:"addonFamilies"`
-			Pricings      []struct {
-				Mode         string   `json:"mode"`
-				Price        float64  `json:"price"`
-				Interval     int      `json:"interval"`
-				IntervalUnit string   `json:"intervalUnit"`
-				Capacities   []string `json:"capacities"`
-				Promotions   []struct {
-					Name string `json:"name"`
-					// Total is what the charge becomes once the promotion is
-					// applied, in ucents like every other amount here. It is
-					// read rather than recomputed from `discount`, because a
-					// percentage rounded twice does not land on the cent the
-					// checkout will charge.
-					Total struct {
-						Value float64 `json:"value"`
-					} `json:"total"`
-				} `json:"promotions"`
-			} `json:"pricings"`
-		} `json:"plans"`
-		Products []struct {
-			Name  string `json:"name"`
-			Blobs struct {
-				Technical catalogTechnical `json:"technical"`
-			} `json:"blobs"`
-		} `json:"products"`
-		// An option's plan code carries its plan as a suffix
-		// (ram-64g-on-die-ecc-5200-24adv03-v3); its product is the bare code
-		// the availabilities use.
-		Addons []struct {
-			PlanCode string `json:"planCode"`
-			Product  string `json:"product"`
-		} `json:"addons"`
+	prices := catalogPrices{
+		Plans: map[string]map[string]price{}, Names: map[string]string{},
+		Specs: map[string]planSpecs{}, RAMTypes: map[string]string{},
+		Sources: map[string]string{}, Servers: map[string]planSpecs{},
+	}
+	for _, name := range publicCatalogues {
+		raw, err := fetchPublicCatalogue(name, country)
+		if err != nil {
+			// Without Eco there is nothing to show a price for: that is the
+			// command failing. Without baremetalServers, Eco still prices a
+			// hundred plans, so the table is shown and the gap is named.
+			if name == ecoCatalogue {
+				return catalogPrices{}, err
+			}
+			if prices.Unread == nil {
+				prices.Unread = map[string]string{}
+			}
+			prices.Unread[name] = err.Error()
+			continue
+		}
+		prices.add(name, raw)
 	}
 
+	if len(prices.Unread) == 0 {
+		if encoded, err := json.Marshal(prices); err == nil {
+			cache.Write(catalogCacheNamespace, key, encoded, catalogCacheTTL)
+		}
+	}
+
+	return prices, nil
+}
+
+// publicCatalogue is the part of a public catalogue this command reads. Eco and
+// baremetalServers share this shape.
+type publicCatalogue struct {
+	Locale struct {
+		CurrencyCode string `json:"currencyCode"`
+	} `json:"locale"`
+	Plans []struct {
+		PlanCode string `json:"planCode"`
+		// Le nom commercial, celui que porte la facture.
+		InvoiceName string `json:"invoiceName"`
+		// The product the plan sells, whose technical description names
+		// its processor, and the option each family comes with.
+		Product       string        `json:"product"`
+		AddonFamilies []addonFamily `json:"addonFamilies"`
+		Pricings      []struct {
+			Mode         string   `json:"mode"`
+			Price        float64  `json:"price"`
+			Interval     int      `json:"interval"`
+			IntervalUnit string   `json:"intervalUnit"`
+			Capacities   []string `json:"capacities"`
+			Promotions   []struct {
+				Name string `json:"name"`
+				// Total is what the charge becomes once the promotion is
+				// applied, in ucents like every other amount here. It is
+				// read rather than recomputed from `discount`, because a
+				// percentage rounded twice does not land on the cent the
+				// checkout will charge.
+				Total struct {
+					Value float64 `json:"value"`
+				} `json:"total"`
+			} `json:"promotions"`
+		} `json:"pricings"`
+	} `json:"plans"`
+	Products []struct {
+		Name  string `json:"name"`
+		Blobs struct {
+			Technical catalogTechnical `json:"technical"`
+		} `json:"blobs"`
+	} `json:"products"`
+	// An option's plan code carries its plan as a suffix
+	// (ram-64g-on-die-ecc-5200-24adv03-v3); its product is the bare code
+	// the availabilities use.
+	Addons []struct {
+		PlanCode string `json:"planCode"`
+		Product  string `json:"product"`
+	} `json:"addons"`
+}
+
+func fetchPublicCatalogue(name, country string) (publicCatalogue, error) {
+	var raw publicCatalogue
 	endpoint := fmt.Sprintf("/v1/order/catalog/public/%s?ovhSubsidiary=%s",
-		baremetalCatalogProduct, url.QueryEscape(country))
+		name, url.QueryEscape(country))
 	if err := httpLib.Client.Get(endpoint, &raw); err != nil {
-		return catalogPrices{}, err
+		return publicCatalogue{}, err
+	}
+	return raw, nil
+}
+
+// add distils one catalogue into the price table. A plan, a memory type or a
+// server already read from an earlier catalogue is kept as it was: the reading
+// order is the order of precedence.
+func (prices *catalogPrices) add(source string, raw publicCatalogue) {
+	if prices.Currency == "" {
+		prices.Currency = raw.Locale.CurrencyCode
 	}
 
+	// Products and options are looked up within the catalogue that names
+	// them: an option's plan code is unique to its plan, and a product the
+	// two catalogues share describes the same hardware.
 	technical := make(map[string]catalogTechnical, len(raw.Products))
 	for _, product := range raw.Products {
 		technical[product.Name] = product.Blobs.Technical
@@ -592,15 +682,20 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 		addonProduct[addon.PlanCode] = addon.Product
 	}
 
-	prices := catalogPrices{Currency: raw.Locale.CurrencyCode,
-		Plans: map[string]map[string]price{}, Names: map[string]string{},
-		Specs: map[string]planSpecs{}, RAMTypes: map[string]string{}}
 	for name, description := range technical {
-		if description.Memory.RAMType != "" {
+		if _, known := prices.RAMTypes[name]; !known && description.Memory.RAMType != "" {
 			prices.RAMTypes[name] = description.Memory.RAMType
 		}
+		if _, known := prices.Servers[name]; !known && description.Server.CPU.Model != "" {
+			prices.Servers[name] = describePlan(description, nil, nil, nil)
+		}
 	}
+
 	for _, plan := range raw.Plans {
+		if _, known := prices.Sources[plan.PlanCode]; known {
+			continue
+		}
+		prices.Sources[plan.PlanCode] = source
 		prices.Specs[plan.PlanCode] = describePlan(technical[plan.Product], plan.AddonFamilies,
 			addonProduct, technical)
 		// Le nom se retient meme quand le plan n a pas de prix dans ce mode :
@@ -654,12 +749,6 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 			prices.Plans[plan.PlanCode] = byMode
 		}
 	}
-
-	if encoded, err := json.Marshal(prices); err == nil {
-		cache.Write(catalogCacheNamespace, key, encoded, catalogCacheTTL)
-	}
-
-	return prices, nil
 }
 
 // describePlan reads what the range view shows for one plan: the processor of
@@ -738,10 +827,22 @@ func buildCatalogRows(offers []availabilityEntry, prices catalogPrices, mode str
 				// codes stay in the row: -o json still gives ram-128g-ecc-4800
 				// and softraid-2x1920nvme, which is what a script matches on.
 				"ram":   describeMemory(offer.Memory, prices.RAMTypes[offer.Memory]),
-				"disks": humaniseStorage(offer.Storage),
-				"eta":   shortDelay(location[1]),
+				"disks": describeStorage(offer.Storage, offer.SystemStorage),
+				// The pair the machine boots from, which -o json gives in full
+				// even where the column shows the data disks alone.
+				"systemDisks": humaniseStorage(offer.SystemStorage),
+				"eta":         shortDelay(location[1]),
 			}
-			addSpecs(row, offer, prices.Specs[offer.PlanCode], prices.RAMTypes[offer.Memory])
+			// The catalogue the plan was read from, "" for none: what -o json
+			// gives a script, and what the table counts to explain its gaps.
+			row["catalogue"] = prices.Sources[offer.PlanCode]
+			specs, described := prices.Specs[offer.PlanCode]
+			if !described {
+				// No plan, but maybe the machine: its processor is a fact about
+				// the hardware, not about the plan that sells it.
+				specs = prices.Servers[offer.Server]
+			}
+			addSpecs(row, offer, specs, prices.RAMTypes[offer.Memory])
 
 			// Le nom d abord, le code ensuite : le code reste ce qu on passe a
 			// `baremetal order` et a --plan-code, donc il ne disparait pas -- il
@@ -814,6 +915,11 @@ func describeMemory(code, ramType string) string {
 	if size == code {
 		return code
 	}
+	if ramType == "" {
+		// Some codes spell the generation out (ram-64g-ddr4-ecc-2666), which
+		// is all there is for a plan no catalogue describes.
+		ramType = ramTypeInCode(code)
+	}
 	parts := []string{size}
 	if ramType != "" {
 		parts = append(parts, ramType)
@@ -828,10 +934,25 @@ func describeMemory(code, ramType string) string {
 	return strings.Join(parts, " ")
 }
 
+// ramTypeInCode reads the memory generation an option code spells out, and ""
+// when it does not: ram-32g-ddr3-noecc-1333 is DDR3, ram-128g-ecc-4800 does
+// not say.
+func ramTypeInCode(code string) string {
+	for _, part := range strings.Split(code, "-") {
+		if generation, found := strings.CutPrefix(part, "ddr"); found {
+			if _, err := strconv.Atoi(generation); err == nil {
+				return "DDR" + generation
+			}
+		}
+	}
+	return ""
+}
+
 // addSpecs adds what the commercial page shows for a range to one row: its
 // processor, whether this row is the range's default configuration, and the
-// bandwidth that configuration includes. A plan the catalogue does not
-// describe gets dashes, not guesses.
+// bandwidth that configuration includes. What the catalogues do not say gets a
+// dash, not a guess: a plan none of them lists has a processor only when its
+// machine is known, and no bandwidth.
 func addSpecs(row map[string]any, offer availabilityEntry, specs planSpecs, ramType string) {
 	row["cpu"] = "-"
 	if specs.CPU != "" {
@@ -844,8 +965,11 @@ func addSpecs(row map[string]any, offer availabilityEntry, specs planSpecs, ramT
 	}
 	row["defaultConfig"] = specs.DefaultMemory != "" &&
 		offer.Memory == specs.DefaultMemory && offer.Storage == specs.DefaultStorage
+	// Every server has public bandwidth, so a plan without it is a plan the
+	// catalogue does not describe. One that has it and no vRack option has no
+	// private bandwidth, which gigabits says.
 	row["bandwidth"] = "-"
-	if specs.PublicMbps > 0 || specs.PrivateMbps > 0 {
+	if specs.PublicMbps > 0 {
 		row["bandwidth"] = gigabits(specs.PublicMbps) + " / " + gigabits(specs.PrivateMbps)
 		row["publicBandwidthMbps"] = specs.PublicMbps
 		row["privateBandwidthMbps"] = specs.PrivateMbps
@@ -853,10 +977,13 @@ func addSpecs(row map[string]any, offer availabilityEntry, specs planSpecs, ramT
 }
 
 // gigabits renders a rate in megabits per second in the unit the commercial
-// pages use: 3000 is "3", 300 is "0.3", none is "-".
+// pages use: 3000 is "3", 300 is "0.3". Zero means the plan offers no such
+// option — on FR on 20 October 2026, KS, RISE-GAME, SYS-GAME, RISE-S,
+// RISE-GPU-1 and SYS-6 had no vRack family in the catalogue — and "none" says
+// that, where a dash read as missing data.
 func gigabits(mbps int) string {
 	if mbps <= 0 {
-		return "-"
+		return "none"
 	}
 	return strconv.FormatFloat(float64(mbps)/1000, 'f', -1, 64)
 }
@@ -864,24 +991,26 @@ func gigabits(mbps int) string {
 // humaniseStorage does the same for the widest column of the table.
 //
 // softraid-2x1920nvme becomes "2x1.92 TB NVMe", softraid-2x960nvme-pcie-gen4
-// "2x960 GB NVMe Gen4"; a hybrid layout keeps both of
-// its groups. noraid-0 means the range carries no disk of its own — every one
-// of them is sold on quotation — and an empty-looking cell reads as a bug, so
-// it says so.
+// "2x960 GB NVMe Gen4"; a hybrid layout keeps both of its groups. noraid is a
+// layout like the others: noraid-1x120ssd is the single 120 GB SSD of KS-B.
+// noraid-0 is a machine sold without data disks — Scale, Scale-GPU and RISE-7
+// to -9 in their default configuration, which boot from system disks of their
+// own (see describeStorage) — and says so. Every noraid code used to read
+// "on request", which was true of none of them.
 func humaniseStorage(code string) string {
 	if code == "" {
 		return ""
 	}
-	if strings.HasPrefix(code, "noraid") {
-		return "on request"
-	}
 
 	rest := code
-	for _, prefix := range []string{"hybridsoftraid-", "softraid-", "hardraid-", "raid-"} {
+	for _, prefix := range []string{"hybridsoftraid-", "softraid-", "hardraid-", "noraid-", "raid-"} {
 		if trimmed, ok := strings.CutPrefix(rest, prefix); ok {
 			rest = trimmed
 			break
 		}
+	}
+	if rest == "0" || strings.HasPrefix(rest, "0disk") {
+		return "no disk"
 	}
 
 	var groups []string
@@ -915,6 +1044,25 @@ func humaniseStorage(code string) string {
 		return code
 	}
 	return strings.Join(groups, " + ")
+}
+
+// describeStorage is the storage column: the data disks, or the disks the
+// machine boots from when it has no other. Scale, High Grade and RISE-7 to -9
+// keep the system on a pair of their own, which the column used to leave out:
+// on 20 October 2026, every one of the 1881 rows of -o json it called "no
+// disk" had two. Beside data disks the system pair is left to systemDisks:
+// both together took High Grade rows to 44 characters and the range view to
+// 165, past the 150 it is held to, and the data disks are what tells two
+// configurations of a range apart.
+func describeStorage(data, system string) string {
+	disks := humaniseStorage(data)
+	if disks != "" && disks != "no disk" {
+		return disks
+	}
+	if systemDisks := humaniseStorage(system); systemDisks != "" {
+		return systemDisks + " system"
+	}
+	return disks
 }
 
 // humaniseSize keeps the number short without rounding it away: 1920 GB is
@@ -954,13 +1102,22 @@ func shortDelay(availability string) string {
 	switch availability {
 	case "comingSoon":
 		return "soon"
+	// "—" and "?" read as missing data. They are answers: no machine in
+	// stock, and a stock the API does not know. Both fit the width of the
+	// column's own header.
 	case "unavailable":
-		return "—"
+		return "no stock"
 	case "", "unknown":
-		return "?"
+		return "unknown"
 	}
 
-	hours := deliveryHours(availability)
+	// The delay the code states, not deliveryHours: that one is a sort key,
+	// and it ranks 1H-low as 3 so that it comes after 1H-high. Shown, it said
+	// "3 h (low)" of a machine deliverable within the hour.
+	hours, stated := statedHours(availability)
+	if !stated {
+		return availability
+	}
 	suffix := ""
 	if strings.HasSuffix(availability, "-low") {
 		suffix = " (low)"
@@ -975,17 +1132,24 @@ func shortDelay(availability string) string {
 	}
 }
 
-// applyPrice attaches what a plan costs, or says why it has no price. A
-// hundred plans are priced in the Eco catalogue; a hundred and forty-five
-// (Scale, High Grade, SAP) are priced in the baremetalServers catalogue, which
-// this command does not read yet. They used to show as "on quotation", which
-// the API contradicts: their prices are public.
+// applyPrice attaches what a plan costs, or says why it has no price. Scale,
+// High Grade and SAP used to show as "on quotation", then as missing from the
+// Eco catalogue: their prices are public, in baremetalServers, which is now
+// read. What is left without a price is a plan code no public catalogue lists.
 func applyPrice(row map[string]any, prices catalogPrices, planCode, mode string) {
 	byMode, priced := prices.Plans[planCode]
 	if !priced {
 		row["monthly"] = "-"
 		row["dueAtOrder"] = "-"
-		row["priceNote"] = "not in the Eco catalogue this command reads"
+		switch source := prices.Sources[planCode]; {
+		case source != "":
+			row["priceNote"] = fmt.Sprintf("listed without a price in the %s catalogue", source)
+		case len(prices.Unread) > 0:
+			// The catalogue that could not be read may well price it.
+			row["priceNote"] = "not in the catalogues that could be read"
+		default:
+			row["priceNote"] = "in no public catalogue for this subsidiary"
+		}
 		return
 	}
 
@@ -1069,11 +1233,8 @@ func deliveryHours(availability string) int {
 		return 1 << 30
 	}
 
-	// Codes look like 24H, 240H, or 1H-low and 1H-high for the two grades of
-	// same-hour delivery.
-	digits := strings.TrimSuffix(strings.SplitN(availability, "-", 2)[0], "H")
-	hours, err := strconv.Atoi(digits)
-	if err != nil {
+	hours, stated := statedHours(availability)
+	if !stated {
 		return 1 << 30
 	}
 	if strings.HasSuffix(availability, "-low") {
@@ -1081,6 +1242,15 @@ func deliveryHours(availability string) int {
 		hours = hours*2 + 1
 	}
 	return hours
+}
+
+// statedHours is the delay an availability code states, in hours. Codes look
+// like 24H, 240H, or 1H-low and 1H-high for the two grades of same-hour
+// delivery, which both state one hour.
+func statedHours(availability string) (int, bool) {
+	digits := strings.TrimSuffix(strings.SplitN(availability, "-", 2)[0], "H")
+	hours, err := strconv.Atoi(digits)
+	return hours, err == nil
 }
 
 // humaniseDelay renders the delay an operator is really being told about. The
@@ -1096,7 +1266,10 @@ func humaniseDelay(availability string) string {
 		return "unknown"
 	}
 
-	hours := deliveryHours(availability)
+	hours, stated := statedHours(availability)
+	if !stated {
+		return availability
+	}
 	// "-low" and "-high" are the same delay with different stock behind it.
 	// Rendering both as "within the hour" throws away the only warning the API
 	// gives that the machine may be gone by the time the order goes through.
@@ -1106,7 +1279,7 @@ func humaniseDelay(availability string) string {
 	}
 
 	switch {
-	case hours <= 3:
+	case hours <= 1:
 		return "within the hour" + suffix
 	case hours < 48:
 		return fmt.Sprintf("%dh", hours) + suffix
