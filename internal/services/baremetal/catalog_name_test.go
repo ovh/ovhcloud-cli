@@ -44,16 +44,18 @@ func TestCommercialName(t *testing.T) {
 	}
 }
 
-// countUnnamed sert la ligne qui explique les tirets. Elle compte ce que la
-// table montre, pas ce que le catalogue contient.
+// countUnnamed sert la ligne qui explique les plans sans nom commercial. La
+// colonne du nom montre leur plan code a la place d un tiret, donc c est le
+// drapeau `named` pose par buildCatalogRows qui les distingue ; une ligne qui
+// ne le porte pas ne vient pas de la table et n est pas comptee.
 func TestCountUnnamed(t *testing.T) {
 	rows := []map[string]any{
-		{"name": "ADVANCE-3 2024"},
+		{"name": "ADVANCE-3 2024", "named": true},
+		{"name": "23scaleamd01-v3", "named": false},
+		{"name": "26adv01-v7", "named": false},
 		{"name": "-"},
-		{"name": ""},
-		{},
 	}
-	if got := countUnnamed(rows); got != 3 {
-		t.Errorf("countUnnamed = %d, attendu 3", got)
+	if got := countUnnamed(rows); got != 2 {
+		t.Errorf("countUnnamed = %d, attendu 2", got)
 	}
 }

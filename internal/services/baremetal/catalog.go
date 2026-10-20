@@ -50,14 +50,15 @@ const (
 	catalogCacheNamespace = "catalog"
 	catalogCacheTTL       = 24 * time.Hour
 
-	// The only public catalogue carrying dedicated servers. It is not just the
-	// entry range despite the name: Rise, Advance, Kimsufi and So you Start are
-	// all in it. Scale, High Grade and SAP are not sold from a public price
-	// list at all.
+	// The public catalogue of the Eco ranges. It is not just the entry range
+	// despite the name: Rise, Advance, Kimsufi and So you Start are all in it.
+	// Scale, High Grade and SAP are not: they are priced in a second public
+	// catalogue, baremetalServers, which this command does not read yet.
 	baremetalCatalogProduct = "eco"
 
-	// Bumped whenever catalogPrices changes shape.
-	catalogCacheVersion = 3
+	// Bumped whenever catalogPrices changes shape. 4: processor, memory type,
+	// default configuration and bandwidth per plan.
+	catalogCacheVersion = 4
 )
 
 // commitmentModes maps what an operator asks for to what the catalogue calls it.
@@ -116,12 +117,65 @@ type catalogPrices struct {
 	// facture, un devis et le site disent « ADVANCE-3 ». Un product manager
 	// doit reconnaitre sa gamme avant de reconnaitre son code.
 	Names map[string]string `json:"names"`
+	// What the commercial page shows next to a range's name, per plan code:
+	// its processor, its default configuration and the bandwidth that comes
+	// with it.
+	Specs map[string]planSpecs `json:"specs"`
+	// The memory type per memory option code ("DDR5"). The code says how much
+	// memory there is and whether it is ECC, never which generation.
+	RAMTypes map[string]string `json:"ramTypes"`
+}
+
+// planSpecs is the part of a plan's description the range view shows.
+type planSpecs struct {
+	CPU      string `json:"cpu"`
+	CPUModel string `json:"cpuModel"`
+	// Cores across every processor: a dual-socket machine has twice the cores
+	// of its model, and that is what the operator gets.
+	CPUCores int `json:"cpuCores"`
+
+	// The memory and storage option codes of the default configuration, as
+	// the availabilities name them.
+	DefaultMemory  string `json:"defaultMemory"`
+	DefaultStorage string `json:"defaultStorage"`
+
+	// Megabits per second; zero when the default configuration has none.
+	PublicMbps  int `json:"publicMbps"`
+	PrivateMbps int `json:"privateMbps"`
+}
+
+// addonFamily is one option family of a plan, and the option it comes with.
+type addonFamily struct {
+	Name    string `json:"name"`
+	Default string `json:"default"`
+}
+
+// catalogTechnical is the part of a product's technical description this
+// command reads. Each product fills one branch: a server its processor, a
+// memory option its type, a bandwidth or vRack option its rate.
+type catalogTechnical struct {
+	Server struct {
+		CPU struct {
+			Model  string `json:"model"`
+			Cores  int    `json:"cores"`
+			Number int    `json:"number"`
+		} `json:"cpu"`
+	} `json:"server"`
+	Memory struct {
+		RAMType string `json:"ramType"`
+	} `json:"memory"`
+	Bandwidth struct {
+		Level int `json:"level"`
+	} `json:"bandwidth"`
+	Vrack struct {
+		Level int `json:"level"`
+	} `json:"vrack"`
 }
 
 // commercialName rend « ADVANCE-3 2024 » depuis `invoiceName` et le plan code.
 //
-// `invoiceName` vaut « ADVANCE-3 | AMD EPYC 4464P » : le CPU est deja une
-// colonne ailleurs, donc seule la partie de gauche sert. La casse n est PAS
+// `invoiceName` vaut « ADVANCE-3 | AMD EPYC 4464P » : seule la partie de gauche
+// sert. Le CPU a sa propre colonne, lue dans la description technique du plan. La casse n est PAS
 // retouchee -- un Title-case naif ecrit « Rise-Xl » et « Rise-Gpu-1 », donc
 // abime les sigles que la gamme porte vraiment.
 //
@@ -224,11 +278,13 @@ func GetBaremetalCatalog(_ *cobra.Command, _ []string) {
 	format := &flags.OutputFormatConfig
 	narrowed := CatalogPlanCode != "" || CatalogMemory != "" || CatalogStorage != "" ||
 		CatalogSystemStorage != "" || CatalogGPU != ""
-	if !narrowed && format.CustomFormat() == "" && !format.IsInteractive() &&
-		!format.IsYaml() && !format.IsJson() {
+	rangeView := !narrowed && format.CustomFormat() == "" && !format.IsInteractive() &&
+		!format.IsYaml() && !format.IsJson()
+	if rangeView {
 		filtered = defaultConfigPerRange(filtered)
-		fmt.Println("💡 One row per range, its cheapest configuration — narrow with " +
-			"--memory, --storage, --gpu or --plan-code to see the options.")
+		fmt.Println("💡 One row per range, in its default configuration — narrow with " +
+			"--memory, --storage, --gpu or --plan-code to see the options, the plan code " +
+			"and the amount due at order.")
 	}
 
 	// Six columns, not eight, and the two widest in readable form: the table
@@ -238,42 +294,54 @@ func GetBaremetalCatalog(_ *cobra.Command, _ []string) {
 	// the plan code minus its suffix, and `location` because the cheapest
 	// configuration of a range says nothing about where the range is sold.
 	// Both remain one -o json away.
-	// Une gamme sans nom n est pas une gamme sans importance : Scale, High
-	// Grade, HCI et SAP se vendent sur devis, et le catalogue public ne les
-	// decrit pas. Le dire evite de lire le tiret comme un defaut d affichage.
+	// A range without a name is not a range without importance: Scale, High
+	// Grade, HCI and SAP are missing from the Eco catalogue this command reads,
+	// not from sale. Their prices are public, in the baremetalServers
+	// catalogue. Saying so stops the plan code from reading as a display defect.
 	if unnamed := countUnnamed(filtered); unnamed > 0 && !format.IsJson() &&
 		!format.IsYaml() && format.CustomFormat() == "" && !format.IsInteractive() {
-		fmt.Printf("💡 %d of these rows carry no commercial name: the public catalogue "+
-			"prices Eco ranges only, and the rest sell on quotation.\n", unnamed)
+		fmt.Printf("💡 %d of these rows are outside the Eco catalogue this command prices "+
+			"from (Scale, High Grade, SAP): their prices are in the baremetalServers catalogue.\n", unnamed)
 	}
 
-	display.RenderTable(filtered,
-		[]string{"name range", "planCode", "ram memory", "disks storage", "eta delivery",
-			"monthly", "dueAtOrder"},
-		&flags.OutputFormatConfig)
+	columns := []string{"name range", "planCode", "ram memory", "disks storage", "eta delivery",
+		"monthly", "dueAtOrder"}
+	if rangeView {
+		// What the commercial page shows for a range (processor, memory,
+		// storage, bandwidth, price) plus the delivery this command exists to
+		// report. Measured on the 115 ranges the API listed on 20 October
+		// 2026, that is 147 characters across; the plan code and the amount
+		// due at order would take it past 190, so they stay in the narrowed
+		// view and in -o json, which is where a configuration is chosen to be
+		// ordered.
+		columns = []string{"name range", "cpu", "ram memory", "disks storage",
+			"bandwidth Gbps pub/priv", "eta delivery", "monthly"}
+	}
+	display.RenderTable(filtered, columns, &flags.OutputFormatConfig)
 }
 
 // countUnnamed compte les lignes que le catalogue public ne nomme pas.
 func countUnnamed(rows []map[string]any) int {
 	n := 0
 	for _, row := range rows {
-		if name, _ := row["name"].(string); name == "" || name == "-" {
+		if named, marked := row["named"].(bool); marked && !named {
 			n++
 		}
 	}
 	return n
 }
 
-// defaultConfigPerRange keeps one row per range ("server"): its cheapest
-// priced configuration, or the first seen when none is priced (Scale, High
-// Grade and SAP sell on quotation only). That is the first thing a PM needs —
+// defaultConfigPerRange keeps one row per range ("server"): its default
+// configuration when the catalogue names one and it is offered, otherwise its
+// cheapest priced configuration, or the first seen when none is priced (Scale,
+// High Grade and SAP are not in the catalogue this command reads). That is the first thing a PM needs —
 // which ranges exist and what they start at — before narrowing to the RAM,
 // storage or GPU options each one takes.
 func defaultConfigPerRange(rows []map[string]any) []map[string]any {
 	best := make(map[string]map[string]any, len(rows))
 	for _, row := range rows {
 		server, _ := row["server"].(string)
-		if current, seen := best[server]; !seen || cheaperDefault(row, current) {
+		if current, seen := best[server]; !seen || betterRangeRow(row, current) {
 			best[server] = row
 		}
 	}
@@ -296,6 +364,21 @@ func defaultConfigPerRange(rows []map[string]any) []map[string]any {
 		return leftCode < rightCode
 	})
 	return winners
+}
+
+// betterRangeRow says whether candidate represents its range better than
+// current: the range's default configuration first, as the commercial page
+// shows it, then cheaperDefault. Every configuration of a plan carries the
+// plan's own price here, so without the first rule the cheapest configuration
+// was in fact whichever could be delivered soonest: ADVANCE-2 with 128 GB of
+// memory, at the price of its 64 GB default.
+func betterRangeRow(candidate, current map[string]any) bool {
+	candidateDefault, _ := candidate["defaultConfig"].(bool)
+	currentDefault, _ := current["defaultConfig"].(bool)
+	if candidateDefault != currentDefault {
+		return candidateDefault
+	}
+	return cheaperDefault(candidate, current)
 }
 
 // cheaperDefault says whether candidate is the better range default than
@@ -456,7 +539,11 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 			PlanCode string `json:"planCode"`
 			// Le nom commercial, celui que porte la facture.
 			InvoiceName string `json:"invoiceName"`
-			Pricings []struct {
+			// The product the plan sells, whose technical description names
+			// its processor, and the option each family comes with.
+			Product       string        `json:"product"`
+			AddonFamilies []addonFamily `json:"addonFamilies"`
+			Pricings      []struct {
 				Mode         string   `json:"mode"`
 				Price        float64  `json:"price"`
 				Interval     int      `json:"interval"`
@@ -475,6 +562,19 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 				} `json:"promotions"`
 			} `json:"pricings"`
 		} `json:"plans"`
+		Products []struct {
+			Name  string `json:"name"`
+			Blobs struct {
+				Technical catalogTechnical `json:"technical"`
+			} `json:"blobs"`
+		} `json:"products"`
+		// An option's plan code carries its plan as a suffix
+		// (ram-64g-on-die-ecc-5200-24adv03-v3); its product is the bare code
+		// the availabilities use.
+		Addons []struct {
+			PlanCode string `json:"planCode"`
+			Product  string `json:"product"`
+		} `json:"addons"`
 	}
 
 	endpoint := fmt.Sprintf("/v1/order/catalog/public/%s?ovhSubsidiary=%s",
@@ -483,9 +583,26 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 		return catalogPrices{}, err
 	}
 
+	technical := make(map[string]catalogTechnical, len(raw.Products))
+	for _, product := range raw.Products {
+		technical[product.Name] = product.Blobs.Technical
+	}
+	addonProduct := make(map[string]string, len(raw.Addons))
+	for _, addon := range raw.Addons {
+		addonProduct[addon.PlanCode] = addon.Product
+	}
+
 	prices := catalogPrices{Currency: raw.Locale.CurrencyCode,
-		Plans: map[string]map[string]price{}, Names: map[string]string{}}
+		Plans: map[string]map[string]price{}, Names: map[string]string{},
+		Specs: map[string]planSpecs{}, RAMTypes: map[string]string{}}
+	for name, description := range technical {
+		if description.Memory.RAMType != "" {
+			prices.RAMTypes[name] = description.Memory.RAMType
+		}
+	}
 	for _, plan := range raw.Plans {
+		prices.Specs[plan.PlanCode] = describePlan(technical[plan.Product], plan.AddonFamilies,
+			addonProduct, technical)
 		// Le nom se retient meme quand le plan n a pas de prix dans ce mode :
 		// une gamme vendue sur devis a droit a son nom comme les autres.
 		if name := commercialName(plan.PlanCode, plan.InvoiceName); name != "" {
@@ -545,6 +662,39 @@ func fetchCatalogPrices(country string) (catalogPrices, error) {
 	return prices, nil
 }
 
+// describePlan reads what the range view shows for one plan: the processor of
+// its product, and the memory, storage and bandwidth options its default
+// configuration comes with.
+func describePlan(server catalogTechnical, families []addonFamily,
+	addonProduct map[string]string, technical map[string]catalogTechnical) planSpecs {
+	var specs planSpecs
+	if cpu := server.Server.CPU; cpu.Model != "" {
+		count := max(cpu.Number, 1)
+		specs.CPUModel = cpu.Model
+		specs.CPUCores = count * cpu.Cores
+		// No brand: the model already says it (EPYC, Ryzen, Xeon, Core), and
+		// the six characters it costs are what the range view does not have.
+		specs.CPU = fmt.Sprintf("%s %dc", cpu.Model, specs.CPUCores)
+		if count > 1 {
+			specs.CPU = fmt.Sprintf("%dx %s %dc", count, cpu.Model, specs.CPUCores)
+		}
+	}
+	for _, family := range families {
+		product := addonProduct[family.Default]
+		switch family.Name {
+		case "memory":
+			specs.DefaultMemory = product
+		case "storage":
+			specs.DefaultStorage = product
+		case "bandwidth":
+			specs.PublicMbps = technical[product].Bandwidth.Level
+		case "vrack":
+			specs.PrivateMbps = technical[product].Vrack.Level
+		}
+	}
+	return specs
+}
+
 func containsString(values []string, wanted string) bool {
 	for _, value := range values {
 		if value == wanted {
@@ -587,18 +737,24 @@ func buildCatalogRows(offers []availabilityEntry, prices catalogPrices, mode str
 				// Readable forms of the two widest columns. The raw addon
 				// codes stay in the row: -o json still gives ram-128g-ecc-4800
 				// and softraid-2x1920nvme, which is what a script matches on.
-				"ram":   humaniseMemory(offer.Memory),
+				"ram":   describeMemory(offer.Memory, prices.RAMTypes[offer.Memory]),
 				"disks": humaniseStorage(offer.Storage),
 				"eta":   shortDelay(location[1]),
 			}
+			addSpecs(row, offer, prices.Specs[offer.PlanCode], prices.RAMTypes[offer.Memory])
 
 			// Le nom d abord, le code ensuite : le code reste ce qu on passe a
 			// `baremetal order` et a --plan-code, donc il ne disparait pas -- il
 			// cesse seulement d etre la seule facon de reconnaitre une gamme.
+			// Without a commercial name the plan code stands in: the range view
+			// has no plan code column, and a dash would leave the row
+			// unidentifiable.
 			if name, named := prices.Names[offer.PlanCode]; named {
 				row["name"] = name
+				row["named"] = true
 			} else {
-				row["name"] = "-"
+				row["name"] = offer.PlanCode
+				row["named"] = false
 			}
 			applyPrice(row, prices, offer.PlanCode, mode)
 			rows = append(rows, row)
@@ -648,9 +804,67 @@ func humaniseMemory(code string) string {
 	return fmt.Sprintf("%d GB", gigabytes)
 }
 
+// describeMemory is humaniseMemory plus what a buyer compares memory on: its
+// type, from the catalogue, and its error correction, from the code. The code
+// is the authority on ECC: the catalogue's own `ecc` flag is false on six of
+// the seven on-die modules, and on-die ECC, inside the chip, is not the
+// end-to-end ECC a server buyer asks for, so it is named apart.
+func describeMemory(code, ramType string) string {
+	size := humaniseMemory(code)
+	if size == code {
+		return code
+	}
+	parts := []string{size}
+	if ramType != "" {
+		parts = append(parts, ramType)
+	}
+	switch {
+	case strings.Contains(code, "-on-die"):
+		parts = append(parts, "on-die ECC")
+	case strings.Contains(code, "-noecc"):
+	case strings.Contains(code, "-ecc"):
+		parts = append(parts, "ECC")
+	}
+	return strings.Join(parts, " ")
+}
+
+// addSpecs adds what the commercial page shows for a range to one row: its
+// processor, whether this row is the range's default configuration, and the
+// bandwidth that configuration includes. A plan the catalogue does not
+// describe gets dashes, not guesses.
+func addSpecs(row map[string]any, offer availabilityEntry, specs planSpecs, ramType string) {
+	row["cpu"] = "-"
+	if specs.CPU != "" {
+		row["cpu"] = specs.CPU
+		row["cpuModel"] = specs.CPUModel
+		row["cpuCores"] = specs.CPUCores
+	}
+	if ramType != "" {
+		row["ramType"] = ramType
+	}
+	row["defaultConfig"] = specs.DefaultMemory != "" &&
+		offer.Memory == specs.DefaultMemory && offer.Storage == specs.DefaultStorage
+	row["bandwidth"] = "-"
+	if specs.PublicMbps > 0 || specs.PrivateMbps > 0 {
+		row["bandwidth"] = gigabits(specs.PublicMbps) + " / " + gigabits(specs.PrivateMbps)
+		row["publicBandwidthMbps"] = specs.PublicMbps
+		row["privateBandwidthMbps"] = specs.PrivateMbps
+	}
+}
+
+// gigabits renders a rate in megabits per second in the unit the commercial
+// pages use: 3000 is "3", 300 is "0.3", none is "-".
+func gigabits(mbps int) string {
+	if mbps <= 0 {
+		return "-"
+	}
+	return strconv.FormatFloat(float64(mbps)/1000, 'f', -1, 64)
+}
+
 // humaniseStorage does the same for the widest column of the table.
 //
-// softraid-2x1920nvme becomes "2x1.92 TB NVMe"; a hybrid layout keeps both of
+// softraid-2x1920nvme becomes "2x1.92 TB NVMe", softraid-2x960nvme-pcie-gen4
+// "2x960 GB NVMe Gen4"; a hybrid layout keeps both of
 // its groups. noraid-0 means the range carries no disk of its own — every one
 // of them is sold on quotation — and an empty-looking cell reads as a bug, so
 // it says so.
@@ -672,6 +886,15 @@ func humaniseStorage(code string) string {
 
 	var groups []string
 	for _, part := range strings.Split(rest, "-") {
+		// "pcie-gen4" follows the group it describes, and the generation is
+		// what separates two NVMe ranges of the same capacity. A code that
+		// carries none is shown without one rather than with a guess.
+		if generation, isGeneration := strings.CutPrefix(part, "gen"); isGeneration && len(groups) > 0 {
+			if _, err := strconv.Atoi(generation); err == nil {
+				groups[len(groups)-1] += " Gen" + generation
+			}
+			continue
+		}
 		count, size, ok := strings.Cut(part, "x")
 		if !ok {
 			continue
@@ -752,14 +975,17 @@ func shortDelay(availability string) string {
 	}
 }
 
-// applyPrice attaches what a plan costs, or says why it has no price. A blank
-// cell reads as a bug; a hundred plans are priced publicly and a hundred and
-// forty-five — Scale, High Grade, SAP — are sold on quotation.
+// applyPrice attaches what a plan costs, or says why it has no price. A
+// hundred plans are priced in the Eco catalogue; a hundred and forty-five
+// (Scale, High Grade, SAP) are priced in the baremetalServers catalogue, which
+// this command does not read yet. They used to show as "on quotation", which
+// the API contradicts: their prices are public.
 func applyPrice(row map[string]any, prices catalogPrices, planCode, mode string) {
 	byMode, priced := prices.Plans[planCode]
 	if !priced {
-		row["monthly"] = "on quotation"
-		row["dueAtOrder"] = "on quotation"
+		row["monthly"] = "-"
+		row["dueAtOrder"] = "-"
+		row["priceNote"] = "not in the Eco catalogue this command reads"
 		return
 	}
 

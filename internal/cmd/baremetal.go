@@ -79,8 +79,14 @@ Delivery is a delay, not a yes or no: "24h" means a server ordered now is
 expected within a day, while "2mo" is a two-month wait. Rows are sorted with the
 soonest first.
 
+By default the table shows one row per range, in its default configuration:
+processor, memory, storage, included public and private bandwidth, delivery and
+monthly price. Narrowing with --memory, --storage, --gpu or --plan-code shows
+every configuration, with its plan code and the amount due at order.
+
 Scale, High Grade and SAP servers appear with their availability but no price:
-they are not sold from the public price list, and show as "on quotation".`,
+their prices are in the public baremetalServers catalogue, which this command
+does not read yet.`,
 		Args: cobra.NoArgs,
 		Run:  baremetal.GetBaremetalCatalog,
 	}

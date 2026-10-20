@@ -93,16 +93,19 @@ func (ms *MockSuite) TestBaremetalCatalogJoinsPriceToAvailability(assert, requir
 	assert.Cmp(out, td.Not(td.Contains(`"dueAtOrder": "89.99 EUR"`)), "the setup charge is not the first month")
 }
 
-// A plan with no public price must say so. An empty cell reads as a bug, and a
-// hundred and forty-five plan codes are sold on quotation.
-func (ms *MockSuite) TestBaremetalCatalogNamesPlansSoldOnQuotation(assert, require *td.T) {
+// Scale, High Grade and SAP are not in the Eco catalogue this command prices
+// from. They are not sold on quotation either: their prices are public, in the
+// baremetalServers catalogue. So the row says where its price is not, rather
+// than claiming the range has none.
+func (ms *MockSuite) TestBaremetalCatalogSaysWhyAPlanHasNoPrice(assert, require *td.T) {
 	registerCatalog(assert)
 
 	out, err := cmd.Execute("baremetal", "catalog", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("23scaleamd01-v3"), "the plan is listed")
-	assert.Cmp(out, td.Contains("on quotation"), "and its price is explained rather than blank")
+	assert.Cmp(out, td.Contains("not in the Eco catalogue"), "and its missing price is explained")
+	assert.Cmp(out, td.Not(td.Contains("on quotation")), "without claiming the range has no public price")
 }
 
 // Committing twelve months costs 1025.89 once instead of 89.99 twelve times,
