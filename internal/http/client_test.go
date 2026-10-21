@@ -29,7 +29,7 @@ func TestFetchObjectsParallel_IgnoredErrorLogging(t *testing.T) {
 	td.Require(t).CmpNoError(err)
 
 	previousClient := Client
-	Client = client
+	Client = NewAPIClient(client)
 	defer func() { Client = previousClient }()
 
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/auth/time",
