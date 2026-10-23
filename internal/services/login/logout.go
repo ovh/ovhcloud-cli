@@ -54,26 +54,49 @@ func Logout(_ *cobra.Command, _ []string) {
 	// 1. Revoke the current credentials server-side (best effort): the
 	// credentials may already be invalid, in which case we still want to clean
 	// up the local configuration.
+	//
+	// Its outcome is recorded and reported at the end rather than printed here.
+	// It used to be printed here, by display.OutputWarning — and OutputWarning
+	// does not return: OutputWithFormat finishes on ExitFunc(0), which is
+	// os.Exit. So on every path but the happy one, `ovhcloud logout` stopped
+	// right here, exit 0, having printed "skipping remote revocation" — a
+	// sentence that reads as "carrying on" — while step 2 never ran and the
+	// credentials stayed in the configuration file. Reproduced against the built
+	// binary with a revoked key: exit 0, and consumer_key still on disk.
+	//
+	// The comment above already said the opposite of what the code did.
+	revocation := "not attempted"
 	if httpLib.Client != nil {
 		switch err := httpLib.Client.Post("/auth/logout", nil, nil); {
 		case err == nil:
-			display.OutputInfo(&flags.OutputFormatConfig, nil, "🔒 API credentials revoked")
+			revocation = "revoked via the API"
 		case isInvalidCredentialError(err):
-			display.OutputWarning(&flags.OutputFormatConfig, "credentials were already invalid or revoked, skipping remote revocation")
+			revocation = "already invalid or revoked, so nothing to revoke remotely"
 		default:
-			display.OutputWarning(&flags.OutputFormatConfig, "could not revoke credentials via the API: %s", err)
+			revocation = fmt.Sprintf("could not be revoked via the API: %s", err)
 		}
 	} else {
-		display.OutputWarning(&flags.OutputFormatConfig, "API client not initialized, skipping remote revocation")
+		revocation = "not revoked remotely: the API client was not initialised"
 	}
 
 	// 2. Remove the credentials from the local configuration.
+	//
+	// This is the half that matters, and the half that used to be skipped: the
+	// remote revocation is a courtesy, taking the key off this disk is the
+	// command.
 	if err := config.DeleteCredentials(cfg, path, section); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to remove credentials from configuration: %s", err)
+		display.OutputError(&flags.OutputFormatConfig,
+			"failed to remove credentials from %s: %s\n   The remote revocation %s, so the key on this disk is what is left to deal with.",
+			path, err, revocation)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Logged out successfully (credentials removed from %s)", path)
+	// One document, and it carries both halves. Under -o json the outcome of the
+	// revocation is a field rather than a separate document printed before this
+	// one — two JSON documents on one stdout is something no parser accepts.
+	display.OutputInfo(&flags.OutputFormatConfig,
+		map[string]any{"configFile": path, "section": section, "remoteRevocation": revocation},
+		"✅ Logged out: credentials removed from %s (remote revocation: %s)", path, revocation)
 }
 
 // confirmLogout asks the user to confirm the logout. The default (an empty
