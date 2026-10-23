@@ -310,11 +310,13 @@ func GetVpsServiceInfo(_ *cobra.Command, args []string) {
 }
 
 func EditVpsServiceInfo(cmd *cobra.Command, args []string) {
+	renewPayload := common.ServiceInfoRenewPayload(cmd)
+
 	if err := common.EditResource(
 		cmd,
 		"/vps/{serviceName}/serviceInfos",
 		fmt.Sprintf("/v1/vps/%s/serviceInfos", url.PathEscape(args[0])),
-		common.ServiceInfoSpec,
+		renewPayload,
 		assets.VpsOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
