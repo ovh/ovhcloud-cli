@@ -15,6 +15,7 @@ wasm:
 	GOOS=js GOARCH=wasm ${BUILD_CMD} -trimpath -ldflags "${LD_FLAGS}" -o ovhcloud.wasm ./cmd/ovhcloud
 
 test:
+	sh tests/install_test.sh
 	go test -v ./...
 
 fmt:

@@ -37,10 +37,45 @@ parse_args() {
   TAG=$1
 }
 
-execute() {
+verify_checksum() {
+  expected=$(awk -v filename="$TARBALL" '
+    $2 == filename {
+      if (NF != 2 || length($1) != 64 || $1 ~ /[^0-9a-fA-F]/) exit 1
+      hash = tolower($1)
+      matches++
+    }
+    END {
+      if (matches != 1) exit 1
+      print hash
+    }
+  ' "$tmpdir/$CHECKSUMS") || {
+    log_crit "missing or invalid checksum for $TARBALL"
+    return 1
+  }
+
+  if is_command sha256sum; then
+    actual=$(sha256sum "$tmpdir/$TARBALL") || return 1
+  elif is_command shasum; then
+    actual=$(shasum -a 256 "$tmpdir/$TARBALL") || return 1
+  else
+    log_crit "checksum verification requires sha256sum or shasum"
+    return 1
+  fi
+  actual=${actual%% *}
+  if [ "$actual" != "$expected" ]; then
+    log_crit "checksum mismatch for $TARBALL"
+    return 1
+  fi
+}
+
+execute() (
   tmpdir=$(mktemp -d)
+  trap 'rm -rf "$tmpdir"' 0
+  trap 'exit 1' 1 2 15
   log_debug "downloading files into ${tmpdir}"
   http_download "${tmpdir}/${TARBALL}" "${TARBALL_URL}"
+  http_download "${tmpdir}/${CHECKSUMS}" "${GITHUB_DOWNLOAD}/${TAG}/${CHECKSUMS}"
+  verify_checksum
   (cd "${tmpdir}" && untar "${TARBALL}")
   [ -d "$BINDIR" ] || install -d "$BINDIR"
   if [ "$OS" = "windows" ]; then
@@ -48,9 +83,7 @@ execute() {
   fi
   install "$tmpdir/$BINARY" "$BINDIR"
   log_info "installed ${BINDIR%/}/$BINARY"
-
-  rm -rf "${tmpdir}"
-}
+)
 
 tag_to_version() {
   if [ -z "${TAG}" ]; then
@@ -274,5 +307,6 @@ log_info "found version: ${VERSION} for ${TAG}/${OS}/${ARCH}"
 NAME=${REPO}_${OS}_${ARCH}
 TARBALL=${NAME}.${FORMAT}
 TARBALL_URL=${GITHUB_DOWNLOAD}/${TAG}/${TARBALL}
+CHECKSUMS=${REPO}_${VERSION}_checksums.txt
 
 execute
