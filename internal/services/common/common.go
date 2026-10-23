@@ -25,20 +25,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	//go:embed templates/service_info.tmpl
-	ServiceInfoTemplate string
-
-	ServiceInfoSpec struct {
-		Renew struct {
-			Automatic          bool `json:"automatic"`
-			DeleteAtExpiration bool `json:"deleteAtExpiration"`
-			Forced             bool `json:"forced"`
-			ManualPayment      bool `json:"manualPayment"`
-			Period             int  `json:"period"`
-		} `json:"renew"`
-	}
-)
+//go:embed templates/service_info.tmpl
+var ServiceInfoTemplate string
 
 func ManageListRequest(path, idField string, columnsToDisplay, filters []string) {
 	body, err := httpLib.FetchExpandedArray(path, idField)
@@ -206,12 +194,38 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		}
 	}
 
+	// --dry-run stops here: the caller sees exactly what would have been sent,
+	// and nothing reaches the API.
+	if flags.DryRun {
+		return nil, OutputDryRun(endpoint, parameters)
+	}
+
 	var createdResource map[string]any
 	if err := httpLib.Client.Post(endpoint, parameters, &createdResource); err != nil {
 		return nil, fmt.Errorf("error creating resource: %w", err)
 	}
 
 	return createdResource, nil
+}
+
+// OutputDryRun prints the request a --dry-run would have posted, and sends
+// nothing. It is shared by CreateResource and by the commands that build their
+// body themselves and post it directly, so that every --dry-run prints the
+// same thing — and so that none of them can forget to stop.
+func OutputDryRun(endpoint string, parameters any) error {
+	// The payload goes in the message, not only in the details: the default
+	// output prints the message alone, so a --dry-run whose body lived in the
+	// details printed a promise and no request.
+	payload, err := json.MarshalIndent(parameters, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to render the parameters: %w", err)
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, map[string]any{
+		"endpoint":   endpoint,
+		"parameters": parameters,
+	}, "🔍 Dry run: nothing was sent. This would have been posted to %s:\n%s", endpoint, payload)
+	return nil
 }
 
 func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte, extraFields ...map[string]any) error {
