@@ -292,7 +292,7 @@ func EditKube(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}",
 		fmt.Sprintf("/v1/cloud/project/%s/kube/%s", projectID, url.PathEscape(args[0])),
-		KubeSpec,
+		&KubeSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -344,7 +344,7 @@ func EditKubeCustomization(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/customization",
 		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/customization", projectID, url.PathEscape(args[0])),
-		KubeSpec.Customization,
+		&KubeSpec.Customization,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -551,7 +551,7 @@ func EditKubeNodepool(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/nodepool/{nodepoolId}",
 		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/nodepool/%s", projectID, url.PathEscape(args[0]), url.PathEscape(args[1])),
-		KubeNodepoolSpec,
+		&KubeNodepoolSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -703,7 +703,7 @@ func EditKubeOIDCIntegration(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect",
 		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/openIdConnect", projectID, url.PathEscape(args[0])),
-		KubeOIDCConfig,
+		&KubeOIDCConfig,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -780,7 +780,7 @@ func EditKubePrivateNetworkConfiguration(cmd *cobra.Command, args []string) {
 		cmd,
 		"/cloud/project/{serviceName}/kube/{kubeId}/privateNetworkConfiguration",
 		fmt.Sprintf("/v1/cloud/project/%s/kube/%s/privateNetworkConfiguration", projectID, url.PathEscape(args[0])),
-		KubeSpec.PrivateNetworkConfiguration,
+		&KubeSpec.PrivateNetworkConfiguration,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

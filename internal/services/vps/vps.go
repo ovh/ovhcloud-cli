@@ -110,7 +110,7 @@ func EditVps(cmd *cobra.Command, args []string) {
 		cmd,
 		"/vps/{serviceName}",
 		fmt.Sprintf("/v1/vps/%s", url.PathEscape(args[0])),
-		VpsSpec,
+		&VpsSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -139,7 +139,7 @@ func EditVpsSnapshot(cmd *cobra.Command, args []string) {
 		cmd,
 		"/vps/{serviceName}/snapshot",
 		fmt.Sprintf("/v1/vps/%s/snapshot", url.PathEscape(args[0])),
-		VpsSnapshotSpec,
+		&VpsSnapshotSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -314,7 +314,7 @@ func EditVpsServiceInfo(cmd *cobra.Command, args []string) {
 		cmd,
 		"/vps/{serviceName}/serviceInfos",
 		fmt.Sprintf("/v1/vps/%s/serviceInfos", url.PathEscape(args[0])),
-		common.ServiceInfoSpec,
+		&common.ServiceInfoSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -363,7 +363,7 @@ func EditVpsDisk(cmd *cobra.Command, args []string) {
 		cmd,
 		"/vps/{serviceName}/disks/{id}",
 		fmt.Sprintf("/v1/vps/%s/disks/%s", url.PathEscape(args[0]), url.PathEscape(args[1])),
-		VpsDiskSpec,
+		&VpsDiskSpec,
 		assets.VpsOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

@@ -58,7 +58,7 @@ func EditEmailPro(cmd *cobra.Command, args []string) {
 		cmd,
 		"/email/pro/{service}",
 		fmt.Sprintf("/v1/email/pro/%s", url.PathEscape(args[0])),
-		EmailProSpec,
+		&EmailProSpec,
 		assets.EmailproOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

@@ -47,7 +47,7 @@ func EditTelephony(cmd *cobra.Command, args []string) {
 		cmd,
 		"/telephony/{billingAccount}",
 		fmt.Sprintf("/v1/telephony/%s", url.PathEscape(args[0])),
-		TelephonySpec,
+		&TelephonySpec,
 		assets.TelephonyOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

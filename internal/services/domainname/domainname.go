@@ -41,7 +41,7 @@ func EditDomainName(cmd *cobra.Command, args []string) {
 		cmd,
 		"/domain/{serviceName}",
 		fmt.Sprintf("/v1/domain/%s", url.PathEscape(args[0])),
-		DomainSpec,
+		&DomainSpec,
 		assets.DomainOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
