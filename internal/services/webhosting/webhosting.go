@@ -2931,20 +2931,6 @@ func DeleteUser(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ User deleted")
 }
 
-func ChangeUserPassword(_ *cobra.Command, args []string) {
-	if UserPassword == "" {
-		display.OutputError(&flags.OutputFormatConfig, "password required, use --password to provide the new value")
-		return
-	}
-	endpoint := serviceEndpoint(args[0], fmt.Sprintf("user/%s/changePassword", url.PathEscape(args[1])))
-	body := map[string]any{"password": UserPassword}
-	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to change password: %s", err)
-		return
-	}
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Password updated")
-}
-
 // SSH keys
 func GetSSHKey(_ *cobra.Command, args []string) {
 	endpoint := serviceEndpoint(args[0], "key/ssh")

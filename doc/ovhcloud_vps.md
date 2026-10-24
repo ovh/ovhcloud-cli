@@ -47,7 +47,6 @@ Retrieve information and manage your VPS services
 * [ovhcloud vps reinstall](ovhcloud_vps_reinstall.md)	 - Reinstall the given VPS
 * [ovhcloud vps secondary-dns-domain](ovhcloud_vps_secondary-dns-domain.md)	 - Manage secondary DNS domains of the given VPS
 * [ovhcloud vps service-info](ovhcloud_vps_service-info.md)	 - Manage service information for the given VPS
-* [ovhcloud vps set-password](ovhcloud_vps_set-password.md)	 - Start the process in order to set the root password of the given VPS
 * [ovhcloud vps snapshot](ovhcloud_vps_snapshot.md)	 - Manage VPS snapshots
 * [ovhcloud vps start](ovhcloud_vps_start.md)	 - Start the given VPS
 * [ovhcloud vps stop](ovhcloud_vps_stop.md)	 - Stop the given VPS
