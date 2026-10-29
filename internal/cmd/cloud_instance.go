@@ -68,68 +68,31 @@ There are three ways to define the creation parameters:
 	}
 
 	// Add flags for instance creation parameters
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.AvailabilityZone, "availability-zone", "", "Availability zone")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BillingPeriod, "billing-period", "hourly", "Billing period (hourly, monthly), default is hourly")
-	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Bulk, "bulk", 0, "Number of instances to create")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Flavor.ID, "flavor", "", "Flavor ID (you can use 'ovhcloud cloud reference list-flavors' to get the flavor ID)")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Group.ID, "group", "", "Group ID")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Name, "name", "", "Instance name")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.AvailabilityZone, "availability-zone", "", "Availability zone")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.FlavorID, "flavor", "", "Flavor ID (you can use 'ovhcloud cloud instance flavor list' to get the flavor ID)")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.GroupID, "group", "", "Group ID")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.Name, "name", "", "Instance name")
 
 	// Boot options
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.ImageID, "boot-from.image", "", "Image ID to boot from (you can use 'ovhcloud cloud reference list-images' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.BootFrom.VolumeID, "boot-from.volume", "", "Volume ID to boot from")
-	markFlagsMutuallyExclusive(instanceCreateCmd, "boot-from.image", "boot-from.volume")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.ImageID, "boot-from.image", "", "Image ID to boot from (you can use 'ovhcloud cloud instance image list' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)")
 
-	// Private Network - Floating IP
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.FloatingIp.ID, "network.private.floating-ip.id", "", "ID of an existing floating IP")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.FloatingIpCreate.Description, "network.private.floating-ip.create.description", "", "Description for the floating IP to create")
-	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.floating-ip.id", "network.private.floating-ip.create.description")
-
-	// Private Network - Gateway
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.Gateway.ID, "network.private.gateway.id", "", "ID of the existing gateway to attach to the private network")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.GatewayCreate.Model, "network.private.gateway.create.model", "", "Model for the gateway to create (s, m, l)")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.GatewayCreate.Name, "network.private.gateway.create.name", "", "Name for the gateway to create")
-	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.gateway.id", "network.private.gateway.create.model")
-	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.gateway.id", "network.private.gateway.create.name")
-
-	// Private network - IP
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.IP, "network.private.ip", "", "Instance IP in the private network")
-
-	// Private Network - Existing network information
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.Network.ID, "network.private.id", "", "ID of the existing private network")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.Network.SubnetID, "network.private.subnet-id", "", "Existing subnet ID")
-
-	// Private Network - Create network
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.Name, "network.private.create.name", "", "Name for the private network to create")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.Subnet.CIDR, "network.private.create.subnet-cidr", "", "CIDR for the subnet to create")
-	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.Subnet.EnableDhcp, "network.private.create.subnet-enable-dhcp", false, "Enable DHCP for the subnet to create")
-	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.Subnet.IPVersion, "network.private.create.subnet-ip-version", 0, "IP version for the subnet to create")
-	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Network.Private.NetworkCreate.VlanID, "network.private.create.vlan-id", 0, "VLAN ID for the private network to create")
-	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.id", "network.private.create.name")
+	// Private network
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.PrivateNetworkID, "network.private.id", "", "ID of the existing private network")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.PrivateSubnetID, "network.private.subnet-id", "", "Existing subnet ID")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.PrivateIP, "network.private.ip", "", "Instance IP in the private network, or the address of an existing floating IP to associate")
+	instanceCreateCmd.MarkFlagsRequiredTogether("network.private.id", "network.private.subnet-id")
 
 	// Network - Public
-	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceCreationParameters.Network.Public, "network.public", false, "Set the new instance as public")
-	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.id", "network.public")
-	markFlagsMutuallyExclusive(instanceCreateCmd, "network.private.create.name", "network.public")
-
-	// Autobackup
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.Autobackup.Cron, "backup-cron", "", "Autobackup Unix Cron pattern (eg: '0 0 * * *')")
-	instanceCreateCmd.Flags().IntVar(&cloud.InstanceCreationParameters.Autobackup.Rotation, "backup-rotation", 0, "Number of backups to keep")
+	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceCreationFlags.PublicNetwork, "network.public", false, "Attach the new instance to the public network")
 
 	// SSH Key
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.SshKey.Name, "ssh-key.name", "", "Existing SSH key name")
-
-	// SSH Key Creation
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.SshKeyCreate.Name, "ssh-key.create.name", "", "Name for the SSH key to create")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.SshKeyCreate.PublicKey, "ssh-key.create.public-key", "", "Public key for the SSH key to create")
-	markFlagsMutuallyExclusive(instanceCreateCmd, "ssh-key.name", "ssh-key.create.name")
-	markFlagsMutuallyExclusive(instanceCreateCmd, "ssh-key.name", "ssh-key.create.public-key")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.SSHKeyName, "ssh-key.name", "", "Existing SSH key name (you can use 'ovhcloud cloud ssh-key create' to create one)")
 
 	// User Data
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationParameters.UserData, "user-data", "", "Configuration information or scripts to use upon launch")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.UserData, "user-data", "", "Configuration information or scripts to use upon launch")
 
 	// Common flags for other mean to define parameters
-	addParameterFileFlags(instanceCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/instance", "post", cloud.CloudInstanceCreationExample, cloud.GetInstanceFlavorAndImageInteractiveSelector)
+	addParameterFileFlags(instanceCreateCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/compute/instance", "post", cloud.CloudInstanceCreationExample, cloud.GetInstanceFlavorAndImageInteractiveSelector)
 	addInteractiveEditorFlag(instanceCreateCmd)
 	instanceCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for instance creation to be done before exiting")
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
@@ -582,7 +545,7 @@ There are three ways to define the installation parameters:
 		Args: cobra.NoArgs,
 	})
 	imageListCmd.Flags().StringVarP(&imageRegion, "region", "r", "", "Region to filter images (e.g., GRA9, BHS5)")
-	imageListCmd.Flags().StringVarP(&imageOsType, "os-type", "t", "", "OS type to filter images (baremetal-linux, bsd, linux, windows)")
+	imageListCmd.Flags().StringVarP(&imageOsType, "os-type", "t", "", "OS type to filter images (baremetal-linux, linux, windows)")
 	imageCmd.AddCommand(imageListCmd)
 
 	cloudCmd.AddCommand(instanceCmd)

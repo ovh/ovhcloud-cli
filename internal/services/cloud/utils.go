@@ -35,26 +35,38 @@ type CloudProjectSubOperation struct {
 	Action     string  `json:"action"`
 }
 
-func getAvailableImages(projectID string, region string) (map[string]string, error) {
-	// Fetch available images for the project
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/image", projectID)
-	if region != "" {
-		endpoint += "?region=" + url.QueryEscape(region)
+// getInstanceReferenceChoices fetches every page of the v2 instance flavors or
+// images ("flavor" or "image") and maps their names to their IDs.
+func getInstanceReferenceChoices(projectID, kind, region string) (map[string]string, error) {
+	items, err := httpLib.FetchArray(instanceReferenceV2Endpoint(projectID, kind, region), "")
+	if err != nil {
+		return nil, err
 	}
 
-	var images []map[string]any
-	if err := httpLib.Client.Get(endpoint, &images); err != nil {
+	choices := make(map[string]string, len(items))
+	for _, item := range items {
+		object, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		name, _ := object["name"].(string)
+		id, _ := object["id"].(string)
+		if name != "" && id != "" {
+			choices[name] = id
+		}
+	}
+
+	return choices, nil
+}
+
+func getAvailableImages(projectID string, region string) (map[string]string, error) {
+	imageChoices, err := getInstanceReferenceChoices(projectID, "image", region)
+	if err != nil {
 		return nil, fmt.Errorf("failed to fetch available images: %w", err)
 	}
 
-	if len(images) == 0 {
+	if len(imageChoices) == 0 {
 		return nil, fmt.Errorf("no image found for project %s", projectID)
-	}
-
-	imageChoices := make(map[string]string, len(images))
-	for _, img := range images {
-		name := img["name"].(string)
-		imageChoices[name] = img["id"].(string)
 	}
 
 	return imageChoices, nil
@@ -79,21 +91,9 @@ func runImageSelector(projectID string, region string) (string, string, error) {
 }
 
 func getAvailableFlavors(projectID string, region string) (map[string]string, error) {
-	// Fetch available flavors for the project
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/flavor", projectID)
-	if region != "" {
-		endpoint += "?region=" + url.QueryEscape(region)
-	}
-
-	var flavors []map[string]any
-	if err := httpLib.Client.Get(endpoint, &flavors); err != nil {
+	flavorChoices, err := getInstanceReferenceChoices(projectID, "flavor", region)
+	if err != nil {
 		return nil, fmt.Errorf("failed to fetch available flavors: %w", err)
-	}
-
-	flavorChoices := make(map[string]string, len(flavors))
-	for _, flavor := range flavors {
-		name := flavor["name"].(string)
-		flavorChoices[name] = flavor["id"].(string)
 	}
 
 	return flavorChoices, nil

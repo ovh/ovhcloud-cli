@@ -7,6 +7,7 @@ package cloud
 import (
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
@@ -19,6 +20,17 @@ import (
 	"golang.org/x/text/language"
 )
 
+// instanceReferenceV2Endpoint returns the v2 endpoint listing the instance
+// flavors or images ("flavor" or "image") of the project, optionally
+// restricted to one region.
+func instanceReferenceV2Endpoint(projectID, kind, region string) string {
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/reference/instance/%s", projectID, kind)
+	if region != "" {
+		endpoint += "?region=" + url.QueryEscape(region)
+	}
+	return endpoint
+}
+
 func GetFlavors(region string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -26,12 +38,15 @@ func GetFlavors(region string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/flavor", projectID)
-	if region != "" {
-		endpoint += "?region=" + url.QueryEscape(region)
-	}
+	common.ManageListRequestNoExpand(instanceReferenceV2Endpoint(projectID, "flavor", region),
+		[]string{"id", "name", "location.region region", "vcpus", "ram", "disk"}, flags.GenericFilters)
+}
 
-	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "region", "osType", "available"}, flags.GenericFilters)
+// imageOSTypes maps the --os-type values to the osType of API v2 images.
+var imageOSTypes = map[string]string{
+	"linux":           "LINUX",
+	"windows":         "WINDOWS",
+	"baremetal-linux": "BAREMETAL_LINUX",
 }
 
 func GetImages(region, osType string) {
@@ -41,17 +56,19 @@ func GetImages(region, osType string) {
 		return
 	}
 
-	query := url.Values{}
-	if region != "" {
-		query.Add("region", region)
-	}
+	filters := flags.GenericFilters
 	if osType != "" {
-		query.Add("osType", osType)
+		apiOSType, ok := imageOSTypes[osType]
+		if !ok {
+			display.OutputError(&flags.OutputFormatConfig, "invalid OS type %q: use linux, windows or baremetal-linux", osType)
+			return
+		}
+		// API v2 has no osType query parameter: filter the listing
+		filters = append(slices.Clone(filters), fmt.Sprintf("osType==%q", apiOSType))
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/image?%s", projectID, query.Encode())
-
-	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "region", "type", "status"}, flags.GenericFilters)
+	common.ManageListRequestNoExpand(instanceReferenceV2Endpoint(projectID, "image", region),
+		[]string{"id", "name", "location.region region", "osType", "visibility", "status"}, filters)
 }
 
 func ListContainerRegistryPlans(_ *cobra.Command, _ []string) {

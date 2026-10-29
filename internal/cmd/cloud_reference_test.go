@@ -452,44 +452,115 @@ func (ms *MockSuite) TestCloudReferenceContainerRegistryRegionsListCmd(assert, r
 💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
+const instanceReferenceFlavorsV2Response = `[
+	{
+		"id": "flavor-id-1",
+		"name": "b2-7",
+		"vcpus": 2,
+		"ram": 7000,
+		"disk": 50,
+		"isPublic": true,
+		"location": { "region": "GRA9" }
+	},
+	{
+		"id": "flavor-id-2",
+		"name": "b2-15",
+		"vcpus": 4,
+		"ram": 15000,
+		"disk": 100,
+		"isPublic": true,
+		"location": { "region": "GRA9" }
+	}
+]`
+
 func (ms *MockSuite) TestCloudReferenceFlavorsListCmdJSON(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/flavor",
-		httpmock.NewStringResponder(200, `[
-			{
-				"id": "flavor-id-1",
-				"name": "b2-7",
-				"region": "GRA9",
-				"osType": "linux",
-				"available": true
-			},
-			{
-				"id": "flavor-id-2",
-				"name": "b2-15",
-				"region": "GRA9",
-				"osType": "linux",
-				"available": true
-			}
-		]`).Once())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/instance/flavor",
+		httpmock.NewStringResponder(200, instanceReferenceFlavorsV2Response).Once())
 
 	out, err := cmd.Execute("cloud", "instance", "flavor", "list", "-o", "json", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(instanceReferenceFlavorsV2Response))
+}
+
+func (ms *MockSuite) TestCloudReferenceFlavorsListRegionCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/instance/flavor?region=GRA9",
+		httpmock.NewStringResponder(200, instanceReferenceFlavorsV2Response).Once())
+
+	out, err := cmd.Execute("cloud", "instance", "flavor", "list", "--region", "GRA9", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌─────────────┬───────┬────────┬───────┬───────┬──────┐
+│     id      │ name  │ region │ vcpus │  ram  │ disk │
+├─────────────┼───────┼────────┼───────┼───────┼──────┤
+│ flavor-id-1 │ b2-7  │ GRA9   │ 2     │ 7000  │ 50   │
+│ flavor-id-2 │ b2-15 │ GRA9   │ 4     │ 15000 │ 100  │
+└─────────────┴───────┴────────┴───────┴───────┴──────┘
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+}
+
+const instanceReferenceImagesV2Response = `[
+	{
+		"id": "image-id-1",
+		"name": "Debian 12",
+		"osType": "LINUX",
+		"status": "ACTIVE",
+		"visibility": "PUBLIC",
+		"location": { "region": "GRA9" }
+	},
+	{
+		"id": "image-id-2",
+		"name": "Windows Server 2022",
+		"osType": "WINDOWS",
+		"status": "ACTIVE",
+		"visibility": "PUBLIC",
+		"location": { "region": "GRA9" }
+	}
+]`
+
+func (ms *MockSuite) TestCloudReferenceImagesListRegionCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/instance/image?region=GRA9",
+		httpmock.NewStringResponder(200, instanceReferenceImagesV2Response).Once())
+
+	out, err := cmd.Execute("cloud", "instance", "image", "list", "--region", "GRA9", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.String(out, `
+┌────────────┬─────────────────────┬────────┬─────────┬────────────┬────────┐
+│     id     │        name         │ region │ osType  │ visibility │ status │
+├────────────┼─────────────────────┼────────┼─────────┼────────────┼────────┤
+│ image-id-1 │ Debian 12           │ GRA9   │ LINUX   │ PUBLIC     │ ACTIVE │
+│ image-id-2 │ Windows Server 2022 │ GRA9   │ WINDOWS │ PUBLIC     │ ACTIVE │
+└────────────┴─────────────────────┴────────┴─────────┴────────────┴────────┘
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+}
+
+func (ms *MockSuite) TestCloudReferenceImagesListOSTypeCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/instance/image",
+		httpmock.NewStringResponder(200, instanceReferenceImagesV2Response).Once())
+
+	out, err := cmd.Execute("cloud", "instance", "image", "list", "--os-type", "windows", "-o", "json", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
-			"id": "flavor-id-1",
-			"name": "b2-7",
-			"region": "GRA9",
-			"osType": "linux",
-			"available": true
-		},
-		{
-			"id": "flavor-id-2",
-			"name": "b2-15",
-			"region": "GRA9",
-			"osType": "linux",
-			"available": true
+			"id": "image-id-2",
+			"name": "Windows Server 2022",
+			"osType": "WINDOWS",
+			"status": "ACTIVE",
+			"visibility": "PUBLIC",
+			"location": { "region": "GRA9" }
 		}
 	]`))
+}
+
+func (ms *MockSuite) TestCloudReferenceImagesListInvalidOSTypeCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "instance", "image", "list", "--os-type", "bsd", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`invalid OS type "bsd"`))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
 }
 
 func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorsListCmdJSON(assert, require *td.T) {

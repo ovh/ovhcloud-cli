@@ -57,42 +57,25 @@ ovhcloud cloud instance create <region (e.g. GRA9, BHS5, SBG3)> [flags]
 ### Options
 
 ```
-      --availability-zone string                                Availability zone
-      --backup-cron string                                      Autobackup Unix Cron pattern (eg: '0 0 * * *')
-      --backup-rotation int                                     Number of backups to keep
-      --billing-period string                                   Billing period (hourly, monthly), default is hourly (default "hourly")
-      --boot-from.image string                                  Image ID to boot from (you can use 'ovhcloud cloud reference list-images' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)
-      --boot-from.volume string                                 Volume ID to boot from
-      --bulk int                                                Number of instances to create
-      --editor                                                  Use a text editor to define parameters
-      --flavor string                                           Flavor ID (you can use 'ovhcloud cloud reference list-flavors' to get the flavor ID)
-      --flavor-selector                                         Use the interactive flavor selector
-      --from-file string                                        File containing parameters
-      --group string                                            Group ID
-  -h, --help                                                    help for create
-      --image-selector                                          Use the interactive image selector
-      --init-file string                                        Create a file with example parameters
-      --name string                                             Instance name
-      --network.private.create.name string                      Name for the private network to create
-      --network.private.create.subnet-cidr string               CIDR for the subnet to create
-      --network.private.create.subnet-enable-dhcp               Enable DHCP for the subnet to create
-      --network.private.create.subnet-ip-version int            IP version for the subnet to create
-      --network.private.create.vlan-id int                      VLAN ID for the private network to create
-      --network.private.floating-ip.create.description string   Description for the floating IP to create
-      --network.private.floating-ip.id string                   ID of an existing floating IP
-      --network.private.gateway.create.model string             Model for the gateway to create (s, m, l)
-      --network.private.gateway.create.name string              Name for the gateway to create
-      --network.private.gateway.id string                       ID of the existing gateway to attach to the private network
-      --network.private.id string                               ID of the existing private network
-      --network.private.ip string                               Instance IP in the private network
-      --network.private.subnet-id string                        Existing subnet ID
-      --network.public                                          Set the new instance as public
-      --replace                                                 Replace parameters file if it already exists
-      --ssh-key.create.name string                              Name for the SSH key to create
-      --ssh-key.create.public-key string                        Public key for the SSH key to create
-      --ssh-key.name string                                     Existing SSH key name
-      --user-data string                                        Configuration information or scripts to use upon launch
-      --wait                                                    Wait for instance creation to be done before exiting
+      --availability-zone string           Availability zone
+      --boot-from.image string             Image ID to boot from (you can use 'ovhcloud cloud instance image list' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)
+      --editor                             Use a text editor to define parameters
+      --flavor string                      Flavor ID (you can use 'ovhcloud cloud instance flavor list' to get the flavor ID)
+      --flavor-selector                    Use the interactive flavor selector
+      --from-file string                   File containing parameters
+      --group string                       Group ID
+  -h, --help                               help for create
+      --image-selector                     Use the interactive image selector
+      --init-file string                   Create a file with example parameters
+      --name string                        Instance name
+      --network.private.id string          ID of the existing private network
+      --network.private.ip string          Instance IP in the private network, or the address of an existing floating IP to associate
+      --network.private.subnet-id string   Existing subnet ID
+      --network.public                     Attach the new instance to the public network
+      --replace                            Replace parameters file if it already exists
+      --ssh-key.name string                Existing SSH key name (you can use 'ovhcloud cloud ssh-key create' to create one)
+      --user-data string                   Configuration information or scripts to use upon launch
+      --wait                               Wait for instance creation to be done before exiting
 ```
 
 ### Options inherited from parent commands
