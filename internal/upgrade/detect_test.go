@@ -28,6 +28,12 @@ func TestDetect(t *testing.T) {
 			want:    MethodBrew,
 		},
 		{
+			name:    "nix",
+			exePath: "/nix/store/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-ovhcloud-cli-1.2.3/bin/ovhcloud",
+			home:    "/home/alice",
+			want:    MethodNix,
+		},
+		{
 			name:    "go install via GOBIN",
 			exePath: "/home/alice/go-bin/ovhcloud",
 			gobin:   "/home/alice/go-bin",
