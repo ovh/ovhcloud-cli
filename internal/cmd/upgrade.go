@@ -60,19 +60,6 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 		return errors.New("upgrade is not available in development builds")
 	}
 
-	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
-	defer cancel()
-
-	tag, err := upgrade.LatestTag(ctx)
-	if err != nil {
-		return err
-	}
-
-	if tag == version.Version {
-		fmt.Fprintf(cmd.OutOrStdout(), "Already on latest (%s)\n", tag)
-		return nil
-	}
-
 	method := upgrade.DetectInstallMethod()
 	switch method {
 	case upgrade.MethodBrew:
@@ -83,6 +70,19 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 		return nil
 	case upgrade.MethodGoInstall:
 		fmt.Fprintf(cmd.OutOrStdout(), "Upgrade via go install:\n\n    go install github.com/ovh/ovhcloud-cli/cmd/ovhcloud@latest\n\n")
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
+	defer cancel()
+
+	tag, err := upgrade.LatestTag(ctx)
+	if err != nil {
+		return err
+	}
+
+	if tag == version.Version {
+		fmt.Fprintf(cmd.OutOrStdout(), "Already on latest (%s)\n", tag)
 		return nil
 	}
 
