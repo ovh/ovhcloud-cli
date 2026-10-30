@@ -635,31 +635,6 @@ func DeleteVpsSecondaryDNSDomain(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Secondary DNS domain %s deleted from VPS %s", args[1], args[0])
 }
 
-func ChangeVpsPassword(_ *cobra.Command, args []string) {
-	endpoint := fmt.Sprintf("/v1/vps/%s/setPassword", url.PathEscape(args[0]))
-
-	var response map[string]any
-	if err := httpLib.Client.Post(endpoint, nil, &response); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error changing password for %s: %s", args[0], err)
-		return
-	}
-
-	log.Printf("⚡️ VPS %s process to set the root password has started", args[0])
-
-	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ VPS %s process to set the root password has started", args[0])
-		return
-	}
-
-	// Wait for the task to complete
-	if _, err := waitForVpsTask(args[0], response, 20*time.Minute); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "error waiting for task to complete: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ VPS %s process to set the root password completed successfully", args[0])
-}
-
 func ListVpsTasks(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/v1/vps/%s/tasks", url.PathEscape(args[0]))
 	common.ManageListRequest(endpoint, "", []string{"id", "type", "state", "date", "progress"}, flags.GenericFilters)

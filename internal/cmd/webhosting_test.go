@@ -964,17 +964,6 @@ func (ms *MockSuite) TestWebhostingSSLDelete(assert, require *td.T) {
 	assert.String(out, "✅ SSL deleted")
 }
 
-func (ms *MockSuite) TestWebhostingUserChangePassword(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/hosting/web/myservice/user/user1/changePassword",
-		httpmock.NewStringResponder(200, `{}`),
-	)
-
-	out, err := cmd.Execute("webhosting", "user", "change-password", "myservice", "user1", "--password", "newpwd")
-	require.CmpNoError(err)
-	assert.String(out, "✅ Password updated")
-}
-
 func (ms *MockSuite) TestWebhostingEnvVarUpdate(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
 		"https://eu.api.ovh.com/v1/hosting/web/myservice/envVar/A",
