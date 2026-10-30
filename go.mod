@@ -3,7 +3,7 @@ module github.com/ovh/ovhcloud-cli
 go 1.27.3
 
 require (
-	code.cloudfoundry.org/bytefmt v0.95.0
+	code.cloudfoundry.org/bytefmt v0.96.0
 	dario.cat/mergo v1.0.2
 	github.com/NimbleMarkets/ntcharts v0.5.2
 	github.com/PaesslerAG/gval v1.2.4
@@ -15,7 +15,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/charmbracelet/x/ansi v0.11.9
 	github.com/charmbracelet/x/term v0.2.2
-	github.com/getkin/kin-openapi v0.149.0
+	github.com/getkin/kin-openapi v0.152.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/jarcoal/httpmock v1.4.2
