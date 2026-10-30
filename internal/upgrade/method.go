@@ -12,6 +12,8 @@ const (
 	MethodBinary Method = iota
 	// MethodBrew is a Homebrew cask install.
 	MethodBrew
+	// MethodNix is a Nix install (binary lives in the read-only /nix/store).
+	MethodNix
 	// MethodGoInstall is a `go install` install.
 	MethodGoInstall
 )
@@ -20,6 +22,8 @@ func (m Method) String() string {
 	switch m {
 	case MethodBrew:
 		return "brew"
+	case MethodNix:
+		return "nix"
 	case MethodGoInstall:
 		return "go install"
 	default:

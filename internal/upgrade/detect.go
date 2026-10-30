@@ -24,6 +24,9 @@ func detect(exePath, gobin, gopath, home string) Method {
 	if strings.Contains(exePath, "/Cellar/") || strings.Contains(exePath, "/Caskroom/") {
 		return MethodBrew
 	}
+	if strings.Contains(exePath, "/nix/store/") {
+		return MethodNix
+	}
 
 	dir := filepath.Dir(exePath)
 	if gobin != "" && dir == gobin {

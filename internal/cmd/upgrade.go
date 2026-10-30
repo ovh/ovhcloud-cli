@@ -16,6 +16,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/ovh/ovhcloud-cli/internal/display"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/upgrade"
 	"github.com/ovh/ovhcloud-cli/internal/version"
 )
@@ -58,6 +60,19 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 		return errors.New("upgrade is not available in development builds")
 	}
 
+	method := upgrade.DetectInstallMethod()
+	switch method {
+	case upgrade.MethodBrew:
+		fmt.Fprintf(cmd.OutOrStdout(), "Upgrade via Homebrew:\n\n    brew upgrade --cask ovh/tap/ovhcloud-cli\n\n")
+		return nil
+	case upgrade.MethodNix:
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "This binary is managed by Nix and cannot be upgraded in place.\nUpdate it through your Nix configuration (e.g. update your channel or flake inputs and rebuild).")
+		return nil
+	case upgrade.MethodGoInstall:
+		fmt.Fprintf(cmd.OutOrStdout(), "Upgrade via go install:\n\n    go install github.com/ovh/ovhcloud-cli/cmd/ovhcloud@latest\n\n")
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
@@ -68,16 +83,6 @@ func runUpgrade(cmd *cobra.Command, _ []string) error {
 
 	if tag == version.Version {
 		fmt.Fprintf(cmd.OutOrStdout(), "Already on latest (%s)\n", tag)
-		return nil
-	}
-
-	method := upgrade.DetectInstallMethod()
-	switch method {
-	case upgrade.MethodBrew:
-		fmt.Fprintf(cmd.OutOrStdout(), "Upgrade via Homebrew:\n\n    brew upgrade --cask ovh/tap/ovhcloud-cli\n\n")
-		return nil
-	case upgrade.MethodGoInstall:
-		fmt.Fprintf(cmd.OutOrStdout(), "Upgrade via go install:\n\n    go install github.com/ovh/ovhcloud-cli/cmd/ovhcloud@latest\n\n")
 		return nil
 	}
 
