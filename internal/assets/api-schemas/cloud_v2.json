@@ -18661,6 +18661,11 @@
             "nullable": true,
             "readOnly": true
           },
+          "endpointId": {
+            "type": "string",
+            "description": "Identifier of the endpoint on the service side, as pe-<id>. It is the value the service names the endpoint by.",
+            "readOnly": true
+          },
           "hostname": {
             "type": "string",
             "description": "Public DNS name of the endpoint. Null until the service publishes it.",
@@ -18745,9 +18750,10 @@
         "type": "object",
         "description": "Service details for a private endpoint in current state",
         "properties": {
-          "connectivityName": {
-            "type": "string",
-            "description": "Connectivity variant name of the service",
+          "bandwidth": {
+            "type": "integer",
+            "description": "Bandwidth of the tier, in Mbit/s. Null when the catalog does not declare it",
+            "nullable": true,
             "readOnly": true
           },
           "name": {
@@ -18758,6 +18764,15 @@
           "port": {
             "type": "integer",
             "description": "Port the service listens on through the endpoint",
+            "readOnly": true
+          },
+          "tier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.privateEndpoint.ServiceTierEnum"
+              }
+            ],
+            "description": "Tier of the service",
             "readOnly": true
           },
           "transport": {
@@ -18773,20 +18788,24 @@
       },
       "publicCloud.privateEndpoint.PrivateEndpointServiceRef": {
         "type": "object",
-        "description": "Reference to a service connectivity",
+        "description": "Reference to a service tier",
         "properties": {
-          "connectivityName": {
-            "type": "string",
-            "description": "Connectivity variant name of the service"
-          },
           "name": {
             "type": "string",
             "description": "Name of the service"
+          },
+          "tier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.privateEndpoint.ServiceTierEnum"
+              }
+            ],
+            "description": "Tier of the service, as listed in the service availability reference"
           }
         },
         "required": [
-          "connectivityName",
-          "name"
+          "name",
+          "tier"
         ]
       },
       "publicCloud.privateEndpoint.PrivateEndpointSubnetRef": {
@@ -18909,6 +18928,15 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "publicCloud.privateEndpoint.ServiceTierEnum": {
+        "type": "string",
+        "description": "Tiers of a service reachable through a private endpoint",
+        "enum": [
+          "L",
+          "M",
+          "S"
         ]
       },
       "publicCloud.privateEndpoint.ServiceTransportEnum": {
@@ -21564,16 +21592,8 @@
       },
       "publicCloud.reference.privateEndpoint.ServiceAvailability": {
         "type": "object",
-        "description": "Service availability (read-only reference data)\n\nDescribes where an OVHcloud-operated service can be reached through a private endpoint. The endpoint returns one entry per service, each carrying the connectivity variants it offers with their region, port and transport. This is read-only reference data — it does not reflect existing resources and triggers no OpenStack call.",
+        "description": "Service availability (read-only reference data)\n\nDescribes where an OVHcloud-operated service can be reached through a private endpoint. The endpoint returns one entry per service, each carrying the tiers it offers with their region, port and transport. This is read-only reference data — it does not reflect existing resources and triggers no OpenStack call.",
         "properties": {
-          "connectivities": {
-            "type": "array",
-            "description": "Enabled connectivity variants of the service",
-            "items": {
-              "$ref": "#/components/schemas/publicCloud.reference.privateEndpoint.ServiceConnectivity"
-            },
-            "readOnly": true
-          },
           "description": {
             "type": "string",
             "description": "Service description",
@@ -21584,25 +21604,43 @@
             "type": "string",
             "description": "Service name",
             "readOnly": true
+          },
+          "tiers": {
+            "type": "array",
+            "description": "Enabled tiers of the service",
+            "items": {
+              "$ref": "#/components/schemas/publicCloud.reference.privateEndpoint.ServiceTier"
+            },
+            "readOnly": true
           }
         }
       },
-      "publicCloud.reference.privateEndpoint.ServiceConnectivity": {
+      "publicCloud.reference.privateEndpoint.ServiceTier": {
         "type": "object",
-        "description": "An enabled connectivity variant of a service reachable through a private endpoint",
+        "description": "An enabled tier of a service reachable through a private endpoint",
         "properties": {
+          "bandwidth": {
+            "type": "integer",
+            "description": "Bandwidth of the tier, in Mbit/s. Null when the catalog does not declare it",
+            "nullable": true,
+            "readOnly": true
+          },
           "location": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/publicCloud.common.Location"
               }
             ],
-            "description": "Location where this connectivity variant is available",
+            "description": "Location where this tier is available",
             "readOnly": true
           },
           "name": {
-            "type": "string",
-            "description": "Connectivity variant name",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.privateEndpoint.ServiceTierEnum"
+              }
+            ],
+            "description": "Tier name",
             "readOnly": true
           },
           "port": {
@@ -89867,7 +89905,7 @@
     "/publicCloud/project/{projectId}/reference/privateEndpoint/serviceAvailability": {
       "get": {
         "summary": "List private endpoint services",
-        "description": "Returns the services that can be reached through a private endpoint, with their connectivity options. Filter by region to restrict services and their connectivities to it.",
+        "description": "Returns the services that can be reached through a private endpoint, with their tiers. Filter by region to restrict services and their tiers to it.",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -89902,7 +89940,7 @@
           {
             "in": "query",
             "name": "region",
-            "description": "Optional region filter. When set, only services offering a connectivity in this region are returned and each service's connectivities are restricted to that region; when omitted, services are listed with their connectivities across all regions. An unknown region is rejected",
+            "description": "Optional region filter. When set, only services offering a tier in this region are returned and each service's tiers are restricted to that region; when omitted, services are listed with their tiers across all regions. An unknown region is rejected",
             "schema": {
               "type": "string"
             }
@@ -89959,7 +89997,7 @@
     "/publicCloud/project/{projectId}/reference/privateEndpoint/serviceAvailability/{name}": {
       "get": {
         "summary": "Get a private endpoint service",
-        "description": "Returns where one service can be reached through a private endpoint: region, port and transport of each connectivity option.",
+        "description": "Returns where one service can be reached through a private endpoint: region, port and transport of each tier.",
         "security": [
           {
             "oAuth2AuthCode": []
