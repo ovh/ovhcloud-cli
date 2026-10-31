@@ -33,4 +33,7 @@ Retrieve information and manage your IP LoadBalancing services
 * [ovhcloud iploadbalancing edit](ovhcloud_iploadbalancing_edit.md)	 - Edit the given IpLoadbalancing
 * [ovhcloud iploadbalancing get](ovhcloud_iploadbalancing_get.md)	 - Retrieve information of a specific IpLoadbalancing
 * [ovhcloud iploadbalancing list](ovhcloud_iploadbalancing_list.md)	 - List your IpLoadbalancing services
+* [ovhcloud iploadbalancing list-pending-changes](ovhcloud_iploadbalancing_list-pending-changes.md)	 - List pending changes per zone
+* [ovhcloud iploadbalancing refresh](ovhcloud_iploadbalancing_refresh.md)	 - Apply the pending configuration changes of the given IpLoadbalancing
+* [ovhcloud iploadbalancing ssl](ovhcloud_iploadbalancing_ssl.md)	 - Manage SSL certificates of your IpLoadbalancing services
 
