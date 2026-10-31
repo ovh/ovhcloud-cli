@@ -1,9 +1,9 @@
-## ovhcloud iploadbalancing pending-changes
+## ovhcloud iploadbalancing list-pending-changes
 
 List pending changes per zone
 
 ```
-ovhcloud iploadbalancing pending-changes <service_name> [flags]
+ovhcloud iploadbalancing list-pending-changes <service_name> [flags]
 ```
 
 ### Options
@@ -16,7 +16,7 @@ ovhcloud iploadbalancing pending-changes <service_name> [flags]
                                --filter 'nested.property.subproperty>10'
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for pending-changes
+  -h, --help                 help for list-pending-changes
 ```
 
 ### Options inherited from parent commands

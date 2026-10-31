@@ -51,14 +51,14 @@ func init() {
 	iploadbalancingCmd.AddCommand(iploadbalancingEditCmd)
 
 	// Command to list pending changes of an IpLoadbalancing
-	iploadbalancingPendingChangesCmd := &cobra.Command{
-		Use:               "pending-changes <service_name>",
+	iploadbalancingListPendingChangesCmd := &cobra.Command{
+		Use:               "list-pending-changes <service_name>",
 		Short:             "List pending changes per zone",
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.ServiceList("/v1/ipLoadbalancing"),
 		Run:               iploadbalancing.ListIpLoadbalancingPendingChanges,
 	}
-	iploadbalancingCmd.AddCommand(withFilterFlag(iploadbalancingPendingChangesCmd))
+	iploadbalancingCmd.AddCommand(withFilterFlag(iploadbalancingListPendingChangesCmd))
 
 	// Command to apply the pending configuration changes of an IpLoadbalancing
 	iploadbalancingRefreshCmd := &cobra.Command{

@@ -205,7 +205,7 @@ func (ms *MockSuite) TestIpLoadbalancingSSLCreateCmdMissingArg(assert, require *
 	assert.String(err, "accepts 1 arg(s), received 0")
 }
 
-func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmd(assert, require *td.T) {
+func (ms *MockSuite) TestIpLoadbalancingListPendingChangesCmd(assert, require *td.T) {
 	httpmock.RegisterResponder("GET",
 		"https://eu.api.ovh.com/v1/ipLoadbalancing/loadbalancer-12345/pendingChanges",
 		httpmock.NewStringResponder(200, `[
@@ -213,7 +213,7 @@ func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmd(assert, require *td.T)
 			{"zone": "rbx", "number": 0}
 		]`).Once())
 
-	out, err := cmd.Execute("iploadbalancing", "pending-changes", "loadbalancer-12345", "-o", "json")
+	out, err := cmd.Execute("iploadbalancing", "list-pending-changes", "loadbalancer-12345", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
@@ -222,7 +222,7 @@ func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmd(assert, require *td.T)
 	]`))
 }
 
-func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmdFilter(assert, require *td.T) {
+func (ms *MockSuite) TestIpLoadbalancingListPendingChangesCmdFilter(assert, require *td.T) {
 	httpmock.RegisterResponder("GET",
 		"https://eu.api.ovh.com/v1/ipLoadbalancing/loadbalancer-12345/pendingChanges",
 		httpmock.NewStringResponder(200, `[
@@ -230,25 +230,25 @@ func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmdFilter(assert, require 
 			{"zone": "rbx", "number": 0}
 		]`).Once())
 
-	out, err := cmd.Execute("iploadbalancing", "pending-changes", "loadbalancer-12345", "--filter", "number > 0", "-o", "json")
+	out, err := cmd.Execute("iploadbalancing", "list-pending-changes", "loadbalancer-12345", "--filter", "number > 0", "-o", "json")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"zone": "gra", "number": 2}]`))
 }
 
-func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmdAPIError(assert, require *td.T) {
+func (ms *MockSuite) TestIpLoadbalancingListPendingChangesCmdAPIError(assert, require *td.T) {
 	httpmock.RegisterResponder("GET",
 		"https://eu.api.ovh.com/v1/ipLoadbalancing/loadbalancer-12345/pendingChanges",
 		httpmock.NewStringResponder(404, `{"message": "Service not found"}`).Once())
 
-	out, err := cmd.Execute("iploadbalancing", "pending-changes", "loadbalancer-12345")
+	out, err := cmd.Execute("iploadbalancing", "list-pending-changes", "loadbalancer-12345")
 
 	assert.CmpError(err)
 	assert.Cmp(out, td.Contains("failed to fetch results"))
 }
 
-func (ms *MockSuite) TestIpLoadbalancingPendingChangesCmdMissingArg(assert, require *td.T) {
-	_, err := cmd.Execute("iploadbalancing", "pending-changes")
+func (ms *MockSuite) TestIpLoadbalancingListPendingChangesCmdMissingArg(assert, require *td.T) {
+	_, err := cmd.Execute("iploadbalancing", "list-pending-changes")
 
 	assert.String(err, "accepts 1 arg(s), received 0")
 }
