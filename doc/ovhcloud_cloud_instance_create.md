@@ -11,6 +11,10 @@ There are three ways to define the creation parameters:
 
 	ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.image <image_id> --flavor <flavor_id>
 
+  To boot from an existing bootable block storage volume instead of an image:
+
+	ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.volume <volume_id> --flavor <flavor_id>
+
 2. Using a configuration file:
 
   First you can generate an example of installation file using the following command:
@@ -59,6 +63,7 @@ ovhcloud cloud instance create <region (e.g. GRA9, BHS5, SBG3)> [flags]
 ```
       --availability-zone string           Availability zone
       --boot-from.image string             Image ID to boot from (you can use 'ovhcloud cloud instance image list' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)
+      --boot-from.volume string            ID of an existing bootable block storage volume to boot from, instead of an image (the volume must be available and in the same region; it is kept when the instance is deleted)
       --editor                             Use a text editor to define parameters
       --flavor string                      Flavor ID (you can use 'ovhcloud cloud instance flavor list' to get the flavor ID)
       --flavor-selector                    Use the interactive flavor selector

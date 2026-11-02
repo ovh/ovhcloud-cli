@@ -25,6 +25,10 @@ There are three ways to define the creation parameters:
 
 	ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.image <image_id> --flavor <flavor_id>
 
+  To boot from an existing bootable block storage volume instead of an image:
+
+	ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.volume <volume_id> --flavor <flavor_id>
+
 2. Using a configuration file:
 
   First you can generate an example of installation file using the following command:
@@ -75,6 +79,8 @@ There are three ways to define the creation parameters:
 
 	// Boot options
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.ImageID, "boot-from.image", "", "Image ID to boot from (you can use 'ovhcloud cloud instance image list' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.BootVolumeID, "boot-from.volume", "", "ID of an existing bootable block storage volume to boot from, instead of an image (the volume must be available and in the same region; it is kept when the instance is deleted)")
+	instanceCreateCmd.MarkFlagsMutuallyExclusive("boot-from.image", "boot-from.volume")
 
 	// Private network
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.PrivateNetworkID, "network.private.id", "", "ID of the existing private network")
@@ -98,6 +104,7 @@ There are three ways to define the creation parameters:
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
 		instanceCreateCmd.Flags().BoolVar(&cloud.InstanceImageViaInteractiveSelector, "image-selector", false, "Use the interactive image selector")
 		instanceCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
+		instanceCreateCmd.MarkFlagsMutuallyExclusive("image-selector", "boot-from.volume")
 	}
 	markFlagsMutuallyExclusive(instanceCreateCmd, "from-file", "editor")
 

@@ -629,13 +629,48 @@ func (ms *MockSuite) TestCloudInstanceCreateWaitCmd(assert, require *td.T) {
 	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceV2Endpoint], 1)
 }
 
-func (ms *MockSuite) TestCloudInstanceCreateMissingImageCmd(assert, require *td.T) {
+func (ms *MockSuite) TestCloudInstanceCreateBootVolumeCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceV2CollectionEndpoint,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-instance",
+				"flavor": { "id": "flavor-d2-2" },
+				"location": { "region": "GRA9" },
+				"volumes": [ { "id": "boot-volume-id", "role": "BOOT" } ]
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "resourceStatus": "CREATING"}`).Once())
+
+	out, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2", "--boot-from.volume", "boot-volume-id",
+		"--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID creation started", "details": {"id": "fakeInstanceID"}}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceCreateImageAndBootVolumeCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2",
+		"--boot-from.image", "image-debian-12", "--boot-from.volume", "boot-volume-id",
+		"--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("[boot-from.image boot-from.volume] are set none of the others can be"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+// The boot source, an image or a volume with role BOOT, may come from a
+// parameters file, so it is left to the API, whose message says what is missing.
+func (ms *MockSuite) TestCloudInstanceCreateMissingBootSourceCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodPost, instanceV2CollectionEndpoint,
+		httpmock.NewStringResponder(400, `{"class": "Client::BadRequest", "message": "targetSpec.image is required, unless one volume of targetSpec.volumes has role BOOT"}`))
+
 	_, err := cmd.Execute("cloud", "instance", "create", "GRA9",
 		"--name", "my-instance", "--flavor", "flavor-d2-2", "--cloud-project", "fakeProjectID")
 
 	require.CmpError(err)
-	assert.Cmp(err.Error(), td.Contains(`mandatory field "targetSpec.image.id" is missing`))
-	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+	assert.Cmp(err.Error(), td.Contains("targetSpec.image is required, unless one volume of targetSpec.volumes has role BOOT"))
 }
 
 func (ms *MockSuite) TestCloudInstanceCreateRemovedFlagCmd(assert, require *td.T) {

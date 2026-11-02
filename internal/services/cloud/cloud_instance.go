@@ -89,6 +89,7 @@ var (
 	// flags. They are turned into an API v2 targetSpec by instanceCreationSpec.
 	InstanceCreationFlags struct {
 		AvailabilityZone string
+		BootVolumeID     string
 		FlavorID         string
 		GroupID          string
 		ImageID          string
@@ -328,7 +329,8 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		CloudInstanceCreationExample,
 		instanceCreationSpec(region),
 		assets.CloudV2OpenapiSchema,
-		[]string{"targetSpec.name", "targetSpec.flavor.id", "targetSpec.image.id", "targetSpec.location.region"})
+		// The boot source, an image or a volume with role BOOT, is checked by the API.
+		[]string{"targetSpec.name", "targetSpec.flavor.id", "targetSpec.location.region"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create instance: %s", err)
 		return
@@ -372,6 +374,10 @@ func instanceCreationSpec(region string) map[string]any {
 	}
 	if f.ImageID != "" {
 		targetSpec["image"] = map[string]any{"id": f.ImageID}
+	}
+	if f.BootVolumeID != "" {
+		// The instance boots from this volume instead of an image.
+		targetSpec["volumes"] = []any{map[string]any{"id": f.BootVolumeID, "role": "BOOT"}}
 	}
 	if f.GroupID != "" {
 		targetSpec["group"] = map[string]any{"id": f.GroupID}
