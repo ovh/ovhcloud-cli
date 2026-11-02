@@ -9,31 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
-
-type CloudProjectOperation struct {
-	Id            string                     `json:"id"`
-	Action        string                     `json:"action"`
-	CreateAt      string                     `json:"createdAt"`
-	StartedAt     string                     `json:"startedAt"`
-	CompletedAt   *string                    `json:"completedAt"`
-	Progress      int                        `json:"progress"`
-	Regions       []string                   `json:"regions"`
-	ResourceId    *string                    `json:"resourceId"`
-	Status        string                     `json:"status"`
-	SubOperations []CloudProjectSubOperation `json:"subOperations"`
-}
-
-type CloudProjectSubOperation struct {
-	ResourceId *string `json:"resourceId"`
-	Action     string  `json:"action"`
-}
 
 // getInstanceReferenceChoices fetches every page of the v2 instance flavors or
 // images ("flavor" or "image") and maps their names to their IDs.
@@ -115,49 +96,6 @@ func runFlavorSelector(projectID string, region string) (string, string, error) 
 	}
 
 	return selectedFlavor, selectedID, nil
-}
-
-func waitForCloudOperation(projectID, operationID, action string, retryDuration time.Duration) (string, error) {
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/operation/%s", url.PathEscape(projectID), url.PathEscape(operationID))
-	resourceID := ""
-
-	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
-	defer cancel()
-
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		var operation CloudProjectOperation
-		if err := httpLib.Client.Get(endpoint, &operation); err != nil {
-			return "", fmt.Errorf("error fetching operation: %w", err)
-		}
-
-		switch operation.Status {
-		case "in-error":
-			return "", fmt.Errorf("operation %q ended in error", operation.Action)
-		case "completed":
-			if operation.ResourceId != nil {
-				resourceID = *operation.ResourceId
-			} else if len(operation.SubOperations) > 0 {
-				for _, subOp := range operation.SubOperations {
-					if subOp.Action == action && subOp.ResourceId != nil {
-						resourceID = *subOp.ResourceId
-						break
-					}
-				}
-			}
-			return resourceID, nil
-		}
-
-		select {
-		case <-ctx.Done():
-			return "", errors.New("timeout waiting for operation to complete")
-		case <-ticker.C:
-			log.Printf("Still waiting for operation to complete (status=%s)…", operation.Status)
-			continue
-		}
-	}
 }
 
 // waitForCloudResourceReady polls a v2 asynchronous resource at the given full
