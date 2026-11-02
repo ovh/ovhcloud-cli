@@ -1,17 +1,22 @@
-## ovhcloud cloud storage-swift edit
+## ovhcloud cloud storage swift container list
 
-Edit the given SWIFT storage container
+List Swift containers
 
 ```
-ovhcloud cloud storage-swift edit <container_id> [flags]
+ovhcloud cloud storage swift container list [flags]
 ```
 
 ### Options
 
 ```
-      --editor        Use a text editor to define parameters
-  -h, --help          help for edit
-      --type string   Type of the SWIFT storage container (private, public, static)
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -36,5 +41,5 @@ ovhcloud cloud storage-swift edit <container_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage-swift](ovhcloud_cloud_storage-swift.md)	 - Manage SWIFT storage containers in the given cloud project
+* [ovhcloud cloud storage swift container](ovhcloud_cloud_storage_swift_container.md)	 - Manage Swift storage containers in the given cloud project
 

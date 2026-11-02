@@ -1,22 +1,15 @@
-## ovhcloud cloud storage swift list
+## ovhcloud cloud storage swift container delete
 
-List SWIFT storage containers
+Delete the given Swift container and all its objects
 
 ```
-ovhcloud cloud storage swift list [flags]
+ovhcloud cloud storage swift container delete <container_id> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+  -h, --help   help for delete
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +34,5 @@ ovhcloud cloud storage swift list [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage swift](ovhcloud_cloud_storage_swift.md)	 - Manage SWIFT storage containers in the given cloud project
+* [ovhcloud cloud storage swift container](ovhcloud_cloud_storage_swift_container.md)	 - Manage Swift storage containers in the given cloud project
 

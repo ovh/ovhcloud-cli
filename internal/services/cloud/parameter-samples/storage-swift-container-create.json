@@ -1,0 +1,10 @@
+{
+  "targetSpec": {
+    "name": "my-container",
+    "archive": false,
+    "type": "PRIVATE",
+    "cors": [
+      "https://www.example.com"
+    ]
+  }
+}

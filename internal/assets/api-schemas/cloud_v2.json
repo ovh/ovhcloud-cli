@@ -24971,6 +24971,357 @@
           "STANDARD_IA"
         ]
       },
+      "publicCloud.storage.swift.Container": {
+        "type": "object",
+        "description": "A Swift object storage container. Its identifier is <REGION>_<name>, for example GRA_my-container, where REGION is the region of the container",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Computed hash representing the current target specification value",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation date of the container",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "currentState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerCurrentState"
+              }
+            ],
+            "description": "Current observed state of the container, read from the Swift backend",
+            "nullable": true,
+            "readOnly": true
+          },
+          "currentTasks": {
+            "type": "array",
+            "description": "Ongoing asynchronous tasks related to the container",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/common.CurrentTask"
+            },
+            "readOnly": true
+          },
+          "id": {
+            "type": "string",
+            "description": "Container identifier, built as <REGION>_<name> (for example GRA_my-container). A container name is unique within a region of the project, so the pair identifies it",
+            "readOnly": true
+          },
+          "resourceStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/common.ResourceStatusEnum"
+              }
+            ],
+            "description": "Container readiness in the system",
+            "readOnly": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerTargetSpec"
+              }
+            ],
+            "description": "Last target specification of the container",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update date of the container",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.swift.ContainerCreation": {
+        "type": "object",
+        "description": "Payload to create a Swift object storage container",
+        "properties": {
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the container to create"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.storage.swift.ContainerCurrentState": {
+        "type": "object",
+        "description": "Current observed state of a Swift object storage container, read from the Swift backend",
+        "properties": {
+          "archive": {
+            "type": "boolean",
+            "description": "Whether the container uses the Public Cloud Archive storage policy (X-Storage-Policy: PCA). Objects in an archive container are sealed after upload and must be unsealed before download",
+            "readOnly": true
+          },
+          "cors": {
+            "type": "array",
+            "description": "Origins currently allowed to access the container from a browser (Access-Control-Allow-Origin container metadata). Empty when no origin is allowed",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Region hosting the container",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Container name",
+            "readOnly": true
+          },
+          "objectsCount": {
+            "type": "integer",
+            "description": "Number of objects stored in the container",
+            "readOnly": true
+          },
+          "objectsSize": {
+            "type": "integer",
+            "description": "Total size of the objects stored in the container, in bytes",
+            "readOnly": true
+          },
+          "staticUrl": {
+            "type": "string",
+            "description": "Public URL of the container, only set when type is PUBLIC or STATIC. Built from the URL-encoded container name, the project's Swift account and the region's object-store endpoint",
+            "nullable": true,
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerTypeEnum"
+              }
+            ],
+            "description": "Access type of the container, derived from its read ACL and static website metadata: STATIC when the website metadata is set, PUBLIC when only the public read ACL is set, PRIVATE otherwise",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.swift.ContainerObject": {
+        "type": "object",
+        "description": "An object stored in a Swift object storage container",
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "description": "MIME type of the object content (Content-Type header), for example image/png",
+            "readOnly": true
+          },
+          "etag": {
+            "type": "string",
+            "description": "Entity tag of the object: the MD5 hash of its content, or a hash of the segment hashes for a large object",
+            "readOnly": true
+          },
+          "key": {
+            "type": "string",
+            "description": "Object key, which is its full path within the container (for example documents/report.pdf)",
+            "readOnly": true
+          },
+          "lastModifiedAt": {
+            "type": "string",
+            "description": "Last modification timestamp of the object",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "retrievalDelay": {
+            "type": "integer",
+            "description": "Seconds to wait before the object becomes readable, only set while retrievalState is UNSEALING",
+            "nullable": true,
+            "readOnly": true
+          },
+          "retrievalState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ObjectRetrievalStateEnum"
+              }
+            ],
+            "description": "Retrieval state of the object, only meaningful in an archive container: SEALED objects must be unsealed before download, UNSEALING objects are being retrieved, UNSEALED objects can be downloaded. Absent in a standard container",
+            "nullable": true,
+            "readOnly": true
+          },
+          "size": {
+            "type": "integer",
+            "description": "Object size in bytes",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.swift.ContainerPresignedURL": {
+        "type": "object",
+        "description": "A presigned (temporary) URL granting a read of one object in a Swift container without credentials",
+        "properties": {
+          "expiresAt": {
+            "type": "string",
+            "description": "Timestamp after which the URL is refused",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "key": {
+            "type": "string",
+            "description": "Key of the object the URL gives access to, as its full path within the container",
+            "readOnly": true
+          },
+          "method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerPresignedURLMethodEnum"
+              }
+            ],
+            "description": "HTTP method the URL is valid for; always GET",
+            "readOnly": true
+          },
+          "url": {
+            "type": "string",
+            "description": "Temporary URL that downloads the object with a GET request, without credentials, until expiresAt",
+            "readOnly": true
+          }
+        }
+      },
+      "publicCloud.storage.swift.ContainerPresignedURLCreation": {
+        "type": "object",
+        "description": "Request body for creating a presigned (temporary) URL to download an object from a Swift container without credentials",
+        "properties": {
+          "expiresIn": {
+            "type": "integer",
+            "description": "Lifetime of the URL in seconds. Defaults to 3600 (one hour), at most 604800 (seven days)",
+            "nullable": true
+          },
+          "key": {
+            "type": "string",
+            "description": "Key of the object to grant access to, as its full path within the container (for example documents/report.pdf). The object does not need to exist yet"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      },
+      "publicCloud.storage.swift.ContainerPresignedURLMethodEnum": {
+        "type": "string",
+        "description": "Possible HTTP methods for a Swift presigned (temporary) URL. Only GET is supported: the URL grants a read of one object",
+        "enum": [
+          "GET"
+        ]
+      },
+      "publicCloud.storage.swift.ContainerTargetSpec": {
+        "type": "object",
+        "description": "Target specification for a Swift object storage container. name, location and archive are set at creation and cannot be changed afterward; type and cors can be updated",
+        "properties": {
+          "archive": {
+            "type": "boolean",
+            "description": "Create the container with the Public Cloud Archive storage policy (X-Storage-Policy: PCA) instead of the standard policy. Objects in an archive container are sealed after upload and must be unsealed (retrieval) before download. Defaults to false. Immutable after creation",
+            "nullable": true
+          },
+          "cors": {
+            "type": "array",
+            "description": "Origins allowed to access the container from a browser (Access-Control-Allow-Origin container metadata), for example https://www.example.com. Duplicates are removed. Defaults to no origin, which blocks cross-origin browser requests",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.common.Location"
+              }
+            ],
+            "description": "Region hosting the container. Only region is used; availabilityZone is ignored because Swift is region-wide. The region is part of the container identifier and cannot be changed"
+          },
+          "name": {
+            "type": "string",
+            "description": "Container name, unique within the region. At most 256 bytes and must not contain a slash (/). Immutable after creation"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerTypeEnum"
+              }
+            ],
+            "description": "Access type of the container. PRIVATE (default) requires a token or a presigned URL to read objects. PUBLIC lets anyone read and list objects. STATIC also serves the container as a static website: index.html as the index page, error.html on errors and listing.css to style listings; default versions of these three files are pushed to the container when it is switched to STATIC",
+            "nullable": true
+          }
+        },
+        "required": [
+          "location",
+          "name"
+        ]
+      },
+      "publicCloud.storage.swift.ContainerTypeEnum": {
+        "type": "string",
+        "description": "Possible access types of a Swift container. PRIVATE: objects are only reachable with a valid token or a presigned URL. PUBLIC: anyone with the URL can read and list the objects. STATIC: PUBLIC plus static website hosting, serving index.html as the index page, error.html on errors and listing.css to style directory listings",
+        "enum": [
+          "PRIVATE",
+          "PUBLIC",
+          "STATIC"
+        ]
+      },
+      "publicCloud.storage.swift.ContainerUpdate": {
+        "type": "object",
+        "description": "Payload to update a Swift object storage container",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "description": "Optional concurrency-control checksum. When supplied, it must match the resource's current checksum or the request is rejected with a 409 checksum-mismatch conflict. When omitted or empty, the concurrency check is skipped and the write is forced (last-write-wins).",
+            "nullable": true
+          },
+          "targetSpec": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerUpdateTargetSpec"
+              }
+            ],
+            "description": "Desired target specification for the container"
+          }
+        },
+        "required": [
+          "targetSpec"
+        ]
+      },
+      "publicCloud.storage.swift.ContainerUpdateTargetSpec": {
+        "type": "object",
+        "description": "Target specification for updating a Swift object storage container (mutable fields only). name, location and archive cannot be changed after creation",
+        "properties": {
+          "cors": {
+            "type": "array",
+            "description": "Origins allowed to access the container from a browser (Access-Control-Allow-Origin container metadata), for example https://www.example.com. The list replaces the current origins. Duplicates are removed. An empty list or null removes every origin",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerTypeEnum"
+              }
+            ],
+            "description": "Access type of the container. A null or missing type resets the container to PRIVATE. PRIVATE requires a token or a presigned URL to read objects. PUBLIC lets anyone read and list objects. STATIC also serves the container as a static website: index.html as the index page, error.html on errors and listing.css to style listings; default versions of these three files are pushed to the container when it is switched to STATIC. Switching back to PRIVATE removes the public read ACL and the static website settings but keeps the objects",
+            "nullable": true
+          }
+        }
+      },
+      "publicCloud.storage.swift.ObjectRetrievalStateEnum": {
+        "type": "string",
+        "description": "Possible retrieval states of an object stored in an archive container (Public Cloud Archive policy). SEALED: the object is in cold storage and must be unsealed before it can be downloaded. UNSEALING: a retrieval is in progress; the object becomes readable after retrievalDelay seconds. UNSEALED: the object can be downloaded",
+        "enum": [
+          "SEALED",
+          "UNSEALED",
+          "UNSEALING"
+        ]
+      },
       "time": {
         "type": "string",
         "description": "Time (e.g., 15:04:05)",
@@ -99958,6 +100309,1180 @@
           }
         ],
         "x-response-identifier": "id"
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/swift/container": {
+      "get": {
+        "operationId": "getSwiftContainers",
+        "summary": "List containers",
+        "description": "Returns the containers of the project across every region offering Swift object storage.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.storage.swift.Container"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "Swift"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Swift Object Storage@@@10"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/swift/container/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id",
+        "x-expanded-response": "PublicCloudStorageSwiftContainer"
+      },
+      "post": {
+        "operationId": "createSwiftContainer",
+        "summary": "Create a container",
+        "description": "Creates a container in a region. The archive policy, the access type and the CORS origins can be set at creation; name, region and archive policy cannot be changed afterward.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerCreation"
+              },
+              "examples": {
+                "Create container": {
+                  "value": {
+                    "targetSpec": {
+                      "cors": [
+                        "https://www.example.com"
+                      ],
+                      "location": {
+                        "region": "GRA"
+                      },
+                      "name": "my-container",
+                      "type": "PUBLIC"
+                    }
+                  },
+                  "summary": "Create a public container allowing one origin"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.swift.Container"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  },
+                  "Client::BadRequest::ServiceNotAvailableInRegion": {
+                    "value": {
+                      "class": "Client::BadRequest::ServiceNotAvailableInRegion",
+                      "message": "This service is not available in the selected region"
+                    }
+                  },
+                  "Client::BadRequest::SwiftContainerNameInvalid": {
+                    "value": {
+                      "class": "Client::BadRequest::SwiftContainerNameInvalid",
+                      "message": "Invalid Swift container name: it must not contain a slash and must be at most 256 bytes"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::RegionInMaintenance": {
+                    "value": {
+                      "class": "Client::Conflict::RegionInMaintenance",
+                      "message": "This region is currently in maintenance"
+                    }
+                  },
+                  "Client::Conflict::SwiftContainerAlreadyExists": {
+                    "value": {
+                      "class": "Client::Conflict::SwiftContainerAlreadyExists",
+                      "message": "A Swift container with this name already exists in this region"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "Swift"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Swift Object Storage@@@30"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/swift/container/create",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/swift/container/{containerId}": {
+      "delete": {
+        "operationId": "deleteSwiftContainer",
+        "summary": "Delete a container",
+        "description": "Deletes the container and every object it holds. The deletion is asynchronous: the container stays in DELETING status until it is emptied and removed.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.swift.Container"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SwiftContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SwiftContainerDoesNotExist",
+                      "message": "Swift container not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ResourceAlreadyBeingDeleted": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceAlreadyBeingDeleted",
+                      "message": "Resource is already being deleted"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "Swift"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Swift Object Storage@@@50"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/swift/container/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "operationId": "getSwiftContainer",
+        "summary": "Get a container",
+        "description": "Returns the container configuration and its current state, including its object count and stored size.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.swift.Container"
+                },
+                "examples": {
+                  "Example": {
+                    "value": {
+                      "checksum": "4f2c1b9e8a7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b",
+                      "createdAt": "2026-02-01T10:00:00Z",
+                      "currentState": {
+                        "archive": true,
+                        "cors": [],
+                        "location": {
+                          "region": "GRA"
+                        },
+                        "name": "my-container",
+                        "objectsCount": 1,
+                        "objectsSize": 1048576,
+                        "staticUrl": null,
+                        "type": "PRIVATE"
+                      },
+                      "currentTasks": [],
+                      "id": "GRA_my-container",
+                      "resourceStatus": "READY",
+                      "targetSpec": {
+                        "archive": true,
+                        "cors": [],
+                        "location": {
+                          "region": "GRA"
+                        },
+                        "name": "my-container",
+                        "type": "PRIVATE"
+                      },
+                      "updatedAt": "2026-02-01T10:05:00Z"
+                    },
+                    "summary": "A private archive container"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SwiftContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SwiftContainerDoesNotExist",
+                      "message": "Swift container not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "Swift"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Swift Object Storage@@@35"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/swift/container/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "id"
+      },
+      "put": {
+        "operationId": "editSwiftContainer",
+        "summary": "Update a container",
+        "description": "Updates the access type and the CORS origins of the container. Send the current checksum to prevent overwriting a concurrent change; without it, the last write wins.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerUpdate"
+              },
+              "examples": {
+                "Update container": {
+                  "value": {
+                    "checksum": "4f2c1b9e8a7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b",
+                    "targetSpec": {
+                      "cors": [
+                        "https://www.example.com"
+                      ],
+                      "type": "STATIC"
+                    }
+                  },
+                  "summary": "Turn a container into a static website using optimistic concurrency with checksum"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.swift.Container"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SwiftContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SwiftContainerDoesNotExist",
+                      "message": "Swift container not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ChecksumMismatch": {
+                    "value": {
+                      "class": "Client::Conflict::ChecksumMismatch",
+                      "message": "Checksum mismatch — a concurrent update was detected. Refresh the resource and retry"
+                    }
+                  },
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "Swift"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Swift Object Storage@@@40"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/swift/container/edit",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/swift/container/{containerId}/object": {
+      "get": {
+        "operationId": "getSwiftObjects",
+        "summary": "List objects",
+        "description": "Returns the objects of the container, at most 500 per page. Filter by key prefix, and page with the marker: the key of the last object of the previous page.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Pagination-Cursor",
+            "description": "Pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Pagination-Size",
+            "description": "Pagination size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Maximum number of objects to return (default and maximum: 500)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "marker",
+            "description": "Only return objects whose keys sort after this one; pass the key of the last object of the previous page to get the next page",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "prefix",
+            "description": "Only return objects whose keys begin with this prefix",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerObject"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SwiftContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SwiftContainerDoesNotExist",
+                      "message": "Swift container not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "Swift"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Swift Object Storage",
+            "Object Management@@@10"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/swift/container/object/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "key",
+        "x-expanded-response": "PublicCloudStorageSwiftContainerObject"
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/swift/container/{containerId}/object/{key}": {
+      "delete": {
+        "operationId": "deleteSwiftObject",
+        "summary": "Delete an object",
+        "description": "Deletes the object from the container.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation"
+          }
+        },
+        "tags": [
+          "Storage",
+          "Swift"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Swift Object Storage",
+            "Object Management@@@40"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/swift/container/object/delete",
+            "required": true
+          }
+        ]
+      },
+      "get": {
+        "operationId": "getSwiftObject",
+        "summary": "Get object metadata",
+        "description": "Returns the object metadata, without its content.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SwiftContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SwiftContainerDoesNotExist",
+                      "message": "Swift container not found"
+                    }
+                  },
+                  "Client::NotFound::SwiftObjectDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SwiftObjectDoesNotExist",
+                      "message": "Swift object not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "Swift"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Swift Object Storage",
+            "Object Management@@@20"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/swift/container/object/get",
+            "required": true
+          }
+        ],
+        "x-response-identifier": "key"
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/swift/container/{containerId}/presign": {
+      "post": {
+        "operationId": "createSwiftContainerPresignedUrl",
+        "summary": "Create a presigned URL",
+        "description": "Creates a temporary URL to download one object without credentials. The URL expires after the given time, one hour by default and seven days at most.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "containerId",
+            "description": "Container ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerPresignedURLCreation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.swift.ContainerPresignedURL"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error 400 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::BadRequest::InvalidParameter": {
+                    "value": {
+                      "class": "Client::BadRequest::InvalidParameter",
+                      "message": "Invalid parameter in the request"
+                    }
+                  },
+                  "Client::BadRequest::SwiftPresignExpirationInvalid": {
+                    "value": {
+                      "class": "Client::BadRequest::SwiftPresignExpirationInvalid",
+                      "message": "Invalid presigned URL expiration: it must be between 1 and 604800 seconds"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::SwiftContainerDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::SwiftContainerDoesNotExist",
+                      "message": "Swift container not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "Swift"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Swift Object Storage",
+            "Object Management@@@47"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "green",
+            "label": "Stable production version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/swift/container/presign/create",
+            "required": true
+          }
+        ]
       }
     },
     "/publicCloud/reference/rancher/plan": {
