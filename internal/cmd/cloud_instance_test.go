@@ -649,6 +649,16 @@ func (ms *MockSuite) TestCloudInstanceCreateBootVolumeCmd(assert, require *td.T)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID creation started", "details": {"id": "fakeInstanceID"}}`))
 }
 
+func (ms *MockSuite) TestCloudInstanceCreatePrivateIPWithoutNetworkCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2", "--boot-from.image", "image-debian-12",
+		"--network.private.ip", "10.1.2.155", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("--network.private.ip requires --network.private.id and --network.private.subnet-id"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
 func (ms *MockSuite) TestCloudInstanceCreateImageAndBootVolumeCmd(assert, require *td.T) {
 	_, err := cmd.Execute("cloud", "instance", "create", "GRA9",
 		"--name", "my-instance", "--flavor", "flavor-d2-2",

@@ -299,6 +299,12 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// The IP is set on the private network entry, so it cannot be given alone.
+	if InstanceCreationFlags.PrivateIP != "" && InstanceCreationFlags.PrivateNetworkID == "" {
+		display.OutputError(&flags.OutputFormatConfig, "--network.private.ip requires --network.private.id and --network.private.subnet-id\n\n%s", cmd.UsageString())
+		return
+	}
+
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to get configured cloud project: %s", err)
@@ -355,7 +361,8 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 
 // instanceCreationSpec builds the API v2 creation body from the CLI flags.
 // Only the values given on the command line are set, so that they override
-// the ones of a parameters file without erasing the others.
+// the ones of a parameters file without erasing the others. Lists (networks,
+// volumes) are appended to the ones of the file, not replaced.
 func instanceCreationSpec(region string) map[string]any {
 	f := InstanceCreationFlags
 	targetSpec := map[string]any{}

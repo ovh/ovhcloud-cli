@@ -48,6 +48,9 @@ There are three ways to define the creation parameters:
 
 	ovhcloud cloud instance create GRA11 --from-file ./params.json --name NameOverriden
 
+  Network and volume flags (--network.*, --boot-from.volume) add entries to the networks and volumes of the file
+  instead of replacing them.
+
   It is also possible to use the interactive image and flavor selector to define the image and flavor parameters, like the following:
 
 	ovhcloud cloud instance create BHS5 --init-file ./params.json --image-selector --flavor-selector
