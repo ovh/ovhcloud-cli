@@ -7,6 +7,7 @@ package cloud
 import (
 	"bufio"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -84,67 +85,22 @@ var (
 	// It is set with a CLI flag.
 	InstanceImageID string
 
-	// InstanceCreationParameters holds the parameters for creating a new instance.
-	InstanceCreationParameters = struct {
-		Autobackup struct {
-			Cron     string `json:"cron,omitempty"`
-			Rotation int    `json:"rotation,omitempty"`
-		} `json:"autobackup,omitzero"`
-		AvailabilityZone string `json:"availabilityZone,omitempty"`
-		BillingPeriod    string `json:"billingPeriod,omitempty"`
-		BootFrom         struct {
-			ImageID  string `json:"imageId,omitempty"`
-			VolumeID string `json:"volumeId,omitempty"`
-		} `json:"bootFrom,omitzero"`
-		Bulk   int `json:"bulk,omitempty"`
-		Flavor struct {
-			ID string `json:"id,omitempty"`
-		} `json:"flavor,omitzero"`
-		Group struct {
-			ID string `json:"id,omitempty"`
-		} `json:"group,omitzero"`
-		Name    string `json:"name,omitempty"`
-		Network struct {
-			Private struct {
-				FloatingIp struct {
-					ID string `json:"id,omitempty"`
-				} `json:"floatingIp,omitzero"`
-				FloatingIpCreate struct {
-					Description string `json:"description,omitempty"`
-				} `json:"floatingIpCreate,omitzero"`
-				Gateway struct {
-					ID string `json:"id,omitempty"`
-				} `json:"gateway,omitzero"`
-				GatewayCreate struct {
-					Model string `json:"model,omitempty"`
-					Name  string `json:"name,omitempty"`
-				} `json:"gatewayCreate,omitzero"`
-				IP      string `json:"ip,omitempty"`
-				Network struct {
-					ID       string `json:"id,omitempty"`
-					SubnetID string `json:"subnetId,omitempty"`
-				} `json:"network,omitzero"`
-				NetworkCreate struct {
-					Name   string `json:"name,omitempty"`
-					Subnet struct {
-						CIDR       string `json:"cidr,omitempty"`
-						EnableDhcp bool   `json:"enableDhcp,omitempty"`
-						IPVersion  int    `json:"ipVersion,omitempty"`
-					} `json:"subnet,omitzero"`
-					VlanID int `json:"vlanId,omitempty"`
-				} `json:"networkCreate,omitzero"`
-			} `json:"private,omitzero"`
-			Public bool `json:"public,omitempty"`
-		} `json:"network,omitzero"`
-		SshKey struct {
-			Name string `json:"name,omitempty"`
-		} `json:"sshKey,omitzero"`
-		SshKeyCreate struct {
-			Name      string `json:"name,omitempty"`
-			PublicKey string `json:"publicKey,omitempty"`
-		} `json:"sshKeyCreate,omitzero"`
-		UserData string `json:"userData,omitempty"`
-	}{}
+	// InstanceCreationFlags holds the instance creation parameters given as CLI
+	// flags. They are turned into an API v2 targetSpec by instanceCreationSpec.
+	InstanceCreationFlags struct {
+		AvailabilityZone string
+		BootVolumeID     string
+		FlavorID         string
+		GroupID          string
+		ImageID          string
+		IP               string
+		Name             string
+		PrivateNetworkID string
+		PrivateSubnetID  string
+		PublicNetwork    bool
+		SSHKeyName       string
+		UserData         string
+	}
 
 	InstanceSnapshotSpec struct {
 		SnapshotName        string `json:"snapshotName,omitempty"`
@@ -175,7 +131,10 @@ func GetInstance(_ *cobra.Command, args []string) {
 	common.ManageObjectRequest(instanceV2Endpoint(projectID), args[0], cloudInstanceTemplate)
 }
 
-func updateInstanceTargetSpec(projectID, instanceID string, change func(targetSpec map[string]any)) (map[string]any, error) {
+// updateInstanceTargetSpec applies change to the targetSpec of the instance
+// and PUTs it back. An error returned by change aborts the update before any
+// write.
+func updateInstanceTargetSpec(projectID, instanceID string, change func(targetSpec map[string]any) error) (map[string]any, error) {
 	endpoint := fmt.Sprintf("%s/%s", instanceV2Endpoint(projectID), url.PathEscape(instanceID))
 
 	var instance map[string]any
@@ -186,7 +145,9 @@ func updateInstanceTargetSpec(projectID, instanceID string, change func(targetSp
 	if !ok {
 		return nil, fmt.Errorf("instance %q has no targetSpec", instanceID)
 	}
-	change(targetSpec)
+	if err := change(targetSpec); err != nil {
+		return nil, err
+	}
 
 	body, err := openapi.FilterEditableFields(
 		assets.CloudV2OpenapiSchema,
@@ -251,8 +212,9 @@ func SetInstanceName(_ *cobra.Command, args []string) {
 		return
 	}
 
-	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) {
+	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) error {
 		targetSpec["name"] = args[1]
+		return nil
 	})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -269,8 +231,9 @@ func setInstancePowerState(args []string, powerState, startedMessage, doneMessag
 		return
 	}
 
-	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) {
+	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) error {
 		targetSpec["powerState"] = powerState
+		return nil
 	})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -349,48 +312,111 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		display.OutputError(&flags.OutputFormatConfig, "failed to get interactive parameters: %s", err)
 		return
 	}
-	if interactiveParams != nil {
-		if boot, ok := interactiveParams["bootFrom"]; ok {
-			InstanceCreationParameters.BootFrom.ImageID = boot.(map[string]any)["imageId"].(string)
+	if selected, ok := interactiveParams["targetSpec"].(map[string]any); ok {
+		if image, ok := selected["image"]; ok {
+			InstanceCreationFlags.ImageID = image.(map[string]any)["id"].(string)
 		}
-		if flavor, ok := interactiveParams["flavor"]; ok {
-			InstanceCreationParameters.Flavor.ID = flavor.(map[string]any)["id"].(string)
+		if flavor, ok := selected["flavor"]; ok {
+			InstanceCreationFlags.FlavorID = flavor.(map[string]any)["id"].(string)
 		}
 	}
 
-	if s := &InstanceCreationParameters.Network.Private.NetworkCreate.Subnet; s.IPVersion == 0 && s.CIDR != "" {
-		s.IPVersion = ipVersionFromCIDR(s.CIDR)
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance", projectID, region)
-	operation, err := common.CreateResource(
+	endpoint := instanceV2Endpoint(projectID)
+	instance, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/instance",
+		"/publicCloud/project/{projectId}/compute/instance",
 		endpoint,
 		CloudInstanceCreationExample,
-		InstanceCreationParameters,
-		assets.CloudOpenapiSchema,
-		[]string{"name", "flavor", "bootFrom", "network"})
+		instanceCreationSpec(region),
+		assets.CloudV2OpenapiSchema,
+		// The boot source, an image or a volume with role BOOT, is checked by the API.
+		[]string{"targetSpec.name", "targetSpec.flavor.id", "targetSpec.location.region"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create instance: %s", err)
 		return
 	}
 
+	instanceID, _ := instance["id"].(string)
 	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance creation started")
+		display.OutputInfo(&flags.OutputFormatConfig, map[string]any{"id": instanceID}, "⚡️ Instance %s creation started", instanceID)
 		return
 	}
 
-	log.Println("⚡️ Instance creation started…")
+	log.Printf("⚡️ Instance %s creation started…", instanceID)
 
-	operationID := operation["id"].(string)
-	instanceID, err := waitForCloudOperation(projectID, operationID, "instance#create", time.Hour)
+	ready, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", endpoint, url.PathEscape(instanceID)), time.Hour)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance creation: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, map[string]any{"id": instanceID}, "✅ Instance %s created successfully", instanceID)
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Instance %s created successfully", instanceID)
+}
+
+// instanceCreationSpec builds the API v2 creation body from the CLI flags.
+// Only the values given on the command line are set, so that they override
+// the ones of a parameters file without erasing the others. Lists (networks,
+// volumes) are appended to the ones of the file, not replaced.
+func instanceCreationSpec(region string) map[string]any {
+	f := InstanceCreationFlags
+	targetSpec := map[string]any{}
+
+	location := map[string]any{"region": region}
+	if f.AvailabilityZone != "" {
+		location["availabilityZone"] = f.AvailabilityZone
+	}
+	targetSpec["location"] = location
+
+	if f.Name != "" {
+		targetSpec["name"] = f.Name
+	}
+	if f.FlavorID != "" {
+		targetSpec["flavor"] = map[string]any{"id": f.FlavorID}
+	}
+	if f.ImageID != "" {
+		targetSpec["image"] = map[string]any{"id": f.ImageID}
+	}
+	if f.BootVolumeID != "" {
+		// The instance boots from this volume instead of an image.
+		targetSpec["volumes"] = []any{map[string]any{"id": f.BootVolumeID, "role": "BOOT"}}
+	}
+	if f.GroupID != "" {
+		targetSpec["group"] = map[string]any{"id": f.GroupID}
+	}
+	if f.SSHKeyName != "" {
+		targetSpec["sshKeyName"] = f.SSHKeyName
+	}
+	if f.UserData != "" {
+		// API v2 expects the cloud-init payload base64-encoded.
+		targetSpec["userData"] = base64.StdEncoding.EncodeToString([]byte(f.UserData))
+	}
+
+	var networks []any
+	if f.PublicNetwork {
+		networks = append(networks, map[string]any{"autoAssignPublicIp": true})
+	}
+	// The API reads the ip of an entry from its sibling fields: on a private
+	// entry it is a fixed address or a floating IP, alone it is a public IP.
+	if f.PrivateNetworkID != "" || f.PrivateSubnetID != "" {
+		private := map[string]any{}
+		if f.PrivateNetworkID != "" {
+			private["id"] = f.PrivateNetworkID
+		}
+		if f.PrivateSubnetID != "" {
+			private["subnetId"] = f.PrivateSubnetID
+		}
+		if f.IP != "" {
+			private["ip"] = f.IP
+		}
+		networks = append(networks, private)
+	} else if f.IP != "" {
+		networks = append(networks, map[string]any{"ip": f.IP})
+	}
+	if len(networks) > 0 {
+		targetSpec["networks"] = networks
+	}
+
+	return map[string]any{"targetSpec": targetSpec}
 }
 
 func DeleteInstance(_ *cobra.Command, args []string) {
@@ -434,8 +460,8 @@ func GetInstanceFlavorAndImageInteractiveSelector(cmd *cobra.Command, args []str
 			return nil, errors.New("no image selected, exiting")
 		}
 
-		params["bootFrom"] = map[string]any{
-			"imageId": selectedID,
+		params["image"] = map[string]any{
+			"id": selectedID,
 		}
 	}
 
@@ -455,7 +481,9 @@ func GetInstanceFlavorAndImageInteractiveSelector(cmd *cobra.Command, args []str
 		}
 	}
 
-	return params, nil
+	// The values are merged into API v2 creation bodies (parameter file
+	// examples), where image and flavor live under targetSpec.
+	return map[string]any{"targetSpec": params}, nil
 }
 
 func ReinstallInstance(cmd *cobra.Command, args []string) {

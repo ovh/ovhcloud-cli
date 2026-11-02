@@ -10,6 +10,7 @@ ovhcloud cloud storage block volume detach <volume_id> <instance_id> [flags]
 
 ```
   -h, --help   help for detach
+      --wait   Wait for the volume to be detached before exiting
 ```
 
 ### Options inherited from parent commands

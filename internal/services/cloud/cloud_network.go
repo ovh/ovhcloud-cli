@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"net/url"
 	"strings"
 	"sync"
@@ -835,17 +834,4 @@ func DeleteGatewayInterface(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Gateway %s interface %s deleted successfully", args[0], args[1])
-}
-
-// ipVersionFromCIDR returns 4 or 6 based on the CIDR string.
-// Returns 0 if the CIDR cannot be parsed.
-func ipVersionFromCIDR(cidr string) int {
-	ip, _, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return 0
-	}
-	if ip.To4() != nil {
-		return 4
-	}
-	return 6
 }

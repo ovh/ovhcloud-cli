@@ -11,6 +11,10 @@ There are three ways to define the creation parameters:
 
 	ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.image <image_id> --flavor <flavor_id>
 
+  To boot from an existing bootable block storage volume instead of an image:
+
+	ovhcloud cloud instance create GRA9 --name MyNewInstance --boot-from.volume <volume_id> --flavor <flavor_id>
+
 2. Using a configuration file:
 
   First you can generate an example of installation file using the following command:
@@ -29,6 +33,9 @@ There are three ways to define the creation parameters:
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
 	ovhcloud cloud instance create GRA11 --from-file ./params.json --name NameOverriden
+
+  Network and volume flags (--network.*, --boot-from.volume) add entries to the networks and volumes of the file
+  instead of replacing them.
 
   It is also possible to use the interactive image and flavor selector to define the image and flavor parameters, like the following:
 
@@ -57,42 +64,26 @@ ovhcloud cloud instance create <region (e.g. GRA9, BHS5, SBG3)> [flags]
 ### Options
 
 ```
-      --availability-zone string                                Availability zone
-      --backup-cron string                                      Autobackup Unix Cron pattern (eg: '0 0 * * *')
-      --backup-rotation int                                     Number of backups to keep
-      --billing-period string                                   Billing period (hourly, monthly), default is hourly (default "hourly")
-      --boot-from.image string                                  Image ID to boot from (you can use 'ovhcloud cloud reference list-images' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)
-      --boot-from.volume string                                 Volume ID to boot from
-      --bulk int                                                Number of instances to create
-      --editor                                                  Use a text editor to define parameters
-      --flavor string                                           Flavor ID (you can use 'ovhcloud cloud reference list-flavors' to get the flavor ID)
-      --flavor-selector                                         Use the interactive flavor selector
-      --from-file string                                        File containing parameters
-      --group string                                            Group ID
-  -h, --help                                                    help for create
-      --image-selector                                          Use the interactive image selector
-      --init-file string                                        Create a file with example parameters
-      --name string                                             Instance name
-      --network.private.create.name string                      Name for the private network to create
-      --network.private.create.subnet-cidr string               CIDR for the subnet to create
-      --network.private.create.subnet-enable-dhcp               Enable DHCP for the subnet to create
-      --network.private.create.subnet-ip-version int            IP version for the subnet to create
-      --network.private.create.vlan-id int                      VLAN ID for the private network to create
-      --network.private.floating-ip.create.description string   Description for the floating IP to create
-      --network.private.floating-ip.id string                   ID of an existing floating IP
-      --network.private.gateway.create.model string             Model for the gateway to create (s, m, l)
-      --network.private.gateway.create.name string              Name for the gateway to create
-      --network.private.gateway.id string                       ID of the existing gateway to attach to the private network
-      --network.private.id string                               ID of the existing private network
-      --network.private.ip string                               Instance IP in the private network
-      --network.private.subnet-id string                        Existing subnet ID
-      --network.public                                          Set the new instance as public
-      --replace                                                 Replace parameters file if it already exists
-      --ssh-key.create.name string                              Name for the SSH key to create
-      --ssh-key.create.public-key string                        Public key for the SSH key to create
-      --ssh-key.name string                                     Existing SSH key name
-      --user-data string                                        Configuration information or scripts to use upon launch
-      --wait                                                    Wait for instance creation to be done before exiting
+      --availability-zone string           Availability zone
+      --boot-from.image string             Image ID to boot from (you can use 'ovhcloud cloud instance image list' to get the image ID or 'ovhcloud cloud instance snapshot ls' to get the snapshots)
+      --boot-from.volume string            ID of an existing bootable block storage volume to boot from, instead of an image (the volume must be available and in the same region; it is kept when the instance is deleted)
+      --editor                             Use a text editor to define parameters
+      --flavor string                      Flavor ID (you can use 'ovhcloud cloud instance flavor list' to get the flavor ID)
+      --flavor-selector                    Use the interactive flavor selector
+      --from-file string                   File containing parameters
+      --group string                       Group ID
+  -h, --help                               help for create
+      --image-selector                     Use the interactive image selector
+      --init-file string                   Create a file with example parameters
+      --name string                        Instance name
+      --network.ip string                  IP address of the instance. Without --network.private.subnet-id: a public IP the project already owns (an additional IP, or an Ext-Net IP of the project in the region), attached on the public network. With it: the fixed address of the instance when it falls inside the subnet CIDR, otherwise an existing floating IP to associate
+      --network.private.id string          ID of the existing private network (optional: defaults to the network of --network.private.subnet-id)
+      --network.private.subnet-id string   ID of the existing subnet the instance takes its private address from
+      --network.public                     Attach the new instance to the public network, with a public IP assigned by the platform
+      --replace                            Replace parameters file if it already exists
+      --ssh-key.name string                Existing SSH key name (you can use 'ovhcloud cloud ssh-key create' to create one)
+      --user-data string                   Configuration information or scripts to use upon launch
+      --wait                               Wait for instance creation to be done before exiting
 ```
 
 ### Options inherited from parent commands

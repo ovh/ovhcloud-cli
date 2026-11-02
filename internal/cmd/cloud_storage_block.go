@@ -68,21 +68,25 @@ func initCloudVolumeCommand(cloudCmd *cobra.Command) {
 	})
 
 	// Volume action commands
-	volumeCmd.AddCommand(&cobra.Command{
+	volumeAttachCmd := &cobra.Command{
 		Use:               "attach <volume_id> <instance_id>",
 		Short:             "Attach the given volume to the given instance",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/storage/block/volume"),
 		Run:               cloud.AttachVolumeToInstance,
 		Args:              cobra.ExactArgs(2),
-	})
+	}
+	volumeAttachCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the volume to be attached before exiting")
+	volumeCmd.AddCommand(volumeAttachCmd)
 
-	volumeCmd.AddCommand(&cobra.Command{
+	volumeDetachCmd := &cobra.Command{
 		Use:               "detach <volume_id> <instance_id>",
 		Short:             "Detach the given volume from the given instance",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/volume"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/storage/block/volume"),
 		Run:               cloud.DetachVolumeFromInstance,
 		Args:              cobra.ExactArgs(2),
-	})
+	}
+	volumeDetachCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the volume to be detached before exiting")
+	volumeCmd.AddCommand(volumeDetachCmd)
 
 	// Volume snapshot commands
 	volumeSnapshotCmd := &cobra.Command{
