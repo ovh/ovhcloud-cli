@@ -1,0 +1,18 @@
+🔒 SSL certificate {{.ServiceName}}
+=======
+
+{{if index .Result "displayName"}}_{{index .Result "displayName"}}_{{end}}
+
+## General information
+
+**Type**:        {{index .Result "type"}}
+**Subject**:     {{index .Result "subject"}}
+**Fingerprint**: {{index .Result "fingerprint"}}
+**Serial**:      {{index .Result "serial"}}
+**Expire date**: {{index .Result "expireDate"}}
+{{if index .Result "san"}}
+## Subject Alternative Names
+
+{{range (index .Result "san")}}- `{{.}}`
+{{end}}{{end}}
+💡 Use option -o json or -o yaml to get the raw output with all information
