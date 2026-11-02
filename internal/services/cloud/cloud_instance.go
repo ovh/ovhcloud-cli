@@ -93,10 +93,10 @@ var (
 		FlavorID         string
 		GroupID          string
 		ImageID          string
+		IP               string
 		Name             string
 		PrivateNetworkID string
 		PrivateSubnetID  string
-		PrivateIP        string
 		PublicNetwork    bool
 		SSHKeyName       string
 		UserData         string
@@ -299,12 +299,6 @@ func CreateInstance(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// The IP is set on the private network entry, so it cannot be given alone.
-	if InstanceCreationFlags.PrivateIP != "" && InstanceCreationFlags.PrivateNetworkID == "" {
-		display.OutputError(&flags.OutputFormatConfig, "--network.private.ip requires --network.private.id and --network.private.subnet-id\n\n%s", cmd.UsageString())
-		return
-	}
-
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to get configured cloud project: %s", err)
@@ -401,12 +395,22 @@ func instanceCreationSpec(region string) map[string]any {
 	if f.PublicNetwork {
 		networks = append(networks, map[string]any{"autoAssignPublicIp": true})
 	}
-	if f.PrivateNetworkID != "" {
-		private := map[string]any{"id": f.PrivateNetworkID, "subnetId": f.PrivateSubnetID}
-		if f.PrivateIP != "" {
-			private["ip"] = f.PrivateIP
+	// The API reads the ip of an entry from its sibling fields: on a private
+	// entry it is a fixed address or a floating IP, alone it is a public IP.
+	if f.PrivateNetworkID != "" || f.PrivateSubnetID != "" {
+		private := map[string]any{}
+		if f.PrivateNetworkID != "" {
+			private["id"] = f.PrivateNetworkID
+		}
+		if f.PrivateSubnetID != "" {
+			private["subnetId"] = f.PrivateSubnetID
+		}
+		if f.IP != "" {
+			private["ip"] = f.IP
 		}
 		networks = append(networks, private)
+	} else if f.IP != "" {
+		networks = append(networks, map[string]any{"ip": f.IP})
 	}
 	if len(networks) > 0 {
 		targetSpec["networks"] = networks

@@ -86,13 +86,16 @@ There are three ways to define the creation parameters:
 	instanceCreateCmd.MarkFlagsMutuallyExclusive("boot-from.image", "boot-from.volume")
 
 	// Private network
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.PrivateNetworkID, "network.private.id", "", "ID of the existing private network")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.PrivateSubnetID, "network.private.subnet-id", "", "Existing subnet ID")
-	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.PrivateIP, "network.private.ip", "", "Instance IP in the private network, or the address of an existing floating IP to associate")
-	instanceCreateCmd.MarkFlagsRequiredTogether("network.private.id", "network.private.subnet-id")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.PrivateNetworkID, "network.private.id", "", "ID of the existing private network (optional: defaults to the network of --network.private.subnet-id)")
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.PrivateSubnetID, "network.private.subnet-id", "", "ID of the existing subnet the instance takes its private address from")
 
 	// Network - Public
-	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceCreationFlags.PublicNetwork, "network.public", false, "Attach the new instance to the public network")
+	instanceCreateCmd.Flags().BoolVar(&cloud.InstanceCreationFlags.PublicNetwork, "network.public", false, "Attach the new instance to the public network, with a public IP assigned by the platform")
+
+	// Network - IP address
+	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.IP, "network.ip", "", "IP address of the instance. Without --network.private.subnet-id: a public IP the project already owns "+
+		"(an additional IP, or an Ext-Net IP of the project in the region), attached on the public network. "+
+		"With it: the fixed address of the instance when it falls inside the subnet CIDR, otherwise an existing floating IP to associate")
 
 	// SSH Key
 	instanceCreateCmd.Flags().StringVar(&cloud.InstanceCreationFlags.SSHKeyName, "ssh-key.name", "", "Existing SSH key name (you can use 'ovhcloud cloud ssh-key create' to create one)")

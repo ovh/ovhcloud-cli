@@ -605,7 +605,7 @@ func (ms *MockSuite) TestCloudInstanceCreateCmd(assert, require *td.T) {
 		"--network.public",
 		"--network.private.id", "private-net-id",
 		"--network.private.subnet-id", "private-subnet-id",
-		"--network.private.ip", "10.1.2.155",
+		"--network.ip", "10.1.2.155",
 		"--ssh-key.name", "my-key",
 		"--user-data", "#cloud-config",
 		"--cloud-project", "fakeProjectID", "-o", "json")
@@ -649,14 +649,47 @@ func (ms *MockSuite) TestCloudInstanceCreateBootVolumeCmd(assert, require *td.T)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID creation started", "details": {"id": "fakeInstanceID"}}`))
 }
 
-func (ms *MockSuite) TestCloudInstanceCreatePrivateIPWithoutNetworkCmd(assert, require *td.T) {
-	_, err := cmd.Execute("cloud", "instance", "create", "GRA9",
-		"--name", "my-instance", "--flavor", "flavor-d2-2", "--boot-from.image", "image-debian-12",
-		"--network.private.ip", "10.1.2.155", "--cloud-project", "fakeProjectID")
+func (ms *MockSuite) TestCloudInstanceCreatePublicIPCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceV2CollectionEndpoint,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-instance",
+				"flavor": { "id": "flavor-d2-2" },
+				"image": { "id": "image-debian-12" },
+				"location": { "region": "GRA9" },
+				"networks": [ { "ip": "203.0.113.10" } ]
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "resourceStatus": "CREATING"}`).Once())
 
-	require.CmpError(err)
-	assert.Cmp(err.Error(), td.Contains("--network.private.ip requires --network.private.id and --network.private.subnet-id"))
-	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+	out, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2", "--boot-from.image", "image-debian-12",
+		"--network.ip", "203.0.113.10", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID creation started", "details": {"id": "fakeInstanceID"}}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceCreateSubnetOnlyCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceV2CollectionEndpoint,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-instance",
+				"flavor": { "id": "flavor-d2-2" },
+				"image": { "id": "image-debian-12" },
+				"location": { "region": "GRA9" },
+				"networks": [ { "subnetId": "private-subnet-id", "ip": "198.51.100.7" } ]
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "resourceStatus": "CREATING"}`).Once())
+
+	out, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2", "--boot-from.image", "image-debian-12",
+		"--network.private.subnet-id", "private-subnet-id", "--network.ip", "198.51.100.7",
+		"--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID creation started", "details": {"id": "fakeInstanceID"}}`))
 }
 
 func (ms *MockSuite) TestCloudInstanceCreateImageAndBootVolumeCmd(assert, require *td.T) {

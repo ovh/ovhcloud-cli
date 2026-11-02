@@ -76,10 +76,10 @@ ovhcloud cloud instance create <region (e.g. GRA9, BHS5, SBG3)> [flags]
       --image-selector                     Use the interactive image selector
       --init-file string                   Create a file with example parameters
       --name string                        Instance name
-      --network.private.id string          ID of the existing private network
-      --network.private.ip string          Instance IP in the private network, or the address of an existing floating IP to associate
-      --network.private.subnet-id string   Existing subnet ID
-      --network.public                     Attach the new instance to the public network
+      --network.ip string                  IP address of the instance. Without --network.private.subnet-id: a public IP the project already owns (an additional IP, or an Ext-Net IP of the project in the region), attached on the public network. With it: the fixed address of the instance when it falls inside the subnet CIDR, otherwise an existing floating IP to associate
+      --network.private.id string          ID of the existing private network (optional: defaults to the network of --network.private.subnet-id)
+      --network.private.subnet-id string   ID of the existing subnet the instance takes its private address from
+      --network.public                     Attach the new instance to the public network, with a public IP assigned by the platform
       --replace                            Replace parameters file if it already exists
       --ssh-key.name string                Existing SSH key name (you can use 'ovhcloud cloud ssh-key create' to create one)
       --user-data string                   Configuration information or scripts to use upon launch
