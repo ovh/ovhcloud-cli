@@ -10,6 +10,7 @@ ovhcloud cloud storage block volume attach <volume_id> <instance_id> [flags]
 
 ```
   -h, --help   help for attach
+      --wait   Wait for the volume to be attached before exiting
 ```
 
 ### Options inherited from parent commands

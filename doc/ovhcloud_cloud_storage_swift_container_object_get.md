@@ -1,9 +1,9 @@
-## ovhcloud cloud storage-swift get
+## ovhcloud cloud storage swift container object get
 
-Get a specific SWIFT storage container
+Get a specific object of the given Swift container
 
 ```
-ovhcloud cloud storage-swift get <container_id> [flags]
+ovhcloud cloud storage swift container object get <container_id> <object_key> [flags]
 ```
 
 ### Options
@@ -34,5 +34,5 @@ ovhcloud cloud storage-swift get <container_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage-swift](ovhcloud_cloud_storage-swift.md)	 - Manage SWIFT storage containers in the given cloud project
+* [ovhcloud cloud storage swift container object](ovhcloud_cloud_storage_swift_container_object.md)	 - Manage objects of the given Swift container
 

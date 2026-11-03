@@ -1,6 +1,6 @@
 ## ovhcloud cloud storage swift
 
-Manage SWIFT storage containers in the given cloud project
+Manage Swift storage in the given cloud project
 
 ### Options
 
@@ -31,7 +31,5 @@ Manage SWIFT storage containers in the given cloud project
 ### SEE ALSO
 
 * [ovhcloud cloud storage](ovhcloud_cloud_storage.md)	 - Manage storage services in the given cloud project
-* [ovhcloud cloud storage swift edit](ovhcloud_cloud_storage_swift_edit.md)	 - Edit the given SWIFT storage container
-* [ovhcloud cloud storage swift get](ovhcloud_cloud_storage_swift_get.md)	 - Get a specific SWIFT storage container
-* [ovhcloud cloud storage swift list](ovhcloud_cloud_storage_swift_list.md)	 - List SWIFT storage containers
+* [ovhcloud cloud storage swift container](ovhcloud_cloud_storage_swift_container.md)	 - Manage Swift storage containers in the given cloud project
 

@@ -1,17 +1,16 @@
-## ovhcloud cloud storage swift edit
+## ovhcloud cloud storage swift container presign
 
-Edit the given SWIFT storage container
+Generate a presigned URL to download an object of the given Swift container
 
 ```
-ovhcloud cloud storage swift edit <container_id> [flags]
+ovhcloud cloud storage swift container presign <container_id> <object_key> [flags]
 ```
 
 ### Options
 
 ```
-      --editor        Use a text editor to define parameters
-  -h, --help          help for edit
-      --type string   Type of the SWIFT storage container (private, public, static)
+      --expires-in int   Validity of the URL in seconds (default 3600, max 604800)
+  -h, --help             help for presign
 ```
 
 ### Options inherited from parent commands
@@ -36,5 +35,5 @@ ovhcloud cloud storage swift edit <container_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage swift](ovhcloud_cloud_storage_swift.md)	 - Manage SWIFT storage containers in the given cloud project
+* [ovhcloud cloud storage swift container](ovhcloud_cloud_storage_swift_container.md)	 - Manage Swift storage containers in the given cloud project
 

@@ -17,7 +17,7 @@ ovhcloud cloud instance image list [flags]
                                --filter 'startDate>="2023-12-01"'
                                --filter 'name=~"something" && nbField>10'
   -h, --help                 help for list
-  -t, --os-type string       OS type to filter images (baremetal-linux, bsd, linux, windows)
+  -t, --os-type string       OS type to filter images (baremetal-linux, linux, windows)
   -r, --region string        Region to filter images (e.g., GRA9, BHS5)
 ```
 

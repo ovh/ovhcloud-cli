@@ -576,3 +576,234 @@ func (ms *MockSuite) TestCloudInstanceRebootInvalidTypeCmd(assert, require *td.T
 	assert.Cmp(err.Error(), td.Contains(`invalid reboot type: "warm"`))
 	assert.Cmp(httpmock.GetTotalCallCount(), 0)
 }
+
+const instanceV2CollectionEndpoint = "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance"
+
+func (ms *MockSuite) TestCloudInstanceCreateCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceV2CollectionEndpoint,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-instance",
+				"flavor": { "id": "flavor-d2-2" },
+				"image": { "id": "image-debian-12" },
+				"location": { "region": "GRA9", "availabilityZone": "gra9-a" },
+				"networks": [
+					{ "autoAssignPublicIp": true },
+					{ "id": "private-net-id", "subnetId": "private-subnet-id", "ip": "10.1.2.155" }
+				],
+				"sshKeyName": "my-key",
+				"userData": "I2Nsb3VkLWNvbmZpZw=="
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "resourceStatus": "CREATING"}`).Once())
+
+	out, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance",
+		"--flavor", "flavor-d2-2",
+		"--boot-from.image", "image-debian-12",
+		"--availability-zone", "gra9-a",
+		"--network.public",
+		"--network.private.id", "private-net-id",
+		"--network.private.subnet-id", "private-subnet-id",
+		"--network.ip", "10.1.2.155",
+		"--ssh-key.name", "my-key",
+		"--user-data", "#cloud-config",
+		"--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID creation started", "details": {"id": "fakeInstanceID"}}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceCreateWaitCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodPost, instanceV2CollectionEndpoint,
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "resourceStatus": "CREATING"}`).Once())
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+
+	out, err := cmd.Execute("cloud", "instance", "create", "GRA11",
+		"--name", "my-instance", "--flavor", "flavor-d2-2", "--boot-from.image", "image-debian-12",
+		"--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("✅ Instance fakeInstanceID created successfully"))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceV2Endpoint], 1)
+}
+
+func (ms *MockSuite) TestCloudInstanceCreateBootVolumeCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceV2CollectionEndpoint,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-instance",
+				"flavor": { "id": "flavor-d2-2" },
+				"location": { "region": "GRA9" },
+				"volumes": [ { "id": "boot-volume-id", "role": "BOOT" } ]
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "resourceStatus": "CREATING"}`).Once())
+
+	out, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2", "--boot-from.volume", "boot-volume-id",
+		"--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID creation started", "details": {"id": "fakeInstanceID"}}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceCreatePublicIPCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceV2CollectionEndpoint,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-instance",
+				"flavor": { "id": "flavor-d2-2" },
+				"image": { "id": "image-debian-12" },
+				"location": { "region": "GRA9" },
+				"networks": [ { "ip": "203.0.113.10" } ]
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "resourceStatus": "CREATING"}`).Once())
+
+	out, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2", "--boot-from.image", "image-debian-12",
+		"--network.ip", "203.0.113.10", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID creation started", "details": {"id": "fakeInstanceID"}}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceCreateSubnetOnlyCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceV2CollectionEndpoint,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-instance",
+				"flavor": { "id": "flavor-d2-2" },
+				"image": { "id": "image-debian-12" },
+				"location": { "region": "GRA9" },
+				"networks": [ { "subnetId": "private-subnet-id", "ip": "198.51.100.7" } ]
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "resourceStatus": "CREATING"}`).Once())
+
+	out, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2", "--boot-from.image", "image-debian-12",
+		"--network.private.subnet-id", "private-subnet-id", "--network.ip", "198.51.100.7",
+		"--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Instance fakeInstanceID creation started", "details": {"id": "fakeInstanceID"}}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceCreateImageAndBootVolumeCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2",
+		"--boot-from.image", "image-debian-12", "--boot-from.volume", "boot-volume-id",
+		"--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("[boot-from.image boot-from.volume] are set none of the others can be"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+// The boot source, an image or a volume with role BOOT, may come from a
+// parameters file, so it is left to the API, whose message says what is missing.
+func (ms *MockSuite) TestCloudInstanceCreateMissingBootSourceCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodPost, instanceV2CollectionEndpoint,
+		httpmock.NewStringResponder(400, `{"class": "Client::BadRequest", "message": "targetSpec.image is required, unless one volume of targetSpec.volumes has role BOOT"}`))
+
+	_, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("targetSpec.image is required, unless one volume of targetSpec.volumes has role BOOT"))
+}
+
+func (ms *MockSuite) TestCloudInstanceCreateRemovedFlagCmd(assert, require *td.T) {
+	// Flags of the v1 creation body that API v2 cannot express were removed.
+	_, err := cmd.Execute("cloud", "instance", "create", "GRA9",
+		"--name", "my-instance", "--flavor", "flavor-d2-2", "--boot-from.image", "image-debian-12",
+		"--billing-period", "monthly", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("unknown flag: --billing-period"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+// expectedInstanceVolumesPutBody is the PUT body expected when only the
+// volumes of instanceV2Response change.
+func expectedInstanceVolumesPutBody(volumes string) td.TestDeep {
+	return td.JSON(`{
+		"checksum": "abc123",
+		"targetSpec": {
+			"name": "my-instance",
+			"flavor": { "id": "flavor-d2-2" },
+			"image": { "id": "image-debian-12" },
+			"networks": [
+				{ "autoAssignPublicIp": true },
+				{ "id": "private-net-id", "subnetId": "private-subnet-id", "ip": "10.1.2.155" }
+			],
+			"powerState": "ACTIVE",
+			"securityGroups": [ { "id": "sg-default" } ],
+			"volumes": ` + volumes + `
+		}
+	}`)
+}
+
+func (ms *MockSuite) TestCloudStorageBlockVolumeAttachCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterMatcherResponder(http.MethodPut, instanceV2Endpoint,
+		tdhttpmock.JSONBody(expectedInstanceVolumesPutBody(`[ { "id": "volume-1" }, { "id": "volume-2" } ]`)),
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "attach", "volume-2", "fakeInstanceID", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Volume volume-2 is being attached to instance fakeInstanceID…"}`))
+}
+
+func (ms *MockSuite) TestCloudStorageBlockVolumeAttachWaitCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterResponder(http.MethodPut, instanceV2Endpoint,
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "attach", "volume-2", "fakeInstanceID", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("✅ Volume volume-2 attached to instance fakeInstanceID"))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceV2Endpoint], 2)
+}
+
+func (ms *MockSuite) TestCloudStorageBlockVolumeAttachAlreadyAttachedCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+
+	_, err := cmd.Execute("cloud", "storage", "block", "volume", "attach", "volume-1", "fakeInstanceID", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("volume volume-1 is already attached to instance fakeInstanceID"))
+	assert.Cmp(httpmock.GetCallCountInfo()["PUT "+instanceV2Endpoint], 0)
+}
+
+func (ms *MockSuite) TestCloudStorageBlockVolumeDetachCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterMatcherResponder(http.MethodPut, instanceV2Endpoint,
+		tdhttpmock.JSONBody(expectedInstanceVolumesPutBody(`[]`)),
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "block", "volume", "detach", "volume-1", "fakeInstanceID", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "⚡️ Volume volume-1 is being detached from instance fakeInstanceID…"}`))
+}
+
+func (ms *MockSuite) TestCloudStorageBlockVolumeDetachNotAttachedCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceV2Endpoint,
+		httpmock.NewStringResponder(200, instanceV2Response))
+
+	_, err := cmd.Execute("cloud", "storage", "block", "volume", "detach", "volume-2", "fakeInstanceID", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("volume volume-2 is not attached to instance fakeInstanceID"))
+	assert.Cmp(httpmock.GetCallCountInfo()["PUT "+instanceV2Endpoint], 0)
+}

@@ -272,7 +272,7 @@ Guided flows let you create resources step by step:
 | **Public Cloud / Network**            | cloud loadbalancer              | Yes        |
 |                                       | cloud network                   | Yes        |
 | **Public Cloud / Object Storage**     | cloud storage object            | Yes        |
-|                                       | cloud storage-swift             | Yes        |
+|                                       | cloud storage swift             | Yes        |
 | **Public Cloud / Ops**                | cloud operation                 | Yes        |
 | **Public Cloud / Project**            | cloud project                   | Yes        |
 | **Public Cloud / Storage**            | cloud storage block             | Yes        |

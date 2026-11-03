@@ -229,8 +229,20 @@ func DeleteVolume(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s deleted successfully", args[0])
 }
 
-// AttachVolumeToInstance still uses the v1 API: the v2 block storage API does not
-// expose a dedicated attach endpoint yet.
+// instanceVolumeIndex returns the position of the given volume in the
+// targetSpec.volumes list of an instance, or -1 when it is not there.
+func instanceVolumeIndex(volumes []any, volumeID string) int {
+	for i, v := range volumes {
+		if ref, ok := v.(map[string]any); ok && ref["id"] == volumeID {
+			return i
+		}
+	}
+	return -1
+}
+
+// AttachVolumeToInstance attaches a volume through API v2: the block storage
+// API has no attach action, the instance attaches the volumes listed in its
+// targetSpec.volumes.
 func AttachVolumeToInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -238,20 +250,25 @@ func AttachVolumeToInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := httpLib.Client.Post(
-		fmt.Sprintf("/v1/cloud/project/%s/volume/%s/attach", projectID, url.PathEscape(args[0])),
-		map[string]string{"instanceId": args[1]},
-		nil,
-	); err != nil {
+	volumeID, instanceID := args[0], args[1]
+	ready, err := updateInstanceTargetSpec(projectID, instanceID, func(targetSpec map[string]any) error {
+		volumes, _ := targetSpec["volumes"].([]any)
+		if instanceVolumeIndex(volumes, volumeID) >= 0 {
+			return fmt.Errorf("volume %s is already attached to instance %s", volumeID, instanceID)
+		}
+		targetSpec["volumes"] = append(volumes, map[string]any{"id": volumeID})
+		return nil
+	})
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to attach volume: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s attached to instance %s successfully", args[0], args[1])
+	outputInstanceResult(ready, "⚡️ Volume %s is being attached to instance %s…", "✅ Volume %s attached to instance %s", volumeID, instanceID)
 }
 
-// DetachVolumeFromInstance still uses the v1 API: the v2 block storage API does
-// not expose a dedicated detach endpoint yet.
+// DetachVolumeFromInstance detaches a volume through API v2 by removing it from
+// the targetSpec.volumes of the instance.
 func DetachVolumeFromInstance(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -259,16 +276,22 @@ func DetachVolumeFromInstance(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if err := httpLib.Client.Post(
-		fmt.Sprintf("/v1/cloud/project/%s/volume/%s/detach", projectID, url.PathEscape(args[0])),
-		map[string]string{"instanceId": args[1]},
-		nil,
-	); err != nil {
+	volumeID, instanceID := args[0], args[1]
+	ready, err := updateInstanceTargetSpec(projectID, instanceID, func(targetSpec map[string]any) error {
+		volumes, _ := targetSpec["volumes"].([]any)
+		i := instanceVolumeIndex(volumes, volumeID)
+		if i < 0 {
+			return fmt.Errorf("volume %s is not attached to instance %s", volumeID, instanceID)
+		}
+		targetSpec["volumes"] = append(volumes[:i:i], volumes[i+1:]...)
+		return nil
+	})
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to detach volume: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Volume %s detached from instance %s successfully", args[0], args[1])
+	outputInstanceResult(ready, "⚡️ Volume %s is being detached from instance %s…", "✅ Volume %s detached from instance %s", volumeID, instanceID)
 }
 
 func CreateVolumeSnapshot(_ *cobra.Command, args []string) {
