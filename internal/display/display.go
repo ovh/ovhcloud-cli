@@ -80,6 +80,12 @@ func renderCustomFormat(value any, format string) error {
 }
 
 func RenderTable(values []map[string]any, columnsToDisplay []string, outputFormat *OutputFormat) {
+	// A nil slice marshals to null, so an empty list would change the shape of
+	// the output instead of emptying it.
+	if values == nil {
+		values = []map[string]any{}
+	}
+
 	switch {
 	case outputFormat.CustomFormat() != "":
 		if err := renderCustomFormat(values, outputFormat.CustomFormat()); err != nil {
