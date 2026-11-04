@@ -33,7 +33,7 @@ var (
 	ManagedAnalyticsCertificateValidEngines = []string{"clickhouse", "kafka"}
 	ManagedAnalyticsTopicValidEngines       = []string{"kafka"}
 
-	cloudprojectManagedAnalyticsColumnsToDisplay               = []string{"id", "engine", "version", "description", "status"}
+	cloudprojectManagedAnalyticsColumnsToDisplay               = []string{"id", "engine", "currentState.version version", "currentState.description description", "currentState.status status"}
 	cloudprojectManagedAnalyticsDatabaseColumnsToDisplay       = []string{"id", "name", "default"}
 	cloudprojectManagedAnalyticsUserColumnsToDisplay           = []string{"id", "username", "status", "createdAt"}
 	cloudprojectManagedAnalyticsClickhouseUserColumnsToDisplay = []string{"id", "username", "status", "roles", "createdAt"}
@@ -70,38 +70,35 @@ var (
 	//go:embed parameter-samples/managed-analytics-topic-create.json
 	ManagedAnalyticsTopicCreationExample string
 	ManagedAnalyticsSpec                 struct {
+		TargetSpec databaseAnalyticsTargetSpec `json:"targetSpec,omitzero"`
+
+		// Extra fields for CLI only
+		Engine            string   `json:"-"`
+		CLIDiskSize       int      `json:"-"`
+		CLIIPRestrictions []string `json:"-"`
+		CLINodesList      []string `json:"-"`
+	}
+
+	// ManagedAnalyticsEditSpec holds the parameters of the edit command, which
+	// still uses API v1.
+	ManagedAnalyticsEditSpec struct {
 		Backups struct {
 			Regions []string `json:"regions,omitempty"`
 			Time    string   `json:"time,omitempty"`
 		} `json:"backups,omitzero"`
-		DeletionProtection bool   `json:"deletionProtection,omitempty"`
-		Description        string `json:"description,omitempty"`
-		Disk               struct {
-			Size int `json:"size,omitempty"`
-		} `json:"disk,omitzero"`
-		EnablePrometheus bool `json:"enablePrometheus,omitempty"`
-		ForkFrom         struct {
-			BackupID    string `json:"backupId,omitempty"`
-			PointInTime string `json:"pointInTime,omitempty"`
-			ServiceID   string `json:"serviceId,omitempty"`
-		} `json:"forkFrom,omitzero"`
-		IPRestrictions  []managedAnalyticsIPRestriction `json:"ipRestrictions,omitempty"`
-		MaintenanceTime string                          `json:"maintenanceTime,omitempty"`
-		NetworkID       string                          `json:"networkId,omitempty"`
-		NodesList       []managedAnalyticsNode          `json:"nodesList,omitempty"`
-		NodesPattern    struct {
+		DeletionProtection bool                            `json:"deletionProtection,omitempty"`
+		Description        string                          `json:"description,omitempty"`
+		EnablePrometheus   bool                            `json:"enablePrometheus,omitempty"`
+		IPRestrictions     []managedAnalyticsIPRestriction `json:"ipRestrictions,omitempty"`
+		MaintenanceTime    string                          `json:"maintenanceTime,omitempty"`
+		NodesPattern       struct {
 			Flavor string `json:"flavor,omitempty"`
-			Number int    `json:"number,omitempty"`
-			Region string `json:"region,omitempty"`
 		} `json:"nodesPattern,omitzero"`
-		Plan     string `json:"plan,omitempty"`
-		SubnetID string `json:"subnetId,omitempty"`
-		Version  string `json:"version,omitempty"`
+		Plan    string `json:"plan,omitempty"`
+		Version string `json:"version,omitempty"`
 
 		// Extra fields for CLI only
-		Engine            string   `json:"-"`
 		CLIIPRestrictions []string `json:"-"`
-		CLINodesList      []string `json:"-"`
 	}
 
 	ManagedAnalyticsDatabaseSpec struct {
@@ -137,12 +134,6 @@ type (
 		IP          string `json:"ip,omitempty"`
 	}
 
-	managedAnalyticsNode struct {
-		Flavor string `json:"flavor,omitempty"`
-		Region string `json:"region,omitempty"`
-		Role   string `json:"role,omitempty"`
-	}
-
 	ManagedAnalyticsUser struct {
 		Name string `json:"name"`
 
@@ -169,10 +160,7 @@ func ListManagedAnalytics(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequest(fmt.Sprintf("/v1/cloud/project/%s/database/service", projectID),
-		"",
-		cloudprojectManagedAnalyticsColumnsToDisplay,
-		append(flags.GenericFilters, `category == "analysis"`))
+	listDatabaseAnalyticsServices(projectID, managedAnalyticsCategory, ManagedAnalyticsValidEngines, cloudprojectManagedAnalyticsColumnsToDisplay)
 }
 
 func GetManagedAnalytics(_ *cobra.Command, args []string) {
@@ -182,21 +170,13 @@ func GetManagedAnalytics(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch managed analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
+	_, analyticsService, err := getDatabaseAnalyticsService(projectID, managedAnalyticsCategory, args[0], ManagedAnalyticsValidEngines)
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedAnalyticsValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsValidEngines, ", "))
-		return
-	}
-
-	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/database/service", projectID),
-		args[0],
-		managedAnalyticsTemplate)
+	display.OutputObject(analyticsService, args[0], managedAnalyticsTemplate, &flags.OutputFormatConfig)
 }
 
 func CreateManagedAnalyticsPreRun(_ *cobra.Command, _ []string) error {
@@ -214,32 +194,24 @@ func CreateManagedAnalytics(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Parse IP restrictions
-	for _, restriction := range ManagedAnalyticsSpec.CLIIPRestrictions {
-		ManagedAnalyticsSpec.IPRestrictions = append(ManagedAnalyticsSpec.IPRestrictions, managedAnalyticsIPRestriction{IP: restriction})
+	spec := ManagedAnalyticsSpec
+	spec.TargetSpec.Network.AuthorizedIps = newAuthorizedIps(spec.CLIIPRestrictions)
+	if spec.CLIDiskSize > 0 {
+		spec.TargetSpec.Storage.Size = &databaseAnalyticsUnitAndValue{Unit: "GB", Value: spec.CLIDiskSize}
 	}
-
-	// Parse nodes list
-	for _, node := range ManagedAnalyticsSpec.CLINodesList {
-		parts := strings.Split(node, ":")
-		if len(parts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "invalid node format: %s (expected format: flavor1:region1,flavor2:region2...)", node)
-			return
-		}
-		ManagedAnalyticsSpec.NodesList = append(ManagedAnalyticsSpec.NodesList, managedAnalyticsNode{
-			Flavor: parts[0],
-			Region: parts[1],
-		})
+	if err := spec.TargetSpec.setNodes(spec.CLINodesList); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
 	}
 
 	analytics, err := common.CreateResource(
 		cmd,
-		fmt.Sprintf("/cloud/project/{serviceName}/database/%s", url.PathEscape(ManagedAnalyticsSpec.Engine)),
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s", projectID, url.PathEscape(ManagedAnalyticsSpec.Engine)),
+		fmt.Sprintf("/publicCloud/project/{projectId}/managedAnalytics/%s", spec.Engine),
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, spec.Engine),
 		ManagedAnalyticsCreationExample,
-		ManagedAnalyticsSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"version", "plan"})
+		spec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec.version", "targetSpec.plan", "targetSpec.flavor", "targetSpec.region"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create managed analytics service: %s", err)
 		return
@@ -268,8 +240,8 @@ func EditManagedAnalytics(cmd *cobra.Command, args []string) {
 	}
 
 	// Parse IP restrictions
-	for _, restriction := range ManagedAnalyticsSpec.CLIIPRestrictions {
-		ManagedAnalyticsSpec.IPRestrictions = append(ManagedAnalyticsSpec.IPRestrictions, managedAnalyticsIPRestriction{IP: restriction})
+	for _, restriction := range ManagedAnalyticsEditSpec.CLIIPRestrictions {
+		ManagedAnalyticsEditSpec.IPRestrictions = append(ManagedAnalyticsEditSpec.IPRestrictions, managedAnalyticsIPRestriction{IP: restriction})
 	}
 
 	// Edit resource
@@ -277,7 +249,7 @@ func EditManagedAnalytics(cmd *cobra.Command, args []string) {
 		cmd,
 		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}", url.PathEscape(analyticsService["engine"].(string))),
 		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
-		ManagedAnalyticsSpec,
+		ManagedAnalyticsEditSpec,
 		assets.CloudOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -292,21 +264,13 @@ func DeleteManagedAnalytics(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
+	engine, _, err := getDatabaseAnalyticsService(projectID, managedAnalyticsCategory, args[0], ManagedAnalyticsValidEngines)
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedAnalyticsValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsValidEngines, ", "))
-		return
-	}
-
-	// Delete the analytics service
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0]))
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	if err := httpLib.Client.Delete(databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0]), nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete managed analytics service: %s", err)
 		return
 	}

@@ -5,87 +5,189 @@
 package cmd_test
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
 	"github.com/maxatome/tdhttpmock"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
+	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 )
 
-// fullServiceResponse is a complete API response for a database service,
+// fullDBServiceResponse is a complete API response for a database service,
 // covering all fields accessed by the managed-database template.
 const fullDBServiceResponse = `{
 	"id": "fakeDatabaseID",
-	"engine": "mysql",
-	"version": "8",
-	"description": "test db",
-	"status": "READY",
-	"category": "operational",
-	"plan": "essential",
-	"flavor": "db1-4",
 	"createdAt": "2025-01-01T00:00:00Z",
-	"networkType": "public",
-	"storage": {"size": {"value": 80, "unit": "GB"}},
-	"nodes": [{"id": "nodeID", "flavor": "db1-4", "region": "DE", "status": "READY"}]
+	"resourceStatus": "READY",
+	"currentState": {
+		"description": "test db",
+		"plan": "essential",
+		"version": "8",
+		"flavor": "db1-4",
+		"status": "READY",
+		"nodesCount": 1,
+		"storage": {"size": {"value": 80, "unit": "GB"}},
+		"network": {"authorizedIps": {"rules": []}},
+		"endpoints": [{"component": "MYSQL", "domain": "mysql.database.cloud.ovh.net", "port": 20184, "ssl": true, "uri": "mysql://<username>:<password>@mysql.database.cloud.ovh.net:20184/defaultdb"}],
+		"nodes": [{"id": "nodeID", "flavor": "db1-4", "location": {"region": "eu-west-gra"}, "status": "READY"}],
+		"backup": {"time": "09:10:00", "regions": ["eu-west-gra", "eu-west-gra"], "retentionDays": 2}
+	},
+	"targetSpec": {"description": "test db", "plan": "essential", "version": "8", "flavor": "db1-4", "deletionProtected": false}
 }`
+
+// registerDatabaseAnalyticsProbe mocks the lookup of a service's engine: the route
+// of its engine answers the service, the routes of the other engines answer 404.
+func registerDatabaseAnalyticsProbe(category string, engines []string, engine, serviceID, service string) {
+	for _, e := range engines {
+		responder := httpmock.NewStringResponder(http.StatusNotFound,
+			fmt.Sprintf(`{"class": "Client::NotFound::ServiceNotFound", "message": "service %s not found"}`, serviceID))
+		if e == engine {
+			responder = httpmock.NewStringResponder(http.StatusOK, service)
+		}
+		httpmock.RegisterResponder(http.MethodGet,
+			fmt.Sprintf("https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/%s/%s/%s", category, e, serviceID),
+			responder,
+		)
+	}
+}
+
+func registerManagedDatabaseProbe(engine string) {
+	registerDatabaseAnalyticsProbe("managedDatabase", cloud.ManagedDatabaseValidEngines, engine, "fakeDatabaseID", fullDBServiceResponse)
+}
 
 // ── Service ──────────────────────────────────────────────────────────────────
 
 func (ms *MockSuite) TestManagedDatabaseListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service",
-		httpmock.NewStringResponder(200, `["fakeDatabaseID"]`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeDatabaseID",
-		httpmock.NewStringResponder(200, fullDBServiceResponse),
-	)
+	for _, engine := range cloud.ManagedDatabaseValidEngines {
+		body := `[]`
+		if engine == "mysql" {
+			body = "[" + fullDBServiceResponse + "]"
+		}
+		httpmock.RegisterResponder(http.MethodGet,
+			"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/"+engine,
+			httpmock.NewStringResponder(200, body),
+		)
+	}
 
 	out, err := cmd.Execute("cloud", "managed-database", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("fakeDatabaseID"))
+	assert.String(out, `
+┌────────────────┬────────┬─────────┬─────────────┬────────┐
+│       id       │ engine │ version │ description │ status │
+├────────────────┼────────┼─────────┼─────────────┼────────┤
+│ fakeDatabaseID │ mysql  │ 8       │ test db     │ READY  │
+└────────────────┴────────┴─────────┴─────────────┴────────┘
+💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestManagedDatabaseGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeDatabaseID",
-		httpmock.NewStringResponder(200, fullDBServiceResponse),
-	)
+	registerManagedDatabaseProbe("mysql")
 
 	out, err := cmd.Execute("cloud", "managed-database", "get", "fakeDatabaseID", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("fakeDatabaseID"))
+	assert.Cmp(out, td.All(
+		td.Contains("fakeDatabaseID"),
+		td.Contains("mysql 8"),
+		td.Contains("80 GB"),
+		td.Contains("mysql.database.cloud.ovh.net:20184"),
+		td.Contains("eu-west-gra"),
+	))
+}
+
+func (ms *MockSuite) TestManagedDatabaseGetNotFoundCmd(assert, require *td.T) {
+	registerDatabaseAnalyticsProbe("managedDatabase", cloud.ManagedDatabaseValidEngines, "", "fakeDatabaseID", "")
+
+	out, err := cmd.Execute("cloud", "managed-database", "get", "fakeDatabaseID", "--cloud-project", "fakeProjectID")
+
+	assert.CmpError(err)
+	assert.Cmp(out, td.Contains("🛑 failed to fetch database service: service fakeDatabaseID not found"))
+}
+
+func (ms *MockSuite) TestManagedDatabaseGetForbiddenCmd(assert, require *td.T) {
+	registerDatabaseAnalyticsProbe("managedDatabase", cloud.ManagedDatabaseValidEngines, "", "fakeDatabaseID", "")
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/mysql/fakeDatabaseID",
+		httpmock.NewStringResponder(http.StatusForbidden, `{"class": "Client::Forbidden", "message": "forbidden"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "managed-database", "get", "fakeDatabaseID", "--cloud-project", "fakeProjectID")
+
+	assert.CmpError(err)
+	assert.Cmp(out, td.Contains("forbidden"))
 }
 
 func (ms *MockSuite) TestManagedDatabaseCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/mysql",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/mysql",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
-				"nodesList": [
-					{
-						"flavor": "db1-4",
-						"region": "DE"
-					}
-				],
-				"plan": "essential",
-				"version": "8"
+				"targetSpec": {
+					"flavor": "db1-4",
+					"nodesCount": 1,
+					"plan": "essential",
+					"region": "eu-west-gra",
+					"version": "8"
+				}
 			}`),
 		),
 		httpmock.NewStringResponder(200, `{"id": "0f0c43f0-979a-11f0-94fd-0050568ce122"}`),
 	)
 
-	out, err := cmd.Execute("cloud", "managed-database", "create", "--cloud-project", "fakeProjectID", "--engine", "mysql", "--version", "8", "--plan", "essential", "--nodes-list", "db1-4:DE")
+	out, err := cmd.Execute("cloud", "managed-database", "create", "--cloud-project", "fakeProjectID", "--engine", "mysql", "--version", "8", "--plan", "essential", "--nodes-list", "db1-4:eu-west-gra")
 
 	require.CmpNoError(err)
 	assert.String(out, `✅ Managed database created successfully (id: 0f0c43f0-979a-11f0-94fd-0050568ce122)`)
 }
 
+func (ms *MockSuite) TestManagedDatabaseCreateWithNodesPatternCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/postgresql",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"backup": {"regions": ["eu-west-gra", "eu-west-sbg"], "time": "02:00:00"},
+					"description": "my db",
+					"flavor": "b3-8",
+					"maintenanceWindow": {"startTimeUtc": "03:00:00"},
+					"network": {
+						"authorizedIps": {"rules": [{"cidr": "1.2.3.4/32"}, {"cidr": "5.6.7.0/24"}]},
+						"networkId": "fakeNetworkID",
+						"subnetId": "fakeSubnetID"
+					},
+					"nodesCount": 3,
+					"plan": "business",
+					"region": "eu-west-gra",
+					"storage": {"size": {"unit": "GB", "value": 160}},
+					"version": "17"
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, `{"id": "0f0c43f0-979a-11f0-94fd-0050568ce122"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "managed-database", "create", "--cloud-project", "fakeProjectID", "--engine", "postgresql",
+		"--version", "17", "--plan", "business", "--description", "my db",
+		"--nodes-pattern.flavor", "b3-8", "--nodes-pattern.number", "3", "--nodes-pattern.region", "eu-west-gra", "--disk-size", "160",
+		"--ip-restrictions", "1.2.3.4/32,5.6.7.0/24", "--network-id", "fakeNetworkID", "--subnet-id", "fakeSubnetID",
+		"--backups-regions", "eu-west-gra,eu-west-sbg", "--backups-time", "02:00:00", "--maintenance-time", "03:00:00")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ Managed database created successfully (id: 0f0c43f0-979a-11f0-94fd-0050568ce122)`)
+}
+
+func (ms *MockSuite) TestManagedDatabaseCreateHeterogeneousNodesListCmd(assert, require *td.T) {
+	out, err := cmd.Execute("cloud", "managed-database", "create", "--cloud-project", "fakeProjectID", "--engine", "mysql", "--version", "8", "--plan", "business", "--nodes-list", "db1-4:eu-west-gra,db1-8:eu-west-gra")
+
+	assert.CmpError(err)
+	assert.Cmp(out, td.Contains("🛑 invalid nodes list: all nodes must have the same flavor and region"))
+}
+
 func (ms *MockSuite) TestManagedDatabaseCreateInvalidEngineCmd(assert, require *td.T) {
-	out, err := cmd.Execute("cloud", "managed-database", "create", "--cloud-project", "fakeProjectID", "--engine", "invalid", "--version", "1", "--plan", "essential", "--nodes-list", "db1-4:DE")
+	out, err := cmd.Execute("cloud", "managed-database", "create", "--cloud-project", "fakeProjectID", "--engine", "invalid", "--version", "1", "--plan", "essential", "--nodes-list", "db1-4:eu-west-gra")
 
 	assert.CmpError(err)
 	assert.Cmp(out, td.Contains("🛑 invalid engine invalid"))
@@ -156,13 +258,10 @@ func (ms *MockSuite) TestManagedDatabaseEditCmd(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestManagedDatabaseDeleteCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeDatabaseID",
-		httpmock.NewStringResponder(200, `{"id": "fakeDatabaseID", "engine": "mysql"}`),
-	)
+	registerManagedDatabaseProbe("mysql")
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/mysql/fakeDatabaseID",
-		httpmock.NewStringResponder(200, ``),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/mysql/fakeDatabaseID",
+		httpmock.NewStringResponder(200, fullDBServiceResponse),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-database", "delete", "fakeDatabaseID", "--cloud-project", "fakeProjectID")

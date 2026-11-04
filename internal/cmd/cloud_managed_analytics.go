@@ -346,7 +346,7 @@ There are two ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud managed-analytics create --engine kafka --version 4.0 --plan production --nodes-pattern.flavor db1-4 --nodes-pattern.region GRA
+	ovhcloud cloud managed-analytics create --engine kafka --version 4.0 --plan production --nodes-pattern.flavor db1-4 --nodes-pattern.region eu-west-gra
 
 2. Using your default text editor:
 
@@ -369,30 +369,30 @@ There are two ways to define the creation parameters:
 	managedAnalyticsCreateCmd.RegisterFlagCompletionFunc("engine", func(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		return cloud.ManagedAnalyticsValidEngines, cobra.ShellCompDirectiveNoFileComp
 	})
-	managedAnalyticsCreateCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsSpec.Backups.Regions, "backups-regions", nil, "Regions on which the backups are stored")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.Backups.Time, "backups-time", "", "Time on which backups start every day")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.Description, "description", "", "Analytics description")
-	managedAnalyticsCreateCmd.Flags().IntVar(&cloud.ManagedAnalyticsSpec.Disk.Size, "disk-size", 0, "Disk size (GB)")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.ForkFrom.BackupID, "fork-from.backup-id", "", "Backup ID (not compatible with fork-from.point-in-time)")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.ForkFrom.PointInTime, "fork-from.point-in-time", "", "Point in time to restore from (not compatible with fork-from.backup-id)")
+	managedAnalyticsCreateCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Backup.Regions, "backups-regions", nil, "Regions on which the backups are stored (e.g. eu-west-sbg)")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Backup.Time, "backups-time", "", "Time on which backups start every day (HH:MM, UTC)")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Description, "description", "", "Analytics description")
+	managedAnalyticsCreateCmd.Flags().IntVar(&cloud.ManagedAnalyticsSpec.CLIDiskSize, "disk-size", 0, "Disk size (GB)")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.ForkSourceBackupID, "fork-from.backup-id", "", "Backup ID (not compatible with fork-from.point-in-time)")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.ForkSourcePointInTime, "fork-from.point-in-time", "", "Point in time to restore from (not compatible with fork-from.backup-id)")
 	markFlagsMutuallyExclusive(managedAnalyticsCreateCmd, "fork-from.backup-id", "fork-from.point-in-time")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.ForkFrom.ServiceID, "fork-from.service-id", "", "Service ID that owns the backups")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.Plan, "plan", "", "Analytics plan (you can get the list of available plans using 'ovhcloud cloud reference managed-analytics list-plans')")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.Version, "version", "", "Analytics version (you can get the list of available versions using 'ovhcloud cloud reference managed-analytics list-engines')")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.ForkSourceServiceID, "fork-from.service-id", "", "Service ID that owns the backups")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.MaintenanceWindow.StartTimeUtc, "maintenance-time", "", "Time on which maintenances can start every day (HH:MM, UTC)")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Plan, "plan", "", "Analytics plan (you can get the list of available plans using 'ovhcloud cloud reference managed-analytics list-plans')")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Version, "version", "", "Analytics version (you can get the list of available versions using 'ovhcloud cloud reference managed-analytics list-engines')")
 
 	// Network configuration
 	managedAnalyticsCreateCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.NetworkID, "network-id", "", "Private network ID in which the cluster is deployed")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.SubnetID, "subnet-id", "", "Private subnet ID in which the cluster is deployed")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Network.NetworkID, "network-id", "", "Private network ID in which the cluster is deployed")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Network.SubnetID, "subnet-id", "", "Private subnet ID in which the cluster is deployed")
 
 	// Nodes pattern definition
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.NodesPattern.Flavor, "nodes-pattern.flavor", "", "Flavor of all nodes")
-	managedAnalyticsCreateCmd.Flags().IntVar(&cloud.ManagedAnalyticsSpec.NodesPattern.Number, "nodes-pattern.number", 0, "Number of nodes")
-	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.NodesPattern.Region, "nodes-pattern.region", "", "Region of all nodes")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Flavor, "nodes-pattern.flavor", "", "Flavor of all nodes")
+	managedAnalyticsCreateCmd.Flags().IntVar(&cloud.ManagedAnalyticsSpec.TargetSpec.NodesCount, "nodes-pattern.number", 0, "Number of nodes")
+	managedAnalyticsCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Region, "nodes-pattern.region", "", "Region of all nodes (e.g. eu-west-gra)")
 
 	// Nodes list definition
-	managedAnalyticsCreateCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsSpec.CLINodesList, "nodes-list", nil, "List of nodes (format: flavor1:region1,flavor2:region2...)")
+	managedAnalyticsCreateCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsSpec.CLINodesList, "nodes-list", nil, "List of nodes, all with the same flavor and region (format: flavor1:region1,flavor2:region2..., e.g. db1-4:eu-west-gra)")
 	markFlagsMutuallyExclusive(managedAnalyticsCreateCmd, "nodes-pattern.flavor", "nodes-list")
 	markFlagsMutuallyExclusive(managedAnalyticsCreateCmd, "nodes-pattern.number", "nodes-list")
 	markFlagsMutuallyExclusive(managedAnalyticsCreateCmd, "nodes-pattern.region", "nodes-list")
@@ -427,18 +427,18 @@ There are two ways to define the edition parameters:
 	}
 
 	// Analytics details
-	managedAnalyticsEditCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsSpec.Backups.Regions, "backups-regions", nil, "Regions on which the backups are stored")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.Backups.Time, "backups-time", "", "Time on which backups start every day")
-	managedAnalyticsEditCmd.Flags().BoolVar(&cloud.ManagedAnalyticsSpec.DeletionProtection, "deletion-protection", false, "Enable deletion protection")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.Description, "description", "", "Description of the cluster")
-	managedAnalyticsEditCmd.Flags().BoolVar(&cloud.ManagedAnalyticsSpec.EnablePrometheus, "enable-prometheus", false, "Enable Prometheus")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.NodesPattern.Flavor, "flavor", "", "The VM flavor used for this cluster")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.Plan, "plan", "", "Plan of the cluster")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.Version, "version", "", "Version of the engine deployed on the cluster")
+	managedAnalyticsEditCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsEditSpec.Backups.Regions, "backups-regions", nil, "Regions on which the backups are stored")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.Backups.Time, "backups-time", "", "Time on which backups start every day")
+	managedAnalyticsEditCmd.Flags().BoolVar(&cloud.ManagedAnalyticsEditSpec.DeletionProtection, "deletion-protection", false, "Enable deletion protection")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.Description, "description", "", "Description of the cluster")
+	managedAnalyticsEditCmd.Flags().BoolVar(&cloud.ManagedAnalyticsEditSpec.EnablePrometheus, "enable-prometheus", false, "Enable Prometheus")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.NodesPattern.Flavor, "flavor", "", "The VM flavor used for this cluster")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.Plan, "plan", "", "Plan of the cluster")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.Version, "version", "", "Version of the engine deployed on the cluster")
 
 	// Network configuration
-	managedAnalyticsEditCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
+	managedAnalyticsEditCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsEditSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
 
 	// Common flags for other mean to define parameters
 	addInteractiveEditorFlag(managedAnalyticsEditCmd)
