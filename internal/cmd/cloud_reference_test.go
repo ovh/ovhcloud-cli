@@ -99,46 +99,35 @@ func (ms *MockSuite) TestCloudReferenceRancherPlansListCmdWithNil(assert, requir
 }
 
 func (ms *MockSuite) TestCloudReferenceDatabasesPlansListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
-		httpmock.NewStringResponder(200, `{
-			"plans": [
-				{
-					"lifecycle": {
-						"status": "STABLE",
-						"startDate": "2023-12-07"
-					},
-					"name": "production",
-					"description": "Production grade plan",
-					"backupRetention": "P14D",
-					"order": 4,
-					"tags": []
-				},
-				{
-					"lifecycle": {
-						"status": "STABLE",
-						"startDate": "2021-07-01"
-					},
-					"name": "enterprise",
-					"description": "Enterprise plan",
-					"backupRetention": "P30D",
-					"order": 5,
-					"tags": []
-				},
-				{
-					"lifecycle": {
-						"status": "STABLE",
-						"startDate": "2023-12-07"
-					},
-					"name": "advanced",
-					"description": "Advanced grade plan",
-					"backupRetention": "P30D",
-					"order": 6,
-					"tags": []
-				}
-			]
-		}`).Once())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/capabilities/plans",
+		httpmock.NewStringResponder(200, `[
+			{
+				"lifecycle": {"status": "STABLE", "startedAt": "2023-12-07T00:00:00Z"},
+				"name": "production",
+				"description": "Production grade plan",
+				"backupRetention": "P14D",
+				"order": 4,
+				"tags": []
+			},
+			{
+				"lifecycle": {"status": "STABLE", "startedAt": "2021-07-01T00:00:00Z"},
+				"name": "enterprise",
+				"description": "Enterprise plan",
+				"backupRetention": "P30D",
+				"order": 5,
+				"tags": []
+			},
+			{
+				"lifecycle": {"status": "STABLE", "startedAt": "2023-12-07T00:00:00Z"},
+				"name": "advanced",
+				"description": "Advanced grade plan",
+				"backupRetention": "P30D",
+				"order": 6,
+				"tags": []
+			}
+		]`).Once())
 
-	out, err := cmd.Execute("cloud", "managed-database", "plan", "list", "--cloud-project", "fakeProjectID", "--filter", `lifecycle.startDate>"2022-01-01"`)
+	out, err := cmd.Execute("cloud", "managed-database", "plan", "list", "--cloud-project", "fakeProjectID", "--filter", `lifecycle.startedAt>"2022-01-01"`)
 
 	require.CmpNoError(err)
 	assert.String(out, `
@@ -152,136 +141,89 @@ func (ms *MockSuite) TestCloudReferenceDatabasesPlansListCmd(assert, require *td
 }
 
 func (ms *MockSuite) TestCloudReferenceDatabasesFlavorsListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
-		httpmock.NewStringResponder(200, `{
-			"flavors": [
-				{
-					"lifecycle": {
-						"status": "STABLE",
-						"startDate": "2023-12-07"
-					},
-					"name": "db2-free",
-					"core": 0,
-					"memory": 0,
-					"storage": 512,
-					"specifications": {
-						"core": 0,
-						"memory": {
-							"unit": "MB",
-							"value": 0
-						},
-						"storage": {
-							"unit": "MB",
-							"value": 512
-						}
-					},
-					"order": 0,
-					"tags": []
-				},
-				{
-					"lifecycle": {
-						"status": "STABLE",
-						"startDate": "2023-12-07"
-					},
-					"name": "db2-2",
-					"core": 1,
-					"memory": 2,
-					"storage": 10,
-					"specifications": {
-						"core": 1,
-						"memory": {
-							"unit": "GB",
-							"value": 2
-						},
-						"storage": {
-							"unit": "GB",
-							"value": 10
-						}
-					},
-					"order": 3,
-					"tags": []
-				}
-			]
-		}`).Once())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/capabilities/flavors",
+		httpmock.NewStringResponder(200, `[
+			{
+				"lifecycle": {"status": "STABLE", "startedAt": "2023-12-07T00:00:00Z"},
+				"name": "db2-free",
+				"specifications": {"vcpus": 0, "memory": {"unit": "MB", "value": 0}},
+				"order": 0,
+				"tags": []
+			},
+			{
+				"lifecycle": {"status": "STABLE", "startedAt": "2023-12-07T00:00:00Z"},
+				"name": "db2-2",
+				"specifications": {"vcpus": 1, "memory": {"unit": "GB", "value": 2}},
+				"order": 3,
+				"tags": []
+			}
+		]`).Once())
 
 	out, err := cmd.Execute("cloud", "managed-database", "node-flavor", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `
-┌──────────┬──────┬────────┬─────────┐
-│   name   │ core │ memory │ storage │
-├──────────┼──────┼────────┼─────────┤
-│ db2-free │ 0    │ 0 MB   │ 512 MB  │
-│ db2-2    │ 1    │ 2 GB   │ 10 GB   │
-└──────────┴──────┴────────┴─────────┘
+┌──────────┬───────┬────────┐
+│   name   │ vcpus │ memory │
+├──────────┼───────┼────────┤
+│ db2-free │ 0     │ 0 MB   │
+│ db2-2    │ 1     │ 2 GB   │
+└──────────┴───────┴────────┘
 💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudReferenceDatabasesEnginesListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
-		httpmock.NewStringResponder(200, `{
-			"engines": [
-				{
-					"name": "postgresql",
-					"storage": "replicated",
-					"versions": [
-						"13",
-						"14",
-						"15",
-						"16",
-						"17"
-					],
-					"defaultVersion": "17",
-					"description": "object-relational database management system",
-					"sslModes": [
-						"require"
-					],
-					"category": "operational"
-				},
-				{
-					"name": "mysql",
-					"storage": "replicated",
-					"versions": [
-						"8"
-					],
-					"defaultVersion": "8",
-					"description": "relational database management system",
-					"sslModes": [
-						"REQUIRED"
-					],
-					"category": "operational"
-				},
-				{
-					"name": "mongodb",
-					"storage": "replicated",
-					"versions": [
-						"4.4",
-						"5.0",
-						"6.0",
-						"7.0",
-						"8.0"
-					],
-					"defaultVersion": "8.0",
-					"description": "document-based database management system",
-					"sslModes": [
-						"required"
-					],
-					"category": "operational"
-				}
-			]
-		}`).Once())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/capabilities/engines",
+		httpmock.NewStringResponder(200, `[
+			{
+				"name": "postgresql",
+				"storage": "REPLICATED",
+				"versions": [{"name": "13"}, {"name": "14"}, {"name": "15"}, {"name": "16"}, {"name": "17", "default": true}],
+				"defaultVersion": "17",
+				"description": "object-relational database management system",
+				"sslModes": ["require"],
+				"category": "DATABASE"
+			},
+			{
+				"name": "mysql",
+				"storage": "REPLICATED",
+				"versions": [{"name": "8", "default": true}],
+				"defaultVersion": "8",
+				"description": "relational database management system",
+				"sslModes": ["REQUIRED"],
+				"category": "DATABASE"
+			},
+			{
+				"name": "mongodb",
+				"storage": "REPLICATED",
+				"versions": [{"name": "4.4"}, {"name": "5.0"}, {"name": "6.0"}, {"name": "7.0"}, {"name": "8.0", "default": true}],
+				"defaultVersion": "8.0",
+				"description": "document-based database management system",
+				"sslModes": ["required"],
+				"category": "DATABASE"
+			},
+			{
+				"name": "kafka",
+				"storage": "DISTRIBUTED",
+				"versions": [{"name": "3.8", "default": true}],
+				"defaultVersion": "3.8",
+				"description": "distributed event streaming platform",
+				"sslModes": ["required"],
+				"category": "ANALYTICS"
+			}
+		]`).Once())
 
 	out, err := cmd.Execute("cloud", "managed-database", "engine", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `
-┌────────────┬──────────────────────────────────────────────┬─────────────┬─────────────────────────────┬────────────────┐
-│    name    │                 description                  │  category   │          versions           │ defaultVersion │
-├────────────┼──────────────────────────────────────────────┼─────────────┼─────────────────────────────┼────────────────┤
-│ postgresql │ Object-Relational Database Management System │ operational │ 13 | 14 | 15 | 16 | 17      │ 17             │
-│ mysql      │ Relational Database Management System        │ operational │ 8                           │ 8              │
-│ mongodb    │ Document-Based Database Management System    │ operational │ 4.4 | 5.0 | 6.0 | 7.0 | 8.0 │ 8.0            │
-└────────────┴──────────────────────────────────────────────┴─────────────┴─────────────────────────────┴────────────────┘
+┌────────────┬──────────────────────────────────────────────┬──────────┬─────────────────────────────┬────────────────┐
+│    name    │                 description                  │ category │          versions           │ defaultVersion │
+├────────────┼──────────────────────────────────────────────┼──────────┼─────────────────────────────┼────────────────┤
+│ postgresql │ Object-Relational Database Management System │ DATABASE │ 13 | 14 | 15 | 16 | 17      │ 17             │
+│ mysql      │ Relational Database Management System        │ DATABASE │ 8                           │ 8              │
+│ mongodb    │ Document-Based Database Management System    │ DATABASE │ 4.4 | 5.0 | 6.0 | 7.0 | 8.0 │ 8.0            │
+└────────────┴──────────────────────────────────────────────┴──────────┴─────────────────────────────┴────────────────┘
 💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
@@ -614,33 +556,25 @@ func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorGetCmd(assert, require 
 }
 
 func (ms *MockSuite) TestCloudReferenceManagedAnalyticsPlansListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
-		httpmock.NewStringResponder(200, `{
-			"plans": [
-				{
-					"lifecycle": {
-						"status": "STABLE",
-						"startDate": "2023-12-07"
-					},
-					"name": "essential",
-					"description": "Essential plan",
-					"backupRetention": "P2D",
-					"order": 1,
-					"tags": []
-				},
-				{
-					"lifecycle": {
-						"status": "STABLE",
-						"startDate": "2023-12-07"
-					},
-					"name": "business",
-					"description": "Business plan",
-					"backupRetention": "P14D",
-					"order": 2,
-					"tags": []
-				}
-			]
-		}`).Once())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/capabilities/plans",
+		httpmock.NewStringResponder(200, `[
+			{
+				"lifecycle": {"status": "STABLE", "startedAt": "2023-12-07T00:00:00Z"},
+				"name": "essential",
+				"description": "Essential plan",
+				"backupRetention": "P2D",
+				"order": 1,
+				"tags": []
+			},
+			{
+				"lifecycle": {"status": "STABLE", "startedAt": "2023-12-07T00:00:00Z"},
+				"name": "business",
+				"description": "Business plan",
+				"backupRetention": "P14D",
+				"order": 2,
+				"tags": []
+			}
+		]`).Once())
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "plan", "list", "--cloud-project", "fakeProjectID")
 
@@ -656,114 +590,78 @@ func (ms *MockSuite) TestCloudReferenceManagedAnalyticsPlansListCmd(assert, requ
 }
 
 func (ms *MockSuite) TestCloudReferenceManagedAnalyticsNodeFlavorsListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
-		httpmock.NewStringResponder(200, `{
-			"flavors": [
-				{
-					"lifecycle": {
-						"status": "STABLE",
-						"startDate": "2023-12-07"
-					},
-					"name": "db2-free",
-					"core": 0,
-					"memory": 0,
-					"storage": 512,
-					"specifications": {
-						"core": 0,
-						"memory": {
-							"unit": "MB",
-							"value": 0
-						},
-						"storage": {
-							"unit": "MB",
-							"value": 512
-						}
-					},
-					"order": 0,
-					"tags": []
-				},
-				{
-					"lifecycle": {
-						"status": "STABLE",
-						"startDate": "2023-12-07"
-					},
-					"name": "db2-4",
-					"core": 2,
-					"memory": 4,
-					"storage": 20,
-					"specifications": {
-						"core": 2,
-						"memory": {
-							"unit": "GB",
-							"value": 4
-						},
-						"storage": {
-							"unit": "GB",
-							"value": 20
-						}
-					},
-					"order": 1,
-					"tags": []
-				}
-			]
-		}`).Once())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/capabilities/flavors",
+		httpmock.NewStringResponder(200, `[
+			{
+				"lifecycle": {"status": "STABLE", "startedAt": "2023-12-07T00:00:00Z"},
+				"name": "db2-free",
+				"specifications": {"vcpus": 0, "memory": {"unit": "MB", "value": 0}},
+				"order": 0,
+				"tags": []
+			},
+			{
+				"lifecycle": {"status": "STABLE", "startedAt": "2023-12-07T00:00:00Z"},
+				"name": "db2-4",
+				"specifications": {"vcpus": 2, "memory": {"unit": "GB", "value": 4}},
+				"order": 1,
+				"tags": []
+			}
+		]`).Once())
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "node-flavor", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `
-┌──────────┬──────┬────────┬─────────┐
-│   name   │ core │ memory │ storage │
-├──────────┼──────┼────────┼─────────┤
-│ db2-free │ 0    │ 0 MB   │ 512 MB  │
-│ db2-4    │ 2    │ 4 GB   │ 20 GB   │
-└──────────┴──────┴────────┴─────────┘
+┌──────────┬───────┬────────┐
+│   name   │ vcpus │ memory │
+├──────────┼───────┼────────┤
+│ db2-free │ 0     │ 0 MB   │
+│ db2-4    │ 2     │ 4 GB   │
+└──────────┴───────┴────────┘
 💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
 func (ms *MockSuite) TestCloudReferenceManagedAnalyticsEnginesListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/capabilities",
-		httpmock.NewStringResponder(200, `{
-			"engines": [
-				{
-					"name": "postgresql",
-					"storage": "replicated",
-					"versions": ["17"],
-					"defaultVersion": "17",
-					"description": "object-relational database management system",
-					"sslModes": ["require"],
-					"category": "operational"
-				},
-				{
-					"name": "kafka",
-					"storage": "distributed",
-					"versions": ["3.7", "3.8"],
-					"defaultVersion": "3.8",
-					"description": "distributed event streaming platform",
-					"sslModes": ["required"],
-					"category": "analysis"
-				},
-				{
-					"name": "opensearch",
-					"storage": "distributed",
-					"versions": ["2"],
-					"defaultVersion": "2",
-					"description": "search and analytics engine",
-					"sslModes": ["required"],
-					"category": "analysis"
-				}
-			]
-		}`).Once())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/capabilities/engines",
+		httpmock.NewStringResponder(200, `[
+			{
+				"name": "postgresql",
+				"storage": "REPLICATED",
+				"versions": [{"name": "17", "default": true}],
+				"defaultVersion": "17",
+				"description": "object-relational database management system",
+				"sslModes": ["require"],
+				"category": "DATABASE"
+			},
+			{
+				"name": "kafka",
+				"storage": "DISTRIBUTED",
+				"versions": [{"name": "3.7"}, {"name": "3.8", "default": true}],
+				"defaultVersion": "3.8",
+				"description": "distributed event streaming platform",
+				"sslModes": ["required"],
+				"category": "ANALYTICS"
+			},
+			{
+				"name": "opensearch",
+				"storage": "DISTRIBUTED",
+				"versions": [{"name": "2", "default": true}],
+				"defaultVersion": "2",
+				"description": "search and analytics engine",
+				"sslModes": ["required"],
+				"category": "ANALYTICS"
+			}
+		]`).Once())
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "engine", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `
-┌────────────┬──────────────────────────────────────┬──────────┬───────────┬────────────────┐
-│    name    │             description              │ category │ versions  │ defaultVersion │
-├────────────┼──────────────────────────────────────┼──────────┼───────────┼────────────────┤
-│ kafka      │ Distributed Event Streaming Platform │ analysis │ 3.7 | 3.8 │ 3.8            │
-│ opensearch │ Search And Analytics Engine          │ analysis │ 2         │ 2              │
-└────────────┴──────────────────────────────────────┴──────────┴───────────┴────────────────┘
+┌────────────┬──────────────────────────────────────┬───────────┬───────────┬────────────────┐
+│    name    │             description              │ category  │ versions  │ defaultVersion │
+├────────────┼──────────────────────────────────────┼───────────┼───────────┼────────────────┤
+│ kafka      │ Distributed Event Streaming Platform │ ANALYTICS │ 3.7 | 3.8 │ 3.8            │
+│ opensearch │ Search And Analytics Engine          │ ANALYTICS │ 2         │ 2              │
+└────────────┴──────────────────────────────────────┴───────────┴───────────┴────────────────┘
 💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }

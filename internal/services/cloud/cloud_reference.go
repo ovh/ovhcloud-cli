@@ -194,167 +194,63 @@ func ListRancherAvailablePlans(cmd *cobra.Command, _ []string) {
 }
 
 func ListManagedDatabasePlans(_ *cobra.Command, _ []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
-	var body map[string]any
-	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database plans: %s", err)
-		return
-	}
-
-	var plans []map[string]any
-	for _, plan := range body["plans"].([]any) {
-		plans = append(plans, plan.(map[string]any))
-	}
-
-	plans, err = filtersLib.FilterLines(plans, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(plans, []string{"name", "description", "lifecycle.status status", "backupRetention"}, &flags.OutputFormatConfig)
+	listDatabaseAnalyticsPlans(managedDatabaseCategory)
 }
 
 func ListManagedDatabaseNodeFlavors(_ *cobra.Command, _ []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
-	var body map[string]any
-	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database node flavors: %s", err)
-		return
-	}
-
-	var flavors []map[string]any
-	for _, flavor := range body["flavors"].([]any) {
-		flavorMap := flavor.(map[string]any)
-
-		// Transform specifications map into human readable strings
-		specs := flavorMap["specifications"].(map[string]any)
-		memorySpec := specs["memory"].(map[string]any)
-		storageSpec := specs["storage"].(map[string]any)
-		flavorMap["memory"] = fmt.Sprintf("%s %s", memorySpec["value"], memorySpec["unit"])
-		flavorMap["storage"] = fmt.Sprintf("%s %s", storageSpec["value"], storageSpec["unit"])
-
-		flavors = append(flavors, flavorMap)
-	}
-
-	flavors, err = filtersLib.FilterLines(flavors, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(flavors, []string{"name", "core", "memory", "storage"}, &flags.OutputFormatConfig)
+	listDatabaseAnalyticsFlavors(managedDatabaseCategory)
 }
 
 func ListManagedDatabaseEngines(_ *cobra.Command, _ []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
-	var body map[string]any
-	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database engines: %s", err)
-		return
-	}
-
-	var engines []map[string]any
-	for _, engine := range body["engines"].([]any) {
-		engineMap := engine.(map[string]any)
-
-		// keep only engines with category "operational" for managed database
-		if engineMap["category"] != "operational" {
-			continue
-		}
-
-		// Reformat description
-		engineMap["description"] = cases.Title(language.English).String(engineMap["description"].(string))
-
-		// Transform versions array into human readable string
-		var versions []string
-		for _, v := range engineMap["versions"].([]any) {
-			versions = append(versions, v.(string))
-		}
-		engineMap["versions"] = strings.Join(versions, " | ")
-
-		engines = append(engines, engineMap)
-	}
-
-	engines, err = filtersLib.FilterLines(engines, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(engines, []string{"name", "description", "category", "versions", "defaultVersion"}, &flags.OutputFormatConfig)
+	listDatabaseAnalyticsEngines(managedDatabaseCategory, "DATABASE")
 }
 
 func ListManagedAnalyticsPlans(_ *cobra.Command, _ []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
-	var body map[string]any
-	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch analytics plans: %s", err)
-		return
-	}
-
-	var plans []map[string]any
-	for _, plan := range body["plans"].([]any) {
-		plans = append(plans, plan.(map[string]any))
-	}
-
-	plans, err = filtersLib.FilterLines(plans, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(plans, []string{"name", "description", "lifecycle.status status", "backupRetention"}, &flags.OutputFormatConfig)
+	listDatabaseAnalyticsPlans(managedAnalyticsCategory)
 }
 
 func ListManagedAnalyticsNodeFlavors(_ *cobra.Command, _ []string) {
+	listDatabaseAnalyticsFlavors(managedAnalyticsCategory)
+}
+
+func ListManagedAnalyticsEngines(_ *cobra.Command, _ []string) {
+	listDatabaseAnalyticsEngines(managedAnalyticsCategory, "ANALYTICS")
+}
+
+func listDatabaseAnalyticsPlans(category string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
-	var body map[string]any
-	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch analytics node flavors: %s", err)
+	common.ManageListRequestNoExpand(
+		databaseAnalyticsEndpoint(projectID, category, "capabilities", "plans"),
+		[]string{"name", "description", "lifecycle.status status", "backupRetention"},
+		flags.GenericFilters,
+	)
+}
+
+func listDatabaseAnalyticsFlavors(category string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	body, err := httpLib.FetchArray(databaseAnalyticsEndpoint(projectID, category, "capabilities", "flavors"), "")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch node flavors: %s", err)
 		return
 	}
 
 	var flavors []map[string]any
-	for _, flavor := range body["flavors"].([]any) {
+	for _, flavor := range body {
 		flavorMap := flavor.(map[string]any)
 
-		// Transform specifications map into human readable strings
-		specs := flavorMap["specifications"].(map[string]any)
-		memorySpec := specs["memory"].(map[string]any)
-		storageSpec := specs["storage"].(map[string]any)
+		// Transform memory specification into a human readable string
+		memorySpec := flavorMap["specifications"].(map[string]any)["memory"].(map[string]any)
 		flavorMap["memory"] = fmt.Sprintf("%s %s", memorySpec["value"], memorySpec["unit"])
-		flavorMap["storage"] = fmt.Sprintf("%s %s", storageSpec["value"], storageSpec["unit"])
 
 		flavors = append(flavors, flavorMap)
 	}
@@ -365,29 +261,28 @@ func ListManagedAnalyticsNodeFlavors(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	display.RenderTable(flavors, []string{"name", "core", "memory", "storage"}, &flags.OutputFormatConfig)
+	display.RenderTable(flavors, []string{"name", "specifications.vcpus vcpus", "memory"}, &flags.OutputFormatConfig)
 }
 
-func ListManagedAnalyticsEngines(_ *cobra.Command, _ []string) {
+// listDatabaseAnalyticsEngines lists the engines of the given category (DATABASE
+// or ANALYTICS): the capabilities of both categories list every engine.
+func listDatabaseAnalyticsEngines(category, engineCategory string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/capabilities", projectID)
-	var body map[string]any
-	if err := httpLib.Client.Get(endpoint, &body); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch analytics engines: %s", err)
+	body, err := httpLib.FetchArray(databaseAnalyticsEndpoint(projectID, category, "capabilities", "engines"), "")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch engines: %s", err)
 		return
 	}
 
 	var engines []map[string]any
-	for _, engine := range body["engines"].([]any) {
+	for _, engine := range body {
 		engineMap := engine.(map[string]any)
-
-		// keep only engines with category "analysis" for managed analytics
-		if engineMap["category"] != "analysis" {
+		if engineMap["category"] != engineCategory {
 			continue
 		}
 
@@ -397,7 +292,7 @@ func ListManagedAnalyticsEngines(_ *cobra.Command, _ []string) {
 		// Transform versions array into human readable string
 		var versions []string
 		for _, v := range engineMap["versions"].([]any) {
-			versions = append(versions, v.(string))
+			versions = append(versions, v.(map[string]any)["name"].(string))
 		}
 		engineMap["versions"] = strings.Join(versions, " | ")
 
