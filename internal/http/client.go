@@ -66,19 +66,31 @@ func (c *APIClient) fixPath(path string) string {
 }
 
 func (c *APIClient) Get(path string, resType interface{}) error {
-	return c.Client.Get(c.fixPath(path), resType)
+	return withDetailsMessage(c.Client.Get(c.fixPath(path), resType))
 }
 
 func (c *APIClient) Post(path string, reqBody, resType interface{}) error {
-	return c.Client.Post(c.fixPath(path), reqBody, resType)
+	return withDetailsMessage(c.Client.Post(c.fixPath(path), reqBody, resType))
 }
 
 func (c *APIClient) Put(path string, reqBody, resType interface{}) error {
-	return c.Client.Put(c.fixPath(path), reqBody, resType)
+	return withDetailsMessage(c.Client.Put(c.fixPath(path), reqBody, resType))
 }
 
 func (c *APIClient) Delete(path string, resType interface{}) error {
-	return c.Client.Delete(c.fixPath(path), resType)
+	return withDetailsMessage(c.Client.Delete(c.fixPath(path), resType))
+}
+
+// withDetailsMessage appends to an API error the reason given in its
+// details.message, which go-ovh leaves out of the error text (e.g. "Bad Request:
+// Topic is not yet available"). The error stays an *ovh.APIError.
+func withDetailsMessage(err error) error {
+	if apiErr, ok := err.(*ovh.APIError); ok {
+		if detail := apiErr.Details["message"]; detail != "" && detail != apiErr.Message {
+			apiErr.Message += ": " + detail
+		}
+	}
+	return err
 }
 
 func (c *APIClient) NewRequest(method, path string, reqBody interface{}, needAuth bool) (*http.Request, error) {
@@ -215,7 +227,7 @@ func FetchArray(path, idField string) ([]any, error) {
 		}
 
 		var pageIDs []any
-		if err := Client.UnmarshalResponse(response, &pageIDs); err != nil {
+		if err := withDetailsMessage(Client.UnmarshalResponse(response, &pageIDs)); err != nil {
 			return nil, fmt.Errorf("failed to parse ids: %s", err)
 		}
 

@@ -65,3 +65,36 @@ func TestFetchObjectsParallel_IgnoredErrorLogging(t *testing.T) {
 	td.Cmp(t, strings.Contains(run(true), "error fetching"), true,
 		"ignored errors must be logged when debug is enabled")
 }
+
+// TestAPIErrorDetailsMessage verifies that an API error shows the reason the API
+// gives in details.message, which go-ovh leaves out of the error text, and stays
+// an *ovh.APIError for the callers that check its code.
+func TestAPIErrorDetailsMessage(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", "consumer_key")
+	td.Require(t).CmpNoError(err)
+
+	previousClient := Client
+	Client = NewAPIClient(client)
+	defer func() { Client = previousClient }()
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/auth/time",
+		httpmock.NewStringResponder(200, "0"))
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/v2/topic",
+		httpmock.NewStringResponder(409, `{"class":"Client::Conflict::BadRequest","message":"Bad Request","details":{"message":"Topic is not yet available"}}`))
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/missing",
+		httpmock.NewStringResponder(404, `{"class":"Client::NotFound","message":"Not Found"}`))
+
+	err = Client.Put("/v2/topic", map[string]any{}, nil)
+	td.Cmp(t, err, td.Smuggle(func(err error) string { return err.Error() },
+		`OVHcloud API error (status code 409): Client::Conflict::BadRequest: "Bad Request: Topic is not yet available"`))
+
+	err = Client.Get("/v2/missing", nil)
+	td.Cmp(t, err, td.Smuggle(func(err error) string { return err.Error() },
+		`OVHcloud API error (status code 404): Client::NotFound: "Not Found"`))
+	apiErr, ok := err.(*ovh.APIError)
+	td.Require(t).True(ok, "the error must stay an *ovh.APIError")
+	td.Cmp(t, apiErr.Code, 404)
+}
