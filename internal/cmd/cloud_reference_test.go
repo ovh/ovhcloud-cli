@@ -431,8 +431,7 @@ func (ms *MockSuite) TestCloudReferenceFlavorsListRegionCmd(assert, require *td.
 ├─────────────┼───────┼────────┼───────┼───────┼──────┤
 │ flavor-id-1 │ b2-7  │ GRA9   │ 2     │ 7000  │ 50   │
 │ flavor-id-2 │ b2-15 │ GRA9   │ 4     │ 15000 │ 100  │
-└─────────────┴───────┴────────┴───────┴───────┴──────┘
-💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+└─────────────┴───────┴────────┴───────┴───────┴──────┘`[1:])
 }
 
 const instanceReferenceImagesV2Response = `[
@@ -467,8 +466,7 @@ func (ms *MockSuite) TestCloudReferenceImagesListRegionCmd(assert, require *td.T
 ├────────────┼─────────────────────┼────────┼─────────┼────────────┼────────┤
 │ image-id-1 │ Debian 12           │ GRA9   │ LINUX   │ PUBLIC     │ ACTIVE │
 │ image-id-2 │ Windows Server 2022 │ GRA9   │ WINDOWS │ PUBLIC     │ ACTIVE │
-└────────────┴─────────────────────┴────────┴─────────┴────────────┴────────┘
-💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+└────────────┴─────────────────────┴────────┴─────────┴────────────┴────────┘`[1:])
 }
 
 func (ms *MockSuite) TestCloudReferenceImagesListOSTypeCmd(assert, require *td.T) {
