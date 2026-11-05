@@ -11,10 +11,6 @@ There are two ways to define the creation parameters:
 
 	ovhcloud cloud managed-analytics user create <service_id> --name myuser
 
-  For Clickhouse engine, you can also specify roles:
-
-	ovhcloud cloud managed-analytics user create <service_id> --name myuser --roles role1,role2
-
   For OpenSearch engine, you can specify ACLs:
 
 	ovhcloud cloud managed-analytics user create <service_id> --name myuser --acls "logs-.*:write" --acls "metrics-.*:read"
@@ -27,7 +23,7 @@ There are two ways to define the creation parameters:
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud managed-analytics user create <service_id> --name myuser --editor --roles role1,role2
+	ovhcloud cloud managed-analytics user create <service_id> --name myuser --editor --acls "logs-.*:write"
 
 
 ```
@@ -41,7 +37,6 @@ ovhcloud cloud managed-analytics user create <service_id> [flags]
       --editor             Use a text editor to define parameters
   -h, --help               help for create
       --name string        Name of the user to create
-      --roles strings      Roles granted to the user (clickhouse only)
 ```
 
 ### Options inherited from parent commands

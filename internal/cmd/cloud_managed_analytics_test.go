@@ -171,50 +171,37 @@ func (ms *MockSuite) TestManagedAnalyticsDeleteCmd(assert, require *td.T) {
 // ── Database ──────────────────────────────────────────────────────────────────
 
 func (ms *MockSuite) TestManagedAnalyticsDatabaseListCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("clickhouse")
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "clickhouse"}`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/clickhouse/fakeAnalyticsID/database",
-		httpmock.NewStringResponder(200, `["fakeDbID"]`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/clickhouse/fakeAnalyticsID/database/fakeDbID",
-		httpmock.NewStringResponder(200, `{"id": "fakeDbID", "name": "mydb", "default": false}`),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/clickhouse/fakeAnalyticsID/database",
+		httpmock.NewStringResponder(200, `[{"id": "fakeDbID", "name": "mydb", "default": false}]`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "database", "list", "fakeAnalyticsID", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("fakeDbID"))
+	assert.Cmp(out, td.Contains("mydb"))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsDatabaseGetCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("clickhouse")
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "clickhouse"}`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/clickhouse/fakeAnalyticsID/database/fakeDbID",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/clickhouse/fakeAnalyticsID/database/fakeDbID",
 		httpmock.NewStringResponder(200, `{"id": "fakeDbID", "name": "mydb", "default": false}`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "database", "get", "fakeAnalyticsID", "fakeDbID", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("fakeDbID"))
+	assert.Cmp(out, td.Contains("mydb"))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsDatabaseCreateCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "clickhouse"}`),
-	)
+	registerManagedAnalyticsProbe("clickhouse")
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/clickhouse/fakeAnalyticsID/database",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/clickhouse/fakeAnalyticsID/database",
 		tdhttpmock.JSONBody(td.JSON(`{"name": "mydb"}`)),
-		httpmock.NewStringResponder(200, `{"id": "fakeDbID", "name": "mydb", "default": false}`),
+		httpmock.NewStringResponder(200, `{"id": "fakeDbID", "name": "mydb"}`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "database", "create", "fakeAnalyticsID", "--cloud-project", "fakeProjectID", "--name", "mydb")
@@ -224,25 +211,19 @@ func (ms *MockSuite) TestManagedAnalyticsDatabaseCreateCmd(assert, require *td.T
 }
 
 func (ms *MockSuite) TestManagedAnalyticsDatabaseCreateInvalidEngineCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
+	registerManagedAnalyticsProbe("kafka")
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "database", "create", "fakeAnalyticsID", "--cloud-project", "fakeProjectID", "--name", "mydb")
 
 	assert.CmpError(err)
-	assert.Cmp(out, td.Contains("🛑"))
+	assert.Cmp(out, td.Contains("🛑 engine kafka does not support databases, valid engines: clickhouse"))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsDatabaseDeleteCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "clickhouse"}`),
-	)
+	registerManagedAnalyticsProbe("clickhouse")
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/clickhouse/fakeAnalyticsID/database/fakeDbID",
-		httpmock.NewStringResponder(200, ``),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/clickhouse/fakeAnalyticsID/database/fakeDbID",
+		httpmock.NewStringResponder(200, `{"id": "fakeDbID", "name": "mydb"}`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "database", "delete", "fakeAnalyticsID", "fakeDbID", "--cloud-project", "fakeProjectID")
@@ -254,50 +235,37 @@ func (ms *MockSuite) TestManagedAnalyticsDatabaseDeleteCmd(assert, require *td.T
 // ── User ──────────────────────────────────────────────────────────────────────
 
 func (ms *MockSuite) TestManagedAnalyticsUserListCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("kafka")
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka/fakeAnalyticsID/user",
-		httpmock.NewStringResponder(200, `["fakeUserID"]`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka/fakeAnalyticsID/user/fakeUserID",
-		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "status": "READY"}`),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/kafka/fakeAnalyticsID/user",
+		httpmock.NewStringResponder(200, `[{"id": "fakeUserID", "username": "myuser", "status": "READY", "createdAt": "2025-01-01T00:00:00Z"}]`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "user", "list", "fakeAnalyticsID", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("fakeUserID"))
+	assert.Cmp(out, td.Contains("myuser"))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsUserGetCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("kafka")
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka/fakeAnalyticsID/user/fakeUserID",
-		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "status": "READY"}`),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/kafka/fakeAnalyticsID/user/fakeUserID",
+		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "status": "READY", "createdAt": "2025-01-01T00:00:00Z"}`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "user", "get", "fakeAnalyticsID", "fakeUserID", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("fakeUserID"))
+	assert.Cmp(out, td.Contains("myuser"))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsUserCreateCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
+	registerManagedAnalyticsProbe("kafka")
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka/fakeAnalyticsID/user",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/kafka/fakeAnalyticsID/user",
 		tdhttpmock.JSONBody(td.JSON(`{"name": "myuser"}`)),
-		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "password": "s3cr3t", "status": "READY"}`),
+		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "password": "s3cr3t"}`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "user", "create", "fakeAnalyticsID", "--cloud-project", "fakeProjectID", "--name", "myuser")
@@ -306,77 +274,70 @@ func (ms *MockSuite) TestManagedAnalyticsUserCreateCmd(assert, require *td.T) {
 	assert.Cmp(out, td.Contains("Password: s3cr3t"))
 }
 
-func (ms *MockSuite) TestManagedAnalyticsUserCreateWithRolesCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "clickhouse"}`),
-	)
-	// Use simple responder: CreateResource schema filtering may alter the exact body
-	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/clickhouse/fakeAnalyticsID/user",
-		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "password": "s3cr3t", "status": "READY"}`),
+func (ms *MockSuite) TestManagedAnalyticsUserCreateClickhouseCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("clickhouse")
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/clickhouse/fakeAnalyticsID/user",
+		tdhttpmock.JSONBody(td.JSON(`{"name": "myuser"}`)),
+		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "password": "s3cr3t", "roles": []}`),
 	)
 
-	out, err := cmd.Execute("cloud", "managed-analytics", "user", "create", "fakeAnalyticsID", "--cloud-project", "fakeProjectID", "--name", "myuser", "--roles", "analyst")
+	out, err := cmd.Execute("cloud", "managed-analytics", "user", "create", "fakeAnalyticsID", "--cloud-project", "fakeProjectID", "--name", "myuser")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("Password: s3cr3t"))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsUserCreateInvalidEngineCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		// kafkaMirrorMaker is not in UserPostValidEngines
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafkaMirrorMaker"}`),
-	)
+	registerManagedAnalyticsProbe("kafkaMirrorMaker")
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "user", "create", "fakeAnalyticsID", "--cloud-project", "fakeProjectID", "--name", "myuser")
 
 	assert.CmpError(err)
-	assert.Cmp(out, td.Contains("🛑"))
+	assert.Cmp(out, td.Contains("🛑 engine kafkaMirrorMaker does not support users"))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsUserEditWithAclsCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("opensearch")
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "opensearch"}`),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/opensearch/fakeAnalyticsID/user/fakeUserID",
+		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "status": "READY", "acls": [{"pattern": "metrics-.*", "permission": "READ"}]}`),
 	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/opensearch/fakeAnalyticsID/user/fakeUserID",
-		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "acls": [], "status": "READY"}`),
-	)
-	httpmock.RegisterResponder(http.MethodPut,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/opensearch/fakeAnalyticsID/user/fakeUserID",
-		httpmock.NewStringResponder(200, ``),
+	httpmock.RegisterMatcherResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/opensearch/fakeAnalyticsID/user/fakeUserID",
+		tdhttpmock.JSONBody(td.JSON(`{"acls": [{"pattern": "metrics-.*", "permission": "READ"}, {"pattern": "logs-.*", "permission": "READ_WRITE"}, {"pattern": "audit-.*", "permission": "DENY"}]}`)),
+		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "status": "UPDATING"}`),
 	)
 
-	out, err := cmd.Execute("cloud", "managed-analytics", "user", "edit", "fakeAnalyticsID", "fakeUserID", "--cloud-project", "fakeProjectID", "--acls", "logs-.*:readwrite")
+	out, err := cmd.Execute("cloud", "managed-analytics", "user", "edit", "fakeAnalyticsID", "fakeUserID", "--cloud-project", "fakeProjectID", "--acls", "logs-.*:readwrite", "--acls", "audit-.*:DENY")
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("✅ Resource updated successfully"))
 }
 
+func (ms *MockSuite) TestManagedAnalyticsUserEditClickhouseCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("clickhouse")
+
+	out, err := cmd.Execute("cloud", "managed-analytics", "user", "edit", "fakeAnalyticsID", "fakeUserID", "--cloud-project", "fakeProjectID", "--editor")
+
+	assert.CmpError(err)
+	assert.Cmp(out, td.Contains("🛑 engine clickhouse does not support user edition, valid engines: opensearch"))
+}
+
 func (ms *MockSuite) TestManagedAnalyticsUserEditInvalidEngineCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		// kafka is not in UserEditValidEngines
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
+	registerManagedAnalyticsProbe("kafka")
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "user", "edit", "fakeAnalyticsID", "fakeUserID", "--cloud-project", "fakeProjectID", "--acls", "logs-.*:readwrite")
 
 	assert.CmpError(err)
-	assert.Cmp(out, td.Contains("🛑"))
+	assert.Cmp(out, td.Contains("🛑 engine kafka does not support user edition, valid engines: opensearch"))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsUserDeleteCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
+	registerManagedAnalyticsProbe("kafka")
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka/fakeAnalyticsID/user/fakeUserID",
-		httpmock.NewStringResponder(200, ``),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/kafka/fakeAnalyticsID/user/fakeUserID",
+		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "status": "DELETING"}`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "user", "delete", "fakeAnalyticsID", "fakeUserID", "--cloud-project", "fakeProjectID")
@@ -386,12 +347,9 @@ func (ms *MockSuite) TestManagedAnalyticsUserDeleteCmd(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestManagedAnalyticsUserCredentialsResetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
+	registerManagedAnalyticsProbe("kafka")
 	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka/fakeAnalyticsID/user/fakeUserID/credentials/reset",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/kafka/fakeAnalyticsID/user/fakeUserID/resetPassword",
 		httpmock.NewStringResponder(200, `{"id": "fakeUserID", "username": "myuser", "password": "n3wS3cr3t"}`),
 	)
 
@@ -404,13 +362,10 @@ func (ms *MockSuite) TestManagedAnalyticsUserCredentialsResetCmd(assert, require
 // ── Roles ─────────────────────────────────────────────────────────────────────
 
 func (ms *MockSuite) TestManagedAnalyticsRoleListCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("clickhouse")
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "clickhouse"}`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/clickhouse/fakeAnalyticsID/roles",
-		httpmock.NewStringResponder(200, `["analyst", "admin"]`),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/clickhouse/fakeAnalyticsID/roles",
+		httpmock.NewStringResponder(200, `[{"id": "YW5hbHlzdA", "name": "analyst"}]`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "role", "list", "fakeAnalyticsID", "--cloud-project", "fakeProjectID")
@@ -420,15 +375,12 @@ func (ms *MockSuite) TestManagedAnalyticsRoleListCmd(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestManagedAnalyticsRoleListInvalidEngineCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
+	registerManagedAnalyticsProbe("kafka")
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "role", "list", "fakeAnalyticsID", "--cloud-project", "fakeProjectID")
 
 	assert.CmpError(err)
-	assert.Cmp(out, td.Contains("🛑"))
+	assert.Cmp(out, td.Contains("🛑 engine kafka does not support roles, valid engines: clickhouse"))
 }
 
 // ── Permissions ───────────────────────────────────────────────────────────────
@@ -547,48 +499,34 @@ func (ms *MockSuite) TestManagedAnalyticsPatternDeleteCmd(assert, require *td.T)
 // ── Certificate ───────────────────────────────────────────────────────────────
 
 func (ms *MockSuite) TestManagedAnalyticsCertificateGetCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("kafka")
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka/fakeAnalyticsID/certificates",
-		httpmock.NewStringResponder(200, `{"ca": "-----BEGIN CERTIFICATE-----\nMIIB..."}`),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/kafka/fakeAnalyticsID/certificates",
+		httpmock.NewStringResponder(200, `{"ca": "-----BEGIN CERTIFICATE-----\nfakeCA\n-----END CERTIFICATE-----"}`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "certificate", "get", "fakeAnalyticsID", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("-----BEGIN CERTIFICATE-----"))
+	assert.Cmp(out, td.Contains("fakeCA"))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsCertificateGetInvalidEngineCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		// opensearch is not in CertificateValidEngines
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "opensearch"}`),
-	)
+	registerManagedAnalyticsProbe("opensearch")
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "certificate", "get", "fakeAnalyticsID", "--cloud-project", "fakeProjectID")
 
 	assert.CmpError(err)
-	assert.Cmp(out, td.Contains("🛑"))
+	assert.Cmp(out, td.Contains("🛑 engine opensearch does not support certificates, valid engines: clickhouse, kafka"))
 }
 
 // ── Backup ────────────────────────────────────────────────────────────────────
 
 func (ms *MockSuite) TestManagedAnalyticsBackupListCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("clickhouse")
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "clickhouse"}`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/clickhouse/fakeAnalyticsID/backup",
-		httpmock.NewStringResponder(200, `["fakeBackupID"]`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/clickhouse/fakeAnalyticsID/backup/fakeBackupID",
-		httpmock.NewStringResponder(200, `{"id": "fakeBackupID", "createdAt": "2025-01-01T00:00:00Z", "type": "AUTOMATIC", "status": "READY", "description": "Daily backup"}`),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/backup?serviceId=fakeAnalyticsID",
+		httpmock.NewStringResponder(200, `[{"id": "fakeBackupID", "serviceId": "fakeAnalyticsID", "createdAt": "2025-01-01T00:00:00Z", "type": "AUTOMATIC", "status": "READY", "description": "daily backup"}]`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "backup", "list", "fakeAnalyticsID", "--cloud-project", "fakeProjectID")
@@ -598,32 +536,25 @@ func (ms *MockSuite) TestManagedAnalyticsBackupListCmd(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestManagedAnalyticsBackupGetCmd(assert, require *td.T) {
+	registerManagedAnalyticsProbe("clickhouse")
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "clickhouse"}`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/clickhouse/fakeAnalyticsID/backup/fakeBackupID",
-		httpmock.NewStringResponder(200, `{"id": "fakeBackupID", "createdAt": "2025-01-01T00:00:00Z", "type": "AUTOMATIC", "status": "READY", "description": "Daily backup", "size": {"value": 80, "unit": "GB"}, "regions": [{"name": "DE"}]}`),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/backup/fakeBackupID",
+		httpmock.NewStringResponder(200, `{"id": "fakeBackupID", "serviceId": "fakeAnalyticsID", "createdAt": "2025-01-01T00:00:00Z", "type": "AUTOMATIC", "status": "READY", "description": "daily backup", "size": {"value": 1, "unit": "GB"}, "regions": ["eu-west-gra"]}`),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "backup", "get", "fakeAnalyticsID", "fakeBackupID", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("fakeBackupID"))
+	assert.Cmp(out, td.All(td.Contains("fakeBackupID"), td.Contains("eu-west-gra")))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsBackupListInvalidEngineCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		// kafka is not in BackupValidEngines
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
+	registerManagedAnalyticsProbe("kafka")
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "backup", "list", "fakeAnalyticsID", "--cloud-project", "fakeProjectID")
 
 	assert.CmpError(err)
-	assert.Cmp(out, td.Contains("🛑"))
+	assert.Cmp(out, td.Contains("🛑 engine kafka does not support backups, valid engines: clickhouse, grafana, opensearch"))
 }
 
 // ── Topics ────────────────────────────────────────────────────────────────────

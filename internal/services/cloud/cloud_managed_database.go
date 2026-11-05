@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
@@ -35,7 +34,7 @@ var (
 	cloudprojectManagedDatabaseUserWithRoleColumnsToDisplay = []string{"id", "username", "status", "roles", "createdAt"}
 	cloudprojectManagedDatabaseUserColumnsToDisplay         = []string{"id", "username", "status", "createdAt"}
 	cloudprojectManagedDatabaseValkeyUserColumnsToDisplay   = []string{"id", "username", "status", "categories", "channels", "commands", "keys", "createdAt"}
-	cloudprojectManagedDatabaseRoleColumnsToDisplay         = []string{"role"}
+	cloudprojectManagedDatabaseRoleColumnsToDisplay         = []string{"name"}
 	cloudprojectManagedDatabaseBackupColumnsToDisplay       = []string{"id", "createdAt", "type", "status", "description"}
 
 	//go:embed templates/cloud_managed_database.tmpl
@@ -283,22 +282,14 @@ func ListManagedDatabaseDatabases(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseDatabaseValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedDatabaseDatabaseValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseDatabaseValidEngines, ", "))
-		return
-	}
-
-	common.ManageListRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/database", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
-		"",
+	common.ManageListRequestNoExpand(
+		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "database"),
 		cloudprojectManagedDatabaseDatabaseColumnsToDisplay,
 		flags.GenericFilters,
 	)
@@ -311,21 +302,14 @@ func GetManagedDatabaseDatabase(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedDatabaseDatabaseValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseDatabaseValidEngines, ", "))
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseDatabaseValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	common.ManageObjectRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/database", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
+		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "database"),
 		args[1],
 		managedDatabaseDatabaseTemplate,
 	)
@@ -338,28 +322,18 @@ func CreateManagedDatabaseDatabase(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseDatabaseValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-
-	if !slices.Contains(ManagedDatabaseDatabaseValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseDatabaseValidEngines, ", "))
-		return
-	}
-
-	endpoint := fmt.Sprintf(
-		"/v1/cloud/project/%s/database/%s/%s/database",
-		projectID,
-		url.PathEscape(databaseService["engine"].(string)),
-		url.PathEscape(args[0]),
-	)
 
 	var database map[string]any
-	if err := httpLib.Client.Post(endpoint, &ManagedDatabaseDatabaseSpec, &database); err != nil {
+	if err := httpLib.Client.Post(
+		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "database"),
+		&ManagedDatabaseDatabaseSpec,
+		&database,
+	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create database: %s", err)
 		return
 	}
@@ -374,28 +348,13 @@ func DeleteManagedDatabaseDatabase(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseDatabaseValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedDatabaseDatabaseValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseDatabaseValidEngines, ", "))
-		return
-	}
-
-	// Delete the database in the given database cluster
-	endpoint := fmt.Sprintf(
-		"/v1/cloud/project/%s/database/%s/%s/database/%s",
-		projectID,
-		url.PathEscape(databaseService["engine"].(string)),
-		url.PathEscape(args[0]),
-		url.PathEscape(args[1]),
-	)
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	if err := httpLib.Client.Delete(databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "database", args[1]), nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete database: %s", err)
 		return
 	}
@@ -410,25 +369,15 @@ func ListManagedDatabaseUsers(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseUserValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedDatabaseUserValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseUserValidEngines, ", "))
-		return
-	}
-
-	columnsToDisplay := ManagedDatabaseUserSpec.displayByEngine(databaseService["engine"].(string))
-
-	common.ManageListRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
-		"",
-		columnsToDisplay,
+	common.ManageListRequestNoExpand(
+		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "user"),
+		ManagedDatabaseUserSpec.displayByEngine(engine),
 		flags.GenericFilters,
 	)
 }
@@ -440,21 +389,14 @@ func GetManagedDatabaseUser(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedDatabaseUserValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseUserValidEngines, ", "))
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseUserValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	common.ManageObjectRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
+		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "user"),
 		args[1],
 		managedDatabaseUserTemplate,
 	)
@@ -467,33 +409,24 @@ func CreateManagedDatabaseUser(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedDatabaseUserValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseUserValidEngines, ", "))
-		return
-	}
-
-	if err := ManagedDatabaseUserSpec.validateForEngine(databaseService["engine"].(string)); err != nil {
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseUserValidEngines)
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	userSpec := ManagedDatabaseUserSpec.byEngine(databaseService["engine"].(string))
+	if err := ManagedDatabaseUserSpec.validateForEngine(engine); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
 
 	user, err := common.CreateResource(
 		cmd,
-		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}/user", url.PathEscape(databaseService["engine"].(string))),
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
+		fmt.Sprintf("/publicCloud/project/{projectId}/managedDatabase/%s/{serviceId}/user", engine),
+		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "user"),
 		ManagedDatabaseUserCreationExample,
-		userSpec,
-		assets.CloudOpenapiSchema,
+		ManagedDatabaseUserSpec.byEngine(engine),
+		assets.CloudV2OpenapiSchema,
 		nil)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create user: %s", err)
@@ -511,33 +444,23 @@ func EditManagedDatabaseUser(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedDatabaseUserEditValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseUserEditValidEngines, ", "))
-		return
-	}
-
-	if err := ManagedDatabaseUserSpec.validateForEngine(databaseService["engine"].(string)); err != nil {
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseUserEditValidEngines)
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	userSpec := ManagedDatabaseUserSpec.byEngine(databaseService["engine"].(string))
+	if err := ManagedDatabaseUserSpec.validateForEngine(engine); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
 
-	// Edit resource
 	if err := common.EditResource(
 		cmd,
-		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}/user/{userId}", url.PathEscape(databaseService["engine"].(string))),
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]), url.PathEscape(args[1])),
-		userSpec,
-		assets.CloudOpenapiSchema,
+		fmt.Sprintf("/publicCloud/project/{projectId}/managedDatabase/%s/{serviceId}/user/{userId}", engine),
+		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "user", args[1]),
+		ManagedDatabaseUserSpec.byEngine(engine),
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -551,28 +474,13 @@ func DeleteManagedDatabaseUser(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseUserValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedDatabaseUserValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseUserValidEngines, ", "))
-		return
-	}
-
-	// Delete the user in the given database cluster
-	endpoint := fmt.Sprintf(
-		"/v1/cloud/project/%s/database/%s/%s/user/%s",
-		projectID,
-		url.PathEscape(databaseService["engine"].(string)),
-		url.PathEscape(args[0]),
-		url.PathEscape(args[1]),
-	)
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	if err := httpLib.Client.Delete(databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "user", args[1]), nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete user: %s", err)
 		return
 	}
@@ -587,29 +495,14 @@ func ResetManagedDatabaseUserCredentials(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseUserValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedDatabaseUserValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseUserValidEngines, ", "))
-		return
-	}
-
-	endpoint := fmt.Sprintf(
-		"/v1/cloud/project/%s/database/%s/%s/user/%s/credentials/reset",
-		projectID,
-		url.PathEscape(databaseService["engine"].(string)),
-		url.PathEscape(args[0]),
-		url.PathEscape(args[1]),
-	)
-
-	var user map[string]any
-	if err := httpLib.Client.Post(endpoint, nil, &user); err != nil {
+	user, err := resetDatabaseAnalyticsUserCredentials(databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "user", args[1]))
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to reset user credentials: %s", err)
 		return
 	}
@@ -666,38 +559,38 @@ func ListManagedDatabaseRoles(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseRoleValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedDatabaseRoleValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseRoleValidEngines, ", "))
+	if !ManagedDatabaseRoleSpec.Advanced {
+		common.ManageListRequestNoExpand(
+			databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "roles"),
+			cloudprojectManagedDatabaseRoleColumnsToDisplay,
+			flags.GenericFilters,
+		)
 		return
 	}
 
-	if ManagedDatabaseRoleSpec.Advanced && databaseService["engine"].(string) != "mongodb" {
+	if engine != "mongodb" {
 		display.OutputError(&flags.OutputFormatConfig, "flag --advanced is only supported for mongodb engines")
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/roles", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]))
-	if databaseService["engine"].(string) == "mongodb" {
-		endpoint += "?advanced=" + strconv.FormatBool(ManagedDatabaseRoleSpec.Advanced)
-	}
-
+	// API v2 does not list the advanced roles
 	var rawRoles []string
-	if err := httpLib.Client.Get(endpoint, &rawRoles); err != nil {
+	if err := httpLib.Client.Get(
+		fmt.Sprintf("/v1/cloud/project/%s/database/mongodb/%s/roles?advanced=true", projectID, url.PathEscape(args[0])),
+		&rawRoles); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch roles: %s", err)
 		return
 	}
 
 	rows := make([]map[string]any, len(rawRoles))
 	for i, role := range rawRoles {
-		rows[i] = map[string]any{"role": role}
+		rows[i] = map[string]any{"name": role}
 	}
 
 	filteredRows, err := filtersLib.FilterLines(rows, flags.GenericFilters)
@@ -716,23 +609,14 @@ func GetManagedDatabaseCertificates(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedDatabaseCertificateValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseCertificateValidEngines, ", "))
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseCertificateValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	var certificate map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/certificates", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
-		&certificate); err != nil {
+	if err := httpLib.Client.Get(databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "certificates"), &certificate); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch certificate: %s", err)
 		return
 	}
@@ -747,21 +631,8 @@ func ListManagedDatabaseBackups(_ *cobra.Command, args []string) {
 		return
 	}
 
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedDatabaseValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseValidEngines, ", "))
-		return
-	}
-
-	common.ManageListRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/backup", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
-		"",
+	common.ManageListRequestNoExpand(
+		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, "backup")+"?serviceId="+url.QueryEscape(args[0]),
 		cloudprojectManagedDatabaseBackupColumnsToDisplay,
 		flags.GenericFilters,
 	)
@@ -774,23 +645,7 @@ func GetManagedDatabaseBackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedDatabaseValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseValidEngines, ", "))
-		return
-	}
-
-	common.ManageObjectRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/backup", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
-		args[1],
-		managedDatabaseBackupTemplate,
-	)
+	getDatabaseAnalyticsBackup(projectID, managedDatabaseCategory, args[0], args[1], managedDatabaseBackupTemplate)
 }
 
 func RestoreManagedDatabaseBackup(_ *cobra.Command, args []string) {
@@ -800,20 +655,15 @@ func RestoreManagedDatabaseBackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseBackupRestoreValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedDatabaseBackupRestoreValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support backup restore, valid engines: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseBackupRestoreValidEngines, ", "))
-		return
-	}
-
+	// API v2 restores a point in time, not a given backup
 	if err := httpLib.Client.Post(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/backup/%s/restore", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]), url.PathEscape(args[1])),
+		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/backup/%s/restore", projectID, url.PathEscape(engine), url.PathEscape(args[0]), url.PathEscape(args[1])),
 		nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to restore backup: %s", err)
 		return

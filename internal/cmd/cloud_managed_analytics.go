@@ -475,10 +475,6 @@ There are two ways to define the creation parameters:
 
 	ovhcloud cloud managed-analytics user create <service_id> --name myuser
 
-  For Clickhouse engine, you can also specify roles:
-
-	ovhcloud cloud managed-analytics user create <service_id> --name myuser --roles role1,role2
-
   For OpenSearch engine, you can specify ACLs:
 
 	ovhcloud cloud managed-analytics user create <service_id> --name myuser --acls "logs-.*:write" --acls "metrics-.*:read"
@@ -491,7 +487,7 @@ There are two ways to define the creation parameters:
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud managed-analytics user create <service_id> --name myuser --editor --roles role1,role2
+	ovhcloud cloud managed-analytics user create <service_id> --name myuser --editor --acls "logs-.*:write"
 `,
 		Run:  cloud.CreateManagedAnalyticsUser,
 		Args: cobra.ExactArgs(1),
@@ -499,9 +495,6 @@ There are two ways to define the creation parameters:
 
 	userCreateCmd.Flags().StringVar(&cloud.ManagedAnalyticsUserSpec.Name, "name", "", "Name of the user to create")
 	userCreateCmd.MarkFlagRequired("name")
-
-	// Clickhouse specific flags
-	userCreateCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsUserSpec.Roles, "roles", nil, "Roles granted to the user (clickhouse only)")
 
 	// OpenSearch specific flags
 	userCreateCmd.Flags().StringArrayVar(&cloud.ManagedAnalyticsUserSpec.CLIAcls, "acls", nil, "ACL granted to the user (opensearch only, format: pattern:permission)")
@@ -520,10 +513,6 @@ There are two ways to define the edition parameters:
 
 1. Using only CLI flags:
 
-  For Clickhouse engine:
-
-	ovhcloud cloud managed-analytics user edit <service_id> <user_id> --roles role1,role2
-
   For OpenSearch engine:
 
 	ovhcloud cloud managed-analytics user edit <service_id> <user_id> --acls "logs-.*:write" --acls "metrics-.*:read"
@@ -535,14 +524,11 @@ There are two ways to define the edition parameters:
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud managed-analytics user edit <service_id> <user_id> --editor --roles role1,role2
+	ovhcloud cloud managed-analytics user edit <service_id> <user_id> --editor --acls "logs-.*:write"
 `,
 		Run:  cloud.EditManagedAnalyticsUser,
 		Args: cobra.ExactArgs(2),
 	}
-
-	// Clickhouse specific flags
-	userEditCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsUserSpec.Roles, "roles", nil, "Roles granted to the user (clickhouse only)")
 
 	// OpenSearch specific flags
 	userEditCmd.Flags().StringArrayVar(&cloud.ManagedAnalyticsUserSpec.CLIAcls, "acls", nil, "ACL granted to the user (opensearch only, format: pattern:permission)")

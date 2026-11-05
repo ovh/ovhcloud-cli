@@ -189,3 +189,32 @@ func (s *databaseAnalyticsTargetSpec) setNodes(nodes []string) error {
 	}
 	return nil
 }
+
+// resetDatabaseAnalyticsUserCredentials resets the password of the user at
+// endpoint and returns the user with its new password. The keys created by
+// "ovhcloud login" grant no PATCH, so the reset uses resetPassword rather than a
+// PATCH of credentialsLastUpdatedAt.
+func resetDatabaseAnalyticsUserCredentials(endpoint string) (map[string]any, error) {
+	var user map[string]any
+	if err := httpLib.Client.Post(endpoint+"/resetPassword", nil, &user); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+// getDatabaseAnalyticsBackup displays a backup of the given service. API v2
+// serves backups for a whole category, so the service is checked here.
+func getDatabaseAnalyticsBackup(projectID, category, serviceID, backupID, template string) {
+	var backup map[string]any
+	if err := httpLib.Client.Get(databaseAnalyticsEndpoint(projectID, category, "backup", backupID), &backup); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch backup: %s", err)
+		return
+	}
+
+	if backup["serviceId"] != serviceID {
+		display.OutputError(&flags.OutputFormatConfig, "backup %s not found in service %s", backupID, serviceID)
+		return
+	}
+
+	display.OutputObject(backup, backupID, template, &flags.OutputFormatConfig)
+}
