@@ -34,7 +34,7 @@ Manage users in a specific managed analytics service
 * [ovhcloud cloud managed-analytics user create](ovhcloud_cloud_managed-analytics_user_create.md)	 - Create a new user in the given managed analytics service
 * [ovhcloud cloud managed-analytics user credentials-reset](ovhcloud_cloud_managed-analytics_user_credentials-reset.md)	 - Reset the credentials of a specific user in the given managed analytics service
 * [ovhcloud cloud managed-analytics user delete](ovhcloud_cloud_managed-analytics_user_delete.md)	 - Delete a specific user in the given managed analytics service
-* [ovhcloud cloud managed-analytics user edit](ovhcloud_cloud_managed-analytics_user_edit.md)	 - Edit a user in the given managed analytics service (opensearch only)
+* [ovhcloud cloud managed-analytics user edit](ovhcloud_cloud_managed-analytics_user_edit.md)	 - Edit a user in the given managed analytics service
 * [ovhcloud cloud managed-analytics user get](ovhcloud_cloud_managed-analytics_user_get.md)	 - Get a specific user in the given managed analytics service
 * [ovhcloud cloud managed-analytics user list](ovhcloud_cloud_managed-analytics_user_list.md)	 - List all users in the given managed analytics service
 

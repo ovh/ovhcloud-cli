@@ -1,13 +1,15 @@
 ## ovhcloud cloud managed-analytics user edit
 
-Edit a user in the given managed analytics service (opensearch only)
+Edit a user in the given managed analytics service
 
 ### Synopsis
 
-Use this command to edit a user in the given managed analytics service (opensearch only).
+Use this command to edit a user in the given managed analytics service.
 There are two ways to define the edition parameters:
 
 1. Using only CLI flags:
+
+  For OpenSearch engine:
 
 	ovhcloud cloud managed-analytics user edit <service_id> <user_id> --acls "logs-.*:write" --acls "metrics-.*:read"
 

@@ -507,11 +507,13 @@ There are two ways to define the creation parameters:
 func managedAnalyticsUserEditCmd() *cobra.Command {
 	userEditCmd := &cobra.Command{
 		Use:   "edit <service_id> <user_id>",
-		Short: "Edit a user in the given managed analytics service (opensearch only)",
-		Long: `Use this command to edit a user in the given managed analytics service (opensearch only).
+		Short: "Edit a user in the given managed analytics service",
+		Long: `Use this command to edit a user in the given managed analytics service.
 There are two ways to define the edition parameters:
 
 1. Using only CLI flags:
+
+  For OpenSearch engine:
 
 	ovhcloud cloud managed-analytics user edit <service_id> <user_id> --acls "logs-.*:write" --acls "metrics-.*:read"
 
