@@ -455,11 +455,13 @@ func EditManagedDatabaseUser(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	userSpec := ManagedDatabaseUserSpec.byEngine(engine)
+
 	if err := common.EditResource(
 		cmd,
 		fmt.Sprintf("/publicCloud/project/{projectId}/managedDatabase/%s/{serviceId}/user/{userId}", engine),
 		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0], "user", args[1]),
-		ManagedDatabaseUserSpec.byEngine(engine),
+		userSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
