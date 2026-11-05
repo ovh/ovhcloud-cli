@@ -173,7 +173,7 @@ func EditStorageSwift(cmd *cobra.Command, args []string) {
 		cmd,
 		"/publicCloud/project/{projectId}/storage/swift/container/{containerId}",
 		endpoint,
-		SwiftContainerEditSpec,
+		&SwiftContainerEditSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
