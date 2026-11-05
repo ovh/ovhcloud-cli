@@ -11,81 +11,88 @@ import (
 	"github.com/maxatome/go-testdeep/td"
 	"github.com/maxatome/tdhttpmock"
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
+	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 )
 
 // fullAnalyticsServiceResponse is a complete API response for an analytics service,
 // covering all fields accessed by the managed-analytics template.
 const fullAnalyticsServiceResponse = `{
 	"id": "fakeAnalyticsID",
-	"engine": "kafka",
-	"version": "3",
-	"description": "test analytics",
-	"status": "READY",
-	"category": "analysis",
-	"plan": "essential",
-	"flavor": "db1-4",
 	"createdAt": "2025-01-01T00:00:00Z",
-	"networkType": "public",
-	"storage": {"size": {"value": 80, "unit": "GB"}},
-	"nodes": [{"id": "nodeID", "flavor": "db1-4", "region": "DE", "status": "READY"}]
+	"resourceStatus": "READY",
+	"currentState": {
+		"description": "test analytics",
+		"plan": "essential",
+		"version": "3",
+		"flavor": "db1-4",
+		"status": "READY",
+		"nodesCount": 1,
+		"storage": {"size": {"value": 80, "unit": "GB"}},
+		"network": {"networkId": "fakeNetworkID", "subnetId": "fakeSubnetID"},
+		"endpoints": [{"component": "KAFKA", "domain": "kafka.database.cloud.ovh.net", "port": 20185, "ssl": true, "uri": "kafka.database.cloud.ovh.net:20185"}],
+		"nodes": [{"id": "nodeID", "flavor": "db1-4", "location": {"region": "eu-west-gra"}, "status": "READY"}]
+	},
+	"targetSpec": {"description": "test analytics", "plan": "essential", "version": "3", "flavor": "db1-4", "deletionProtected": false}
 }`
+
+func registerManagedAnalyticsProbe(engine string) {
+	registerDatabaseAnalyticsProbe("managedAnalytics", cloud.ManagedAnalyticsValidEngines, engine, "fakeAnalyticsID", fullAnalyticsServiceResponse)
+}
 
 // ── Service ──────────────────────────────────────────────────────────────────
 
 func (ms *MockSuite) TestManagedAnalyticsListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service",
-		httpmock.NewStringResponder(200, `["fakeAnalyticsID"]`),
-	)
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, fullAnalyticsServiceResponse),
-	)
+	for _, engine := range cloud.ManagedAnalyticsValidEngines {
+		body := `[]`
+		if engine == "kafka" {
+			body = "[" + fullAnalyticsServiceResponse + "]"
+		}
+		httpmock.RegisterResponder(http.MethodGet,
+			"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/"+engine,
+			httpmock.NewStringResponder(200, body),
+		)
+	}
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("fakeAnalyticsID"))
+	assert.Cmp(out, td.All(td.Contains("fakeAnalyticsID"), td.Contains("kafka"), td.Contains("test analytics")))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, fullAnalyticsServiceResponse),
-	)
+	registerManagedAnalyticsProbe("kafka")
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "get", "fakeAnalyticsID", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("fakeAnalyticsID"))
+	assert.Cmp(out, td.All(td.Contains("fakeAnalyticsID"), td.Contains("kafka 3"), td.Contains("private")))
 }
 
 func (ms *MockSuite) TestManagedAnalyticsCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/kafka",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
-				"nodesList": [
-					{
-						"flavor": "db1-4",
-						"region": "DE"
-					}
-				],
-				"plan": "essential",
-				"version": "3"
+				"targetSpec": {
+					"flavor": "db1-4",
+					"nodesCount": 1,
+					"plan": "essential",
+					"region": "eu-west-gra",
+					"version": "3"
+				}
 			}`),
 		),
-		httpmock.NewStringResponder(200, `{"id": "0f0c43f0-979a-11f0-94fd-0050568ce122"}`),
+		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID"}`),
 	)
 
-	out, err := cmd.Execute("cloud", "managed-analytics", "create", "--cloud-project", "fakeProjectID", "--engine", "kafka", "--version", "3", "--plan", "essential", "--nodes-list", "db1-4:DE")
+	out, err := cmd.Execute("cloud", "managed-analytics", "create", "--cloud-project", "fakeProjectID", "--engine", "kafka", "--version", "3", "--plan", "essential", "--nodes-list", "db1-4:eu-west-gra")
 
 	require.CmpNoError(err)
-	assert.String(out, `✅ Managed analytics service created successfully (id: 0f0c43f0-979a-11f0-94fd-0050568ce122)`)
+	assert.String(out, `✅ Managed analytics service created successfully (id: fakeAnalyticsID)`)
 }
 
 func (ms *MockSuite) TestManagedAnalyticsCreateInvalidEngineCmd(assert, require *td.T) {
-	out, err := cmd.Execute("cloud", "managed-analytics", "create", "--cloud-project", "fakeProjectID", "--engine", "invalid", "--version", "1", "--plan", "essential", "--nodes-list", "db1-4:DE")
+	out, err := cmd.Execute("cloud", "managed-analytics", "create", "--cloud-project", "fakeProjectID", "--engine", "invalid", "--version", "1", "--plan", "essential", "--nodes-list", "db1-4:eu-west-gra")
 
 	assert.CmpError(err)
 	assert.Cmp(out, td.Contains("🛑 invalid engine invalid"))
@@ -149,13 +156,10 @@ func (ms *MockSuite) TestManagedAnalyticsEditCmd(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestManagedAnalyticsDeleteCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID", "engine": "kafka"}`),
-	)
+	registerManagedAnalyticsProbe("kafka")
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, ``),
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/kafka/fakeAnalyticsID",
+		httpmock.NewStringResponder(200, fullAnalyticsServiceResponse),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "delete", "fakeAnalyticsID", "--cloud-project", "fakeProjectID")

@@ -9,7 +9,7 @@ There are two ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud managed-analytics create --engine kafka --version 4.0 --plan production --nodes-pattern.flavor db1-4 --nodes-pattern.region GRA
+	ovhcloud cloud managed-analytics create --engine kafka --version 4.0 --plan production --nodes-pattern.flavor db1-4 --nodes-pattern.region eu-west-gra
 
 2. Using your default text editor:
 
@@ -29,8 +29,8 @@ ovhcloud cloud managed-analytics create [flags]
 ### Options
 
 ```
-      --backups-regions strings          Regions on which the backups are stored
-      --backups-time string              Time on which backups start every day
+      --backups-regions strings          Regions on which the backups are stored (e.g. eu-west-sbg)
+      --backups-time string              Time on which backups start every day (HH:MM, UTC)
       --description string               Analytics description
       --disk-size int                    Disk size (GB)
       --editor                           Use a text editor to define parameters
@@ -40,12 +40,12 @@ ovhcloud cloud managed-analytics create [flags]
       --fork-from.service-id string      Service ID that owns the backups
   -h, --help                             help for create
       --ip-restrictions strings          IP blocks authorized to access the cluster (CIDR format)
-      --maintenance-time string          Time on which maintenances can start every day
+      --maintenance-time string          Time on which maintenances can start every day (HH:MM, UTC)
       --network-id string                Private network ID in which the cluster is deployed
-      --nodes-list strings               List of nodes (format: flavor1:region1,flavor2:region2...)
+      --nodes-list strings               List of nodes, all with the same flavor and region (format: flavor1:region1,flavor2:region2..., e.g. db1-4:eu-west-gra)
       --nodes-pattern.flavor string      Flavor of all nodes
       --nodes-pattern.number int         Number of nodes
-      --nodes-pattern.region string      Region of all nodes
+      --nodes-pattern.region string      Region of all nodes (e.g. eu-west-gra)
       --plan string                      Analytics plan (you can get the list of available plans using 'ovhcloud cloud reference managed-analytics list-plans')
       --subnet-id string                 Private subnet ID in which the cluster is deployed
       --version string                   Analytics version (you can get the list of available versions using 'ovhcloud cloud reference managed-analytics list-engines')

@@ -28,7 +28,7 @@ func initManagedDatabaseCommand(cloudCmd *cobra.Command) {
 	managedDatabaseCmd.AddCommand(&cobra.Command{
 		Use:               "get <service_id>",
 		Short:             "Get a specific managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.GetManagedDatabase,
 		Args:              cobra.ExactArgs(1),
 	})
@@ -39,7 +39,7 @@ func initManagedDatabaseCommand(cloudCmd *cobra.Command) {
 	managedDatabaseCmd.AddCommand(&cobra.Command{
 		Use:               "delete <service_id>",
 		Short:             "Delete a specific managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.DeleteManagedDatabase,
 		Args:              cobra.ExactArgs(1),
 	})
@@ -100,7 +100,7 @@ func initManagedDatabaseDatabaseCommand(managedDatabaseCmd *cobra.Command) {
 		Use:               "list <service_id>",
 		Aliases:           []string{"ls"},
 		Short:             "List all databases in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.ListManagedDatabaseDatabases,
 		Args:              cobra.ExactArgs(1),
 	}))
@@ -108,7 +108,7 @@ func initManagedDatabaseDatabaseCommand(managedDatabaseCmd *cobra.Command) {
 	databaseCmd.AddCommand(&cobra.Command{
 		Use:               "get <service_id> <database_id>",
 		Short:             "Get a specific database in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.GetManagedDatabaseDatabase,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -118,7 +118,7 @@ func initManagedDatabaseDatabaseCommand(managedDatabaseCmd *cobra.Command) {
 	databaseCmd.AddCommand(&cobra.Command{
 		Use:               "delete <service_id> <database_id>",
 		Short:             "Delete a specific database in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.DeleteManagedDatabaseDatabase,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -136,7 +136,7 @@ func initManagedDatabaseUserCommand(managedDatabaseCmd *cobra.Command) {
 		Use:               "list <service_id>",
 		Aliases:           []string{"ls"},
 		Short:             "List all users in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.ListManagedDatabaseUsers,
 		Args:              cobra.ExactArgs(1),
 	}))
@@ -144,7 +144,7 @@ func initManagedDatabaseUserCommand(managedDatabaseCmd *cobra.Command) {
 	userCmd.AddCommand(&cobra.Command{
 		Use:               "get <service_id> <user_id>",
 		Short:             "Get a specific user in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.GetManagedDatabaseUser,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -155,7 +155,7 @@ func initManagedDatabaseUserCommand(managedDatabaseCmd *cobra.Command) {
 	userCmd.AddCommand(&cobra.Command{
 		Use:               "delete <service_id> <user_id>",
 		Short:             "Delete a specific user in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.DeleteManagedDatabaseUser,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -163,7 +163,7 @@ func initManagedDatabaseUserCommand(managedDatabaseCmd *cobra.Command) {
 	userCmd.AddCommand(&cobra.Command{
 		Use:               "credentials-reset <service_id> <user_id>",
 		Short:             "Reset the credentials of a specific user in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.ResetManagedDatabaseUserCredentials,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -191,7 +191,7 @@ func initManagedDatabaseCertificateCommand(managedDatabaseCmd *cobra.Command) {
 	certificateCmd.AddCommand(&cobra.Command{
 		Use:               "get <service_id>",
 		Short:             "Get certificates in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.GetManagedDatabaseCertificates,
 		Args:              cobra.ExactArgs(1),
 	})
@@ -209,7 +209,7 @@ func initManagedDatabaseBackupCommand(managedDatabaseCmd *cobra.Command) {
 		Use:               "list <service_id>",
 		Aliases:           []string{"ls"},
 		Short:             "List all backups in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.ListManagedDatabaseBackups,
 		Args:              cobra.ExactArgs(1),
 	}))
@@ -217,7 +217,7 @@ func initManagedDatabaseBackupCommand(managedDatabaseCmd *cobra.Command) {
 	backupCmd.AddCommand(&cobra.Command{
 		Use:               "get <service_id> <backup_id>",
 		Short:             "Get a specific backup in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.GetManagedDatabaseBackup,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -225,7 +225,7 @@ func initManagedDatabaseBackupCommand(managedDatabaseCmd *cobra.Command) {
 	backupCmd.AddCommand(&cobra.Command{
 		Use:               "restore <service_id> <backup_id>",
 		Short:             "Restore a specific backup in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.RestoreManagedDatabaseBackup,
 		Args:              cobra.ExactArgs(2),
 	})
@@ -242,7 +242,7 @@ There are two ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud managed-database create --engine mysql --version 8 --plan essential --nodes-pattern.flavor db1-4 --nodes-pattern.region DE
+	ovhcloud cloud managed-database create --engine mysql --version 8 --plan essential --nodes-pattern.flavor db1-4 --nodes-pattern.region eu-west-gra
 
 2. Using your default text editor:
 
@@ -265,30 +265,30 @@ There are two ways to define the creation parameters:
 	managedDatabaseCreateCmd.RegisterFlagCompletionFunc("engine", func(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		return cloud.ManagedDatabaseValidEngines, cobra.ShellCompDirectiveNoFileComp
 	})
-	managedDatabaseCreateCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.Backups.Regions, "backups-regions", nil, "Regions on which the backups are stored")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.Backups.Time, "backups-time", "", "Time on which backups start every day")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.Description, "description", "", "Database description")
-	managedDatabaseCreateCmd.Flags().IntVar(&cloud.ManagedDatabaseSpec.Disk.Size, "disk-size", 0, "Disk size (GB)")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.ForkFrom.BackupID, "fork-from.backup-id", "", "Backup ID (not compatible with fork-from.point-in-time)")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.ForkFrom.PointInTime, "fork-from.point-in-time", "", "Point in time to restore from (not compatible with fork-from.backup-id)")
+	managedDatabaseCreateCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.TargetSpec.Backup.Regions, "backups-regions", nil, "Regions on which the backups are stored (e.g. eu-west-sbg)")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Backup.Time, "backups-time", "", "Time on which backups start every day (HH:MM, UTC)")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Description, "description", "", "Database description")
+	managedDatabaseCreateCmd.Flags().IntVar(&cloud.ManagedDatabaseSpec.CLIDiskSize, "disk-size", 0, "Disk size (GB)")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.ForkSourceBackupID, "fork-from.backup-id", "", "Backup ID (not compatible with fork-from.point-in-time)")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.ForkSourcePointInTime, "fork-from.point-in-time", "", "Point in time to restore from (not compatible with fork-from.backup-id)")
 	markFlagsMutuallyExclusive(managedDatabaseCreateCmd, "fork-from.backup-id", "fork-from.point-in-time")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.ForkFrom.ServiceID, "fork-from.service-id", "", "Service ID that owns the backups")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.Plan, "plan", "", "Database plan (you can get the list of available plans using 'ovhcloud cloud reference managed-database list-plans')")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.Version, "version", "", "Database version (you can get the list of available versions using 'ovhcloud cloud reference managed-database list-engines')")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.ForkSourceServiceID, "fork-from.service-id", "", "Service ID that owns the backups")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.MaintenanceWindow.StartTimeUtc, "maintenance-time", "", "Time on which maintenances can start every day (HH:MM, UTC)")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Plan, "plan", "", "Database plan (you can get the list of available plans using 'ovhcloud cloud reference managed-database list-plans')")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Version, "version", "", "Database version (you can get the list of available versions using 'ovhcloud cloud reference managed-database list-engines')")
 
 	// Network configuration
 	managedDatabaseCreateCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.NetworkID, "network-id", "", "Private network ID in which the cluster is deployed")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.SubnetID, "subnet-id", "", "Private subnet ID in which the cluster is deployed")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Network.NetworkID, "network-id", "", "Private network ID in which the cluster is deployed")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Network.SubnetID, "subnet-id", "", "Private subnet ID in which the cluster is deployed")
 
 	// Nodes pattern definition
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.NodesPattern.Flavor, "nodes-pattern.flavor", "", "Flavor of all nodes")
-	managedDatabaseCreateCmd.Flags().IntVar(&cloud.ManagedDatabaseSpec.NodesPattern.Number, "nodes-pattern.number", 0, "Number of nodes")
-	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.NodesPattern.Region, "nodes-pattern.region", "", "Region of all nodes")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Flavor, "nodes-pattern.flavor", "", "Flavor of all nodes")
+	managedDatabaseCreateCmd.Flags().IntVar(&cloud.ManagedDatabaseSpec.TargetSpec.NodesCount, "nodes-pattern.number", 0, "Number of nodes")
+	managedDatabaseCreateCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Region, "nodes-pattern.region", "", "Region of all nodes (e.g. eu-west-gra)")
 
 	// Nodes list definition
-	managedDatabaseCreateCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.CLINodesList, "nodes-list", nil, "List of nodes (format: flavor1:region1,flavor2:region2...)")
+	managedDatabaseCreateCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.CLINodesList, "nodes-list", nil, "List of nodes, all with the same flavor and region (format: flavor1:region1,flavor2:region2..., e.g. db1-4:eu-west-gra)")
 	markFlagsMutuallyExclusive(managedDatabaseCreateCmd, "nodes-pattern.flavor", "nodes-list")
 	markFlagsMutuallyExclusive(managedDatabaseCreateCmd, "nodes-pattern.number", "nodes-list")
 	markFlagsMutuallyExclusive(managedDatabaseCreateCmd, "nodes-pattern.region", "nodes-list")
@@ -334,27 +334,27 @@ Network update:
   Changing the network triggers a service rebuild. The service will be temporarily unavailable
   during the transition.
 `,
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.EditManagedDatabase,
 		Args:              cobra.ExactArgs(1),
 	}
 
 	// Database details
-	managedDatabaseEditCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.Backups.Regions, "backups-regions", nil, "Regions on which the backups are stored")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.Backups.Time, "backups-time", "", "Time on which backups start every day")
-	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseSpec.DeletionProtection, "deletion-protection", false, "Enable deletion protection")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.Description, "description", "", "Description of the cluster")
-	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseSpec.EnablePrometheus, "enable-prometheus", false, "Enable Prometheus")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.NodesPattern.Flavor, "flavor", "", "The VM flavor used for this cluster")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.Plan, "plan", "", "Plan of the cluster")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.Version, "version", "", "Version of the engine deployed on the cluster")
+	managedDatabaseEditCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseEditSpec.Backups.Regions, "backups-regions", nil, "Regions on which the backups are stored")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.Backups.Time, "backups-time", "", "Time on which backups start every day")
+	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseEditSpec.DeletionProtection, "deletion-protection", false, "Enable deletion protection")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.Description, "description", "", "Description of the cluster")
+	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseEditSpec.EnablePrometheus, "enable-prometheus", false, "Enable Prometheus")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.NodesPattern.Flavor, "flavor", "", "The VM flavor used for this cluster")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.Plan, "plan", "", "Plan of the cluster")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.Version, "version", "", "Version of the engine deployed on the cluster")
 
 	// Network configuration
-	managedDatabaseEditCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.CLINetworkID, "network-id", "", "Private network ID")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.CLISubnetID, "subnet-id", "", "Private subnet ID")
-	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseSpec.CLIPublicNetwork, "public-network", false, "Switch the service to public network")
+	managedDatabaseEditCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseEditSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.CLINetworkID, "network-id", "", "Private network ID")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.CLISubnetID, "subnet-id", "", "Private subnet ID")
+	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseEditSpec.CLIPublicNetwork, "public-network", false, "Switch the service to public network")
 	managedDatabaseEditCmd.MarkFlagsMutuallyExclusive("public-network", "network-id")
 	managedDatabaseEditCmd.MarkFlagsMutuallyExclusive("public-network", "subnet-id")
 
@@ -372,7 +372,7 @@ func managedDatabaseDatabaseCreateCmd() *cobra.Command {
 
 	ovhcloud cloud managed-database database create <service_id> --name mydb
 `,
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.CreateManagedDatabaseDatabase,
 		Args:              cobra.ExactArgs(1),
 	}
@@ -412,7 +412,7 @@ There are two ways to define the creation parameters:
 
 	ovhcloud cloud managed-database user create <service_id> --name myuser --editor --roles role1,role2
 `,
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.CreateManagedDatabaseUser,
 		Args:              cobra.ExactArgs(1),
 	}
@@ -460,7 +460,7 @@ There are two ways to define the edition parameters:
 
 	ovhcloud cloud managed-database user edit <service_id> <user_id> --editor --roles role1,role2
 `,
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.EditManagedDatabaseUser,
 		Args:              cobra.ExactArgs(2),
 	}
@@ -484,7 +484,7 @@ func managedDatabaseRoleListCmd() *cobra.Command {
 		Use:               "list <service_id>",
 		Aliases:           []string{"ls"},
 		Short:             "List roles in the given managed database service",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/database"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/managedDatabase/service"),
 		Run:               cloud.ListManagedDatabaseRoles,
 		Args:              cobra.ExactArgs(1),
 	}

@@ -1,10 +1,10 @@
 {
-  "description": "Example mysql database",
-  "nodesPattern": {
+  "targetSpec": {
+    "description": "Example mysql database",
     "flavor": "db1-4",
-    "number": 1,
-    "region": "GRA"
-  },
-  "plan": "production",
-  "version": "8"
+    "nodesCount": 1,
+    "plan": "production",
+    "region": "eu-west-gra",
+    "version": "8"
+  }
 }

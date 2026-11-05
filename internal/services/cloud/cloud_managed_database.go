@@ -30,7 +30,7 @@ var (
 	ManagedDatabaseCertificateValidEngines   = []string{"mysql", "postgresql"}
 	ManagedDatabaseBackupRestoreValidEngines = []string{"mongodb"}
 
-	cloudprojectManagedDatabaseColumnsToDisplay             = []string{"id", "engine", "version", "description", "status"}
+	cloudprojectManagedDatabaseColumnsToDisplay             = []string{"id", "engine", "currentState.version version", "currentState.description description", "currentState.status status"}
 	cloudprojectManagedDatabaseDatabaseColumnsToDisplay     = []string{"id", "name", "default"}
 	cloudprojectManagedDatabaseUserWithRoleColumnsToDisplay = []string{"id", "username", "status", "roles", "createdAt"}
 	cloudprojectManagedDatabaseUserColumnsToDisplay         = []string{"id", "username", "status", "createdAt"}
@@ -55,41 +55,38 @@ var (
 	ManagedDatabaseUserCreationExample string
 
 	ManagedDatabaseSpec struct {
+		TargetSpec databaseAnalyticsTargetSpec `json:"targetSpec,omitzero"`
+
+		// Extra fields for CLI only
+		Engine            string   `json:"-"`
+		CLIDiskSize       int      `json:"-"`
+		CLIIPRestrictions []string `json:"-"`
+		CLINodesList      []string `json:"-"`
+	}
+
+	// ManagedDatabaseEditSpec holds the parameters of the edit command, which
+	// still uses API v1.
+	ManagedDatabaseEditSpec struct {
 		Backups struct {
 			Regions []string `json:"regions,omitempty"`
 			Time    string   `json:"time,omitempty"`
 		} `json:"backups,omitzero"`
-		DeletionProtection bool   `json:"deletionProtection,omitempty"`
-		Description        string `json:"description,omitempty"`
-		Disk               struct {
-			Size int `json:"size,omitempty"`
-		} `json:"disk,omitzero"`
-		EnablePrometheus bool `json:"enablePrometheus,omitempty"`
-		ForkFrom         struct {
-			BackupID    string `json:"backupId,omitempty"`
-			PointInTime string `json:"pointInTime,omitempty"`
-			ServiceID   string `json:"serviceId,omitempty"`
-		} `json:"forkFrom,omitzero"`
-		IPRestrictions  []managedDatabaseIPRestriction `json:"ipRestrictions,omitempty"`
-		MaintenanceTime string                         `json:"maintenanceTime,omitempty"`
-		NetworkID       string                         `json:"networkId,omitempty"`
-		NodesList       []managedDatabaseNode          `json:"nodesList,omitempty"`
-		NodesPattern    struct {
+		DeletionProtection bool                           `json:"deletionProtection,omitempty"`
+		Description        string                         `json:"description,omitempty"`
+		EnablePrometheus   bool                           `json:"enablePrometheus,omitempty"`
+		IPRestrictions     []managedDatabaseIPRestriction `json:"ipRestrictions,omitempty"`
+		MaintenanceTime    string                         `json:"maintenanceTime,omitempty"`
+		NodesPattern       struct {
 			Flavor string `json:"flavor,omitempty"`
-			Number int    `json:"number,omitempty"`
-			Region string `json:"region,omitempty"`
 		} `json:"nodesPattern,omitzero"`
-		Plan     string `json:"plan,omitempty"`
-		SubnetID string `json:"subnetId,omitempty"`
-		Version  string `json:"version,omitempty"`
+		Plan    string `json:"plan,omitempty"`
+		Version string `json:"version,omitempty"`
 
 		// Extra fields for CLI only
-		Engine            string   `json:"-"`
 		CLIIPRestrictions []string `json:"-"`
-		CLINodesList      []string `json:"-"`
-		CLINetworkID    string `json:"-"`
-		CLISubnetID     string `json:"-"`
-		CLIPublicNetwork bool  `json:"-"`
+		CLINetworkID      string   `json:"-"`
+		CLISubnetID       string   `json:"-"`
+		CLIPublicNetwork  bool     `json:"-"`
 	}
 
 	ManagedDatabaseDatabaseSpec struct {
@@ -109,12 +106,6 @@ type (
 		IP          string `json:"ip,omitempty"`
 	}
 
-	managedDatabaseNode struct {
-		Flavor string `json:"flavor,omitempty"`
-		Region string `json:"region,omitempty"`
-		Role   string `json:"role,omitempty"`
-	}
-
 	ManagedDatabaseUser struct {
 		Name string `json:"name"`
 
@@ -129,6 +120,21 @@ type (
 	}
 )
 
+// getManagedDatabaseEngine returns the engine of a managed database service,
+// checked against the engines that support the command.
+func getManagedDatabaseEngine(projectID, serviceID string, validEngines []string) (string, error) {
+	engine, _, err := getDatabaseAnalyticsService(projectID, managedDatabaseCategory, serviceID, ManagedDatabaseValidEngines)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch database service: %w", err)
+	}
+
+	if !slices.Contains(validEngines, engine) {
+		return "", fmt.Errorf("invalid engine %s, valid values: %s", engine, strings.Join(validEngines, ", "))
+	}
+
+	return engine, nil
+}
+
 func ListManagedDatabases(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -136,10 +142,7 @@ func ListManagedDatabases(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequest(fmt.Sprintf("/v1/cloud/project/%s/database/service", projectID),
-		"",
-		cloudprojectManagedDatabaseColumnsToDisplay,
-		append(flags.GenericFilters, `category == "operational"`))
+	listDatabaseAnalyticsServices(projectID, managedDatabaseCategory, ManagedDatabaseValidEngines, cloudprojectManagedDatabaseColumnsToDisplay)
 }
 
 func GetManagedDatabase(_ *cobra.Command, args []string) {
@@ -149,21 +152,13 @@ func GetManagedDatabase(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
+	_, databaseService, err := getDatabaseAnalyticsService(projectID, managedDatabaseCategory, args[0], ManagedDatabaseValidEngines)
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedDatabaseValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseValidEngines, ", "))
-		return
-	}
-
-	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/database/service", projectID),
-		args[0],
-		managedDatabaseTemplate)
+	display.OutputObject(databaseService, args[0], managedDatabaseTemplate, &flags.OutputFormatConfig)
 }
 
 func CreateManagedDatabasePreRun(_ *cobra.Command, _ []string) error {
@@ -181,32 +176,24 @@ func CreateManagedDatabase(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Parse IP restrictions
-	for _, restriction := range ManagedDatabaseSpec.CLIIPRestrictions {
-		ManagedDatabaseSpec.IPRestrictions = append(ManagedDatabaseSpec.IPRestrictions, managedDatabaseIPRestriction{IP: restriction})
+	spec := ManagedDatabaseSpec
+	spec.TargetSpec.Network.AuthorizedIps = newAuthorizedIps(spec.CLIIPRestrictions)
+	if spec.CLIDiskSize > 0 {
+		spec.TargetSpec.Storage.Size = &databaseAnalyticsUnitAndValue{Unit: "GB", Value: spec.CLIDiskSize}
 	}
-
-	// Parse nodes list
-	for _, node := range ManagedDatabaseSpec.CLINodesList {
-		parts := strings.Split(node, ":")
-		if len(parts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "invalid node format: %s (expected format: flavor1:region1,flavor2:region2...)", node)
-			return
-		}
-		ManagedDatabaseSpec.NodesList = append(ManagedDatabaseSpec.NodesList, managedDatabaseNode{
-			Flavor: parts[0],
-			Region: parts[1],
-		})
+	if err := spec.TargetSpec.setNodes(spec.CLINodesList); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
 	}
 
 	managedDatabase, err := common.CreateResource(
 		cmd,
-		fmt.Sprintf("/cloud/project/{serviceName}/database/%s", url.PathEscape(ManagedDatabaseSpec.Engine)),
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s", projectID, url.PathEscape(ManagedDatabaseSpec.Engine)),
+		fmt.Sprintf("/publicCloud/project/{projectId}/managedDatabase/%s", spec.Engine),
+		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, spec.Engine),
 		ManagedDatabaseCreationExample,
-		ManagedDatabaseSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"version", "plan"})
+		spec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec.version", "targetSpec.plan", "targetSpec.flavor", "targetSpec.region"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create managed database: %s", err)
 		return
@@ -235,21 +222,21 @@ func EditManagedDatabase(cmd *cobra.Command, args []string) {
 	}
 
 	// Parse IP restrictions
-	for _, restriction := range ManagedDatabaseSpec.CLIIPRestrictions {
-		ManagedDatabaseSpec.IPRestrictions = append(ManagedDatabaseSpec.IPRestrictions, managedDatabaseIPRestriction{IP: restriction})
+	for _, restriction := range ManagedDatabaseEditSpec.CLIIPRestrictions {
+		ManagedDatabaseEditSpec.IPRestrictions = append(ManagedDatabaseEditSpec.IPRestrictions, managedDatabaseIPRestriction{IP: restriction})
 	}
 
 	// Build extra network fields that bypass the OpenAPI filter
 	var networkFields map[string]any
-	if ManagedDatabaseSpec.CLIPublicNetwork {
+	if ManagedDatabaseEditSpec.CLIPublicNetwork {
 		networkFields = map[string]any{
 			"networkId": nil,
 			"subnetId":  nil,
 		}
-	} else if ManagedDatabaseSpec.CLINetworkID != "" {
+	} else if ManagedDatabaseEditSpec.CLINetworkID != "" {
 		networkFields = map[string]any{
-			"networkId": ManagedDatabaseSpec.CLINetworkID,
-			"subnetId":  ManagedDatabaseSpec.CLISubnetID,
+			"networkId": ManagedDatabaseEditSpec.CLINetworkID,
+			"subnetId":  ManagedDatabaseEditSpec.CLISubnetID,
 		}
 	}
 
@@ -259,7 +246,7 @@ func EditManagedDatabase(cmd *cobra.Command, args []string) {
 		cmd,
 		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}", url.PathEscape(databaseService["engine"].(string))),
 		endpoint,
-		ManagedDatabaseSpec,
+		ManagedDatabaseEditSpec,
 		assets.CloudOpenapiSchema,
 		networkFields,
 	); err != nil {
@@ -275,21 +262,13 @@ func DeleteManagedDatabase(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedDatabaseValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseValidEngines, ", "))
-		return
-	}
-
-	// Delete the database
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]))
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	if err := httpLib.Client.Delete(databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0]), nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete database: %s", err)
 		return
 	}
