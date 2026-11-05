@@ -13,7 +13,6 @@ import (
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
-	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
@@ -23,8 +22,8 @@ import (
 var (
 	ManagedAnalyticsValidEngines            = []string{"clickhouse", "grafana", "kafka", "kafkaConnect", "kafkaMirrorMaker", "opensearch"}
 	ManagedAnalyticsDatabaseValidEngines    = []string{"clickhouse"}
-	ManagedAnalyticsUserEditValidEngines    = []string{"clickhouse", "opensearch"}
-	ManagedAnalyticsUserPostValidEngines    = append(ManagedAnalyticsUserEditValidEngines, "kafka", "kafkaConnect")
+	ManagedAnalyticsUserEditValidEngines    = []string{"opensearch"}
+	ManagedAnalyticsUserPostValidEngines    = []string{"clickhouse", "kafka", "kafkaConnect", "opensearch"}
 	ManagedAnalyticsUserValidEngines        = append(ManagedAnalyticsUserPostValidEngines, "grafana")
 	ManagedAnalyticsRoleValidEngines        = []string{"clickhouse"}
 	ManagedAnalyticsPermissionValidEngines  = []string{"opensearch"}
@@ -37,7 +36,7 @@ var (
 	cloudprojectManagedAnalyticsDatabaseColumnsToDisplay       = []string{"id", "name", "default"}
 	cloudprojectManagedAnalyticsUserColumnsToDisplay           = []string{"id", "username", "status", "createdAt"}
 	cloudprojectManagedAnalyticsClickhouseUserColumnsToDisplay = []string{"id", "username", "status", "roles", "createdAt"}
-	cloudprojectManagedAnalyticsRoleColumnsToDisplay           = []string{"role"}
+	cloudprojectManagedAnalyticsRoleColumnsToDisplay           = []string{"name"}
 	cloudprojectManagedAnalyticsPermissionColumnsToDisplay     = []string{"name"}
 	cloudprojectManagedAnalyticsPatternColumnsToDisplay        = []string{"id", "maxIndexCount", "pattern"}
 	cloudprojectManagedAnalyticsBackupColumnsToDisplay         = []string{"id", "createdAt", "type", "status", "description"}
@@ -137,9 +136,6 @@ type (
 	ManagedAnalyticsUser struct {
 		Name string `json:"name"`
 
-		// Clickhouse specific field
-		Roles []string `json:"roles,omitempty"`
-
 		// OpenSearch specific field
 		Acls []managedAnalyticsUserAcl `json:"acls,omitempty"`
 
@@ -152,6 +148,30 @@ type (
 		Permission string `json:"permission"`
 	}
 )
+
+// getManagedAnalyticsEngine returns the engine of a managed analytics service,
+// checked against the engines that support the feature.
+func getManagedAnalyticsEngine(projectID, serviceID string, validEngines []string, feature string) (string, error) {
+	engine, _, err := getDatabaseAnalyticsService(projectID, managedAnalyticsCategory, serviceID, ManagedAnalyticsValidEngines)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch managed analytics service: %w", err)
+	}
+
+	if !slices.Contains(validEngines, engine) {
+		return "", fmt.Errorf("engine %s does not support %s, valid engines: %s", engine, feature, strings.Join(validEngines, ", "))
+	}
+
+	return engine, nil
+}
+
+// managedAnalyticsPermission returns the API v2 value of an ACL permission,
+// accepting the lowercase values of API v1 (readwrite for READ_WRITE).
+func managedAnalyticsPermission(permission string) string {
+	if strings.EqualFold(permission, "readwrite") {
+		return "READ_WRITE"
+	}
+	return strings.ToUpper(permission)
+}
 
 func ListManagedAnalytics(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
@@ -285,22 +305,14 @@ func ListManagedAnalyticsDatabases(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsDatabaseValidEngines, "databases")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedAnalyticsDatabaseValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support databases, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsDatabaseValidEngines, ", "))
-		return
-	}
-
-	common.ManageListRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/database", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
-		"",
+	common.ManageListRequestNoExpand(
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "database"),
 		cloudprojectManagedAnalyticsDatabaseColumnsToDisplay,
 		flags.GenericFilters,
 	)
@@ -313,21 +325,14 @@ func GetManagedAnalyticsDatabase(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedAnalyticsDatabaseValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support databases, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsDatabaseValidEngines, ", "))
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsDatabaseValidEngines, "databases")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	common.ManageObjectRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/database", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "database"),
 		args[1],
 		managedAnalyticsDatabaseTemplate,
 	)
@@ -340,28 +345,18 @@ func CreateManagedAnalyticsDatabase(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsDatabaseValidEngines, "databases")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-
-	if !slices.Contains(ManagedAnalyticsDatabaseValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support databases, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsDatabaseValidEngines, ", "))
-		return
-	}
-
-	endpoint := fmt.Sprintf(
-		"/v1/cloud/project/%s/database/%s/%s/database",
-		projectID,
-		url.PathEscape(analyticsService["engine"].(string)),
-		url.PathEscape(args[0]),
-	)
 
 	var database map[string]any
-	if err := httpLib.Client.Post(endpoint, &ManagedAnalyticsDatabaseSpec, &database); err != nil {
+	if err := httpLib.Client.Post(
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "database"),
+		&ManagedAnalyticsDatabaseSpec,
+		&database,
+	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create database: %s", err)
 		return
 	}
@@ -376,28 +371,13 @@ func DeleteManagedAnalyticsDatabase(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsDatabaseValidEngines, "databases")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedAnalyticsDatabaseValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support databases, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsDatabaseValidEngines, ", "))
-		return
-	}
-
-	// Delete the database in the given analytics cluster
-	endpoint := fmt.Sprintf(
-		"/v1/cloud/project/%s/database/%s/%s/database/%s",
-		projectID,
-		url.PathEscape(analyticsService["engine"].(string)),
-		url.PathEscape(args[0]),
-		url.PathEscape(args[1]),
-	)
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	if err := httpLib.Client.Delete(databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "database", args[1]), nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete database: %s", err)
 		return
 	}
@@ -412,27 +392,19 @@ func ListManagedAnalyticsUsers(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedAnalyticsUserValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support users, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsUserValidEngines, ", "))
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsUserValidEngines, "users")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	columnsToDisplay := cloudprojectManagedAnalyticsUserColumnsToDisplay
-	if analyticsService["engine"].(string) == "clickhouse" {
+	if engine == "clickhouse" {
 		columnsToDisplay = cloudprojectManagedAnalyticsClickhouseUserColumnsToDisplay
 	}
 
-	common.ManageListRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
-		"",
+	common.ManageListRequestNoExpand(
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "user"),
 		columnsToDisplay,
 		flags.GenericFilters,
 	)
@@ -445,21 +417,14 @@ func GetManagedAnalyticsUser(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedAnalyticsUserValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support users, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsUserValidEngines, ", "))
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsUserValidEngines, "users")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	common.ManageObjectRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "user"),
 		args[1],
 		managedAnalyticsUserTemplate,
 	)
@@ -472,47 +437,27 @@ func CreateManagedAnalyticsUser(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedAnalyticsUserPostValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support users, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsUserPostValidEngines, ", "))
-		return
-	}
-
-	// Parse ACLs
-	for _, acl := range ManagedAnalyticsUserSpec.CLIAcls {
-		parts := strings.SplitN(acl, ":", 2)
-		if len(parts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "invalid acl format: %s (expected format: pattern:permission)", acl)
-			return
-		}
-		ManagedAnalyticsUserSpec.Acls = append(ManagedAnalyticsUserSpec.Acls, managedAnalyticsUserAcl{
-			Pattern:    parts[0],
-			Permission: parts[1],
-		})
-	}
-
-	if err := ManagedAnalyticsUserSpec.validateForEngine(analyticsService["engine"].(string)); err != nil {
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsUserPostValidEngines, "users")
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	userSpec := ManagedAnalyticsUserSpec.forEngine(analyticsService["engine"].(string))
+	userSpec, err := ManagedAnalyticsUserSpec.forEngine(engine)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
 
 	user, err := common.CreateResource(
 		cmd,
-		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}/user", url.PathEscape(analyticsService["engine"].(string))),
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
+		fmt.Sprintf("/publicCloud/project/{projectId}/managedAnalytics/%s/{serviceId}/user", engine),
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "user"),
 		ManagedAnalyticsUserCreationExample,
 		userSpec,
-		assets.CloudOpenapiSchema,
-		nil)
+		assets.CloudV2OpenapiSchema,
+		nil,
+	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create user: %s", err)
 		return
@@ -529,46 +474,24 @@ func EditManagedAnalyticsUser(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedAnalyticsUserEditValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support users, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsUserEditValidEngines, ", "))
-		return
-	}
-
-	// Parse ACLs
-	for _, acl := range ManagedAnalyticsUserSpec.CLIAcls {
-		parts := strings.SplitN(acl, ":", 2)
-		if len(parts) != 2 {
-			display.OutputError(&flags.OutputFormatConfig, "invalid acl format: %s (expected format: pattern:permission)", acl)
-			return
-		}
-		ManagedAnalyticsUserSpec.Acls = append(ManagedAnalyticsUserSpec.Acls, managedAnalyticsUserAcl{
-			Pattern:    parts[0],
-			Permission: parts[1],
-		})
-	}
-
-	if err := ManagedAnalyticsUserSpec.validateForEngine(analyticsService["engine"].(string)); err != nil {
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsUserEditValidEngines, "user edition")
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	userSpec := ManagedAnalyticsUserSpec.forEngine(analyticsService["engine"].(string))
+	userSpec, err := ManagedAnalyticsUserSpec.forEngine(engine)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
 
-	// Edit resource
 	if err := common.EditResource(
 		cmd,
-		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}/user/{userId}", url.PathEscape(analyticsService["engine"].(string))),
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/user/%s", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0]), url.PathEscape(args[1])),
+		fmt.Sprintf("/publicCloud/project/{projectId}/managedAnalytics/%s/{serviceId}/user/{userId}", engine),
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "user", args[1]),
 		userSpec,
-		assets.CloudOpenapiSchema,
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -582,28 +505,13 @@ func DeleteManagedAnalyticsUser(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsUserPostValidEngines, "users")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedAnalyticsUserPostValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support users, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsUserPostValidEngines, ", "))
-		return
-	}
-
-	// Delete the user in the given analytics cluster
-	endpoint := fmt.Sprintf(
-		"/v1/cloud/project/%s/database/%s/%s/user/%s",
-		projectID,
-		url.PathEscape(analyticsService["engine"].(string)),
-		url.PathEscape(args[0]),
-		url.PathEscape(args[1]),
-	)
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	if err := httpLib.Client.Delete(databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "user", args[1]), nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete user: %s", err)
 		return
 	}
@@ -618,29 +526,14 @@ func ResetManagedAnalyticsUserCredentials(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsUserValidEngines, "users")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedAnalyticsUserValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support users, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsUserValidEngines, ", "))
-		return
-	}
-
-	endpoint := fmt.Sprintf(
-		"/v1/cloud/project/%s/database/%s/%s/user/%s/credentials/reset",
-		projectID,
-		url.PathEscape(analyticsService["engine"].(string)),
-		url.PathEscape(args[0]),
-		url.PathEscape(args[1]),
-	)
-
-	var user map[string]any
-	if err := httpLib.Client.Post(endpoint, nil, &user); err != nil {
+	user, err := resetDatabaseAnalyticsUserCredentials(databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "user", args[1]))
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to reset user credentials: %s", err)
 		return
 	}
@@ -649,25 +542,27 @@ func ResetManagedAnalyticsUserCredentials(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "⚠️ Save this password now, it will not be shown again:\n\nPassword: %s", user["password"])
 }
 
-func (s ManagedAnalyticsUser) validateForEngine(engine string) error {
-	if len(s.Roles) > 0 && engine != "clickhouse" {
-		return fmt.Errorf("flag --roles is only supported for the clickhouse engine")
-	}
-	if len(s.Acls) > 0 && engine != "opensearch" {
-		return fmt.Errorf("flag --acl is only supported for the opensearch engine")
-	}
-	return nil
-}
-
-func (s ManagedAnalyticsUser) forEngine(engine string) ManagedAnalyticsUser {
+// forEngine returns the user to send for the engine, with its ACLs parsed from
+// the command line, or an error when a flag does not apply to the engine.
+func (s ManagedAnalyticsUser) forEngine(engine string) (ManagedAnalyticsUser, error) {
 	result := ManagedAnalyticsUser{Name: s.Name}
-	switch engine {
-	case "clickhouse":
-		result.Roles = s.Roles
-	case "opensearch":
-		result.Acls = s.Acls
+
+	if len(s.CLIAcls) > 0 && engine != "opensearch" {
+		return result, fmt.Errorf("flag --acl is only supported for the opensearch engine")
 	}
-	return result
+
+	for _, acl := range s.CLIAcls {
+		parts := strings.SplitN(acl, ":", 2)
+		if len(parts) != 2 {
+			return result, fmt.Errorf("invalid acl format: %s (expected format: pattern:permission)", acl)
+		}
+		result.Acls = append(result.Acls, managedAnalyticsUserAcl{
+			Pattern:    parts[0],
+			Permission: managedAnalyticsPermission(parts[1]),
+		})
+	}
+
+	return result, nil
 }
 
 func ListManagedAnalyticsRoles(_ *cobra.Command, args []string) {
@@ -677,39 +572,17 @@ func ListManagedAnalyticsRoles(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedAnalyticsRoleValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedAnalyticsRoleValidEngines, ", "))
-		return
-	}
-
-	var rawRoles []string
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/roles", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0])),
-		&rawRoles); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch roles: %s", err)
-		return
-	}
-
-	rows := make([]map[string]any, len(rawRoles))
-	for i, role := range rawRoles {
-		rows[i] = map[string]any{"role": role}
-	}
-
-	filteredRows, err := filtersLib.FilterLines(rows, flags.GenericFilters)
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsRoleValidEngines, "roles")
 	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	display.RenderTable(filteredRows, cloudprojectManagedAnalyticsRoleColumnsToDisplay, &flags.OutputFormatConfig)
+	common.ManageListRequestNoExpand(
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "roles"),
+		cloudprojectManagedAnalyticsRoleColumnsToDisplay,
+		flags.GenericFilters,
+	)
 }
 
 func ListManagedAnalyticsPermissions(_ *cobra.Command, args []string) {
@@ -889,22 +762,14 @@ func GetManagedAnalyticsCertificates(_ *cobra.Command, args []string) {
 		return
 	}
 
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch analytics service: %s", err)
-		return
-	}
-
-	if !slices.Contains(ManagedAnalyticsCertificateValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "engine %s does not support certificates, valid engines: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsCertificateValidEngines, ", "))
+	engine, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsCertificateValidEngines, "certificates")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
 	var certificate map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/certificates", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
-		&certificate); err != nil {
+	if err := httpLib.Client.Get(databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "certificates"), &certificate); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch certificate: %s", err)
 		return
 	}
@@ -919,21 +784,13 @@ func ListManagedAnalyticsBackups(_ *cobra.Command, args []string) {
 		return
 	}
 
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch analytics service: %s", err)
+	if _, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsBackupValidEngines, "backups"); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedAnalyticsBackupValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsBackupValidEngines, ", "))
-		return
-	}
-
-	common.ManageListRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/backup", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
-		"",
+	common.ManageListRequestNoExpand(
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, "backup")+"?serviceId="+url.QueryEscape(args[0]),
 		cloudprojectManagedAnalyticsBackupColumnsToDisplay,
 		flags.GenericFilters,
 	)
@@ -946,23 +803,12 @@ func GetManagedAnalyticsBackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(
-		fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch analytics service: %s", err)
+	if _, err := getManagedAnalyticsEngine(projectID, args[0], ManagedAnalyticsBackupValidEngines, "backups"); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedAnalyticsBackupValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsBackupValidEngines, ", "))
-		return
-	}
-
-	common.ManageObjectRequest(
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s/backup", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
-		args[1],
-		managedAnalyticsBackupTemplate,
-	)
+	getDatabaseAnalyticsBackup(projectID, managedAnalyticsCategory, args[0], args[1], managedAnalyticsBackupTemplate)
 }
 
 func ListManagedAnalyticsTopics(_ *cobra.Command, args []string) {

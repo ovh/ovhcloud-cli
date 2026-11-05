@@ -1,19 +1,13 @@
 ## ovhcloud cloud managed-analytics user edit
 
-Edit a user in the given managed analytics service
+Edit a user in the given managed analytics service (opensearch only)
 
 ### Synopsis
 
-Use this command to edit a user in the given managed analytics service.
+Use this command to edit a user in the given managed analytics service (opensearch only).
 There are two ways to define the edition parameters:
 
 1. Using only CLI flags:
-
-  For Clickhouse engine:
-
-	ovhcloud cloud managed-analytics user edit <service_id> <user_id> --roles role1,role2
-
-  For OpenSearch engine:
 
 	ovhcloud cloud managed-analytics user edit <service_id> <user_id> --acls "logs-.*:write" --acls "metrics-.*:read"
 
@@ -24,7 +18,7 @@ There are two ways to define the edition parameters:
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud managed-analytics user edit <service_id> <user_id> --editor --roles role1,role2
+	ovhcloud cloud managed-analytics user edit <service_id> <user_id> --editor --acls "logs-.*:write"
 
 
 ```
@@ -37,7 +31,6 @@ ovhcloud cloud managed-analytics user edit <service_id> <user_id> [flags]
       --acls stringArray   ACL granted to the user (opensearch only, format: pattern:permission)
       --editor             Use a text editor to define parameters
   -h, --help               help for edit
-      --roles strings      Roles granted to the user (clickhouse only)
 ```
 
 ### Options inherited from parent commands
