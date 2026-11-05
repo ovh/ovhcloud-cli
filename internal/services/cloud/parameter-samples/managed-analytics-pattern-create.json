@@ -1,4 +1,4 @@
 {
   "pattern": "my-index-*",
-  "maxIndexCount": 10
+  "maximumIndexCount": 10
 }
