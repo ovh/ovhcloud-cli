@@ -244,6 +244,38 @@ func (ms *MockSuite) TestManagedDatabaseEditWithEditorCmd(assert, require *td.T)
 	assert.String(out, `✅ Resource updated successfully`)
 }
 
+func (ms *MockSuite) TestManagedDatabaseEditWithEditorReplacesListCmd(assert, require *td.T) {
+	// The editor saves the file unchanged
+	assert.Setenv("EDITOR", "true")
+	registerDatabaseAnalyticsProbe("managedDatabase", cloud.ManagedDatabaseValidEngines, "postgresql", "fakeDatabaseID", `{
+		"id": "fakeDatabaseID",
+		"targetSpec": {
+			"description": "test db",
+			"network": {"authorizedIps": {"rules": [{"cidr": "192.0.2.10/32", "description": "office"}]}},
+			"backup": {"regions": ["eu-west-gra"], "time": "02:00"}
+		}
+	}`)
+
+	httpmock.RegisterMatcherResponder(http.MethodPatch,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/postgresql/fakeDatabaseID",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"description": "test db",
+					"network": {"authorizedIps": {"rules": [{"cidr": "198.51.100.0/24"}]}},
+					"backup": {"regions": ["eu-west-sbg"], "time": "02:00"}
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, fullDBServiceResponse),
+	)
+
+	out, err := cmd.Execute("cloud", "managed-database", "edit", "fakeDatabaseID", "--cloud-project", "fakeProjectID", "--editor", "--ip-restrictions", "198.51.100.0/24", "--backups-regions", "eu-west-sbg")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ Resource updated successfully`)
+}
+
 func (ms *MockSuite) TestManagedDatabaseEditNetworkCmd(assert, require *td.T) {
 	registerManagedDatabaseProbe("postgresql")
 

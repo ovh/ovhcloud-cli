@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 
+	"dario.cat/mergo"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/editor"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
@@ -352,7 +353,9 @@ func PatchResource(path, url string, cliParams any, openapiSpec []byte) error {
 		return fmt.Errorf("failed to extract writable properties: %w", err)
 	}
 
-	if err := utils.MergeMaps(editableBody, body); err != nil {
+	// A list given on the command line replaces the current one, as in the
+	// PATCH sent without --editor.
+	if err := mergo.Merge(&editableBody, body, mergo.WithOverride); err != nil {
 		return fmt.Errorf("failed to merge CLI parameters into the resource: %w", err)
 	}
 
