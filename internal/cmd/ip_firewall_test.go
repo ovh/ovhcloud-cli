@@ -112,7 +112,7 @@ func (ms *MockSuite) TestIpFirewallDeleteCmd(assert, require *td.T) {
 		httpmock.NewStringResponder(200, ``),
 	)
 
-	out, err := cmd.Execute("ip", "firewall", "delete", testFirewallIPBlock, testFirewallIP)
+	out, err := cmd.Execute("ip", "firewall", "delete", testFirewallIPBlock, testFirewallIP, "--yes")
 
 	require.CmpNoError(err)
 	assert.String(out, "✅ Firewall and all rules successfully removed for "+testFirewallIP)
@@ -325,7 +325,7 @@ func (ms *MockSuite) TestIpFirewallRuleDeleteCmd(assert, require *td.T) {
 	)
 
 	out, err := cmd.Execute("ip", "firewall", "rule", "delete",
-		testFirewallIPBlock, testFirewallIP, "5")
+		testFirewallIPBlock, testFirewallIP, "5", "--yes")
 
 	require.CmpNoError(err)
 	assert.String(out, "✅ Rule #5 successfully deleted")

@@ -75,13 +75,15 @@ func init() {
 	addInteractiveEditorFlag(iamPolicyEditCmd)
 	iamPolicyCmd.AddCommand(iamPolicyEditCmd)
 
-	iamPolicyCmd.AddCommand(&cobra.Command{
+	iamPolicyDeleteCmd := &cobra.Command{
 		Use:               "delete <policy_id>",
 		Short:             "Delete a specific IAM policy",
 		ValidArgsFunction: completion.ServiceList("/v2/iam/policy"),
 		Run:               iam.DeleteIAMPolicy,
 		Args:              cobra.ExactArgs(1),
-	})
+	}
+	addConfirmationFlags(iamPolicyDeleteCmd, "Print the call that would be made without making it")
+	iamPolicyCmd.AddCommand(iamPolicyDeleteCmd)
 
 	iamPermissionsGroupCmd := &cobra.Command{
 		Use:   "permissions-group",
@@ -207,13 +209,15 @@ func init() {
 	iamUserCmd.AddCommand(getUserCreateCmd())
 	iamUserCmd.AddCommand(getUserEditCmd())
 
-	iamUserCmd.AddCommand(&cobra.Command{
+	iamUserDeleteCmd := &cobra.Command{
 		Use:               "delete <user_login>",
 		Short:             "Delete a specific IAM user",
 		ValidArgsFunction: completion.ServiceList("/v1/me/identity/user"),
 		Run:               iam.DeleteUser,
 		Args:              cobra.ExactArgs(1),
-	})
+	}
+	addConfirmationFlags(iamUserDeleteCmd, "Print the call that would be made without making it")
+	iamUserCmd.AddCommand(iamUserDeleteCmd)
 
 	tokenCmd := &cobra.Command{
 		Use:   "token",
@@ -249,13 +253,15 @@ func init() {
 	tokenCreateCmd.Flags().IntVar(&iam.TokenSpec.ExpiresIn, "expiresIn", 0, "Number of seconds before the token expires")
 	tokenCmd.AddCommand(tokenCreateCmd)
 
-	tokenCmd.AddCommand(&cobra.Command{
+	tokenDeleteCmd := &cobra.Command{
 		Use:               "delete <user_login> <token_name>",
 		Short:             "Delete a specific token of an IAM user",
 		ValidArgsFunction: completion.ServiceList("/v1/me/identity/user"),
 		Run:               iam.DeleteUserToken,
 		Args:              cobra.ExactArgs(2),
-	})
+	}
+	addConfirmationFlags(tokenDeleteCmd, "Print the call that would be made without making it")
+	tokenCmd.AddCommand(tokenDeleteCmd)
 
 	rootCmd.AddCommand(iamCmd)
 }
