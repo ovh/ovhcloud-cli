@@ -31,6 +31,7 @@ Retrieve information and manage your Bare Metal services
 
 * [ovhcloud](ovhcloud.md)	 - CLI to manage your OVHcloud services
 * [ovhcloud baremetal boot](ovhcloud_baremetal_boot.md)	 - Manage boot options for the given baremetal
+* [ovhcloud baremetal credentials](ovhcloud_baremetal_credentials.md)	 - Manage access credentials of the given baremetal
 * [ovhcloud baremetal edit](ovhcloud_baremetal_edit.md)	 - Update the given baremetal
 * [ovhcloud baremetal get](ovhcloud_baremetal_get.md)	 - Retrieve information of a specific baremetal
 * [ovhcloud baremetal ipmi](ovhcloud_baremetal_ipmi.md)	 - Manage IPMI on your baremetal
@@ -39,7 +40,6 @@ Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal list-interventions](ovhcloud_baremetal_list-interventions.md)	 - List past and planned interventions for the given baremetal
 * [ovhcloud baremetal list-ips](ovhcloud_baremetal_list-ips.md)	 - List all IPs that are routed to the given baremetal
 * [ovhcloud baremetal list-os](ovhcloud_baremetal_list-os.md)	 - List all OSes available at OVHcloud
-* [ovhcloud baremetal list-secrets](ovhcloud_baremetal_list-secrets.md)	 - Retrieve secrets to connect to the server
 * [ovhcloud baremetal list-tasks](ovhcloud_baremetal_list-tasks.md)	 - Retrieve tasks of the given baremetal
 * [ovhcloud baremetal reboot](ovhcloud_baremetal_reboot.md)	 - Reboot the given baremetal
 * [ovhcloud baremetal reboot-rescue](ovhcloud_baremetal_reboot-rescue.md)	 - Reboot the given baremetal in rescue mode

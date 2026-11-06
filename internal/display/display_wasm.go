@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 
@@ -207,6 +208,18 @@ func OutputInfo(outputFormat *OutputFormat, details any, message string, params 
 
 func OutputError(outputFormat *OutputFormat, message string, params ...any) {
 	exitError(message, params...)
+}
+
+// OutputNotice writes an operational note: something the command is doing,
+// not something it produced.
+//
+// It goes to stderr here too, not through outputf: outputf replaces
+// ResultString, so a note written that way was overwritten by the result
+// rendered after it — or, written last, would have replaced the result. With
+// Go's stock wasm_exec.js, stderr lands in the browser console, which is the
+// closest the browser build has to a diagnostic stream.
+func OutputNotice(message string, params ...any) {
+	fmt.Fprintf(os.Stderr, message+"\n", params...)
 }
 
 func OutputWarning(outputFormat *OutputFormat, message string, params ...any) {
