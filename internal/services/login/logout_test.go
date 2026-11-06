@@ -110,7 +110,7 @@ func TestLogoutRemovesTheKeyEvenWhenRevocationFails(t *testing.T) {
 				httpmock.NewStringResponder(tc.status, `{"message":"nope"}`))
 
 			savedClient, savedCfg, savedPath, savedYes := httpLib.Client, flags.CliConfig, flags.CliConfigPath, LogoutAssumeYes
-			httpLib.Client, flags.CliConfig, flags.CliConfigPath, LogoutAssumeYes = client, cfg, path, true
+			httpLib.Client, flags.CliConfig, flags.CliConfigPath, LogoutAssumeYes = httpLib.NewAPIClient(client), cfg, path, true
 			t.Cleanup(func() {
 				httpLib.Client, flags.CliConfig, flags.CliConfigPath, LogoutAssumeYes = savedClient, savedCfg, savedPath, savedYes
 			})
