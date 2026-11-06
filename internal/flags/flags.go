@@ -39,4 +39,10 @@ var (
 
 	// Flag to indicate whether the command should use a file for input parameters
 	ParametersFile string
+
+	// Flag used by destructive commands to skip the interactive confirmation
+	AssumeYes bool
+
+	// Flag used to display what would be sent to the API without sending it
+	DryRun bool
 )
