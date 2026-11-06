@@ -1,0 +1,17 @@
+{
+  "targetSpec": {
+    "name": "my-endpoint",
+    "description": "My private endpoint",
+    "location": {
+      "region": "GRA11"
+    },
+    "service": {
+      "name": "my-service",
+      "tier": "S"
+    },
+    "subnet": {
+      "id": "00000000-0000-0000-0000-000000000000"
+    },
+    "publicDnsEnabled": false
+  }
+}
