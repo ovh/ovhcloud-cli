@@ -28,7 +28,7 @@ const (
 
 type (
 	// databaseAnalyticsTargetSpec is the targetSpec of a managed database or
-	// analytics service creation.
+	// analytics service creation, and of its update (PATCH).
 	databaseAnalyticsTargetSpec struct {
 		Backup struct {
 			Regions []string `json:"regions,omitempty"`
@@ -192,8 +192,8 @@ func (s *databaseAnalyticsTargetSpec) setNodes(nodes []string) error {
 
 // resetDatabaseAnalyticsUserCredentials resets the password of the user at
 // endpoint and returns the user with its new password. The keys created by
-// "ovhcloud login" grant no PATCH, so the reset uses resetPassword rather than a
-// PATCH of credentialsLastUpdatedAt.
+// "ovhcloud login" before it asked for PATCH grant none, so the reset uses
+// resetPassword rather than a PATCH of credentialsLastUpdatedAt.
 func resetDatabaseAnalyticsUserCredentials(endpoint string) (map[string]any, error) {
 	var user map[string]any
 	if err := httpLib.Client.Post(endpoint+"/resetPassword", nil, &user); err != nil {

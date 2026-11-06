@@ -194,67 +194,133 @@ func (ms *MockSuite) TestManagedDatabaseCreateInvalidEngineCmd(assert, require *
 }
 
 func (ms *MockSuite) TestManagedDatabaseEditCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeDatabaseID",
-		httpmock.NewStringResponder(200, `{
-				"id": "fakeDatabaseID",
-				"engine": "mysql"
-		}`),
-	)
+	registerManagedDatabaseProbe("mysql")
 
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/mysql/fakeDatabaseID",
-		httpmock.NewStringResponder(200, `{
-			"createdAt": "2025-09-22T14:16:18.506458+02:00",
-			"plan": "essential",
-			"disk": {"type": "high-speed", "size": 80},
-			"storage": {"type": "high-speed", "size": {"unit": "GB", "value": 80}},
-			"id": "fakeDatabaseID",
-			"engine": "mysql",
-			"category": "operational",
-			"ipRestrictions": [],
-			"status": "READY",
-			"nodes": [{"id": "nodeID", "createdAt": "2025-09-22T14:16:18.558113+02:00", "flavor": "db1-4", "name": "mysql-node.database.cloud.ovh.net", "port": 2014, "region": "DE", "status": "READY"}],
-			"nodeNumber": 1,
-			"description": "Default description",
-			"version": "6",
-			"networkType": "public",
-			"flavor": "db1-4",
-			"maintenanceTime": "13:16:00",
-			"backupTime": "09:10:00",
-			"backups": {"time": "09:10:00", "regions": ["DE", "GRA"], "retentionDays": 2, "pitr": "2025-09-24T11:10:11+02:00"},
-			"enablePrometheus": false,
-			"deletionProtection": false
-		}`),
-	)
-
-	httpmock.RegisterMatcherResponder(http.MethodPut,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/mysql/fakeDatabaseID",
+	httpmock.RegisterMatcherResponder(http.MethodPatch,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/mysql/fakeDatabaseID",
 		tdhttpmock.JSONBody(td.JSON(`
 			{
-				"backupTime": "09:10:00",
-				"backups": {"regions": ["DE", "GRA"], "time": "09:10:00"},
-				"deletionProtection": false,
-				"description": "Default description",
-				"disk": {"size": 80},
-				"enablePrometheus": false,
-				"flavor": "db1-4",
-				"ipRestrictions": [],
-				"maintenanceTime": "13:16:00",
-				"nodeNumber": 1,
-				"plan": "discovery",
-				"storage": {"size": {"unit": "GB", "value": 80}},
-				"version": "8"
+				"targetSpec": {
+					"network": {"authorizedIps": {"rules": [{"cidr": "1.2.3.4/32"}]}},
+					"plan": "discovery",
+					"version": "8"
+				}
 			}`),
 		),
-		httpmock.NewStringResponder(200, `{"id": "0f0c43f0-979a-11f0-94fd-0050568ce122"}`),
+		httpmock.NewStringResponder(200, fullDBServiceResponse),
 	)
 
-	out, err := cmd.Execute("cloud", "managed-database", "edit", "fakeDatabaseID", "--cloud-project", "fakeProjectID", "--version", "8", "--plan", "discovery", "-o", "yaml")
+	out, err := cmd.Execute("cloud", "managed-database", "edit", "fakeDatabaseID", "--cloud-project", "fakeProjectID", "--version", "8", "--plan", "discovery", "--ip-restrictions", "1.2.3.4/32", "-o", "yaml")
 
 	require.CmpNoError(err)
 	assert.String(out, `message: ✅ Resource updated successfully
 `)
+}
+
+func (ms *MockSuite) TestManagedDatabaseEditWithEditorCmd(assert, require *td.T) {
+	// The editor saves the file unchanged
+	assert.Setenv("EDITOR", "true")
+	registerManagedDatabaseProbe("mysql")
+
+	httpmock.RegisterMatcherResponder(http.MethodPatch,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/mysql/fakeDatabaseID",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"deletionProtected": false,
+					"description": "new description",
+					"flavor": "db1-4",
+					"plan": "essential",
+					"version": "8"
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, fullDBServiceResponse),
+	)
+
+	out, err := cmd.Execute("cloud", "managed-database", "edit", "fakeDatabaseID", "--cloud-project", "fakeProjectID", "--editor", "--description", "new description")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ Resource updated successfully`)
+}
+
+func (ms *MockSuite) TestManagedDatabaseEditWithEditorReplacesListCmd(assert, require *td.T) {
+	// The editor saves the file unchanged
+	assert.Setenv("EDITOR", "true")
+	registerDatabaseAnalyticsProbe("managedDatabase", cloud.ManagedDatabaseValidEngines, "postgresql", "fakeDatabaseID", `{
+		"id": "fakeDatabaseID",
+		"targetSpec": {
+			"description": "test db",
+			"network": {"authorizedIps": {"rules": [{"cidr": "192.0.2.10/32", "description": "office"}]}},
+			"backup": {"regions": ["eu-west-gra"], "time": "02:00"}
+		}
+	}`)
+
+	httpmock.RegisterMatcherResponder(http.MethodPatch,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedDatabase/postgresql/fakeDatabaseID",
+		tdhttpmock.JSONBody(td.JSON(`
+			{
+				"targetSpec": {
+					"description": "test db",
+					"network": {"authorizedIps": {"rules": [{"cidr": "198.51.100.0/24"}]}},
+					"backup": {"regions": ["eu-west-sbg"], "time": "02:00"}
+				}
+			}`),
+		),
+		httpmock.NewStringResponder(200, fullDBServiceResponse),
+	)
+
+	out, err := cmd.Execute("cloud", "managed-database", "edit", "fakeDatabaseID", "--cloud-project", "fakeProjectID", "--editor", "--ip-restrictions", "198.51.100.0/24", "--backups-regions", "eu-west-sbg")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ Resource updated successfully`)
+}
+
+func (ms *MockSuite) TestManagedDatabaseEditNetworkCmd(assert, require *td.T) {
+	registerManagedDatabaseProbe("postgresql")
+
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/postgresql/fakeDatabaseID",
+		httpmock.NewStringResponder(200, `{"id": "fakeDatabaseID", "description": "test db", "plan": "business", "version": "17", "flavor": "b3-8"}`),
+	)
+	httpmock.RegisterMatcherResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/postgresql/fakeDatabaseID",
+		tdhttpmock.JSONBody(td.SuperJSONOf(`{"description": "test db", "networkId": "fakeNetworkID", "subnetId": "fakeSubnetID"}`)),
+		httpmock.NewStringResponder(200, ``),
+	)
+
+	out, err := cmd.Execute("cloud", "managed-database", "edit", "fakeDatabaseID", "--cloud-project", "fakeProjectID", "--network-id", "fakeNetworkID", "--subnet-id", "fakeSubnetID")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ Resource updated successfully`)
+}
+
+func (ms *MockSuite) TestManagedDatabaseEditPublicNetworkCmd(assert, require *td.T) {
+	registerManagedDatabaseProbe("postgresql")
+
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/postgresql/fakeDatabaseID",
+		httpmock.NewStringResponder(200, `{"id": "fakeDatabaseID", "networkId": "fakeNetworkID", "subnetId": "fakeSubnetID"}`),
+	)
+	httpmock.RegisterMatcherResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/postgresql/fakeDatabaseID",
+		tdhttpmock.JSONBody(td.SuperJSONOf(`{"networkId": null, "subnetId": null}`)),
+		httpmock.NewStringResponder(200, ``),
+	)
+
+	out, err := cmd.Execute("cloud", "managed-database", "edit", "fakeDatabaseID", "--cloud-project", "fakeProjectID", "--public-network")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ Resource updated successfully`)
+}
+
+func (ms *MockSuite) TestManagedDatabaseEditNetworkWithOtherFlagsCmd(assert, require *td.T) {
+	registerManagedDatabaseProbe("postgresql")
+
+	out, err := cmd.Execute("cloud", "managed-database", "edit", "fakeDatabaseID", "--cloud-project", "fakeProjectID", "--public-network", "--description", "new description")
+
+	assert.CmpError(err)
+	assert.Cmp(out, td.Contains("🛑 --network-id, --subnet-id and --public-network cannot be combined with --description"))
 }
 
 func (ms *MockSuite) TestManagedDatabaseDeleteCmd(assert, require *td.T) {

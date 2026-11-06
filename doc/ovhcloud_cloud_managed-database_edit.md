@@ -32,7 +32,8 @@ Network update:
 
 	ovhcloud cloud managed-database edit <service_id> --public-network
 
-  Note: --public-network is mutually exclusive with --network-id and --subnet-id.
+  Note: --public-network is mutually exclusive with --network-id and --subnet-id, and these flags
+  cannot be combined with other flags.
   Changing the network triggers a service rebuild. The service will be temporarily unavailable
   during the transition.
 
@@ -44,8 +45,8 @@ ovhcloud cloud managed-database edit <service_id> [flags]
 ### Options
 
 ```
-      --backups-regions strings   Regions on which the backups are stored
-      --backups-time string       Time on which backups start every day
+      --backups-regions strings   Regions on which the backups are stored (e.g. eu-west-sbg)
+      --backups-time string       Time on which backups start every day (HH:MM, UTC)
       --deletion-protection       Enable deletion protection
       --description string        Description of the cluster
       --editor                    Use a text editor to define parameters
@@ -53,7 +54,7 @@ ovhcloud cloud managed-database edit <service_id> [flags]
       --flavor string             The VM flavor used for this cluster
   -h, --help                      help for edit
       --ip-restrictions strings   IP blocks authorized to access the cluster (CIDR format)
-      --maintenance-time string   Time on which maintenances can start every day
+      --maintenance-time string   Time on which maintenances can start every day (HH:MM, UTC)
       --network-id string         Private network ID
       --plan string               Plan of the cluster
       --public-network            Switch the service to public network

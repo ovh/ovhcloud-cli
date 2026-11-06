@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 
+	"dario.cat/mergo"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/editor"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
@@ -307,6 +308,68 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 
 	// Update API call
 	if err := httpLib.Client.Put(url, json.RawMessage(updatedBody), nil); err != nil {
+		return fmt.Errorf("failed to update resource: %w", err)
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Resource updated successfully")
+
+	return nil
+}
+
+// PatchResource updates the resource at url with a PATCH holding only the
+// parameters given on the command line. With --editor, the editable fields of
+// the current resource, overridden by these parameters, are edited first.
+func PatchResource(path, url string, cliParams any, openapiSpec []byte) error {
+	jsonCliParameters, err := json.Marshal(cliParams)
+	if err != nil {
+		return fmt.Errorf("failed to prepare arguments from command line: %w", err)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(jsonCliParameters, &body); err != nil {
+		return fmt.Errorf("failed to parse arguments from command line: %w", err)
+	}
+
+	if !flags.ParametersViaEditor {
+		if len(body) == 0 {
+			display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
+			return nil
+		}
+
+		if err := httpLib.Client.Patch(url, body, nil); err != nil {
+			return fmt.Errorf("failed to update resource: %w", err)
+		}
+
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Resource updated successfully")
+		return nil
+	}
+
+	var object map[string]any
+	if err := httpLib.Client.Get(url, &object); err != nil {
+		return fmt.Errorf("error fetching resource %s: %w", url, err)
+	}
+
+	editableBody, err := openapi.FilterEditableFields(openapiSpec, path, "patch", object)
+	if err != nil {
+		return fmt.Errorf("failed to extract writable properties: %w", err)
+	}
+
+	// A list given on the command line replaces the current one, as in the
+	// PATCH sent without --editor.
+	if err := mergo.Merge(&editableBody, body, mergo.WithOverride); err != nil {
+		return fmt.Errorf("failed to merge CLI parameters into the resource: %w", err)
+	}
+
+	editableOutput, err := json.MarshalIndent(editableBody, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal writable body: %w", err)
+	}
+
+	updatedBody, err := editor.EditValueWithEditor(editableOutput)
+	if err != nil {
+		return fmt.Errorf("failed to edit properties: %w", err)
+	}
+
+	if err := httpLib.Client.Patch(url, json.RawMessage(updatedBody), nil); err != nil {
 		return fmt.Errorf("failed to update resource: %w", err)
 	}
 
